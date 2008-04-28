@@ -1,5 +1,3 @@
-autoload(:PP, 'pp')
-
 module Tap
   module Support
     
@@ -14,8 +12,13 @@ module Tap
       # Raised when Validation blocks fail.
       class ValidationError < ArgumentError
         def initialize(input, validations)
-          validation_str = PP.singleline_pp(validations, "")
-          super PP.singleline_pp(input, "expected #{validation_str} but was: ")
+          super case 
+          when validations.empty?
+            "no validations specified"
+          else 
+            validation_str = PP.singleline_pp(validations, "")
+            PP.singleline_pp(input, "expected #{validation_str} but was: ")
+          end
         end
       end
       
@@ -24,10 +27,9 @@ module Tap
       # Yaml conversion and checker.  Valid if any of the validations
       # match in a case statement.  Otherwise raises an error.
       
-      # Returns input if any of the validations match the input, as
-      # in a case statement.  Raises a ValidationError otherwise.
-      #
-      # For example:
+      # Returns input if any of the validations match any of the
+      # inputs, as in a case statement.  Raises a ValidationError 
+      # otherwise.  For example:
       #
       #   validate(10, [Integer, nil])
       #
@@ -38,24 +40,34 @@ module Tap
       #   else raise ValidationError.new(...)
       #   end
       #
+      # Note the validations input must be an Array or nil; 
+      # validate will raise an ArgumentError otherwise.  
+      # All inputs are considered VALID if validations == nil.
       def validate(input, validations)
-        case input
-        when *validations then input
-        else
-          raise ValidationError.new(input, validations)
+        case validations
+        when Array
+        
+          case input
+          when *validations then input
+          else raise ValidationError.new(input, validations)
+          end
+          
+        when nil then input
+        else raise ArgumentError.new("validations must be nil, or an array of valid inputs")
         end
       end
       
       # Returns a block that calls validate using the block input
-      # and the input validations.
+      # and the input validations.  Raises an error if no validations
+      # are specified.
       def check(*validations)
+        raise ArgumentError.new("no validations specified") if validations.empty?
         lambda {|input| validate(input, validations) }
       end
     
       # Returns a block that loads input strings as YAML, then
       # calls validate with the result and the input validations.
-      # If the block input is not a string, the block input is 
-      # validated.
+      # Non-string inputs are not converted.
       #
       #   b = yaml(Integer, nil)
       #   b.class                 # => Proc
@@ -64,12 +76,12 @@ module Tap
       #   b.call(nil)             # => nil
       #   b.call("str")           # => ValidationError
       #
-      # Note: yaml is especially useful for validating configs
-      # that may be specified as strings or as an actual object.
+      # If no validations are specified, the result will be 
+      # returned without validation.
       def yaml(*validations)
         lambda do |input|
           res = input.kind_of?(String) ? YAML.load(input) : input
-          validate(res, validations)
+          validations.empty? ? res : validate(res, validations)
         end
       end
     end
