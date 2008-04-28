@@ -15,7 +15,7 @@ module Tap::Generator::Generators
     def manifest
       record do |m|
         task = @app.task(class_name)
-        self.formatted_yaml = task.class.configurations.format_yaml
+        self.formatted_yaml = task.class.configurations.format_yaml(options[:doc])
     
         config_path = @app.relative_filepath(:root, @app[:config])
         
@@ -29,6 +29,11 @@ module Tap::Generator::Generators
         m.template "config.erb", File.join(config_path, class_name.underscore + "#{version}.yml")
         
       end
+    end
+    
+    def add_options!(opt)
+      options[:doc] = true
+      opt.on(nil, '--[no-]doc', 'Generates the config without documentation.') { |value| options[:doc] = value }
     end
     
   end
