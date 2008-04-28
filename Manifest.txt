@@ -1,9 +1,9 @@
 README
 MIT-LICENSE
 History
-Tutorial
-Basic Overview
-Command Reference
+doc/Tutorial
+doc/Basic Overview
+doc/Command Reference
 Rakefile
 bin/tap
 lib/tap/app.rb

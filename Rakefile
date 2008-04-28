@@ -33,7 +33,7 @@ spec = Gem::Specification.new do |s|
   
 	s.has_rdoc = true
   s.rdoc_options << '--title' << 'Tap - Task Application' << '--main' << 'README' 
-	s.extra_rdoc_files = ["README", "MIT-LICENSE", "History", "Tutorial", "Basic Overview", "Command Reference"]
+	s.extra_rdoc_files = ["README", "MIT-LICENSE", "History", "doc/Tutorial", "doc/Basic Overview", "doc/Command Reference"]
   s.add_dependency("activesupport", ">=2.0.1")
 end
 
@@ -74,32 +74,9 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.title    = 'tap'
   rdoc.template = 'tap/support/tdoc/tdoc_html_template' 
   rdoc.options << '--line-numbers' << '--inline-source' << '--fmt' << 'tdoc'
-  rdoc.rdoc_files.include('README', 'MIT-LICENSE', "History", "Tutorial", "Basic Overview", "Command Reference")
+  rdoc.rdoc_files.include('README', 'MIT-LICENSE', "History", "doc/*")
   rdoc.rdoc_files.include('lib/tap/**/*.rb')
 end
-
-# desc 'Generate website.'
-# task :website => [:rdoc] do |t|
-#   require 'tap'
-#   
-#   # temporary
-#   $: << File.dirname(__FILE__) + "/tap/simple_site/lib"
-#   $: << File.dirname(__FILE__) + "/tap/ddb/lib"
-#   Dependencies.load_paths << File.dirname(__FILE__) + "/tap/simple_site/lib"
-#   Dependencies.load_paths << File.dirname(__FILE__) + "/tap/ddb/lib"
-# 
-#   require 'simple_site'
-#   
-#   app = Tap::App.instance
-#   
-#   app['pkg'] = "pkg/website-#{Tap::VERSION}"
-#   app['content'] = 'website/content'
-#   app['views'] = 'website/views'
-#   app.enq 'simple_site/compile', '.'
-#   app.run
-#   
-#   cp_r "rdoc", app.filepath('pkg', "rdoc")
-# end
 
 #
 # Hoe tasks
@@ -110,16 +87,16 @@ task :install_gem => [:package] do
   sh "#{'sudo ' unless WINDOZE}gem install pkg/*.gem"
 end
 
-desc "Publish Website to RubyForge"
-task :publish_website do
+desc "Publish RDoc to RubyForge"
+task :publish_rdoc => [:rdoc] do
   require 'yaml'
   
   config = YAML.load(File.read(File.expand_path("~/.rubyforge/user-config.yml")))
   host = "#{config["username"]}@rubyforge.org"
   
   rsync_args = "-v -c -r"
-  remote_dir = "/var/www/gforge-projects/tap"
-  local_dir = "pkg/website-#{Tap::VERSION}"
+  remote_dir = "/var/www/gforge-projects/tap/rdoc"
+  local_dir = "rdoc"
  
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
 end
