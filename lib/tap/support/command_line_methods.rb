@@ -6,6 +6,23 @@ module Tap
     # Under Construction
     module CommandLineMethods
       
+      # When subclassed, the configurations are duplicated and passed to 
+      # the child class where they can be extended/modified without affecting
+      # the configurations of the parent class.
+      def inherited(child)
+        super
+        child.instance_variable_set(:@source_files, source_files.dup)
+      end
+      
+      # EXPERIMENTAL
+      attr_reader :source_files # :nodoc:
+      
+      # EXPERIMENTAL
+      # Identifies source files for TDoc documentation.
+      def source_file(arg) # :nodoc:
+        source_files << arg
+      end
+      
       # Returns the TDoc documentation for self. 
       def tdoc
         @tdoc ||= Tap::Support::TDoc[self]

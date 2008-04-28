@@ -28,16 +28,6 @@ module Tap
       def inherited(child)
         super
         child.instance_variable_set(:@configurations, ClassConfiguration.new(child, @configurations))
-        child.instance_variable_set(:@source_files, source_files.dup)
-      end
-      
-      # EXPERIMENTAL
-      attr_reader :source_files # :nodoc:
-      
-      # EXPERIMENTAL
-      # Identifies source files for TDoc documentation.
-      def source_file(arg) # :nodoc:
-        source_files << arg
       end
 
       # Declares a configuration without any accessors.
