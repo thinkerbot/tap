@@ -7,30 +7,30 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 # section two
 # line two
 class TaskDocumentation < Tap::Task
-  config :c_nodoc, 'value'                     # :nodoc:
-  config(:c_accessor, 'value')    # c_accessor
+  config :c_nodoc, 'value'                    # :nodoc:
+  config(:c_accessor, 'value')                # c_accessor
   config(:c_validation, 'value')   {|value| } # c_validation
   
   config_reader  
   
-  config :c_reader, 'value'             # c_reader
+  config :c_reader, 'value' # c_reader
   
   declare_config  
   
-  config :c, 'value'       # c
+  config :c, 'value'        # c
   
   # c_conventional
   config :c_conventional, 'value'
   config :c_without_doc, 'value'
  
   # c_multiline1
-  config(:c_multiline, 'value' )     # c_multiline2
+  config(:c_multiline, 'value' )                 # c_multiline2
 
-  config :alt_c, 'value'                                                           # alt_c
+  config :alt_c, 'value'                         # alt_c
   config :alt_c_validation, 'value'  do |value|  # alt_c_validation
   end
-  config :alt_c_without_value                                                    # alt_c_without_value
-  config :alt_c_validation_without_value   do |value|             # alt_c_validation_without_value
+  config :alt_c_without_value                             # alt_c_without_value
+  config :alt_c_validation_without_value   do |value|     # alt_c_validation_without_value
   end
   
   # declare_config
@@ -46,7 +46,7 @@ class TaskDocumentation < Tap::Task
   config_accessor :multi_config_accessor1, :multi_config_accessor2
   
   # attr_accessor
-  attr_accessor :attr_accessor   # ignored
+  attr_accessor :attr_accessor                   # ignored
   attr_accessor :attr_accessor_without_doc
   
   # multi_attr_accessor
@@ -169,7 +169,8 @@ class TDocTest < Test::Unit::TestCase
          {:comment => attribute.original_comment,
          :name => attribute.name,  
          :rw => attribute.rw, 
-         :text => attribute.text}
+         :text => attribute.text,
+         :default => attribute.default}
        else
          {:comment => attribute.comment,
          :name => attribute.name,  
@@ -221,87 +222,104 @@ class TDocTest < Test::Unit::TestCase
      :comment=>nil,
      :name=>"c_accessor",
      :rw=>"RW",
-     :text=>"# c_accessor ('value')"},
+     :text=>"# c_accessor",
+     :default => "'value'"},
     {
      :comment=>nil,
      :name=>"c_validation",
      :rw=>"RW",
-     :text=>"# c_validation ('value')"},
+     :text=>"# c_validation",
+      :default => "'value'"},
     {
      :comment=>nil,
      :name=>"c_reader",
      :rw=>"R",
-     :text=>"# c_reader ('value')"},
+     :text=>"# c_reader",
+     :default => "'value'"},
     {
      :comment=>nil,
      :name=>"c",
      :rw=>nil,
-     :text=>"# c ('value')"},
+     :text=>"# c",
+     :default => "'value'"},
     {
      :comment=>"# c_conventional\n",
      :name=>"c_conventional",
      :rw=>nil,
-     :text=>" ('value')"},
+     :text=>"",
+     :default => "'value'"},
     {
      :comment=>nil,
      :name=>"c_without_doc",
      :rw=>nil,
-     :text=>" ('value')"},
+     :text=>"",
+     :default => "'value'"},
     {
      :comment=>"# c_multiline1\n",
      :name=>"c_multiline",
      :rw=>nil,
-     :text=>"# c_multiline2 ('value')"},
+     :text=>"# c_multiline2",
+     :default => "'value'"},
     {
      :comment=>nil,
      :name=>"alt_c",
      :rw=>nil,
-     :text=>"# alt_c ('value')"},
+     :text=>"# alt_c",
+     :default => "'value'"},
     {
      :comment=>nil,
      :name=>"alt_c_validation",
      :rw=>nil,
-     :text=>"# alt_c_validation ('value')"},
+     :text=>"# alt_c_validation",
+     :default => "'value'"},
     {
      :comment=>nil,
      :name=>"alt_c_without_value",
      :rw=>nil,
-     :text=>"# alt_c_without_value"},
+     :text=>"# alt_c_without_value",
+     :default => nil},
     {
      :comment=>nil,
      :name=>"alt_c_validation_without_value",
      :rw=>nil,
-     :text=>"# alt_c_validation_without_value"},
+     :text=>"# alt_c_validation_without_value",
+     :default => nil},
     {
      :comment=>"# declare_config\n",
      :name=>"declare_config",
      :rw=>nil,
-     :text=>""},
+     :text=>"",
+     :default => nil},
     {
      :comment=>"# confg_accessor\n",
      :name=>"config_accessor",
      :rw=>"RW",
-     :text=>""},
+     :text=>"",
+     :default => nil},
     {
      :comment=>"# config_reader\n",
      :name=>"config_reader",
      :rw=>"R",
-     :text=>""},
+     :text=>"",
+    :default => nil},
     {
      :comment=>"# config_writer\n",
      :name=>"config_writer",
      :rw=>"W",
-     :text=>""},
+     :text=>"",
+     :default => nil},
     {
      :comment=>"# multi_config_accessor\n",
      :name=>"multi_config_accessor1",
      :rw=>"RW",
-     :text=>""},
+     :text=>"",
+     :default => nil},
     {
      :comment=>"# multi_config_accessor\n",
      :name=>"multi_config_accessor2",
      :rw=>"RW",
-     :text=>""},
+     :text=>"",
+     :default => nil},
     {
      :comment=>"# attr_accessor\n",
      :name=>"attr_accessor",

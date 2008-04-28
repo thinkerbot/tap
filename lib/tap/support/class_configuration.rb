@@ -197,7 +197,7 @@ module Tap
     
       # Nicely formats the configurations into yaml with messages and
       # declaration class divisions.
-      def format_yaml
+      def format_yaml(document=true)
         lines = []
         declarations_array.each do |receiver, keys|
           
@@ -205,8 +205,10 @@ module Tap
           keys = keys.delete_if {|key| !self.default.has_key?(key) }
           next if keys.empty?
           
+          lines << "###############################################################################"
           lines << "# #{receiver} configuration#{keys.length > 1 ? 's' : ''}"
-          
+          lines << "###############################################################################"
+
           class_doc = Tap::Support::TDoc[receiver]
           configurations = (class_doc == nil ? [] : class_doc.configurations)
           keys.each do |key|
@@ -216,28 +218,26 @@ module Tap
             #   {'key' => 'value'}.to_yaml           # => "--- \nkey: value\n"
             #   {'key' => 'value'}.to_yaml[5...-1]   # => "key: value"
             yaml = {key.to_s => unprocessed_default[key]}.to_yaml[5...-1]
-            message = tdoc_config ? tdoc_config.comment : ""
+            yaml = "##{yaml}" if unprocessed_default[key] == nil
             
-            lines << case 
-            when message == nil || message.empty?  
-              # if there is no message, simply add the yaml
-              yaml
-            when yaml !~ /\r?\n/ && message !~ /\r?\n/ && yaml.length < 25 && message.length < 30
-              # shorthand ONLY if the config and message can be expressed in a single line
-              message = message.gsub(/^#\s*/, "")
-              "%-25s # %s" % [yaml, message]
-            else
-              lines << ""
+            message = tdoc_config ? tdoc_config.comment(false) : ""
+
+            if document && !message.empty?
+              lines << "" unless lines[-1].empty?
+              
               # comment out new lines and add the message
               message.split(/\n/).each do |msg|
                 lines << "# #{msg.strip.gsub(/^#\s*/, '')}"
               end
-              yaml
+              lines << yaml
+              lines << ""
+            else
+              # if there is no message, simply add the yaml
+              lines << yaml
             end
           end
-        
-          # add a spacer line
-          lines << ""
+          
+          lines << "" # add a spacer
         end
       
         lines.compact.join("\n")

@@ -55,7 +55,7 @@ module Tap
       # by the TDocHTMLGenerator as similarly as possible to standard attributes.
       class ConfigAttr < RDoc::Attr
         # Contains the actual declaration for the config attribute. ex:  "c [:key, 'value']      # comment"
-        attr_accessor :config_declaration
+        attr_accessor :config_declaration, :default
         
         alias original_comment comment
         
@@ -85,9 +85,9 @@ module Tap
         # config:: standard comment ...added to standard comment
         # key:: hence you can comment inline like this.
         #
-        def comment
+        def comment(add_default=true)
           text_comment = text.to_s.sub(/^#--.*/m, '')
-          original_comment.to_s + text_comment
+          original_comment.to_s + text_comment + (default && add_default ? " (#{default})" : "")
         end
       end
       
@@ -242,15 +242,17 @@ module Tap
           return if key_tk == nil || text == nil
           
           arg = key_tk.text[1..-1]
+          default = nil
           if value_tk
             if text =~ /(.*):no_default:(.*)/
               text = $1 + $2
             else
-              text += " (#{value_tk.text})" 
+              default = value_tk.text
             end
           end
           att = TDoc::ConfigAttr.new(text, arg, config_rw, comment)
           att.config_declaration = get_tkread
+          att.default = default
            
           context.add_attribute(att)
         end
