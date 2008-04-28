@@ -1,0 +1,23 @@
+######################################################
+# App Configurations:
+######################################################
+
+directories:                  
+  rel: dir
+
+options:                      
+  quiet: true
+  
+######################################################
+# Env Configurations:
+######################################################
+
+load_paths: [lib, rel]
+
+command_paths:
+  - cmd
+
+config_paths: recurse_a.yml
+
+before: |
+  before

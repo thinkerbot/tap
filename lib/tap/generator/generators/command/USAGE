@@ -1,0 +1,6 @@
+Description:
+    Generates a new Tap command under the cmd directory. Pass 
+    the command name, either CamelCased or under_scored.  The  
+    new command can be run from the command line using:
+    
+    % tap run <command name>

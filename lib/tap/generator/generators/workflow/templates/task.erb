@@ -1,0 +1,16 @@
+# == Description
+#
+# === Usage
+# Replace with your command line usage instructions
+#
+class <%= class_name_without_nesting %> < Tap::Workflow
+  protected
+    
+  def workflow 
+    # Define the workflow entry and exit points,
+    # as well as the workflow logic.
+    self.entry_point = Tap::Task.new
+      
+    # app.sequence(entry_point, 'another/task')
+  end
+end

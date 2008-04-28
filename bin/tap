@@ -1,0 +1,127 @@
+#!/usr/local/bin/ruby
+# usage: tap <command> {options} [args]
+#
+# examples:
+#   tap generate root .                  # generates a root dir
+#   tap run taskname --option input      # runs the 'taskname' task
+#
+# help:
+#   tap help                             # prints this help
+#   tap command --help                   # prints help for 'command'
+# 
+
+require File.join( File.dirname(__FILE__), "../lib/tap.rb")
+
+# setup the environment
+env = Tap::Env.instance
+app = Tap::App.instance
+
+env.logger = app.logger
+env.debug_setup if ARGV.delete('-d-')
+
+before = nil
+after = nil
+
+def handle_error(err)
+  case
+  when $DEBUG
+    puts err.message
+    puts
+    puts err.backtrace
+  when Tap::App.instance.debug? then raise err
+  else puts err.message
+  end
+end
+
+# configure the app to tap.yml if it exists
+default_config_file = Tap::Env::DEFAULT_CONFIG_FILE
+begin
+  
+  env.load_config(default_config_file, app) do |non_env_configs|
+    before = non_env_configs.delete('before')
+    after = non_env_configs.delete('after')
+    
+    app.reconfigure(non_env_configs)
+  end
+  
+  env.discover_gems unless File.exists?(default_config_file)
+
+rescue(Exception)
+  # catch errors and exit gracefully
+  # (errors usu from gem loading errors)
+  puts "Configuration error: #{$!.message}"
+  puts $!.backtrace if $DEBUG
+  puts "Check #{default_config_file} configurations"
+  exit(1)
+end
+
+# alert the user to the root directory if it's not Dir.pwd
+unless app.options.quiet || app.root == File.expand_path(Dir.pwd)
+  puts "root: #{app.root}" 
+end
+
+#
+# run before script
+#
+begin
+  eval(before.to_s)
+rescue
+  puts "Error in before script."
+  handle_error($!)
+  exit(1)
+end
+
+begin
+  available_commands = env.commands
+  command = ARGV.shift
+
+  case command  
+  when "--help", "-h", "help", "?", nil 
+    # give some help
+    File.open(__FILE__) do |file|
+      bang_line = true
+      file.each_line do |line|
+        if bang_line
+          bang_line = false
+          next
+        end
+        
+        break if line !~ /^#\s?(.*)/
+        puts $1
+      end
+    end
+    
+    puts
+    puts "available commands:"
+
+    commands = available_commands.keys
+    commands.unshift("help")
+    
+    print "  "
+    puts commands.sort.join("\n  ")
+    puts
+    puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
+  else
+    if available_commands.has_key?(command)
+      # run the command, if it exists
+      load available_commands[command]
+    else
+      puts "Unknown command: '#{command}'"
+      puts "Type 'tap help' for usage information."
+    end
+  end
+rescue
+  handle_error($!)
+  puts "Type 'tap #{command} --help' for usage information."
+end
+
+#
+# run after script
+#
+begin
+  eval(after.to_s) 
+rescue
+  puts "Error in after script."
+  handle_error($!)
+  exit(1)
+end

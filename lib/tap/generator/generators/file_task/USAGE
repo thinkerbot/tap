@@ -1,0 +1,3 @@
+Description:
+    Generates a new FileTask and test files.  Pass the task name, 
+    either CamelCased or under_scored.

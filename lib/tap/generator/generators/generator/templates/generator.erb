@@ -1,0 +1,32 @@
+class <%= class_name_without_nesting %>Generator < Rails::Generator::NamedBase 
+  attr_accessor :app
+  
+  def initialize(*args)
+    super(*args) 
+    @app = Tap::App.instance   
+    @destination_root = app[:root]
+  end
+
+  def manifest
+    record do |m|
+      # Use statements like these to make directories you need.
+      # Note directories will be created relative to @destination_root (ie app[:root])
+      target_dir = 'target'
+      m.directory target_dir
+      
+      # These statements use the templates to create the following files:
+      #   templates/ruby_file.erb  =>  target_dir/class_name.rb
+      #   templates/text_file.erb  =>  target_dir/class_name.txt
+      #
+      # In templates, use class_name_without_nesting in conjunction with 
+      # the :class_nesting option to properly indent nested classes, like:
+      #
+      #   [ruby_file.erb]
+      #   class <%= class_name_without_nesting %>
+      #   end
+      #
+      m.template "ruby_file.erb", File.join(target_dir, class_name.underscore + ".rb"), :class_nesting => class_nesting
+      m.template "text_file.erb",  File.join(target_dir, class_name.underscore + ".txt")
+    end
+  end
+end

@@ -1,0 +1,2 @@
+load_paths: a
+config_paths: recurse_b.yml

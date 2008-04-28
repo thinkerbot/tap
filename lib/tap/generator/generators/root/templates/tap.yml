@@ -1,0 +1,80 @@
+######################################################
+# App Configurations:
+#
+# These are configurations that directly affect the application, 
+# including the directory structure options, and logging.
+#
+######################################################
+  
+# You can set an alternate root, but this is 
+# an odd and perhaps unwise thing to do
+#root:                         
+
+# Specify aliases for directories relative to root.  
+#directories:                  
+  #lib: path/to/lib 
+  #lib/generators: path/to/lib/generators              
+  #...
+  
+# Specify aliases for absolute paths
+#absolute_paths:                  
+  #log: /path/to/logs      
+  #...
+
+# Specify options
+#options:                      
+  #debug: true                   # full error output, increased logging
+  #quiet: true                   # supresses logging
+  #...                           # you can add your own options
+  
+# Specify logging options
+#logger:
+  #device:                       # STDOUT by default
+  #level: 1                      # [DEBUG, INFO, WARN, ERROR, FATAL, ANY]
+  #datetime_format: %H:%M:%S      # Hour:Minute:Second
+
+# Map task names to task classes here.  The example causes
+# app.task('some/task_name') to intialize a Tap::FileTask 
+# with that name.  Any number of mappings can be specified.
+#map:
+#  some/task_name: Tap::FileTask
+#  CapsAreOk: Tap::Task
+
+######################################################
+# Environment Configurations:
+#
+# These are configurations that affect the execution environment 
+# for Tap and are NOT passed to the application itself.
+#
+# All paths are resolved to the directories setup above.
+#
+######################################################
+
+# Designate load paths here for automatic loading of modules
+# through the active_support Dependencies module.  
+# load_paths are also added to $LOAD_PATH.  
+#load_paths: 
+#  - lib
+
+# Specifies load_once_paths for Dependencies.
+#load_once_paths:
+
+# Designate paths for discovering and executing commands.  
+#command_paths:
+#  - cmd
+
+# Designate paths for discovering generators.  
+#generator_paths:
+#  - lib/generators
+
+# Specify gems to add to the environment.  Versions may be specified.
+#gems: 
+#  - gem_name
+#  - gem_with_version > 1.0.0
+
+# Specify code to execute before and after Tap executes
+#before: |
+#  puts "beginning..."
+#  Tap::Env.instance.discover_gems
+#after: |
+#  puts "done!"

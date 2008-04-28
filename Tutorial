@@ -1,0 +1,287 @@
+= Quick Start Tutorial
+
+This tutorial demonstrates the basic use of tap from the command line, how to:
+
+* generate and run a task
+* generate and run a command
+
+=== Task Basics
+
+Begin by creating a tap root directory structure:
+
+  % tap generate root /path/to/root_dir
+  % cd /path/to/root_dir
+  
+Make a task:
+
+  % tap generate task sample/task
+
+Test the task (in fact using the rake test task):
+ 
+  % tap run test 
+  
+Get help for the task:
+
+  % tap run -- sample/task --help
+  Sample::Task
+
+  Replace with a description.  The default task simply 
+  demonstrates the use of a config and logging.  
+  Usage:
+  Replace with usage instructions
+
+  Options:
+    --key                               a sample config ('value')
+    --help                              Print this help.
+    --debug                             Trace execution and debug
+    --use                               Loads inputs from file.
+    --iterate                           Iterates over inputs.
+
+Run the task in the most basic way:
+
+  % tap run sample/task input_one
+  ctl-i prints information
+  ctl-c interupts execution
+  beginning run...
+    I[21:32:28]        sample/task input_one was processed with value
+    
+Run the task, setting the 'key' configuration and iterating over several inputs:
+  
+  % tap run -- sample/task --key='the new value' --iterate one two three
+  ctl-i prints information
+  ctl-c interupts execution
+  beginning run...
+    I[21:33:31]        sample/task one was processed with the new value
+    I[21:33:31]        sample/task two was processed with the new value
+    I[21:33:31]        sample/task three was processed with the new value
+    
+Run multiple tasks, or in this case the same task twice, followed by a dump task.  The tasks are separated into 'rounds' of execution, where the rounds are indicated by '--' and '--+' respectively.   The sample tasks in the first round run to completion before tap runs the dump task.  Normally the dump task saves results to a file you specify, but with no specified file (as below) the dump is to the console:
+
+  % tap run -- sample/task one -- sample/task two --+ tap/dump 
+  ctl-i prints information
+  ctl-c interupts execution
+  beginning run...
+    I[21:50:40]        sample/task one was processed with value
+    I[21:50:40]        sample/task two was processed with value
+  # audit:
+  # o-[] "two"
+  # o-[sample/task] "two was processed with value"
+  # 
+  # o-[] "one"
+  # o-[sample/task] "one was processed with value"
+  # 
+  # date: 2008-04-08 21:50:40
+  --- 
+  sample/task (8603460): 
+  - one was processed with value
+  sample/task (8602320): 
+  - two was processed with value
+
+Don't be thrown by the shuffled order in the dump -- the dump is valid YAML and represents the results hashed by task.
+
+Now navigate to and open the 'lib/sample/task.rb' file.  Inside you can see the class definition, with comments indicating how to define additional configurations, add command line documentation, log activity, and define the process method.  Let's change it up a bit:
+
+  [lib/sample/task.rb]
+  module Sample
+    # == Description
+    # A simple math task that multiplies an input by a 
+    # factor. Remember, strings can be multipled too!
+    # === Usage
+    #   % tap run -- sample/task INPUT
+    #
+    class Task < Tap::Task
+  
+      # The sum of the inputs is multiplied by this
+      # factor.  String factors are converted to 
+      # an integer.
+      config(:factor, 2) do |value|    # a factor
+        value.to_i
+      end
+    
+      def process(input)
+        result = input * factor
+        log self.name, result
+    
+        result
+      end
+    
+    end
+  end
+
+The new configurations and documentation are immediately available:
+
+  % tap run -- sample/task --help
+  Sample::Task
+
+  A simple math task that multiplies an input by a 
+  factor. Remember, strings can be multipled too!
+  Usage:
+    % tap run -- sample/task INPUT
+
+  Options:
+    --factor                            a factor (2)
+    --help                              Print this help.
+    --debug                             Trace execution and debug
+    --use                               Loads inputs from file.
+    --iterate                           Iterates over inputs.
+
+And the task is ready to go:
+
+  % tap run -- sample/task "yo"
+  ctl-i prints information
+  ctl-c interupts execution
+  beginning run...
+    I[22:22:13]        sample/task yo yo
+    
+Make a configuration file for the task:
+
+  % tap generate config sample/task
+        
+You get documentation in the configuration file as well.  We can set configurations here and have them be used by the task:
+
+  [config/sample/task.yml]
+  # Sample::Task configuration
+
+  # The sum of the inputs is multiplied by this
+  # factor.  String factors are converted to
+  # an integer.
+  # a factor (2)
+  factor: 3
+
+As can be seen here:
+
+  % tap run -- sample/task yo
+  ctl-i prints information
+  ctl-c interupts execution
+  beginning run...
+    I[22:26:41]        sample/task yo yo yo
+
+If you need to batch run the same task with the same inputs, but multiple sets of configurations, simply define an array of configurations in the config file:
+  
+  [config/sample/task.yml]
+  # Sample::Task configuration
+  - factor: 1
+  - factor: 2
+  - factor: 3
+
+  % tap run -- sample/task yo
+  ctl-i prints information
+  ctl-c interupts execution
+  beginning run...
+    I[22:37:46]        sample/task yo
+    I[22:37:46]        sample/task yo yo
+    I[22:37:46]        sample/task yo yo yo
+
+=== Command Basics
+
+Now say you want to do something fancier than the basic execution provided by the run command.  First, generate a new command:
+
+  % tap generate command echo
+  
+The new command is now available from tap:
+
+  % tap echo --help
+  tap echo {options} ARGS...
+
+  The default command simply prints the input arguments
+  and application information, then exits.
+
+  Options:
+    --help                    (-h)      Print this help.
+    --debug                             Specifies debug mode.
+    
+  % tap echo one two three
+  Received: one, two, three
+  state: 0 (READY) queue: 0 thread_queue: 0 threads: 0 results: 0
+
+The command script itself is very general and can be run through ruby directly.  The tap command basically just sets up the environment using tap.yml and then loads the command script, hence you can do whatever you like within the command script.  Lets open it up and change a few things:
+
+  [cmd/echo.rb]
+  # = Usage
+  # tap echo {options} ARGS...
+  #
+  # = Description
+  # Formats the inputs, then echoes them to the 
+  # 'echo/output.txt' file and to the console.
+  #
+  
+  require 'tap'
+  require 'tap/script'
+  
+  app = Tap::App.instance   
+  
+  #
+  # handle options
+  #
+  
+  opts = [
+    ['--help', '-h', GetoptLong::NO_ARGUMENT, "Print this help."],
+    ['--debug', nil, GetoptLong::NO_ARGUMENT, "Specifies debug mode."]]
+    
+  Tap::Script.handle_options(*opts) do |opt, value| 
+    case opt
+    when '--help'
+      puts Tap::Script.usage(__FILE__, "Usage", "Description", "Information", :keep_headers => false)
+      puts
+      puts "Options:"
+      puts Tap::Script.usage_options(opts)
+      exit
+      
+    when '--debug'
+      app.options.debug = true
+  
+    end
+  end
+  
+  #
+  # initialize some tasks
+  #
+  
+  # transform the inputs
+  t1 = Tap::Task.new do |task, *inputs| 
+    inputs.collect {|input| "echo #{input}" }.join("\n")
+  end
+  
+  # write to a file
+  t2 = Tap::FileTask.new do |task, input|
+    target = "echo/output.txt"
+    
+    # backup existing files, and ensure the directory exists
+    task.prepare(target)  
+    
+    File.open(target, "wb") {|f| f << input }
+    target
+  end
+  
+  # now make a simple workflow
+  app.sequence(t1, t2)
+  
+  #
+  # enque, run, and print out the results
+  #
+  
+  t1.enq(*ARGV)
+  app.run
+  
+  app.results(t2).each do |target|
+    puts "[#{target}]"
+    puts File.read(target)
+  end
+  
+Now run the command a few times:
+
+  % tap echo one two three
+  [echo/output.txt]
+  echo one
+  echo two
+  echo three
+
+  % tap echo tip top tap
+  [echo/output.txt]
+  echo tip
+  echo top
+  echo tap
+  
+You should find that the 'echo/output.txt' file exists with the 'tip top tap' result.  Moreover a backup directory will exist with the 'one two three' result, due to the FileTask#prepare method.  
+  
+  
