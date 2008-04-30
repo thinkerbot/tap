@@ -123,6 +123,7 @@ begin
   when Tap::Support::CommandLine::SPLIT_ARGV_REGEXP
     ARGV.unshift command
     ARGV.unshift '--'
+    ARGV.unshift '--dump'
     load available_commands['run']
   else
     if available_commands.has_key?(command)

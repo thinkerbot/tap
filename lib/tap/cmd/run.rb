@@ -17,13 +17,18 @@ opts = [
   ['--help', '-h', GetoptLong::NO_ARGUMENT, "Print this help"],
   ['--debug', '-d', GetoptLong::NO_ARGUMENT, "Trace execution and debug"],
   ['--force', '-f', GetoptLong::NO_ARGUMENT, "Force execution at checkpoints"],
+  ['--dump', nil, GetoptLong::NO_ARGUMENT, "Specifies a default dump task"],
   ['--quiet', '-q', GetoptLong::NO_ARGUMENT, "Suppress logging"]]
 
+dump = false
 Tap::Support::CommandLine.handle_options(*opts) do |opt, value| 
   case opt
   when '--help'
     puts Tap::Support::CommandLine.command_help(__FILE__, opts)
     exit
+  
+  when '--dump'
+    dump = true
     
   when '--quiet', '--force', '--debug'
     # simply track these have been set
@@ -150,3 +155,10 @@ rounds.each_with_index do |queue, i|
   app.queue.concat(queue)
   app.run
 end
+
+if dump
+  puts
+  app.task('tap/dump').enq
+  app.run
+end
+
