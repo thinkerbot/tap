@@ -79,6 +79,7 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
       # unless a Tap::Task was found, treat the
       # args as a specification for Rake.
       if task_class == nil || !task_class.include?(Tap::Support::Configurable)
+        env.log(:warn, "implicit rake: #{td}#{ARGV.empty? ? '' : ' ...'}", Logger::DEBUG)
         args.unshift('rake')
         redo
       end

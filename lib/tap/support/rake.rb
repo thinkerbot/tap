@@ -36,6 +36,47 @@ module Tap
           task
         end
       end
+      
+      # Modifies Rake::Application by adding a hook to the standard_exception_handling
+      # method.  This allows more fine-grained use of Rake::Applications by Tap.
+      module Application
+        attr_reader :on_standard_exception_block
+        
+        def self.extended(base)
+          base.instance_variable_set('@on_standard_exception_block', nil)
+        end
+        
+        # Sets a block to handle errors within standard_exception_handling.
+        # Raises an error if the on_standard_exception_block is already
+        # set and override is not specified. 
+        #
+        # If the error is handled in the on_standard_exception_block,
+        # then the original standard_exception_handling will not be
+        # invoked.
+        def on_standard_exception(override=false, &block) # :yields: error
+          unless on_standard_exception_block == nil || override
+            raise "on_standard_exception_block already set: #{self}" 
+          end
+          @on_standard_exception_block = block
+        end
+        
+        # Overrides the default standard_exception_handling to execute
+        # the on_standard_exception_block, if set, before invoking the
+        # original standard_exception_handling.  
+        def standard_exception_handling
+          super do
+            begin
+              yield
+            rescue
+              if on_standard_exception_block
+                on_standard_exception_block.call($!)
+              else raise
+              end
+            end
+          end
+          
+        end
+      end
     end
   end
 end

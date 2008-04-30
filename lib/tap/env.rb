@@ -111,7 +111,14 @@ module Tap
 
       # setup
       app.extend Tap::Support::Rake
-      rake = Rake.application
+      rake = Rake.application.extend Tap::Support::Rake::Application
+      rake.on_standard_exception do |error|
+        if error.message =~ /^No Rakefile found/
+          log(:warn, error.message, Logger::DEBUG)
+        else raise error
+        end
+      end
+      
       options = rake.options
     
       # merge options down from app
