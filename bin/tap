@@ -61,8 +61,23 @@ unless app.options.quiet || app.root == File.expand_path(Dir.pwd)
 end
 
 #
+# setup after script
+#
+
+at_exit do
+  begin
+    eval(after.to_s) 
+  rescue
+    puts "Error in after script."
+    handle_error($!)
+    exit(1)
+  end
+end
+
+#
 # run before script
 #
+
 begin
   eval(before.to_s)
 rescue
@@ -70,6 +85,10 @@ rescue
   handle_error($!)
   exit(1)
 end
+
+#
+# run tap
+#
 
 begin
   available_commands = env.commands
@@ -115,13 +134,4 @@ rescue
   puts "Type 'tap #{command} --help' for usage information."
 end
 
-#
-# run after script
-#
-begin
-  eval(after.to_s) 
-rescue
-  puts "Error in after script."
-  handle_error($!)
-  exit(1)
-end
+exit(0)
