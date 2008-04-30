@@ -28,8 +28,6 @@ lib/tap/generator/generators/generator/templates/generator.erb
 lib/tap/generator/generators/generator/templates/usage.erb
 lib/tap/generator/generators/generator/USAGE
 lib/tap/generator/generators/root/root_generator.rb
-lib/tap/generator/generators/root/templates/config
-lib/tap/generator/generators/root/templates/lib
 lib/tap/generator/generators/root/templates/Rakefile
 lib/tap/generator/generators/root/templates/ReadMe.txt
 lib/tap/generator/generators/root/templates/tap.yml
