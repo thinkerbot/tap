@@ -120,6 +120,10 @@ begin
     puts commands.sort.join("\n  ")
     puts
     puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
+  when Tap::Support::CommandLine::SPLIT_ARGV_REGEXP
+    ARGV.unshift command
+    ARGV.unshift '--'
+    load available_commands['run']
   else
     if available_commands.has_key?(command)
       # run the command, if it exists

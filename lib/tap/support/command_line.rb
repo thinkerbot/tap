@@ -14,14 +14,16 @@ module Tap
       def parse_yaml(str)
         str =~ /\A---\s*\n/ ? YAML.load(str) : str
       end
-
+      
+      SPLIT_ARGV_REGEXP = /\A-{2}(\+*)\z/
+      
       def split_argv(argv)
         current = []
         current_split = []
         splits = [current_split]
 
         argv.each do |arg|
-          if arg =~ /\A-{2}(\+*)\z/
+          if arg =~ SPLIT_ARGV_REGEXP
             current_split << current  unless current.empty?
             current = []
             current_split = (splits[$1.length] ||= [])
