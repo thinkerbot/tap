@@ -8,6 +8,10 @@ module Tap
     module Batchable
       extend Support::BatchableMethods
       
+      # def self.included(mod)
+      #   mod.extend Support::BatchableMethods if mod.kind_of?(Class)
+      # end
+      
       # The object batch. (must be initializd by classes that
       # include Batchable)
       attr_reader :batch

@@ -35,7 +35,7 @@ module Tap
     #   
     # Now you can see how the comments and declaring classes get used in the
     # configuration files.  Note that configuration keys are stringified
-    # for clarity (this is ok -- they will be symbolized when loaded by a
+    # for clarity (this is ok -- they will be normalize_keyd when loaded by a
     # task).
     #
     #   [BaseTask.configurations.format_yaml]
@@ -53,19 +53,13 @@ module Tap
     # TODO -
     # Revisit config formatting... right now it's a bit jacked.
     #++
+
+    
     class ClassConfiguration
       include Enumerable
       
       # The class receiving the configurations
       attr_reader :receiver
-      
-      # An array of [receiver, configuration keys] arrays tracking
-      # the order in which configurations were declared across all
-      # receivers
-      attr_reader :declarations_array
-      
-      # An array of configuration keys declared by self
-      attr_reader :declarations
       
       # A hash of the unprocessed default values
       attr_reader :unprocessed_default
@@ -75,6 +69,9 @@ module Tap
       
       # A hash of the processing blocks
       attr_reader :process_blocks
+      
+      # The declaration history of the config keys
+      attr_reader :declaration_history
 
       # A placeholder to indicate when no value 
       # was specified during a call to add. 
@@ -82,64 +79,61 @@ module Tap
     
       def initialize(receiver, parent=nil)
         @receiver = receiver
-        @default = parent != nil ? parent.default.dup : {}
-        @unprocessed_default = parent != nil ? parent.unprocessed_default.dup : {}
-        @process_blocks = parent != nil ? parent.process_blocks.dup : {}
         
-        # use same declarations array?  freeze declarations to ensure order?
-        # definitely falls out of order if parents are modfied after initialization
-        @declarations_array = parent != nil ? parent.declarations_array.dup : []
-        @declarations = []
-        declarations_array << [receiver, @declarations] 
+        if parent != nil
+          @default = parent.default.dup
+          @unprocessed_default = parent.unprocessed_default.dup
+          @process_blocks = parent.process_blocks.dup
+          @declaration_history = OrderArray.new(parent.declaration_history)
+        else
+          @default = {}
+          @unprocessed_default = {}
+          @process_blocks = {}
+          @declaration_history = OrderArray.new
+        end
       end
       
-      # Returns true if the key has been declared by some receiver.
-      # Note this is distinct from whether or not a particular config
-      # is currently in the default hash.
+      # Normalizes a configuration key by symbolizing.
+      def normalize_key(key)
+        key.to_sym
+      end
+      
       def declared?(key)
-        key = key.to_sym
-        declarations_array.each do |r,array| 
-          return true if array.include?(key)
-        end
-        false
+        declaration_history.values.include?(key)
       end
       
-      # Returns the class (receiver) that first added the config 
-      # indicated by key.
-      def declaration_class(key)
-        key = key.to_sym
-        declarations_array.each do |r,array| 
-          return r if array.include?(key)
-        end
-        nil
+      def declare(key)
+        declaration_history.add(receiver, key) unless declared?(key)
       end
       
-      # Returns the configurations first declared by the specified receiver.
-      def declarations_for(receiver)
-        declarations_array.each do |r,array| 
-          return array if r == receiver
-        end
-        nil
-      end
-      
-      # Adds a configuration.  If specified, the value is processed
-      # by the process_block and recorded adefault 
-      #
-      # The existing value and process_block for the
+      # Adds a configuration. The existing value and process_block for the
       # configuration will not be overwritten unless specified. However,
       # if a configuration is added without specifying a value and no previous 
       # default value exists, the default and unprocessed_default for the 
-      # configuration will be set to nil.
+      # configuration will be set to nil. 
+      #
+      # Configuration keys normalized using normalize_key. New values and 
+      # process blocks can always be input to override old settings.
+      #
+      #   c = ClassConfiguration.new Object
+      #   c.add(:config, "1") {|value| value.to_i}
+      #   c.add('no_value_specified')
+      #   c.default     # => {:config => 1, :no_value_specified => nil}
+      #
+      #   c.add(:config, "2")
+      #   c.add(:no_value_specified, 10) {|value| value.to_s }
+      #   c.default     # => {:config => 2, :no_value_specified => "10"}
       #
       #--
       # Note -- existing blocks are NOT overwritten unless a new block is provided.
       # This allows overide of the default value in subclasses while preserving the 
       # validation/processing code.
       def add(key, value=NO_VALUE, &process_block)
-        key = key.to_sym
+        key = normalize_key(key)
+        
         value = unprocessed_default[key] if value == NO_VALUE
         
-        declarations << key unless declared?(key)
+        declare(key)
         process_blocks[key] = process_block if block_given?
         unprocessed_default[key] = value
         default[key] = process(key, value)
@@ -147,44 +141,78 @@ module Tap
         self
       end
       
-      def remove(key)
-        key = key.to_sym
+      # Removes the specified configuration.  The declaration will not be removed
+      # unless specified.
+      def remove(key, remove_declaration=false)
+        key = normalize_key(key)
         
         process_blocks.delete(key)
         unprocessed_default.delete(key)
         default.delete(key)
-        
+        declaration_history.remove(key) if remove_declaration
+
         self
       end
       
-      def merge(another)
-        # check for conflicts
-        another.each do |receiver, key|
-          dc = declaration_class(key)
-          next if dc == nil || dc == receiver
-          
-          raise "configuration conflict: #{key} (#{receiver}) already declared by #{dc}"
-        end
-        
-        # add the new configurations
-        another.each do |receiver, key|
-          # preserve the declarations for receiver
-          unless declarations = declarations_for(receiver) 
-            declarations = []
-            declarations_array << [receiver, declarations] 
-          end
-          unless declarations.include?(key)
-            declarations << key 
-            yield(key) if block_given?
-          end
-          
-          add(key, another.unprocessed_default[key], &another.process_blocks[key])
-        end
-      end
+      # Merges the configurations of another with self, preserving the declaration
+      # history for another.  Raises an error if the declaration class of an existing
+      # configuration does not match that of another.
+      # def merge(another)
+      ########################################################
+      # current_values = self.values
+      # existing_values, new_values = values.partition {|value| current_values.include?(value) }
+      # 
+      # conflicts = []
+      # existing_values.collect do |value|
+      #   current_key = key_for(value)
+      #   if current_key != key 
+      #     conflicts << "#{value} (#{key}) already declared for #{current_key}"
+      #   end
+      # end
+      # 
+      # unless conflicts.empty?
+      #   raise ArgumentError.new(conflicts.join("\n"))
+      # end
+      #######################################################
+      #
+      #   # check each merged key is either undeclared
+      #   # or declared by the same receiver as in self
+      #   another_receivers = []
+      #   another = another.collect do |receiver, key|
+      #     key = normalize_key(key)
+      #     
+      #     dc = declaration_history.declaration_class(key)
+      #     case dc
+      #     when nil, receiver 
+      #       another_receivers << receiver
+      #       [receiver, key]
+      #     else
+      #       raise "configuration merge conflict: #{key} (#{receiver}) already declared by #{dc}"
+      #     end
+      #   end
+      #   
+      #   # add receivers if necessary
+      #   (another_receivers - declaration_history.receivers).each do |new_receiver|
+      #     declaration_history.add_receiver(new_receiver)
+      #   end
+      #   
+      #   # add the new configurations
+      #   another.each do |receiver, key|
+      #     if declarations.include?(key)
+      #       remove(key)
+      #     else
+      #       declarations << key
+      #     end
+      #     
+      #     add(key, another.unprocessed_default[key], &another.process_blocks[key])
+      #   end
+      # end
+      
+
     
       def each # :yields: receiver, key
-        declarations_array.each do |receiver, keys|
-          keys.each {|key| yield(receiver, key) }
+        declaration_history.each do |receiver, key|
+          yield(receiver, key)
         end
       end
       
@@ -199,7 +227,7 @@ module Tap
       # declaration class divisions.
       def format_yaml(document=true)
         lines = []
-        declarations_array.each do |receiver, keys|
+        declaration_history.history.each do |receiver, keys|
           
           # do not consider keys that have been removed
           keys = keys.delete_if {|key| !self.default.has_key?(key) }

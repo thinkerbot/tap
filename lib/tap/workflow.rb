@@ -81,9 +81,8 @@ module Tap
   #   app.results(w1.exit_points, w2.exit_points))    # => [8, -8]
   #
   class Workflow 
-    include Support::Configurable
-    extend Support::CommandLineMethods
-    
+    include Support::Framework
+
     # The entry point for self.
     attr_accessor :entry_point
     

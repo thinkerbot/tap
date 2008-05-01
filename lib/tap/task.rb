@@ -223,8 +223,7 @@ module Tap
     end
     
     include Base
-    include Support::Configurable
-    extend Support::CommandLineMethods
+    include Support::Framework
     
     attr_reader :task_block
     

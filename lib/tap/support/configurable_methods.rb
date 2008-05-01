@@ -2,25 +2,28 @@ module Tap
   module Support
     
     # ConfigurableMethods encapsulates all class methods used to declare
-    # configurations in Tasks.  ConfigurableMethods extends classes that
-    # include Tap::Support::Configurable.
+    # configurations in Tasks.  ConfigurableMethods can extend any class
+    # to provide class-specific configurations. 
     #
     #   class ConfigurableClass
-    #     include Configurable
+    #     extend ConfigurableMethods
     # 
     #     config :one, 'one'
     #     config :two, 'two'
     #     config :three, 'three'
     #   end
     #
-    #   ConfigurableClass.new.config  # => {:one => 'one', :two => 'two', :three => 'three'}
+    #   ConfigurableClass.configurations.default  # => {:one => 'one', :two => 'two', :three => 'three'}
     #
-    # See the 'Configuration' section in the Tap::Task documentation for
-    # more details on how Configurable works in practice.
     module ConfigurableMethods
       
       # A Tap::Support::ClassConfiguration holding the class configurations.
       attr_reader :configurations
+      
+      # ConfigurableMethods initializes configurations on extend.
+      def self.extended(base)
+        base.instance_variable_set(:@configurations, ClassConfiguration.new(base))
+      end
       
       # When subclassed, the configurations are duplicated and passed to 
       # the child class where they can be extended/modified without affecting
@@ -28,6 +31,11 @@ module Tap
       def inherited(child)
         super
         child.instance_variable_set(:@configurations, ClassConfiguration.new(child, @configurations))
+      end
+      
+      # Returns the default name for the class: class.to_s.underscore
+      def default_name
+        @default_name ||= to_s.underscore
       end
 
       # Declares a configuration without any accessors.
@@ -171,11 +179,6 @@ module Tap
             define_config_reader(key)
           end
         end
-      end
-      
-      # Returns the default name for the class: class.to_s.underscore
-      def default_name
-        @default_name ||= to_s.underscore
       end
       
       protected
