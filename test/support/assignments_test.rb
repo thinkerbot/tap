@@ -8,6 +8,26 @@ class AssignmentsTest < Test::Unit::TestCase
   def setup
     @a = Assignments.new
   end
+  
+  def test_documentation
+    a = Assignments.new
+    a.assign(:one, 'one')
+    a.assign(:two, 'two')
+    a.assign(:one, 'ONE')
+    assert_equal [[:one, ['one', 'ONE']], [:two, ['two']]], a.to_a
+  
+    b = Assignments.new(a)
+    assert_equal [[:one, ['one', 'ONE']], [:two, ['two']]], b.to_a
+  
+    b.unassign('one')
+    b.assign(:one, 1)
+    assert_equal [[:one, ['ONE', 1]], [:two, ['two']]], b.to_a
+    assert_equal [[:one, ['one', 'ONE']], [:two, ['two']]], a.to_a
+  end
+
+  #
+  # initialization test 
+  #
 
   def test_initialization
     assert_equal [], a.to_a
@@ -18,7 +38,7 @@ class AssignmentsTest < Test::Unit::TestCase
     assert_equal [[:a, [1,2]]], a.to_a
   end
   
-  def test_initialization_with_existing_order_array
+  def test_initialization_with_parent
     parent = Assignments.new [[:a, [1,2]], [:b, [3,4]]]
     assert_equal parent.to_a, Assignments.new(parent).to_a
   end
@@ -43,6 +63,20 @@ class AssignmentsTest < Test::Unit::TestCase
   
   def test_initialization_raises_argument_error_for_arrays_with_the_same_value_for_multiple_keys
     assert_raise(ArgumentError) { Assignments.new [[:a, [1]], [:b, [1]]] }
+  end
+  
+  #
+  # declare test
+  #
+  
+  def test_declare_adds_key_with_empty_assignment_array_if_key_is_undeclared
+    assert_equal [], a.to_a
+    
+    a.declare :one
+    assert_equal [[:one, []]], a.to_a
+    
+    a.declare :one
+    assert_equal [[:one, []]], a.to_a
   end
   
   #
@@ -181,6 +215,20 @@ class AssignmentsTest < Test::Unit::TestCase
     end
     
     assert_equal [[:one, 1], [:one, 2], [:three, 3]], results
+  end
+  
+  #
+  # each_pair test
+  #
+  
+  def test_each_pair_returns_each_key_values_pair_in_order
+    a = Assignments.new [[:one, [1, 2]], [:two, []], [:three, 3]]
+    results = []
+    a.each_pair do |key, values|
+      results << [key, values]
+    end
+    
+    assert_equal [[:one, [1,2]], [:two, []], [:three, [3]]], results
   end
   
   #

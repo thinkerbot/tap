@@ -2,59 +2,45 @@ autoload(:GetOptLong, 'getoptlong')
 
 module Tap
   module Support
-    # == UNDER CONSTRUCTION
-    #--
-    #
-    # ClassConfiguration holds the class configurations defined in a Tap::Task.
-    # The configurations are stored as an array of declarations_array like:
-    # [name, default, msg, declaration_class].  In addition, ClassConfiguration
-    # collapse the array of declarations_array into a hash, which acts as the default
-    # task configuration.
-    #
-    # Storing metadata about the configurations, such as the declaration_class, 
-    # allows the creation of more user-friendly configuration files and facilitates 
-    # incorporation into command-line applications.
-    #
-    # In general, users will not have to interact with ClassConfigurations directly.
-    #
-    # === Example
-    # 
-    #   class BaseTask < Tap::Configurable
-    #     class_configurations [:one, 1]
-    #   end
-    #
-    #   BaseTask.configurations.hash    # => {:one => 1}
-    #
-    #   class SubTask < BaseTask
-    #     class_configurations(
-    #       [:one, 'one', "the first configuration"],
-    #       [:two, 'two', "the second configuration"])
-    #   end
-    #
-    #   SubTask.configurations.hash    # => {:one => 'one', :two => 'two'}
-    #   
-    # Now you can see how the comments and declaring classes get used in the
-    # configuration files.  Note that configuration keys are stringified
-    # for clarity (this is ok -- they will be normalize_keyd when loaded by a
-    # task).
-    #
-    #   [BaseTask.configurations.format_yaml]
-    #   # BaseTask configuration
-    #   one: 1        
-    #
-    #   [SubTask.configurations.format_yaml]
-    #   # BaseTask configuration
-    #   one: one             # the first configuration
-    #
-    #   # SubTask configuration
-    #   two: two             # the second configuration
-    #
-    #--
-    # TODO -
-    # Revisit config formatting... right now it's a bit jacked.
-    #++
 
-    
+    # ClassConfiguration tracks and handles the class configurations defined in a Tap::Task
+    # (or more generally any class extended with Tap::Support::ConfigurableMethods).  Each
+    # configuration consists of a name, an unprocessed_default value, a default value, and
+    # optionally a processing block.  
+    #
+    # Some metadata is also stored, including the order in which the configurations are 
+    # declared.  The metadata allows the creation of more user-friendly configuration files 
+    # and facilitates incorporation into command-line applications.
+    #
+    # See Tap::Support::ConfigurableMethods for examples of usage.
+    # 
+    #--
+    # === Example
+    # In general ClassConfigurations are only interacted with through ConfigurableMethods.
+    # These define attr-like readers/writers/accessors:
+    #  
+    #   class BaseClass
+    #     include Tap::Support::ConfigurableMethods
+    #     config :one, 1
+    #     config :three, 3
+    #   end
+    #
+    #   BaseClass.configurations.default    # => {:one => 1, :three => 3}
+    #
+    # ClassConfigurations are inherited and decoupled from the parent.  You
+    # may need to interact with configurations directly:
+    #
+    #   class SubClass < BaseClass
+    #     config :one, 'one'
+    #     config :two, 'TWO' {|value| value.downcase }
+    #
+    #     configurations.remove(:three)
+    #   end
+    #
+    #   BaseClass.configurations.default              # => {:one => 1, :three => 3}
+    #   SubClass.configurations.default               # => {:one => 'one', :two => 'two'}
+    #   SubClass.configurations.unprocessed_default   # => {:one => 'one', :two => 'TWO'}
+    #   
     class ClassConfiguration
       include Enumerable
       
@@ -70,8 +56,8 @@ module Tap
       # A hash of the processing blocks
       attr_reader :process_blocks
       
-      # The declaration history of the config keys
-      attr_reader :declarations
+      # Tracks the assignment of the config keys to receivers
+      attr_reader :assignments
 
       # A placeholder to indicate when no value 
       # was specified during a call to add. 
@@ -84,12 +70,12 @@ module Tap
           @default = parent.default.dup
           @unprocessed_default = parent.unprocessed_default.dup
           @process_blocks = parent.process_blocks.dup
-          @declarations = Assignments.new(parent.declarations)
+          @assignments = Assignments.new(parent.assignments)
         else
           @default = {}
           @unprocessed_default = {}
           @process_blocks = {}
-          @declarations = Assignments.new
+          @assignments = Assignments.new
         end
       end
       
@@ -98,46 +84,33 @@ module Tap
         key.to_sym
       end
       
-      def declared?(key)
-        declarations.values.include?(key)
-      end
-      
-      def declare(key)
-        declarations.assign(receiver, key) unless declared?(key)
-      end
-      
-      # def declaration_class(key)
-      #   declarations.add(receiver, key) unless declared?(key)
-      # end
-      
-      # Adds a configuration. The existing value and process_block for the
-      # configuration will not be overwritten unless specified. However,
-      # if a configuration is added without specifying a value and no previous 
-      # default value exists, the default and unprocessed_default for the 
-      # configuration will be set to nil. 
+      # Adds or overrides a configuration. If a configuration is added without 
+      # specifying a value and no previous default value exists, then nil is 
+      # used as the value.
       #
-      # Configuration keys normalized using normalize_key. New values and 
-      # process blocks can always be input to override old settings.
+      # Configuration keys are normalized using normalize_key.  New values and 
+      # process blocks can always be input to override old settings; the existing 
+      # value and process_block for the configuration will not be overwritten 
+      # unless specified, and can be specified independently.
       #
       #   c = ClassConfiguration.new Object
-      #   c.add(:config, "1") {|value| value.to_i}
-      #   c.add('no_value_specified')
-      #   c.default     # => {:config => 1, :no_value_specified => nil}
+      #   c.add(:a, "1") {|value| value.to_i}
+      #   c.add('b')
       #
-      #   c.add(:config, "2")
-      #   c.add(:no_value_specified, 10) {|value| value.to_s }
-      #   c.default     # => {:config => 2, :no_value_specified => "10"}
+      #   c.default     # => {:a => 1, :b => nil}
       #
-      #--
-      # Note -- existing blocks are NOT overwritten unless a new block is provided.
-      # This allows overide of the default value in subclasses while preserving the 
-      # validation/processing code.
+      #   c.add(:a, "2")
+      #   c.add(:b, 10) 
+      #   c.add(:b) {|value| value.to_s }
+      #
+      #   c.default     # => {:a => 2, :b => "10"}
+      #
       def add(key, value=NO_VALUE, &process_block)
         key = normalize_key(key)
         
         value = unprocessed_default[key] if value == NO_VALUE
         
-        declare(key)
+        assignments.assign(receiver, key) unless assignments.assigned?(key)
         process_blocks[key] = process_block if block_given?
         unprocessed_default[key] = value
         default[key] = process(key, value)
@@ -145,76 +118,71 @@ module Tap
         self
       end
       
-      # Removes the specified configuration.  The declaration will not be removed
-      # unless specified.
-      def remove(key, remove_declaration=false)
+      # Removes the specified configuration.  The key will not
+      # be unassigned from it's existing receiver unless specified.
+      def remove(key, unassign=false)
         key = normalize_key(key)
         
         process_blocks.delete(key)
         unprocessed_default.delete(key)
         default.delete(key)
-        declarations.unassign(key) if remove_declaration
+        assignments.unassign(key) if unassign
 
         self
       end
       
-      # Merges the configurations of another with self, preserving the declaration
-      # history for another.  Raises an error if the declaration class of an existing
-      # configuration does not match that of another.
-      # def merge(another)
-      ########################################################
-      # current_values = self.values
-      # existing_values, new_values = values.partition {|value| current_values.include?(value) }
-      # 
-      # conflicts = []
-      # existing_values.collect do |value|
-      #   current_key = key_for(value)
-      #   if current_key != key 
-      #     conflicts << "#{value} (#{key}) already declared for #{current_key}"
-      #   end
-      # end
-      # 
-      # unless conflicts.empty?
-      #   raise ArgumentError.new(conflicts.join("\n"))
-      # end
-      #######################################################
+      # Merges the configurations of another with self.  The values
+      # and processing blocks of another override those of self, 
+      # when applicable, and the assignments of another are passed on.  
       #
-      #   # check each merged key is either undeclared
-      #   # or declared by the same receiver as in self
-      #   another_receivers = []
-      #   another = another.collect do |receiver, key|
-      #     key = normalize_key(key)
-      #     
-      #     dc = declaration_history.declaration_class(key)
-      #     case dc
-      #     when nil, receiver 
-      #       another_receivers << receiver
-      #       [receiver, key]
-      #     else
-      #       raise "configuration merge conflict: #{key} (#{receiver}) already declared by #{dc}"
-      #     end
-      #   end
-      #   
-      #   # add receivers if necessary
-      #   (another_receivers - declaration_history.receivers).each do |new_receiver|
-      #     declaration_history.add_receiver(new_receiver)
-      #   end
-      #   
-      #   # add the new configurations
-      #   another.each do |receiver, key|
-      #     if declarations.include?(key)
-      #       remove(key)
-      #     else
-      #       declarations << key
-      #     end
-      #     
-      #     add(key, another.unprocessed_default[key], &another.process_blocks[key])
-      #   end
-      # end
-    
-      def each # :yields: receiver, key
-        declarations.each do |receiver, key|
-          yield(receiver, key)
+      #   a = ClassConfiguration.new 'ClassOne'
+      #   a.add(:one, "one") 
+      #
+      #   b = ClassConfiguration.new 'ClassTwo'
+      #   b.add(:two, "two")
+      #
+      #   a.merge!(b)
+      #   a.default     # => {:one => "one", :two => "two"}
+      #
+      # An error will be raised if you merge configurations where
+      # an existing config is assigned to a different receiver:
+      #
+      #   c = ClassConfiguration.new 'ClassThree'
+      #   c.add(:one)
+      #
+      #   c.assignments.key_for(:one)   # => 'ClassThree'
+      #   a.assignments.key_for(:one)   # => 'ClassOne'
+      #
+      #   a.merge!(c)                    # !> ArgumentError
+      #
+      def merge!(another)
+        unless another.kind_of?(ClassConfiguration)
+          raise ArgumentError.new("cannot convert #{another.class} to ClassConfiguration")
+        end
+        
+        # check each merged key is either unassigned
+        # or unassigned to the same receiver as in self
+        new_assignments = []
+        another.assignments.each do |receiver, key|
+          current_receiver = assignments.key_for(key)
+          next if current_receiver == receiver
+          
+          if current_receiver == nil 
+            new_assignments << [receiver, key]
+          else 
+            raise ArgumentError.new("merge conflict: #{key} (#{receiver}) already assigned to #{current_receiver}")
+          end
+        end
+        
+        # add the new assignements
+        new_assignments.each do |receiver, key|
+          assignments.assign(receiver, key)
+        end
+        
+        # merge the new configurations
+        another.each do |receiver, key|
+          remove(key)
+          add(key, another.unprocessed_default[key], &another.process_blocks[key])
         end
       end
       
@@ -224,12 +192,18 @@ module Tap
         block = process_blocks[key.to_sym]
         block ? block.call(value) : value
       end
+      
+      def each # :yields: receiver, key
+        assignments.each do |receiver, key|
+          yield(receiver, key)
+        end
+      end
     
       # Nicely formats the configurations into yaml with messages and
       # declaration class divisions.
       def format_yaml(document=true)
         lines = []
-        declarations.dump.each do |receiver, keys|
+        assignments.each_pair do |receiver, keys|
           
           # do not consider keys that have been removed
           keys = keys.delete_if {|key| !self.default.has_key?(key) }

@@ -10,6 +10,28 @@ module Tap
     # used by Tap to track the order in which configurations are 
     # assigned to a class; the order, in turn, is used in the formation
     # of config files, command line documentation, etc.
+    #
+    # === Example
+    #
+    #   a = Assignments.new
+    #   a.assign(:one, 'one')
+    #   a.assign(:two, 'two')
+    #   a.assign(:one, 'ONE')
+    #   a.to_a          # => [[:one, ['one', 'ONE']], [:two, ['two']]]
+    #
+    #   b = Assignments.new(a)
+    #   b.to_a          # => [[:one, ['one', 'ONE']], [:two, ['two']]]
+    #
+    #   b.unassign('one')
+    #   b.assign(:one, 1)
+    #   b.to_a          # => [[:one, ['ONE', 1]], [:two, ['two']]]
+    #   a.to_a          # => [[:one, ['one', 'ONE']], [:two, ['two']]]
+    #
+    #--
+    # TODO: 
+    #   Assignments may be optimizable... check if an alternate internal 
+    #   storage can be made faster or to take up less memory.  Not that
+    #   that much can be gained period...
     class Assignments
       include Enumerable
       
@@ -30,7 +52,7 @@ module Tap
       
       # Adds the key to the declarations.
       def declare(key)
-        array << [key, []]
+        array << [key, []] unless declared?(key)
       end
       
       # Removes all values for the specified key and 
@@ -58,8 +80,8 @@ module Tap
       def assign(key, *values)
         raise ArgumentError.new("nil keys are not allowed") if key == nil
         
-        declare(key) unless declared?(key)
-        
+        # partition the input values into existing and new
+        # values, then check for conflicts.
         current_values = self.values
         existing_values, new_values = values.partition {|value| current_values.include?(value) }
         
@@ -75,6 +97,7 @@ module Tap
           raise ArgumentError.new(conflicts.join("\n"))
         end
         
+        declare(key)
         values_for(key).concat new_values
       end
       
@@ -117,22 +140,31 @@ module Tap
       end
 
       # Yields each key, value pair in the order in which
-      # the keys were declared.
-      def each # :yields: key, value
+      # the keys were declared. Keys with no values are 
+      # skipped.
+      def each
         array.each do |key, values|
           values.each {|value| yield(key, value) }
         end
       end
       
-      # Returns the ordered values as an array (alias for values)
+      # Yields each key, values pair in the order in which
+      # the keys were declared.
+      def each_pair
+        array.each do |key, values|
+          yield(key, values)
+        end
+      end
+      
+      # Returns the [key, values] as an array
       def to_a
         array.collect {|key, values| [key, values.dup] }
       end
       
       protected
       
-      # An array of [key, values] arrays tracking the key and order
-      # in which values were assigned. 
+      # An array of [key, values] arrays tracking the 
+      # key and order in which values were assigned. 
       attr_reader :array
       
     end
