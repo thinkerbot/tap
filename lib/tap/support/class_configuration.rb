@@ -71,7 +71,7 @@ module Tap
       attr_reader :process_blocks
       
       # The declaration history of the config keys
-      attr_reader :declaration_history
+      attr_reader :declarations
 
       # A placeholder to indicate when no value 
       # was specified during a call to add. 
@@ -84,12 +84,12 @@ module Tap
           @default = parent.default.dup
           @unprocessed_default = parent.unprocessed_default.dup
           @process_blocks = parent.process_blocks.dup
-          @declaration_history = OrderArray.new(parent.declaration_history)
+          @declarations = Assignments.new(parent.declarations)
         else
           @default = {}
           @unprocessed_default = {}
           @process_blocks = {}
-          @declaration_history = OrderArray.new
+          @declarations = Assignments.new
         end
       end
       
@@ -99,12 +99,16 @@ module Tap
       end
       
       def declared?(key)
-        declaration_history.values.include?(key)
+        declarations.values.include?(key)
       end
       
       def declare(key)
-        declaration_history.add(receiver, key) unless declared?(key)
+        declarations.assign(receiver, key) unless declared?(key)
       end
+      
+      # def declaration_class(key)
+      #   declarations.add(receiver, key) unless declared?(key)
+      # end
       
       # Adds a configuration. The existing value and process_block for the
       # configuration will not be overwritten unless specified. However,
@@ -149,7 +153,7 @@ module Tap
         process_blocks.delete(key)
         unprocessed_default.delete(key)
         default.delete(key)
-        declaration_history.remove(key) if remove_declaration
+        declarations.unassign(key) if remove_declaration
 
         self
       end
@@ -207,11 +211,9 @@ module Tap
       #     add(key, another.unprocessed_default[key], &another.process_blocks[key])
       #   end
       # end
-      
-
     
       def each # :yields: receiver, key
-        declaration_history.each do |receiver, key|
+        declarations.each do |receiver, key|
           yield(receiver, key)
         end
       end
@@ -227,7 +229,7 @@ module Tap
       # declaration class divisions.
       def format_yaml(document=true)
         lines = []
-        declaration_history.history.each do |receiver, keys|
+        declarations.dump.each do |receiver, keys|
           
           # do not consider keys that have been removed
           keys = keys.delete_if {|key| !self.default.has_key?(key) }

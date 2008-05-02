@@ -78,223 +78,211 @@ class ClassConfigurationTest < Test::Unit::TestCase
   # initialization test
   #
   
-  # def test_initialization
-  #   assert_equal Sample, c.receiver
-  #   assert_equal [], c.declarations
-  #   assert_equal [[Sample, []]], c.declarations_array
-  #   assert_equal({}, c.default)
-  #   assert_equal({}, c.unprocessed_default)
-  #   assert_equal({}, c.process_blocks)
-  # end
-  # 
-  # def test_initialization_with_a_parent_inherits_configs
-  #   c.add(:config, "default", &ECHO_BLOCK)
-  #   
-  #   another = ClassConfiguration.new Another, c
-  #   
-  #   assert_equal [], another.declarations
-  #   assert_equal [[Sample, [:config]], [Another, []]], another.declarations_array
-  #   assert_equal({:config => 'default'}, another.default)
-  #   assert_equal({:config => 'default'}, another.unprocessed_default)
-  #   assert_equal({:config => ECHO_BLOCK}, another.process_blocks)
-  # end
-  # 
-  # def test_child_is_decoupled_from_parent
-  #   another = ClassConfiguration.new Another, c
-  #   
-  #   c.add(:one, "one", &ECHO_BLOCK)
-  #   another.add(:two, "two", &ECHO_BLOCK)
-  #   
-  #   assert_equal [:one], c.declarations
-  #   assert_equal [[Sample, [:one]]], c.declarations_array
-  #   assert_equal({:one => 'one'}, c.default)
-  #   assert_equal({:one => 'one'}, c.unprocessed_default)
-  #   assert_equal({:one => ECHO_BLOCK}, c.process_blocks)
-  #   
-  #   assert_equal [:two], another.declarations
-  #   assert_equal [[Sample, []], [Another, [:two]]], another.declarations_array
-  #   assert_equal({:two => 'two'}, another.default)
-  #   assert_equal({:two => 'two'}, another.unprocessed_default)
-  #   assert_equal({:two => ECHO_BLOCK}, another.process_blocks)
-  # end
-  # 
-  # #
-  # # add test
-  # #
-  # 
-  # def test_add_documentation
-  #   c = ClassConfiguration.new Object
-  #   c.add(:config, "1") {|value| value.to_i}
-  #   c.add('no_value_specified')
-  #   assert_equal({:config => 1, :no_value_specified => nil}, c.default)
-  # 
-  #   c.add(:config, "2")
-  #   c.add(:no_value_specified, 10) {|value| value.to_s }
-  #   assert_equal({:config => 2, :no_value_specified => "10"}, c.default)
-  # end
-  # 
-  # def test_add_sets_a_config
-  #   c.add :config, "default"
-  #   assert_equal({:config => 'default'}, c.default)
-  # end
-  # 
-  # def test_add_symbolizes_configs
-  #   c.add :config, "string default"
-  #   c.add 'config', "string default"
-  #   assert_equal({:config => "string default"}, c.default)
-  # end
-  # 
-  # def test_add_processes_config_with_block_if_given_and_stores_unprocessed_default
-  #   c.add(:int, "1", &TO_INT_BLOCK) 
-  #   
-  #   assert_equal({:int => 1}, c.default)
-  #   assert_equal({:int => "1"}, c.unprocessed_default)
-  #   assert_equal({:int => TO_INT_BLOCK}, c.process_blocks)
-  # end
-  # 
-  # def test_the_default_value_for_a_config_is_nil
-  #   c.add :config
-  #   assert_equal({:config => nil}, c.default)
-  # end
-  # 
-  # def test_add_overrides_current_config
-  #   c.add :config, "current"
-  #   c.add :config, "new"
-  #   assert_equal({:config => "new"}, c.default)
-  # end
-  # 
-  # def test_new_blocks_reevaluate_existing_values
-  #   c.add(:int, "1")
-  #   assert_equal({:int => "1"}, c.default)
-  #   assert_equal({:int => "1"}, c.unprocessed_default)
-  #   
-  #   c.add(:int, &TO_INT_BLOCK) 
-  #   assert_equal({:int => 1}, c.default)
-  #   assert_equal({:int => "1"}, c.unprocessed_default)
-  # end
-  # 
-  # def test_new_values_are_evaluated_with_existing_block
-  #   c.add(:int, "1", &TO_INT_BLOCK) 
-  #   assert_equal({:int => 1}, c.default)
-  #   assert_equal({:int => "1"}, c.unprocessed_default)
-  #   
-  #   c.add(:int, "2") 
-  #   assert_equal({:int => 2}, c.default)
-  #   assert_equal({:int => "2"}, c.unprocessed_default)
-  # end
-  # 
-  # def test_unless_specified_the_current_unprocessed_default_and_process_block_are_not_overridden
-  #   c.add(:int, "1", &TO_INT_BLOCK) 
-  #   assert_equal({:int => "1"}, c.unprocessed_default)
-  #   assert_equal({:int => TO_INT_BLOCK}, c.process_blocks)
-  #   
-  #   c.add(:int) 
-  #   assert_equal({:int => "1"}, c.unprocessed_default)
-  #   assert_equal({:int => TO_INT_BLOCK}, c.process_blocks)
-  #   
-  #   c.add(:int, "2") 
-  #   assert_equal({:int => "2"}, c.unprocessed_default)
-  #   assert_equal({:int => TO_INT_BLOCK}, c.process_blocks)
-  #   
-  #   c.add(:int, &ECHO_BLOCK) 
-  #   assert_equal({:int => "2"}, c.unprocessed_default)
-  #   assert_equal({:int => ECHO_BLOCK}, c.process_blocks)
-  # end
-  # 
-  # def test_add_adds_new_configs_to_declarations
-  #   c.add(:int)
-  #   assert_equal [:int], c.declarations
-  #   assert_equal [[Sample, [:int]]], c.declarations_array
-  #   
-  #   c.add(:int)
-  #   assert_equal [:int], c.declarations
-  #   assert_equal [[Sample, [:int]]], c.declarations_array
-  # end
-  # 
-  # def test_does_not_add_existing_configs_to_declarations
-  #   c.add(:one)
-  #   assert_equal [:one], c.declarations
-  #   assert_equal [[Sample, [:one]]], c.declarations_array
-  #   
-  #   another = ClassConfiguration.new Another, c
-  #   
-  #   another.add(:one)
-  #   another.add(:two)
-  #   assert_equal [:two], another.declarations
-  #   assert_equal [[Sample, [:one]], [Another, [:two]]], another.declarations_array
-  # end
-  # 
-  # #
-  # # remove test
-  # #
-  # 
-  # def test_remove_removes_a_config
-  #   c.add(:one, "one", &ECHO_BLOCK)
-  #   c.add(:two, "two", &ECHO_BLOCK)
-  #   
-  #   assert_equal({:one => 'one', :two => "two"}, c.default)
-  #   assert_equal({:one => 'one', :two => "two"}, c.unprocessed_default)
-  #   assert_equal({:one => ECHO_BLOCK, :two => ECHO_BLOCK}, c.process_blocks)
-  #     
-  #   c.remove :one
-  #   assert_equal({:two => "two"}, c.default)
-  #   assert_equal({:two => "two"}, c.unprocessed_default)
-  #   assert_equal({:two => ECHO_BLOCK}, c.process_blocks)
-  #   
-  #   c.remove :two
-  #   assert_equal({}, c.default)
-  #   assert_equal({}, c.unprocessed_default)
-  #   assert_equal({}, c.process_blocks)
-  # end
-  # 
-  # def test_remove_does_not_raise_an_error_for_unknown_configs
-  #   assert_nothing_raised { c.remove :non_existant }
-  # end
-  # 
-  # def test_does_not_remove_configs_from_declarations_unless_specified
-  #   c.add(:one)
-  #   c.remove(:one)
-  #   assert_equal [:one], c.declarations
-  #   assert_equal [[Sample, [:one]]], c.declarations_array
-  #   
-  #   c.remove(:one, true)
-  #   assert_equal [], c.declarations
-  #   assert_equal [[Sample, []]], c.declarations_array
-  # end
-  # 
-  # def test_removal_does_not_affect_parent
-  #   c.add(:one)
-  #   another = ClassConfiguration.new Another, c
-  #   
-  #   another.remove(:one)
-  #   another.remove(:one, true)
-  #   
-  #   assert_equal({:one => nil}, c.default)
-  #   assert_equal [:one], c.declarations
-  #   assert_equal [[Sample, [:one]]], c.declarations_array
-  #   
-  #   assert_equal({}, another.default)
-  #   assert_equal [], another.declarations
-  #   assert_equal [[Sample, []], [Another, []]], another.declarations_array
-  # end
-  # 
-  # #
-  # # declared? test
-  # #
-  # 
-  # def test_declared_returns_true_if_the_config_is_declared_somewhere_in_inheritance_hierarchy
-  #   c.add(:one)
-  #   another = ClassConfiguration.new Another, c
-  #   another.add(:two)
-  #   
-  #   assert c.declared?(:one)
-  #   assert !c.declared?(:two)
-  # 
-  #   assert another.declared?(:one)
-  #   assert another.declared?(:two)
-  #   assert !another.declared?(:three)
-  # end
-  # 
+  def test_initialization
+    assert_equal Sample, c.receiver
+    assert_equal [], c.declarations.to_a
+    assert_equal({}, c.default)
+    assert_equal({}, c.unprocessed_default)
+    assert_equal({}, c.process_blocks)
+  end
+  
+  def test_initialization_with_a_parent_inherits_configs
+    c.add(:config, "default", &ECHO_BLOCK)
+    
+    another = ClassConfiguration.new Another, c
+    
+    assert_equal [[Sample, [:config]]], another.declarations.to_a
+    assert_equal({:config => 'default'}, another.default)
+    assert_equal({:config => 'default'}, another.unprocessed_default)
+    assert_equal({:config => ECHO_BLOCK}, another.process_blocks)
+  end
+  
+  def test_child_is_decoupled_from_parent
+    another = ClassConfiguration.new Another, c
+    
+    c.add(:one, "one", &ECHO_BLOCK)
+    another.add(:two, "two", &ECHO_BLOCK)
+    
+    assert_equal [[Sample, [:one]]], c.declarations.to_a
+    assert_equal({:one => 'one'}, c.default)
+    assert_equal({:one => 'one'}, c.unprocessed_default)
+    assert_equal({:one => ECHO_BLOCK}, c.process_blocks)
+    
+    assert_equal [[Another, [:two]]], another.declarations.to_a
+    assert_equal({:two => 'two'}, another.default)
+    assert_equal({:two => 'two'}, another.unprocessed_default)
+    assert_equal({:two => ECHO_BLOCK}, another.process_blocks)
+  end
+  
+  #
+  # add test
+  #
+  
+  def test_add_documentation
+    c = ClassConfiguration.new Object
+    c.add(:config, "1") {|value| value.to_i}
+    c.add('no_value_specified')
+    assert_equal({:config => 1, :no_value_specified => nil}, c.default)
+  
+    c.add(:config, "2")
+    c.add(:no_value_specified, 10) {|value| value.to_s }
+    assert_equal({:config => 2, :no_value_specified => "10"}, c.default)
+  end
+  
+  def test_add_sets_a_config
+    c.add :config, "default"
+    assert_equal({:config => 'default'}, c.default)
+  end
+  
+  def test_add_symbolizes_configs
+    c.add :config, "string default"
+    c.add 'config', "string default"
+    assert_equal({:config => "string default"}, c.default)
+  end
+  
+  def test_add_processes_config_with_block_if_given_and_stores_unprocessed_default
+    c.add(:int, "1", &TO_INT_BLOCK) 
+    
+    assert_equal({:int => 1}, c.default)
+    assert_equal({:int => "1"}, c.unprocessed_default)
+    assert_equal({:int => TO_INT_BLOCK}, c.process_blocks)
+  end
+  
+  def test_the_default_value_for_a_config_is_nil
+    c.add :config
+    assert_equal({:config => nil}, c.default)
+  end
+  
+  def test_add_overrides_current_config
+    c.add :config, "current"
+    c.add :config, "new"
+    assert_equal({:config => "new"}, c.default)
+  end
+  
+  def test_new_blocks_reevaluate_existing_values
+    c.add(:int, "1")
+    assert_equal({:int => "1"}, c.default)
+    assert_equal({:int => "1"}, c.unprocessed_default)
+    
+    c.add(:int, &TO_INT_BLOCK) 
+    assert_equal({:int => 1}, c.default)
+    assert_equal({:int => "1"}, c.unprocessed_default)
+  end
+  
+  def test_new_values_are_evaluated_with_existing_block
+    c.add(:int, "1", &TO_INT_BLOCK) 
+    assert_equal({:int => 1}, c.default)
+    assert_equal({:int => "1"}, c.unprocessed_default)
+    
+    c.add(:int, "2") 
+    assert_equal({:int => 2}, c.default)
+    assert_equal({:int => "2"}, c.unprocessed_default)
+  end
+  
+  def test_unless_specified_the_current_unprocessed_default_and_process_block_are_not_overridden
+    c.add(:int, "1", &TO_INT_BLOCK) 
+    assert_equal({:int => "1"}, c.unprocessed_default)
+    assert_equal({:int => TO_INT_BLOCK}, c.process_blocks)
+    
+    c.add(:int) 
+    assert_equal({:int => "1"}, c.unprocessed_default)
+    assert_equal({:int => TO_INT_BLOCK}, c.process_blocks)
+    
+    c.add(:int, "2") 
+    assert_equal({:int => "2"}, c.unprocessed_default)
+    assert_equal({:int => TO_INT_BLOCK}, c.process_blocks)
+    
+    c.add(:int, &ECHO_BLOCK) 
+    assert_equal({:int => "2"}, c.unprocessed_default)
+    assert_equal({:int => ECHO_BLOCK}, c.process_blocks)
+  end
+  
+  def test_add_adds_new_configs_to_declarations_keyed_by_receiver
+    c.add(:int)
+    assert_equal [[Sample, [:int]]], c.declarations.to_a
+  end
+  
+  def test_does_not_add_existing_configs_to_declarations
+    c.add(:one)
+    assert_equal [[Sample, [:one]]], c.declarations.to_a
+    
+    another = ClassConfiguration.new Another, c
+    
+    another.add(:one)
+    another.add(:two)
+    assert_equal [[Sample, [:one]], [Another, [:two]]], another.declarations.to_a
+  end
+  
+  #
+  # remove test
+  #
+  
+  def test_remove_removes_a_config
+    c.add(:one, "one", &ECHO_BLOCK)
+    c.add(:two, "two", &ECHO_BLOCK)
+    
+    assert_equal({:one => 'one', :two => "two"}, c.default)
+    assert_equal({:one => 'one', :two => "two"}, c.unprocessed_default)
+    assert_equal({:one => ECHO_BLOCK, :two => ECHO_BLOCK}, c.process_blocks)
+      
+    c.remove :one
+    assert_equal({:two => "two"}, c.default)
+    assert_equal({:two => "two"}, c.unprocessed_default)
+    assert_equal({:two => ECHO_BLOCK}, c.process_blocks)
+    
+    c.remove :two
+    assert_equal({}, c.default)
+    assert_equal({}, c.unprocessed_default)
+    assert_equal({}, c.process_blocks)
+  end
+  
+  def test_remove_does_not_raise_an_error_for_unknown_configs
+    assert_nothing_raised { c.remove :non_existant }
+  end
+  
+  def test_does_not_remove_configs_from_declarations_unless_specified
+    c.add(:one)
+    c.add(:two)
+    c.remove(:one)
+    assert_equal [[Sample, [:one, :two]]], c.declarations.to_a
+    
+    c.remove(:one, true)
+    assert_equal [[Sample, [:two]]], c.declarations.to_a
+    
+    c.remove(:two, true)
+    assert_equal [[Sample, []]], c.declarations.to_a
+  end
+  
+  def test_removal_does_not_affect_parent
+    c.add(:one)
+    another = ClassConfiguration.new Another, c
+    
+    another.remove(:one, true)
+    
+    assert_equal({:one => nil}, c.default)
+    assert_equal [[Sample, [:one]]], c.declarations.to_a
+    
+    assert_equal({}, another.default)
+    assert_equal [[Sample, []]], another.declarations.to_a
+  end
+  
+  #
+  # declared? test
+  #
+  
+  def test_declared_returns_true_if_the_config_is_declared_somewhere_in_inheritance_hierarchy
+    c.add(:one)
+    another = ClassConfiguration.new Another, c
+    another.add(:two)
+    
+    assert c.declared?(:one)
+    assert !c.declared?(:two)
+  
+    assert another.declared?(:one)
+    assert another.declared?(:two)
+    assert !another.declared?(:three)
+  end
+  
   # #
   # # declaration class
   # #
