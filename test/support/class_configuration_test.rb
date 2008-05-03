@@ -58,6 +58,7 @@ end
 
 class ClassConfigurationTest < Test::Unit::TestCase
   include Tap::Support
+  include Tap::Test::SubsetMethods
   
   class Sample
   end
@@ -389,14 +390,15 @@ class ClassConfigurationTest < Test::Unit::TestCase
   #
   
   #
-  # format_yaml tests
+  # format_str tests
   #
   
-  def test_format_yaml
-    cc = FormatYamlClass.configurations
-    assert ClassConfiguration, cc.class
+  def test_format_str
+    extended_test do 
+      cc = FormatYamlClass.configurations
+      assert ClassConfiguration, cc.class
 
-    expected = %Q{
+      expected = %Q{
 ###############################################################################
 # FormatYamlClass configurations
 ###############################################################################
@@ -417,12 +419,14 @@ long_leading: long_leading value
 leading_and_trailing: leading_and_trailing value
 
 no_comment: no_comment value
+
 #nil_config: 
+
 }
     
-    assert_equal expected[1..-1], cc.format_yaml
+      assert_equal expected[1..-1], cc.format_str
     
-    expected_without_doc = %Q{
+      expected_without_doc = %Q{
 ###############################################################################
 # FormatYamlClass configurations
 ###############################################################################
@@ -432,13 +436,14 @@ long_leading: long_leading value
 leading_and_trailing: leading_and_trailing value
 no_comment: no_comment value
 #nil_config: 
+
 }
-    assert_equal expected_without_doc[1..-1], cc.format_yaml(false)
+      assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
     
-    cc = FormatYamlSubClass.configurations
-    assert ClassConfiguration, cc.class
+      cc = FormatYamlSubClass.configurations
+      assert ClassConfiguration, cc.class
     
-    expected = %Q{
+      expected = %Q{
 ###############################################################################
 # FormatYamlClass configurations
 ###############################################################################
@@ -459,6 +464,7 @@ long_leading: long_leading value
 leading_and_trailing: leading_and_trailing value
 
 #no_comment: 
+
 nil_config: no longer nil value
 
 ###############################################################################
@@ -470,9 +476,9 @@ subclass_config: subclass_config value
 
 }
 
-    assert_equal expected[1..-1], cc.format_yaml
+      assert_equal expected[1..-1], cc.format_str
 
-    expected_without_doc = %Q{
+      expected_without_doc = %Q{
 ###############################################################################
 # FormatYamlClass configurations
 ###############################################################################
@@ -487,8 +493,10 @@ nil_config: no longer nil value
 # FormatYamlSubClass configuration
 ###############################################################################
 subclass_config: subclass_config value
+
 }
-    assert_equal expected_without_doc[1..-1], cc.format_yaml(false)
+      assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
+    end
   end
   
   # TODO

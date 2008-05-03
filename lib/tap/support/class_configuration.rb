@@ -2,6 +2,7 @@ autoload(:GetOptLong, 'getoptlong')
 
 module Tap
   module Support
+    autoload(:Templater, 'tap/support/templater')
 
     # ClassConfiguration tracks and handles the class configurations defined in a Tap::Task
     # (or more generally any class extended with Tap::Support::ConfigurableMethods).  Each
@@ -198,53 +199,73 @@ module Tap
           yield(receiver, key)
         end
       end
-    
-      # Nicely formats the configurations into yaml with messages and
-      # declaration class divisions.
-      def format_yaml(document=true)
-        lines = []
+      
+      # The path to the :doc template (see format_str)
+      DOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/doc.erb"
+      
+      # The path to the :nodoc template (see format_str)
+      NODOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/nodoc.erb"
+
+      # Formats the configurations using the specified template.  Two default
+      # templates are defined, :doc and :nodoc.  These map to the contents of
+      # DOC_TEMPLATE_PATH and NODOC_TEMPLATE_PATH and correspond to the 
+      # documented and undocumented config generator templates.
+      #
+      # == Custom Templates
+      #
+      # format_str initializes a Tap::Support::Templater which formats each 
+      # [receiver, configurations] pair in turn, and puts the output to the 
+      # target using '<<'.   The templater is assigned the following 
+      # attributes for use in formatting:
+      #
+      # receiver:: The receiver
+      # class_doc:: The TDoc for the receiver, from Tap::Support::TDoc[receiver]
+      # configurations:: An array of attributes for each configuration.  The attributes
+      #                  are: [name, default, unprocessed_default, comment]
+      # 
+      # In the template these can be accessed as any ERB locals, for example:
+      #
+      #   <%= receiver.to_s %>
+      #   <% configurations.each do |name, default, unprocessed_default, comment| %>
+      #   ...
+      #   <% end %>
+      #
+      # The input template may be a String or an ERB; either may be used to 
+      # initialize the templater.
+      def format_str(template=:doc, target="")
+        template = case template
+        when :doc then File.read(DOC_TEMPLATE_PATH)
+        when :nodoc then File.read(NODOC_TEMPLATE_PATH)
+        else template
+        end
+        
+        templater = Templater.new(template)  
         assignments.each_pair do |receiver, keys|
           
           # do not consider keys that have been removed
           keys = keys.delete_if {|key| !self.default.has_key?(key) }
           next if keys.empty?
           
-          lines << "###############################################################################"
-          lines << "# #{receiver} configuration#{keys.length > 1 ? 's' : ''}"
-          lines << "###############################################################################"
-
-          class_doc = Tap::Support::TDoc[receiver]
-          configurations = (class_doc == nil ? [] : class_doc.configurations)
-          keys.each do |key|
-            tdoc_config = configurations.find {|config| config.name == key.to_s }
- 
-            # yaml adds a header and a final newline which should be removed:
-            #   {'key' => 'value'}.to_yaml           # => "--- \nkey: value\n"
-            #   {'key' => 'value'}.to_yaml[5...-1]   # => "key: value"
-            yaml = {key.to_s => unprocessed_default[key]}.to_yaml[5...-1]
-            yaml = "##{yaml}" if unprocessed_default[key] == nil
-            
-            message = tdoc_config ? tdoc_config.comment(false) : ""
-
-            if document && !message.empty?
-              lines << "" unless lines[-1].empty?
-              
-              # comment out new lines and add the message
-              message.split(/\n/).each do |msg|
-                lines << "# #{msg.strip.gsub(/^#\s*/, '')}"
-              end
-              lines << yaml
-              lines << ""
+          # set the template attributes
+          templater.receiver = receiver
+          templater.class_doc = Tap::Support::TDoc[receiver]
+          
+          configuration_doc = templater.class_doc ? templater.class_doc.configurations : nil
+          templater.configurations = keys.collect do |key|
+            name = key.to_s
+            config_attr = if configuration_doc
+              configuration_doc.find {|config| config.name == name }   
             else
-              # if there is no message, simply add the yaml
-              lines << yaml
+              Tap::Support::TDoc::ConfigAttr.new("", name, nil, "")
             end
+            
+            [name, default[key], unprocessed_default[key], config_attr.comment(false)]
           end
           
-          lines << "" # add a spacer
+          target << templater.build
         end
-      
-        lines.compact.join("\n")
+        
+        target
       end
     
       def opt_map(long_option)
@@ -276,6 +297,12 @@ module Tap
 
           [attributes[:long], attributes[:short], attributes[:opt_type], attributes[:desc]]
         end  
+      end
+      
+      protected
+      
+      def build_erb_template(template, receiver, configurations)
+        ERB.new(template).result(binding)
       end
     
     end

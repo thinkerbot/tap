@@ -15,7 +15,7 @@ module Tap::Generator::Generators
     def manifest
       record do |m|
         task = @app.task(class_name)
-        self.formatted_yaml = task.class.configurations.format_yaml(options[:doc])
+        self.formatted_yaml = task.class.configurations.format_yaml(options[:doc] ? :doc : :nodoc)
     
         config_path = @app.relative_filepath(:root, @app[:config])
         
