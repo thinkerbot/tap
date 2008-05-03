@@ -79,7 +79,7 @@ Options:
 
           else
             key = configurations.opt_map(opt)
-            config[key] = YAML.load(value)
+            config[key] = value
           end
         end
 
