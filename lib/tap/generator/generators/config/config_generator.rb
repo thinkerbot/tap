@@ -1,6 +1,6 @@
 module Tap::Generator::Generators
   class ConfigGenerator < Rails::Generator::NamedBase # :nodoc:
-    attr_accessor :formatted_yaml
+    attr_accessor :formatted_str
 
     def initialize(argv, options)
       @app = Tap::App.instance
@@ -15,7 +15,7 @@ module Tap::Generator::Generators
     def manifest
       record do |m|
         task = @app.task(class_name)
-        self.formatted_yaml = task.class.configurations.format_yaml(options[:doc] ? :doc : :nodoc)
+        self.formatted_str = task.class.configurations.format_str(options[:doc] ? :doc : :nodoc).chomp
     
         config_path = @app.relative_filepath(:root, @app[:config])
         
