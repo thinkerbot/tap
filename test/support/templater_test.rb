@@ -14,12 +14,28 @@ class TemplaterTest < Test::Unit::TestCase
   end
   
   #
+  # initialize test
+  #
+  
+  def test_initialize_raises_error_for_non_string_or_erb_template
+    assert_raise(ArgumentError) { Templater.new nil }
+    assert_raise(ArgumentError) { Templater.new 1 }
+  end
+  
+  #
   # build test
   #
   
   def test_build_formats_erb_with_existing_attributes
     t = Templater.new %Q{key: <%= attr %>}, {:attr => 'value'}
     assert_equal "key: value", t.build
+  end
+  
+  def test_build_with_custom_erb
+    erb = ERB.new "% factor = 2\nkey: <%= attr * factor %>", nil, "%"
+    
+    t = Templater.new erb, {:attr => 'value'}
+    assert_equal "key: valuevalue", t.build
   end
 
 end

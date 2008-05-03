@@ -33,6 +33,9 @@ module Tap
       
       include Utils
       
+      # Initialized a new Templater.  An ERB or String may be provided as the
+      # template.  If a String is provided, it will be used to initialize an
+      # ERB with a trim_mode of "<>".
       def initialize(template, attributes={})
         @template = case template
         when ERB then template
