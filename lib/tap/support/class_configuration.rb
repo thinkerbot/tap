@@ -5,7 +5,7 @@ module Tap
     autoload(:Templater, 'tap/support/templater')
 
     # ClassConfiguration tracks and handles the class configurations defined in a Tap::Task
-    # (or more generally any class extended with Tap::Support::ConfigurableMethods).  Each
+    # (or more generally any class that includes with Tap::Support::Configurable).  Each
     # configuration consists of a name, an unprocessed_default value, a default value, and
     # optionally a processing block.  
     #
@@ -13,35 +13,8 @@ module Tap
     # declared.  The metadata allows the creation of more user-friendly configuration files 
     # and facilitates incorporation into command-line applications.
     #
-    # See Tap::Support::ConfigurableMethods for examples of usage.
+    # See Tap::Support::Configurable for examples of usage.
     # 
-    #--
-    # === Example
-    # In general ClassConfigurations are only interacted with through ConfigurableMethods.
-    # These define attr-like readers/writers/accessors:
-    #  
-    #   class BaseClass
-    #     include Tap::Support::ConfigurableMethods
-    #     config :one, 1
-    #     config :three, 3
-    #   end
-    #
-    #   BaseClass.configurations.default    # => {:one => 1, :three => 3}
-    #
-    # ClassConfigurations are inherited and decoupled from the parent.  You
-    # may need to interact with configurations directly:
-    #
-    #   class SubClass < BaseClass
-    #     config :one, 'one'
-    #     config :two, 'TWO' {|value| value.downcase }
-    #
-    #     configurations.remove(:three)
-    #   end
-    #
-    #   BaseClass.configurations.default              # => {:one => 1, :three => 3}
-    #   SubClass.configurations.default               # => {:one => 'one', :two => 'two'}
-    #   SubClass.configurations.unprocessed_default   # => {:one => 'one', :two => 'TWO'}
-    #   
     class ClassConfiguration
       include Enumerable
       
@@ -156,6 +129,7 @@ module Tap
       #
       #   a.merge!(c)                    # !> ArgumentError
       #
+      # Yields newly added keys to the block, if given.
       def merge!(another)
         unless another.kind_of?(ClassConfiguration)
           raise ArgumentError.new("cannot convert #{another.class} to ClassConfiguration")
@@ -165,6 +139,8 @@ module Tap
         # or unassigned to the same receiver as in self
         new_assignments = []
         another.assignments.each do |receiver, key|
+          key = normalize_key(key)
+          
           current_receiver = assignments.key_for(key)
           next if current_receiver == receiver
           
@@ -178,6 +154,7 @@ module Tap
         # add the new assignements
         new_assignments.each do |receiver, key|
           assignments.assign(receiver, key)
+          yield(key) if block_given?
         end
         
         # merge the new configurations
@@ -190,11 +167,13 @@ module Tap
       # Sends value to the process block identified by key and returns the result.
       # Returns value if no process block has been set for key.
       def process(key, value)
-        block = process_blocks[key.to_sym]
+        block = process_blocks[normalize_key(key)]
         block ? block.call(value) : value
       end
       
-      def each # :yields: receiver, key
+      # Calls block once for each [receiver, key] pair in self, passing those 
+      # elements as parameters.
+      def each
         assignments.each do |receiver, key|
           yield(receiver, key)
         end
@@ -267,44 +246,7 @@ module Tap
         
         target
       end
-    
-      def opt_map(long_option)
-        raise ArgumentError.new("not a long option: #{long_option}") unless long_option =~ /^--(.*)$/
-        long = $1
       
-        each do |receiver, key|
-          return key if long == key.to_s
-        end  
-        nil
-      end
-    
-      def to_opts
-        collect do |receiver, key|
-          # Note the receiver is used as a placeholder for desc,
-          # to be resolved using TDoc.
-          attributes = {
-            :long => key,
-            :short => nil,
-            :opt_type => GetoptLong::REQUIRED_ARGUMENT,
-            :desc => receiver  
-          }
-
-          long = attributes[:long]
-          attributes[:long] = "--#{long}" unless long =~ /^-{2}/
-
-          short = attributes[:short].to_s
-          attributes[:short] = "-#{short}" unless short.empty? || short =~ /^-/
-
-          [attributes[:long], attributes[:short], attributes[:opt_type], attributes[:desc]]
-        end  
-      end
-      
-      protected
-      
-      def build_erb_template(template, receiver, configurations)
-        ERB.new(template).result(binding)
-      end
-    
     end
   end
 end

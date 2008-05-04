@@ -3,8 +3,8 @@ module Tap
     autoload(:TDoc, 'tap/support/tdoc')
     autoload(:CommandLine, 'tap/support/command_line')
     
-    # Under Construction
-    module CommandLineMethods
+    # FrameworkMethods encapsulates class methods related to Framework.
+    module FrameworkMethods
       
       # When subclassed, the configurations are duplicated and passed to 
       # the child class where they can be extended/modified without affecting
@@ -13,16 +13,21 @@ module Tap
         super
         child.instance_variable_set(:@source_files, source_files.dup)
       end
-      
+
       # EXPERIMENTAL
       attr_reader :source_files # :nodoc:
-      
+
       # EXPERIMENTAL
       # Identifies source files for TDoc documentation.
       def source_file(arg) # :nodoc:
         source_files << arg
       end
       
+      # Returns the default name for the class: to_s.underscore
+      def default_name
+        @default_name ||= to_s.underscore
+      end
+
       # Returns the TDoc documentation for self. 
       def tdoc
         @tdoc ||= Tap::Support::TDoc[self]
@@ -87,7 +92,7 @@ Options:
         task = new(ARGV.shift, config, app)
         iterate ? ARGV.each {|input| task.enq(input) } : task.enq(*ARGV)
       end
+      
     end
-    
   end
 end

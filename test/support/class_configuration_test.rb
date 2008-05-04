@@ -1,61 +1,5 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 
-# for documentation test
-# class BaseTask 
-#   include Tap::Support::Framework
-#   config :one, 1
-# end
-# class SubTask < BaseTask
-#   config :one, 'one'
-#   config :two, 'two'
-# end
-# class MergeTask < BaseTask
-#   config :three, 'three'
-#   config_merge SubTask
-# end
-# class ValidationTask < Tap::Task
-#   config :one, 'one', &c.check(String)
-#   config :two, 'two', &c.yaml(/two/, Integer)
-#   config :three, 'three' do |v| 
-#     v =~ /three/ ? v.upcase : raise("not three")
-#   end
-# end
-
-class FormatYamlClass
-  include Tap::Support::Configurable
-  
-  class << self
-    def source_files
-      [__FILE__]
-    end
-  end
-  
-  config :trailing, 'trailing value'  # trailing comment
-  
-  # leading comment
-  config :leading, 'leading value'
-  
-  # Line one of a long multiline leading comment
-  # Line two of a long multiline leading comment
-  # Line three of a long multiline leading comment
-  config :long_leading, 'long_leading value'
-  
-  # leading of leading_and_trailing comment
-  config :leading_and_trailing, 'leading_and_trailing value'  # trailing of leading_and_trailing comment
-  
-  config :no_comment, 'no_comment value'
-  
-  config :nil_config, nil
-end
-
-class FormatYamlSubClass < FormatYamlClass
-  config :trailing, 'new trailing value'  # new trailing comment
-  # subclass_config comment
-  config :subclass_config, 'subclass_config value'  
-  config :nil_config, 'no longer nil value'
-  config :no_comment, nil
-end
-
 class ClassConfigurationTest < Test::Unit::TestCase
   include Tap::Support
   include Tap::Test::SubsetMethods
@@ -362,6 +306,24 @@ class ClassConfigurationTest < Test::Unit::TestCase
     assert_raise(ArgumentError) { c.merge!(another) }
   end
   
+  def test_merge_yields_newly_added_keys_if_block_is_given
+    parent = ClassConfiguration.new Sample
+    parent.add(:one)
+    
+    child1 = ClassConfiguration.new Another, parent
+    child1.add(:two)
+    child1.add(:three)
+    
+    child2 = ClassConfiguration.new Another, parent
+    
+    keys = []
+    child2.merge!(child1) do |key|
+      keys << key
+    end
+    
+    assert_equal [:two, :three], keys
+  end
+  
   #
   # process test
   #
@@ -393,6 +355,41 @@ class ClassConfigurationTest < Test::Unit::TestCase
   # format_str tests
   #
   
+  class FormatYamlClass
+    include Tap::Support::Configurable
+
+    class << self
+      def source_files
+        [__FILE__]
+      end
+    end
+
+    config :trailing, 'trailing value'  # trailing comment
+
+    # leading comment
+    config :leading, 'leading value'
+
+    # Line one of a long multiline leading comment
+    # Line two of a long multiline leading comment
+    # Line three of a long multiline leading comment
+    config :long_leading, 'long_leading value'
+
+    # leading of leading_and_trailing comment
+    config :leading_and_trailing, 'leading_and_trailing value'  # trailing of leading_and_trailing comment
+
+    config :no_comment, 'no_comment value'
+
+    config :nil_config, nil
+  end
+
+  class FormatYamlSubClass < FormatYamlClass
+    config :trailing, 'new trailing value'  # new trailing comment
+    # subclass_config comment
+    config :subclass_config, 'subclass_config value'  
+    config :nil_config, 'no longer nil value'
+    config :no_comment, nil
+  end
+  
   def test_format_str
     extended_test do 
       cc = FormatYamlClass.configurations
@@ -400,7 +397,7 @@ class ClassConfigurationTest < Test::Unit::TestCase
 
       expected = %Q{
 ###############################################################################
-# FormatYamlClass configurations
+# ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
 
 # trailing comment
@@ -428,7 +425,7 @@ no_comment: no_comment value
     
       expected_without_doc = %Q{
 ###############################################################################
-# FormatYamlClass configurations
+# ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
 trailing: trailing value
 leading: leading value
@@ -445,7 +442,7 @@ no_comment: no_comment value
     
       expected = %Q{
 ###############################################################################
-# FormatYamlClass configurations
+# ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
 
 # trailing comment
@@ -468,7 +465,7 @@ leading_and_trailing: leading_and_trailing value
 nil_config: no longer nil value
 
 ###############################################################################
-# FormatYamlSubClass configuration
+# ClassConfigurationTest::FormatYamlSubClass configuration
 ###############################################################################
 
 # subclass_config comment
@@ -480,7 +477,7 @@ subclass_config: subclass_config value
 
       expected_without_doc = %Q{
 ###############################################################################
-# FormatYamlClass configurations
+# ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
 trailing: new trailing value
 leading: leading value
@@ -490,7 +487,7 @@ leading_and_trailing: leading_and_trailing value
 nil_config: no longer nil value
 
 ###############################################################################
-# FormatYamlSubClass configuration
+# ClassConfigurationTest::FormatYamlSubClass configuration
 ###############################################################################
 subclass_config: subclass_config value
 
@@ -499,11 +496,4 @@ subclass_config: subclass_config value
     end
   end
   
-  # TODO
-  # opt_map test
-  #
-  
-  # TODO
-  # opts test
-  #
 end

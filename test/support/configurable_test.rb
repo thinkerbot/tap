@@ -16,6 +16,27 @@ require 'tap/support/configurable'
 # end
 # 
 
+# for documentation test
+# class BaseTask 
+#   include Tap::Support::Framework
+#   config :one, 1
+# end
+# class SubTask < BaseTask
+#   config :one, 'one'
+#   config :two, 'two'
+# end
+# class MergeTask < BaseTask
+#   config :three, 'three'
+#   config_merge SubTask
+# end
+# class ValidationTask < Tap::Task
+#   config :one, 'one', &c.check(String)
+#   config :two, 'two', &c.yaml(/two/, Integer)
+#   config :three, 'three' do |v| 
+#     v =~ /three/ ? v.upcase : raise("not three")
+#   end
+# end
+
 class ConfigurableTest < Test::Unit::TestCase
   acts_as_tap_test
 

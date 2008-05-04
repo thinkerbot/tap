@@ -2,8 +2,9 @@ module Tap
   module Support
     
     # ConfigurableMethods encapsulates all class methods used to declare
-    # configurations in Tasks.  ConfigurableMethods can extend any class
-    # to provide class-specific configurations. 
+    # configurations in Tasks.  When configurations are declared using
+    # the config method, ConfigurableMethods generates accessors in the
+    # class, much like attr_reader, attr_writer, and attr_accessor.  
     #
     #   class ConfigurableClass
     #     extend ConfigurableMethods
@@ -14,34 +15,57 @@ module Tap
     #   end
     #
     #   ConfigurableClass.configurations.default  # => {:one => 'one', :two => 'two', :three => 'three'}
+    #   c = ConfigurableClass.new
+    #   c.respond_to?('one')                       # => true
+    #   c.respond_to?('one=')                      # => true
+    # 
+    # By default config defines a config_accessor for each configuration, but
+    # this can be modulated using declare_config, config_reader, config_writer, 
+    # and config_accessor.  These methods define accessors that call 
+    # get_config(key) and set_config(key, value), both of which must be 
+    # implemented in the extended class.  Although they can be called directly,
+    # they are more commonly used to flag what types of accessors config should
+    # create:
+    # 
+    #   class AnotherConfigurableClass
+    #     extend ConfigurableMethods
     #
+    #     config_writer           # flags config to define writers-only
+    #     config :one, 'one'
+    #
+    #     config_reader           # flags config to define readers-only
+    #     config :two, 'two'
+    #   end
+    #
+    #   c = AnotherConfigurableClass.new
+    #   c.respond_to?('one')                       # => false
+    #   c.respond_to?('one=')                      # => true
+    #   c.respond_to?('two')                       # => true
+    #   c.respond_to?('two=')                      # => false
+    #
+    # ConfigurableMethods can extend any class to provide class-specific configurations.
     module ConfigurableMethods
       
       # A Tap::Support::ClassConfiguration holding the class configurations.
       attr_reader :configurations
       
-      # ConfigurableMethods initializes configurations on extend.
+      # ConfigurableMethods initializes base.configurations on extend.
       def self.extended(base)
         base.instance_variable_set(:@configurations, ClassConfiguration.new(base))
       end
       
-      # When subclassed, the configurations are duplicated and passed to 
+      # When subclassed, the parent.configurations are duplicated and passed to 
       # the child class where they can be extended/modified without affecting
       # the configurations of the parent class.
       def inherited(child)
         super
         child.instance_variable_set(:@configurations, ClassConfiguration.new(child, @configurations))
       end
-      
-      # Returns the default name for the class: class.to_s.underscore
-      def default_name
-        @default_name ||= to_s.underscore
-      end
 
       # Declares a configuration without any accessors.
       #
-      # With no keys specified, sets config to make no  
-      # accessors for each new configuration.
+      # With no keys specified, sets the config_mode to make no  
+      # accessors for new config declarations.
       def declare_config(*keys)
         if keys.empty?
           self.config_mode = :none 
@@ -51,12 +75,12 @@ module Tap
       end
 
       # Creates a configuration writer for the input keys.  Works like
-      # attr_writer, except the value is written to config, rather than
-      # a local variable.  In addition, the config will be validated
-      # using validate_config upon setting the value.
+      # attr_writer, except the value is sent to the set_config method
+      # rather than a local variable.  set_config must be implemented
+      # independently.
       #
-      # With no keys specified, sets config to create config_writer 
-      # for each new configuration.
+      # With no keys specified, sets the config_mode to make a
+      # config_writer for new config declarations.
       def config_writer(*keys)
         if keys.empty?
           self.config_mode = :config_writer 
@@ -69,11 +93,12 @@ module Tap
       end
 
       # Creates a configuration reader for the input keys.  Works like
-      # attr_reader, except the value is read from config, rather than
-      # a local variable.
+      # attr_reader, except the value is obtained from the get_config
+      # method rather than a local variable.  get_config must be 
+      # implemented independently.
       #
-      # With no keys specified, sets config to create a config_reader 
-      # for each new configuration.
+      # With no keys specified, sets the config_mode to make a
+      # config_reader for new config declarations.
       def config_reader(*keys)
         if keys.empty?
           self.config_mode = :config_reader 
@@ -86,11 +111,11 @@ module Tap
       end
 
       # Creates configuration accessors for the input keys.  Works like
-      # attr_accessor, except the value is read from and written to config, 
-      # rather than a local variable.
+      # attr_accessor, except the value is read and written as in
+      # config_writer and config_reader.
       #
-      # With no keys specified, sets config to create a config_accessor 
-      # for each new configuration.
+      # With no keys specified, sets the config_mode to make a
+      # config_accessor for new config declarations.
       def config_accessor(*keys)
         if keys.empty?
           self.config_mode = :config_accessor 
@@ -109,9 +134,10 @@ module Tap
       # config methods.  
       #
       #   class SampleClass
-      #     include Configurable
+      #     extend ConfigurableMethods
       #
       #     config :key, 'value'
+      #
       #     config_reader
       #     config :reader_only
       #   end
@@ -120,38 +146,32 @@ module Tap
       #   t.respond_to?(:reader_only)         # => true
       #   t.respond_to?(:reader_only=)        # => false
       #
-      #   t.config               # => {:key => 'value', :reader_only => nil} 
-      #   t.key                  # => 'value'
-      #   t.key = 'another'
-      #   t.config               # => {:key => 'another', :reader_only => nil}
-      #
-      # A block can be specified for validation/pre-processing.  All inputs
-      # set through the config accessors, as well as the instance config= 
-      # method are processed by the block before they set the value in the
-      # config hash.  The config value will be set to the return of the block.
+      # A block can be specified for validation/pre-processing.  If the
+      # set_config/get_config methods are implemented as in Configurable
+      # (as below) then all inputs set through the config accessors are
+      # automatically processed by the block.  
       #
       # The Tap::Support::Validation module provides methods to perform 
       # common checks and transformations.  These can be accessed through 
       # the class method 'c':
       #
       #   class ValidatingClass
-      #     include Configurable
+      #     include Configurable   # effectively extends self with ConfigurableMethods
       # 
-      #     config :one, 'one', &c.check(String)
-      #     config :two, 'two' do |v| 
-      #       v.upcase
-      #     end
+      #     config(:one, 'one') {|v| v.upcase}
+      #     config :two, 'two', &c.check(String)
       #   end
       #
       #   t = ValidatingClass.new
-      #   
-      #   # note the default values ARE processed
-      #   t.config                  # => {:one => 'one', :two => 'TWO'}
-      #   t.one = 1                 # => ValidationError
-      #   t.config = {:one => 1}    # => ValidationError
       #
-      #   t.config = {:one => 'str', :two => 'str'}
-      #   t.config                  # => {:one => 'str', :two => 'STR'}
+      #   # Note the default values are also processed
+      #   t.one                     # => 'ONE'
+      #   t.one = 'One'             
+      #   t.one                     # => 'ONE'
+      
+      #   t.two                     # => 'two'
+      #   t.two = 2                 # !> ValidationError
+      #   t.two                     # => 'two'
       #   
       def config(key, value=nil, &validation)
         configurations.add(key, value, &validation)
@@ -167,8 +187,12 @@ module Tap
         end
       end
       
+      # Merges the configurations from the specified class and 
+      # makes accessors for new keys in the current config_mode 
+      # (like config).  Raises an error if the configurations 
+      # cannot be merged.
       def config_merge(klass)
-        configurations.merge(klass.configurations) do |key|
+        configurations.merge!(klass.configurations) do |key|
           case config_mode
           when :config_accessor
             define_config_writer(key)
@@ -182,7 +206,8 @@ module Tap
       end
       
       protected
-
+      
+      # Sets the current config_mode
       attr_writer :config_mode
 
       # Tracks the current configuration mode, to determine what
@@ -198,16 +223,20 @@ module Tap
       end
 
       private
-
-      def define_config_reader(name, key=name) # :nodoc:
-        key = key.to_sym
+      
+      # Defines an instance method by the specified name to call
+      # the get_config method with key. get_config needs to be
+      # implemented in the extended class.
+      def define_config_reader(name, key=name) 
         define_method(name) do
-          config[key]
+          get_config(key)
         end
       end
 
-      def define_config_writer(name, key=name) # :nodoc:
-        key = key.to_sym
+      # Defines an instance method "#{name}=" to call the set_config 
+      # method with key and the set input. set_config needs to be
+      # implemented in the extended class.
+      def define_config_writer(name, key=name)
         define_method("#{name}=") do |value|
           set_config(key, value)
         end

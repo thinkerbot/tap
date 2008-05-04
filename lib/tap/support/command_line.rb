@@ -100,6 +100,37 @@ module Tap
         opt_lines.join("\n")
       end
       
+      def opt_map(long_option)
+        raise ArgumentError.new("not a long option: #{long_option}") unless long_option =~ /^--(.*)$/
+        long = $1
+      
+        each do |receiver, key|
+          return key if long == key.to_s
+        end  
+        nil
+      end
+    
+      def to_opts
+        collect do |receiver, key|
+          # Note the receiver is used as a placeholder for desc,
+          # to be resolved using TDoc.
+          attributes = {
+            :long => key,
+            :short => nil,
+            :opt_type => GetoptLong::REQUIRED_ARGUMENT,
+            :desc => receiver  
+          }
+
+          long = attributes[:long]
+          attributes[:long] = "--#{long}" unless long =~ /^-{2}/
+
+          short = attributes[:short].to_s
+          attributes[:short] = "-#{short}" unless short.empty? || short =~ /^-/
+
+          [attributes[:long], attributes[:short], attributes[:opt_type], attributes[:desc]]
+        end  
+      end
+      
     end
   end
 end

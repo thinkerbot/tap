@@ -1,8 +1,9 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/support/configurable_methods'
 
 class ConfigurableMethodsTest < Test::Unit::TestCase
   
+  ECHO_BLOCK = lambda {|value| value }
+
   #
   # documentation test
   #
@@ -36,148 +37,197 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   # inheritance test
   #
   
-  # class IncludeBase
-  #   extend Tap::Support::ConfigurableMethods
-  # end
-  # 
-  # class IncludeSubclass < IncludeBase 
-  # end
-  # 
-  # def test_subclassing_passes_on_configurations
-  #   assert_equal Tap::Support::ClassConfiguration, IncludeModule.configurations.class
-  #   assert_equal IncludeModule, IncludeModule.configurations.receiver
-  # end
-  
-  #
-  # default_name test
-  #
-  
-  class NameClass
+  class IncludeBase
     extend Tap::Support::ConfigurableMethods
-    class NestedClass
-      extend Tap::Support::ConfigurableMethods
+    config :one, 'one'
+  end
+  
+  class IncludeSubclass < IncludeBase 
+  end
+  
+  def test_subclassing_passes_on_configurations
+    assert_equal Tap::Support::ClassConfiguration, IncludeSubclass.configurations.class
+    assert_equal IncludeSubclass, IncludeSubclass.configurations.receiver
+    assert_equal({:one => 'one'}, IncludeSubclass.configurations.default)
+  end
+  
+  #
+  # config declaration tests
+  #
+  
+  class DocSampleClass
+    extend Tap::Support::ConfigurableMethods
+
+    config :key, 'value'
+
+    config_reader
+    config :reader_only
+  end
+  
+  class DocValidatingClass
+    include Tap::Support::Configurable
+
+    config(:one, 'one') {|v| v.upcase}
+    config :two, 'two', &c.check(String)
+  end
+  
+  def test_config_documentation
+    t = DocSampleClass.new
+    assert t.respond_to?(:reader_only)
+    assert !t.respond_to?(:reader_only=)  
+
+    t = DocValidatingClass.new
+    assert_equal 'ONE', t.one 
+    t.one = 'One'             
+    assert_equal 'ONE', t.one
+    
+    assert_equal 'two', t.two
+    assert_raise(Tap::Support::Validation::ValidationError) { t.two = 2 }
+    assert_equal 'two', t.two
+  end
+  
+  class SampleClass
+    extend Tap::Support::ConfigurableMethods
+    
+    config :one, 'one', &ECHO_BLOCK
+    
+    declare_config
+    config :two, 'two', &ECHO_BLOCK
+    
+    config_reader
+    config :three, 'three'
+    
+    config_writer
+    config :four, 'four'
+    
+    config_accessor
+    config :five, 'five'
+    
+    declare_config :six
+    config_reader :seven
+    config_writer :eight
+    config_accessor :nine, :ten
+    
+    # stub methods implementing accessors
+    attr_accessor :config
+    def initialize() @config = {}; end
+    def get_config(key) config[key]; end
+    def set_config(key, value) config[key] = value; end
+  end
+  
+  def test_config_sets_class_configuration
+    assert_equal({
+      :one => 'one',     :six => nil, 
+      :two => 'two',     :seven => nil,
+      :three => 'three', :eight => nil,
+      :four => 'four',   :nine => nil,
+      :five => 'five',   :ten => nil},
+    SampleClass.configurations.default)
+    
+    assert_equal(
+    {:one => ECHO_BLOCK, :two => ECHO_BLOCK},
+    SampleClass.configurations.process_blocks)
+  end
+  
+  def test_config_declarations
+    t = SampleClass.new
+    
+    # readers only
+    [:three, :seven].each do |config|
+      assert t.respond_to?(config)
+      assert !t.respond_to?("#{config}=")
+    end
+    
+    # writers only
+    [:four, :eight].each do |config|
+      assert !t.respond_to?(config)
+      assert t.respond_to?("#{config}=")
+    end
+  
+    # both
+    [:one, :five, :nine, :ten].each do |config|
+      assert t.respond_to?(config)
+      assert t.respond_to?("#{config}=")
+    end
+    
+    # neither
+    [:two, :six].each do |config|
+      assert !t.respond_to?(config)
+      assert !t.respond_to?("#{config}=")
     end
   end
   
-  def test_default_name_is_underscored_class_name
-    assert_equal "configurable_methods_test/name_class", NameClass.default_name
-    assert_equal "configurable_methods_test/name_class/nested_class", NameClass::NestedClass.default_name
+  def test_config_accessors_access_configs_through_get_set_config
+    t = SampleClass.new
+    t.config = {:three => 'three', :eight => 'eight', :nine => 'nine'}
+    
+    # reader
+    assert_equal 'three', t.config[:three]
+    assert_equal 'three', t.three
+    
+    # writer
+    assert_equal 'eight', t.config[:eight]
+    t.eight = "EIGHT"
+    assert_equal 'EIGHT', t.config[:eight]
+    
+    # accessor
+    assert_equal 'nine', t.config[:nine]
+    assert_equal 'nine', t.nine
+    
+    t.nine = "NINE"
+    
+    assert_equal 'NINE', t.config[:nine]
+    assert_equal 'NINE', t.nine
   end
   
   #
-  # config tests
+  # config_merge test
   #
-  # 
-  # class SampleClass
-  #   extend Tap::Support::ConfigurableMethods
-  #   
-  #   config :key, 'value'
-  #   config_reader
-  #   config :reader_only
-  # end
-  # 
-  # class ValidatingClass
-  #   extend Tap::Support::ConfigurableMethods
-  # 
-  #   config :one, 'one', &c.check(String)
-  #   config :two, 'two' do |v| 
-  #     v.upcase
-  #   end
-  # end
-  # 
-  # # def test_config_doc
-  # #   t = SampleClass.new
-  # #   assert t.respond_to?(:reader_only)
-  # #   assert !t.respond_to?(:reader_only=)
-  # # 
-  # #   assert_equal({:key => 'value', :reader_only => nil}, t.config)
-  # #   assert_equal 'value', t.key  
-  # #   t.key = 'another'
-  # #   assert_equal({:key => 'another', :reader_only => nil}, t.config)
-  # #   
-  # #   t = ValidatingClass.new
-  # #   assert_equal({:one => 'one', :two => 'TWO'}, t.config)
-  # #   assert_raise(Tap::Support::Validation::ValidationError) { t.one = 1 }
-  # #   assert_raise(Tap::Support::Validation::ValidationError) { t.config = {:one => 1} }
-  # #   
-  # #   t.config = {:one => 'str', :two => 'str'}
-  # #   assert_equal({:one => 'str', :two => 'STR'}, t.config)
-  # # end
-  # 
-  # # def test_config_sets_config
-  # #   t = ConfigurableClassWithNoConfigs.new
-  # #   assert_equal({}, t.config)
-  # #   t.config = {:key => 'value'}
-  # #   assert_equal({:key => 'value'}, t.config)
-  # # end
-  # 
-  # # def test_config_merges_default_config_and_overrides
-  # #   t = ConfigurableClass.new "configured"
-  # #   assert_equal({:one => 'one', :two => 'two', :three => 'three'}, t.class.configurations.default)
-  # #   assert_equal({:one => 'one', :two => 'TWO', :three => 'THREE'}, t.config)
-  # #   
-  # #   t.config = {:three => 3}
-  # #   assert_equal({:one => 'one', :two => 'two', :three => 3}, t.config)
-  # # end
-  # 
-  # class ConfigurableClassWithManyConfigs
-  #   include Tap::Support::Configurable
-  #   
-  #   config :one, 'one'
-  #   
-  #   declare_config
-  #   config :two, 'two'
-  #   
-  #   config_reader
-  #   config :three, 'three'
-  #   
-  #   config_writer
-  #   config :four, 'four'
-  #   
-  #   config_accessor
-  #   config :five, 'five'
-  #   
-  #   declare_config :six
-  #   config_reader :seven
-  #   config_writer :eight
-  #   config_accessor :nine
-  # end
-  # 
-  # def test_config_with_many_configs
-  #   t = ConfigurableClassWithManyConfigs.new
-  #   
-  #   assert_equal({
-  #     :one => 'one',     :six => nil, 
-  #     :two => 'two',     :seven => nil,
-  #     :three => 'three', :eight => nil,
-  #     :four => 'four',   :nine => nil,
-  #     :five => 'five'},
-  #   t.config)
-  #   
-  #   # readers only
-  #   [:three, :seven].each do |config|
-  #     assert t.respond_to?(config)
-  #     assert !t.respond_to?("#{config}=")
-  #   end
-  #   
-  #   # writers only
-  #   [:four, :eight].each do |config|
-  #     assert !t.respond_to?(config)
-  #     assert t.respond_to?("#{config}=")
-  #   end
-  # 
-  #   # both
-  #   [:one, :five, :nine].each do |config|
-  #     assert t.respond_to?(config)
-  #     assert t.respond_to?("#{config}=")
-  #   end
-  #   
-  #   # neither
-  #   [:two, :six].each do |config|
-  #     assert !t.respond_to?(config)
-  #     assert !t.respond_to?("#{config}=")
-  #   end
-  # end
   
+  class BaseClass
+    extend Tap::Support::ConfigurableMethods
+    config :one, 'one'
+  end
   
+  class SubClassOne < BaseClass
+    config :two, 'two', &ECHO_BLOCK
+  end
+  
+  class SubClassTwo < BaseClass
+    config_merge SubClassOne
+    config :three, 'three'
+  end
+  
+  class AltBaseClass
+    extend Tap::Support::ConfigurableMethods
+    config_writer
+    config_merge SubClassOne
+  end
+  
+  def test_config_merge_merges_configs_from_another_class
+    assert_equal({:one => 'one', :two => 'two', :three => 'three'}, SubClassTwo.configurations.default)
+    assert_equal({:two => ECHO_BLOCK}, SubClassTwo.configurations.process_blocks)
+  end
+  
+  def test_config_merge_creates_accessors_in_current_mode
+    t = SubClassTwo.new
+    assert t.respond_to?('one')
+    assert t.respond_to?('one=')
+    assert t.respond_to?('two')
+    assert t.respond_to?('two=')
+    
+    t = AltBaseClass.new
+    assert !t.respond_to?('one')
+    assert t.respond_to?('one=')
+    assert !t.respond_to?('two')
+    assert t.respond_to?('two=')
+  end
+  
+  def test_config_merge_raises_error_if_class_cannot_be_merged
+    klass = Class.new
+    klass.extend Tap::Support::ConfigurableMethods
+    klass.config :one
+    
+    assert_raise(ArgumentError) { klass.config_merge BaseClass }
+  end
 end
