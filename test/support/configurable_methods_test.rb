@@ -3,7 +3,7 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 class ConfigurableMethodsTest < Test::Unit::TestCase
   
   ECHO_BLOCK = lambda {|value| value }
-
+  
   #
   # documentation test
   #
@@ -45,10 +45,25 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   class IncludeSubclass < IncludeBase 
   end
   
+  class OverrideSubclass < IncludeBase 
+     config(:one, 'ONE') 
+  end
+  
   def test_subclassing_passes_on_configurations
     assert_equal Tap::Support::ClassConfiguration, IncludeSubclass.configurations.class
     assert_equal IncludeSubclass, IncludeSubclass.configurations.receiver
     assert_equal({:one => 'one'}, IncludeSubclass.configurations.default)
+  end
+  
+  def test_subclassing_passes_on_accessors
+    t = IncludeSubclass.new
+    assert t.respond_to?(:one)
+    assert t.respond_to?("one=")
+  end
+  
+  def test_inherited_configurations_can_be_overridden
+    assert_equal({:one => 'one'}, IncludeBase.configurations.default)
+    assert_equal({:one => 'ONE'}, OverrideSubclass.configurations.default)
   end
   
   #
@@ -64,26 +79,10 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
     config :reader_only
   end
   
-  class DocValidatingClass
-    include Tap::Support::Configurable
-
-    config(:one, 'one') {|v| v.upcase}
-    config :two, 'two', &c.check(String)
-  end
-  
   def test_config_documentation
     t = DocSampleClass.new
     assert t.respond_to?(:reader_only)
-    assert !t.respond_to?(:reader_only=)  
-
-    t = DocValidatingClass.new
-    assert_equal 'ONE', t.one 
-    t.one = 'One'             
-    assert_equal 'ONE', t.one
-    
-    assert_equal 'two', t.two
-    assert_raise(Tap::Support::Validation::ValidationError) { t.two = 2 }
-    assert_equal 'two', t.two
+    assert !t.respond_to?(:reader_only=)
   end
   
   class SampleClass

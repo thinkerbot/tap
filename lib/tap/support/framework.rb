@@ -1,5 +1,8 @@
 module Tap
   module Support
+    
+    # Framework encapsulates the basic framework functionality (batching,
+    # configuration, documentation, etc) used by Task and Workflow.
     module Framework
       include Batchable
       include Configurable
@@ -22,9 +25,10 @@ module Tap
       # The config file used to load config templates.
       attr_reader :config_file
 
-      # Initializes a new Configurable and associated batch objects.  Batch
-      # objects will be initialized for each configuration template specified
-      # in config_file, where config_file = app.config_filepath(name).  
+      # Initializes a new instance and associated batch objects.  Batch
+      # objects will be initialized for each configuration template 
+      # specified by app.each_config_template(config_file) where 
+      # config_file = app.config_filepath(name).  
       def initialize(name=nil, config={}, app=App.instance)
         @app = app
         @batch = []
@@ -47,6 +51,14 @@ module Tap
         obj.config = config
 
         obj
+      end
+      
+      def enq(*inputs)
+        raise NotImplementedError, "enq is an abstract method"
+      end
+      
+      def on_complete(override=false, &block)
+        raise NotImplementedError, "on_complete is an abstract method"
       end
     
       protected

@@ -222,8 +222,8 @@ module Tap
       end      
     end
     
-    include Base
     include Support::Framework
+    include Base
     
     attr_reader :task_block
     

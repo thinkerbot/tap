@@ -1,10 +1,14 @@
 module Tap
   module Support
     
-    # Configurable encapsulates all configuration-related methods used
-    # by Tasks.  When Configurable is included in a class, the class itself
-    # is extended with Tap::Support::ConfigurableMethods, such that configs
-    # can be declared within the class definition.
+    # Configurable facilitates the definition and use of configurations by objects.  
+    # Configurable allows the specification of configs within the class definition.
+    #
+    # == Usage
+    #
+    # Configurable must be included in the class definition and the including class
+    # must initialize the @config variable, which is usually most conveniently done
+    # through the config= method.
     #
     #   class ConfigurableClass
     #     include Configurable
@@ -12,39 +16,45 @@ module Tap
     #     config :one, 'one'
     #     config :two, 'two'
     #     config :three, 'three'
+    #
+    #     def initialize(overrides={})
+    #       # initializing configs in this way sets configs
+    #       # to the class defaults, which are overrided as
+    #       # specified
+    #       self.config = overrides
+    #     end
     #   end
     #
-    #   ConfigurableClass.new.config  # => {:one => 'one', :two => 'two', :three => 'three'}
+    #   c = ConfigurableClass.new
+    #   c.config               # => {:one => 'one', :two => 'two', :three => 'three'}
     #
-    #--
-    # See the 'Configuration' section in the Tap::Task documentation for
-    # more details on how Configurable works in practice.
-    #--
-    # === Example
-    # In general ClassConfigurations are only interacted with through ConfigurableMethods.
-    # These define attr-like readers/writers/accessors:
-    #  
-    #   class BaseClass
-    #     include Tap::Support::Configurable
-    #     config :one, 1
-    #     config :three, 3
+    # Configurable extends the including class with Tap::Support::ConfigurableMethods.  As
+    # such, configurations are given accessors that read and write to config:
+    #
+    #   c.config[:one] = 'ONE'
+    #   c.one                  # => 'ONE'
+    #
+    #   c.one = 1           
+    #   c.config               # => {:one => 1, :two => 'two', :three => 'three'}
+    #
+    # A validation/transform block can be provided to modify configurations as
+    # they are set. The Tap::Support::Validation module provides a number of 
+    # common validation and transform blocks, which can be accessed through the   
+    # class method 'c':
+    #
+    #   class ValidatingClass < ConfigurableClass
+    #     config(:one, 'one') {|v| v.upcase }
+    #     config :two, 'two', &c.check(String)
     #   end
     #
-    #   BaseClass.configurations.default    # => {:one => 1, :three => 3}
+    #   v = ValidatingClass.new
+    #   v.config              # => {:one => 'ONE', :two => 'two', :three => 'three'}
+    #   v.one = 'aNothER'             
+    #   v.one                 # => 'ANOTHER'
+    #   v.two = 2             # !> ValidationError
     #
-    # ClassConfigurations are inherited and decoupled from the parent.  You
-    # may need to interact with configurations directly:
-    #
-    #   class SubClass < BaseClass
-    #     config :one, 'one'
-    #     config :two, 'TWO' {|value| value.downcase }
-    #
-    #     configurations.remove(:three)
-    #   end
-    #
-    #   BaseClass.configurations.default              # => {:one => 1, :three => 3}
-    #   SubClass.configurations.default               # => {:one => 'one', :two => 'two'}
-    #   SubClass.configurations.unprocessed_default   # => {:one => 'one', :two => 'TWO'}
+    # As can be seen, configurations are inherited from the parent and can be
+    # overridden in subclasses.
     #
     module Configurable
       
@@ -56,18 +66,14 @@ module Tap
       # A configuration hash
       attr_reader :config
       
-      def initialize(overrides={})
-        self.config = overrides
-      end
-      
       # Returns a reference to the class configurations for self
       def class_configurations
         @class_configurations ||= self.class.configurations
       end
       
-      # Sets config with the given configuration overrides, merged with the class
-      # default configuration.  Configurations are symbolized before they are merged,
-      # and validated as specified in the config declarations.
+      # Sets config for self with the given configuration overrides.
+      # Overrides are merged with the class default configuration.  
+      # Overrides are individually set through set_config.
       def config=(overrides)
         @config = class_configurations.default.dup
         overrides.each_pair {|key, value| set_config(key, value) } 

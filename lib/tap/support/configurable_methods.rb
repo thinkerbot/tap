@@ -1,10 +1,10 @@
 module Tap
   module Support
     
-    # ConfigurableMethods encapsulates all class methods used to declare
-    # configurations in Tasks.  When configurations are declared using
-    # the config method, ConfigurableMethods generates accessors in the
-    # class, much like attr_reader, attr_writer, and attr_accessor.  
+    # ConfigurableMethods encapsulates class methods used to declare class
+    # configurations. When configurations are declared using the config method, 
+    # ConfigurableMethods generates accessors in the class, much like attr_reader, 
+    # attr_writer, and attr_accessor.  
     #
     #   class ConfigurableClass
     #     extend ConfigurableMethods
@@ -146,33 +146,9 @@ module Tap
       #   t.respond_to?(:reader_only)         # => true
       #   t.respond_to?(:reader_only=)        # => false
       #
-      # A block can be specified for validation/pre-processing.  If the
-      # set_config/get_config methods are implemented as in Configurable
-      # (as below) then all inputs set through the config accessors are
-      # automatically processed by the block.  
+      # A block can be specified for validation/pre-processing.  See
+      # Tap::Support::Configurable for more details.
       #
-      # The Tap::Support::Validation module provides methods to perform 
-      # common checks and transformations.  These can be accessed through 
-      # the class method 'c':
-      #
-      #   class ValidatingClass
-      #     include Configurable   # effectively extends self with ConfigurableMethods
-      # 
-      #     config(:one, 'one') {|v| v.upcase}
-      #     config :two, 'two', &c.check(String)
-      #   end
-      #
-      #   t = ValidatingClass.new
-      #
-      #   # Note the default values are also processed
-      #   t.one                     # => 'ONE'
-      #   t.one = 'One'             
-      #   t.one                     # => 'ONE'
-      
-      #   t.two                     # => 'two'
-      #   t.two = 2                 # !> ValidationError
-      #   t.two                     # => 'two'
-      #   
       def config(key, value=nil, &validation)
         configurations.add(key, value, &validation)
 

@@ -1,185 +1,136 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/support/class_configuration'
-require 'tap/support/validation'
-require 'tap/support/configurable_methods'
-require 'tap/support/tdoc'
-require 'tap/support/configurable'
-
-# for documentation test
-# class BaseTask 
-#   include Tap::Support::Configurable
-#   config :one, 1
-# end
-# class SubTask < BaseTask
-#   config :one, 'one'
-#   config :two, 'two'
-# end
-# 
-
-# for documentation test
-# class BaseTask 
-#   include Tap::Support::Framework
-#   config :one, 1
-# end
-# class SubTask < BaseTask
-#   config :one, 'one'
-#   config :two, 'two'
-# end
-# class MergeTask < BaseTask
-#   config :three, 'three'
-#   config_merge SubTask
-# end
-# class ValidationTask < Tap::Task
-#   config :one, 'one', &c.check(String)
-#   config :two, 'two', &c.yaml(/two/, Integer)
-#   config :three, 'three' do |v| 
-#     v =~ /three/ ? v.upcase : raise("not three")
-#   end
-# end
 
 class ConfigurableTest < Test::Unit::TestCase
   acts_as_tap_test
 
-  # def setup
-  #   super
-  #   app.root = trs.root
-  # end 
-  # 
-  # # sample class repeatedly used in tests
-  # class ConfigurableClass
-  #   include Tap::Support::Configurable
-  #   
-  #   config :one, 'one'
-  #   config :two, 'two'
-  #   config :three, 'three'
-  # end
-  # 
-  # # sample class repeatedly used in tests
-  # class ConfigurableClassWithNoConfigs
-  #   include Tap::Support::Configurable
-  # end
-  # 
-  # 
-  # #
-  # # documentation test
-  # #
-  # 
-  # def test_configurable_doc
-  #   t = ConfigurableClass.new 
-  #   assert_equal({:one => 'one', :two => 'two', :three => 'three'}, t.config)
-  # end
-  # 
-  # #
-  # # include test
-  # #
-  # 
-  # def test_include_extends_class_with_ConfigurableMethods
-  #   assert ConfigurableClassWithNoConfigs.kind_of?(Tap::Support::ConfigurableMethods)
-  # end
-  # 
-  # #
-  # # name test
-  # #
-  # 
-  # def test_name_is_initialized_to_class_default_name_unless_specified
-  #   assert_equal ConfigurableClass.default_name, ConfigurableClass.new.name
-  #   assert_equal "alt", ConfigurableClass.new("alt").name
-  # end
-  # 
-  # #
-  # # config_file test
-  # #
-  # 
-  # def test_config_file_is_app_config_filepath_when_config_file_exist
-  #   t = ConfigurableClass.new "configured"
-  #   app_config_filepath = app.config_filepath("configured")
-  #   
-  #   assert_equal File.join(t.app['config'], "configured.yml"),app_config_filepath
-  #   assert File.exists?(app_config_filepath)
-  #   assert_equal app.config_filepath("configured"), t.config_file
-  # end
-  # 
-  # def test_config_file_is_nil_for_nil_input_names
-  #   t = ConfigurableClass.new 
-  #   assert_equal nil, t.config_file
-  #   
-  #   t = ConfigurableClass.new nil
-  #   assert_equal nil, t.config_file
-  # end
-  # 
-  # 
-  # #
-  # # test subclass behavior
-  # #
-  # 
-  # class DeclarationClass
-  #   include Tap::Support::Configurable
-  #   
-  #   declare_config
-  # 
-  #   config :one, 1
-  #   config :two, 2
-  #   config :three, 3
-  # 
-  #   config_accessor :one
-  #   config_writer :two
-  #   config_reader :three
-  # end
-  # 
-  # class DeclarationSubClass < DeclarationClass
-  #   config :one, "one"
-  #   config :four, 4
-  # end
-  # 
-  # def test_config_accessors_are_inherited
-  #   t = DeclarationSubClass.new
-  #   
-  #   assert t.respond_to?(:one)
-  #   assert t.respond_to?("one=")
-  #   assert !t.respond_to?(:two)
-  #   assert t.respond_to?("two=")
-  #   assert t.respond_to?(:three)
-  #   assert !t.respond_to?("three=")
-  #   
-  #   assert t.respond_to?(:four)
-  #   assert t.respond_to?("four=")
-  # end
-  # 
-  # def test_class_configurations_are_inherited_but_can_be_overridden
-  #   assert_equal([
-  #     [DeclarationClass, [:one, :two, :three]],
-  #     [DeclarationSubClass, [:four]]
-  #   ], DeclarationSubClass.configurations.declarations_array)
-  #   
-  #   assert_equal({:one => 1, :two => 2, :three => 3}, DeclarationClass.configurations.default)
-  #   assert_equal({:one => 'one', :two => 2, :three => 3, :four => 4}, DeclarationSubClass.configurations.default)
-  #   
-  #   t = DeclarationSubClass.new
-  #   assert_equal({:one => 'one', :two => 2, :three => 3, :four => 4}, t.config)
-  # end
+  # sample class repeatedly used in tests
+  class Sample
+    include Tap::Support::Configurable
+    
+    def initialize(config={})
+      @config = config  
+    end
+    
+    config(:one, 'one') {|v| v.upcase }
+    config :two, 'two'
+  end
   
-  # include Tap::Support
-  # 
-  # def test_config_validations
-  #   t = ValidationTask.new
-  #   assert_equal({:one => 'one', :two => 'two', :three => 'THREE'}, t.config)
-  #   
-  #   t.one = 'two'
-  #   assert_equal 'two', t.one  
-  #   assert_raise(Validation::ValidationError) { t.one = 1 }
-  #   
-  #   t.two = "two"
-  #   assert_equal 'two', t.two
-  #   t.two = 2
-  #   assert_equal 2, t.two    
-  #   t.two = "2"
-  #   assert_equal 2, t.two
-  #   assert_raise(Validation::ValidationError) { t.two = 'three' }
-  #   assert_raise(Validation::ValidationError) { t.two = 2.2 }
-  #   
-  #   t.three = "three"
-  #   assert_equal 'THREE', t.three
-  #   assert_raise(RuntimeError) { t.three = 'THREE' } 
-  # end
+  def test_sample
+    assert_equal({:one => 'ONE', :two => 'two'}, Sample.configurations.default)
+  end
+  
+  #
+  # documentation test
+  #
+  
+  class ConfigurableClass
+    include Tap::Support::Configurable
 
+    config :one, 'one'
+    config :two, 'two'
+    config :three, 'three'
+
+    def initialize(overrides={})
+      self.config = overrides
+    end
+  end
+  
+  class ValidatingClass < ConfigurableClass
+    config(:one, 'one') {|v| v.upcase }
+    config :two, 'two', &c.check(String)
+  end
+  
+  def test_documentation
+    c = ConfigurableClass.new
+    assert_equal({:one => 'one', :two => 'two', :three => 'three'}, c.config)
+
+    c.config[:one] = 'ONE'
+    assert_equal 'ONE', c.one
+  
+    c.one = 1           
+    assert_equal({:one => 1, :two => 'two', :three => 'three'}, c.config)
+  
+    v = ValidatingClass.new
+    assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, v.config)
+    v.one = 'aNothER'             
+    assert_equal 'ANOTHER', v.one
+    assert_raise(Tap::Support::Validation::ValidationError) { v.two = 2 }
+  end
+  
+  #
+  # include test
+  #
+  
+  def test_include_extends_class_with_ConfigurableMethods
+    assert Sample.kind_of?(Tap::Support::ConfigurableMethods)
+  end
+  
+  #
+  # class_configurations test
+  #
+  
+  def test_class_configurations_returns_class_configurations
+    assert_equal Sample.configurations, Sample.new.class_configurations
+  end
+  
+  #
+  # config= test
+  #
+  
+  def test_config_merges_overrides_with_class_default_config
+    t = Sample.new
+    t.config = {:two => 2}
+    assert_equal({:one => 'ONE', :two => 2}, t.config)
+  end
+  
+  def test_config_processes_overrides_with_process_blocks
+    t = Sample.new
+    t.config = {:one => 'Alt'}
+    assert_equal({:one => 'ALT', :two => 'two'}, t.config)
+  end
+
+  def test_config_normalizes_input_keys
+    t = Sample.new
+    t.config = {'one' => 'Alt'}
+    assert_equal({:one => 'ALT', :two => 'two'}, t.config)
+  end
+  
+  def test_config_is_detached_from_class_default
+    t = Sample.new
+    t.config = {'one' => 'Alt'}
+    assert_equal({:one => 'ALT', :two => 'two'}, t.config)
+    assert_equal({:one => 'ONE', :two => 'two'}, Sample.configurations.default)
+  end
+  
+  #
+  # set_config test
+  #
+  
+  def test_set_config_normalizes_keys
+    t = Sample.new
+    assert_equal({}, t.config)
+    
+    t.send(:set_config, :one, "ONE")
+    assert_equal({:one => 'ONE'}, t.config)
+    
+    t.send(:set_config, 'one', "ALT")
+    assert_equal({:one => 'ALT'}, t.config)
+  end
+  
+  def test_set_config_processes_values
+    t = Sample.new
+    t.send(:set_config, :one, "value")
+    assert_equal({:one => 'VALUE'}, t.config)
+  end
+  
+  #
+  # get_config test
+  #
+  
+  def test_get_config_normalizes_keys
+    t = Sample.new :one => 'ONE'
+    assert_equal "ONE", t.send(:get_config, :one)
+    assert_equal "ONE", t.send(:get_config, 'one')
+  end
+  
 end
