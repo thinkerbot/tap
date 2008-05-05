@@ -29,3 +29,14 @@ def app
 end
 
 IRB.start
+
+# Handles a bug in IRB that causes exit to throw :IRB_EXIT
+# and consequentially make a warning message, even on a 
+# clean exit.  This module resets exit to the original 
+# aliased method.
+module CleanExit # :nodoc:
+  def exit(ret = 0)
+    __exit__(ret)
+  end
+end
+IRB.CurrentContext.extend CleanExit
