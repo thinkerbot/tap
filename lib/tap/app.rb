@@ -124,7 +124,11 @@ module Tap
   #   array[0] == array[1]           # => false
   #
   # Since App is geared towards methods, methods from non-task objects can get 
-  # hooked into a workflow as needed.  The preferred way to do so is to make the
+  # hooked into a workflow as needed.  
+  #---
+  # TODO REVISIT
+  #
+  # The preferred way to do so is to make the
   # non-task objects behave like tasks using Task::Base#initialize.  The objects
   # can now be enqued, incorporated into workflows, and batched.
   #
@@ -138,7 +142,9 @@ module Tap
   #   app.run
   #   array                          # => [1, 2]
   #
-  # Lastly, if you can't or don't want to turn your object into a task, Tap defines 
+  # Lastly, if you can't or don't want to turn your object into a task, 
+  #++
+  # Tap defines 
   # Object#_method to generate executable objects that can be enqued and 
   # incorporated into workflows, although they cannot be batched.  The mq 
   # (method enq) method generates and enques the method in one step.
@@ -219,8 +225,7 @@ module Tap
   # See Tap::Support::Audit for more details.
   class App < Root
     include MonitorMixin
-    include Support::WorkflowPatterns
-    
+
     class << self
       # Sets the current app instance
       attr_writer :instance
@@ -550,18 +555,18 @@ module Tap
     #   app.task_class_name('some/task_class')   # => "some/task_class" 
     #   app.task_class_name('mapped-task-1.0')   # => "Tap::FileTask"
     #
-    # If td is a type of Tap::Task::Base, then task_class_name 
+    # If td is a type of Tap::Support::Framework, then task_class_name 
     # returns td.class.to_s
     #
     #   t1 = Task.new
     #   app.task_class_name(t1)                   # => "Tap::Task"
     #
-    #   t2 = Object.new.extend Tap::Task::Base
+    #   t2 = Object.new.extend Tap::Support::Framework
     #   app.task_class_name(t2)                   # => "Object"
     #
     def task_class_name(td)
       case td
-      when Tap::Task::Base then td.class.to_s
+      when Support::Framework then td.class.to_s
       else
         # de-version and resolve using map
         name, version = deversion(td.to_s)
@@ -823,7 +828,7 @@ module Tap
     # error handling code, perhaps performing rollbacks.
     #
     # Termination checks can be manually specified in a task
-    # using the check_terminate method (see Tap::Task::Base#check_terminate).
+    # using the check_terminate method (see Tap::Task#check_terminate).
     # Termination checks automatically occur before each task execution.
     #
     # Does nothing if state == State::READY.
@@ -859,7 +864,7 @@ module Tap
     # An Executable may provided instead of a task.
     def enq(task, *inputs)
       case task
-      when Support::Framework
+      when Tap::Task, Tap::Workflow
         raise "not assigned to enqueing app: #{task}" unless task.app == self
         task.enq(*inputs)
       when Support::Executable
@@ -875,6 +880,59 @@ module Tap
     def mq(object, method_name, *inputs)
       m = object._method(method_name)
       enq(m, *inputs)
+    end
+    
+    # Sets a sequence workflow pattern for the tasks such that the
+    # completion of a task enqueues the next task with it's results.
+    # Batched tasks will have the pattern set for each task in the 
+    # batch.  The current audited results are yielded to the block, 
+    # if given, before the next task is enqued.
+    #
+    # Executables may provided as well as tasks.
+    def sequence(*tasks) # :yields: _result
+      current_task = tasks.shift
+      tasks.each do |next_task|
+        # simply pass results from one task to the next.  
+        current_task.on_complete do |_result| 
+          yield(_result) if block_given?
+          enq(next_task, _result)
+        end
+        current_task = next_task
+      end
+    end
+
+    # Sets a fork workflow pattern for the tasks such that each of the
+    # targets will be enqueued with the results of the source when the
+    # source completes. Batched tasks will have the pattern set for each 
+    # task in the batch.  The source audited results are yielded to the 
+    # block, if given, before the targets are enqued.
+    #
+    # Executables may provided as well as tasks.
+    def fork(source, *targets) # :yields: _result
+      source.on_complete do |_result|
+        targets.each do |target| 
+          yield(_result) if block_given?
+          enq(target, _result)
+        end
+      end
+    end
+
+    # Sets a merge workflow pattern for the tasks such that the results
+    # of each source will be enqueued to the target when the source 
+    # completes. Batched tasks will have the pattern set for each 
+    # task in the batch.  The source audited results are yielded to  
+    # the block, if given, before the target is enqued.
+    #
+    # Executables may provided as well as tasks.
+    def merge(target, *sources) # :yields: _result
+      sources.each do |source|
+        # merging can use the existing audit trails... each distinct 
+        # input is getting sent to one place (the target)
+        source.on_complete do |_result| 
+          yield(_result) if block_given?
+          enq(target, _result)
+        end
+      end
     end
     
     # Returns all aggregated, audited results for the specified tasks.  

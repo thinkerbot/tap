@@ -28,7 +28,38 @@ module Tap
         merged
       end
       
-    end
-    
+      protected
+      
+      # def batch_function(*methods)
+      #   methods.each do |method|
+      #     unbatched_method = "unbatched_#{method}"
+      #     next if method_defined?(unbatched_method)
+      #     
+      #     class_eval %Q{
+      #       alias #{unbatched_method} #{method}
+      #       def #{method}(*args)
+      #         batch.each {|t| t.#{unbatched_method}(*args) }
+      #         self
+      #       end
+      #     }
+      #   end
+      # end
+      # 
+      # def batch_block_function(*methods)
+      #   methods.each do |method|
+      #     unbatched_method = "unbatched_#{method}"
+      #     next if method_defined?(unbatched_method)
+      #     
+      #     class_eval %Q{
+      #       alias #{unbatched_method} #{method}
+      #       def #{method}(*args, &block)
+      #         batch.each {|t| t.#{unbatched_method}(*args, &block) }
+      #         self
+      #       end
+      #     }
+      #   end
+      # end
+      
+    end 
   end
 end

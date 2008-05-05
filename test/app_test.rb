@@ -126,25 +126,25 @@ class AppTest < Test::Unit::TestCase
     assert_equal 2, array.length
     assert_not_equal array[0], array[1]
     
-    array = []
-    Task::Base.initialize(array, :push)
-  
-    array.enq(1)
-    array.enq(2)
-  
-    assert array.empty?
-    app.run
-    assert_equal [1, 2], array
-  
-    array = []
-    m = array._method(:push)
-   
-    app.enq(m, 1)
-    app.mq(array, :push, 2)
-
-    assert array.empty?
-    app.run
-    assert_equal [1, 2], array
+    # array = []
+    # Task::Base.initialize(array, :push)
+    #   
+    # array.enq(1)
+    # array.enq(2)
+    #   
+    # assert array.empty?
+    # app.run
+    # assert_equal [1, 2], array
+    #   
+    # array = []
+    # m = array._method(:push)
+    #    
+    # app.enq(m, 1)
+    # app.mq(array, :push, 2)
+    # 
+    # assert array.empty?
+    # app.run
+    # assert_equal [1, 2], array
 
     ###
     t1 = Tap::Task.new('add_one') {|task, input| input += 1 }
@@ -518,7 +518,7 @@ o-[add_five] 8
     t1 = Task.new
     assert_equal "Tap::Task", app.task_class_name(t1)     
 
-    t2 = ObjectWithExecute.new.extend Tap::Task::Base
+    t2 = ObjectWithExecute.new.extend Tap::Support::Framework
     assert_equal "ObjectWithExecute", app.task_class_name(t2)    
   end
   
@@ -530,7 +530,7 @@ o-[add_five] 8
     assert_equal "AppTest::TaskSubClass", app.task_class_name(subtask)
     
     non_task = ObjectWithExecute.new
-    non_task.extend Tap::Task::Base
+    non_task.extend Tap::Support::Framework
     assert_equal "ObjectWithExecute", app.task_class_name(non_task)
   end
 

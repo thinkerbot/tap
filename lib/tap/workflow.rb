@@ -188,11 +188,6 @@ module Tap
       input == nil ? @name : File.join(@name, input)
     end
     
-    # Returns name
-    def to_s
-      name
-    end
-    
     protected
     
     # Hook to set a default task block.  By default, nil.

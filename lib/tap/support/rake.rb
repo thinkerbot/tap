@@ -8,10 +8,7 @@ module Tap
     #--
     # Note: Do not refactor Tap:Support::Rake without attending  to the line in 'script/run' that 
     # extends app.  As it stands, this module is loaded as needed using Dependencies.
-    module Rake
-      def task(td, config={}, &block)
-        Object::Rake.application.lookup(td) || super
-      end
+    module Rake 
 
       # Modifies Rake::Task to behave like Tap::Task.  The essential code is this:
       #
@@ -32,7 +29,7 @@ module Tap
       module Task
         def new(*args)
           task = super
-          Tap::Task::Base.initialize(task, :invoke)
+          Tap::Support::Executable.initialize(task, :invoke)
           task
         end
       end
@@ -73,9 +70,24 @@ module Tap
               else raise
               end
             end
-          end
-          
+          end  
         end
+        
+        def argv_enq(app=App.instance) 
+          # takes the place of rake.top_level
+          if options.show_tasks
+            display_tasks_and_comments
+            exit
+          elsif options.show_prereqs
+            display_prerequisites
+            exit
+          else
+            top_level_tasks.each do |task_name| 
+              app.enq lookup(task_name)
+            end
+          end  
+        end
+        
       end
     end
   end

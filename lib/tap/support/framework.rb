@@ -2,7 +2,9 @@ module Tap
   module Support
     
     # Framework encapsulates the basic framework functionality (batching,
-    # configuration, documentation, etc) used by Task and Workflow.
+    # configuration, documentation, logging, etc) used by Task and Workflow.  
+    # Note that Framework does NOT encapsulate the functionality needed to
+    # make a class useful in workflows, such as enq and on_complete.
     module Framework
       include Batchable
       include Configurable
@@ -53,14 +55,26 @@ module Tap
         obj
       end
       
-      def enq(*inputs)
-        raise NotImplementedError, "enq is an abstract method"
+      # Logs the inputs to the application logger (via app.log)
+      def log(action, msg="", level=Logger::INFO)
+        # TODO - add a task identifier?
+        app.log(action, msg, level)
+      end
+
+      # Raises a TerminateError if app.state == State::TERMINATE.
+      # check_terminate may be called at any time to provide a 
+      # breakpoint in long-running processes.
+      def check_terminate
+        if app.state == App::State::TERMINATE
+          raise App::TerminateError.new
+        end
       end
       
-      def on_complete(override=false, &block)
-        raise NotImplementedError, "on_complete is an abstract method"
+      # Returns self.name
+      def to_s
+        name
       end
-    
+      
       protected
     
       attr_writer :name

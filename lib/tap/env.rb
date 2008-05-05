@@ -106,6 +106,8 @@ module Tap
       Dependencies.log_activity = app.debug?
     end
     
+    #--
+    # TODO -- get this to only run once
     def rake_setup(argv=ARGV, app=Tap::App.instance)
       Tap::Support.autoload(:Rake, 'tap/support/rake')
 

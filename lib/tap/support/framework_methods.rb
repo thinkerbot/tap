@@ -89,6 +89,7 @@ Options:
         end
 
         # instantiate and configure task
+        ARGV.collect! {|str| Tap::Support::CommandLine.parse_yaml(str) }
         task = new(ARGV.shift, config, app)
         iterate ? ARGV.each {|input| task.enq(input) } : task.enq(*ARGV)
       end
