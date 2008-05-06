@@ -12,7 +12,7 @@ module Tap
       #  t2 = Tap::Task.new
       #  t3 = t2.initialize_batch_obj
       #
-      #  Batchable.batch(t1, t2)
+      #  Tap::Task.batch(t1, t2)
       #  t3.batch                    # => [t1,t2,t3]
       #
       # Returns the new batch.
@@ -30,36 +30,31 @@ module Tap
       
       protected
       
-      # def batch_function(*methods)
-      #   methods.each do |method|
-      #     unbatched_method = "unbatched_#{method}"
-      #     next if method_defined?(unbatched_method)
-      #     
-      #     class_eval %Q{
-      #       alias #{unbatched_method} #{method}
-      #       def #{method}(*args)
-      #         batch.each {|t| t.#{unbatched_method}(*args) }
-      #         self
-      #       end
-      #     }
-      #   end
-      # end
-      # 
-      # def batch_block_function(*methods)
-      #   methods.each do |method|
-      #     unbatched_method = "unbatched_#{method}"
-      #     next if method_defined?(unbatched_method)
-      #     
-      #     class_eval %Q{
-      #       alias #{unbatched_method} #{method}
-      #       def #{method}(*args, &block)
-      #         batch.each {|t| t.#{unbatched_method}(*args, &block) }
-      #         self
-      #       end
-      #     }
-      #   end
-      # end
-      
+      def batch_function(*methods)
+        methods.each do |method_name|
+          unbatched_method = "unbatched_#{method_name}"
+          if method_defined?(unbatched_method)
+            raise "unbatched method already defined: #{unbatched_method}"
+          end
+          
+          arity = instance_method(method_name).arity
+          args = case
+          when arity < 0 then "*args"
+          else Array.new(arity) {|index| "arg#{index}" }.join(", ")
+          end 
+          args += ", &block" if block_given?
+ 
+          class_eval %Q{
+            alias #{unbatched_method} #{method_name}
+            def #{method_name}(#{args})
+              batch.each do |t|
+                t.#{unbatched_method}(#{args})
+              end
+              self
+            end
+          }
+        end
+      end
     end 
   end
 end

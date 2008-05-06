@@ -6,11 +6,11 @@ module Tap
     # documentation for more details on how Batchable works in 
     # practice.
     module Batchable
-      extend Support::BatchableMethods
+      #extend Support::BatchableMethods
       
-      # def self.included(mod)
-      #   mod.extend Support::BatchableMethods if mod.kind_of?(Class)
-      # end
+      def self.included(mod)
+        mod.extend Support::BatchableMethods if mod.kind_of?(Class)
+      end
       
       # The object batch. (must be initializd by classes that
       # include Batchable)

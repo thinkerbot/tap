@@ -198,36 +198,15 @@ module Tap
       super(name, config, app)
     end
     
-    def unbatched_enq(*inputs)
-      app.queue.enq(self, inputs)
-    end
-
     # Enqueues self and self.batch to app with the inputs.  
     # The number of inputs provided should match the number 
     # of inputs specified by the arity of the _method_name method.
     def enq(*inputs)
-      batch.each {|t| t.unbatched_enq(*inputs) }
-      self
+      app.queue.enq(self, inputs)
     end
     
-    alias :unbatched_on_complete :on_complete
-    
-    # Sets the on_complete_block for self and self.batch.
-    # Use unbatched_on_complete to set the on_complete_block
-    # for just self.
-    def on_complete(override=false, &block)
-      batch.each {|t| t.unbatched_on_complete(override, &block)}
-      self
-    end
-    
-    alias :unbatched_multithread= :multithread=
-    
-    # Sets the multithread for self and self.batch.  Use 
-    # unbatched_multithread= to set multithread for just self.
-    def multithread=(value)
-      batch.each {|t| t.unbatched_multithread = value }
-      self
-    end
+    batch_function :enq, :multithread=
+    batch_function(:on_complete) {}
     
     # Executes self with the given inputs.  Execute provides hooks for subclasses
     # to insert standard execution code: before_execute, on_execute_error,
