@@ -24,9 +24,6 @@ module Tap
       # A hash of the unprocessed default values
       attr_reader :unprocessed_default
       
-      # A hash of the processed default values
-      attr_reader :default
-      
       # A hash of the processing blocks
       attr_reader :process_blocks
       
@@ -51,6 +48,34 @@ module Tap
           @process_blocks = {}
           @assignments = Assignments.new
         end
+      end
+      
+      # A hash of the processed default values.  
+      #
+      # If duplicate is true, then a 'deep' duplicate of the default values
+      # is returned.  In this case, the return will be a new hash, with all 
+      # Array and Hash values duplicated.  This can be useful to prevent
+      # accidental modification of default values.
+      def default(duplicate=false)
+        return @default unless duplicate
+        
+        config = {}
+        @default.each do |key, value|
+          config[key] = case value
+          when Array, Hash then value.dup
+          else value
+          end
+        end
+        config
+      end
+      
+      # Returns true if the normalized key is assigned in assignments.
+      #
+      # Note: as a result of this definition, an existing config must 
+      # be removed with unassign == true to make has_config? false.
+      def has_config?(key)
+        key = normalize_key(key)
+        assignments.assigned?(key)
       end
       
       # Normalizes a configuration key by symbolizing.

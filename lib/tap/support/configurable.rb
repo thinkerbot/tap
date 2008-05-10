@@ -75,7 +75,7 @@ module Tap
       # Overrides are merged with the class default configuration.  
       # Overrides are individually set through set_config.
       def config=(overrides)
-        @config = class_configurations.default.dup
+        @config = class_configurations.default(true)
         overrides.each_pair {|key, value| set_config(key, value) } 
         self.config
       end

@@ -60,6 +60,52 @@ class ClassConfigurationTest < Test::Unit::TestCase
   end
   
   #
+  # default test
+  #
+  
+  def test_default_with_duplicate_false_returns_default
+    assert_equal c.default.object_id, c.instance_variable_get(:@default).object_id
+  end
+  
+  def test_default_with_duplicate_true_returns_duplicate_with_all_Array_and_Hash_values_duplicated
+    c.add(:array, [])
+    c.add(:hash, {})
+    c.add(:obj, Object.new)
+    
+    duplicate = c.default(true)
+    
+    assert_equal c.default, duplicate
+    assert_not_equal c.default.object_id, duplicate.object_id
+    
+    assert_equal c.default[:array], duplicate[:array]
+    assert_not_equal c.default[:array].object_id, duplicate[:array].object_id
+    
+    assert_equal c.default[:hash], duplicate[:hash]
+    assert_not_equal c.default[:hash].object_id, duplicate[:hash].object_id
+    
+    assert_equal c.default[:obj], duplicate[:obj]
+    assert_equal c.default[:obj].object_id, duplicate[:obj].object_id
+  end
+  
+  #
+  # has_config? test
+  #
+  
+  def test_has_config_returns_true_if_the_normalized_key_is_assigned
+    c.add(:config)
+
+    assert c.has_config?(:config)
+    assert c.has_config?('config')
+    assert !c.has_config?(:undeclared)
+    
+    c.remove(:config)
+    assert c.has_config?(:config)
+    
+    c.remove(:config, true)
+    assert !c.has_config?(:config)
+  end
+  
+  #
   # normalize_key test
   #
   
