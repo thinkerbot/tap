@@ -1,3 +1,5 @@
+require 'tap/support/configurable_methods'
+
 module Tap
   module Support
     

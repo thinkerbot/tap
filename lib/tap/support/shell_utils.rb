@@ -1,4 +1,4 @@
-require 'tempfile'
+autoload(:Tempfile, 'tempfile')
 
 module Tap
   module Support

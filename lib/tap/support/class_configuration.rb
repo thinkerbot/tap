@@ -1,3 +1,4 @@
+require 'tap/support/assignments'
 autoload(:GetOptLong, 'getoptlong')
 
 module Tap

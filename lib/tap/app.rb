@@ -403,28 +403,6 @@ module Tap
       self
     end
     
-    # Unloads constants loaded by Dependencies, so that they will be reloaded
-    # (with any changes made) next time they are called.  Returns the unloaded 
-    # constants.  
-    def reload
-      unloaded = []
-      
-      # echos the behavior of Dependencies.clear, 
-      # but collects unloaded constants
-      Dependencies.loaded.clear
-      Dependencies.autoloaded_constants.each do |const| 
-        Dependencies.remove_constant const
-        unloaded << const
-      end
-      Dependencies.autoloaded_constants.clear
-      Dependencies.explicitly_unloadable_constants.each do |const| 
-        Dependencies.remove_constant const
-        unloaded << const
-      end
-      
-      unloaded
-    end
-    
     # Looks up the specified constant, dynamically loading via Dependencies
     # if necessary.  Returns the const_name if const_name is a Module.
     # Yields to the optional block if the constant cannot be found; otherwise

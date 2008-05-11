@@ -374,31 +374,6 @@ o-[add_five] 8
   end
   
   #
-  # reload test
-  #
-  
-  def test_reload_returns_unloaded_constants
-    app = Tap::App.instance
-    
-    Dependencies.clear
-    assert_equal [], app.reload
-    
-    begin
-      assert !Object.const_defined?("AppTestTask")
-      
-      Dependencies.load_paths << app['lib']
-      app_task_test_mod = AppTestTask
-      
-      assert Object.const_defined?("AppTestTask")
-      assert_equal [:AppTestTask], app.reload.collect {|c| c.to_sym }
-      assert !Object.const_defined?("AppTestTask")
-    ensure
-      Dependencies.clear
-      Dependencies.load_paths.delete(app['lib'])
-    end
-  end
-
-  #
   # lookup_const test
   #
   

@@ -28,4 +28,8 @@ def app
   Tap::App.instance
 end
 
+def env
+  Tap::Env.instance
+end
+
 IRB.start

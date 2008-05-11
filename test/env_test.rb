@@ -9,10 +9,10 @@ class EnvTest < Test::Unit::TestCase
   
   def setup
     super
-    
-    @current_load_paths = $LOAD_PATH
+
+    @current_load_paths = $LOAD_PATH.dup
     $LOAD_PATH.clear
-    @current_dependencies_load_paths = Dependencies.load_paths
+    @current_dependencies_load_paths = Dependencies.load_paths.dup
     Dependencies.load_paths.clear
     
     @e = Tap::Env.new
@@ -34,6 +34,26 @@ class EnvTest < Test::Unit::TestCase
       self << args
     end
   end
+  
+  #
+  # Env.reload test
+  #
+  
+  def test_reload_returns_unloaded_constants
+    Dependencies.clear
+    Dependencies.load_paths << method_root
+
+    assert_equal [], Tap::Env.reload
+    assert File.exists?( File.join(method_root, 'env_test_class.rb') )
+    
+    assert !Object.const_defined?("EnvTestClass")
+    klass = EnvTestClass
+      
+    assert Object.const_defined?("EnvTestClass")
+    assert_equal [:EnvTestClass], Tap::Env.reload.collect {|c| c.to_sym }
+    assert !Object.const_defined?("EnvTestClass")
+  end
+  
   
   #
   # Env.read_config test 

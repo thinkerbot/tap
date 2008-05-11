@@ -1,3 +1,4 @@
+require 'tap/env'
 require 'tap/support/tdoc/config_attr'
 require 'singleton'
 
@@ -90,7 +91,7 @@ module Tap
         @stats = RDoc::Stats.new
         @options = Options.instance
         @options.parse(argv, RDoc::RDoc::GENERATORS)
-        @load_paths = ($: + Dependencies.load_paths + Dependencies.load_once_paths).uniq
+        @load_paths = Tap::Env.instance.nil? ? $: : Tap::Env.instance.load_path_targets.uniq
       end
       
       class << self

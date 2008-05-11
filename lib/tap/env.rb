@@ -1,17 +1,10 @@
 require 'tap/root'
-autoload(:PP, "pp")
+require 'tap/support/configurable'
+autoload(:Dependencies, 'tap/support/dependencies')
 
 module Tap
   class Env
-    @@instance = nil
-
-    class << self
-
-      # Returns the active instance of Env.
-      def instance
-        @@instance
-      end
-
+    module Utils
       # Templates the input filepath using ERB then loads it as YAML.  
       # Returns an empty hash if the file doesn't exist, or loads to
       # nil or false (as for an empty file).  Raises an error if the
@@ -50,8 +43,93 @@ module Tap
 
         spec.full_gem_path
       end
+      
+      # Unloads constants loaded by Dependencies, so that they will be reloaded
+      # (with any changes made) next time they are called.  Returns the unloaded 
+      # constants.  
+      def reload
+        unloaded = []
+
+        # echos the behavior of Dependencies.clear, 
+        # but collects unloaded constants
+        Dependencies.loaded.clear
+        Dependencies.autoloaded_constants.each do |const| 
+          Dependencies.remove_constant const
+          unloaded << const
+        end
+        Dependencies.autoloaded_constants.clear
+        Dependencies.explicitly_unloadable_constants.each do |const| 
+          Dependencies.remove_constant const
+          unloaded << const
+        end
+
+        unloaded
+      end
+      
+      def debug_setup
+        $DEBUG = true
+        logger.level = Logger::DEBUG if logger
+      end
+
+      def rails_setup(app=Tap::App.instance)
+        Object.const_set('RAILS_ROOT', app.root)
+        Object.const_set('RAILS_DEFAULT_LOGGER', app.logger)
+        Dependencies.log_activity = app.debug?
+      end
+
+      #--
+      # TODO -- get this to only run once
+      def rake_setup(argv=ARGV, app=Tap::App.instance)
+        Tap::Support.autoload(:Rake, 'tap/support/rake')
+
+        # setup
+        app.extend Tap::Support::Rake
+        rake = Rake.application.extend Tap::Support::Rake::Application
+        rake.on_standard_exception do |error|
+          if error.message =~ /^No Rakefile found/
+            log(:warn, error.message, Logger::DEBUG)
+          else raise error
+          end
+        end
+
+        options = rake.options
+
+        # merge options down from app
+        app.options.marshal_dump.each_pair do |key, value|
+          options.send("#{key}=", value)
+        end
+        options.silent = true
+
+        # run as if from command line using argv
+        current_argv = ARGV.dup
+        begin
+          ARGV.concat(argv)
+
+          # now follow the same protocol as 
+          # in run, handling options
+          rake.init
+          rake.load_rakefile
+        ensure
+          ARGV.clear
+          ARGV.concat(current_argv)
+        end
+
+        rake
+      end
     end
 
+    @@instance = nil
+
+    class << self
+      include Utils
+      
+      # Returns the active instance of Env.
+      def instance
+        @@instance
+      end
+    end
+    
+    include Utils
     include Support::Configurable
     
     # Specify gems to add to the environment.  Versions may be specified.
@@ -107,7 +185,11 @@ module Tap
     # by default [$LOAD_PATH]. If use_dependencies == true, then
     # Dependencies.load_paths will also be included.
     def load_path_targets
-      use_dependencies ? [$LOAD_PATH, Dependencies.load_paths] : [$LOAD_PATH]
+      if use_dependencies 
+        [$LOAD_PATH, Dependencies.load_paths]
+      else 
+        [$LOAD_PATH]
+      end
     end
 
     # Activates self by unshifting load_paths for self to the load_path_targets.
@@ -358,57 +440,6 @@ module Tap
         load_config(config_file)
       end
     end
-
-    def debug_setup
-      $DEBUG = true
-      logger.level = Logger::DEBUG if logger
-    end
-
-    def rails_setup(app=Tap::App.instance)
-      Object.const_set('RAILS_ROOT', app.root)
-      Object.const_set('RAILS_DEFAULT_LOGGER', app.logger)
-      Dependencies.log_activity = app.debug?
-    end
-
-    #--
-    # TODO -- get this to only run once
-    def rake_setup(argv=ARGV, app=Tap::App.instance)
-      Tap::Support.autoload(:Rake, 'tap/support/rake')
-
-      # setup
-      app.extend Tap::Support::Rake
-      rake = Rake.application.extend Tap::Support::Rake::Application
-      rake.on_standard_exception do |error|
-        if error.message =~ /^No Rakefile found/
-          log(:warn, error.message, Logger::DEBUG)
-        else raise error
-        end
-      end
-
-      options = rake.options
-
-      # merge options down from app
-      app.options.marshal_dump.each_pair do |key, value|
-        options.send("#{key}=", value)
-      end
-      options.silent = true
-
-      # run as if from command line using argv
-      current_argv = ARGV.dup
-      begin
-        ARGV.concat(argv)
-
-        # now follow the same protocol as 
-        # in run, handling options
-        rake.init
-        rake.load_rakefile
-      ensure
-        ARGV.clear
-        ARGV.concat(current_argv)
-      end
-
-      rake
-    end
     
     protected
 
@@ -416,6 +447,6 @@ module Tap
       raise "config modification is disabled when active" if active?
       super
     end
-
+    
   end
 end

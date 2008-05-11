@@ -1,3 +1,5 @@
+require 'tap/support/class_configuration'
+
 module Tap
   module Support
     
