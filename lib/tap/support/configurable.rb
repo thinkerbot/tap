@@ -83,10 +83,9 @@ module Tap
       protected
       
       # Sets the specified configuration, processing the input value using
-      # the block specified in the config declaration.  The input key should
-      # be symbolized.
-      def set_config(key, value)
-        config[class_configurations.normalize_key(key)] = class_configurations.process(key, value)
+      # the block specified in the config declaration.
+      def set_config(key, value, process=true)
+        config[class_configurations.normalize_key(key)] = process ? class_configurations.process(key, value) : value
       end
       
       # Gets the specified configuration.

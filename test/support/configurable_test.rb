@@ -123,6 +123,12 @@ class ConfigurableTest < Test::Unit::TestCase
     assert_equal({:one => 'VALUE'}, t.config)
   end
   
+  def test_set_config_does_not_processes_values_if_process_is_false
+    t = Sample.new
+    t.send(:set_config, :one, "value", false)
+    assert_equal({:one => 'value'}, t.config)
+  end
+  
   #
   # get_config test
   #
