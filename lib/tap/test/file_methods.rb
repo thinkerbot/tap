@@ -152,11 +152,14 @@ module Tap
         end
       end
       
+      attr_reader :method_tempfiles
+      
       # Setup deletes the the output directory if it exists, and tries to remove the
       # method root directory so the directory structure is reset before running the
       # test, even if outputs were left over from previous tests.
       def setup
         super
+        @method_tempfiles = []
         clear_method_dir(:output)
         try_remove_dir(method_root)
       end
@@ -258,21 +261,17 @@ module Tap
       # - If the directory for the filepath does not exist, the directory will be created
       # - Like all files in the output directory, tempfiles will be deleted by the default 
       #   +teardown+ method
-      def output_tempfile(filename=method_name_str)
-        n = 0
+      def method_tempfile(filename=method_name_str)
         ext = File.extname(filename)
         basename = filename.chomp(ext)
-        filepath = make_tmpname(basename, n, ext)
-        while File.exists?(filepath)
-          n += 1
-          filepath = make_tmpname(basename, n, ext)
-        end
+        filepath = method_filepath(:output, sprintf('%s%d.%d%s', basename, $$, method_tempfiles.length, ext))
+        method_tempfiles << filepath
       
         dirname = File.dirname(filepath)
         FileUtils.mkdir_p(dirname) unless File.exists?(dirname)
         filepath
       end
-
+      
       # Yields to the input block for each pair of entries in the input 
       # arrays.  An error is raised if the input arrays do not have equal 
       # numbers of entries.
@@ -368,11 +367,6 @@ module Tap
         flunk "File compare failed:\n" + errors.join("\n") unless errors.empty?
       end
 
-      private
-    
-      def make_tmpname(basename, n, ext="") # :nodoc:
-        method_filepath(:output, sprintf('%s%d.%d%s', basename, $$, n, ext))
-      end
     end
   end
 end

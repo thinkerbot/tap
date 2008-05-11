@@ -101,25 +101,19 @@ class FileMethodsTest < Test::Unit::TestCase
   end  
   
   #
-  # output_tempfile test
+  # method_tempfile test
   #
   
-  def test_output_tempfile_returns_new_file_in_output_dir
+  def test_method_tempfile_returns_new_file_in_output_dir
     output_root = File.join(trs.root, method_name_str, "output")
     
-    filepath =File.join(output_root, "file#{$$}.0")
-    assert_equal filepath, output_tempfile('file')
+    filepath1 =File.join(output_root, "file#{$$}.0")
+    assert_equal filepath1, method_tempfile('file')
     
-    filepath = File.join(output_root,  "file#{$$}.0")
-    assert_equal filepath, output_tempfile('file')
+    filepath2 = File.join(output_root,  "file#{$$}.1")
+    assert_equal filepath2, method_tempfile('file')
     
-    FileUtils.touch filepath
-    filepath = File.join(output_root,  "file#{$$}.1")
-    assert_equal filepath, output_tempfile('file')
-    
-    FileUtils.touch filepath
-    filepath = File.join(output_root,  "file#{$$}.2")
-    assert_equal filepath, output_tempfile('file')
+    assert_equal [filepath1, filepath2], method_tempfiles
   end
   
   #

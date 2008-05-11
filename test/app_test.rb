@@ -548,15 +548,15 @@ o-[add_five] 8
   #
   
   def test_each_config_template_documentation
-    simple = output_tempfile
+    simple = method_tempfile
     File.open(simple, "w") {|f| f <<  "key: value"}
     assert_equal([{"key" => "value"}], app.each_config_template(simple))
   
-    erb = output_tempfile
+    erb = method_tempfile
     File.open(erb, "w") {|f| f <<  "app: <%= app.object_id %>\nfilepath: <%= filepath %>"}
     assert_equal([{"app" => app.object_id, "filepath" => erb}], app.each_config_template(erb))
   
-    batched_with_erb = output_tempfile
+    batched_with_erb = method_tempfile
     File.open(batched_with_erb, "w") do |f| 
       f << %Q{ 
 - key: <%= 1 %>
