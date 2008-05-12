@@ -3,6 +3,19 @@ require 'tempfile'
 module Tap
   module Support
     # Provides several shell utility methods for calling programs.
+    #
+    # == Windows
+    # A couple warnings when running shell commands in the MSDOS prompt on Windows.  
+    # MSDOS has command line length limits specific to the version of Windows being
+    # run (from http://www.ss64.com/nt/cmd.html):
+    #
+    # Windows NT:: 256 characters
+    # Windows 2000::  2046 characters
+    # Windows XP:: 8190 characters
+    #
+    # No word on more recent versions of Windows.  Commands longer than these limits
+    # fail, usually with something like: 'the input line is too long'
+    #
     module ShellUtils
       
       module_function
