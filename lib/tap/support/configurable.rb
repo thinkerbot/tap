@@ -66,8 +66,7 @@ module Tap
       end
       
       # A configuration hash
-      attr_reader :config
-      
+
       # Returns a reference to the class configurations for self
       def class_configurations
         @class_configurations ||= self.class.configurations
@@ -77,23 +76,20 @@ module Tap
       # Overrides are merged with the class default configuration.  
       # Overrides are individually set through set_config.
       def config=(overrides)
-        @config = class_configurations.default(true)
-        overrides.each_pair {|key, value| set_config(key, value) } 
-        self.config
+        overrides.symbolize_keys!
+        class_configurations.default.each_pair do |key, value|
+          send("#{key}=", overrides.has_key?(key) ? overrides[key] : value)
+        end
       end
       
-      protected
-      
-      # Sets the specified configuration, processing the input value using
-      # the block specified in the config declaration.
-      def set_config(key, value, process=true)
-        config[class_configurations.normalize_key(key)] = process ? class_configurations.process(key, value) : value
+      def config
+        hash = {}
+        class_configurations.default.each_pair do |key, value|
+          hash[key] = send(key)
+        end
+        hash
       end
       
-      # Gets the specified configuration.
-      def get_config(key)
-        config[class_configurations.normalize_key(key)]
-      end
     end
   end
 end

@@ -1,22 +1,22 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 
 class ConfigurableTest < Test::Unit::TestCase
-  acts_as_tap_test
+   acts_as_tap_test
 
   # sample class repeatedly used in tests
   class Sample
     include Tap::Support::Configurable
-    
-    def initialize(config={})
-      @config = config  
-    end
     
     config(:one, 'one') {|v| v.upcase }
     config :two, 'two'
   end
   
   def test_sample
-    assert_equal({:one => 'ONE', :two => 'two'}, Sample.configurations.default)
+    assert_equal({:one => 'one', :two => 'two'}, Sample.configurations.default)
+    
+    s = Sample.new
+    s.one = 'one'
+    assert_equal 'ONE', s.one
   end
   
   #
@@ -40,22 +40,22 @@ class ConfigurableTest < Test::Unit::TestCase
     config :two, 'two', &c.check(String)
   end
   
-  def test_documentation
-    c = ConfigurableClass.new
-    assert_equal({:one => 'one', :two => 'two', :three => 'three'}, c.config)
-
-    c.config[:one] = 'ONE'
-    assert_equal 'ONE', c.one
-  
-    c.one = 1           
-    assert_equal({:one => 1, :two => 'two', :three => 'three'}, c.config)
-  
-    v = ValidatingClass.new
-    assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, v.config)
-    v.one = 'aNothER'             
-    assert_equal 'ANOTHER', v.one
-    assert_raise(Tap::Support::Validation::ValidationError) { v.two = 2 }
-  end
+  # def test_documentation
+  #   c = ConfigurableClass.new
+  #   assert_equal({:one => 'one', :two => 'two', :three => 'three'}, c.config)
+  # 
+  #   c.config[:one] = 'ONE'
+  #   assert_equal 'ONE', c.one
+  # 
+  #   c.one = 1           
+  #   assert_equal({:one => 1, :two => 'two', :three => 'three'}, c.config)
+  # 
+  #   v = ValidatingClass.new
+  #   assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, v.config)
+  #   v.one = 'aNothER'             
+  #   assert_equal 'ANOTHER', v.one
+  #   assert_raise(Tap::Support::Validation::ValidationError) { v.two = 2 }
+  # end
   
   #
   # include test
@@ -83,13 +83,13 @@ class ConfigurableTest < Test::Unit::TestCase
     assert_equal({:one => 'ONE', :two => 2}, t.config)
   end
   
-  def test_config_processes_overrides_with_process_blocks
+  def test_config_sets_configs_through_accessors
     t = Sample.new
     t.config = {:one => 'Alt'}
     assert_equal({:one => 'ALT', :two => 'two'}, t.config)
   end
 
-  def test_config_normalizes_input_keys
+  def test_config_symbolizes_input_keys
     t = Sample.new
     t.config = {'one' => 'Alt'}
     assert_equal({:one => 'ALT', :two => 'two'}, t.config)
@@ -99,46 +99,9 @@ class ConfigurableTest < Test::Unit::TestCase
     t = Sample.new
     t.config = {'one' => 'Alt'}
     assert_equal({:one => 'ALT', :two => 'two'}, t.config)
-    assert_equal({:one => 'ONE', :two => 'two'}, Sample.configurations.default)
+    assert_equal({:one => 'one', :two => 'two'}, Sample.configurations.default)
   end
-  
-  #
-  # set_config test
-  #
-  
-  def test_set_config_normalizes_keys
-    t = Sample.new
-    assert_equal({}, t.config)
-    
-    t.send(:set_config, :one, "ONE")
-    assert_equal({:one => 'ONE'}, t.config)
-    
-    t.send(:set_config, 'one', "ALT")
-    assert_equal({:one => 'ALT'}, t.config)
-  end
-  
-  def test_set_config_processes_values
-    t = Sample.new
-    t.send(:set_config, :one, "value")
-    assert_equal({:one => 'VALUE'}, t.config)
-  end
-  
-  def test_set_config_does_not_processes_values_if_process_is_false
-    t = Sample.new
-    t.send(:set_config, :one, "value", false)
-    assert_equal({:one => 'value'}, t.config)
-  end
-  
-  #
-  # get_config test
-  #
-  
-  def test_get_config_normalizes_keys
-    t = Sample.new :one => 'ONE'
-    assert_equal "ONE", t.send(:get_config, :one)
-    assert_equal "ONE", t.send(:get_config, 'one')
-  end
-  
+
   #
   # benchmarks
   #
@@ -147,7 +110,7 @@ class ConfigurableTest < Test::Unit::TestCase
     include Tap::Support::Configurable
     
     config :config_key, nil
-    
+    config(:config_block, nil) {|value| value }
     attr_accessor :attr_key
   end
   
@@ -158,14 +121,15 @@ class ConfigurableTest < Test::Unit::TestCase
     benchmark_test(20) do |x|
       n = 100000
       
-      x.report("100k config[] ") { n.times { t.config[:config_key] } }
-      x.report("100k config ") { n.times { t.config_key } }
-      x.report("100k attr ") { n.times { t.attr_key } }
-
-      x.report("100k config[]= ") { n.times { t.config[:config_key] = 1 } }
+      x.report("100k config_block= ") { n.times { t.config_block = 1 } }
       x.report("100k config= ") { n.times { t.config_key = 1 } }
       x.report("100k attr= ") { n.times { t.attr_key = 1 } }
+      
+      x.report("100k config_block ") { n.times { t.config_block } }
+      x.report("100k config ") { n.times { t.config_key } }
+      x.report("100k attr ") { n.times { t.attr_key } }
+      
     end
   end
-  
+
 end

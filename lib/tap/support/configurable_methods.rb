@@ -64,72 +64,6 @@ module Tap
         child.instance_variable_set(:@configurations, ClassConfiguration.new(child, @configurations))
       end
 
-      # Declares a configuration without any accessors.
-      #
-      # With no keys specified, sets the config_mode to make no  
-      # accessors for new config declarations.
-      def declare_config(*keys)
-        if keys.empty?
-          self.config_mode = :none 
-        else 
-          keys.each {|key| configurations.add(key)}
-        end
-      end
-
-      # Creates a configuration writer for the input keys.  Works like
-      # attr_writer, except the value is sent to the set_config method
-      # rather than a local variable.  set_config must be implemented
-      # independently.
-      #
-      # With no keys specified, sets the config_mode to make a
-      # config_writer for new config declarations.
-      def config_writer(*keys)
-        if keys.empty?
-          self.config_mode = :config_writer 
-        else 
-          keys.each do |key|
-            configurations.add(key)
-            define_config_writer(key)
-          end
-        end
-      end
-
-      # Creates a configuration reader for the input keys.  Works like
-      # attr_reader, except the value is obtained from the get_config
-      # method rather than a local variable.  get_config must be 
-      # implemented independently.
-      #
-      # With no keys specified, sets the config_mode to make a
-      # config_reader for new config declarations.
-      def config_reader(*keys)
-        if keys.empty?
-          self.config_mode = :config_reader 
-        else 
-          keys.each do |key|
-            configurations.add(key)
-            define_config_reader(key)
-          end
-        end
-      end
-
-      # Creates configuration accessors for the input keys.  Works like
-      # attr_accessor, except the value is read and written as in
-      # config_writer and config_reader.
-      #
-      # With no keys specified, sets the config_mode to make a
-      # config_accessor for new config declarations.
-      def config_accessor(*keys)
-        if keys.empty?
-          self.config_mode = :config_accessor 
-        else 
-          keys.each do |key|
-            configurations.add(key)
-            define_config_reader(key)
-            define_config_writer(key)
-          end
-        end
-      end
-
       # Sets a class configuration.  Configurations are inherited, but can 
       # be overridden or added in subclasses. Accessors are created by 
       # default, but this behavior can be modified by use of the other
@@ -151,73 +85,36 @@ module Tap
       # A block can be specified for validation/pre-processing.  See
       # Tap::Support::Configurable for more details.
       #
-      def config(key, value=nil, &validation)
-        configurations.add(key, value, &validation)
-
-        case config_mode
-        when :config_accessor
-          define_config_writer(key)
-          define_config_reader(key)
-        when :config_writer
-          define_config_writer(key)
-        when :config_reader
-          define_config_reader(key)
+      #--
+      # class context
+      def config(key, value=nil)
+        if block_given?
+          instance_variable = "@#{key}".to_sym
+          config_attr(key, value) do |value|
+            instance_variable_set(instance_variable, yield(value))
+          end
+        else
+          config_attr(key, value)
         end
       end
       
-      # Merges the configurations from the specified class and 
-      # makes accessors for new keys in the current config_mode 
-      # (like config).  Raises an error if the configurations 
-      # cannot be merged.
-      def config_merge(klass)
-        configurations.merge!(klass.configurations) do |key|
-          case config_mode
-          when :config_accessor
-            define_config_writer(key)
-            define_config_reader(key)
-          when :config_writer
-            define_config_writer(key)
-          when :config_reader
-            define_config_reader(key)
-          end
+      #--
+      # instance context
+      def config_attr(key, value=nil, &block)
+        configurations.add(key, value)
+        
+        attr_reader(key)
+        if block_given? 
+          define_method("#{key}=", &block)
+        else attr_writer(key)
         end
       end
       
       protected
       
-      # Sets the current config_mode
-      attr_writer :config_mode
-
-      # Tracks the current configuration mode, to determine what
-      # in any accessors should be generated for the configuration.
-      # (default :config_accessor)
-      def config_mode
-        @config_mode ||= :config_accessor
-      end
-      
       # Alias for Tap::Support::Validation
       def c
         Validation
-      end
-
-      private
-      
-      # Defines an instance method by the specified name to call
-      # the get_config method with key. get_config needs to be
-      # implemented in the extended class.
-      def define_config_reader(name, key=name) 
-        define_method(name) do
-          get_config(key)
-        end
-      end
-
-      # Defines an instance method "#{name}=" to call the set_config 
-      # method with key and the set input. set_config needs to be
-      # implemented in the extended class.
-      def define_config_writer(name, key=name)
-        define_method("#{name}=") do |value|
-          set_config(key, value)
-        end
       end
     end
   end

@@ -1,8 +1,8 @@
 ###############################################################################
 # <%= receiver %> configuration<%= configurations.length > 1 ? 's' : '' %>
 ###############################################################################
-<% configurations.each do |name, default, unprocessed_default, comment| %>
-<%= unprocessed_default == nil ? '#' : ''%><%= yamlize({name => unprocessed_default}) %>
+<% configurations.each do |name, default, comment| %>
+<%= default == nil ? '#' : ''%><%= yamlize({name => default}) %>
 
 <% end %>
 

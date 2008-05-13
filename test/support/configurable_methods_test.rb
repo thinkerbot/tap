@@ -2,8 +2,6 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 
 class ConfigurableMethodsTest < Test::Unit::TestCase
   
-  ECHO_BLOCK = lambda {|value| value }
-  
   #
   # documentation test
   #
@@ -70,163 +68,125 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   # config declaration tests
   #
   
-  class DocSampleClass
-    extend Tap::Support::ConfigurableMethods
+  # class DocSampleClass
+  #   extend Tap::Support::ConfigurableMethods
+  # 
+  #   config :key, 'value'
+  # 
+  #   config_reader
+  #   config :reader_only
+  # end
+  # 
+  # def test_config_documentation
+  #   t = DocSampleClass.new
+  #   assert t.respond_to?(:reader_only)
+  #   assert !t.respond_to?(:reader_only=)
+  # end
 
-    config :key, 'value'
-
-    config_reader
-    config :reader_only
-  end
-  
-  def test_config_documentation
-    t = DocSampleClass.new
-    assert t.respond_to?(:reader_only)
-    assert !t.respond_to?(:reader_only=)
-  end
-  
   class SampleClass
     extend Tap::Support::ConfigurableMethods
     
-    config :one, 'one', &ECHO_BLOCK
+    config_attr :zero, 'zero' do |value|
+      @zero = value.upcase
+      nil
+    end
     
-    declare_config
-    config :two, 'two', &ECHO_BLOCK
+    config :one, 'one' do |value|
+      value.upcase
+    end
     
-    config_reader
-    config :three, 'three'
-    
-    config_writer
-    config :four, 'four'
-    
-    config_accessor
-    config :five, 'five'
-    
-    declare_config :six
-    config_reader :seven
-    config_writer :eight
-    config_accessor :nine, :ten
-    
-    # stub methods implementing accessors
-    attr_accessor :config
-    def initialize() @config = {}; end
-    def get_config(key) config[key]; end
-    def set_config(key, value) config[key] = value; end
+    config :two, 'two'
+    config :three
   end
   
   def test_config_sets_class_configuration
     assert_equal({
-      :one => 'one',     :six => nil, 
-      :two => 'two',     :seven => nil,
-      :three => 'three', :eight => nil,
-      :four => 'four',   :nine => nil,
-      :five => 'five',   :ten => nil},
+      :zero => 'zero',
+      :one => 'one',
+      :two => 'two',
+      :three => nil},
     SampleClass.configurations.default)
-    
-    assert_equal(
-    {:one => ECHO_BLOCK, :two => ECHO_BLOCK},
-    SampleClass.configurations.process_blocks)
   end
   
-  def test_config_declarations
+  def test_config_generates_accessors
     t = SampleClass.new
     
-    # readers only
-    [:three, :seven].each do |config|
-      assert t.respond_to?(config)
-      assert !t.respond_to?("#{config}=")
-    end
-    
-    # writers only
-    [:four, :eight].each do |config|
-      assert !t.respond_to?(config)
-      assert t.respond_to?("#{config}=")
-    end
-  
     # both
-    [:one, :five, :nine, :ten].each do |config|
+    [:zero, :one, :two, :three].each do |config|
       assert t.respond_to?(config)
       assert t.respond_to?("#{config}=")
     end
+  end
+  
+  def test_config_reader_targets_instance_variable
+    t = SampleClass.new
+    assert_nil t.three
+    t.instance_variable_set(:@three, 'three')
+    assert_equal 'three', t.three
+  end
+  
+  def test_config_writer_targets_instance_variable
+    t = SampleClass.new
+    assert !t.instance_variable_defined?(:@three)
+    t.three = 'three'
+    assert_equal 'three', t.instance_variable_get(:@three)
+  end
+  
+  def test_config_attr_with_block_uses_block_as_writer_method_body
+    t = SampleClass.new
     
-    # neither
-    [:two, :six].each do |config|
-      assert !t.respond_to?(config)
-      assert !t.respond_to?("#{config}=")
+    assert_nil t.zero
+    t.zero = 'zero'
+    
+    assert_equal 'ZERO', t.zero
+    assert_equal 'ZERO', t.instance_variable_get(:@zero)
+  end
+  
+  def test_config_with_block_uses_block_return_to_set_instance_variable
+    t = SampleClass.new
+    
+    assert_nil t.one
+    t.one = 'one'
+    
+    assert_equal 'ONE', t.one
+    assert_equal 'ONE', t.instance_variable_get(:@one)
+  end
+  
+  #
+  # context test
+  #
+  
+  class ContextCheck
+    extend Tap::Support::ConfigurableMethods
+    
+    class << self
+      def context
+        "Class"
+      end
+    end
+
+    config :config_context do |value|
+      context
+    end
+    
+    config_attr :config_attr_context do |value|
+      @config_attr_context = context
+    end
+
+    def context
+      "Instance"
     end
   end
   
-  def test_config_accessors_access_configs_through_get_set_config
-    t = SampleClass.new
-    t.config = {:three => 'three', :eight => 'eight', :nine => 'nine'}
-    
-    # reader
-    assert_equal 'three', t.config[:three]
-    assert_equal 'three', t.three
-    
-    # writer
-    assert_equal 'eight', t.config[:eight]
-    t.eight = "EIGHT"
-    assert_equal 'EIGHT', t.config[:eight]
-    
-    # accessor
-    assert_equal 'nine', t.config[:nine]
-    assert_equal 'nine', t.nine
-    
-    t.nine = "NINE"
-    
-    assert_equal 'NINE', t.config[:nine]
-    assert_equal 'NINE', t.nine
+  def test_config_block_context_is_class
+    c = ContextCheck.new
+    c.config_context = nil
+    assert_equal "Class", c.config_context
   end
   
-  #
-  # config_merge test
-  #
-  
-  class BaseClass
-    extend Tap::Support::ConfigurableMethods
-    config :one, 'one'
-  end
-  
-  class SubClassOne < BaseClass
-    config :two, 'two', &ECHO_BLOCK
-  end
-  
-  class SubClassTwo < BaseClass
-    config_merge SubClassOne
-    config :three, 'three'
-  end
-  
-  class AltBaseClass
-    extend Tap::Support::ConfigurableMethods
-    config_writer
-    config_merge SubClassOne
-  end
-  
-  def test_config_merge_merges_configs_from_another_class
-    assert_equal({:one => 'one', :two => 'two', :three => 'three'}, SubClassTwo.configurations.default)
-    assert_equal({:two => ECHO_BLOCK}, SubClassTwo.configurations.process_blocks)
-  end
-  
-  def test_config_merge_creates_accessors_in_current_mode
-    t = SubClassTwo.new
-    assert t.respond_to?('one')
-    assert t.respond_to?('one=')
-    assert t.respond_to?('two')
-    assert t.respond_to?('two=')
-    
-    t = AltBaseClass.new
-    assert !t.respond_to?('one')
-    assert t.respond_to?('one=')
-    assert !t.respond_to?('two')
-    assert t.respond_to?('two=')
-  end
-  
-  def test_config_merge_raises_error_if_class_cannot_be_merged
-    klass = Class.new
-    klass.extend Tap::Support::ConfigurableMethods
-    klass.config :one
-    
-    assert_raise(ArgumentError) { klass.config_merge BaseClass }
+  def test_config_attr_block_context_is_instance
+    c = ContextCheck.new
+    c.config_attr_context = nil
+    assert_equal "Instance", c.config_attr_context 
   end
 end

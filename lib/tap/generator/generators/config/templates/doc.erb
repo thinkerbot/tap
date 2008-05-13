@@ -1,7 +1,7 @@
 ###############################################################################
 # <%= receiver %> configuration<%= configurations.length > 1 ? 's' : '' %>
 ###############################################################################
-<% configurations.each do |name, default, unprocessed_default, comment| 
+<% configurations.each do |name, default, comment| 
 		 comment_lines = comment.split(/\n/).collect do |comment_line|
 			 comment_line = comment_line.strip.gsub(/^#\s*/, '')
 			 comment_line.empty? ? nil : comment_line
@@ -9,7 +9,7 @@
 	
 		 comment_lines.each do |comment_line| %>
 # <%= comment_line %><% end %>
-<%= unprocessed_default == nil ? '#' : ''%><%= yamlize({name => unprocessed_default}) %>
+<%= default == nil ? '#' : ''%><%= yamlize({name => default}) %>
 
 <% end %>
 
