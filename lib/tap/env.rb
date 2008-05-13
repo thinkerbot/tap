@@ -4,132 +4,16 @@ autoload(:Dependencies, 'tap/support/dependencies')
 
 module Tap
   class Env
-    module Utils
-      # Templates the input filepath using ERB then loads it as YAML.  
-      # Returns an empty hash if the file doesn't exist, or loads to
-      # nil or false (as for an empty file).  Raises an error if the
-      # filepath doesn't load to a hash.
-      def read_config(filepath)
-        return {} if !File.exists?(filepath) || File.directory?(filepath)
-
-        input = ERB.new(File.read(filepath)).result
-        config = YAML.load(input)
-
-        case config
-        when Hash then config
-        when nil, false then {}
-        else
-          raise "expected hash from config file: #{filepath}"
-        end
-      end
-
-      # Returns the full_gem_path for the specified gem.  A gem version 
-      # can be specified in the name, like 'gem >= 1.2'.  The gem will
-      # be activated using +gem+ unless already active.
-      def full_gem_path(gem_name)
-
-        # figure the version of the gem, by default >= 0.0.0
-        gem_name =~ /^([^<=>]*)(.*)$/
-        name, version = $1.strip, $2
-        version = ">= 0.0.0" if version.empty?
-
-        # load the gem and get the spec
-        gem(name, version)
-        spec = Gem.loaded_specs[name]
-
-        if spec == nil
-          log(:warn, "unknown gem: #{gem_name}", Logger::WARN)
-        end
-
-        spec.full_gem_path
-      end
-      
-      # Unloads constants loaded by Dependencies, so that they will be reloaded
-      # (with any changes made) next time they are called.  Returns the unloaded 
-      # constants.  
-      def reload
-        unloaded = []
-
-        # echos the behavior of Dependencies.clear, 
-        # but collects unloaded constants
-        Dependencies.loaded.clear
-        Dependencies.autoloaded_constants.each do |const| 
-          Dependencies.remove_constant const
-          unloaded << const
-        end
-        Dependencies.autoloaded_constants.clear
-        Dependencies.explicitly_unloadable_constants.each do |const| 
-          Dependencies.remove_constant const
-          unloaded << const
-        end
-
-        unloaded
-      end
-      
-      def debug_setup
-        $DEBUG = true
-        logger.level = Logger::DEBUG if logger
-      end
-
-      def rails_setup(app=Tap::App.instance)
-        Object.const_set('RAILS_ROOT', app.root)
-        Object.const_set('RAILS_DEFAULT_LOGGER', app.logger)
-        Dependencies.log_activity = app.debug?
-      end
-
-      #--
-      # TODO -- get this to only run once
-      def rake_setup(argv=ARGV, app=Tap::App.instance)
-        Tap::Support.autoload(:Rake, 'tap/support/rake')
-
-        # setup
-        app.extend Tap::Support::Rake
-        rake = Rake.application.extend Tap::Support::Rake::Application
-        rake.on_standard_exception do |error|
-          if error.message =~ /^No Rakefile found/
-            log(:warn, error.message, Logger::DEBUG)
-          else raise error
-          end
-        end
-
-        options = rake.options
-
-        # merge options down from app
-        app.options.marshal_dump.each_pair do |key, value|
-          options.send("#{key}=", value)
-        end
-        options.silent = true
-
-        # run as if from command line using argv
-        current_argv = ARGV.dup
-        begin
-          ARGV.concat(argv)
-
-          # now follow the same protocol as 
-          # in run, handling options
-          rake.init
-          rake.load_rakefile
-        ensure
-          ARGV.clear
-          ARGV.concat(current_argv)
-        end
-
-        rake
-      end
-    end
 
     @@instance = nil
 
-    class << self
-      include Utils
-      
+    class << self  
       # Returns the active instance of Env.
       def instance
         @@instance
       end
     end
     
-    include Utils
     include Support::Configurable
     
     # Specify gems to add to the environment.  Versions may be specified.
@@ -151,6 +35,8 @@ module Tap
 
     # Designate paths for discovering generators.  
     config :generator_paths, ["lib/generators"]
+    
+    config :debug, false
 
     # An array of config keys that are resolved using root
     # when set through configure.
@@ -353,7 +239,7 @@ module Tap
       log(:load_config, path, Logger::DEBUG)
       config_paths << path
 
-      config = Env.read_config(path)
+      config = read_config(path)
       unless config.has_key?(:root) || config.has_key?('root')
         config[:root] = File.dirname(path) 
       end
@@ -365,7 +251,7 @@ module Tap
     # specified in the name, see full_gem_path.
     def load_gem(gem_name)
       # prevent looping
-      full_gem_path = Env.full_gem_path(gem_name)
+      full_gem_path = full_gem_path(gem_name)
       return false if gems.include?(full_gem_path)
 
       gems << full_gem_path
@@ -412,9 +298,132 @@ module Tap
       commands
     end
 
+    # Templates the input filepath using ERB then loads it as YAML.  
+    # Returns an empty hash if the file doesn't exist, or loads to
+    # nil or false (as for an empty file).  Raises an error if the
+    # filepath doesn't load to a hash.
+    def read_config(filepath)
+      return {} if !File.exists?(filepath) || File.directory?(filepath)
+
+      input = ERB.new(File.read(filepath)).result
+      config = YAML.load(input)
+
+      case config
+      when Hash then config
+      when nil, false then {}
+      else
+        raise "expected hash from config file: #{filepath}"
+      end
+    end
+
+    # Returns the full_gem_path for the specified gem.  A gem version 
+    # can be specified in the name, like 'gem >= 1.2'.  The gem will
+    # be activated using +gem+ unless already active.
+    def full_gem_path(gem_name)
+
+      # figure the version of the gem, by default >= 0.0.0
+      gem_name =~ /^([^<=>]*)(.*)$/
+      name, version = $1.strip, $2
+      version = ">= 0.0.0" if version.empty?
+
+      # load the gem and get the spec
+      gem(name, version)
+      spec = Gem.loaded_specs[name]
+
+      if spec == nil
+        log(:warn, "unknown gem: #{gem_name}", Logger::WARN)
+      end
+
+      spec.full_gem_path
+    end
+    
+    # Unloads constants loaded by Dependencies, so that they will be reloaded
+    # (with any changes made) next time they are called.  Returns the unloaded 
+    # constants.  
+    def reload
+      unloaded = []
+
+      # echos the behavior of Dependencies.clear, 
+      # but collects unloaded constants
+      Dependencies.loaded.clear
+      Dependencies.autoloaded_constants.each do |const| 
+        Dependencies.remove_constant const
+        unloaded << const
+      end
+      Dependencies.autoloaded_constants.clear
+      Dependencies.explicitly_unloadable_constants.each do |const| 
+        Dependencies.remove_constant const
+        unloaded << const
+      end
+
+      unloaded
+    end
+    
+    def handle_error(err)
+      case
+      when $DEBUG
+        puts err.message
+        puts
+        puts err.backtrace
+      when debug then raise err
+      else puts err.message
+      end
+    end
+    
     #
-    # under construction...
+    # Under construction
     #
+    
+    def debug_setup
+      $DEBUG = true
+      logger.level = Logger::DEBUG if logger
+    end
+
+    def rails_setup(app=Tap::App.instance)
+      Object.const_set('RAILS_ROOT', app.root)
+      Object.const_set('RAILS_DEFAULT_LOGGER', app.logger)
+      Dependencies.log_activity = app.debug?
+    end
+
+    #--
+    # TODO -- get this to only run once
+    def rake_setup(argv=ARGV, app=Tap::App.instance)
+      Tap::Support.autoload(:Rake, 'tap/support/rake')
+
+      # setup
+      app.extend Tap::Support::Rake
+      rake = Rake.application.extend Tap::Support::Rake::Application
+      rake.on_standard_exception do |error|
+        if error.message =~ /^No Rakefile found/
+          log(:warn, error.message, Logger::DEBUG)
+        else raise error
+        end
+      end
+
+      options = rake.options
+
+      # merge options down from app
+      app.options.marshal_dump.each_pair do |key, value|
+        options.send("#{key}=", value)
+      end
+      options.silent = true
+
+      # run as if from command line using argv
+      current_argv = ARGV.dup
+      begin
+        ARGV.concat(argv)
+
+        # now follow the same protocol as 
+        # in run, handling options
+        rake.init
+        rake.load_rakefile
+      ensure
+        ARGV.clear
+        ARGV.concat(current_argv)
+      end
+
+      rake
+    end
     
     #--
     # Returns the path to all DEFAULT_CONFIG_FILEs for installed gems.

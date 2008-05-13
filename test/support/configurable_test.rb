@@ -139,4 +139,33 @@ class ConfigurableTest < Test::Unit::TestCase
     assert_equal "ONE", t.send(:get_config, 'one')
   end
   
+  #
+  # benchmarks
+  #
+  
+  class ConfigBenchmark
+    include Tap::Support::Configurable
+    
+    config :config_key, nil
+    
+    attr_accessor :attr_key
+  end
+  
+  def test_config_and_attr_speed
+    t = ConfigBenchmark.new 
+    t.config = {}
+    
+    benchmark_test(20) do |x|
+      n = 100000
+      
+      x.report("100k config[] ") { n.times { t.config[:config_key] } }
+      x.report("100k config ") { n.times { t.config_key } }
+      x.report("100k attr ") { n.times { t.attr_key } }
+
+      x.report("100k config[]= ") { n.times { t.config[:config_key] = 1 } }
+      x.report("100k config= ") { n.times { t.config_key = 1 } }
+      x.report("100k attr= ") { n.times { t.attr_key = 1 } }
+    end
+  end
+  
 end

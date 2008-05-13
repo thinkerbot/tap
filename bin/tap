@@ -20,21 +20,10 @@ env.debug_setup if ARGV.delete('-d-')
 before = nil
 after = nil
 
-def handle_error(err)
-  case
-  when $DEBUG
-    puts err.message
-    puts
-    puts err.backtrace
-  when Tap::App.instance.debug? then raise err
-  else puts err.message
-  end
-end
-
 # configure the app to tap.yml if it exists
 default_config_file = Tap::Env::DEFAULT_CONFIG_FILE
 begin
-  
+
   env.load_config(default_config_file, app) do |unhandled_configs|
     before = unhandled_configs.delete('before')
     after = unhandled_configs.delete('after')
@@ -69,7 +58,7 @@ at_exit do
     eval(after.to_s) 
   rescue
     puts "Error in after script."
-    handle_error($!)
+    env.handle_error($!)
     exit(1)
   end
 end
@@ -82,7 +71,7 @@ begin
   eval(before.to_s)
 rescue
   puts "Error in before script."
-  handle_error($!)
+  env.handle_error($!)
   exit(1)
 end
 
@@ -138,7 +127,7 @@ begin
     end
   end
 rescue
-  handle_error($!)
+  env.handle_error($!)
   puts "Type 'tap #{command} --help' for usage information."
 end
 

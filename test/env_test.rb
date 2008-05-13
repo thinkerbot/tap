@@ -36,78 +36,78 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
-  # Env.reload test
+  # reload test
   #
   
   def test_reload_returns_unloaded_constants
     Dependencies.clear
     Dependencies.load_paths << method_root
 
-    assert_equal [], Tap::Env.reload
+    assert_equal [], e.reload
     assert File.exists?( File.join(method_root, 'env_test_class.rb') )
     
     assert !Object.const_defined?("EnvTestClass")
     klass = EnvTestClass
       
     assert Object.const_defined?("EnvTestClass")
-    assert_equal [:EnvTestClass], Tap::Env.reload.collect {|c| c.to_sym }
+    assert_equal [:EnvTestClass], e.reload.collect {|c| c.to_sym }
     assert !Object.const_defined?("EnvTestClass")
   end
   
   
   #
-  # Env.read_config test 
+  # read_config test 
   #
   
   def test_read_config_templates_then_loads_config
     config_file = method_tempfile
     
     File.open(config_file, "wb") {|f| f << "sum: <%= 1 + 2 %>" }
-    assert_equal({'sum' => 3}, Tap::Env.read_config(config_file))
+    assert_equal({'sum' => 3}, e.read_config(config_file))
   end
   
   def test_read_config_returns_empty_hash_for_non_existant_nil_and_false_files
     config_file = method_tempfile
     
     assert !File.exists?(config_file)
-    assert_equal({}, Tap::Env.read_config(config_file))
+    assert_equal({}, e.read_config(config_file))
     
     FileUtils.touch(config_file)
-    assert_equal({}, Tap::Env.read_config(config_file))
+    assert_equal({}, e.read_config(config_file))
     
     File.open(config_file, "wb") {|f| f << nil.to_yaml }
     assert_equal(nil, YAML.load_file(config_file))
-    assert_equal({}, Tap::Env.read_config(config_file))
+    assert_equal({}, e.read_config(config_file))
     
     File.open(config_file, "wb") {|f| f << false.to_yaml }
     assert_equal(false, YAML.load_file(config_file))
-    assert_equal({}, Tap::Env.read_config(config_file))
+    assert_equal({}, e.read_config(config_file))
   end
   
   def test_read_config_raises_error_for_non_hash_result
     config_file = method_tempfile
     
     File.open(config_file, "wb") {|f| f << [].to_yaml }
-    assert_raise(RuntimeError) { Tap::Env.read_config(config_file) }
+    assert_raise(RuntimeError) { e.read_config(config_file) }
     
     File.open(config_file, "wb") {|f| f << "just a string" }
-    assert_raise(RuntimeError) { Tap::Env.read_config(config_file) }
+    assert_raise(RuntimeError) { e.read_config(config_file) }
   end
   
   #
-  # Env.full_gem_path test
+  # full_gem_path test
   #
   
   def test_full_gem_path_returns_the_full_gem_path_for_the_specified_gem
     assert !Gem.loaded_specs.empty?
     gem_name, gem_spec = Gem.loaded_specs.to_a.first
-    assert_equal gem_spec.full_gem_path, Tap::Env.full_gem_path(gem_name)
+    assert_equal gem_spec.full_gem_path, e.full_gem_path(gem_name)
   end
   
   def test_full_gem_path_accepts_versions
     assert !Gem.loaded_specs.empty?
     gem_name, gem_spec = Gem.loaded_specs.to_a.first
-    assert_equal gem_spec.full_gem_path, Tap::Env.full_gem_path(" #{gem_name} >= #{gem_spec.version} ")
+    assert_equal gem_spec.full_gem_path, e.full_gem_path(" #{gem_name} >= #{gem_spec.version} ")
   end
    
   #
@@ -116,19 +116,6 @@ class EnvTest < Test::Unit::TestCase
   
   def test_env_is_configurable
     assert e.kind_of?(Tap::Support::Configurable)
-  end
-  
-  def test_class_default_config
-    expected = {
-      :load_paths => ['lib'],
-      :config_paths => [],
-      :command_paths => ['cmd'],
-      :gems => [],
-      :generator_paths => ['lib/generators'],
-      :use_dependencies => true
-    }
-    
-    assert_equal expected, Tap::Env.configurations.default
   end
   
   #
@@ -352,16 +339,8 @@ class EnvTest < Test::Unit::TestCase
   def test_configure_merges_default_with_inputs
     e.configure({:use_dependencies => false}, root)
 
-    expected = {
-      :load_paths => [root['lib']],
-      :config_paths => [],
-      :command_paths => [root['cmd']],
-      :gems => [],
-      :generator_paths => [root['lib/generators']],
-      :use_dependencies => false
-    }
-    
-    assert_equal expected, e.config
+    assert_equal [root['lib']], e.config[:load_paths]
+    assert_equal false, e.config[:use_dependencies]
   end
   
   def test_configure_reassigns_root_paths_using_configs_before_resolving_paths
