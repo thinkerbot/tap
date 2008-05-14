@@ -44,6 +44,17 @@ module Tap
         end
       end
       
+      def each_default_pair
+        default.each_pair do |key, value|
+          value = case value
+          when Array, Hash then value.dup
+          else value
+          end
+ 
+          yield(key, value)
+        end
+      end
+      
       # Returns true if the normalized key is assigned in assignments.
       #
       # Note: as a result of this definition, an existing config must 

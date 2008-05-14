@@ -65,8 +65,6 @@ module Tap
         mod.extend Support::ConfigurableMethods if mod.kind_of?(Class)
       end
       
-      # A configuration hash
-
       # Returns a reference to the class configurations for self
       def class_configurations
         @class_configurations ||= self.class.configurations
@@ -76,18 +74,22 @@ module Tap
       # Overrides are merged with the class default configuration.  
       # Overrides are individually set through set_config.
       def config=(overrides)
-        overrides.symbolize_keys!
-        class_configurations.default.each_pair do |key, value|
-          send("#{key}=", overrides.has_key?(key) ? overrides[key] : value)
+        @undeclared_config = overrides.symbolize_keys
+        class_configurations.each_default_pair do |key, value|
+          send("#{key}=", @undeclared_config.has_key?(key) ? @undeclared_config.delete(key) : value)
         end
       end
       
-      def config
-        hash = {}
-        class_configurations.default.each_pair do |key, value|
-          hash[key] = send(key)
+      def config(all=true)
+        if all
+          hash = config(false).dup
+          class_configurations.default.each_pair do |key, value|
+            hash[key] = send(key)
+          end
+          hash
+        else
+          @undeclared_config ||= {}
         end
-        hash
       end
       
     end

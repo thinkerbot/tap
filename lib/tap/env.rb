@@ -4,7 +4,7 @@ autoload(:Dependencies, 'tap/support/dependencies')
 
 module Tap
   class Env
-
+    include Support::Configurable
     @@instance = nil
 
     class << self  
@@ -12,9 +12,15 @@ module Tap
       def instance
         @@instance
       end
+      
+      def config(key, value=nil)
+        instance_variable = "@#{key}".to_sym
+        config_attr(key, value) do |value|
+          raise "config modification is disabled when active" if active?
+          instance_variable_set(instance_variable, block_given? ? yield(value) : value)
+        end
+      end
     end
-    
-    include Support::Configurable
     
     # Specify gems to add to the environment.  Versions may be specified.
     config :gems, []
@@ -91,9 +97,10 @@ module Tap
       end
 
       @@instance = self
-      config.each_pair do |key, value|
+      class_configurations.default.each_pair do |key, value|
+        value = send(key)
         case value
-        when Array then config[key] = value.dup.freeze
+        when Array then value.freeze
         end
       end
 
@@ -116,9 +123,10 @@ module Tap
       return false unless active?
 
       @@instance = nil
-      config.each_pair do |key, value|
+      class_configurations.default.each_pair do |key, value|
+        value = send(key)
         case value
-        when Array then config[key] = value.dup
+        when Array then send("#{key}=", value.dup)
         end
       end
 
@@ -151,12 +159,12 @@ module Tap
     def configure(config, root=Tap::Root.new, &block) # :yields: unhandled_configs
 
       # partiton config into its parts
-      env_configs = class_configurations.default(true)
+      env_configs = {}
       root_configs = {}
       other_configs = {}
 
       config.each_pair do |key, value|
-        key = class_configurations.normalize_key(key)
+        key = key.to_sym
 
         partition = case 
         when class_configurations.has_config?(key) then env_configs
@@ -166,13 +174,19 @@ module Tap
 
         partition[key] = value
       end
+      
+      # fill in default configs
+      class_configurations.each_default_pair do |key, value|
+        next if env_configs.has_key?(key)
+        env_configs[key] = value
+      end
 
       # assign root configs, for resolution of paths later
       unless root_configs.empty?
         root.send(:assign_paths,
-        root_configs[:root] || root.root, 
-        root_configs[:directories] || root.directories, 
-        root_configs[:absolute_paths] || root.absolute_paths
+          root_configs[:root] || root.root, 
+          root_configs[:directories] || root.directories, 
+          root_configs[:absolute_paths] || root.absolute_paths
         )
       end
 
@@ -194,14 +208,14 @@ module Tap
         # load config_paths  
         env_configs.delete(:config_paths).each do |path|
           if load_config(path)
-            RECURSIVE_CONFIGS.each {|key| env_configs[key].concat(get_config(key)) }
+            RECURSIVE_CONFIGS.each {|key| env_configs[key].concat(send(key)) }
           end
         end
 
         # load gems
         env_configs.delete(:gems).each do |gem_name|
           if load_gem(gem_name)
-            RECURSIVE_CONFIGS.each {|key| env_configs[key].concat(get_config(key)) }
+            RECURSIVE_CONFIGS.each {|key| env_configs[key].concat(send(key)) }
           end
         end
       end
@@ -214,7 +228,7 @@ module Tap
       # set remaining env configs
       env_configs.each_pair do |key, value|
         next if in_recursive_context? && !RECURSIVE_CONFIGS.include?(key)
-        set_config(key, value)
+        send("#{key}=", value)
       end
 
       # handle unknown configs 
@@ -448,13 +462,6 @@ module Tap
       gem_config_files.collect do |config_file|
         load_config(config_file)
       end
-    end
-    
-    protected
-
-    def set_config(key, value, process=true)
-      raise "config modification is disabled when active" if active?
-      super
     end
     
   end
