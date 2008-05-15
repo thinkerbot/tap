@@ -39,28 +39,9 @@ module Tap
           @default = parent.default.dup
           @assignments = Assignments.new(parent.assignments)
         else
-          @default = {}
+          @default = InstanceConfiguration.new
           @assignments = Assignments.new
         end
-      end
-      
-      def each_default_pair
-        default.each_pair do |key, value|
-          value = case value
-          when Array, Hash then value.dup
-          else value
-          end
- 
-          yield(key, value)
-        end
-      end
-      
-      # Returns true if the normalized key is assigned in assignments.
-      #
-      # Note: as a result of this definition, an existing config must 
-      # be removed with unassign == true to make has_config? false.
-      def has_config?(key)
-        assignments.assigned?(key.to_sym)
       end
       
       # Adds or overrides a configuration. If a configuration is added without 
@@ -88,9 +69,7 @@ module Tap
         key = key.to_sym
         
         assignments.assign(receiver, key) unless assignments.assigned?(key)
-        
-        value = default[key] if value == NO_VALUE
-        default[key] = value
+        default.map(key, value == NO_VALUE ? default[key] : value)
 
         self
       end
@@ -100,7 +79,7 @@ module Tap
       def remove(key, unassign=false)
         key = key.to_sym
         
-        default.delete(key)
+        default.unmap(key)
         assignments.unassign(key) if unassign
 
         self
@@ -112,6 +91,14 @@ module Tap
         assignments.each do |receiver, key|
           yield(receiver, key)
         end
+      end
+      
+      # Returns true if the normalized key is assigned in assignments.
+      #
+      # Note: as a result of this definition, an existing config must 
+      # be removed with unassign == true to make has_config? false.
+      def has_config?(key)
+        assignments.assigned?(key.to_sym)
       end
       
       # The path to the :doc template (see format_str)

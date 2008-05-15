@@ -80,26 +80,26 @@ class ConfigurableTest < Test::Unit::TestCase
   def test_config_merges_overrides_with_class_default_config
     t = Sample.new
     t.config = {:two => 2}
-    assert_equal({:one => 'ONE', :two => 2}, t.config)
+    assert_equal({:one => 'ONE', :two => 2}, t.config.to_hash)
   end
   
   def test_config_sets_configs_through_accessors
     t = Sample.new
     t.config = {:one => 'Alt'}
-    assert_equal({:one => 'ALT', :two => 'two'}, t.config)
+    assert_equal({:one => 'ALT', :two => 'two'}, t.config.to_hash)
   end
 
   def test_config_symbolizes_input_keys
     t = Sample.new
     t.config = {'one' => 'Alt'}
-    assert_equal({:one => 'ALT', :two => 'two'}, t.config)
+    assert_equal({:one => 'ALT', :two => 'two'}, t.config.to_hash)
   end
   
   def test_config_is_detached_from_class_default
     t = Sample.new
     t.config = {'one' => 'Alt'}
-    assert_equal({:one => 'ALT', :two => 'two'}, t.config)
-    assert_equal({:one => 'one', :two => 'two'}, Sample.configurations.default)
+    assert_equal({:one => 'ALT', :two => 'two'}, t.config.to_hash)
+    assert_equal({:one => 'one', :two => 'two'}, Sample.configurations.default.to_hash)
   end
 
   #

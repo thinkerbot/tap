@@ -65,6 +65,9 @@ module Tap
         mod.extend Support::ConfigurableMethods if mod.kind_of?(Class)
       end
       
+      # The instance configurations for self
+      attr_reader :config
+      
       # Returns a reference to the class configurations for self
       def class_configurations
         @class_configurations ||= self.class.configurations
@@ -74,22 +77,7 @@ module Tap
       # Overrides are merged with the class default configuration.  
       # Overrides are individually set through set_config.
       def config=(overrides)
-        @undeclared_config = overrides.symbolize_keys
-        class_configurations.each_default_pair do |key, value|
-          send("#{key}=", @undeclared_config.has_key?(key) ? @undeclared_config.delete(key) : value)
-        end
-      end
-      
-      def config(all=true)
-        if all
-          hash = config(false).dup
-          class_configurations.default.each_pair do |key, value|
-            hash[key] = send(key)
-          end
-          hash
-        else
-          @undeclared_config ||= {}
-        end
+        @config = class_configurations.default.dup(self, overrides)
       end
       
     end

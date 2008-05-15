@@ -1,4 +1,5 @@
 require 'tap/support/class_configuration'
+require 'tap/support/instance_configuration'
 
 module Tap
   module Support

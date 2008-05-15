@@ -176,7 +176,7 @@ module Tap
       end
       
       # fill in default configs
-      class_configurations.each_default_pair do |key, value|
+      class_configurations.default.store.each_pair do |key, value|
         next if env_configs.has_key?(key)
         env_configs[key] = value
       end
