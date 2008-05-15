@@ -354,7 +354,10 @@ module Tap
     #
     # Unknown configurations raise an error.  
     def reconfigure(config={})
-      config = config.symbolize_keys
+      config = config.inject({}) do |options, (key, value)|
+        options[key.to_sym || key] = value
+        options
+      end
   
       # ensure critical keys are evaluated in the proper order
       keys = [:root, :directories, :absolute_paths, :options]
@@ -377,12 +380,15 @@ module Tap
           @options = OpenStruct.new
           value.each_pair {|k,v| options.send("#{k}=", v) }
         when :logger
-          log_config = {
+          log_config = value.inject({
             :device => STDOUT,
             :level => 'INFO',
             :datetime_format => '%H:%M:%S'
-          }.merge(value.symbolize_keys)
-
+          }) do |hash, (key, v)|
+            hash[key.to_sym || key] = v
+            hash
+          end
+          
           logger = Logger.new(log_config[:device]) 
           logger.level = log_config[:level].kind_of?(String) ? Logger.const_get(log_config[:level]) : log_config[:level]
           logger.datetime_format = log_config[:datetime_format]    

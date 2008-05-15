@@ -18,19 +18,6 @@ when /^1.9/
   $DEBUG_RDOC ||= nil 
 end
 
-# Loading activesupport piecemeal like this cuts the tap load time in half.
-gem 'activesupport'
-
-require 'active_support/core_ext/string/inflections'
-class String #:nodoc:
-  include ActiveSupport::CoreExtensions::String::Inflections
-end
-
-require 'active_support/core_ext/hash/keys.rb'
-class Hash #:nodoc:
-  include ActiveSupport::CoreExtensions::Hash::Keys
-end
-
 # require 'active_support/clean_logger'
 
 $:.unshift File.dirname(__FILE__)

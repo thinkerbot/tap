@@ -2,12 +2,12 @@ require 'tap/root'
 require 'tap/test/env_vars'
 require 'test/unit'
 require 'fileutils'
-require 'active_support/core_ext/class'
 
 module Test # :nodoc:
   module Unit # :nodoc:
     class TestCase
       class << self
+        attr_accessor :trs
         
         # Causes a TestCase to act as a file test, by instantiating a class Tap::Root 
         # (trs), and including FileMethods.  The root and directories used to 
@@ -25,10 +25,7 @@ module Test # :nodoc:
           }.merge(options)
 
           directories = options[:directories]
-          trs = Tap::Root.new(options[:root], directories)
-    
-          write_inheritable_attribute(:trs, trs)
-          class_inheritable_reader :trs
+          self.trs = Tap::Root.new(options[:root], directories)
       
           include Tap::Test::FileMethods
         end

@@ -15,7 +15,10 @@ module Test # :nodoc:
         # based on the calling file. Be sure to specify the root directory explicitly 
         # if you call acts_as_file_test from a file that is NOT meant to be test file.
         def acts_as_tap_test(options={})
-          options = {:root => file_test_root}.merge(options.symbolize_keys)
+          options = options.inject({:root => file_test_root}) do |hash, (key, value)|
+            hash[key.to_sym || key] = value
+            hash
+          end
           acts_as_file_test(options)
           
           include Tap::Test::SubsetMethods

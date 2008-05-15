@@ -36,9 +36,22 @@ module Tap
         @batch = []
         @config_file = app.config_filepath(name)
         
-        config.symbolize_keys! unless config.empty?
+        unless config.empty?
+          config = config.inject({}) do |options, (key, value)|
+            options[key.to_sym || key] = value
+            options
+          end
+        end
         app.each_config_template(config_file) do |template|
-          template_config = template.empty? ? config : template.symbolize_keys.merge(config)
+          template_config = if template.empty?
+            config
+          else
+            template = template.inject({}) do |options, (key, value)|
+              options[key.to_sym || key] = value
+              options
+            end
+            template.merge(config)
+          end
           initialize_batch_obj(name, template_config)
         end
       end

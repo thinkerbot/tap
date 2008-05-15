@@ -9,7 +9,10 @@ module Test # :nodoc:
       class << self
 
         def acts_as_script_test(options={})
-          options = {:root => file_test_root}.merge(options.symbolize_keys)
+          options = options.inject({:root => file_test_root}) do |hash, (key, value)|
+            hash[key.to_sym || key] = value
+            hash
+          end
           acts_as_file_test(options)
           include Tap::Test::SubsetMethods
           include Tap::Test::ScriptMethods

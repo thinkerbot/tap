@@ -9,4 +9,10 @@ require 'active_support/core_ext/module.rb'
 require 'active_support/core_ext/symbol.rb'
 require 'active_support/core_ext/string.rb'
 require 'active_support/core_ext/blank.rb'
+
+require 'active_support/core_ext/hash/keys.rb'
+class Hash #:nodoc:
+  include ActiveSupport::CoreExtensions::Hash::Keys
+end
+
 require 'active_support/dependencies'
