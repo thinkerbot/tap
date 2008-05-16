@@ -24,6 +24,7 @@ class ClassConfigurationTest < Test::Unit::TestCase
     assert_equal Sample, c.receiver
     assert_equal [], c.assignments.to_a
     assert_equal({}, c.default)
+    assert_equal({}, c.map)
   end
   
   def test_initialization_with_a_parent
@@ -33,6 +34,7 @@ class ClassConfigurationTest < Test::Unit::TestCase
     
     assert_equal [[Sample, [:config]]], another.assignments.to_a
     assert_equal({:config => 'default'}, another.default)
+    assert_equal({:config => :config=}, c.map)
   end
   
   def test_child_is_decoupled_from_parent
@@ -43,9 +45,11 @@ class ClassConfigurationTest < Test::Unit::TestCase
     
     assert_equal [[Sample, [:one]]], c.assignments.to_a
     assert_equal({:one => 'one'}, c.default)
+    assert_equal({:one => :one=}, c.map)
 
     assert_equal [[Another, [:two]]], another.assignments.to_a
     assert_equal({:two => 'two'}, another.default)
+    assert_equal({:two => :two=}, another.map)
   end
   
   #
@@ -80,19 +84,19 @@ class ClassConfigurationTest < Test::Unit::TestCase
   # has_config? test
   #
   
-  def test_has_config_returns_true_if_the_normalized_key_is_assigned
-    c.add(:config)
-
-    assert c.has_config?(:config)
-    assert c.has_config?('config')
-    assert !c.has_config?(:undeclared)
-    
-    c.remove(:config)
-    assert c.has_config?(:config)
-    
-    c.remove(:config, true)
-    assert !c.has_config?(:config)
-  end
+  # def test_has_config_returns_true_if_the_normalized_key_is_assigned
+  #   c.add(:config)
+  # 
+  #   assert c.has_config?(:config)
+  #   assert c.has_config?('config')
+  #   assert !c.has_config?(:undeclared)
+  #   
+  #   c.remove(:config)
+  #   assert c.has_config?(:config)
+  #   
+  #   c.remove(:config, true)
+  #   assert !c.has_config?(:config)
+  # end
   
   #
   # add test
@@ -115,6 +119,11 @@ class ClassConfigurationTest < Test::Unit::TestCase
   def test_add_sets_the_config_default
     c.add :config, "default"
     assert_equal({:config => 'default'}, c.default)
+  end
+  
+  def test_add_inserts_setter_into_map
+    c.add :config
+    assert_equal({:config => :config=}, c.map)
   end
   
   def test_add_symbolizes_keys
@@ -175,6 +184,14 @@ class ClassConfigurationTest < Test::Unit::TestCase
     assert_equal({}, c.default)
   end
   
+  def test_remove_removes_setter_from_map
+    c.add(:one)
+    assert_equal({:one => :one=}, c.map)
+
+    c.remove :one
+    assert_equal({}, c.map)
+  end
+  
   def test_remove_does_not_raise_an_error_for_unknown_configs
     assert_nothing_raised { c.remove :non_existant }
   end
@@ -203,6 +220,38 @@ class ClassConfigurationTest < Test::Unit::TestCase
     
     assert_equal({}, another.default)
     assert_equal [[Sample, []]], another.assignments.to_a
+  end
+  
+  #
+  # config_default test
+  #
+  
+  def test_config_default_returns_mapped_default_value
+    c.add(:key)
+    assert_equal nil, c.config_default(:key)
+    
+    c.add(:key, 'value')
+    assert_equal 'value', c.config_default(:key)
+  end
+  
+  def test_config_default_raises_error_for_unmapped_keys
+    assert_raise(ArgumentError) { c.config_default(:key) }
+  end
+  
+  def test_config_default_duplicates_values
+    a = [1,2,3]
+    c.add(:array, a)
+    
+    assert_equal a, c.config_default(:array)
+    assert_not_equal a.object_id, c.config_default(:array)
+  end
+  
+  def test_config_default_does_not_duplicate_if_specified
+    a = [1,2,3]
+    c.add(:array, a)
+    
+    assert_equal a, c.config_default(:array, false)
+    assert_not_equal a.object_id, c.config_default(:array, false)
   end
   
   # TODO

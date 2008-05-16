@@ -36,12 +36,11 @@ module Tap
         @batch = []
         @config_file = app.config_filepath(name)
         
-        unless config.empty?
-          config = config.inject({}) do |options, (key, value)|
-            options[key.to_sym || key] = value
-            options
-          end
-        end
+        config = config.inject({}) do |options, (key, value)|
+          options[key.to_sym || key] = value
+          options
+        end unless config.empty?
+
         app.each_config_template(config_file) do |template|
           template_config = if template.empty?
             config
@@ -52,6 +51,7 @@ module Tap
             end
             template.merge(config)
           end
+          
           initialize_batch_obj(name, template_config)
         end
       end

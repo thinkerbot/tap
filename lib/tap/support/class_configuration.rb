@@ -28,6 +28,8 @@ module Tap
       # Tracks the assignment of the config keys to receivers
       attr_reader :assignments
 
+      attr_reader :map
+
       # A placeholder to indicate when no value 
       # was specified during a call to add. 
       NO_VALUE = Object.new
@@ -37,9 +39,11 @@ module Tap
         
         if parent != nil
           @default = parent.default.dup
+          @map = parent.map.dup
           @assignments = Assignments.new(parent.assignments)
         else
-          @default = InstanceConfiguration.new
+          @default = {}
+          @map = {}
           @assignments = Assignments.new
         end
       end
@@ -69,7 +73,8 @@ module Tap
         key = key.to_sym
         
         assignments.assign(receiver, key) unless assignments.assigned?(key)
-        default.map(key, value == NO_VALUE ? default[key] : value)
+        map[key] = "#{key}=".to_sym
+        default[key] = (value == NO_VALUE ? default[key] : value)
 
         self
       end
@@ -79,7 +84,8 @@ module Tap
       def remove(key, unassign=false)
         key = key.to_sym
         
-        default.unmap(key)
+        default.delete(key)
+        map.delete(key)
         assignments.unassign(key) if unassign
 
         self
@@ -93,12 +99,40 @@ module Tap
         end
       end
       
+      # Returns the default map value.  If duplicate is true, then 
+      # all duplicable values will be duplicated (so that modifications
+      # to them will not affect the original default value).  Raises
+      # an error if the key is not mapped.
+      def config_default(key, duplicate=true)
+        raise ArgumentError.new("not a config key") unless mapped?(key)
+        
+        value = default[key]
+        duplicate ? duplicate_value(value) : value
+      end
+      
       # Returns true if the normalized key is assigned in assignments.
       #
       # Note: as a result of this definition, an existing config must 
       # be removed with unassign == true to make has_config? false.
       def has_config?(key)
         assignments.assigned?(key.to_sym)
+      end
+      
+      # 
+      def mapped?(key)
+        map.has_key?(key)
+      end
+      
+      def mapped_keys
+        map.keys
+      end
+      
+      def instance_config
+        config = InstanceConfiguration.new(map)
+        default.each_pair do |key, value|
+          config[key] = duplicate_value(value)
+        end
+        config
       end
       
       # The path to the :doc template (see format_str)
@@ -169,6 +203,15 @@ module Tap
         target
       end
       
+      protected
+      
+      def duplicate_value(value)
+        case value
+        when nil, true, false, Symbol, Numeric then value
+        else value.dup
+        end
+      end
     end
   end
 end
+
