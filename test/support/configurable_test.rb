@@ -124,10 +124,14 @@ class ConfigurableTest < Test::Unit::TestCase
       x.report("100k config_block= ") { n.times { t.config_block = 1 } }
       x.report("100k config= ") { n.times { t.config_key = 1 } }
       x.report("100k attr= ") { n.times { t.attr_key = 1 } }
+      x.report("100k config[]= ") { n.times { t.config[:config_key] = 1 } }
+      x.report("100k config[n]= ") { n.times { t.config[:key] = 1 } }
       
       x.report("100k config_block ") { n.times { t.config_block } }
       x.report("100k config ") { n.times { t.config_key } }
       x.report("100k attr ") { n.times { t.attr_key } }
+      x.report("100k config[]") { n.times { t.config[:config_key] } }
+      x.report("100k config[n] ") { n.times { t.config[:key] } }
       
     end
   end

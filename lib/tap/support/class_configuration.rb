@@ -127,8 +127,14 @@ module Tap
         map.keys
       end
       
+      # # Returns the mapped setter method for the specified key.
+      # # Raises an error if the key is not mapped.
+      def map_setter(key)
+        map[key] or raise(ArgumentError.new("not a mapped key"))
+      end
+      
       def instance_config
-        config = InstanceConfiguration.new(map)
+        config = InstanceConfiguration.new(self)
         default.each_pair do |key, value|
           config[key] = duplicate_value(value)
         end

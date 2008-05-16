@@ -8,11 +8,13 @@ class InstanceConfigurationTest < Test::Unit::TestCase
     attr_accessor :key
   end
 
-  attr_reader :c, :r
+  attr_reader :c, :r, :cc
   
   def setup
     @r = Receiver.new
-    @c = InstanceConfiguration.new :key => :key=
+    @cc = ClassConfiguration.new(Receiver)
+    cc.add(:key)
+    @c = InstanceConfiguration.new cc
   end
   
   #
@@ -23,28 +25,6 @@ class InstanceConfigurationTest < Test::Unit::TestCase
     assert_equal({}, c.store)
     assert_nil c.receiver
   end
-  
-  #
-  # mapped? test
-  #
-  
-  def test_mapped_is_true_if_key_is_in_mapped_keys
-    assert_equal([:key], c.mapped_keys)
-    assert c.mapped?(:key)
-    assert !c.mapped?('key')
-  end
-  
-  #
-  # map_setter test
-  #
-  
-  def test_map_setter_returns_the_setter_method_for_the_mapped_key
-    assert_equal :key=, c.map_setter(:key)
-  end
-  
-  def test_map_setter_raises_error_for_unmapped_keys
-    assert_raise(ArgumentError) { c.map_setter(:unmapped) }
-  end 
   
   #
   # bind test
@@ -83,9 +63,9 @@ class InstanceConfigurationTest < Test::Unit::TestCase
     assert !duplicate.bound?
   end
   
-  def test_duplicate_map_is_the_same_as_parent
+  def test_duplicate_class_config_is_the_same_as_parent
     duplicate = c.dup
-    assert_equal c.mapped_keys, duplicate.mapped_keys
+    assert_equal c.class_config.object_id, duplicate.class_config.object_id
   end
   
   #
@@ -183,12 +163,11 @@ class InstanceConfigurationTest < Test::Unit::TestCase
   end
   
   def test_InstanceConfigurations_are_compared_on_contents
-    another = InstanceConfiguration.new({})
+    another = InstanceConfiguration.new(ClassConfiguration.new(Receiver))
     
     c[:one] = 'one'
     another[:one] = 'one'
     
-    assert_not_equal another.mapped_keys, c.mapped_keys
     assert(c == another)
   end
 end

@@ -2,32 +2,18 @@ module Tap
   module Support
     class InstanceConfiguration
       
-      attr_reader :receiver, :store
+      attr_reader :receiver, :store, :class_config
       
-      def initialize(map)
-        @map = map
+      def initialize(class_config)
+        @class_config = class_config
         @store = {}
-      end
-      
-      # True if the key is mapped.
-      def mapped?(key)
-        @map.has_key?(key)
-      end
-      
-      # An array of the mapped keys.
-      def mapped_keys
-        @map.keys
-      end
-      
-      # Returns the mapped setter method for the specified key.
-      # Raises an error if the key is not mapped.
-      def map_setter(key)
-        @map[key] or raise(ArgumentError.new("not a mapped key"))
       end
       
       # Binds config to the specified receiver. 
       def bind(receiver)
-        @map.each_pair do |key, setter|
+        raise ArgumentError.new("receiver cannot be nil") if receiver == nil
+        
+        class_config.map.each_pair do |key, setter|
           receiver.send(setter, store.delete(key))
         end
         @receiver = receiver
@@ -41,32 +27,31 @@ module Tap
       end
       
       def unbind
-        @map.each_pair do |key, setter|
+        class_config.map.each_pair do |key, setter|
           store[key] = receiver.send(key)
         end
         @receiver = nil
       end
       
       # Duplicates self, returning an unbound InstanceConfiguration.
-      def dup#(receiver=nil, overrides={}, symbolize=true)
+      def dup
         duplicate = super()
         duplicate.instance_variable_set(:@receiver, nil)
         duplicate.instance_variable_set(:@store, @store.dup)
-   
         duplicate
       end
       
       def []=(key, value)
         case 
-        when bound? && mapped?(key)
-          receiver.send(map_setter(key), value)
+        when bound? && class_config.mapped?(key)
+          receiver.send(class_config.map_setter(key), value)
         else store[key] = value
         end
       end
       
       def [](key)
         case 
-        when bound? && mapped?(key)
+        when bound? && class_config.mapped?(key)
           receiver.send(key)
         else store[key]
         end
@@ -83,7 +68,7 @@ module Tap
         end
         
         store.each_pair do |key, value|
-          next if mapped?(key)
+          next if class_config.mapped?(key)
           yield(key, value)
         end
       end
@@ -97,7 +82,7 @@ module Tap
       # receiver will be associated with the mapped keys.
       def to_hash
         hash = store.dup
-        mapped_keys.each do |key|
+        class_config.mapped_keys.each do |key|
           hash[key] = self[key]
         end if bound?
         hash

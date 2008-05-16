@@ -221,7 +221,7 @@ class ClassConfigurationTest < Test::Unit::TestCase
     assert_equal({}, another.default)
     assert_equal [[Sample, []]], another.assignments.to_a
   end
-  
+
   #
   # config_default test
   #
@@ -252,6 +252,30 @@ class ClassConfigurationTest < Test::Unit::TestCase
     
     assert_equal a, c.config_default(:array, false)
     assert_not_equal a.object_id, c.config_default(:array, false)
+  end
+  
+  #
+  # mapped? test
+  #
+  
+  def test_mapped_is_true_if_key_is_in_mapped_keys
+    c.add(:key)
+    assert_equal([:key], c.mapped_keys)
+    assert c.mapped?(:key)
+    assert !c.mapped?('key')
+  end
+  
+  #
+  # map_setter test
+  #
+  
+  def test_map_setter_returns_the_setter_method_for_the_mapped_key
+    c.add(:key)
+    assert_equal :key=, c.map_setter(:key)
+  end
+  
+  def test_map_setter_raises_error_for_unmapped_keys
+    assert_raise(ArgumentError) { c.map_setter(:unmapped) }
   end
   
   # TODO
