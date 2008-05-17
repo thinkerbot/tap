@@ -88,11 +88,11 @@ module Tap
       # instances of SampleClass, see Tap::Support::Configurable for more
       # details.
       # 
-      def config(key, value=nil)
+      def config(key, value=nil, &block)
         if block_given?
           instance_variable = "@#{key}".to_sym
           config_attr(key, value) do |value|
-            instance_variable_set(instance_variable, yield(value))
+            instance_variable_set(instance_variable, block.call(value))
           end
         else
           config_attr(key, value)
@@ -124,13 +124,15 @@ module Tap
       # instances of SampleClass, see Tap::Support::Configurable for more
       # details.
       #
-      def config_attr(key, value=nil, &block)
+      def config_attr(key, value=nil, reader=true, writer=true, &block)
         configurations.add(key, value)
         
-        attr_reader(key)
-        if block_given? 
+        attr_reader(key) if reader
+        case
+        when block_given? 
           define_method("#{key}=", &block)
-        else attr_writer(key)
+        when writer
+          attr_writer(key)
         end
       end
       
