@@ -290,6 +290,11 @@ class RootTest < Test::Unit::TestCase
       assert_equal expected_path_root, r.path_root
     end
   end
+  
+  def test_config_is_initialized
+    r = Tap::Root.new
+    assert_equal({:root => File.expand_path(Dir.pwd), :directories => {}, :absolute_paths => {}}, r.config)
+  end
 
   #
   # set root tests

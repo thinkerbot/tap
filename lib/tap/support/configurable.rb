@@ -14,7 +14,7 @@ module Tap
     #     config :three, 'three'
     #
     #     def initialize(overrides={})
-    #       self.config = overrides
+    #       configure overrides
     #     end
     #   end
     #
@@ -60,15 +60,26 @@ module Tap
       # The instance configurations for self
       attr_reader :config
       
-      # Sets config for self with the given configuration overrides.
-      def config=(overrides)
+      # Reconfigures self with the given configuration overrides.  Only
+      # the specified configs are modified.  Override keys are symbolized.
+      def reconfigure(overrides={})
+        keys = (config.class_config.ordered_keys + overrides.keys) & overrides.keys
+        keys.each do |key|
+          config[key.to_sym] = overrides[key] 
+        end
+
+        config
+      end
+      
+      protected
+      
+      def initialize_config(overrides={})
         @config = self.class.configurations.instance_config
         overrides.each_pair do |key, value|
           config[key.to_sym] = value
         end
         config.bind(self)
       end
-      
     end
   end
 end

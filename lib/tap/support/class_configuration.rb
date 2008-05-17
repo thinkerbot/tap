@@ -133,13 +133,15 @@ module Tap
         end
       end
       
-      # Initializes and returns a new InstanceConfiguration bound to self,
+      # Initializes and returns a new InstanceConfiguration 
+      #--
+      # bound to self,
       # set with the default values for self (duplicated). 
-      def instance_config
-        config = InstanceConfiguration.new(self)
+      def instance_config(receiver=nil, map_defaults=true)
+        config = InstanceConfiguration.new(self, receiver)
         default.each_pair do |key, value|
           config[key] = duplicate_value(value)
-        end
+        end if map_defaults
         config
       end
       

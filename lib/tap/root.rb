@@ -166,24 +166,14 @@ module Tap
     include Support::Versions
     include Support::Configurable
 
-    # The root directory.  All paths are reassigned on set.
-    config_attr(:root, '.') do |root|
-      assign_paths(root, directories, absolute_paths)
-    end
+    # The root directory.
+    config_attr(:root, '.', true, false)
     
     # A hash of (alias, relative path) pairs for aliased subdirectories.
-    # The aliases 'root' and :root are reserved and cannot be set in
-    # directories; use root= instead.
-    config_attr(:directories, {}) do |directories|
-      assign_paths(root, directories, absolute_paths)
-    end
+    config_attr(:directories, {}, true, false)
     
     # A hash of (alias, relative path) pairs for aliased absolute paths.
-    # The aliases 'root' and :root are reserved and cannot be set in
-    # absolute_paths; use root= instead.
-    config_attr(:absolute_paths, {}) do |absolute_paths|
-      assign_paths(root, directories, absolute_paths)
-    end
+    config_attr(:absolute_paths, {}, false, false)
     
     # A hash of (alias, expanded path) pairs for aliased subdirectories and absolute paths.
     attr_reader :paths
@@ -197,6 +187,32 @@ module Tap
     # and no aliased directories or absolute paths are specified.  
     def initialize(root=Dir.pwd, directories={}, absolute_paths={})
       assign_paths(root, directories, absolute_paths)
+      @config = self.class.configurations.instance_config(self, false)
+    end
+    
+    # Sets the root directory. All paths are reassigned accordingly.
+    def root=(path)
+      assign_paths(path, directories, absolute_paths)
+    end
+  
+    # Sets the directories to those provided. 'root' and :root are reserved
+    # and cannot be set using this method (use root= instead).
+    #
+    # r['alt'] # => File.join(r.root, 'alt')
+    # r.directories = {'alt' => 'dir'}
+    # r['alt'] # => File.join(r.root, 'dir')
+    def directories=(dirs)
+      assign_paths(root, dirs, absolute_paths)
+    end
+    
+    # Sets the absolute paths to those provided. 'root' and :root are reserved
+    # directory keys and cannot be set using this method (use root= instead).
+    #
+    # r['abs'] # => File.join(r.root, 'abs')
+    # r.absolute_paths = {'abs' => '/path/to/dir'}
+    # r['abs'] # => '/path/to/dir'
+    def absolute_paths=(paths)
+      assign_paths(root, directories, paths)
     end
     
     # Returns the absolute paths registered with self.

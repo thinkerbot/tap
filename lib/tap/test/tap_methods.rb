@@ -201,7 +201,7 @@ module Tap
       # Applies the input options to the specified app for the duration
       # of the block.  Unless merge_with_existing is false, the input
       # options will be merged with the existing options; otherwise
-      # the app options will be reconfigured to just the inputs.
+      # the app options will be configured to just the inputs.
       #
       # For convenience, with_options is setup such that options 
       # {:debug => true, :quiet => true} are implicitly specified.  
@@ -223,7 +223,7 @@ module Tap
       # Applies the input configurations to the specified app for the 
       # duration of the block.  Unless merge_with_existing is false,
       # the input configurations will be merged with the existing 
-      # configurations; otherwise the app will be reconfigured to 
+      # configurations; otherwise the app will be configured to 
       # using the inputs as specified.
       #
       # For convenience, with_config is setup such that options 
@@ -245,14 +245,18 @@ module Tap
       #
       def with_config(app_config={}, app=self.app, merge_with_existing=true, default_options={:debug => true, :quiet => true}, &block)
         begin
-          hold = app.config
+          hold = app.config.to_hash
           
           app_config[:options] = default_options.merge(app_config[:options] || {})
           if merge_with_existing
             hold.each_pair do |key, value|
               next unless app_config.has_key?(key)
-              next unless value.kind_of?(Hash)
-                
+              value = case value
+              when Hash then value
+              when OpenStruct then value.marshal_dump
+              else next
+              end
+         
               app_config[key] = value.merge(app_config[key])
             end
           end

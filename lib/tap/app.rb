@@ -238,26 +238,31 @@ module Tap
     end
     
     # An OpenStruct containing the application options.
-    attr_reader :options
-    
-    # The shared logger. 
-    attr_reader :logger
-    
-    # The application queue.
-    attr_reader :queue
-    
-    # The state of the application (see App::State).
-    attr_reader :state
+    config :options, {} do |value|
+      case value
+      when OpenStruct then value
+      when Hash then OpenStruct.new(value)
+      else raise ArgumentError.new("cannot convert to OpenStruct: #{value.class}")
+      end
+    end
     
     # A hash of (task_name, task_class_name) pairs mapping names to 
-    # classes for instantiating tasks that have a non-default name.   
-    # See task_class_name for more details.
-    attr_accessor :map
+    # classes for instantiating tasks that have a non-default name.
+    config(:map, {})
+    
+    # The shared logger
+    attr_reader :logger
+    
+    # The application queue
+    attr_reader :queue
+    
+    # The state of the application (see App::State)
+    attr_reader :state
     
     # A Tap::Support::Aggregator to collect the results of 
-    # methods that have no on_complete block.
+    # methods that have no on_complete block
     attr_reader :aggregator
-    
+     
     # The constants defining the possible App states.  
     module State
       READY = 0
@@ -280,8 +285,8 @@ module Tap
     DEFAULT_MAX_THREADS = 10
     
     # Creates a new App with the given configuration.  
-    # See reconfigure for configuration options.
-    def initialize(config={})
+    # See configure for configuration options.
+    def initialize(config={}, logger=TAP_DEFAULT_LOGGER)
       super()
       
       @state = State::READY
@@ -291,123 +296,55 @@ module Tap
       
       @queue = Support::ExecutableQueue.new
       @aggregator = Support::Aggregator.new
-
-      # defaults must be provided for options and logging to ensure
-      # that they will be initialized by reconfigure 
-      self.reconfigure( {
-        :options => {}, :logger => {}, :map => {}
-      }.merge(config) )
+      
+      initialize_config(config)
+      @logger = logger
     end
     
-    # Clears the queue and aggregator.
-    #def clear(options={})
-    #  # syncrhonize?
-    #  ready
-    #  raise "cannot clear unless state == READY" unless state == State::READY
-    #
-    #  queue.clear
-    #  aggregator.clear
-    #end
+    TAP_DEFAULT_LOGGER = Logger.new(STDOUT)
+    TAP_DEFAULT_LOGGER.level = Logger::INFO
+    TAP_DEFAULT_LOGGER.datetime_format = '%H:%M:%S'
     
     # True if options.debug or the global variable $DEBUG is true.
     def debug?
       options.debug || $DEBUG ? true : false
     end
      
-    # Returns the configuration of self.  
-    def config 
-      {:root => self.root,
-      :directories => self.directories,
-      :absolute_paths => self.absolute_paths,
-      :options => self.options.marshal_dump,
-      :logger => {
-        :device => self.logger.logdev.dev,
-        :level => self.logger.level,
-        :datetime_format => self.logger.datetime_format}}      
-    end
-    
-    # Reconfigures self with the input configurations; other configurations are not affected.
+    # Reconfigures self with the updated configurations; unspecified configurations are 
+    # not affected.
     #
     #   app = Tap::App.new :root => "/root", :directories => {:dir => 'path/to/dir'}
-    #   app.reconfigure(
-    #     :root => "./new/root",
-    #     :logger => {:level => Logger::DEBUG})
+    #   app.configure(
+    #     :root => "./new/root", 
+    #     :options => {:quiet => true}, 
+    #     'key' => 'value')
     #
-    #   app.root           # => File.expand_path("./new/root")
-    #   app[:dir]          # => File.expand_path("./new/root/path/to/dir")
-    #   app.logger.level   # => Logger::DEBUG
+    #   app.root             # => File.expand_path("./new/root")
+    #   app[:dir]            # => File.expand_path("./new/root/path/to/dir")
+    #   app.options.quiet    # => true
+    #   app.config['key']    # => 'value'
     #
-    # Available configurations:
-    # root:: resets the root directory of self using root=
-    # directories:: resets directory aliases using directories= (note ALL  
-    #               aliases are reset. use app[dir]= to set a single alias)
-    # absolute_paths:: resets absolute path aliases using absolute_paths= (note ALL  
-    #               aliases are reset. use app[dir]= to set a single alias)
-    # options:: resets the application options (note ALL options are reset.   
-    #           use app.options.opt= to set a single option)
-    # logger:: creates and sets a new logger from the configuration 
-    #
-    # Available logger configurations and defaults:
-    # device:: STDOUT
-    # level:: INFO (1) 
-    # datetime_format:: %H:%M:%S
-    #
-    # Unknown configurations raise an error.  
-    def reconfigure(config={})
-      config = config.inject({}) do |options, (key, value)|
-        options[key.to_sym || key] = value
-        options
-      end
-  
-      # ensure critical keys are evaluated in the proper order
-      keys = [:root, :directories, :absolute_paths, :options]
-      config.keys.each do |key|
-        keys << key unless keys.include?(key)
-      end 
-      
-      keys.each do |key|
-        next unless config.has_key?(key)
-        value = config[key]
-        
-        case key
-        when :root
-          self.root = value
-        when :directories 
-          self.directories = value
-        when :absolute_paths 
-          self.absolute_paths = value
-        when :options
-          @options = OpenStruct.new
-          value.each_pair {|k,v| options.send("#{k}=", v) }
-        when :logger
-          log_config = value.inject({
-            :device => STDOUT,
-            :level => 'INFO',
-            :datetime_format => '%H:%M:%S'
-          }) do |hash, (key, v)|
-            hash[key.to_sym || key] = v
-            hash
-          end
-          
-          logger = Logger.new(log_config[:device]) 
-          logger.level = log_config[:level].kind_of?(String) ? Logger.const_get(log_config[:level]) : log_config[:level]
-          logger.datetime_format = log_config[:datetime_format]    
-          self.logger = logger
-        when :map
-          self.map = value
-        else
-          unless handle_configuation(key, value)
-            if block_given? 
-              yield(key, value)
-            else
-              raise ArgumentError.new("Unknown configuration: #{key}")
-            end
-          end
-        end
-      end
-      
-      self
-    end
+    # def configure(update_configs={})
+    #   
+    #   # symbolize inputs
+    #   # update_configs = update_configs.inject({}) do |options, (key, value)|
+    #   #   options[key.to_sym || key] = value
+    #   #   options
+    #   # end
+    #   
+    #   # ensure critical keys are evaluated in the proper order
+    #   keys = config.class_config.ordered_keys
+    #   update_configs.keys.each do |key|
+    #     keys << key unless keys.include?(key)
+    #   end 
+    #   
+    #   keys.each do |key|
+    #     next unless update_configs.has_key?(key)
+    #     config[key] = update_configs[key] 
+    #   end
+    #   
+    #   self
+    # end
     
     # Looks up the specified constant, dynamically loading via Dependencies
     # if necessary.  Returns the const_name if const_name is a Module.
@@ -456,10 +393,13 @@ module Tap
     # additional logging capabilities.  The logger level is set to Logger::DEBUG if 
     # the global variable $DEBUG is true.
     def logger=(logger)
+      
+      unless logger.nil?
+        logger.extend Support::Logger 
+        logger.level = Logger::DEBUG if $DEBUG
+      end
+      
       @logger = logger
-      @logger.extend Support::Logger unless @logger.nil?
-      @logger.level = Logger::DEBUG if $DEBUG
-      @logger
     end
     
     # Logs the action and message at the input level (default INFO).  
@@ -947,7 +887,7 @@ module Tap
     protected
     
     # A hook for handling unknown configurations in subclasses, called from
-    # reconfigure.  If handle_configuration evaluates to false, then reconfigure
+    # configure.  If handle_configuration evaluates to false, then configure
     # raises an error.
     def handle_configuation(key, value)
       false

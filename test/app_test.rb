@@ -211,10 +211,13 @@ o-[add_five] 8
     assert_equal({}, app.directories)
     assert_equal({}, app.options.marshal_dump)
     assert_equal({}, app.map)
+    
     assert_equal(Support::ExecutableQueue, app.queue.class)
     assert app.queue.empty?
+    
     assert_equal(Support::Aggregator, app.aggregator.class)
     assert app.aggregator.empty?
+    
     assert_equal App::State::READY, app.state
   end
   
@@ -225,14 +228,11 @@ o-[add_five] 8
   def test_config_returns_current_configurations
     app = App.new
     expected = {
-      :root => Dir.pwd,
+      :root => File.expand_path(Dir.pwd),
       :directories => {},
       :absolute_paths => {},
-      :options => {},
-      :logger => {
-        :device => STDOUT,
-        :level => 1, # corresponds to 'INFO'
-        :datetime_format => '%H:%M:%S'}
+      :options => OpenStruct.new(),
+      :map => {}
     }
     assert_equal expected, app.config
     
@@ -240,22 +240,15 @@ o-[add_five] 8
     app.options.trace = true
     app[:lib] = 'alt/lib'
     app[:abs, true] = '/absolute/path'
-    strio = StringIO.new('')
-    app.logger = Logger.new(strio)
 
     expected = {
-      :root => Dir.pwd,
+      :root => File.expand_path(Dir.pwd),
       :directories => {:lib => 'alt/lib'},
       :absolute_paths => {:abs => File.expand_path('/absolute/path')},
-      :options => {:trace => true},
-      :logger => {
-        :device => strio,
-        :level => 0, 
-        :datetime_format => nil}
+      :options => OpenStruct.new(:trace => true),
+      :map => {}
     }
-    
-    assert_equal 0, app.logger.level
-    assert_equal nil, app.logger.datetime_format
+
     assert_equal expected, app.config
   end
   
@@ -266,12 +259,14 @@ o-[add_five] 8
   def test_reconfigure_documentation
     app = Tap::App.new :root => "/root", :directories => {:dir => 'path/to/dir'}
     app.reconfigure(
-      :root => "./new/root",
-      :logger => {:level => Logger::DEBUG})
+      :root => "./new/root", 
+      :options => {:quiet => true}, 
+      :key => 'value')
   
     assert_equal File.expand_path("./new/root"), app.root  
     assert_equal File.expand_path("./new/root/path/to/dir"), app[:dir]          
-    assert_equal Logger::DEBUG, app.logger.level   
+    assert_equal true, app.options.quiet
+    assert_equal 'value', app.config[:key]
   end
   
   def test_reconfigure_root_sets_app_root
@@ -302,75 +297,12 @@ o-[add_five] 8
     app.reconfigure :options => {:trace => true}
     assert_equal({:trace => true}, app.options.marshal_dump)
   end
-  
-  def test_reconfigure_logger_sets_logger
-    app = App.new
-    assert_equal STDOUT, app.logger.logdev.dev
-    strio = StringIO.new('')
-    app.reconfigure :logger => {:device => strio, :level => Logger::WARN}
-    assert_equal strio, app.logger.logdev.dev
-    assert_equal Logger::WARN, app.logger.level
-  end
-  
+
   def test_reconfigure_map_sets_map
     app = App.new
     assert_equal({}, app.map)
     app.reconfigure :map => {'some/task_name' => Tap::Task}
     assert_equal({'some/task_name' => Tap::Task}, app.map)
-  end
-  
-  def test_reconfigure_sends_unhandled_options_to_block_if_given
-    app = App.new
-    was_in_block = false
-    app.reconfigure(:unknown => 'value') do |key, value|
-      assert_equal(:unknown, key)
-      assert_equal('value', value)
-      was_in_block = true
-    end
-    assert was_in_block
-  end
-  
-  def test_reconfigure_raises_error_for_unhandled_options
-    app = App.new
-    assert_raise(ArgumentError) { app.reconfigure(:unknown => 'value') }
-  end
-  
-  class AppHandlesConfig < App
-    attr_accessor :handled_configs
-    def initialize
-      self.handled_configs = []
-    end
-    def handle_configuation(key, value)
-      handled_configs.concat [key, value]
-      true
-    end
-  end
-  
-  def test_reconfigure_sends_unhandled_options_to_handle_configuation_if_defined
-    app = AppHandlesConfig.new
-    was_in_block = false
-    app.reconfigure(:unknown => 'value') do |key, value|
-      was_in_block = true
-    end
-    assert_equal [:unknown, 'value'], app.handled_configs
-    assert !was_in_block
-  end
-  
-  class AppDoesNotHandleConfig < AppHandlesConfig
-    def handle_configuation(key, value)
-      handled_configs.concat [key, value]
-      false
-    end
-  end
-  
-  def test_reconfigure_goes_to_block_if_handle_configuration_returns_false
-    app = AppDoesNotHandleConfig.new
-    was_in_block = false
-    app.reconfigure(:unknown => 'value') do |key, value|
-      was_in_block = true
-    end
-    assert_equal [:unknown, 'value'], app.handled_configs
-    assert was_in_block
   end
   
   #
@@ -460,21 +392,6 @@ o-[add_five] 8
     t = app.task("app_test/task_sub_class-1.1")
     assert_equal TaskSubClass, t.class
     assert_equal "app_test/task_sub_class-1.1", t.name
-  end
-  
-  def test_task_looks_up_task_classes_along_Dependencies_load_paths
-    begin
-      assert !Object.const_defined?("AppTestTask")
-      
-      Dependencies.load_paths << app['lib']
-      t = app.task("AppTestTask")
-      
-      assert Object.const_defined?("AppTestTask")
-      assert_equal AppTestTask, t.class
-    ensure
-      Dependencies.clear
-      Dependencies.load_paths.delete(app['lib'])
-    end
   end
   
   def test_task_raises_lookup_error_if_class_cannot_be_found

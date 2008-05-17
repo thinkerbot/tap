@@ -51,10 +51,6 @@ module Tap
     # An array of config keys that can be set in the recursive context.
     RECURSIVE_CONFIGS = [:load_paths, :command_paths, :generator_paths]
 
-    # An array of config keys that are used by configure
-    # to reconfigure the root input.
-    ROOT_CONFIGS = [:root, :directories, :absolute_paths]
-
     # The default config file path
     DEFAULT_CONFIG_FILE = "tap.yml"
 
@@ -62,7 +58,7 @@ module Tap
     attr_accessor :logger
 
     def initialize(logger=nil)
-      self.config = {}
+      @config = self.class.configurations.instance_config
       @logger = logger
       @recursive = false
     end
@@ -149,7 +145,7 @@ module Tap
     # consists of the following steps:
     #
     # * partition config into env, root, and other configs
-    # * reconfigure root with the root configs
+    # * configure root with the root configs
     # * resolve PATH_CONFIGS using root
     # * recursively load/configure :config_paths and :gems
     # * set configurations

@@ -63,7 +63,7 @@ module Tap
         obj = super()
       
         obj.name = name.nil? ? self.class.default_name : name
-        obj.config = config
+        obj.initialize_config(config)
 
         obj
       end

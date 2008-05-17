@@ -40,9 +40,10 @@ module Tap
       # The ClassConfiguration specifying config keys
       attr_reader :class_config
       
-      def initialize(class_config)
-        @class_config = class_config
+      def initialize(class_config, receiver=nil)
+        @receiver = receiver
         @store = {}
+        @class_config = class_config
       end
       
       # Binds self to the specified receiver.  Mapped keys are

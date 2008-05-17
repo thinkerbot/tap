@@ -7,6 +7,10 @@ class ConfigurableTest < Test::Unit::TestCase
   class Sample
     include Tap::Support::Configurable
     
+    def initialize
+      initialize_config
+    end
+    
     config(:one, 'one') {|v| v.upcase }
     config :two, 'two'
   end
@@ -31,7 +35,7 @@ class ConfigurableTest < Test::Unit::TestCase
     config :three, 'three'
 
     def initialize(overrides={})
-      self.config = overrides
+      initialize_config overrides
     end
   end
   
@@ -67,32 +71,48 @@ class ConfigurableTest < Test::Unit::TestCase
   end
   
   #
-  # config= test
+  # config test 
   #
-  
-  def test_config_merges_overrides_with_class_default_config
-    t = Sample.new
-    t.config = {:two => 2}
-    assert_equal({:one => 'ONE', :two => 2}, t.config.to_hash)
-  end
-  
-  def test_config_sets_configs_through_accessors
-    t = Sample.new
-    t.config = {:one => 'Alt'}
-    assert_equal({:one => 'ALT', :two => 'two'}, t.config.to_hash)
-  end
-
-  def test_config_symbolizes_input_keys
-    t = Sample.new
-    t.config = {'one' => 'Alt'}
-    assert_equal({:one => 'ALT', :two => 'two'}, t.config.to_hash)
-  end
   
   def test_config_is_detached_from_class_default
     t = Sample.new
-    t.config = {'one' => 'Alt'}
-    assert_equal({:one => 'ALT', :two => 'two'}, t.config.to_hash)
-    assert_equal({:one => 'one', :two => 'two'}, Sample.configurations.default.to_hash)
+    t.config[:one] = 'Alt'
+    
+    assert_equal({:one => 'ALT', :two => 'two'}, t.config)
+    assert_equal({:one => 'one', :two => 'two'}, Sample.configurations.default)
+  end
+  
+  #
+  # reconfigure test
+  #
+  
+  def test_reconfigure_sets_configs_through_accessors
+    t = Sample.new
+    t.reconfigure(:one => 'Alt')
+    assert_equal({:one => 'ALT', :two => 'two'}, t.config)
+  end
+  
+  def test_reconfigure_symbolizes_input_keys
+    t = Sample.new
+    t.reconfigure('one' => 'Alt')
+    assert_equal({:one => 'ALT', :two => 'two'}, t.config)
+  end
+  
+  def test_reconfigure_only_affects_specified_keys
+    t = Sample.new
+    t.two = "TWO"
+    t.reconfigure('one' => 'Alt')
+    assert_equal({:one => 'ALT', :two => 'TWO'}, t.config)
+  end
+  
+  #
+  # initialize_config test
+  #
+  
+  def test_initialize_config_merges_class_defaults_with_overrides
+    t = Sample.new
+    t.send(:initialize_config, {:two => 2})
+    assert_equal({:one => 'ONE', :two => 2}, t.config)
   end
 
   #
@@ -109,7 +129,7 @@ class ConfigurableTest < Test::Unit::TestCase
   
   def test_config_and_attr_speed
     t = ConfigBenchmark.new 
-    t.config = {}
+    t.send(:initialize_config)
     
     benchmark_test(20) do |x|
       n = 100000
