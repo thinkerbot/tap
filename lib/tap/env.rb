@@ -97,7 +97,7 @@ module Tap
       end
 
       @@instance = self
-      class_configurations.default.each_pair do |key, value|
+      self.config.class_config.default.each_pair do |key, value|
         value = send(key)
         case value
         when Array then value.freeze
@@ -123,7 +123,7 @@ module Tap
       return false unless active?
 
       @@instance = nil
-      class_configurations.default.each_pair do |key, value|
+      self.config.class_config.default.each_pair do |key, value|
         value = send(key)
         case value
         when Array then send("#{key}=", value.dup)
@@ -167,7 +167,7 @@ module Tap
         key = key.to_sym
 
         partition = case 
-        when class_configurations.has_config?(key) then env_configs
+        when self.config.class_config.key?(key) then env_configs
         when ROOT_CONFIGS.include?(key) then root_configs
         else other_configs
         end
@@ -176,7 +176,7 @@ module Tap
       end
       
       # fill in default configs
-      class_configurations.default.each_pair do |key, value|
+      self.config.class_config.default.each_pair do |key, value|
         next if env_configs.has_key?(key)
         env_configs[key] = value
       end

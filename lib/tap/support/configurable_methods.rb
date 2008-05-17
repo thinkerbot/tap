@@ -1,50 +1,46 @@
 require 'tap/support/class_configuration'
-require 'tap/support/instance_configuration'
 
 module Tap
   module Support
     
-    # ConfigurableMethods encapsulates class methods used to declare class
-    # configurations. When configurations are declared using the config method, 
-    # ConfigurableMethods generates accessors in the class, much like attr_reader, 
-    # attr_writer, and attr_accessor.  
+    # ConfigurableMethods encapsulates class methods used to declare class configurations. 
+    # When configurations are declared using the config method, ConfigurableMethods 
+    # generates accessors in the class, much like attr_accessor.  
     #
     #   class ConfigurableClass
     #     extend ConfigurableMethods
-    # 
     #     config :one, 'one'
-    #     config :two, 'two'
-    #     config :three, 'three'
     #   end
     #
-    #   ConfigurableClass.configurations.default  # => {:one => 'one', :two => 'two', :three => 'three'}
+    #   ConfigurableClass.configurations.default   # => {:one => 'one'}
     #   c = ConfigurableClass.new
     #   c.respond_to?('one')                       # => true
     #   c.respond_to?('one=')                      # => true
     # 
-    # By default config defines a config_accessor for each configuration, but
-    # this can be modulated using declare_config, config_reader, config_writer, 
-    # and config_accessor.  These methods define accessors that call 
-    # get_config(key) and set_config(key, value), both of which must be 
-    # implemented in the extended class.  Although they can be called directly,
-    # they are more commonly used to flag what types of accessors config should
-    # create:
-    # 
+    # If a block is given, the block will be used to create the setter method
+    # for the config.  Used in this manner, config defines a :config_key= method 
+    # wherein @config_key will be set to the return value of the block.
+    #
     #   class AnotherConfigurableClass
     #     extend ConfigurableMethods
-    #
-    #     config_writer           # flags config to define writers-only
-    #     config :one, 'one'
-    #
-    #     config_reader           # flags config to define readers-only
-    #     config :two, 'two'
+    #     config(:one, 'one') {|value| value.upcase }
     #   end
     #
-    #   c = AnotherConfigurableClass.new
-    #   c.respond_to?('one')                       # => false
-    #   c.respond_to?('one=')                      # => true
-    #   c.respond_to?('two')                       # => true
-    #   c.respond_to?('two=')                      # => false
+    #   ac = AnotherConfigurableClass.new
+    #   ac.one = 'value'
+    #   ac.one               # => 'VALUE'
+    #
+    # The block has class-context in this case.  To have instance-context, use the
+    # config_attr method which defines the setter method using the block directly.
+    #
+    #   class YetAnotherConfigurableClass
+    #     extend ConfigurableMethods
+    #     config_attr(:one, 'one') {|value| @one = value.reverse }
+    #   end
+    #
+    #   ac = YetAnotherConfigurableClass.new
+    #   ac.one = 'value'
+    #   ac.one               # => 'eulav'
     #
     # ConfigurableMethods can extend any class to provide class-specific configurations.
     module ConfigurableMethods
@@ -65,29 +61,33 @@ module Tap
         child.instance_variable_set(:@configurations, ClassConfiguration.new(child, @configurations))
       end
 
-      # Sets a class configuration.  Configurations are inherited, but can 
-      # be overridden or added in subclasses. Accessors are created by 
-      # default, but this behavior can be modified by use of the other
-      # config methods.  
+      # Declares a class configuration and generates the associated accessors. 
+      # If a block is given, the :key= method will set @key to the return of
+      # the block.  Configurations are inherited, and can be overridden in 
+      # subclasses. 
       #
       #   class SampleClass
       #     extend ConfigurableMethods
       #
-      #     config :key, 'value'
-      #
-      #     config_reader
-      #     config :reader_only
+      #     config :str, 'value'
+      #     config(:upcase, 'value') {|input| input.upcase } 
       #   end
       #
-      #   t = SampleClass.new
-      #   t.respond_to?(:reader_only)         # => true
-      #   t.respond_to?(:reader_only=)        # => false
+      #   class EquivalentClass
+      #     attr_accessor :str
+      #     attr_reader :upcase
+      #     UPCASE_BLOCK = lambda {|input| input.upcase }
       #
-      # A block can be specified for validation/pre-processing.  See
-      # Tap::Support::Configurable for more details.
+      #     def upcase=(input)
+      #       @upcase = UPCASE_BLOCK.call(input)
+      #     end
+      #   end
       #
-      #--
-      # class context
+      # Regarding accessors, SampleClass is equivalent to EquivalentClass.  
+      # The default values recorded by SampleClass are used in configuring
+      # instances of SampleClass, see Tap::Support::Configurable for more
+      # details.
+      # 
       def config(key, value=nil)
         if block_given?
           instance_variable = "@#{key}".to_sym
@@ -99,8 +99,31 @@ module Tap
         end
       end
       
-      #--
-      # instance context
+      # Declares a class configuration and generates the associated accessors. 
+      # If a block is given, the :key= method will perform the block.  
+      # Configurations are inherited, and can be overridden in subclasses. 
+      #
+      #   class SampleClass
+      #     extend ConfigurableMethods
+      #
+      #     config_attr :str, 'value'
+      #     config_attr(:upcase, 'value') {|input| @upcase = input.upcase } 
+      #   end
+      #
+      #   class EquivalentClass
+      #     attr_accessor :str
+      #     attr_reader :upcase
+      #
+      #     def upcase=(input)
+      #       @upcase = input.upcase
+      #     end
+      #   end
+      #
+      # Regarding accessors, SampleClass is equivalent to EquivalentClass.  
+      # The default values recorded by SampleClass are used in configuring
+      # instances of SampleClass, see Tap::Support::Configurable for more
+      # details.
+      #
       def config_attr(key, value=nil, &block)
         configurations.add(key, value)
         

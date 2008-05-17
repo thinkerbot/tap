@@ -6,12 +6,6 @@ module Tap
     # Configurable facilitates the definition and use of configurations by objects.  
     # Configurable allows the specification of configs within the class definition.
     #
-    # == Usage
-    #
-    # Configurable must be included in the class definition and the including class
-    # must initialize the @config variable, which is usually most conveniently done
-    # through the config= method.
-    #
     #   class ConfigurableClass
     #     include Configurable
     # 
@@ -20,14 +14,12 @@ module Tap
     #     config :three, 'three'
     #
     #     def initialize(overrides={})
-    #       # initializing configs in this way sets configs
-    #       # to the class defaults, which are overrided as
-    #       # specified
     #       self.config = overrides
     #     end
     #   end
     #
     #   c = ConfigurableClass.new
+    #   c.config.class         # => InstanceConfiguration
     #   c.config               # => {:one => 'one', :two => 'two', :three => 'three'}
     #
     # Configurable extends the including class with Tap::Support::ConfigurableMethods.  As
@@ -68,16 +60,9 @@ module Tap
       # The instance configurations for self
       attr_reader :config
       
-      # Returns a reference to the class configurations for self
-      def class_configurations
-        @class_configurations ||= self.class.configurations
-      end
-      
       # Sets config for self with the given configuration overrides.
-      # Overrides are merged with the class default configuration.  
-      # Overrides are individually set through set_config.
       def config=(overrides)
-        @config = class_configurations.instance_config
+        @config = self.class.configurations.instance_config
         overrides.each_pair do |key, value|
           config[key.to_sym] = value
         end

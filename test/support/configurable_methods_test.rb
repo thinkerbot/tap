@@ -8,14 +8,33 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
 
   class ConfigurableClass
     extend Tap::Support::ConfigurableMethods
-
     config :one, 'one'
-    config :two, 'two'
-    config :three, 'three'
   end
-  
+
+  class AnotherConfigurableClass
+    extend Tap::Support::ConfigurableMethods
+    config(:one, 'one') {|value| value.upcase }
+  end
+
+  class YetAnotherConfigurableClass
+    extend Tap::Support::ConfigurableMethods
+    config_attr(:one, 'one') {|value| @one = value.reverse }
+  end
+
   def test_documentation
-    assert_equal({:one => 'one', :two => 'two', :three => 'three'}, ConfigurableClass.configurations.default)
+    assert_equal({:one => 'one'}, ConfigurableClass.configurations.default)
+    
+    c = ConfigurableClass.new
+    assert c.respond_to?('one')
+    assert c.respond_to?('one=')
+  
+    ac = AnotherConfigurableClass.new
+    ac.one = 'value'
+    
+  
+    ac = YetAnotherConfigurableClass.new
+    ac.one = 'value'
+    assert_equal 'eulav', ac.one
   end
   
   #
@@ -67,21 +86,6 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   #
   # config declaration tests
   #
-  
-  # class DocSampleClass
-  #   extend Tap::Support::ConfigurableMethods
-  # 
-  #   config :key, 'value'
-  # 
-  #   config_reader
-  #   config :reader_only
-  # end
-  # 
-  # def test_config_documentation
-  #   t = DocSampleClass.new
-  #   assert t.respond_to?(:reader_only)
-  #   assert !t.respond_to?(:reader_only=)
-  # end
 
   class SampleClass
     extend Tap::Support::ConfigurableMethods

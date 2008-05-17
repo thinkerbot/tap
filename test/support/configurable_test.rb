@@ -40,22 +40,23 @@ class ConfigurableTest < Test::Unit::TestCase
     config :two, 'two', &c.check(String)
   end
   
-  # def test_documentation
-  #   c = ConfigurableClass.new
-  #   assert_equal({:one => 'one', :two => 'two', :three => 'three'}, c.config)
-  # 
-  #   c.config[:one] = 'ONE'
-  #   assert_equal 'ONE', c.one
-  # 
-  #   c.one = 1           
-  #   assert_equal({:one => 1, :two => 'two', :three => 'three'}, c.config)
-  # 
-  #   v = ValidatingClass.new
-  #   assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, v.config)
-  #   v.one = 'aNothER'             
-  #   assert_equal 'ANOTHER', v.one
-  #   assert_raise(Tap::Support::Validation::ValidationError) { v.two = 2 }
-  # end
+  def test_documentation
+    c = ConfigurableClass.new
+    assert_equal(Tap::Support::InstanceConfiguration, c.config.class)
+    assert_equal({:one => 'one', :two => 'two', :three => 'three'}, c.config)
+  
+    c.config[:one] = 'ONE'
+    assert_equal 'ONE', c.one
+  
+    c.one = 1           
+    assert_equal({:one => 1, :two => 'two', :three => 'three'}, c.config)
+  
+    v = ValidatingClass.new
+    assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, v.config)
+    v.one = 'aNothER'             
+    assert_equal 'ANOTHER', v.one
+    assert_raise(Tap::Support::Validation::ValidationError) { v.two = 2 }
+  end
   
   #
   # include test
@@ -63,14 +64,6 @@ class ConfigurableTest < Test::Unit::TestCase
   
   def test_include_extends_class_with_ConfigurableMethods
     assert Sample.kind_of?(Tap::Support::ConfigurableMethods)
-  end
-  
-  #
-  # class_configurations test
-  #
-  
-  def test_class_configurations_returns_class_configurations
-    assert_equal Sample.configurations, Sample.new.class_configurations
   end
   
   #

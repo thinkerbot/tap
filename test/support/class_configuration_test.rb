@@ -102,19 +102,12 @@ class ClassConfigurationTest < Test::Unit::TestCase
   # add test
   #
   
-  # def test_add_documentation
-  #   c = ClassConfiguration.new Object
-  #   c.add(:a, "1") {|value| value.to_i}
-  #   c.add('b')
-  # 
-  #   assert_equal({:a => 1, :b => nil}, c.default)
-  #   
-  #   c.add(:a, "2")
-  #   c.add(:b, 10) 
-  #   c.add(:b) {|value| value.to_s }
-  # 
-  #   assert_equal({:a => 2, :b => "10"}, c.default)
-  # end
+  def test_add_documentation
+    c = ClassConfiguration.new Object
+    c.add(:a, 'default')
+    c.add('b')
+    assert_equal({:a => 'default', :b => nil}, c.default)
+  end
   
   def test_add_sets_the_config_default
     c.add :config, "default"
@@ -223,64 +216,135 @@ class ClassConfigurationTest < Test::Unit::TestCase
   end
 
   #
-  # config_default test
+  # key? test
   #
   
-  def test_config_default_returns_mapped_default_value
+  def test_key_is_true_if_key_is_a_config_key
     c.add(:key)
-    assert_equal nil, c.config_default(:key)
+    assert c.key?(:key)
+    assert c.key?('key')
+  end
+  
+  def test_key_does_not_symbolize_unless_specified
+    c.add(:key)
+    assert !c.key?('key', false)
+  end
+
+  #
+  # keys test
+  #
+  
+  def test_keys_returns_all_config_keys
+    c.add(:one)
+    c.add(:two)
+    c.add(:three)
+    assert_equal([:one, :two, :three].sort_by {|k| k.to_s }, c.keys.sort_by {|k| k.to_s })
+  end
+
+  #
+  # ordered_keys test
+  #
+  
+  def test_ordered_keys_returns_all_config_keys_in_order
+    c.add(:one)
+    c.add(:two)
+    c.add(:three)
+    assert_equal([:one, :two, :three], c.ordered_keys)
+  end
+  
+  #
+  # setter test
+  #
+  
+  def test_setter_returns_the_setter_method_for_the_mapped_key
+    c.add(:key)
+    assert_equal :key=, c.setter(:key)
+  end
+  
+  def test_setter_raises_error_for_unmapped_keys
+    assert_raise(ArgumentError) { c.setter(:unmapped) }
+  end
+
+  #
+  # default_value test
+  #
+  
+  def test_default_value_returns_mapped_default_value
+    c.add(:key)
+    assert_equal nil, c.default_value(:key)
     
     c.add(:key, 'value')
-    assert_equal 'value', c.config_default(:key)
+    assert_equal 'value', c.default_value(:key)
   end
   
-  def test_config_default_raises_error_for_unmapped_keys
-    assert_raise(ArgumentError) { c.config_default(:key) }
+  def test_default_value_raises_error_if_key_is_not_a_config
+    assert_raise(ArgumentError) { c.default_value(:key) }
   end
   
-  def test_config_default_duplicates_values
+  def test_default_value_duplicates_values
     a = [1,2,3]
     c.add(:array, a)
     
-    assert_equal a, c.config_default(:array)
-    assert_not_equal a.object_id, c.config_default(:array)
+    assert_equal a, c.default_value(:array)
+    assert_not_equal a.object_id, c.default_value(:array)
   end
   
-  def test_config_default_does_not_duplicate_if_specified
+  def test_default_value_does_not_duplicate_if_specified
     a = [1,2,3]
     c.add(:array, a)
     
-    assert_equal a, c.config_default(:array, false)
-    assert_not_equal a.object_id, c.config_default(:array, false)
+    assert_equal a, c.default_value(:array, false)
+    assert_not_equal a.object_id, c.default_value(:array, false)
+  end
+  
+  # 
+  # each_assignment test
+  #
+  
+  def test_each_assignment_yields_each_receiver_key_pair
+    c.add(:one)
+    c.add(:two)
+    another = ClassConfiguration.new Another, c
+    another.add(:three)
+    
+    results = []
+    another.each_assignment {|receiver,key| results << [receiver,key]}
+    
+    assert_equal [[Sample, :one],[Sample, :two],[Another, :three]], results
+  end
+  
+  # 
+  # each_map test
+  #
+  
+  def test_each_map_returns_yields_each_getter_setter_pair
+    c.add(:one)
+    c.add(:two)
+    another = ClassConfiguration.new Another, c
+    another.add(:three)
+    
+    results = []
+    another.each_map {|getter, setter| results << [getter, setter]}
+    
+    assert_equal [[:one, :one=],[:two, :two=],[:three, :three=]], results
   end
   
   #
-  # mapped? test
+  # instance_config test
   #
   
-  def test_mapped_is_true_if_key_is_in_mapped_keys
-    c.add(:key)
-    assert_equal([:key], c.mapped_keys)
-    assert c.mapped?(:key)
-    assert !c.mapped?('key')
+  def test_instance_config_returns_new_instance_config_bound_to_self
+    assert_equal c, c.instance_config.class_config
   end
   
-  #
-  # map_setter test
-  #
-  
-  def test_map_setter_returns_the_setter_method_for_the_mapped_key
-    c.add(:key)
-    assert_equal :key=, c.map_setter(:key)
+  def test_instance_config_is_set_with_duplicate_default_values_for_self
+    c.add(:one, 'one')
+    c.add(:two, ['two'])
+    
+    config = c.instance_config
+    assert_equal({:one => 'one', :two => ['two']}, config)
+    assert_not_equal(c.default[:two].object_id, config[:two].object_id)
   end
-  
-  def test_map_setter_raises_error_for_unmapped_keys
-    assert_raise(ArgumentError) { c.map_setter(:unmapped) }
-  end
-  
-  # TODO
-  # each test
-  #
   
   #
   # format_str tests
