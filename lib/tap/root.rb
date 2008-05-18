@@ -187,7 +187,7 @@ module Tap
     # and no aliased directories or absolute paths are specified.  
     def initialize(root=Dir.pwd, directories={}, absolute_paths={})
       assign_paths(root, directories, absolute_paths)
-      @config = self.class.configurations.instance_config(self, false)
+      @config = self.class.configurations.instance_config(self)
     end
     
     # Sets the root directory. All paths are reassigned accordingly.

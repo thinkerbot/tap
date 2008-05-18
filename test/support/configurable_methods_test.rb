@@ -90,6 +90,9 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   class SampleClass
     extend Tap::Support::ConfigurableMethods
     
+    def initialize
+      @zero = @one = @two = @three = nil
+    end
     config_attr :zero, 'zero' do |value|
       @zero = value.upcase
       nil
@@ -131,7 +134,7 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   
   def test_config_writer_targets_instance_variable
     t = SampleClass.new
-    assert !t.instance_variable_defined?(:@three)
+    assert_nil t.instance_variable_get(:@three)
     t.three = 'three'
     assert_equal 'three', t.instance_variable_get(:@three)
   end

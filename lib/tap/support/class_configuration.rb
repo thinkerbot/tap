@@ -105,13 +105,16 @@ module Tap
       
       # Returns the default config value.  If duplicate is true, then 
       # all duplicable values will be duplicated (so that modifications
-      # to them will not affect the original default value).  Raises
-      # an error if the key is not a config.
+      # to them will not affect the original default value).
       def default_value(key, duplicate=true)
-        raise ArgumentError.new("not a config key") unless key?(key)
-        
         value = default[key]
-        duplicate ? duplicate_value(value) : value
+        
+        value = case value
+        when nil, true, false, Symbol, Numeric then value
+        else value.dup
+        end if duplicate
+        
+        value
       end
       
       # Calls block once for each [receiver, key] pair in self, 
@@ -133,16 +136,10 @@ module Tap
         end
       end
       
-      # Initializes and returns a new InstanceConfiguration 
-      #--
-      # bound to self,
-      # set with the default values for self (duplicated). 
-      def instance_config(receiver=nil, map_defaults=true)
-        config = InstanceConfiguration.new(self, receiver)
-        default.each_pair do |key, value|
-          config[key] = duplicate_value(value)
-        end if map_defaults
-        config
+      # Initializes and returns a new InstanceConfiguration set to self 
+      # and bound to the receiver, if specified.
+      def instance_config(receiver=nil)
+        InstanceConfiguration.new(self, receiver)
       end
       
       # The path to the :doc template (see format_str)
@@ -213,15 +210,6 @@ module Tap
         target
       end
       
-      protected
-      
-      # Duplicates the specified value, if the value is duplicable.
-      def duplicate_value(value) # :nodoc:
-        case value
-        when nil, true, false, Symbol, Numeric then value
-        else value.dup
-        end
-      end
     end
   end
 end

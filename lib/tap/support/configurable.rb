@@ -73,11 +73,22 @@ module Tap
       
       protected
       
+      # Initializes config to an InstanceConfiguration specific for self.
+      # Default config values are assigned or overridden if specified in
+      # overrides. Override keys are symbolized.
       def initialize_config(overrides={})
-        @config = self.class.configurations.instance_config
+        class_config = self.class.configurations
+        @config = class_config.instance_config
+        
         overrides.each_pair do |key, value|
           config[key.to_sym] = value
         end
+        
+        class_config.keys.each do |key|
+          next if config.has_key?(key)
+          config[key] = class_config.default_value(key)
+        end
+
         config.bind(self)
       end
     end

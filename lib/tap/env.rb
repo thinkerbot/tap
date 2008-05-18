@@ -13,11 +13,11 @@ module Tap
         @@instance
       end
       
-      def config(key, value=nil)
+      def config(key, value=nil, &block)
         instance_variable = "@#{key}".to_sym
-        config_attr(key, value) do |value|
+        config_attr(key, value) do |input|
           raise "config modification is disabled when active" if active?
-          instance_variable_set(instance_variable, block_given? ? yield(value) : value)
+          instance_variable_set(instance_variable, block_given? ? block.call(input) : input)
         end
       end
     end
@@ -34,7 +34,7 @@ module Tap
     config :load_paths, ["lib"]
 
     # Specifies automatic loading of modules through Dependencies. 
-    config :use_dependencies, true
+    #config :use_dependencies, true
 
     # Designate paths for discovering and executing commands. 
     config :command_paths, ["cmd"]
@@ -56,28 +56,24 @@ module Tap
 
     # Gets or sets the logger for self
     attr_accessor :logger
+    
+    # Returns a list of arrays that receive load_paths on activate,
+    # by default [$LOAD_PATH]. If use_dependencies == true, then
+    # Dependencies.load_paths will also be included.
+    attr_accessor :load_path_targets
 
     def initialize(logger=nil)
-      @config = self.class.configurations.instance_config
       @logger = logger
       @recursive = false
+      @load_path_targets = [$LOAD_PATH]
+      
+      initialize_config(:load_paths => [], :command_paths => [], :generator_paths => [])
     end
 
     # Logs the action and message at the input level (default INFO).
     # Logging is suppressed if no logger is set.
     def log(action, msg="", level=Logger::INFO)
       logger.add(level, msg, action.to_s) if logger
-    end
-
-    # Returns a list of arrays that receive load_paths on activate,
-    # by default [$LOAD_PATH]. If use_dependencies == true, then
-    # Dependencies.load_paths will also be included.
-    def load_path_targets
-      if use_dependencies 
-        [$LOAD_PATH, Dependencies.load_paths]
-      else 
-        [$LOAD_PATH]
-      end
     end
 
     # Activates self by unshifting load_paths for self to the load_path_targets.
@@ -93,13 +89,15 @@ module Tap
       end
 
       @@instance = self
-      self.config.class_config.default.each_pair do |key, value|
-        value = send(key)
+      
+      # freeze array configs like load_paths
+      config.each_pair do |key, value|
         case value
         when Array then value.freeze
         end
       end
 
+      # add load paths to load_path_targets
       load_path_targets.each do |target|
         load_paths.reverse_each do |path|
           target.unshift(path)
@@ -158,13 +156,15 @@ module Tap
       env_configs = {}
       root_configs = {}
       other_configs = {}
-
+      
+      class_config = self.config.class_config
+      root_class_config = root.class.configurations
       config.each_pair do |key, value|
         key = key.to_sym
 
         partition = case 
-        when self.config.class_config.key?(key) then env_configs
-        when ROOT_CONFIGS.include?(key) then root_configs
+        when class_config.key?(key) then env_configs
+        when root_class_config.key?(key) then root_configs
         else other_configs
         end
 
@@ -172,9 +172,9 @@ module Tap
       end
       
       # fill in default configs
-      self.config.class_config.default.each_pair do |key, value|
+      class_config.keys.each do |key|
         next if env_configs.has_key?(key)
-        env_configs[key] = value
+        env_configs[key] = class_config.default_value(key)
       end
 
       # assign root configs, for resolution of paths later

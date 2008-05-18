@@ -136,7 +136,11 @@ module Tap
         end if bound?
         hash
       end
-
+      
+      # Overrides default inspect to show the to_hash values.
+      def inspect
+        "#<#{self.class}:#{object_id} to_hash=#{to_hash.inspect}>"
+      end
     end
   end
 end

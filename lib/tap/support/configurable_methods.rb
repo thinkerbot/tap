@@ -91,8 +91,8 @@ module Tap
       def config(key, value=nil, &block)
         if block_given?
           instance_variable = "@#{key}".to_sym
-          config_attr(key, value) do |value|
-            instance_variable_set(instance_variable, block.call(value))
+          config_attr(key, value) do |input|
+            instance_variable_set(instance_variable, block.call(input))
           end
         else
           config_attr(key, value)

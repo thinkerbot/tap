@@ -242,13 +242,20 @@ module Tap
       case value
       when OpenStruct then value
       when Hash then OpenStruct.new(value)
+      when nil then OpenStruct.new()
       else raise ArgumentError.new("cannot convert to OpenStruct: #{value.class}")
       end
     end
     
     # A hash of (task_name, task_class_name) pairs mapping names to 
     # classes for instantiating tasks that have a non-default name.
-    config(:map, {})
+    config(:map, {}) do |value|
+      case value
+      when Hash then value
+      when nil then {}
+      else raise ArgumentError.new("cannot convert to Hash: #{value.class}")
+      end
+    end
     
     # The shared logger
     attr_reader :logger
@@ -298,7 +305,7 @@ module Tap
       @aggregator = Support::Aggregator.new
       
       initialize_config(config)
-      @logger = logger
+      self.logger = logger
     end
     
     TAP_DEFAULT_LOGGER = Logger.new(STDOUT)
@@ -309,42 +316,6 @@ module Tap
     def debug?
       options.debug || $DEBUG ? true : false
     end
-     
-    # Reconfigures self with the updated configurations; unspecified configurations are 
-    # not affected.
-    #
-    #   app = Tap::App.new :root => "/root", :directories => {:dir => 'path/to/dir'}
-    #   app.configure(
-    #     :root => "./new/root", 
-    #     :options => {:quiet => true}, 
-    #     'key' => 'value')
-    #
-    #   app.root             # => File.expand_path("./new/root")
-    #   app[:dir]            # => File.expand_path("./new/root/path/to/dir")
-    #   app.options.quiet    # => true
-    #   app.config['key']    # => 'value'
-    #
-    # def configure(update_configs={})
-    #   
-    #   # symbolize inputs
-    #   # update_configs = update_configs.inject({}) do |options, (key, value)|
-    #   #   options[key.to_sym || key] = value
-    #   #   options
-    #   # end
-    #   
-    #   # ensure critical keys are evaluated in the proper order
-    #   keys = config.class_config.ordered_keys
-    #   update_configs.keys.each do |key|
-    #     keys << key unless keys.include?(key)
-    #   end 
-    #   
-    #   keys.each do |key|
-    #     next unless update_configs.has_key?(key)
-    #     config[key] = update_configs[key] 
-    #   end
-    #   
-    #   self
-    # end
     
     # Looks up the specified constant, dynamically loading via Dependencies
     # if necessary.  Returns the const_name if const_name is a Module.

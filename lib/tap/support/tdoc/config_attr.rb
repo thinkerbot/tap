@@ -57,6 +57,11 @@ module Tap
         # Contains the actual declaration for the config attribute. ex:  "c [:key, 'value']      # comment"
         attr_accessor :config_declaration, :default
         
+        def initialize(*args)
+          @comment = nil # suppress a warning in Ruby 1.9
+          super
+        end
+        
         alias original_comment comment
         
         def desc

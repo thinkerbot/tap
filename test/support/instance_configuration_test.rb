@@ -6,6 +6,10 @@ class InstanceConfigurationTest < Test::Unit::TestCase
   
   class Receiver
     attr_accessor :key
+    
+    def initialize
+      @key = nil
+    end
   end
 
   attr_reader :c, :r, :cc
