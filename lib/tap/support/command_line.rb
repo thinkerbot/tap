@@ -110,8 +110,9 @@ module Tap
         nil
       end
     
-      def to_opts
-        collect do |receiver, key|
+      def to_opts(configurations)
+        opts = []
+        configurations.each_assignment do |receiver, key|
           # Note the receiver is used as a placeholder for desc,
           # to be resolved using TDoc.
           attributes = {
@@ -127,8 +128,9 @@ module Tap
           short = attributes[:short].to_s
           attributes[:short] = "-#{short}" unless short.empty? || short =~ /^-/
 
-          [attributes[:long], attributes[:short], attributes[:opt_type], attributes[:desc]]
-        end  
+          opts << [attributes[:long], attributes[:short], attributes[:opt_type], attributes[:desc]]
+        end 
+        opts
       end
       
     end

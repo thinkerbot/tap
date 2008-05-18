@@ -34,7 +34,7 @@ module Tap
       end
 
       # EXPERIMENTAL
-      def help(opts=configurations.to_opts) 
+      def help(opts=Tap::Support::CommandLine.to_opts(configurations)) 
         return "could not find help for '#{self}'" if tdoc == nil
 
         sections = tdoc.comment_sections(/Description|Usage/i, true)
@@ -57,7 +57,7 @@ Options:
         return @argv_enq_block.call(app) if @argv_enq_block ||= nil
 
         config = {}
-        opts = configurations.to_opts
+        opts = Tap::Support::CommandLine.to_opts(configurations)
         opts << ['--help', nil, GetoptLong::NO_ARGUMENT, "Print this help."]
         opts << ['--debug', nil, GetoptLong::NO_ARGUMENT, "Trace execution and debug"]
         opts << ['--use', nil, GetoptLong::REQUIRED_ARGUMENT, "Loads inputs from file."]

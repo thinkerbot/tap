@@ -91,14 +91,14 @@ module Tap
         @stats = RDoc::Stats.new
         @options = Options.instance
         @options.parse(argv, RDoc::RDoc::GENERATORS)
-        @load_paths = Tap::Env.instance.nil? ? $: : Tap::Env.instance.load_path_targets.uniq
+        @load_paths = Tap::Env.instance.nil? ? $: : Tap::Env.instance.load_path_targets.flatten
       end
       
       class << self
         
         def search_for_files(path_suffix)
           # modified from 'activesupport/dependencies'
-          path_suffix = path_suffix + '.rb' unless path_suffix.ends_with? '.rb'
+          path_suffix = path_suffix + '.rb' unless path_suffix =~ /\.rb$/
          
           files = instance.load_paths.collect do |root|
             path = File.join(root, path_suffix)
