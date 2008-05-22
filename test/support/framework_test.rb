@@ -110,7 +110,11 @@ class FrameworkTest < Test::Unit::TestCase
 
   def test_initialize_batch_obj_merges_default_config_and_overrides
     t = Sample.new "configured", :three => 3
-    assert_equal({:one => 'one', :two => 'two', :three => 'three'}, t.class.configurations.default)
+    assert_equal({
+      :one => Tap::Support::Configuration.new(:one, 'one'), 
+      :two => Tap::Support::Configuration.new(:two, 'two'), 
+      :three => Tap::Support::Configuration.new(:three, 'three')
+    }, t.class.configurations.map)
     assert_equal({:one => 'one', :two => 'TWO', :three => 3}, t.config)
 
     t1 = t.initialize_batch_obj

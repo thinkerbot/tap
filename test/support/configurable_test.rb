@@ -2,7 +2,8 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 
 class ConfigurableTest < Test::Unit::TestCase
    acts_as_tap_test
-
+   include Tap::Support
+   
   # sample class repeatedly used in tests
   class Sample
     include Tap::Support::Configurable
@@ -16,7 +17,10 @@ class ConfigurableTest < Test::Unit::TestCase
   end
   
   def test_sample
-    assert_equal({:one => 'one', :two => 'two'}, Sample.configurations.default)
+    assert_equal({
+      :one => Configuration.new(:one, 'one'), 
+      :two => Configuration.new(:two, 'two')
+    }, Sample.configurations.map)
     
     s = Sample.new
     s.one = 'one'
@@ -79,7 +83,10 @@ class ConfigurableTest < Test::Unit::TestCase
     t.config[:one] = 'Alt'
     
     assert_equal({:one => 'ALT', :two => 'two'}, t.config)
-    assert_equal({:one => 'one', :two => 'two'}, Sample.configurations.default)
+    assert_equal({
+      :one => Configuration.new(:one, 'one'), 
+      :two => Configuration.new(:two, 'two')
+    }, Sample.configurations.map)
   end
   
   #

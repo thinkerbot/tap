@@ -117,7 +117,7 @@ module Tap
       return false unless active?
 
       @@instance = nil
-      self.config.class_config.default.each_pair do |key, value|
+      self.config.class_config.each_pair do |key, value|
         value = send(key)
         case value
         when Array then send("#{key}=", value.dup)
@@ -172,9 +172,9 @@ module Tap
       end
       
       # fill in default configs
-      class_config.keys.each do |key|
+      class_config.each_pair do |key, value|
         next if env_configs.has_key?(key)
-        env_configs[key] = class_config.default_value(key)
+        env_configs[key] = value.default
       end
 
       # assign root configs, for resolution of paths later

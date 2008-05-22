@@ -23,71 +23,68 @@ class ClassConfigurationTest < Test::Unit::TestCase
   def test_initialization
     assert_equal Sample, c.receiver
     assert_equal [], c.assignments.to_a
-    assert_equal({}, c.default)
     assert_equal({}, c.map)
   end
   
   def test_initialization_with_a_parent
-    c.add(:config, "default")
+    c.add(:config, :default => "default")
     
     another = ClassConfiguration.new Another, c
     
     assert_equal [[Sample, [:config]]], another.assignments.to_a
-    assert_equal({:config => 'default'}, another.default)
-    assert_equal({:config => :config=}, c.map)
+    assert_equal({:config => Configuration.new(:config, "default")}, c.map)
   end
   
   def test_child_is_decoupled_from_parent
+    c.add(:one, :default => "one")
     another = ClassConfiguration.new Another, c
     
-    c.add(:one, "one")
-    another.add(:two, "two")
+    c[:one].default = "ONE"
+    c.add(:two, :default => "TWO")  
+    another.add(:two, :default => "two")
     
-    assert_equal [[Sample, [:one]]], c.assignments.to_a
-    assert_equal({:one => 'one'}, c.default)
-    assert_equal({:one => :one=}, c.map)
+    assert_equal [[Sample, [:one, :two]]], c.assignments.to_a
+    assert_equal({
+      :one => Configuration.new(:one, "ONE"),
+      :two => Configuration.new(:two, "TWO")
+    }, c.map)
 
-    assert_equal [[Another, [:two]]], another.assignments.to_a
-    assert_equal({:two => 'two'}, another.default)
-    assert_equal({:two => :two=}, another.map)
+    assert_equal [[Sample, [:one]], [Another, [:two]]], another.assignments.to_a
+    assert_equal({
+      :one => Configuration.new(:one, "one"),
+      :two => Configuration.new(:two, "two")
+    }, another.map)
   end
   
   #
   # add test
   #
   
-  def test_add_documentation
-    c = ClassConfiguration.new Object
-    c.add(:a, 'default')
-    c.add('b')
-    assert_equal({:a => 'default', :b => nil}, c.default)
-  end
+  # def test_add_documentation
+  #   c = ClassConfiguration.new Object
+  #   c.add(:a, :default => 'default')
+  #   c.add('b')
+  #   assert_equal({:a => 'default', :b => nil}, c.default)
+  # end
   
-  def test_add_sets_the_config_default
-    c.add :config, "default"
-    assert_equal({:config => 'default'}, c.default)
-  end
-  
-  def test_add_inserts_setter_into_map
-    c.add :config
-    assert_equal({:config => :config=}, c.map)
+  def test_adds_or_updates_the_specified_config_in_map
+    c.add :config, :default => "default"
+    assert_equal({:config => Configuration.new(:config, "default")}, c.map)
+    
+    c[:config].name = 'alt'
+    c.add :config, :default => "alt default"
+    assert_equal({:config => Configuration.new('alt', "alt default", :mandatory, :config, :config=)}, c.map)
   end
   
   def test_add_symbolizes_keys
-    c.add :config, "string default"
-    c.add 'config', "string default"
-    assert_equal({:config => "string default"}, c.default)
+    c.add :config, :default => "symbol default"
+    c.add 'config', :default => "string default"
+    assert_equal({:config => Configuration.new(:config, "string default")}, c.map)
   end
   
   def test_the_default_value_for_a_config_is_nil
     c.add :config
-    assert_equal({:config => nil}, c.default)
-  end
-  
-  def test_add_overrides_current_default
-    c.add :config, "current"
-    c.add :config, "new"
-    assert_equal({:config => "new"}, c.default)
+    assert_equal({:config => Configuration.new(:config, nil)}, c.map)
   end
   
   def test_add_adds_new_configs_to_assignments_keyed_by_receiver
@@ -110,32 +107,27 @@ class ClassConfigurationTest < Test::Unit::TestCase
   # remove test
   #
   
-  def test_remove_removes_a_config
-    c.add(:one, "one")
-    c.add(:two, "two")
+  def test_remove_removes_config_from_map
+    c.add(:one)
+    c.add(:two)
     
-    assert_equal({:one => 'one', :two => "two"}, c.default)
+    assert_equal({
+      :one => Configuration.new(:one),
+      :two => Configuration.new(:two)
+    }, c.map)
 
     c.remove :one
-    assert_equal({:two => "two"}, c.default)
+    assert_equal({:two => Configuration.new(:two)}, c.map)
 
     c.remove :two
-    assert_equal({}, c.default)
+    assert_equal({}, c.map)
   end
   
   def test_remove_symbolizes_keys
-    c.add(:one, "one")
-    assert_equal({:one => 'one'}, c.default)
+    c.add(:one)
+    assert_equal({:one => Configuration.new(:one)}, c.map)
 
     c.remove 'one'
-    assert_equal({}, c.default)
-  end
-  
-  def test_remove_removes_setter_from_map
-    c.add(:one)
-    assert_equal({:one => :one=}, c.map)
-
-    c.remove :one
     assert_equal({}, c.map)
   end
   
@@ -143,16 +135,14 @@ class ClassConfigurationTest < Test::Unit::TestCase
     assert_nothing_raised { c.remove :non_existant }
   end
   
-  def test_does_not_remove_configs_from_assignments_unless_specified
+  def test_remove_removes_keys_from_assignments
     c.add(:one)
     c.add(:two)
-    c.remove(:one)
-    assert_equal [[Sample, [:one, :two]]], c.assignments.to_a
     
-    c.remove(:one, true)
+    c.remove(:one)
     assert_equal [[Sample, [:two]]], c.assignments.to_a
     
-    c.remove(:two, true)
+    c.remove(:two)
     assert_equal [[Sample, []]], c.assignments.to_a
   end
   
@@ -160,12 +150,12 @@ class ClassConfigurationTest < Test::Unit::TestCase
     c.add(:one)
     another = ClassConfiguration.new Another, c
     
-    another.remove(:one, true)
+    another.remove(:one)
     
-    assert_equal({:one => nil}, c.default)
+    assert_equal({:one => Configuration.new(:one)}, c.map)
     assert_equal [[Sample, [:one]]], c.assignments.to_a
     
-    assert_equal({}, another.default)
+    assert_equal({}, another.map)
     assert_equal [[Sample, []]], another.assignments.to_a
   end
 
@@ -176,12 +166,7 @@ class ClassConfigurationTest < Test::Unit::TestCase
   def test_key_is_true_if_key_is_a_config_key
     c.add(:key)
     assert c.key?(:key)
-    assert c.key?('key')
-  end
-  
-  def test_key_does_not_symbolize_unless_specified
-    c.add(:key)
-    assert !c.key?('key', false)
+    assert !c.key?('key')
   end
 
   #
@@ -206,77 +191,36 @@ class ClassConfigurationTest < Test::Unit::TestCase
     assert_equal([:one, :two, :three], c.ordered_keys)
   end
   
-  #
-  # setter test
-  #
-  
-  def test_setter_returns_the_setter_method_for_the_mapped_key
-    c.add(:key)
-    assert_equal :key=, c.setter(:key)
-  end
-  
-  def test_setter_raises_error_for_unmapped_keys
-    assert_raise(ArgumentError) { c.setter(:unmapped) }
-  end
-
-  #
-  # default_value test
-  #
-  
-  def test_default_value_returns_mapped_default_value
-    c.add(:key)
-    assert_equal nil, c.default_value(:key)
-    
-    c.add(:key, 'value')
-    assert_equal 'value', c.default_value(:key)
-  end
-  
-  def test_default_value_duplicates_values
-    a = [1,2,3]
-    c.add(:array, a)
-    
-    assert_equal a, c.default_value(:array)
-    assert_not_equal a.object_id, c.default_value(:array)
-  end
-  
-  def test_default_value_does_not_duplicate_if_specified
-    a = [1,2,3]
-    c.add(:array, a)
-    
-    assert_equal a, c.default_value(:array, false)
-    assert_not_equal a.object_id, c.default_value(:array, false)
-  end
-  
   # 
-  # each_assignment test
+  # each test
   #
   
-  def test_each_assignment_yields_each_receiver_key_pair
+  def test_each_yields_each_receiver_key_config
     c.add(:one)
     c.add(:two)
     another = ClassConfiguration.new Another, c
     another.add(:three)
     
     results = []
-    another.each_assignment {|receiver,key| results << [receiver,key]}
+    another.each {|receiver, key, config| results << [receiver, key, config]}
     
-    assert_equal [[Sample, :one],[Sample, :two],[Another, :three]], results
+    assert_equal [[Sample, :one, Configuration.new(:one)],[Sample, :two, Configuration.new(:two)],[Another, :three, Configuration.new(:three)]], results
   end
   
   # 
-  # each_map test
+  # each_pair test
   #
   
-  def test_each_map_returns_yields_each_getter_setter_pair
+  def test_each_pair_returns_yields_each_key_config_pair
     c.add(:one)
     c.add(:two)
     another = ClassConfiguration.new Another, c
     another.add(:three)
     
     results = []
-    another.each_map {|getter, setter| results << [getter, setter]}
+    another.each_pair {|key, config| results << [key, config]}
     
-    assert_equal [[:one, :one=],[:two, :two=],[:three, :three=]], results
+    assert_equal [[:one, Configuration.new(:one)],[:two, Configuration.new(:two)],[:three, Configuration.new(:three)]], results
   end
   
   #

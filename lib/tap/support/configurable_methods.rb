@@ -125,7 +125,7 @@ module Tap
       # details.
       #
       def config_attr(key, value=nil, reader=true, writer=true, &block)
-        configurations.add(key, value)
+        configurations.add(key, :default => value)
         
         attr_reader(key) if reader
         case

@@ -52,8 +52,8 @@ module Tap
       def bind(receiver)
         raise ArgumentError.new("receiver cannot be nil") if receiver == nil
         
-        class_config.each_map do |key, setter|
-          receiver.send(setter, store.delete(key))
+        class_config.each_pair do |key, config|
+          receiver.send(config.setter, store.delete(key))
         end
         @receiver = receiver
         
@@ -68,8 +68,8 @@ module Tap
       # Unbinds self from the specified receiver.  Mapped values
       # are stored in store.  Returns the unbound receiver.
       def unbind
-        class_config.keys.each do |key|
-          store[key] = receiver.send(key)
+        class_config.each_pair do |key, config|
+          store[key] = receiver.send(config.getter)
         end
         r = receiver
         @receiver = nil
@@ -90,8 +90,8 @@ module Tap
       # to the class_config.setter method on the receiver.
       def []=(key, value)
         case 
-        when bound? && class_config.key?(key, false)
-          receiver.send(class_config.setter(key), value)
+        when bound? && config = class_config.map[key.to_sym]
+          receiver.send(config.setter, value)
         else store[key] = value
         end
       end
@@ -101,21 +101,21 @@ module Tap
       # obtained from the :key method on the receiver.
       def [](key)
         case 
-        when bound? && class_config.key?(key, false)
-          receiver.send(key)
+        when bound? && config = class_config.map[key.to_sym]
+          receiver.send(config.getter)
         else store[key]
         end
       end
       
       # True if the key is assigned in self.
       def has_key?(key)
-        (bound? && class_config.key?(key, false)) || store.has_key?(key) 
+        (bound? && class_config.key?(key)) || store.has_key?(key) 
       end
       
       # Calls block once for each key-value pair stored in self.
       def each_pair # :yields: key, value
-        class_config.keys.each do |key|
-          yield(key, receiver.send(key))
+        class_config.each_pair do |key, config|
+          yield(key, receiver.send(config.getter))
         end if bound?
         
         store.each_pair do |key, value|

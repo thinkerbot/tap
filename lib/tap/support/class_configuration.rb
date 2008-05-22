@@ -1,5 +1,6 @@
 require 'tap/support/assignments'
 require 'tap/support/instance_configuration'
+require 'tap/support/configuration'
 
 module Tap
   module Support
@@ -21,10 +22,7 @@ module Tap
       
       # The class receiving the configurations
       attr_reader :receiver
-      
-      # A hash of the default values
-      attr_reader :default
-      
+
       # Tracks the assignment of the config keys to receivers
       attr_reader :assignments
       
@@ -40,16 +38,17 @@ module Tap
         @receiver = receiver
         
         if parent != nil
-          @default = parent.default.dup
-          @map = parent.map.dup
+          @map = parent.map.inject({}) do |hash, (key, config)|
+            hash[key] = config.dup
+            hash
+          end
           @assignments = Assignments.new(parent.assignments)
         else
-          @default = {}
           @map = {}
           @assignments = Assignments.new
         end
       end
-      
+
       # Adds or overrides a configuration. If a configuration is added without 
       # specifying a value and no previous default value exists, then nil is 
       # used as the value.  Configuration keys are symbolized.
@@ -59,32 +58,36 @@ module Tap
       #   c.add('b')
       #   c.default     # => {:a => 'default', :b => nil}
       #
-      def add(key, value=NO_VALUE)
-        key = key.to_sym
-        
-        assignments.assign(receiver, key) unless assignments.assigned?(key)
-        map[key] = "#{key}=".to_sym
-        default[key] = (value == NO_VALUE ? default[key] : value)
-
+      def add(key, properties={})
+        (self[key] ||= Configuration.new(key)).update(properties)
         self
       end
       
-      # Removes the specified configuration.  The key will not
-      # be unassigned from it's existing receiver unless specified.
-      def remove(key, unassign=false)
-        key = key.to_sym
-        
-        default.delete(key)
-        map.delete(key)
-        assignments.unassign(key) if unassign
-
+      # Removes the specified configuration.
+      def remove(key)
+        self[key] = nil
         self
       end
       
-      # Returns true if key is a config key.  The key will be 
-      # symbolized if specified.
-      def key?(key, symbolize=true)
-        symbolize ? map.has_key?(key.to_sym) : map.has_key?(key)
+      def [](key)
+        map[key.to_sym]  
+      end
+      
+      def []=(key, config)
+        key = key.to_sym
+        
+        if config == nil
+          map.delete(key)
+          assignments.unassign(key)
+        else
+          assignments.assign(receiver, key) unless assignments.assigned?(key)
+          map[key] = config
+        end
+      end
+      
+      # Returns true if key is a config key.
+      def key?(key)
+        map.has_key?(key)
       end
       
       # Returns all config keys.
@@ -94,47 +97,47 @@ module Tap
       
       # Returns config keys in order.
       def ordered_keys
-        assignments.values.select {|key| map.has_key?(key) }
+        assignments.values
+      end
+
+      def values 
+        map.values
       end
       
-      # Returns the setter method for the specified key.
-      # Raises an error if the key is not a config.
-      def setter(key)
-        map[key] or raise(ArgumentError.new("not a config key"))
-      end
-      
-      # Returns the default config value.  If duplicate is true, then 
-      # all duplicable values will be duplicated (so that modifications
-      # to them will not affect the original default value).
-      def default_value(key, duplicate=true)
-        value = default[key]
-        
-        value = case value
-        when nil, true, false, Symbol, Numeric then value
-        else value.dup
-        end if duplicate
-        
-        value
-      end
-      
-      # Calls block once for each [receiver, key] pair in self, 
+      # Calls block once for each [receiver, key, config] in self, 
       # passing those elements as parameters, in the order in
-      # which they were assigned.
-      def each_assignment
+      # which they were assigned.  
+      def each
         assignments.each do |receiver, key|
-          yield(receiver, key)
+          yield(receiver, key, map[key])
         end
       end
       
-      # Calls block once for each [getter, setter] pair in self, 
+      # Calls block once for each [key, config] pair in self, 
       # passing those elements as parameters, in the order in
       # which they were assigned.
-      def each_map
+      def each_pair
         assignments.each do |receiver, key|
-          setter = map[key]
-          yield(key, setter) if setter
+          config = map[key]
+          yield(key, config) if config
         end
       end
+      
+      # def freeze_configs
+      #   @map.each_pair do |key, config|
+      #     config.freeze
+      #   end
+      #   @map.freeze
+      #   @assignments.freeze
+      # end
+      # 
+      # def unfreeze_configs
+      #   @map = map.inject({}) do |hash, (key, config)|
+      #     hash[key] = config.dup
+      #     hash
+      #   end 
+      #   @assignments = @assignments.dup
+      # end
       
       # Initializes and returns a new InstanceConfiguration set to self 
       # and bound to the receiver, if specified.
@@ -162,13 +165,12 @@ module Tap
       #
       # receiver:: The receiver
       # class_doc:: The TDoc for the receiver, from Tap::Support::TDoc[receiver]
-      # configurations:: An array of attributes for each configuration.  The attributes
-      #                  are: [name, default, comment]
+      # configurations:: An array of configurations and associated comments
       # 
       # In the template these can be accessed as any ERB locals, for example:
       #
       #   <%= receiver.to_s %>
-      #   <% configurations.each do |name, default, comment| %>
+      #   <% configurations.each do |key, config, comment| %>
       #   ...
       #   <% end %>
       #
@@ -183,9 +185,6 @@ module Tap
         
         templater = Templater.new(template)  
         assignments.each_pair do |receiver, keys|
-          
-          # do not consider keys that have been removed
-          keys = keys.delete_if {|key| !self.default.has_key?(key) }
           next if keys.empty?
           
           # set the template attributes
@@ -201,7 +200,7 @@ module Tap
               Tap::Support::TDoc::ConfigAttr.new("", name, nil, "")
             end
             
-            [name, default[key], config_attr.comment(false)]
+            [key, map[key], config_attr.comment(false)]
           end
           
           target << templater.build

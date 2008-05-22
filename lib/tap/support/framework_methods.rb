@@ -6,17 +6,28 @@ module Tap
     # FrameworkMethods encapsulates class methods related to Framework.
     module FrameworkMethods
       
+      # ConfigurableMethods initializes base.configurations on extend.
+      def self.extended(base)
+        base.instance_variable_set(:@source_files, [])
+        base.instance_variable_set(:@options, [])
+      end
+      
       # When subclassed, the configurations are duplicated and passed to 
       # the child class where they can be extended/modified without affecting
       # the configurations of the parent class.
       def inherited(child)
         super
         child.instance_variable_set(:@source_files, source_files.dup)
+        child.instance_variable_set(:@options, options.dup)
+        # options.collect {|opt| opt.dup}
+        # maybe avoid this by freezing the standard options?
       end
 
       # EXPERIMENTAL
       attr_reader :source_files # :nodoc:
-
+      
+      attr_reader :options
+      
       # EXPERIMENTAL
       # Identifies source files for TDoc documentation.
       def source_file(arg) # :nodoc:
@@ -47,7 +58,14 @@ Options:
 
 }
       end
-
+      
+      def parse_argv(argv)
+        # => name, config, remaining argv
+      end
+      
+      def opt
+      end
+      
       # EXPERIMENTAL
       def argv_enq(app=App.instance, &block) 
         if block_given?

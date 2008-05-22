@@ -84,9 +84,9 @@ module Tap
           config[key.to_sym] = value
         end
         
-        class_config.keys.each do |key|
+        class_config.each_pair do |key, value|
           next if config.has_key?(key)
-          config[key] = class_config.default_value(key)
+          config[key] = value.default
         end
 
         config.bind(self)

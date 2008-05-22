@@ -10,7 +10,6 @@ module Tap
       include Configurable
     
       def self.included(mod)
-        mod.instance_variable_set(:@source_files, [])
         mod.extend Support::BatchableMethods
         mod.extend Support::ConfigurableMethods
         mod.extend Support::FrameworkMethods
