@@ -75,36 +75,57 @@ Options:
         return @argv_enq_block.call(app) if @argv_enq_block ||= nil
 
         config = {}
-        opts = Tap::Support::CommandLine.to_opts(configurations)
-        opts << ['--help', nil, GetoptLong::NO_ARGUMENT, "Print this help."]
-        opts << ['--debug', nil, GetoptLong::NO_ARGUMENT, "Trace execution and debug"]
-        opts << ['--use', nil, GetoptLong::REQUIRED_ARGUMENT, "Loads inputs from file."]
-        opts << ['--iterate', nil, GetoptLong::NO_ARGUMENT, "Iterates over inputs."]
-
         iterate = false
-        Tap::Support::CommandLine.handle_options(*opts) do |opt, value|
-          case opt
-          when '--help'
-            puts help(opts)
+        OptionParser.new do |opts|
+
+          #
+          # Add configurations
+          #
+
+          unless configurations.empty?
+            opts.separator ""
+            opts.separator "Configurations:"
+          end
+          
+          configurations.each_pair do |key, configuration|
+            opts.on(*configuration.to_option_parser_argv) do |value|
+              config[key] = YAML.load(value)
+            end
+          end
+        
+          #
+          # Add options on_tail, giving priority to configurations
+          #
+        
+          opts.separator ""
+          opts.separator "Options:"
+          
+          opts.on_tail("-h", "--help", "Print this help") do
+            puts Tap::Support::CommandLine.usage(__FILE__, "Usage", "Description", :keep_headers => false)
+            puts
+            puts opts
+
             exit
+          end
 
-          when '--debug'
-            app.options.debug = true
+          opts.on_tail('-d', '--debug', 'Trace execution and debug') do |v|
+            app.options.debug = v
+          end
 
-          when '--use'
+          opts.on_tail('--use FILE', 'Loads inputs from file') do |v|
             hash = YAML.load_file(value)
             hash.values.each do |args| 
               ARGV.concat(args)
             end
-
-          when '--iterate'
-            iterate = true
-
-          else
-            key = configurations.opt_map(opt)
-            config[key] = YAML.load(value)
           end
-        end
+
+          opts.on_tail('--iterate', 'Iteratively enques inputs') do |v|
+            iterate = true
+          end
+        end.parse!(ARGV)
+
+        iterate = false
+
 
         # instantiate and configure task
         ARGV.collect! {|str| Tap::Support::CommandLine.parse_yaml(str) }

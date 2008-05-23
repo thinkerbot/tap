@@ -6,7 +6,7 @@ require 'ostruct'
 require 'thread'
 require 'erb'
 
-autoload(:GetoptLong, 'getoptlong')
+autoload(:OptionParser, 'optparse')
 autoload(:PP, "pp")
 
 # Apply version-specific patches

@@ -90,6 +90,10 @@ module Tap
         map.values
       end
       
+      def empty?
+        map.empty?
+      end
+      
       # Calls block once for each [receiver, key, config] in self, 
       # passing those elements as parameters, in the order in
       # which they were assigned.  

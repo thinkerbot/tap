@@ -47,6 +47,7 @@ module Tap
       attr_accessor :properties
       attr_reader :duplicable
       
+      # properties should be NIL!
       def initialize(name, default=nil, properties={})
         @name = name
         @properties = properties
@@ -71,31 +72,35 @@ module Tap
         duplicate && duplicable ? @default.dup : @default
       end
       
-      def to_getopt_long_argv
-        argv = []
-        argv << Option.longify(properties[:long] || name)
-        argv << Option.shortify(properties[:short] || name[0,1])
-        
-        argv << case properties[:arg]
-        when :optional 
-          GetoptLong::OPTIONAL_ARGUMENT
-        when :flag
-          GetoptLong::NO_ARGUMENT
-        else # assume mandatory
-          GetoptLong::REQUIRED_ARGUMENT
-        end
-        
-        argv
+      # def to_getopt_long_argv
+      #   argv = []
+      #   argv << Option.longify(properties[:long] || name)
+      #   argv << Option.shortify(properties[:short] || name[0,1])
+      #   
+      #   argv << case properties[:arg]
+      #   when :optional 
+      #     GetoptLong::OPTIONAL_ARGUMENT
+      #   when :flag
+      #     GetoptLong::NO_ARGUMENT
+      #   else # assume mandatory
+      #     GetoptLong::REQUIRED_ARGUMENT
+      #   end
+      #   
+      #   argv
+      # end
+      
+      def property(name)
+        properties ? properties[name] : nil
       end
         
       def to_option_parser_argv
         argv = []
-        argv << Option.shortify(properties[:short] || name[0,1])
-        long = Option.longify(properties[:long] || name)
+        argv << Option.shortify(property(:short) || name.to_s[0,1])
+        long = Option.longify(property(:long) || name)
 
-        argv << case properties[:arg]
+        argv << case property(:arg)
         when :optional 
-          "#{long} [#{properties[:arg_name] || name.upcase}]"
+          "#{long} [#{property(:arg_name) || name.to_s.upcase}]"
         when :switch 
           Option.longify(long, true)
         when :flag
@@ -103,7 +108,7 @@ module Tap
         when :list 
           "#{long} x,y,z"
         else # assume mandatory
-          "#{long} #{properties[:arg_name] || name.upcase}"
+          "#{long} #{property(:arg_name) || name.to_s.upcase}"
         end
         
         argv  

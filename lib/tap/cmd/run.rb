@@ -2,8 +2,8 @@
 # tap run {options} -- {task options} task INPUTS...
 #
 # examples:
-#   tap run --help                 Prints this help
-#   tap run -- task --help         Prints help for task
+#   tap run --help                     Prints this help
+#   tap run -- task --help             Prints help for task
 #
 
 env = Tap::Env.instance
@@ -12,33 +12,41 @@ app = Tap::App.instance
 #
 # handle options
 #
-
-opts = [
-  ['--help', '-h', GetoptLong::NO_ARGUMENT, "Print this help"],
-  ['--debug', '-d', GetoptLong::NO_ARGUMENT, "Trace execution and debug"],
-  ['--force', '-f', GetoptLong::NO_ARGUMENT, "Force execution at checkpoints"],
-  ['--dump', nil, GetoptLong::NO_ARGUMENT, "Specifies a default dump task"],
-  # TODO -- add rake/no-rake
-  ['--quiet', '-q', GetoptLong::NO_ARGUMENT, "Suppress logging"]]
-
 dump = false
 rake = nil
-Tap::Support::CommandLine.handle_options(*opts) do |opt, value| 
-  case opt
-  when '--help'
-    puts Tap::Support::CommandLine.command_help(__FILE__, opts)
+OptionParser.new do |opts|
+  
+  opts.separator ""
+  opts.separator "Options:"
+
+  opts.on("-h", "--help", "Show this message") do
+    puts Tap::Support::CommandLine.usage(__FILE__, "Usage", "Description", :keep_headers => false)
+    puts
+    puts opts
     exit
-  
-  when '--dump'
-    dump = true
-    
-  when '--quiet', '--force', '--debug'
-    # simply track these have been set
-    opt =~ /^-+(\w+)/
-    app.options.send("#{$1}=", true)
-  
   end
-end
+  
+  opts.on('-d', '--debug', 'Trace execution and debug') do |v|
+    app.options.debug = v
+  end
+
+  opts.on('--force', 'Force execution at checkpoints') do |v|
+    app.options.force = v
+  end
+  
+  opts.on('--dump', 'Specifies a default dump task') do |v|
+    dump = v
+  end
+  
+  opts.on('--[no-]rake', 'Enables or disables rake task handling') do |v|
+    rake = v
+  end
+  
+  opts.on('--quiet', 'Suppress logging') do |v|
+    app.options.quiet = v
+  end
+  
+end.parse!(ARGV)
 
 #
 # handle options for each specified task
