@@ -16,7 +16,7 @@ class ConfigurationTest < Test::Unit::TestCase
     c = Configuration.new('name')
     assert_equal 'name', c.name
     assert_equal nil, c.default
-    assert_equal :mandatory, c.arg
+    assert_equal({}, c.properties)
     assert_equal :name, c.getter
     assert_equal :name=, c.setter
   end
@@ -56,16 +56,16 @@ class ConfigurationTest < Test::Unit::TestCase
     another = Configuration.new('name', 2)
     assert config != another
     
-    config = Configuration.new('name', 1, :mandatory)
-    another = Configuration.new('name', 1, :optional)
+    config = Configuration.new('name', 1, :arg => :mandatory)
+    another = Configuration.new('name', 1, :arg => :optional)
     assert config != another
     
-    config = Configuration.new('name', 1, :mandatory, :getter)
-    another = Configuration.new('name', 1, :optional, :alt)
+    config = Configuration.new('name', 1, {}, :getter)
+    another = Configuration.new('name', 1, {}, :alt)
     assert config != another
     
-    config = Configuration.new('name', 1, :mandatory, :getter, :setter=)
-    another = Configuration.new('name', 1, :optional, :getter, :alt=)
+    config = Configuration.new('name', 1, {}, :getter, :setter=)
+    another = Configuration.new('name', 1, {}, :getter, :alt=)
     assert config != another
   end
 end

@@ -7,20 +7,14 @@ module Tap
     autoload(:Templater, 'tap/support/templater')
 
     # ClassConfiguration tracks and handles the class configurations defined in a Tap::Task
-    # (or more generally any class that includes with Tap::Support::Configurable).  Each
-    # configuration consists of a name, which maps configurations to instance methods, and
-    # a default value used to initialize instance configurations.  
+    # (or more generally any class that includes with Tap::Support::Configurable).
     #
-    # Some metadata is also stored, including the order in which the configurations are 
-    # declared.  The metadata allows the creation of more user-friendly configuration files 
-    # and facilitates incorporation into command-line applications.
-    #
-    # See Tap::Support::Configurable for examples of usage.
+    # See Tap::Support::Configurable for more details.
     # 
     class ClassConfiguration
       include Enumerable
       
-      # The class receiving the configurations
+      # The class receiving new configurations
       attr_reader :receiver
 
       # Tracks the assignment of the config keys to receivers
@@ -30,10 +24,6 @@ module Tap
       # config (ie the getter and setter for a config)
       attr_reader :map
 
-      # A placeholder to indicate when no value 
-      # was specified during a call to add. 
-      NO_VALUE = Object.new
-    
       def initialize(receiver, parent=nil)
         @receiver = receiver
         
@@ -49,36 +39,31 @@ module Tap
         end
       end
 
-      # Adds or overrides a configuration. If a configuration is added without 
-      # specifying a value and no previous default value exists, then nil is 
-      # used as the value.  Configuration keys are symbolized.
-      #
-      #   c = ClassConfiguration.new Object
-      #   c.add(:a, 'default')
-      #   c.add('b')
-      #   c.default     # => {:a => 'default', :b => nil}
-      #
-      def add(key, properties={})
-        (self[key] ||= Configuration.new(key)).update(properties)
-        self
+      # Initializes a Configuration using the inputs and sets it in self
+      # using name as a key, overriding the current config by that name,
+      # if it exists.  Returns the new config.
+      def add(name, default=nil, properties={})
+        self[name] = Configuration.new(name.to_sym, default, properties)
       end
       
       # Removes the specified configuration.
       def remove(key)
         self[key] = nil
-        self
       end
       
+      # Gets the configuration specified by key.  The key is symbolized.
       def [](key)
         map[key.to_sym]  
       end
       
+      # Assigns the configuration to key.  A nil config unassigns the
+      # configuration key.  The key is symbolized.
       def []=(key, config)
         key = key.to_sym
         
         if config == nil
-          map.delete(key)
           assignments.unassign(key)
+          map.delete(key)
         else
           assignments.assign(receiver, key) unless assignments.assigned?(key)
           map[key] = config
@@ -99,7 +84,8 @@ module Tap
       def ordered_keys
         assignments.values
       end
-
+      
+      # Returns all mapped configs.
       def values 
         map.values
       end
@@ -118,26 +104,9 @@ module Tap
       # which they were assigned.
       def each_pair
         assignments.each do |receiver, key|
-          config = map[key]
-          yield(key, config) if config
+          yield(key, map[key])
         end
       end
-      
-      # def freeze_configs
-      #   @map.each_pair do |key, config|
-      #     config.freeze
-      #   end
-      #   @map.freeze
-      #   @assignments.freeze
-      # end
-      # 
-      # def unfreeze_configs
-      #   @map = map.inject({}) do |hash, (key, config)|
-      #     hash[key] = config.dup
-      #     hash
-      #   end 
-      #   @assignments = @assignments.dup
-      # end
       
       # Initializes and returns a new InstanceConfiguration set to self 
       # and bound to the receiver, if specified.

@@ -2,7 +2,7 @@ module Tap
   module Support
     
     # InstanceConfiguration serves as a forwarding hash, where get and set operations
-    # for config keys are send to instance methods rather than to an underlying data 
+    # for configurations are sent to instance methods rather than to an underlying data 
     # store.  
     #
     #   class Sample
@@ -22,12 +22,14 @@ module Tap
     #   config[:key] = 'another'
     #   sample.key                  # => 'another'
     #
-    # Non-config keys are simply stored in InstanceConfiguration, as if it were a hash.
+    # Non-config keys are simply stored as in a Hash:
     #
     #   config[:not_a_key] = 'value'
     #   config[:not_a_key]          # => 'value'
     #
     #   config.to_hash              # => {:key => 'another', :not_a_key => 'value'}
+    #
+    # See Tap::Support::Configurable for more details.
     #
     class InstanceConfiguration
       

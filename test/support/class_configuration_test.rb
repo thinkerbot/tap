@@ -27,7 +27,7 @@ class ClassConfigurationTest < Test::Unit::TestCase
   end
   
   def test_initialization_with_a_parent
-    c.add(:config, :default => "default")
+    c.add(:config, "default")
     
     another = ClassConfiguration.new Another, c
     
@@ -36,12 +36,12 @@ class ClassConfigurationTest < Test::Unit::TestCase
   end
   
   def test_child_is_decoupled_from_parent
-    c.add(:one, :default => "one")
+    c.add(:one, "one")
     another = ClassConfiguration.new Another, c
     
     c[:one].default = "ONE"
-    c.add(:two, :default => "TWO")  
-    another.add(:two, :default => "two")
+    c.add(:two, "TWO")  
+    another.add(:two, "two")
     
     assert_equal [[Sample, [:one, :two]]], c.assignments.to_a
     assert_equal({
@@ -56,29 +56,31 @@ class ClassConfigurationTest < Test::Unit::TestCase
     }, another.map)
   end
   
+  
   #
   # add test
   #
   
-  # def test_add_documentation
-  #   c = ClassConfiguration.new Object
-  #   c.add(:a, :default => 'default')
-  #   c.add('b')
-  #   assert_equal({:a => 'default', :b => nil}, c.default)
-  # end
-  
-  def test_adds_or_updates_the_specified_config_in_map
-    c.add :config, :default => "default"
+  def test_add_initializes_a_config_and_sets_the_config_by_key
+    c.add :config, "default"
     assert_equal({:config => Configuration.new(:config, "default")}, c.map)
+  end
+  
+  def test_add_returns_the_new_config
+    assert_equal Configuration.new(:config, "default"), c.add(:config, "default")
+  end
+  
+  def test_add_overrides_an_existing_config_in_map
+    c.add :config
+    previous = c[:config]
     
-    c[:config].name = 'alt'
-    c.add :config, :default => "alt default"
-    assert_equal({:config => Configuration.new('alt', "alt default", :mandatory, :config, :config=)}, c.map)
+    c.add :config
+    assert_not_equal previous.object_id, c[:config].object_id
   end
   
   def test_add_symbolizes_keys
-    c.add :config, :default => "symbol default"
-    c.add 'config', :default => "string default"
+    c.add :config, "symbol default"
+    c.add 'config', "string default"
     assert_equal({:config => Configuration.new(:config, "string default")}, c.map)
   end
   

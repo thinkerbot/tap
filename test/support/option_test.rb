@@ -9,6 +9,78 @@ class OptionTest < Test::Unit::TestCase
   end
   
   #
+  # Option.shortify test
+  #
+  
+  def test_shortify_documentation
+    assert_equal "-o", Option.shortify("-o")
+    assert_equal "-o", Option.shortify(:o)
+  end
+  
+  def test_shortify_formats_str_as_short_option
+    assert_equal "-o", Option.shortify("-o")
+    assert_equal "-O", Option.shortify("-O")
+    
+    assert_equal "-o", Option.shortify("o")
+    assert_equal "-O", Option.shortify("O")
+  end
+  
+  def test_shortify_stringifies_input
+    assert_equal "-o", Option.shortify('-o'.to_sym)
+    assert_equal "-o", Option.shortify(:o)
+  end
+  
+  def test_shortify_raises_error_for_shorts_that_dont_match_SHORT_REGEXP
+    assert_raise(RuntimeError) { Option.shortify("-1") }
+    assert_raise(RuntimeError) { Option.shortify("1") }
+    assert_raise(RuntimeError) { Option.shortify("bogus") }
+    assert_raise(RuntimeError) { Option.shortify("#") }
+    assert_raise(RuntimeError) { Option.shortify("-") }
+    assert_raise(RuntimeError) { Option.shortify("") }
+  end
+  
+  #
+  # Option.longify test
+  #
+  
+  def test_longify_documentation
+    assert_equal "--opt", Option.longify("--opt")
+    assert_equal "--opt", Option.longify(:opt)
+    assert_equal "--[no-]opt", Option.longify(:opt, true)
+    assert_equal "--opt-ion", Option.longify(:opt_ion)
+    assert_equal "--opt_ion", Option.longify(:opt_ion, false, false)
+  end
+  
+  def test_longify_formats_str_as_long_option
+    assert_equal "--opt", Option.longify("--opt")
+    assert_equal "--opt", Option.longify("opt")
+  end
+  
+  def test_longify_stringifies_input
+    assert_equal "--opt", Option.longify('--opt'.to_sym)
+    assert_equal "--opt", Option.longify(:opt)
+  end
+  
+  def test_longify_with_switch_format_adds_no_string_if_necessary
+    assert_equal "--[no-]opt", Option.longify('opt', true)
+    assert_equal "--[no-]opt", Option.longify('[no-]opt', true)
+    assert_equal "--[no-]opt", Option.longify('--[no-]opt', true)
+  end
+  
+  def test_longify_with_hyphenize_gsubs_underscore_for_hyphen
+    assert_equal "--opt-ion", Option.longify('opt_ion', false, true)
+  end
+  
+  def test_longify_raises_error_for_shorts_that_dont_match_LONG_REGEXP
+    assert_raise(RuntimeError) { Option.longify("-0") }
+    assert_raise(RuntimeError) { Option.longify("--0") }
+    assert_raise(RuntimeError) { Option.longify("--[blah-]option") }
+    assert_raise(RuntimeError) { Option.longify("--@!") }
+    assert_raise(RuntimeError) { Option.longify("_option", false, true) }
+    assert_raise(RuntimeError) { Option.longify("") }
+  end
+  
+  #
   # initialize test
   #
   
@@ -16,12 +88,12 @@ class OptionTest < Test::Unit::TestCase
     o = Option.new('name')
     assert_equal 'name', o.name
     assert_nil o.default
-    assert_equal :mandatory, o.arg
+    assert_equal({}, o.properties)
     
-    o = Option.new('name', 'default', :optional)
+    o = Option.new('name', 'default', :arg => :optional)
     assert_equal 'name', o.name
     assert_equal 'default', o.default
-    assert_equal :optional, o.arg
+    assert_equal({:arg => :optional}, o.properties)
   end
   
   #
@@ -92,6 +164,10 @@ class OptionTest < Test::Unit::TestCase
     assert_equal a, o.default(false)
     assert_equal a.object_id, o.default(false).object_id
   end
+  
+  #
+  # to_option_parser_argv test
+  #
   
   #
   # == test
