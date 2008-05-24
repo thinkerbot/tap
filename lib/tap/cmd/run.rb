@@ -81,15 +81,18 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
 
       # unless a Tap::Task was found, treat the
       # args as a specification for Rake.
-      if task_class == nil || !task_class.respond_to?(:argv_enq)
+      if task_class == nil || !task_class.kind_of?(Tap::Support::FrameworkMethods)
         env.log(:warn, "implicit rake: #{td}#{ARGV.empty? ? '' : ' ...'}", Logger::DEBUG)
         args.unshift('rake')
         redo
       end
     
       # now let the class handle the argv
-      ARGV.unshift(td)
-      task_class.argv_enq(app)
+      name, config, argv = task_class.parse_argv(ARGV)
+      name = td if name == nil
+      
+      task = task_class.new(name, config, app)
+      task.enq *argv.collect {|str| Tap::Support::CommandLine.parse_yaml(str) }
     end
   end
 

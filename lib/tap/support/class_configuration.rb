@@ -42,7 +42,7 @@ module Tap
       # Initializes a Configuration using the inputs and sets it in self
       # using name as a key, overriding the current config by that name,
       # if it exists.  Returns the new config.
-      def add(name, default=nil, properties={})
+      def add(name, default=nil, properties=nil)
         self[name] = Configuration.new(name.to_sym, default, properties)
       end
       

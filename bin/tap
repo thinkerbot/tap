@@ -128,7 +128,6 @@ begin
   end
 rescue
   env.handle_error($!)
-  puts "Type 'tap #{command} --help' for usage information."
 end
 
 exit(0)
