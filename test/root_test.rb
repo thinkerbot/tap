@@ -126,6 +126,31 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
+  # Tap::Root sglob test
+  #
+  
+  def test_sglob_returns_all_paths_matching_the_suffix_pattern
+    base_one = File.join(root_dir, 'sglob/base_one')
+    base_two = File.join(root_dir, 'sglob/base_two')
+    
+    one = File.join(base_one, 'one.txt')
+    two = File.join(base_one, 'two.txt')
+    _one = File.join(base_two, 'one.txt')
+    _dir = File.join(base_two, 'dir')
+    _two = File.join(base_two, 'dir/two.txt')
+    
+    [one, two, _one, _dir, _two].each {|path| assert File.exists?(path) }
+    
+    assert_equal [one, two, _dir, _one].sort, Tap::Root.sglob("*", base_one, base_two).sort
+    assert_equal [_dir, _one, _two].sort, Tap::Root.sglob("**/*", base_two).sort
+    assert_equal [one, _one].sort, Tap::Root.sglob("*one*", base_one, base_two).sort
+  end
+  
+  def test_sglob_returns_empty_array_for_no_base_paths
+    assert_equal [], Tap::Root.sglob("**/*")
+  end
+  
+  #
   # Tap::Root indir test
   #
   

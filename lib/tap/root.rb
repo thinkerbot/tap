@@ -102,6 +102,14 @@ module Tap
         end.flatten.uniq
       end
       
+      # Path suffix glob.  Globs along the base paths for 
+      # paths that match the specified suffix pattern.
+      def sglob(suffix_pattern, *base_paths)
+        base_paths.collect do |base|
+          Dir.glob(File.join(base, suffix_pattern))
+        end.flatten.uniq
+      end
+      
       # Executes the block in the specified directory.  Makes the directory, if
       # necessary when mkdir is specified.  Otherwise, indir raises an error 
       # for non-existant directories, as well as non-directory inputs.
