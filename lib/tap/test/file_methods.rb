@@ -258,7 +258,7 @@ module Tap
       # - If the directory for the filepath does not exist, the directory will be created
       # - Like all files in the output directory, tempfiles will be deleted by the default 
       #   +teardown+ method
-      def method_tempfile(filename=method_name_str)
+      def method_tempfile(filename=method_name_str, &block)
         ext = File.extname(filename)
         basename = filename.chomp(ext)
         filepath = method_filepath(:output, sprintf('%s%d.%d%s', basename, $$, method_tempfiles.length, ext))
@@ -266,6 +266,9 @@ module Tap
       
         dirname = File.dirname(filepath)
         FileUtils.mkdir_p(dirname) unless File.exists?(dirname)
+        if block_given?
+          File.open(filepath, "w", &block)
+        end
         filepath
       end
       

@@ -23,11 +23,11 @@ class FrameworkTest < Test::Unit::TestCase
   end
   
   #
-  # source_files test
+  # source_file test
   #
 
-  def test_source_files_is_set_to_an_empty_array_by_default
-    assert_equal [], Sample.source_files
+  def test_source_file_is_set_to_nil_by_default
+    assert_nil Sample.source_file
   end
 
   #

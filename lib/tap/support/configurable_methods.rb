@@ -128,6 +128,16 @@ module Tap
         config = (configurations[key] || configurations.add(key))
         config.default = value
         
+        # register with TDoc, not config, so that all bits can be
+        # extracted at once
+        caller.each do |line|
+          if line =~ /^([^:]+):(\d+)$/
+            config.line = $2.to_i
+            config.path = File.expand_path($1)
+            break
+          end
+        end
+
         attr_reader(key) if reader
         case
         when block_given? 

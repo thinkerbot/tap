@@ -88,7 +88,7 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
       end
     
       # now let the class handle the argv
-      name, config, argv = task_class.parse_argv(ARGV)
+      name, config, argv = task_class.parse_argv(ARGV, true)
       name = td if name == nil
       
       task = task_class.new(name, config, app)

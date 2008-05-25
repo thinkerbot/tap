@@ -8,7 +8,7 @@ module Tap
       
       # ConfigurableMethods initializes base.configurations on extend.
       def self.extended(base)
-        base.instance_variable_set(:@source_files, [])
+        base.instance_variable_set(:@source_file, nil)
       end
       
       # When subclassed, the configurations are duplicated and passed to 
@@ -16,19 +16,11 @@ module Tap
       # the configurations of the parent class.
       def inherited(child)
         super
-        child.instance_variable_set(:@source_files, source_files.dup)
+        child.instance_variable_set(:@source_file, nil)
       end
-
-      # EXPERIMENTAL
-      attr_reader :source_files # :nodoc:
       
-      attr_reader :options
-      
-      # EXPERIMENTAL
       # Identifies source files for TDoc documentation.
-      def source_file(arg) # :nodoc:
-        source_files << arg
-      end
+      attr_accessor :source_file # :nodoc:
       
       # Returns the default name for the class: to_s.underscore
       def default_name
@@ -37,10 +29,10 @@ module Tap
 
       # Returns the TDoc documentation for self. 
       def tdoc
-        @tdoc ||= Tap::Support::TDoc[self]
+        @tdoc ||= TDoc[self]
       end
 
-      def parse_argv(argv) # => name, config, argv
+      def parse_argv(argv, exit_on_help=false) # => name, config, argv
         config = {}
         opts = OptionParser.new
 
@@ -63,7 +55,7 @@ module Tap
         opts.on_tail("-h", "--help", "Print this help") do
           opts.banner = opt_banner
           puts opts
-          exit
+          exit if exit_on_help
         end
 
         name = nil
@@ -86,14 +78,15 @@ module Tap
       protected
       
       def opt_banner
-        return "could not find help for '#{self}'" if tdoc == nil
-
-        sections = tdoc.comment_sections(/Description|Usage/i, true)
-        %Q{#{self}
-#{sections["Description"]}
-Usage:
-#{sections["Usage"]}
-}
+        "banner"
+#         return "could not find help for '#{self}'" if tdoc == nil
+# 
+#         sections = tdoc.comment_sections(/Description|Usage/i, true)
+#         %Q{#{self}
+# #{sections["Description"]}
+# Usage:
+# #{sections["Usage"]}
+# }
       end
     end
   end

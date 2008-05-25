@@ -49,6 +49,8 @@ module Tap
       attr_reader :duplicable
       attr_reader :getter
       attr_reader :setter
+      
+      attr_accessor :path, :line
 
       def initialize(name, default=nil, properties=nil, getter=name, setter="#{name}=")
         @name = name
@@ -87,11 +89,20 @@ module Tap
       end
       
       def empty?
+        # Hack to allow Configuration to act as it's own description
+        # in OptionParser
         self.to_str.empty?
       end
       
       def to_str
-        ""
+        if path != nil && line != nil && File.exists?(path)
+          File.open(path) do |src|
+            (line - 1).times { src.readline }
+            src.readline =~ /#(.*)/ ? $1.strip : ""
+          end
+        else
+          ""
+        end
       end
       
       def to_option_parser_argv
