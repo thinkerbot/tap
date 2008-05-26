@@ -131,13 +131,14 @@ module Tap
         # register with TDoc, not config, so that all bits can be
         # extracted at once
         caller.each do |line|
-          if line =~ /^([^:]+):(\d+)$/
-            config.line = $2.to_i
-            config.path = File.expand_path($1)
+          case line
+          when /in .config.$/ then next
+          when /^[^:]+:(\d+)/
+            config.line = $1.to_i
             break
           end
         end
-
+        
         attr_reader(key) if reader
         case
         when block_given? 

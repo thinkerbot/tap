@@ -1,4 +1,3 @@
-# = Usage
 # tap run {options} -- {task options} task INPUTS...
 #
 # examples:
@@ -13,16 +12,46 @@ app = Tap::App.instance
 # handle options
 #
 dump = false
-rake = nil
+rake = false
+rake_app = nil
 OptionParser.new do |opts|
   
   opts.separator ""
-  opts.separator "Options:"
+  opts.separator "options:"
 
   opts.on("-h", "--help", "Show this message") do
-    puts Tap::Support::CommandLine.usage(__FILE__, "Usage", "Description", :keep_headers => false)
-    puts
+    opts.banner = Tap::Support::TDoc.usage(__FILE__)
     puts opts
+    exit
+  end
+  
+  opts.on('-T', '--task-manifest', 'Print a list of available tasks.') do |v|
+    manifest = Tap::Support::TDoc.manifest(*env.load_paths)
+    
+    rake = env.rake_setup(['-T'])
+    displayable_tasks = rake.tasks.select { |t|
+      t.comment && t.name =~ rake.options.show_task_pattern
+    }
+    
+    widths = []
+    manifest.each {|path, hash| hash.keys.each {|key| widths << key.length }}
+    displayable_tasks.collect {|t| widths << 5 + t.name_with_args.length}
+    width = widths.max || 10
+    
+    max_column = 80 - width - 7
+   
+    manifest.each do |path, hash|
+      next if hash.empty?
+      puts "===  tap tasks (#{path})"
+      hash.each_pair do |name, comment|
+        printf "%-#{width}s  # %s\n", name, rake.truncate(comment, max_column)
+      end
+    end
+    
+    puts "=== rake tasks"
+    displayable_tasks.each do |t|
+      printf "%-#{width}s  # %s\n", "rake " + t.name_with_args, rake.truncate(t.comment, max_column)
+    end
     exit
   end
   
@@ -69,8 +98,8 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
         end
       end
  
-      rake = env.rake_setup if rake == nil
-      rake.argv_enq(app)
+      rake_app = env.rake_setup if rake_app == nil
+      rake_app.argv_enq(app)
   
     else  
       begin
@@ -82,6 +111,8 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
       # unless a Tap::Task was found, treat the
       # args as a specification for Rake.
       if task_class == nil || !task_class.kind_of?(Tap::Support::FrameworkMethods)
+        raise "unknown task: #{td}" unless rake
+        
         env.log(:warn, "implicit rake: #{td}#{ARGV.empty? ? '' : ' ...'}", Logger::DEBUG)
         args.unshift('rake')
         redo

@@ -97,7 +97,7 @@ class TDocTest < Test::Unit::TestCase
     assert_equal EXPECTED_USAGE, TDoc.parse(USAGE_STR).usage
   end
   
-  def test_usage_must_follow_desc
+  def test_usage_may_lead_or_follow_desc
     leading_str = DESC_STR + "\n" + USAGE_STR
     
     tdoc = TDoc.parse(leading_str)
@@ -107,7 +107,7 @@ class TDocTest < Test::Unit::TestCase
     trailing_str = USAGE_STR + "\n" + DESC_STR
     
     tdoc = TDoc.parse(trailing_str)
-    assert_nil tdoc.usage
+    assert_equal EXPECTED_USAGE, tdoc.usage
     assert_equal EXPECTED_DESC, tdoc.desc
   end
   
@@ -135,6 +135,11 @@ class TDocTest < Test::Unit::TestCase
         n.times { TDoc.parse(desc_use) }
       end
       
+      use_desc = USAGE_STR  + "\n" + DESC_STR
+      x.report("#{n} x #{desc_use.length} use+desc") do 
+        n.times { TDoc.parse(use_desc) }
+      end
+      
       both = str + desc_use
       x.report("#{n} x #{both.length} both") do 
         n.times { TDoc.parse(both) }
@@ -146,123 +151,123 @@ class TDocTest < Test::Unit::TestCase
   # TDoc[] test
   #
   
-  def test_get_with_filepath_returns_tdoc_for_filepath
-    path = method_tempfile do |file|
-      file << DESC_STR
-    end
-    assert File.exists?(path)
-    
-    tdoc = TDoc[path]
-    
-    assert_equal TDoc, tdoc.class
-    assert_equal EXPECTED_DESC, tdoc.desc 
-  end
-  
-  def test_get_with_filepath_returns_tdoc_for_filepath
-    path = method_tempfile do |file|
-      file << DESC_STR
-    end
-    assert File.exists?(path)
-    
-    tdoc = TDoc[path]
-    
-    assert_equal TDoc, tdoc.class
-    assert_equal EXPECTED_DESC, tdoc.desc 
-  end
-  
-  def test_get_stores_tdoc_in_docs_by_expaned_path
-    path = method_tempfile {|file| }
-    assert File.exists?(path)
-    
-    relative_filepath = Tap::Root.relative_filepath(".", path)
-    tdoc = TDoc[relative_filepath]
-    
-    assert_equal({path => tdoc}, TDoc.docs)
-  end
-  
-  def test_get_returns_existing_tdoc_regardless_of_input_type
-    tdoc = TDoc.new
-    TDoc.docs[:key] = tdoc
-
-    assert_equal(tdoc, TDoc[:key])
-  end
-  
-  def test_get_raises_error_for_non_existing_non_file_non_class_inputs
-    path = method_tempfile
-    
-    assert_equal({}, TDoc.docs)
-    assert !File.exists?(path)
-    assert_raise(ArgumentError) { TDoc[path] }
-    assert_raise(ArgumentError) { TDoc[:key] }
-  end
-  
-  class SourceFileClass
-    class << self
-      attr_accessor :source_file
-    end
-  end
-  
-  def test_get_returns_doc_for_class_source_file_if_specified
-    path = method_tempfile {|file| }
-    SourceFileClass.source_file = path
-    
-    tdoc = TDoc[SourceFileClass]
-    assert_equal({path => tdoc}, TDoc.docs)
-  end
-  
-  class NoSourceFileClass
-    class << self
-      attr_reader :source_file
-    end
-  end
-  
-  def test_get_looks_along_search_paths_for_class_rb_file_as_source_file_if_unspecified
-    search_paths = [method_dir(:output)]
-    path = method_filepath(:output, NoSourceFileClass.to_s.underscore + ".rb")
-    unless File.exists?(path)
-      FileUtils.mkdir_p(File.dirname(path))
-      FileUtils.touch(path)
-    end
-
-    tdoc = TDoc[NoSourceFileClass, search_paths]
-    assert_equal({path => tdoc}, TDoc.docs)
-  end
-  
-  class NoSourceFileAttributeClass
-  end
-  
-  def test_get_looks_along_search_paths_for_class_rb_file_as_source_file_if_unavailable
-    search_paths = [method_dir(:output)]
-    path = method_filepath(:output, NoSourceFileAttributeClass.to_s.underscore + ".rb")
-    unless File.exists?(path)
-      FileUtils.mkdir_p(File.dirname(path))
-      FileUtils.touch(path)
-    end
-
-    tdoc = TDoc[NoSourceFileAttributeClass, search_paths]
-    assert_equal({path => tdoc}, TDoc.docs)
-  end
-  
-  def test_get_raises_error_if_multiple_source_files_are_found
-    search_paths = [method_dir(:output, 'a'), method_dir(:output, 'b')]
-    path_a = method_filepath(:output, 'a', NoSourceFileClass.to_s.underscore + ".rb")
-    unless File.exists?(path_a)
-      FileUtils.mkdir_p(File.dirname(path_a))
-      FileUtils.touch(path_a)
-    end
-    
-    path_b = method_filepath(:output, 'b', NoSourceFileClass.to_s.underscore + ".rb")
-    unless File.exists?(path_b)
-      FileUtils.mkdir_p(File.dirname(path_b))
-      FileUtils.touch(path_b)
-    end
-    
-    assert_raise(ArgumentError) { TDoc[NoSourceFileClass, search_paths] }
-  end
-  
-  def test_get_raises_error_if_no_source_file_is_found
-    assert_raise(ArgumentError) { TDoc[NoSourceFileClass] }
-  end
+  # def test_get_with_filepath_returns_tdoc_for_filepath
+  #   path = method_tempfile do |file|
+  #     file << DESC_STR
+  #   end
+  #   assert File.exists?(path)
+  #   
+  #   tdoc = TDoc[path]
+  #   
+  #   assert_equal TDoc, tdoc.class
+  #   assert_equal EXPECTED_DESC, tdoc.desc 
+  # end
+  # 
+  # def test_get_with_filepath_returns_tdoc_for_filepath
+  #   path = method_tempfile do |file|
+  #     file << DESC_STR
+  #   end
+  #   assert File.exists?(path)
+  #   
+  #   tdoc = TDoc[path]
+  #   
+  #   assert_equal TDoc, tdoc.class
+  #   assert_equal EXPECTED_DESC, tdoc.desc 
+  # end
+  # 
+  # def test_get_stores_tdoc_in_docs_by_expaned_path
+  #   path = method_tempfile {|file| }
+  #   assert File.exists?(path)
+  #   
+  #   relative_filepath = Tap::Root.relative_filepath(".", path)
+  #   tdoc = TDoc[relative_filepath]
+  #   
+  #   assert_equal({path => tdoc}, TDoc.docs)
+  # end
+  # 
+  # def test_get_returns_existing_tdoc_regardless_of_input_type
+  #   tdoc = TDoc.new
+  #   TDoc.docs[:key] = tdoc
+  # 
+  #   assert_equal(tdoc, TDoc[:key])
+  # end
+  # 
+  # def test_get_raises_error_for_non_existing_non_file_non_class_inputs
+  #   path = method_tempfile
+  #   
+  #   assert_equal({}, TDoc.docs)
+  #   assert !File.exists?(path)
+  #   assert_raise(ArgumentError) { TDoc[path] }
+  #   assert_raise(ArgumentError) { TDoc[:key] }
+  # end
+  # 
+  # class SourceFileClass
+  #   class << self
+  #     attr_accessor :source_file
+  #   end
+  # end
+  # 
+  # def test_get_returns_doc_for_class_source_file_if_specified
+  #   path = method_tempfile {|file| }
+  #   SourceFileClass.source_file = path
+  #   
+  #   tdoc = TDoc[SourceFileClass]
+  #   assert_equal({path => tdoc}, TDoc.docs)
+  # end
+  # 
+  # class NoSourceFileClass
+  #   class << self
+  #     attr_reader :source_file
+  #   end
+  # end
+  # 
+  # def test_get_looks_along_search_paths_for_class_rb_file_as_source_file_if_unspecified
+  #   search_paths = [method_dir(:output)]
+  #   path = method_filepath(:output, NoSourceFileClass.to_s.underscore + ".rb")
+  #   unless File.exists?(path)
+  #     FileUtils.mkdir_p(File.dirname(path))
+  #     FileUtils.touch(path)
+  #   end
+  # 
+  #   tdoc = TDoc[NoSourceFileClass, search_paths]
+  #   assert_equal({path => tdoc}, TDoc.docs)
+  # end
+  # 
+  # class NoSourceFileAttributeClass
+  # end
+  # 
+  # def test_get_looks_along_search_paths_for_class_rb_file_as_source_file_if_unavailable
+  #   search_paths = [method_dir(:output)]
+  #   path = method_filepath(:output, NoSourceFileAttributeClass.to_s.underscore + ".rb")
+  #   unless File.exists?(path)
+  #     FileUtils.mkdir_p(File.dirname(path))
+  #     FileUtils.touch(path)
+  #   end
+  # 
+  #   tdoc = TDoc[NoSourceFileAttributeClass, search_paths]
+  #   assert_equal({path => tdoc}, TDoc.docs)
+  # end
+  # 
+  # def test_get_raises_error_if_multiple_source_files_are_found
+  #   search_paths = [method_dir(:output, 'a'), method_dir(:output, 'b')]
+  #   path_a = method_filepath(:output, 'a', NoSourceFileClass.to_s.underscore + ".rb")
+  #   unless File.exists?(path_a)
+  #     FileUtils.mkdir_p(File.dirname(path_a))
+  #     FileUtils.touch(path_a)
+  #   end
+  #   
+  #   path_b = method_filepath(:output, 'b', NoSourceFileClass.to_s.underscore + ".rb")
+  #   unless File.exists?(path_b)
+  #     FileUtils.mkdir_p(File.dirname(path_b))
+  #     FileUtils.touch(path_b)
+  #   end
+  #   
+  #   assert_raise(ArgumentError) { TDoc[NoSourceFileClass, search_paths] }
+  # end
+  # 
+  # def test_get_raises_error_if_no_source_file_is_found
+  #   assert_raise(ArgumentError) { TDoc[NoSourceFileClass] }
+  # end
   
   #
   # initialize test

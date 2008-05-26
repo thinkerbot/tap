@@ -89,96 +89,159 @@ module Tap
           @docs = {}
         end
         
+        def manifest(*load_paths)
+          found = []
+          load_paths.collect do |load_path|
+            File.expand_path(load_path)
+          end.uniq.collect do |load_path|
+            hash = {}
+            
+            Dir.glob(File.join(load_path, "**/*.rb")).each do |path|
+              next if found.include?(path)
+              
+              scanner = StringScanner.new(File.read(path))
+              next unless scanner.skip_until(DESC_BEGIN_REGEXP)
+              
+              hash[path[(load_path.length + 1)...-3]] = scanner.scan_until(/$/).strip
+              found << path
+            end
+            
+            [load_path, hash]
+          end
+        end
+        
         def parse(str)
           tdoc = TDoc.new
           scanner = StringScanner.new(str)
           
-          # Parse Summary and Description
-          unless scanner.skip_until(DESC_BEGIN_REGEXP) == nil
-            tdoc.summary = scanner.scan_until(/$/).strip
-            
-            line_fragments = []
-            while comment = scanner.scan(/^\s*#.*$/)
-              case comment
-              when DESC_END_REGEXP 
-                # break if the description end is reached
-                break
-              when /^\s*#\s?((\s*).*)$/
-   
-                # collect continuous description line
-                # fragments and join into a single line
-                case
-                when $1 == $2 
-                  # empty comment line
-                  unless line_fragments.empty?
-                    tdoc.desc << line_fragments.join(' ') 
-                    line_fragments = []
+          while !scanner.eos?
+            break if scanner.skip_until(/^\s*#\s+:/) == nil
+
+            case "# :#{scanner.scan(/[^:]+:/)}"
+            when DESC_BEGIN_REGEXP  # Parse Summary and Description
+              tdoc.summary = scanner.scan_until(/$/).strip
+
+              line_fragments = []
+              while comment = scanner.scan(/^\s*#.*$/)
+                case comment
+                when DESC_END_REGEXP 
+                  # break if the description end is reached
+                  break
+                when /^\s*#\s?((\s*).*)$/
+
+                  # collect continuous description line
+                  # fragments and join into a single line
+                  case
+                  when $1 == $2 
+                    # empty comment line
+                    unless line_fragments.empty?
+                      tdoc.desc << line_fragments.join(' ') 
+                      line_fragments = []
+                    end
+
+                    tdoc.desc << ""
+                  when $2.empty? 
+                    # continuation line
+                    line_fragments << $1.rstrip
+                  else 
+                    # indented line
+                    unless line_fragments.empty?
+                      tdoc.desc << line_fragments.join(' ') 
+                      line_fragments = []
+                    end
+
+                    tdoc.desc << $1.rstrip
                   end
-                  
-                  tdoc.desc << ""
-                when $2.empty? 
-                  # continuation line
-                  line_fragments << $1.rstrip
-                else 
-                  # indented line
-                  unless line_fragments.empty?
-                    tdoc.desc << line_fragments.join(' ') 
-                    line_fragments = []
-                  end
-                  
-                  tdoc.desc << $1.rstrip
                 end
               end
-            end
-            
-            unless line_fragments.empty?
-              tdoc.desc << line_fragments.join(' ') 
+
+              unless line_fragments.empty?
+                tdoc.desc << line_fragments.join(' ') 
+              end
+
+            when USAGE_REGEXP # Parse Usage
+              tdoc.usage = scanner.scan_until(/$/).strip
             end
           end
-          
-          # Parse Usage
-          unless scanner.skip_until(USAGE_REGEXP) == nil
-            tdoc.usage = scanner.scan_until(/$/).strip
-          end
-          
+
           # Yield for additional parsing
           yield(scanner, tdoc) if block_given?
-
+                 
           tdoc
         end
         
         # Returns the TDoc for the specified class or path.
         #--
         # Generates if necessary
-        def [](klass_or_path, search_paths=$:)
+        def [](klass, search_paths=$:)
           case 
-          when docs.has_key?(klass_or_path)
-            docs[klass_or_path] 
+          when docs.has_key?(klass)
+            docs[klass] 
             
-          when klass_or_path.kind_of?(String) && File.file?(klass_or_path)
-            path = File.expand_path(klass_or_path)
-            docs[path] = parse(File.read(path))
-
-          when klass_or_path.kind_of?(Class) 
-            source_file = klass_or_path.respond_to?(:source_file) ?
-              klass_or_path.source_file : nil
-              
+          when klass.include?(Tap::Support::Framework) 
+            source_file = klass.source_file
             if source_file == nil
-              source_files = Root.sglob(klass_or_path.to_s.underscore + '.rb', *search_paths)
+              source_files = Root.sglob(klass.default_name + '.rb', *search_paths)
               source_file = case source_files.length
               when 1 then source_files.first
               when 0
-                raise ArgumentError.new("no source file found for: #{klass_or_path}")
+                raise ArgumentError.new("no source file found for: #{klass}")
               else
-                raise ArgumentError.new("multiple source files found for: #{klass_or_path}")
+                raise ArgumentError.new("multiple source files found for: #{klass}")
               end
             end
             
-            self[source_file]
-          
+            docs[klass] = parse(File.read(source_file)) do |scanner, tdoc|
+              if tdoc.usage == nil
+                scanner.reset
+                args = if scanner.skip_until(/^\s*def\s+process\(/) != nil
+                  args = scanner.scan_until(/\)/).to_s.chomp(')')
+                  args = args.split(',').collect do |arg|
+                    arg = arg.strip.upcase
+                    case arg
+                    when /^&/ then nil
+                    when /^\*/ then arg[1..-1] + "..."
+                    else arg
+                    end
+
+                  end.compact
+                else
+                  ["ARGS..."]
+                end
+                
+                tdoc.usage = "tap run -- #{klass.default_name} #{args.join(' ')}"
+              end
+              
+              unless klass.configurations.empty?
+                lines = scanner.string.split(/\r?\n/)
+                klass.configurations.each do |receiver, key, config|
+                  next unless receiver == klass
+                  # -1 .. starts counting at one
+                  tdoc.config[key] = (lines[config.line-1] =~ /^[^#]+#(.*)$/) ? $1.strip : ""
+                end
+              end
+            end
+            
           else
-            raise ArgumentError.new("not a Class or existing file: #{klass_or_path}")
+            raise ArgumentError.new("not a Framework class: #{klass}")
           end
+        end
+        
+        def usage(program_file)
+          comment = []
+          File.open(program_file) do |file|
+            while line = file.gets
+              case line
+              when /^\s*$/ 
+                # skip leading blank lines
+                comment.empty? ? next : break
+              when /^\s*# ?(.*)/m
+                comment << $1
+              end
+            end
+          end
+          
+          comment.join('').rstrip
         end
         
         protected
@@ -190,9 +253,9 @@ module Tap
       
       clear
       
-      DESC_BEGIN_REGEXP = mregexp('desc')
-      DESC_END_REGEXP = mregexp('cesd')
-      USAGE_REGEXP = mregexp('usage')
+      DESC_BEGIN_REGEXP = mregexp('Description')
+      DESC_END_REGEXP = mregexp('EndDescription')
+      USAGE_REGEXP = mregexp('Usage')
   
       # Summary line used in manifest
       attr_accessor :summary
@@ -212,7 +275,16 @@ module Tap
         @usage = usage
         @config = config
       end
+      
+      def empty?
+        @summary == nil &&
+        @usage == nil &&
+        @desc.empty? &&
+        @config.empty? 
+      end
+      
 
+      
       # when scanner.skip_until(/^\s*def\s+process\(/) != nil
       #   scanner.scan_until(/\)/).to_s.split(',').collect do |arg|
       #     arg = arg.strip.upcase
@@ -294,43 +366,7 @@ module Tap
       #   res
       # end
 
-      def cmd_usage(program_file, sections=[], keep_section_headers=false)
-        comment = []
-        File.open(program_file) do |file|
-          while line = file.gets
-            case line
-            when /^\s*$/ 
-              # skip leading blank lines
-              comment.empty? ? next : break
-            when /^\s*# ?(.*)/m
-              comment << $1
-            end
-          end
-        end
-        
-        unless sections.empty?
-          sections_hash = {}
-          current_section = nil
-          comment.each do |line|
-            case line
-            when /^s*=+(.*)/
-              current_section = []
-              current_section << line if keep_section_headers
-              sections_hash[$1.strip] = current_section
-            else
-              current_section << line unless current_section.nil?
-            end
-          end
-          
-          comment = []
-          sections.each do |section|
-            next unless sections_hash.has_key?(section)
-            comment.concat(sections_hash[section])
-          end
-        end
-        
-        comment.join('')
-      end
+
       
     end
   end

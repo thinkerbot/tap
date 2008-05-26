@@ -106,6 +106,7 @@ module Tap
       # paths that match the specified suffix pattern.
       def sglob(suffix_pattern, *base_paths)
         base_paths.collect do |base|
+          base = File.expand_path(base)
           Dir.glob(File.join(base, suffix_pattern))
         end.flatten.uniq
       end

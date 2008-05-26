@@ -42,7 +42,7 @@ module Tap
           opts.separator "Configurations:"
         end
         
-        configurations.each_pair do |key, configuration|
+        configurations.each do |receiver, key, configuration|
           opts.on(*configuration.to_option_parser_argv) do |value|
             config[key] = YAML.load(value)
           end
@@ -53,7 +53,13 @@ module Tap
         opts.separator "Options:"
         
         opts.on_tail("-h", "--help", "Print this help") do
-          opts.banner = opt_banner
+          configurations.each do |receiver, key, configuration|
+            configuration.desc = receiver.tdoc.config[key]
+          end
+          
+          puts self.to_s 
+          tdoc.desc.each {|line| puts line }
+          opts.banner = "Usage: #{tdoc.usage}"
           puts opts
           exit if exit_on_help
         end
@@ -75,19 +81,6 @@ module Tap
         [name, config, argv]
       end
       
-      protected
-      
-      def opt_banner
-        "banner"
-#         return "could not find help for '#{self}'" if tdoc == nil
-# 
-#         sections = tdoc.comment_sections(/Description|Usage/i, true)
-#         %Q{#{self}
-# #{sections["Description"]}
-# Usage:
-# #{sections["Usage"]}
-# }
-      end
     end
   end
 end
