@@ -247,12 +247,13 @@ module Tap
       end
     end
     
-    # A hash of (task_name, task_class_name) pairs mapping names to 
-    # classes for instantiating tasks that have a non-default name.
-    config(:map, {}) do |value|
+    # A hash of (task_name, manifest) pairs used to map task names
+    # to classes, source files, etc.  See Tap::Support::Manifest
+    config(:manifest, {}) do |value|
       case value
-      when Hash then value
-      when nil then {}
+      when Hash then Support::Manifest.new(value)
+      when Support::Manifest then value
+      when nil then Support::Manifest.new
       else raise ArgumentError.new("cannot convert to Hash: #{value.class}")
       end
     end
@@ -410,7 +411,7 @@ module Tap
     #   t.class             # => Tap::FileTask
     #   t.name              # => 'tap/file_task'
     #
-    #   app.map = {"mapped-task" => "Tap::FileTask"}
+    #   app.manifest = {"mapped-task" => "Tap::FileTask"}
     #   t = app.task('mapped-task-1.0', :key => 'value')
     #   t.class             # => Tap::FileTask
     #   t.name              # => "mapped-task-1.0"
@@ -428,7 +429,7 @@ module Tap
     #   t_class = app.task_class('tap/file_task')
     #   t_class             # => Tap::FileTask
     #
-    #   app.map = {"mapped-task" => "Tap::FileTask"}
+    #   app.manifest = {"mapped-task" => "Tap::FileTask"}
     #   t_class = app.task_class('mapped-task-1.0')
     #   t_class             # => Tap::FileTask
     #
@@ -446,8 +447,8 @@ module Tap
     # descriptor, or the class name as specified in map by the 
     # de-versioned descriptor.  
     #
-    #   app.map = {"mapped-task" => "Tap::FileTask"}
-    #   app.task_class_name('some/task_class')   # => "some/task_class" 
+    #   app.manifest = {"mapped-task" => "Tap::FileTask"}
+    #   app.task_class_name('some/task_class')   # => "Some::TaskClass" 
     #   app.task_class_name('mapped-task-1.0')   # => "Tap::FileTask"
     #
     # If td is a type of Tap::Support::Framework, then task_class_name 
@@ -463,9 +464,9 @@ module Tap
       case td
       when Support::Framework then td.class.to_s
       else
-        # de-version and resolve using map
+        # de-version and resolve using manifest
         name, version = deversion(td.to_s)
-        map.has_key?(name) ? map[name].to_s : name
+        manifest[name].class_name
       end
     end
     

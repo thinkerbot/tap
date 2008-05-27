@@ -26,32 +26,27 @@ OptionParser.new do |opts|
   end
   
   opts.on('-T', '--task-manifest', 'Print a list of available tasks.') do |v|
-    manifest = Tap::Support::TDoc.manifest(*env.load_paths)
-    
-    rake = env.rake_setup(['-T'])
-    displayable_tasks = rake.tasks.select { |t|
-      t.comment && t.name =~ rake.options.show_task_pattern
-    }
-    
+    manifest = app.manifest.auto_discover(app, env.load_paths).to_hash
+
     widths = []
-    manifest.each {|path, hash| hash.keys.each {|key| widths << key.length }}
-    displayable_tasks.collect {|t| widths << 5 + t.name_with_args.length}
+    manifest_by_load_path = {}
+    manifest.each_pair do |name, spec| 
+      (manifest_by_load_path[spec.load_path] ||= {})[name] = spec
+      widths << name.length
+    end
     width = widths.max || 10
     
     max_column = 80 - width - 7
-   
-    manifest.each do |path, hash|
-      next if hash.empty?
+    manifest_by_load_path.each_pair do |path, specs|
       puts "===  tap tasks (#{path})"
-      hash.each_pair do |name, comment|
-        printf "%-#{width}s  # %s\n", name, rake.truncate(comment, max_column)
+      specs.each_pair do |name, spec|
+        printf "%-#{width}s  # %s\n", name, spec.tdoc.summary#rake.truncate(spec.tdoc.comment, max_column)
       end
     end
     
     puts "=== rake tasks"
-    displayable_tasks.each do |t|
-      printf "%-#{width}s  # %s\n", "rake " + t.name_with_args, rake.truncate(t.comment, max_column)
-    end
+    env.rake_setup(['-T']).display_tasks_and_comments
+    
     exit
   end
   
@@ -110,7 +105,7 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
 
       # unless a Tap::Task was found, treat the
       # args as a specification for Rake.
-      if task_class == nil || !task_class.kind_of?(Tap::Support::FrameworkMethods)
+      if task_class == nil || !task_class.include?(Tap::Support::Framework)
         raise "unknown task: #{td}" unless rake
         
         env.log(:warn, "implicit rake: #{td}#{ARGV.empty? ? '' : ' ...'}", Logger::DEBUG)

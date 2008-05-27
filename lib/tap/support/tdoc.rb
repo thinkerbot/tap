@@ -1,5 +1,5 @@
 #require 'tap/env'
-# require 'tap/support/tdoc/config_attr'
+#require 'tap/support/tdoc/config_attr'
 # require 'singleton'
 require 'strscan'
 
@@ -88,28 +88,7 @@ module Tap
         def clear
           @docs = {}
         end
-        
-        def manifest(*load_paths)
-          found = []
-          load_paths.collect do |load_path|
-            File.expand_path(load_path)
-          end.uniq.collect do |load_path|
-            hash = {}
-            
-            Dir.glob(File.join(load_path, "**/*.rb")).each do |path|
-              next if found.include?(path)
-              
-              scanner = StringScanner.new(File.read(path))
-              next unless scanner.skip_until(DESC_BEGIN_REGEXP)
-              
-              hash[path[(load_path.length + 1)...-3]] = scanner.scan_until(/$/).strip
-              found << path
-            end
-            
-            [load_path, hash]
-          end
-        end
-        
+
         def parse(str)
           tdoc = TDoc.new
           scanner = StringScanner.new(str)
@@ -191,6 +170,20 @@ module Tap
               end
             end
             
+            # clean this crap up, should all be one method.  Tdoc should track
+            # the klass as well?  Big trick will be to tokenize config lines
+            # to eol, pull out key and default.  The klass actually should NOT
+            # be necessary except for figuring some default names.
+            #
+            # Expand tdoc syntax to allow multiple tdocs per file:
+            # :Description (class): 
+            # :Usage (class):
+            #
+            # Then consider the expected class by source file as the default.
+            # Maybe eliminate usage and simply pull the process args?  Drill
+            # back for process args if no process is specified, using 
+            # klass.superclass?  Should not try to be too clever on this
+            # point.   
             docs[klass] = parse(File.read(source_file)) do |scanner, tdoc|
               if tdoc.usage == nil
                 scanner.reset

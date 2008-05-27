@@ -25,10 +25,30 @@ module Tap
     
     def constantize
       unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ self
-        raise NameError, "#{camel_cased_word.inspect} is not a valid constant name!"
+        raise NameError, "#{inspect} is not a valid constant name!"
       end
+      
+      const_name = $1
+      
+      case RUBY_VERSION
+      when /^1.9/
 
-      Object.module_eval("::#{$1}", __FILE__, __LINE__)
+        # a check is necessary to maintain the 1.8 behavior  
+        # of lookup_const in 1.9, where ancestor constants 
+        # may be returned by a direct evaluation
+        class_name.split("::").inject(Object) do |current, const|
+          const = const.to_sym
+
+          current.const_get(const).tap do |c|
+            unless current.const_defined?(const, false)
+              raise NameError.new("uninitialized constant #{const_name}") 
+            end
+          end
+        end
+
+      else 
+        Object.module_eval("::#{const_name}", __FILE__, __LINE__)
+      end
     end
     
     def try_constantize

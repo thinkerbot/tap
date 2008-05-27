@@ -174,29 +174,6 @@ class ConfigurationTest < Test::Unit::TestCase
   #
   
   #
-  # == test
-  #
-  
-  def test_another_is_equal_to_self_if_all_attributes_are_equal
-    option = Configuration.new('name')
-    another = Configuration.new('name')
-    assert option == another
-    
-    option = Configuration.new('name')
-    another = Configuration.new('alt')
-    assert option != another
-    
-    option = Configuration.new('name', 1)
-    another = Configuration.new('name', 2)
-    assert option != another
-    
-    option = Configuration.new('name', 1, :mandatory)
-    another = Configuration.new('name', 1, :optional)
-    assert option != another
-  end
-  
-
-  #
   # getter= test
   #
 

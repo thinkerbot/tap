@@ -61,6 +61,12 @@ module Tap
           tdoc.desc.each {|line| puts line }
           opts.banner = "Usage: #{tdoc.usage}"
           puts opts
+          # rather than puts like this... erb into a template
+          # by default the standard usage.
+          # allow:
+          # class
+          #   help_template 
+          # end
           exit if exit_on_help
         end
 

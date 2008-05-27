@@ -210,7 +210,7 @@ o-[add_five] 8
     assert_equal Dir.pwd, app.root
     assert_equal({}, app.directories)
     assert_equal({}, app.options.marshal_dump)
-    assert_equal({}, app.map)
+    assert_equal({}, app.manifest)
     
     assert_equal(Support::ExecutableQueue, app.queue.class)
     assert app.queue.empty?
@@ -232,7 +232,7 @@ o-[add_five] 8
       :directories => {},
       :absolute_paths => {},
       :options => OpenStruct.new(),
-      :map => {}
+      :manifest => {}
     }
     assert_equal expected, app.config
     
@@ -246,7 +246,7 @@ o-[add_five] 8
       :directories => {:lib => 'alt/lib'},
       :absolute_paths => {:abs => File.expand_path('/absolute/path')},
       :options => OpenStruct.new(:trace => true),
-      :map => {}
+      :manifest => {}
     }
 
     assert_equal expected, app.config
@@ -298,11 +298,11 @@ o-[add_five] 8
     assert_equal({:trace => true}, app.options.marshal_dump)
   end
 
-  def test_reconfigure_map_sets_map
+  def test_reconfigure_manifest_sets_manifest
     app = App.new
-    assert_equal({}, app.map)
-    app.reconfigure :map => {'some/task_name' => Tap::Task}
-    assert_equal({'some/task_name' => Tap::Task}, app.map)
+    assert_equal({}, app.manifest)
+    app.reconfigure :manifest => {'some/task_name' => 'Tap::Task'}
+    assert_equal({'some/task_name' => Support::ManifestSpec.new('some/task_name', :class_name => 'Tap::Task')}, app.manifest)
   end
   
   #
@@ -346,7 +346,7 @@ o-[add_five] 8
     t_class = app.task_class('tap/file_task')
     assert_equal Tap::FileTask, t_class
   
-    app.map = {"mapped-task" => "Tap::FileTask"}
+    app.manifest = {"mapped-task" => "Tap::FileTask"}
     t_class = app.task_class('mapped-task-1.0')
     assert_equal Tap::FileTask, t_class
   end
@@ -360,7 +360,7 @@ o-[add_five] 8
     assert_equal  Tap::FileTask, t.class      
     assert_equal 'tap/file_task', t.name 
 
-    app.map = {"mapped-task" =>  "Tap::FileTask"}
+    app.manifest = {"mapped-task" =>  "Tap::FileTask"}
   
     t = app.task('mapped-task-1.0', :key => 'value')
     assert_equal  Tap::FileTask, t.class      
@@ -379,8 +379,8 @@ o-[add_five] 8
     assert_not_equal t1.object_id, t2.object_id
   end
   
-  def test_task_translates_task_name_to_class_name_using_map_if_possible
-    app.map["mapped_name"] = "AppTest::TaskSubClass"
+  def test_task_translates_task_name_to_class_name_using_manifest_if_possible
+    app.manifest["mapped_name"] = Support::ManifestSpec.new("mapped_name", :class_name => "AppTest::TaskSubClass")
     assert_equal TaskSubClass, app.task("mapped_name").class
   end
   
@@ -403,8 +403,8 @@ o-[add_five] 8
   #
   
   def test_task_class_name_documentation
-    app.map = {"mapped-task" => "Tap::FileTask"}
-    assert_equal "some/task_class", app.task_class_name('some/task_class')   
+    app.manifest = {"mapped-task" => "Tap::FileTask"}
+    assert_equal "Some::TaskClass", app.task_class_name('some/task_class')   
     assert_equal "Tap::FileTask", app.task_class_name('mapped-task-1.0')   
     
     t1 = Task.new
@@ -427,11 +427,11 @@ o-[add_five] 8
   end
 
   def test_task_class_name_returns_deversioned_name
-    assert_equal "app_test/task_sub_class", app.task_class_name("app_test/task_sub_class-1.1")
+    assert_equal "AppTest::TaskSubClass", app.task_class_name("app_test/task_sub_class-1.1")
   end
   
-  def test_task_class_name_resolves_names_using_map
-    app.map = {"mapped-task" => "AnotherTask"}
+  def test_task_class_name_resolves_names_using_manifest
+    app.manifest = {"mapped-task" => "AnotherTask"}
     assert_equal "AnotherTask", app.task_class_name("mapped-task-1.1")
   end
   

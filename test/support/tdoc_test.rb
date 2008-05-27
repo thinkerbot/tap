@@ -38,7 +38,7 @@ class TDocTest < Test::Unit::TestCase
   DESC_STR = [
     "not a comment # trailing comment",
     "# not part of desc",
-    "# :desc: summary string ",
+    "# :Description: summary string ",
     "# continuous",
     "# line one",
     "#",
@@ -74,7 +74,7 @@ class TDocTest < Test::Unit::TestCase
     assert_equal EXPECTED_DESC, TDoc.parse(DESC_STR).desc
 
     desc_str = DESC_STR + %Q{
-      # :cesd:
+      # :EndDescription:
       # ignored
     }
     assert_equal EXPECTED_DESC, TDoc.parse(desc_str).desc
@@ -88,7 +88,7 @@ class TDocTest < Test::Unit::TestCase
   USAGE_STR = [
     "not a comment # trailing comment",
     "# not part of usage",
-    "# :usage: usage string ",
+    "# :Usage: usage string ",
     "# not part of usage", 
   ].join("\n")
   EXPECTED_USAGE = "usage string"
