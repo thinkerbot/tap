@@ -112,6 +112,11 @@ class ConfigurableTest < Test::Unit::TestCase
     assert_equal({:one => 'ALT', :two => 'TWO'}, t.config)
   end
   
+  def test_reconfigure_returns_self
+    t = Sample.new
+    assert_equal t, t.reconfigure
+  end
+  
   #
   # initialize_config test
   #

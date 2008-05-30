@@ -14,7 +14,7 @@ require File.join( File.dirname(__FILE__), "../lib/tap.rb")
 
 # setup the environment
 app = Tap::App.instance
-env = Tap::Env.new(app.logger)
+env = Tap::Env.new({}, app ,app.logger)
 env.debug_setup if ARGV.delete('-d-')
 
 before = nil
@@ -23,15 +23,13 @@ after = nil
 # configure the app to tap.yml if it exists
 default_config_file = Tap::Env::DEFAULT_CONFIG_FILE
 begin
-
-  env.load_config(default_config_file, app) do |unhandled_configs|
+  
+  env.reconfigure(Tap::Env.read_config(default_config_file)) do |unhandled_configs|
     before = unhandled_configs.delete('before')
     after = unhandled_configs.delete('after')
-    
-    app.reconfigure(unhandled_configs)
-  end
-  
-  env.discover_gems unless File.exists?(default_config_file)
+  end if File.exists?(default_config_file)
+
+  #env.discover_gems unless 
   
   env.command_paths << File.join( File.dirname(__FILE__), "../lib/tap/cmd")
   
@@ -80,6 +78,8 @@ end
 #
 
 begin
+  env.activate
+  
   available_commands = env.commands
   command = ARGV.shift
 
@@ -110,15 +110,12 @@ begin
     puts
     puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
   when Tap::Support::CommandLine::SPLIT_ARGV_REGEXP
-    env.activate
-    
     ARGV.unshift command
     ARGV.unshift '--'
     ARGV.unshift '--dump'
     load available_commands['run']
   else
     if available_commands.has_key?(command)
-      env.activate
       # run the command, if it exists
       load available_commands[command]
     else

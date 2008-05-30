@@ -19,8 +19,8 @@ class EnvTest < Test::Unit::TestCase
     @current_load_paths = $LOAD_PATH.dup
     $LOAD_PATH.clear
 
-    @e = Tap::Env.new
     @root = Tap::Root.new
+    @e = Tap::Env.new({}, root)
   end
   
   def teardown
@@ -113,6 +113,34 @@ class EnvTest < Test::Unit::TestCase
   # end
   
   #
+  # path_config tests
+  #
+  
+  class PathConfigEnv < Tap::Env
+    path_config(:test_paths, ['test'])
+  end
+  
+  def test_path_configs_are_resolved_using_root
+    e = PathConfigEnv.new({:test_paths => ['dir', 'alt']}, root)
+    assert_equal [root['dir'], root['alt']], e.test_paths
+  end
+  
+  def test_path_configs_are_set_to_default_if_unspecified
+    e = PathConfigEnv.new({}, root)
+    assert_equal [root['test']], e.test_paths
+  end
+  
+  def test_path_configs_resolves_single_values_as_arrays
+    e = PathConfigEnv.new({:test_paths => 'dir'}, root)
+    assert_equal [root['dir']], e.test_paths
+  end
+  
+  def test_path_configs_ignore_nil_values
+    e = PathConfigEnv.new({:test_paths => nil}, root)
+    assert_equal [], e.test_paths
+  end
+  
+  #
   # Env#instantiate
   #
   
@@ -133,8 +161,8 @@ class EnvTest < Test::Unit::TestCase
   end
   
   def test_instantiate_returns_env_with_root_directed_at_expaned_path_directory
-    e = Tap::Env.instantiate("path.yml")
-    assert_equal(File.dirname(File.expand_path("path.yml")), e.root.root)
+    e = Tap::Env.instantiate("path/to/config.yml")
+    assert_equal(File.expand_path("path/to/"), e.root.root)
   end
   
   def test_instantiate_appends_DEFAULT_CONFIG_FILE_to_directories
@@ -147,7 +175,7 @@ class EnvTest < Test::Unit::TestCase
     Tap::Env.instances[File.expand_path("path.yml")] = e
     assert_equal(e, Tap::Env.instantiate("path.yml"))
   end
-   
+  
   #
   # initialization tests
   #
@@ -229,11 +257,20 @@ class EnvTest < Test::Unit::TestCase
     assert_equal ["/path/to/lib", "/path/to/another/lib", "post"], $LOAD_PATH
   end
   
-  # def test_activate_assigns_self_as_Env_instance
-  #   assert_nil Tap::Env.instance
-  #   e.activate
-  #   assert_equal e, Tap::Env.instance
-  # end
+  def test_activate_assigns_self_as_Env_instance
+    assert_nil Tap::Env.instance
+    e.activate
+    assert_equal e, Tap::Env.instance
+  end
+  
+  def test_activate_does_not_assign_self_as_Env_instance_if_already_set
+    e.activate
+    assert_equal e, Tap::Env.instance
+    
+    e1 = Tap::Env.new
+    e1.activate
+    assert_equal e, Tap::Env.instance
+  end
   
   #
   # deactivate test
@@ -297,15 +334,17 @@ class EnvTest < Test::Unit::TestCase
     assert_equal ["/path/to/lib", "/path/to/another/lib"], $LOAD_PATH
   end
   
+  def test_deactivate_unassigns_self_as_Env_instance
+    e.activate
+    assert_equal e, Tap::Env.instance
+    
+    e.deactivate
+    assert_nil Tap::Env.instance
+  end
+  
   #
   # activate/deactivate test
   #
-  
-  # def test_env_is_active_if_env_is_Env_instance
-  #   assert !e.active?
-  #   Tap::Env.send(:class_variable_set, :@@instance, e)
-  #   assert e.active?
-  # end
   
   def test_activate_is_toggled_by_activate_and_deactivate
     e.activate
@@ -359,7 +398,7 @@ class EnvTest < Test::Unit::TestCase
     assert_equal [], $LOAD_PATH
   end
   
-  def test_recursive_activate_and_dectivate_with_infinite_loop_does_not_cause_error
+  def test_recursive_activate_and_dectivate_does_not_infinitely_loop
     e1 = Tap::Env.new
     e1.load_paths = ["/path/to/e1"]
     e.envs << e1
@@ -401,223 +440,142 @@ class EnvTest < Test::Unit::TestCase
   #   assert_equal $LOAD_PATH, alt.load_paths
   # end
   
-  # #
-  # # configure test
-  # #
-  # 
-  # def test_configure_returns_true
-  #   assert_equal true, e.configure({})
-  # end
-  # 
-  # def test_configure_resolves_PATH_CONFIGS_using_root
-  #   e.configure({
-  #     :load_paths => ['lib', 'alt'],
-  #     :command_paths => ['cmd']
-  #   }, root)
-  # 
-  #   assert_equal [root['lib'], root['alt']], e.load_paths
-  #   assert_equal [root['cmd']], e.command_paths
-  # end
-  # 
-  # def test_configure_resolves_single_and_nil_values_for_PATH_CONFIGS_as_arrays
-  #   e.configure({:load_paths => 'lib', :command_paths => nil}, root)
-  # 
-  #   assert_equal [root['lib']], e.load_paths
-  #   assert_equal [], e.command_paths
-  # end
-  # 
-  # def test_configure_adds_defaults_to_input
-  #   e.configure({}, root)
-  #   assert_equal [root['lib']], e.config[:load_paths]
-  # end
-  # 
-  # def test_configure_reassigns_root_paths_using_configs_before_resolving_paths
-  #   assert_not_equal 'alt', root['lib']
-  #   e.configure({:load_paths => ['lib'], :directories => {'lib' => 'alt'}}, root)
-  #   
-  #   assert_not_equal 'alt', root['lib']
-  #   assert_equal [root['alt']], e.load_paths
-  # end
-  # 
-  # def test_configure_normalizes_keys
-  #   e.configure({'load_paths' => ['lib'], 'directories' => {'lib' => 'alt'}}, root)
-  #   assert_equal [root['alt']], e.load_paths
-  # end
-  # 
-  # def test_uses_new_root_if_none_is_provided
-  #   e.configure(:load_paths => ['lib'])
-  #   assert_equal [root['lib']], e.load_paths
-  # end
-  # 
-  # def test_unused_configs_are_yielded_to_block
-  #   was_in_block = false
-  #   e.configure(:another => :value) do |other_configs|
-  #     was_in_block = true
-  #     assert_equal({:another => :value}, other_configs)
-  #   end
-  #   
-  #   assert was_in_block
-  # end
-  # 
-  # def test_configure_yields_to_block_even_if_no_other_configs_are_present
-  #   was_in_block = false
-  #   e.configure({}) do |other_configs|
-  #     was_in_block = true
-  #     assert_equal({}, other_configs)
-  #   end
-  #   
-  #   assert was_in_block
-  # end
-  # 
-  # def test_configure_logs_unused_configs_if_no_block_is_given
-  #   e.logger = MockLogger.new
-  #   e.configure(:unused => :value)
-  #   
-  #   assert_equal [[Logger::DEBUG, "ignoring non-env configs: unused", "warn"]], e.logger
-  # end
-  # 
-  # def test_configure_will_only_set_RECURSIVE_CONFIGS_in_recursive_context
-  #   assert !e.debug
-  #   
-  #   was_in_recursive_context = false
-  #   e.recursive_context do
-  #     e.configure({:debug => true}, root)
-  #     was_in_recursive_context = true
-  #   end
-  #   
-  #   assert !e.debug
-  #   assert was_in_recursive_context
-  # end
-  # 
-  # def test_configure_loads_config_path_configs_in_recursive_context
-  #   config_file = method_tempfile
-  #   File.open(config_file, "w") do |file| 
-  #     file << {:load_paths => ['three'], :root => root.root}.to_yaml
-  #   end
-  #   
-  #   e.configure({:load_paths => ['one', 'two'], :config_paths => [config_file]}, root)
-  #   assert_equal [root['one'], root['two'], root['three']], e.load_paths
-  # end
-  # 
-  # def test_recursive_loading_for_multiple_recursions
-  #   config_file1 = method_tempfile
-  #   config_file2 = method_tempfile
-  #   config_file3 = method_tempfile
-  #   
-  #   File.open(config_file1, "w") do |file| 
-  #     file << {:load_paths => ['one'], :config_paths => config_file2, :root => root.root}.to_yaml
-  #   end
-  # 
-  #   File.open(config_file2, "w") do |file| 
-  #     file << {:load_paths => ['two'], :config_paths => config_file3, :root => root.root}.to_yaml
-  #   end
-  #   
-  #   File.open(config_file3, "w") do |file| 
-  #     file << {:load_paths => ['three'], :root => root.root}.to_yaml
-  #   end
-  #   
-  #   e.configure({:load_paths => ['zero'], :config_paths => config_file1}, root)
-  #   assert_equal [root['zero'], root['one'], root['two'], root['three']], e.load_paths
-  # end
-  # 
-  # def test_recursive_loading_does_not_infinitely_loop
-  #   config_file1 = method_tempfile
-  #   config_file2 = method_tempfile
-  #   
-  #   File.open(config_file1, "w") do |file| 
-  #     file << {:load_paths => ['one'], :config_paths => config_file2, :root => root.root}.to_yaml
-  #   end
-  # 
-  #   File.open(config_file2, "w") do |file| 
-  #     file << {:load_paths => ['two'], :config_paths => config_file1, :root => root.root}.to_yaml
-  #   end
-  #   
-  #   e.configure({:load_paths => ['zero'], :config_paths => config_file1}, root)
-  #   assert_equal [root['zero'], root['one'], root['two']], e.load_paths
-  # end
-  # 
-  # def test_recursive_loading_removes_duplicates_and_preserves_order_of_first_loading
-  #   config_file1 = method_tempfile
-  #   config_file2 = method_tempfile
-  #   config_file3 = method_tempfile
-  #   
-  #   File.open(config_file1, "w") do |file| 
-  #     file << {:load_paths => ['zero', 'one'], :config_paths => config_file2, :root => root.root}.to_yaml
-  #   end
-  # 
-  #   File.open(config_file2, "w") do |file| 
-  #     file << {:load_paths => ['one', 'zero', 'two'], :config_paths => config_file3, :root => root.root}.to_yaml
-  #   end
-  #   
-  #   File.open(config_file3, "w") do |file| 
-  #     file << {:load_paths => ['three', 'one', 'zero', 'two'], :root => root.root}.to_yaml
-  #   end
-  #   
-  #   e.configure({:load_paths => ['zero'], :config_paths => config_file1}, root)
-  #   assert_equal [root['zero'], root['one'], root['two'], root['three']], e.load_paths
-  # end
-  # 
-  # #
-  # # load_config test
-  # #
-  # 
-  # def test_load_config_configures_using_configs_from_file
-  #   config_file = method_tempfile
-  #   File.open(config_file, "w") do |file| 
-  #     file << {:debug => true}.to_yaml
-  #   end
-  #   
-  #   assert !e.debug
-  #   e.load_config(config_file)
-  #   assert e.debug
-  # end
-  # 
-  # def test_loaded_config_files_are_added_to_config_paths
-  #   config_file = method_tempfile
-  #   e.load_config(config_file)
-  #   assert e.config_paths.include?(config_file)
-  # end
-  # 
-  # def test_load_config_reassigns_root_to_config_file_directory_unless_root_is_a_loaded_config
-  #   config_file = method_tempfile
-  #   File.open(config_file, "w") {|file| file << {:load_paths => ['lib']}.to_yaml }
-  #   
-  #   e.load_config(config_file)
-  #   assert_equal [method_filepath(:output, 'lib')], e.load_paths
-  # end
-  # 
-  # def test_config_file_for_load_config_does_not_need_to_exist
-  #   config_file = method_tempfile
-  #   assert_nothing_raised { e.load_config(config_file) }
-  # end
-  # 
-  # def test_load_config_appends_DEFAULT_CONFIG_FILE_to_directory_configs_files
-  #   dir = File.dirname(__FILE__)
-  #   assert File.directory?(dir)
-  #   e.load_config(dir)
-  #   assert e.config_paths.include?( File.expand_path(File.join(dir, Tap::Env::DEFAULT_CONFIG_FILE)) )
-  # end
-  
   #
-  # recursive_context test
+  # env_path test 
   #
   
-  # def test_in_recursive_context_is_true_if_in_recursive_context
-  #   assert !e.in_recursive_context?
-  #   
-  #   e.recursive_context do
-  #     assert e.in_recursive_context?
-  #     
-  #     e.recursive_context do
-  #       assert e.in_recursive_context?
-  #     end
-  #     
-  #     assert e.in_recursive_context?
-  #   end
-  #   
-  #   assert !e.in_recursive_context?
-  # end
+  def test_env_path_returns_the_Env_instances_path_for_self
+    Tap::Env.instances['/path'] = e
+    assert_equal '/path', e.env_path
+  end
   
+  def test_env_path_returns_nil_if_self_is_not_in_Env_instances
+    assert_equal({}, Tap::Env.instances)
+    assert_nil e.env_path
+  end
+  
+  def test_env_path_raises_error_if_multiple_paths_key_self_in_instances
+    Tap::Env.instances['/path'] = e
+    Tap::Env.instances['/alt'] = e
+    assert_raise(RuntimeError) { e.env_path }
+  end
+  
+  #
+  # env_paths test
+  #
+  
+  def test_set_env_paths_instantiates_and_sets_envs
+    assert_equal [], e.envs
+    e.env_paths = ["path/to/file.yml", "path/to/dir"]
+    
+    e1 = Tap::Env.instances[File.expand_path("path/to/file.yml")]
+    e2 = Tap::Env.instances[File.expand_path( "path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}")]
+    
+    assert_equal [e1, e2], e.envs
+  end
+  
+  def test_set_env_paths_expands_and_sets_env_paths
+    assert_equal [], e.env_paths
+    e.env_paths = ["path/to/file.yml", "path/to/dir"]
+    assert_equal [File.expand_path("path/to/file.yml"), File.expand_path( "path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}")], e.env_paths
+  end
+  
+  def test_duplicate_envs_and_env_paths_are_filtered
+    e.env_paths = ["path/to/dir/tap.yml", "path/to/dir"]
+
+    path = File.expand_path( "path/to/dir/tap.yml" )
+    e1 = Tap::Env.instances[path]
+    
+    assert_equal [path], e.env_paths
+    assert_equal [e1], e.envs
+  end
+  
+  #
+  # reconfigure test
+  #
+  
+  def test_reconfigure_reconfigures_root_before_reconfiguring_self
+    assert_not_equal 'alt', root['lib']
+    e.reconfigure({:load_paths => ['lib'], :directories => {'lib' => 'alt'}})
+    
+    assert_not_equal 'alt', root['lib']
+    assert_equal [root['alt']], e.load_paths
+  end
+  
+  def test_reconfigure_symbolizes_keys
+    e.reconfigure({'load_paths' => ['lib'], 'directories' => {'lib' => 'alt'}})
+    assert_equal [root['alt']], e.load_paths
+  end
+
+  def test_unused_configs_are_yielded_to_block
+    was_in_block = false
+    e.reconfigure(:another => :value) do |other_configs|
+      was_in_block = true
+      assert_equal({:another => :value}, other_configs)
+    end
+    
+    assert was_in_block
+  end
+  
+  def test_reconfigure_yields_to_block_even_if_no_other_configs_are_present
+    was_in_block = false
+    e.reconfigure({}) do |other_configs|
+      was_in_block = true
+      assert_equal({}, other_configs)
+    end
+    
+    assert was_in_block
+  end
+  
+  def test_configure_logs_unused_configs_if_no_block_is_given
+    e.logger = MockLogger.new
+    e.reconfigure(:unused => :value)
+    
+    assert_equal [[Logger::DEBUG, "ignoring non-env configs: unused", "warn"]], e.logger
+  end
+  
+  def test_reconfigure_recursively_loads_env_paths
+    config_file1 = method_tempfile
+    config_file2 = method_tempfile
+    config_file3 = method_tempfile
+    
+    File.open(config_file1, "w") do |file| 
+      file << {:env_paths => config_file2}.to_yaml
+    end
+  
+    File.open(config_file2, "w") do |file| 
+      file << {:env_paths => config_file3}.to_yaml
+    end
+    
+    File.open(config_file3, "w") do |file| 
+    end
+    
+    e.reconfigure({:env_paths => config_file1})
+    
+    assert_equal [Tap::Env.instances[config_file1]], e.envs
+    assert_equal [Tap::Env.instances[config_file2]], e.envs[0].envs
+    assert_equal [Tap::Env.instances[config_file3]], e.envs[0].envs[0].envs
+  end
+  
+  def test_recursive_loading_does_not_infinitely_loop
+    config_file1 = method_tempfile
+    config_file2 = method_tempfile
+    
+    File.open(config_file1, "w") do |file| 
+      file << {:env_paths => config_file2}.to_yaml
+    end
+  
+    File.open(config_file2, "w") do |file| 
+      file << {:env_paths => config_file1}.to_yaml
+    end
+    
+    assert_nothing_raised { e.reconfigure({:env_paths => config_file1}) }
+    
+    assert_equal [Tap::Env.instances[config_file1]], e.envs
+    assert_equal [Tap::Env.instances[config_file2]], e.envs[0].envs
+    assert_equal [Tap::Env.instances[config_file1]], e.envs[0].envs[0].envs
+  end
+ 
   # #
   # # commands test 
   # #

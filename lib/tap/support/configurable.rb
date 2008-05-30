@@ -62,13 +62,15 @@ module Tap
       
       # Reconfigures self with the given configuration overrides.  Only
       # the specified configs are modified.  Override keys are symbolized.
+      #
+      # Returns self.
       def reconfigure(overrides={})
         keys = (config.class_config.ordered_keys + overrides.keys) & overrides.keys
         keys.each do |key|
           config[key.to_sym] = overrides[key] 
         end
 
-        config
+        self
       end
       
       protected
