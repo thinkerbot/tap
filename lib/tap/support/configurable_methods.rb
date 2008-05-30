@@ -60,7 +60,9 @@ module Tap
         super
         child.instance_variable_set(:@configurations, ClassConfiguration.new(child, @configurations))
       end
-
+      
+      protected
+      
       # Declares a class configuration and generates the associated accessors. 
       # If a block is given, the :key= method will set @key to the return of
       # the block.  Configurations are inherited, and can be overridden in 
@@ -147,9 +149,7 @@ module Tap
           attr_writer(key)
         end
       end
-      
-      protected
-      
+
       # Alias for Tap::Support::Validation
       def c
         Validation

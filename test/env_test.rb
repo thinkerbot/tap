@@ -10,7 +10,12 @@ class EnvTest < Test::Unit::TestCase
   
   def setup
     super
-
+    
+    @current_instance = Tap::Env.instance
+    @current_instances = Tap::Env.instances.dup
+    Tap::Env.send(:class_variable_set, :@@instances , {})
+    Tap::Env.send(:class_variable_set, :@@instance, nil)
+    
     @current_load_paths = $LOAD_PATH.dup
     $LOAD_PATH.clear
 
@@ -21,7 +26,8 @@ class EnvTest < Test::Unit::TestCase
   def teardown
     super
     
-    Tap::Env.send(:class_variable_set, :@@instance, nil)
+    Tap::Env.send(:class_variable_set, :@@instances , @current_instances)
+    Tap::Env.send(:class_variable_set, :@@instance, @current_instance)
     $LOAD_PATH.clear
     $LOAD_PATH.concat(@current_load_paths)
   end
@@ -52,59 +58,95 @@ class EnvTest < Test::Unit::TestCase
   # end
   
   #
-  # read_config test 
+  # Env#read_config test 
   #
   
   def test_read_config_templates_then_loads_config
     config_file = method_tempfile
     
     File.open(config_file, "wb") {|f| f << "sum: <%= 1 + 2 %>" }
-    assert_equal({'sum' => 3}, e.read_config(config_file))
+    assert_equal({'sum' => 3}, Tap::Env.read_config(config_file))
   end
   
   def test_read_config_returns_empty_hash_for_non_existant_nil_and_false_files
     config_file = method_tempfile
     
     assert !File.exists?(config_file)
-    assert_equal({}, e.read_config(config_file))
+    assert_equal({}, Tap::Env.read_config(config_file))
     
     FileUtils.touch(config_file)
-    assert_equal({}, e.read_config(config_file))
+    assert_equal({}, Tap::Env.read_config(config_file))
     
     File.open(config_file, "wb") {|f| f << nil.to_yaml }
     assert_equal(nil, YAML.load_file(config_file))
-    assert_equal({}, e.read_config(config_file))
+    assert_equal({}, Tap::Env.read_config(config_file))
     
     File.open(config_file, "wb") {|f| f << false.to_yaml }
     assert_equal(false, YAML.load_file(config_file))
-    assert_equal({}, e.read_config(config_file))
+    assert_equal({}, Tap::Env.read_config(config_file))
   end
   
   def test_read_config_raises_error_for_non_hash_result
     config_file = method_tempfile
     
     File.open(config_file, "wb") {|f| f << [].to_yaml }
-    assert_raise(RuntimeError) { e.read_config(config_file) }
+    assert_raise(RuntimeError) { Tap::Env.read_config(config_file) }
     
     File.open(config_file, "wb") {|f| f << "just a string" }
-    assert_raise(RuntimeError) { e.read_config(config_file) }
+    assert_raise(RuntimeError) { Tap::Env.read_config(config_file) }
   end
   
   #
-  # full_gem_path test
+  # Env#full_gem_path test
   #
   
   # def test_full_gem_path_returns_the_full_gem_path_for_the_specified_gem
   #   assert !Gem.loaded_specs.empty?
   #   gem_name, gem_spec = Gem.loaded_specs.to_a.first
-  #   assert_equal gem_spec.full_gem_path, e.full_gem_path(gem_name)
+  #   assert_equal gem_spec.full_gem_path, Tap::Env.full_gem_path(gem_name)
   # end
   # 
   # def test_full_gem_path_accepts_versions
   #   assert !Gem.loaded_specs.empty?
   #   gem_name, gem_spec = Gem.loaded_specs.to_a.first
-  #   assert_equal gem_spec.full_gem_path, e.full_gem_path(" #{gem_name} >= #{gem_spec.version} ")
+  #   assert_equal gem_spec.full_gem_path, Tap::Env.full_gem_path(" #{gem_name} >= #{gem_spec.version} ")
   # end
+  
+  #
+  # Env#instantiate
+  #
+  
+  def test_instantiate_doc
+    e1 = Tap::Env.instantiate("./path/to/config.yml")
+    e2 = Tap::Env.instantiate("./path/to/dir")
+
+    assert_equal({
+     File.expand_path("./path/to/config.yml") => e1, 
+     File.expand_path("./path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}") => e2 },  
+    Tap::Env.instances)
+  end
+  
+  def test_instantiate_adds_new_env_to_instances_by_expanded_path
+    assert Tap::Env.instances.empty?
+    e = Tap::Env.instantiate("path.yml")
+    assert_equal({File.expand_path("path.yml") => e}, Tap::Env.instances)
+  end
+  
+  def test_instantiate_returns_env_with_root_directed_at_expaned_path_directory
+    e = Tap::Env.instantiate("path.yml")
+    assert_equal(File.dirname(File.expand_path("path.yml")), e.root.root)
+  end
+  
+  def test_instantiate_appends_DEFAULT_CONFIG_FILE_to_directories
+    e = Tap::Env.instantiate("path")
+    assert_equal({File.expand_path("path/#{Tap::Env::DEFAULT_CONFIG_FILE}") => e}, Tap::Env.instances)
+  end
+  
+  def test_instantiate_returns_existing_env_in_instances
+    e = Tap::Env.new
+    Tap::Env.instances[File.expand_path("path.yml")] = e
+    assert_equal(e, Tap::Env.instantiate("path.yml"))
+  end
    
   #
   # initialization tests
@@ -146,23 +188,23 @@ class EnvTest < Test::Unit::TestCase
     assert !e.activate
   end
   
-  # def test_activate_freezes_array_configs
-  #   e.config.each_pair do |key, value|
-  #     next unless value.kind_of?(Array)
-  #     assert !value.frozen?
-  #   end
-  # 
-  #   e.activate
-  #   
-  #   count = 0
-  #   e.config.each_pair do |key, value|
-  #     next unless value.kind_of?(Array)
-  #     assert value.frozen?
-  #     count += 1
-  #   end
-  #   
-  #   assert count > 1
-  # end
+  def test_activate_freezes_array_configs
+    e.config.each_pair do |key, value|
+      next unless value.kind_of?(Array)
+      assert !value.frozen?
+    end
+  
+    e.activate
+    
+    count = 0
+    e.config.each_pair do |key, value|
+      next unless value.kind_of?(Array)
+      assert value.frozen?
+      count += 1
+    end
+    
+    assert count > 0
+  end
   
   def test_activate_unshifts_load_paths_to_load_path_targets
     assert_equal [$LOAD_PATH], e.load_path_targets
@@ -187,11 +229,11 @@ class EnvTest < Test::Unit::TestCase
     assert_equal ["/path/to/lib", "/path/to/another/lib", "post"], $LOAD_PATH
   end
   
-  def test_activate_assigns_self_as_Env_instance
-    assert_nil Tap::Env.instance
-    e.activate
-    assert_equal e, Tap::Env.instance
-  end
+  # def test_activate_assigns_self_as_Env_instance
+  #   assert_nil Tap::Env.instance
+  #   e.activate
+  #   assert_equal e, Tap::Env.instance
+  # end
   
   #
   # deactivate test
@@ -207,25 +249,25 @@ class EnvTest < Test::Unit::TestCase
     assert e.deactivate
   end
   
-  # def test_deactivate_unfreezes_array_configs
-  #   e.activate
-  #   
-  #   e.config.each_pair do |key, value|
-  #     next unless value.kind_of?(Array)
-  #     assert value.frozen?
-  #   end
-  #   
-  #   e.deactivate
-  #   
-  #   count = 0
-  #   e.config.each_pair do |key, value|
-  #     next unless value.kind_of?(Array)
-  #     assert !value.frozen?
-  #     count += 1
-  #   end
-  #   
-  #   assert count > 1
-  # end
+  def test_deactivate_unfreezes_array_configs
+    e.activate
+    
+    e.config.each_pair do |key, value|
+      next unless value.kind_of?(Array)
+      assert value.frozen?
+    end
+    
+    e.deactivate
+    
+    count = 0
+    e.config.each_pair do |key, value|
+      next unless value.kind_of?(Array)
+      assert !value.frozen?
+      count += 1
+    end
+    
+    assert count > 0
+  end
   
   def test_deactivate_removes_load_paths_from_load_path_targets
     assert_equal [$LOAD_PATH], e.load_path_targets
@@ -259,11 +301,11 @@ class EnvTest < Test::Unit::TestCase
   # activate/deactivate test
   #
   
-  def test_env_is_active_if_env_is_Env_instance
-    assert !e.active?
-    Tap::Env.send(:class_variable_set, :@@instance, e)
-    assert e.active?
-  end
+  # def test_env_is_active_if_env_is_Env_instance
+  #   assert !e.active?
+  #   Tap::Env.send(:class_variable_set, :@@instance, e)
+  #   assert e.active?
+  # end
   
   def test_activate_is_toggled_by_activate_and_deactivate
     e.activate
@@ -282,28 +324,82 @@ class EnvTest < Test::Unit::TestCase
     assert_equal current_configs, e.config
   end
   
-  def test_config_modification_through_accessors_raise_error_when_active
+  def test_path_config_modification_through_accessors_raise_error_when_active
     e.activate
-    #assert_raise(RuntimeError) { e.debug = true }
     assert_raise(RuntimeError) { e.load_paths = [] }
   end
   
-  def test_activate_deactivates_Env_instance_if_necessary
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+  def test_recursive_activate_and_dectivate
+    e1 = Tap::Env.new
+    e1.load_paths = ["/path/to/e1"]
+    e.envs << e1
+    
+    e2 = Tap::Env.new
+    e2.load_paths = ["/path/to/e2"]
+    e1.envs << e2
+    
+    e3 = Tap::Env.new
+    e3.load_paths = ["/path/to/e3"]
+    e.envs << e3
+    
+    e.load_paths = ["/path/to/e"]
     $LOAD_PATH.clear
-    assert e.activate
-    assert_equal e, Tap::Env.instance
+    e.activate
     
-    alt = Tap::Env.new
-    alt.load_paths = ["/alt/path/to/lib", "/alt/path/to/another/lib"]
-    assert alt.activate
-    assert_equal alt, Tap::Env.instance
+    assert e1.active?
+    assert e2.active?
+    assert e3.active?
+    assert_equal ["/path/to/e", "/path/to/e1", "/path/to/e2",  "/path/to/e3"], $LOAD_PATH
     
-    assert !e.active?
-    assert alt.active?
-    assert((e.load_paths & $LOAD_PATH).empty?)
-    assert_equal $LOAD_PATH, alt.load_paths
+    e.deactivate
+    
+    assert !e1.active?
+    assert !e2.active?
+    assert !e3.active?
+    assert_equal [], $LOAD_PATH
   end
+  
+  def test_recursive_activate_and_dectivate_with_infinite_loop_does_not_cause_error
+    e1 = Tap::Env.new
+    e1.load_paths = ["/path/to/e1"]
+    e.envs << e1
+    
+    e2 = Tap::Env.new
+    e2.load_paths = ["/path/to/e2"]
+    e1.envs << e2
+    e2.envs << e
+    
+    e.load_paths = ["/path/to/e"]
+    $LOAD_PATH.clear
+    e.activate
+    
+    assert e1.active?
+    assert e2.active?
+    assert_equal ["/path/to/e", "/path/to/e1", "/path/to/e2"], $LOAD_PATH
+    
+    e.deactivate
+    
+    assert !e1.active?
+    assert !e2.active?
+    assert_equal [], $LOAD_PATH
+  end
+    
+  # def test_activate_deactivates_Env_instance_if_necessary
+  #   e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+  #   $LOAD_PATH.clear
+  #   assert e.activate
+  #   assert_equal e, Tap::Env.instance
+  #   
+  #   alt = Tap::Env.new
+  #   alt.load_paths = ["/alt/path/to/lib", "/alt/path/to/another/lib"]
+  #   assert alt.activate
+  #   assert_equal alt, Tap::Env.instance
+  #   
+  #   assert !e.active?
+  #   assert alt.active?
+  #   assert((e.load_paths & $LOAD_PATH).empty?)
+  #   assert_equal $LOAD_PATH, alt.load_paths
+  # end
   
   # #
   # # configure test
@@ -506,21 +602,21 @@ class EnvTest < Test::Unit::TestCase
   # recursive_context test
   #
   
-  def test_in_recursive_context_is_true_if_in_recursive_context
-    assert !e.in_recursive_context?
-    
-    e.recursive_context do
-      assert e.in_recursive_context?
-      
-      e.recursive_context do
-        assert e.in_recursive_context?
-      end
-      
-      assert e.in_recursive_context?
-    end
-    
-    assert !e.in_recursive_context?
-  end
+  # def test_in_recursive_context_is_true_if_in_recursive_context
+  #   assert !e.in_recursive_context?
+  #   
+  #   e.recursive_context do
+  #     assert e.in_recursive_context?
+  #     
+  #     e.recursive_context do
+  #       assert e.in_recursive_context?
+  #     end
+  #     
+  #     assert e.in_recursive_context?
+  #   end
+  #   
+  #   assert !e.in_recursive_context?
+  # end
   
   # #
   # # commands test 
