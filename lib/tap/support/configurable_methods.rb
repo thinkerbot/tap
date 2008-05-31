@@ -1,4 +1,5 @@
 require 'tap/support/class_configuration'
+require 'tap/support/validation'
 
 module Tap
   module Support
@@ -141,12 +142,18 @@ module Tap
           end
         end
         
-        attr_reader(key) if reader
+        if reader
+          attr_reader(key) 
+          public key
+        end
+        
         case
         when block_given? 
           define_method("#{key}=", &block)
+          public "#{key}="
         when writer
           attr_writer(key)
+          public "#{key}="
         end
       end
 

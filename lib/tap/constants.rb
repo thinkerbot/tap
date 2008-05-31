@@ -36,7 +36,7 @@ module Tap
         # a check is necessary to maintain the 1.8 behavior  
         # of lookup_const in 1.9, where ancestor constants 
         # may be returned by a direct evaluation
-        class_name.split("::").inject(Object) do |current, const|
+        const_name.split("::").inject(Object) do |current, const|
           const = const.to_sym
 
           current.const_get(const).tap do |c|
