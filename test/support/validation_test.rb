@@ -78,4 +78,40 @@ class ValidationTest < Test::Unit::TestCase
     end
   end
   
+  #
+  # boolean test
+  #
+  
+  def test_boolean_documentation
+    assert_equal Proc, boolean.class
+    assert_equal true, boolean.call(true)
+    assert_equal false, boolean.call(false)
+  
+    assert_equal true, boolean.call('true')
+    assert_equal true, boolean.call('yes')
+    assert_equal nil, boolean.call(nil) 
+    assert_equal false,boolean.call('FALSE')
+  
+    assert_raise(ValidationError) { boolean.call(1) }
+    assert_raise(ValidationError) { boolean.call("str") }
+  end
+  
+  def test_boolean_block_converts_input_to_boolean_using_yaml_and_checks_result
+    assert_equal Proc, boolean.class
+    
+    assert_equal true, boolean.call(true)
+    assert_equal true, boolean.call('true')
+    assert_equal true, boolean.call('TRUE')
+    assert_equal true, boolean.call('yes')
+    
+    assert_equal nil, boolean.call(nil)
+    assert_equal false, boolean.call(false)
+    assert_equal false, boolean.call('false')
+    assert_equal false, boolean.call('FALSE')
+    assert_equal false, boolean.call('no')
+    
+    assert_raise(ValidationError) { boolean.call(10) }
+    assert_raise(ValidationError) { boolean.call("str") }
+  end
+  
 end

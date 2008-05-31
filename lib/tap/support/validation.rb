@@ -84,6 +84,32 @@ module Tap
           validations.empty? ? res : validate(res, validations)
         end
       end
+      
+      # Returns a block that converts an input into a boolean
+      # using YAML (stringifying if needed), then validates 
+      # the result to be true, false or nil.
+      #
+      #   boolean.class           # => Proc
+      #   boolean.call(true)      # => true
+      #   boolean.call(false)     # => false
+      #   boolean.call(nil)       # => nil
+      #
+      #   # since the input is loaded as yaml, some variations...
+      #   boolean.call('true')    # => true
+      #   boolean.call('yes')     # => true
+      #   boolean.call('FALSE')   # => false
+      #
+      #   b.call(1)               # => ValidationError
+      #   b.call("str")           # => ValidationError
+      #
+      def boolean
+        lambda do |input|
+          case input
+          when true, false, nil then input
+          else validate(YAML.load(input.to_s), [true, false, nil])
+          end
+        end
+      end
     end
   end
 end

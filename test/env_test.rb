@@ -113,6 +113,25 @@ class EnvTest < Test::Unit::TestCase
   # end
   
   #
+  # active_config tests
+  #
+  
+  class ActiveConfigEnv < Tap::Env
+    active_config(:test, 'test') {}
+  end
+  
+  def test_set_active_config_raises_error_when_active
+    e = ActiveConfigEnv.new
+    e.activate
+    assert_raise(RuntimeError) { e.test = "value" }
+  end
+  
+  def test_active_config_raises_error_when_no_block_is_given
+    assert_nothing_raised { ActiveConfigEnv.send(:active_config, :with_block, 'value') {} }
+    assert_raise(ArgumentError) { ActiveConfigEnv.send(:active_config, :without_block, 'value') }
+  end
+  
+  #
   # path_config tests
   #
   
@@ -138,6 +157,40 @@ class EnvTest < Test::Unit::TestCase
   def test_path_configs_ignore_nil_values
     e = PathConfigEnv.new({:test_paths => nil}, root)
     assert_equal [], e.test_paths
+  end
+  
+  def test_set_path_config_raises_error_when_active
+    e = PathConfigEnv.new
+    e.activate
+    assert_raise(RuntimeError) { e.test_paths = "value" }
+  end
+  
+  #
+  # manifest test
+  #
+  
+  class ManifestEnv < Tap::Env
+    path_config(:test_paths)
+    manifest(:tests, :test_paths) do |tests, test_path|
+      (tests[self.object_id] ||= []) << {:index => tests.values.flatten.length, :path => test_path}
+    end
+  end
+  
+  def test_manifest_defines_protected_discover_manifest_method
+    e = ManifestEnv.new
+    assert e.respond_to?(:discover_tests)
+    assert ManifestEnv.protected_instance_methods.collect {|m| m.to_sym }.include?(:discover_tests)
+  end
+  
+  def test_manifest_visits_each_env_in_envs_in_reverse_order
+    e = ManifestEnv.new :test_paths => ['/one', '/two']
+    e1 = ManifestEnv.new :test_paths => ['/three', '/four']
+    
+    e.envs << e1
+    assert_equal({
+      e1.object_id => [{:index => 0, :path => '/three'}, {:index => 1, :path => '/four'}],
+      e.object_id => [{:index => 2, :path => '/one'}, {:index => 3, :path => '/two'}]
+    }, e.tests)
   end
   
   #
@@ -422,24 +475,7 @@ class EnvTest < Test::Unit::TestCase
     assert !e2.active?
     assert_equal [], $LOAD_PATH
   end
-    
-  # def test_activate_deactivates_Env_instance_if_necessary
-  #   e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
-  #   $LOAD_PATH.clear
-  #   assert e.activate
-  #   assert_equal e, Tap::Env.instance
-  #   
-  #   alt = Tap::Env.new
-  #   alt.load_paths = ["/alt/path/to/lib", "/alt/path/to/another/lib"]
-  #   assert alt.activate
-  #   assert_equal alt, Tap::Env.instance
-  #   
-  #   assert !e.active?
-  #   assert alt.active?
-  #   assert((e.load_paths & $LOAD_PATH).empty?)
-  #   assert_equal $LOAD_PATH, alt.load_paths
-  # end
-  
+
   #
   # env_path test 
   #
@@ -452,12 +488,6 @@ class EnvTest < Test::Unit::TestCase
   def test_env_path_returns_nil_if_self_is_not_in_Env_instances
     assert_equal({}, Tap::Env.instances)
     assert_nil e.env_path
-  end
-  
-  def test_env_path_raises_error_if_multiple_paths_key_self_in_instances
-    Tap::Env.instances['/path'] = e
-    Tap::Env.instances['/alt'] = e
-    assert_raise(RuntimeError) { e.env_path }
   end
   
   #
@@ -517,6 +547,11 @@ class EnvTest < Test::Unit::TestCase
     assert was_in_block
   end
   
+  def test_reconfigure_raises_error_when_active
+    e.activate
+    assert_raise(RuntimeError) { e.reconfigure }
+  end
+  
   def test_reconfigure_yields_to_block_even_if_no_other_configs_are_present
     was_in_block = false
     e.reconfigure({}) do |other_configs|
@@ -574,6 +609,44 @@ class EnvTest < Test::Unit::TestCase
     assert_equal [Tap::Env.instances[config_file1]], e.envs
     assert_equal [Tap::Env.instances[config_file2]], e.envs[0].envs
     assert_equal [Tap::Env.instances[config_file1]], e.envs[0].envs[0].envs
+  end
+  
+  #
+  # each test
+  #
+  
+  def test_each_yields_each_env_in_order
+    e1 = Tap::Env.new
+    e2 = Tap::Env.new
+    e3 = Tap::Env.new
+
+    e.envs << e1
+    e.envs << e3
+    e1.envs << e2
+    
+    envs = []
+    e.each {|env| envs << env}
+    
+    assert_equal [e, e1, e2, e3], envs
+  end
+  
+  #
+  # reverse_each test 
+  #
+  
+  def test_reverse_each_yields_each_env_in_reverse_order
+    e1 = Tap::Env.new
+    e2 = Tap::Env.new
+    e3 = Tap::Env.new
+
+    e.envs << e1
+    e.envs << e3
+    e1.envs << e2
+    
+    envs = []
+    e.reverse_each {|env| envs << env}
+    
+    assert_equal [e3, e2, e1, e], envs
   end
  
   # #

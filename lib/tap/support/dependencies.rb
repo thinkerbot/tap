@@ -16,15 +16,3 @@ class Hash #:nodoc:
 end
 
 require 'active_support/dependencies'
-
-# 
-# # Returns a list of arrays that receive load_paths on activate,
-# # by default [$LOAD_PATH]. If use_dependencies == true, then
-# # Dependencies.load_paths will also be included.
-# def load_path_targets
-#   if use_dependencies 
-#     [$LOAD_PATH, Dependencies.load_paths]
-#   else 
-#     [$LOAD_PATH]
-#   end
-# end
