@@ -261,12 +261,12 @@ module Tap
         tasks[name] = {:class_name => class_name, :path => path, :load_path => load_path, :env => self}
       end
     end
-   
     
+    # A hash of the default tap commands.
     DEFAULT_COMMANDS = {}
     Dir.glob(File.dirname(__FILE__) + "/cmd").each do |path|
       cmd = File.basename(path).chomp(".rb")
-      DEFAULT_COMMANDS[cmd] = path
+      DEFAULT_COMMANDS[cmd] = File.expand_path(path)
     end
     
     # --
@@ -278,18 +278,25 @@ module Tap
       root.glob(command_path, "**/*.rb").each do |path|
         cmd = root.relative_filepath(command_path, path).chomp(".rb")
         if commands.include?(cmd)
-          raise "command path confict: overriding '#{commands[cmd]}' with '#{path}' (#{cmd})"
+          log :warn, "command name confict: #{cmd} (overriding '#{commands[cmd]}' with '#{path}')", Logger::DEBUG
         end
         
         commands[cmd] = path
       end
     end
 
-    manifest(:generators, :generator_paths) do |generators, generator_path|
+    # A hash of the default tap generators.
+    DEFAULT_GENERATORS = {}
+    Dir.glob(File.dirname(__FILE__) + "/generator/generators/*/*_generator.rb").each do |path|
+      generator = File.basename(path).chomp("_generator.rb")
+      DEFAULT_GENERATORS[generator] = File.expand_path(path)
+    end
+
+    manifest(:generators, :generator_paths, DEFAULT_GENERATORS) do |generators, generator_path|
       root.glob(generator_path, "**/*_generator.rb").each do |path|
-        generator = root.relative_filepath(command_path, path).chomp("_generator.rb")
+        generator = root.relative_filepath(generator_path, path).chomp("_generator.rb")
         if generators.include?(cmd)
-          raise "generator path confict: overriding '#{generators[generator]}' with '#{path}' (#{generator})"
+          log :warn, "generator name confict: #{generator} (overriding '#{generators[cmd]}' with '#{path}')", Logger::DEBUG
         end
         
         generators[generator] = path

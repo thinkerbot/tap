@@ -1,26 +1,22 @@
-# = Usage
 # tap console {options}
 #
-# = Description
-# Opens up an IRB session with Tap initialized with configurations 
-# in tap.yml. Access the Tap::App.instance through 'app'
-#
+# Opens up an IRB session with Tap initialized to the configurations 
+# in tap.yml. Access the Tap::App.instance through 'app'.
 
 #
 # handle options
 #
 
-opts = [
-  ['--help', '-h', GetoptLong::NO_ARGUMENT, "Print this help."]]
-  
-Tap::Support::CommandLine.handle_options(*opts) do |opt, value| 
-  case opt
-  when '--help'
-    puts Tap::Support::CommandLine.command_help(__FILE__, opts)
-    exit
+OptionParser.new do |opts|
+  opts.separator ""
+  opts.separator "options:"
 
+  opts.on("-h", "--help", "Show this message") do
+    opts.banner = Tap::Support::TDoc.usage(__FILE__)
+    puts opts
+    exit
   end
-end
+end.parse!(ARGV)
 
 require "irb"
 
