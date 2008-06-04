@@ -25,7 +25,7 @@ OptionParser.new do |opts|
     exit
   end
   
-  opts.on('-T', '--task-manifest', 'Print a list of available tasks.') do |v|
+  opts.on('-T', '--task-manifest', 'Print a list of available tasks') do |v|
     manifest = app.manifest.auto_discover(app, env.load_paths).to_hash
 
     widths = []
@@ -85,22 +85,27 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
     when 'rake', nil  
       # remove --help as this will print the Rake help
       ARGV.delete_if do |arg|
-        if arg == "--help"
-          env.log(:warn, "ignoring --help option for rake command") 
-          true
+        case arg 
+        when "--help"
+          env.log(:warn, "ignoring --help option for rake command")
         else
-          false
+          next(false)
         end
+        
+        true
       end
  
       rake_app = env.rake_setup if rake_app == nil
-      rake_app.argv_enq(app)
-  
+      rake_app.top_level_tasks.each do |task_name|
+        app.enq(rake_app[task_name])
+      end
+      
     else  
       begin
         # attempt lookup the task class
-        task_class = app.task_class(td)
-      rescue(Tap::App::LookupError)
+        task_class = td.camelize.constantize
+      rescue(NameError)
+        env.log(:warn, "NameError: #{$!.message}", Logger::DEBUG)
       end
 
       # unless a Tap::Task was found, treat the

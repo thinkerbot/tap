@@ -1,19 +1,58 @@
-require 'rubygems'
-
-require  File.join(File.dirname(__FILE__), '/../tap_test_helper')
+require File.join(File.dirname(__FILE__), 'tap_test_helper')
 require 'tap/test/script_methods'
 
-class TapExecutableTest < Test::Unit::TestCase
+class TapTest < Test::Unit::TestCase
   acts_as_script_test :directories => {:output => 'output'}
   
-  TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/tap")
+  TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../bin/tap")
   
   def test_help_and_documentation
     script_test do |cmd|
       cmd.command_path = %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
-      cmd.check " --help", "Prints help for the executable" 
-      cmd.check " run --help", "Prints help for run" 
-      cmd.check " run", "Prints no task specified" 
+      cmd.check " --help", "Prints help for the executable", %Q{
+usage: tap <command> {options} [args]
+
+examples:
+  tap generate root .                  # generates a root dir
+  tap run taskname --option input      # runs the 'taskname' task
+
+help:
+  tap help                             # prints this help
+  tap command --help                   # prints help for 'command'
+
+available commands:
+  cmd
+  console
+  destroy
+  generate
+  help
+  run
+  server
+
+version 0.9.2 -- http://tap.rubyforge.org
+}
+      
+      cmd.check " run --help", "Prints help for run", %Q{
+tap run {options} -- {task options} task INPUTS...
+
+examples:
+  tap run --help                     Prints this help
+  tap run -- task --help             Prints help for task
+
+options:
+    -h, --help                       Show this message
+    -T, --task-manifest              Print a list of available tasks
+    -d, --debug                      Trace execution and debug
+        --force                      Force execution at checkpoints
+        --dump                       Specifies a default dump task
+        --[no-]rake                  Enables or disables rake task handling
+        --quiet                      Suppress logging
+}
+
+      cmd.check " run", "Prints no task specified", %Q{
+no task specified
+}
+
       cmd.check " run unknown", "Prints unknown task" 
       cmd.check " generate root", "Prints root generator documentation" 
     end
@@ -60,7 +99,7 @@ class TapExecutableTest < Test::Unit::TestCase
       cmd.check " run -- rake -T", "Prints rake tasks"
       cmd.check " run rake", "Runs default rake task ('test')"
       cmd.check " run test", "Runs test"
-
+  
       cmd.check " run -- sample --help", "Prints the sample task help" 
       cmd.check " run sample", "Runs the sample task causing an error" 
       cmd.check " run sample one two", "Runs the sample task causing an error" 
@@ -82,7 +121,7 @@ class TapExecutableTest < Test::Unit::TestCase
       
       cmd.check " generate task sample/task", "Generates a task"
       cmd.check " run -- sample/task --key=value input", "Run the task"
-      cmd.check " console", "Console Interaction"
+      #cmd.check " console", "Console Interaction"
       cmd.check " destroy task sample/task", "Destroys a task" do
         assert_equal [], method_glob(:output, "**/*")
       end

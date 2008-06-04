@@ -54,7 +54,7 @@ Rake::TestTask.new(:test) do |t|
     Dir.glob( File.join('test',  "**/*#{ENV['check']}*_check.rb") )
   else
     Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
-      filename =~ /test\/check/
+      filename =~ /test\/check/ || filename =~ /test\/tap\/.*/
     end
   end
   
