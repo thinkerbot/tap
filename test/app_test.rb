@@ -210,8 +210,7 @@ o-[add_five] 8
     assert_equal Dir.pwd, app.root
     assert_equal({}, app.directories)
     assert_equal({}, app.options.marshal_dump)
-    assert_equal({}, app.manifest)
-    
+
     assert_equal(Support::ExecutableQueue, app.queue.class)
     assert app.queue.empty?
     
@@ -231,8 +230,7 @@ o-[add_five] 8
       :root => File.expand_path(Dir.pwd),
       :directories => {},
       :absolute_paths => {},
-      :options => OpenStruct.new(),
-      :manifest => {}
+      :options => OpenStruct.new()
     }
     assert_equal expected, app.config
     
@@ -245,8 +243,7 @@ o-[add_five] 8
       :root => File.expand_path(Dir.pwd),
       :directories => {:lib => 'alt/lib'},
       :absolute_paths => {:abs => File.expand_path('/absolute/path')},
-      :options => OpenStruct.new(:trace => true),
-      :manifest => {}
+      :options => OpenStruct.new(:trace => true)
     }
 
     assert_equal expected, app.config
@@ -298,23 +295,6 @@ o-[add_five] 8
     assert_equal({:trace => true}, app.options.marshal_dump)
   end
 
-  def test_reconfigure_manifest_sets_manifest
-    app = App.new
-    assert_equal({}, app.manifest)
-    app.reconfigure :manifest => {'some/task_name' => 'Tap::Task'}
-    assert_equal({'some/task_name' => Support::ManifestSpec.new('some/task_name', :class_name => 'Tap::Task')}, app.manifest)
-  end
-  
-  #
-  # lookup_const test
-  #
-  
-  def test_lookup_const_does_not_mishandle_top_level_constants
-    assert !Object.const_defined?('LookupModule')
-    Object.const_set('LookupModule', Module.new)
-    assert_raise(Tap::App::LookupError) { app.lookup_const('lookup_module/file') }
-  end
-
   #
   # set logger tests
   #
@@ -332,109 +312,6 @@ o-[add_five] 8
   # TODO -- Add logging tests
   #
 
-  #
-  # task_class tests
-  #
-  
-  class TaskSubClass < Task
-  end
-  
-  class AnotherTask < Task
-  end
-  
-  def test_task_class_documentation
-    t_class = app.task_class('tap/file_task')
-    assert_equal Tap::FileTask, t_class
-  
-    app.manifest = {"mapped-task" => "Tap::FileTask"}
-    t_class = app.task_class('mapped-task-1.0')
-    assert_equal Tap::FileTask, t_class
-  end
-  
-  #
-  # task tests
-  #
-  
-  def test_task_documentation
-    t = app.task('tap/file_task')
-    assert_equal  Tap::FileTask, t.class      
-    assert_equal 'tap/file_task', t.name 
-
-    app.manifest = {"mapped-task" =>  "Tap::FileTask"}
-  
-    t = app.task('mapped-task-1.0', :key => 'value')
-    assert_equal  Tap::FileTask, t.class      
-    assert_equal "mapped-task-1.0", t.name 
-    assert_equal 'value', t.config[:key]
-  end
-  
-  def test_task_looks_up_and_instantiates_task
-    assert_equal TaskSubClass, app.task("AppTest::TaskSubClass").class
-  end
-  
-  def test_task_instantiates_a_new_task_for_each_call
-    t1 = app.task("AppTest::TaskSubClass")
-    t2 = app.task("AppTest::TaskSubClass")
-    
-    assert_not_equal t1.object_id, t2.object_id
-  end
-  
-  def test_task_translates_task_name_to_class_name_using_manifest_if_possible
-    app.manifest["mapped_name"] = Support::ManifestSpec.new("mapped_name", :class_name => "AppTest::TaskSubClass")
-    assert_equal TaskSubClass, app.task("mapped_name").class
-  end
-  
-  def test_task_translates_task_name_to_class_name_using_camelize_by_default
-    assert_equal TaskSubClass, app.task("app_test/task_sub_class").class
-  end
-  
-  def test_task_name_and_version_is_respected
-    t = app.task("app_test/task_sub_class-1.1")
-    assert_equal TaskSubClass, t.class
-    assert_equal "app_test/task_sub_class-1.1", t.name
-  end
-  
-  def test_task_raises_lookup_error_if_class_cannot_be_found
-    assert_raise(App::LookupError) { app.task("NonExistant") }
-  end
-  
-  #
-  # task_class_name test
-  #
-  
-  def test_task_class_name_documentation
-    app.manifest = {"mapped-task" => "Tap::FileTask"}
-    assert_equal "Some::TaskClass", app.task_class_name('some/task_class')   
-    assert_equal "Tap::FileTask", app.task_class_name('mapped-task-1.0')   
-    
-    t1 = Task.new
-    assert_equal "Tap::Task", app.task_class_name(t1)     
-
-    t2 = ObjectWithExecute.new.extend Tap::Support::Framework
-    assert_equal "ObjectWithExecute", app.task_class_name(t2)    
-  end
-  
-  def test_task_class_name_returns_task_class_name
-    task = Task.new
-    assert_equal "Tap::Task", app.task_class_name(task)
-    
-    subtask = TaskSubClass.new
-    assert_equal "AppTest::TaskSubClass", app.task_class_name(subtask)
-    
-    non_task = ObjectWithExecute.new
-    non_task.extend Tap::Support::Framework
-    assert_equal "ObjectWithExecute", app.task_class_name(non_task)
-  end
-
-  def test_task_class_name_returns_deversioned_name
-    assert_equal "AppTest::TaskSubClass", app.task_class_name("app_test/task_sub_class-1.1")
-  end
-  
-  def test_task_class_name_resolves_names_using_manifest
-    app.manifest = {"mapped-task" => "AnotherTask"}
-    assert_equal "AnotherTask", app.task_class_name("mapped-task-1.1")
-  end
-  
   #
   # each_config_template tests
   #

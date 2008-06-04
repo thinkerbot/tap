@@ -247,17 +247,6 @@ module Tap
       end
     end
     
-    # A hash of (task_name, manifest) pairs used to map task names
-    # to classes, source files, etc.  See Tap::Support::Manifest
-    config(:manifest, {}) do |value|
-      case value
-      when Hash then Support::Manifest.new(value)
-      when Support::Manifest then value
-      when nil then Support::Manifest.new
-      else raise ArgumentError.new("cannot convert to Hash: #{value.class}")
-      end
-    end
-    
     # The shared logger
     attr_reader :logger
     
@@ -315,46 +304,7 @@ module Tap
     
     # True if options.debug or the global variable $DEBUG is true.
     def debug?
-      options.debug || $DEBUG ? true : false
-    end
-    
-    # Looks up the specified constant, dynamically loading via Dependencies
-    # if necessary.  Returns the const_name if const_name is a Module.
-    # Yields to the optional block if the constant cannot be found; otherwise
-    # raises a LookupError.
-    def lookup_const(const_name)
-      return const_name if const_name.kind_of?(Module)
-      
-      begin
-        const_name = const_name.camelize
-        
-        case RUBY_VERSION
-        when /^1.9/
-          
-          # a check is necessary to maintain the 1.8 behavior  
-          # of lookup_const in 1.9, where ancestor constants 
-          # may be returned by a direct evaluation
-          const_name.split("::").inject(Object) do |current, const|
-            const = const.to_sym
-            
-            current.const_get(const).tap do |c|
-              unless current.const_defined?(const, false)
-                raise NameError.new("uninitialized constant #{const_name}") 
-              end
-            end
-          end
-
-        else 
-          const_name.constantize
-        end
-       
-      rescue(NameError)
-        if block_given?
-          yield 
-        else
-          raise LookupError.new("unknown constant: #{const_name}")
-        end
-      end
+      options.debug || $DEBUG
     end
     
     #
@@ -397,76 +347,6 @@ module Tap
         logger.format_add(level, msg, action) do |format| 
           block_given? ? yield(format) : format.chomp("\n")
         end
-      end
-    end
- 
-    #
-    # Task methods
-    #
-    
-    # Instantiates the specifed task with config (if provided).  The task
-    # class is determined by task_class.
-    #
-    #   t = app.task('tap/file_task')
-    #   t.class             # => Tap::FileTask
-    #   t.name              # => 'tap/file_task'
-    #
-    #   app.manifest = {"mapped-task" => "Tap::FileTask"}
-    #   t = app.task('mapped-task-1.0', :key => 'value')
-    #   t.class             # => Tap::FileTask
-    #   t.name              # => "mapped-task-1.0"
-    #   t.config[:key]      # => 'value'
-    #
-    # A new task is instantiated for each call to task; tasks may share the 
-    # same name.  
-    def task(task_name, config={}, &block)
-      task_class(task_name).new(task_name, config, &block) 
-    end
-    
-    # Looks up the specifed task class.  Names are mapped to task classes 
-    # using task_class_name.
-    #
-    #   t_class = app.task_class('tap/file_task')
-    #   t_class             # => Tap::FileTask
-    #
-    #   app.manifest = {"mapped-task" => "Tap::FileTask"}
-    #   t_class = app.task_class('mapped-task-1.0')
-    #   t_class             # => Tap::FileTask
-    #
-    # Notes:
-    # - The task class will be auto-loaded using Dependencies, if needed.
-    # - A LookupError is raised if the task class cannot be found.
-    def task_class(task_name)
-      lookup_const task_class_name(task_name) do
-        raise LookupError.new("unknown task '#{task_name}'")
-      end
-    end
-    
-    # Returns the class name of the specified task.  If the task 
-    # descriptor is a string, the class name is the de-versioned, 
-    # descriptor, or the class name as specified in map by the 
-    # de-versioned descriptor.  
-    #
-    #   app.manifest = {"mapped-task" => "Tap::FileTask"}
-    #   app.task_class_name('some/task_class')   # => "Some::TaskClass" 
-    #   app.task_class_name('mapped-task-1.0')   # => "Tap::FileTask"
-    #
-    # If td is a type of Tap::Support::Framework, then task_class_name 
-    # returns td.class.to_s
-    #
-    #   t1 = Task.new
-    #   app.task_class_name(t1)                   # => "Tap::Task"
-    #
-    #   t2 = Object.new.extend Tap::Support::Framework
-    #   app.task_class_name(t2)                   # => "Object"
-    #
-    def task_class_name(td)
-      case td
-      when Support::Framework then td.class.to_s
-      else
-        # de-version and resolve using manifest
-        name, version = deversion(td.to_s)
-        manifest[name].class_name
       end
     end
     
@@ -978,10 +858,6 @@ module Tap
           end
         end
       end
-    end
-
-    # LookupErrors are raised for errors during dependency lookup
-    class LookupError < RuntimeError 
     end
 
     # TerminateErrors are raised to kill executing tasks when terminate 
