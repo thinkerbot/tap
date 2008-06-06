@@ -36,10 +36,21 @@ module Tap
       end
       
       # Runs the system command +cmd+ and returns the output as a string.
-      def capture_sh(cmd, quiet=false, &block) # :yields: ok, status
+      def capture_sh(cmd, quiet=false, &block) # :yields: ok, status, tempfile_path
         tempfile = Tempfile.new('shell_utils')
         tempfile.close
-        redirect_sh(cmd, tempfile.path, &block)
+        redirect_sh(cmd, tempfile.path) do |ok, status|
+          if block_given?
+            yield(ok, $?, tempfile.path)
+          else
+            ok or raise %Q{Command failed with status (#{$?.exitstatus}): [#{cmd}]
+-------------- command output -------------------
+#{File.read(tempfile.path)}
+-------------------------------------------------
+}
+          end
+        end
+        
         quiet == true ? "" : File.read(tempfile.path)
       end
     end

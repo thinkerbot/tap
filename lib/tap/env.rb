@@ -2,7 +2,7 @@ require 'tap/root'
 require 'tap/support/configurable'
 
 autoload(:StringScanner, 'strscan')
-autoload(:Dependencies, 'tap/support/dependencies')
+#autoload(:Dependencies, 'tap/support/dependencies')
 Tap::Support.autoload(:Rake, 'tap/support/rake')
 
 module Tap
@@ -116,9 +116,9 @@ module Tap
       protected
       
       # Defines a config that raises an error if set when the 
-      # instance is active.  active_config MUST take a block
+      # instance is active.  static_config MUST take a block
       # and raises an error if a block is not given.
-      def active_config(key, value=nil, &block)
+      def static_config(key, value=nil, &block)
         raise ArgumentError.new("active config requires block") unless block_given?
         
         instance_variable = "@#{key}".to_sym
@@ -192,6 +192,7 @@ module Tap
     # environments.
     attr_reader :envs
     
+    # A hash of the calculated manifests.
     attr_reader :manifests
     
     # Specify gems to load as nested Envs.  Gems may be specified 
@@ -240,7 +241,7 @@ module Tap
     # Specifies automatic loading of dependencies through
     # the active_support Dependencies module.  Naturally,
     # active_support must be installed for this to work.
-    active_config :use_dependencies, false, &c.boolean
+    static_config :use_dependencies, false, &c.boolean
     
     config :debug, false, &c.boolean
     
@@ -315,6 +316,30 @@ module Tap
       @env_paths = []
       
       initialize_config(config)
+    end
+    
+    # Should be added to ensure nested configs don't set this...
+    # def use_dependencies
+    #   use_dependencies && self == Env.instance
+    # end
+    
+    def constantize(str)
+      str.camelize.try_constantize do |const_name|
+        log(:warn, "NameError: #{const_name}", Logger::DEBUG)
+        
+        path_suffix = const_name.underscore.chomp('.rb') + '.rb'
+
+        load_paths.inject(nil) do |obj, base|
+          break(obj) if obj != nil
+
+          path = File.join(base, path_suffix) # should already be expanded
+          next unless File.exists?(path) 
+
+          log(:crequire, path, Logger::DEBUG)
+          require path
+          constantize(const_name)
+        end
+      end
     end
     
     # Returns a list of arrays that receive load_paths on activate,
@@ -505,7 +530,7 @@ module Tap
       end
       yield(self)
     end
-    
+
     #
     # Under construction
     #
@@ -557,11 +582,7 @@ module Tap
     #--
     # TODO -- get this to only run once
     def rake_setup(argv=ARGV)
-      rake = Rake.application
-      return rake if rake.kind_of?(Tap::Support::Rake::Application)
-
-      # setup
-      rake = Rake.application.extend Tap::Support::Rake::Application
+      rake = Tap::Support::Rake.application
       rake.on_standard_exception do |error|
         if error.message =~ /^No Rakefile found/
           log(:warn, error.message, Logger::DEBUG)

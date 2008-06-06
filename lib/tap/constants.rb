@@ -24,12 +24,6 @@ module Tap
     end
     
     def constantize
-      unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ self
-        raise NameError, "#{inspect} is not a valid constant name!"
-      end
-      
-      const_name = $1
-      
       case RUBY_VERSION
       when /^1.9/
 
@@ -55,7 +49,12 @@ module Tap
       begin
         constantize  
       rescue(NameError)
-        yield 
+        error_name = $!.name.to_s 
+        # check that the const_name BEGINS with error_name rather than
+        # equals, so that nested constants are passed on (ex: you look
+        # for "Sample::Task" and the NameError is for "Sample")
+        raise $! unless const_name.index(error_name) == 0
+        yield(const_name)
       end
     end
 
@@ -74,5 +73,15 @@ module Tap
 
       [current, constants]
     end
+    
+    protected
+    
+    def const_name
+      unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ self
+        raise NameError, "#{inspect} is not a valid constant name!"
+      end
+      $1
+    end
+    
   end
 end

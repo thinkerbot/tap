@@ -12,7 +12,7 @@ app = Tap::App.instance
 # handle options
 #
 dump = false
-rake = false
+rake = true
 rake_app = nil
 OptionParser.new do |opts|
   
@@ -81,32 +81,26 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
     ARGV.concat(args)
    
     td = Tap::Support::CommandLine.next_arg(ARGV)
-    case td
-    when 'rake', nil  
-      # remove --help as this will print the Rake help
-      ARGV.delete_if do |arg|
-        case arg 
-        when "--help"
-          env.log(:warn, "ignoring --help option for rake command")
-        else
-          next(false)
-        end
-        
-        true
-      end
- 
+    case
+    when rake && td == 'rake'
       rake_app = env.rake_setup if rake_app == nil
-      rake_app.top_level_tasks.each do |task_name|
-        app.enq(rake_app[task_name])
-      end
-      
-    else  
       begin
-        # attempt lookup the task class
-        task_class = td.camelize.constantize
-      rescue(NameError)
-        env.log(:warn, "NameError: #{$!.message}", Logger::DEBUG)
+        rake_app.enq_top_level(app)
+      rescue(RuntimeError)
+        if $!.message =~ /^Don't know how to build task '(.*)'$/
+          raise "unknown task: #{$1}"
+        else
+          raise $!
+        end
       end
+    
+    when td == nil
+      # warn?
+      next 
+    else  
+
+      # attempt lookup the task class
+      task_class = env.constantize(td) 
 
       # unless a Tap::Task was found, treat the
       # args as a specification for Rake.

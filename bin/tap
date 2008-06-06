@@ -25,8 +25,13 @@ default_config_file = Tap::Env::DEFAULT_CONFIG_FILE
 begin
   
   env.reconfigure(Tap::Env.read_config(default_config_file)) do |unhandled_configs|
-    before = unhandled_configs.delete('before')
-    after = unhandled_configs.delete('after')
+    before = unhandled_configs.delete(:before)
+    after = unhandled_configs.delete(:after)
+    
+    unless unhandled_configs.empty?
+      env.log(:warn, "ignoring non-env configs: #{unhandled_configs.keys.join(',')}", Logger::DEBUG)
+    end
+    
   end if File.exists?(default_config_file)
 
   #env.discover_gems unless 

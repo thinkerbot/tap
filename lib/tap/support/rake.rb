@@ -73,7 +73,7 @@ module Tap
           end  
         end
         
-        def argv_enq(app=App.instance) 
+        def enq_top_level(app)
           # takes the place of rake.top_level
           if options.show_tasks
             display_tasks_and_comments
@@ -82,12 +82,25 @@ module Tap
             display_prerequisites
             exit
           else
-            top_level_tasks.each do |task_name| 
-              app.enq lookup(task_name)
+            top_level_tasks.each do |task_string|
+              name, args = parse_task_string(task_string)
+              task = self[name]
+              app.enq(task, *args)
             end
           end  
         end
+      end
+      
+      module_function
+      
+      def application
+        rake = ::Rake.application
         
+        unless rake.kind_of?(Tap::Support::Rake::Application)
+          rake.extend Tap::Support::Rake::Application
+        end
+        
+        rake
       end
     end
   end

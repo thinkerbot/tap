@@ -113,22 +113,22 @@ class EnvTest < Test::Unit::TestCase
   # end
   
   #
-  # active_config tests
+  # static_config tests
   #
   
-  class ActiveConfigEnv < Tap::Env
-    active_config(:test, 'test') {}
+  class StaticConfigEnv < Tap::Env
+    static_config(:test, 'test') {}
   end
   
-  def test_set_active_config_raises_error_when_active
-    e = ActiveConfigEnv.new
+  def test_set_static_config_raises_error_when_active
+    e = StaticConfigEnv.new
     e.activate
     assert_raise(RuntimeError) { e.test = "value" }
   end
   
-  def test_active_config_raises_error_when_no_block_is_given
-    assert_nothing_raised { ActiveConfigEnv.send(:active_config, :with_block, 'value') {} }
-    assert_raise(ArgumentError) { ActiveConfigEnv.send(:active_config, :without_block, 'value') }
+  def test_static_config_raises_error_when_no_block_is_given
+    assert_nothing_raised { StaticConfigEnv.send(:static_config, :with_block, 'value') {} }
+    assert_raise(ArgumentError) { StaticConfigEnv.send(:static_config, :without_block, 'value') }
   end
   
   #

@@ -46,28 +46,33 @@ module Tap
       end
       
       include Tap::Support::ShellUtils
-
-      #def ljustify(str, sep="\n")
-      #  regexp = nil
-      #  str.split(/\r?\n/).collect do |line|
-      #    if regexp == nil 
-      #     next if line.strip.empty?
-      #      line =~ /^(\s*)/
-      #      regexp = Regexp.new("^\\s{#{$1.length}}(.*)")
-      #    end
-      #    
-      #    line = $1 if line =~ regexp
-      #    line
-      #  end.compact.join(sep)
-      #end
       
-      def assert_output_equal(a, b, msg=nil)
-        if a[1..-1] == b
+      def assert_output_equal(a, b, cmd, msg)
+        a = a[1..-1] if a[0] == ?\n
+        if a == b
           assert true
         else
           flunk %Q{
+#{msg}
+% #{cmd}
 ==================== expected output ====================
-#{a[1..-1].gsub(/\t/, "\\t").gsub(/\r\n/, "\\r\\n\n").gsub(/\n/, "\\n\n")}
+#{a.gsub(/\t/, "\\t").gsub(/\r\n/, "\\r\\n\n").gsub(/\n/, "\\n\n")}
+======================== but was ========================
+#{b.gsub(/\t/, "\\t").gsub(/\r\n/, "\\r\\n\n").gsub(/\n/, "\\n\n")}
+=========================================================
+}
+        end
+      end
+      
+      def assert_alike(a, b, cmd, msg)
+        if b =~ a
+          assert true
+        else
+          flunk %Q{
+#{msg}
+% #{cmd}
+================= expected output like ==================
+#{a}
 ======================== but was ========================
 #{b.gsub(/\t/, "\\t").gsub(/\r\n/, "\\r\\n\n").gsub(/\n/, "\\n\n")}
 =========================================================
@@ -86,14 +91,19 @@ module Tap
             ARGV.clear
             make_test_directories
             Dir.chdir(test_dir)
+            
+            puts "\n# == #{method_name}"
         
             test.commands.each do |cmd, msg, expected, block|
               start = Time.now
               result = capture_sh(cmd)
               elapsed = Time.now - start
 
-              if expected
-                assert_output_equal(expected, result)
+              case expected
+              when String
+                assert_output_equal(expected, result, cmd, msg)
+              when Regexp
+                assert_alike(expected, result, cmd, msg)
               end
               
               if block
@@ -102,7 +112,7 @@ module Tap
               
               if env('stepwise') || (expected == nil && block == nil)
                 print %Q{
------------------------------------- (#{method_name})
+------------------------------------
 %s
 > %s
 %s
@@ -112,9 +122,10 @@ Time Elapsed: %.3fs} % [msg, cmd, result, elapsed]
                   print "\nContinue? (y/n): "
                   break if gets.strip =~ /^no?$/i
                 end
+              else            
+                puts "%.3fs : %s" % [elapsed, msg]
               end
             end
-            
           ensure
             Dir.chdir(current_dir)
             ARGV.clear
