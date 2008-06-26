@@ -6,6 +6,13 @@ class TapTest < Test::Unit::TestCase
   
   TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../bin/tap")
   
+  def test_baseline_ruby_times
+    script_test do |cmd|
+      cmd.check "ruby -e \"puts 'hello world'\"", "Prints hello world", /hello world/
+      cmd.check "ruby -e \"require 'rubygems'\"", "require rubygems", ""
+    end
+  end
+  
   def test_tap
     script_test do |cmd|
       

@@ -188,8 +188,8 @@ class EnvTest < Test::Unit::TestCase
     
     e.envs << e1
     assert_equal({
-      e1.object_id => [{:index => 0, :path => '/three'}, {:index => 1, :path => '/four'}],
-      e.object_id => [{:index => 2, :path => '/one'}, {:index => 3, :path => '/two'}]
+      e1.object_id => [{:index => 0, :path => root['/three'] }, {:index => 1, :path => root['/four']}],
+      e.object_id => [{:index => 2, :path => root['/one'] }, {:index => 3, :path => root['/two']}]
     }, e.tests)
   end
   
@@ -295,7 +295,7 @@ class EnvTest < Test::Unit::TestCase
   
     e.activate
     
-    assert_equal ["/path/to/lib", "/path/to/another/lib"], $LOAD_PATH
+    assert_equal [root["/path/to/lib"], root["/path/to/another/lib"]], $LOAD_PATH
   end
   
   def test_activate_prioritizes_load_paths_in_load_path_targets
@@ -303,11 +303,11 @@ class EnvTest < Test::Unit::TestCase
     
     e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
     $LOAD_PATH.clear
-    $LOAD_PATH.concat ["post", "/path/to/another/lib", "/path/to/lib"]
+    $LOAD_PATH.concat ["post", root["/path/to/another/lib"], root["/path/to/lib"]]
     
     e.activate
     
-    assert_equal ["/path/to/lib", "/path/to/another/lib", "post"], $LOAD_PATH
+    assert_equal [root["/path/to/lib"], root["/path/to/another/lib"], "post"], $LOAD_PATH
   end
   
   def test_activate_assigns_self_as_Env_instance
@@ -366,7 +366,7 @@ class EnvTest < Test::Unit::TestCase
     e.activate
     
     $LOAD_PATH.clear
-    $LOAD_PATH.concat ["/path/to/lib", "/path/to/another/lib"]
+    $LOAD_PATH.concat [root["/path/to/lib"], root["/path/to/another/lib"]]
     $LOAD_PATH.unshift "pre"
     $LOAD_PATH.push "post"
     
@@ -441,7 +441,7 @@ class EnvTest < Test::Unit::TestCase
     assert e1.active?
     assert e2.active?
     assert e3.active?
-    assert_equal ["/path/to/e", "/path/to/e1", "/path/to/e2",  "/path/to/e3"], $LOAD_PATH
+    assert_equal ["/path/to/e", "/path/to/e1", "/path/to/e2",  "/path/to/e3"].collect {|p| root[p] }, $LOAD_PATH
     
     e.deactivate
     
@@ -467,7 +467,7 @@ class EnvTest < Test::Unit::TestCase
     
     assert e1.active?
     assert e2.active?
-    assert_equal ["/path/to/e", "/path/to/e1", "/path/to/e2"], $LOAD_PATH
+    assert_equal ["/path/to/e", "/path/to/e1", "/path/to/e2"].collect {|p| root[p] }, $LOAD_PATH
     
     e.deactivate
     
