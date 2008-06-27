@@ -14,6 +14,7 @@ app = Tap::App.instance
 dump = false
 rake = true
 rake_app = nil
+print_manifest = false
 OptionParser.new do |opts|
   
   opts.separator ""
@@ -26,28 +27,7 @@ OptionParser.new do |opts|
   end
   
   opts.on('-T', '--task-manifest', 'Print a list of available tasks') do |v|
-    manifest = app.manifest.auto_discover(app, env.load_paths).to_hash
-
-    widths = []
-    manifest_by_load_path = {}
-    manifest.each_pair do |name, spec| 
-      (manifest_by_load_path[spec.load_path] ||= {})[name] = spec
-      widths << name.length
-    end
-    width = widths.max || 10
-    
-    max_column = 80 - width - 7
-    manifest_by_load_path.each_pair do |path, specs|
-      puts "===  tap tasks (#{path})"
-      specs.each_pair do |name, spec|
-        printf "%-#{width}s  # %s\n", name, spec.tdoc.summary#rake.truncate(spec.tdoc.comment, max_column)
-      end
-    end
-    
-    puts "=== rake tasks"
-    env.rake_setup(['-T']).display_tasks_and_comments
-    
-    exit
+    print_manifest = true
   end
   
   opts.on('-d', '--debug', 'Trace execution and debug') do |v|
@@ -71,6 +51,32 @@ OptionParser.new do |opts|
   end
   
 end.parse!(ARGV)
+
+if print_manifest
+  widths = []
+  manifest_by_load_path = {}
+  env.tasks.each_pair do |name, spec| 
+    (manifest_by_load_path[spec[:load_path]] ||= {})[name] = spec
+    widths << name.length
+  end
+  width = widths.max || 10
+  
+  max_column = 80 - width - 7
+  manifest_by_load_path.each_pair do |path, specs|
+    puts "===  tap tasks (#{path})"
+    specs.each_pair do |name, spec|
+      printf "%-#{width}s  # %s\n", name, spec[:summary]#rake.truncate(spec.tdoc.comment, max_column)
+    end
+  end
+  
+  if rake 
+    puts "=== rake tasks"
+    ARGV.clear
+    env.rake_setup(['-T']).display_tasks_and_comments
+  end
+  
+  exit
+end
 
 #
 # handle options for each specified task

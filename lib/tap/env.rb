@@ -245,7 +245,7 @@ module Tap
     
     config :debug, false, &c.boolean
     
-    TASK_MANIFEST_REGEXP = /#\s*:discover:/
+    TASK_MANIFEST_REGEXP = /#(--)?\s*(:(stop|start)doc:\s+)?:manifest:/
     
     manifest(:tasks, :load_paths) do |tasks, load_path|
       root.glob(load_path, "**/*.rb").each do |fullpath|
@@ -254,12 +254,12 @@ module Tap
         next unless scanner.skip_until(TASK_MANIFEST_REGEXP)
           
         path = root.relative_filepath(load_path, fullpath)
-        name = path.chomp('.rb')
-          
-        class_name = scanner.scan_until(/$/).strip
-        class_name = name.camelize if class_name.empty?
-          
-        tasks[name] = {:class_name => class_name, :path => path, :load_path => load_path, :env => self}
+        name = path.chomp('.rb')    
+ 
+        class_name = scanner.scan(/\s+\(/) ? scanner.scan_until(/\)/).chomp(')') : name.camelize
+        summary = scanner.scan_until(/$/).strip
+        
+        tasks[name] = {:class_name => class_name, :path => path, :load_path => load_path, :env => self, :summary => summary}
       end
     end
     

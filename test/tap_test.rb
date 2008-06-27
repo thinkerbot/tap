@@ -149,7 +149,36 @@ options:
         --[no-]rake                  Enables or disables rake task handling
         --quiet                      Suppress logging
 }
+      # manifest
+      
+      manifest = %Q{
+===  tap tasks (#{method_filepath('lib')})
+sample              # manifest summary
+sample_without_doc  # 
+=== rake tasks
+rake clobber_package  # Remove package products
+rake clobber_rdoc     # Remove rdoc products
+rake default          # Default: Run tests.
+rake gem              # Build the gem file .-0.0.1.gem
+rake package          # Build all the packages
+rake rdoc             # Build the rdoc HTML Files
+rake repackage        # Force a rebuild of the package files
+rake rerdoc           # Force a rebuild of the RDOC files
+rake test             # Run tests
+}
 
+      cmd.check " run -T", "Prints manifest", manifest
+      cmd.check " run -T -- --no-rake", "Prints manifest", manifest
+      
+      manifest_without_rake = %Q{
+===  tap tasks (#{method_filepath('lib')})
+sample              # manifest summary
+sample_without_doc  # 
+}
+
+      cmd.check " run -T --no-rake", "Prints manifest wihtout rake", manifest_without_rake
+      cmd.check " run -T --no-rake", "Prints manifest", manifest_without_rake
+      
       # variations on no task specified 
 
       no_task_specified = %Q{no task specified\n}
