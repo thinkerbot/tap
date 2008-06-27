@@ -88,7 +88,7 @@ class TDocTest < Test::Unit::TestCase
   USAGE_STR = [
     "not a comment # trailing comment",
     "# not part of usage",
-    "# :Usage: usage string ",
+    "# :usage: usage string ",
     "# not part of usage", 
   ].join("\n")
   EXPECTED_USAGE = "usage string"

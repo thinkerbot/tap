@@ -25,6 +25,7 @@ module Tap
       attr_accessor :source_file # :nodoc:
       
       DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= tdoc.summary.to_s.strip.empty? ? '' : ' -- ' %><%= tdoc.summary %>
+
 <% tdoc.desc.each do |line| %>
   <%= line %>
 <% end %>
@@ -81,7 +82,7 @@ module Tap
         end
 
         name = nil
-        opts.on_tail('--name [NAME]', /^[^-].*/, 'Specify a name') do |value|
+        opts.on_tail('--name NAME', /^[^-].*/, 'Specify a name') do |value|
           name = value
         end
 

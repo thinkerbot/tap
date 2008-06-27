@@ -175,15 +175,33 @@ options:
       /ArgumentError wrong number of arguments \(2 for 1\)/
 
       cmd.check " run -- sample --help", "Prints the sample task help", %Q{
-Sample
-usage: tap run -- sample INPUT
+Sample -- manifest summary
+  command line description line one
+  
+  line two
+
+usage: tap run -- sample one
 
 configurations:
         --key KEY                    a sample config
 
 options:
     -h, --help                       Print this help
-        --name [NAME]                Specify a name
+        --name NAME                  Specify a name
+        --use FILE                   Loads inputs from file
+}
+
+      cmd.check " run -- sample_without_doc --help", "Prints the sample task help", %Q{
+SampleWithoutDoc
+
+usage: tap run -- sample_without_doc INPUT
+
+configurations:
+        --key KEY
+
+options:
+    -h, --help                       Print this help
+        --name NAME                  Specify a name
         --use FILE                   Loads inputs from file
 }
       # cmd.check " run --debug sample", "Runs the sample task debugging"

@@ -103,7 +103,7 @@ module Tap
               line_fragments = []
               while comment = scanner.scan(/^\s*#.*$/)
                 case comment
-                when /^\s*#\s+:(stop|start)doc:\s*$/
+                when /^(\r?\n){2}/, /^\s*#\s+:(stop|start)doc:\s*$/
                   # break if the description end is reached
                   break
                 when /^\s*#\s?((\s*).*)$/
@@ -248,7 +248,7 @@ module Tap
       
       DESC_BEGIN_REGEXP = mregexp('manifest')
       DESC_END_REGEXP = mregexp('')
-      USAGE_REGEXP = mregexp('Usage')
+      USAGE_REGEXP = mregexp('usage')
   
       # Summary line used in manifest
       attr_accessor :summary
