@@ -94,7 +94,7 @@ module Tap
           scanner = StringScanner.new(str)
           
           while !scanner.eos?
-            break if scanner.skip_until(/^\s*#\s+:/) == nil
+            break if scanner.skip_until(/^\s*#\s+(:(stop|start)doc:\s+)?:/) == nil
 
             case "# :#{scanner.scan(/[^:]+:/)}"
             when DESC_BEGIN_REGEXP  # Parse Summary and Description
@@ -103,7 +103,7 @@ module Tap
               line_fragments = []
               while comment = scanner.scan(/^\s*#.*$/)
                 case comment
-                when DESC_END_REGEXP 
+                when /^\s*#\s+:(stop|start)doc:\s*$/
                   # break if the description end is reached
                   break
                 when /^\s*#\s?((\s*).*)$/
@@ -202,7 +202,7 @@ module Tap
                   ["ARGS..."]
                 end
                 
-                tdoc.usage = "tap run -- #{klass.default_name} #{args.join(' ')}"
+                tdoc.usage = "#{klass.default_name} #{args.join(' ')}"
               end
               
               unless klass.configurations.empty?
@@ -246,8 +246,8 @@ module Tap
       
       clear
       
-      DESC_BEGIN_REGEXP = mregexp('Description')
-      DESC_END_REGEXP = mregexp('EndDescription')
+      DESC_BEGIN_REGEXP = mregexp('manifest')
+      DESC_END_REGEXP = mregexp('')
       USAGE_REGEXP = mregexp('Usage')
   
       # Summary line used in manifest

@@ -174,7 +174,18 @@ options:
       cmd.check " run sample one two", "Runs the sample task causing an argument error" ,
       /ArgumentError wrong number of arguments \(2 for 1\)/
 
-      # cmd.check " run -- sample --help", "Prints the sample task help" 
+      cmd.check " run -- sample --help", "Prints the sample task help", %Q{
+Sample
+usage: tap run -- sample INPUT
+
+configurations:
+        --key KEY                    a sample config
+
+options:
+    -h, --help                       Print this help
+        --name [NAME]                Specify a name
+        --use FILE                   Loads inputs from file
+}
       # cmd.check " run --debug sample", "Runs the sample task debugging"
       # cmd.check " run -- sample --debug", "Runs the sample task debugging" 
       # cmd.check " run -- sample -d-", "Runs the sample full debugging" 

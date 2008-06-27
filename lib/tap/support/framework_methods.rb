@@ -9,6 +9,7 @@ module Tap
       # ConfigurableMethods initializes base.configurations on extend.
       def self.extended(base)
         base.instance_variable_set(:@source_file, nil)
+        base.instance_variable_set(:@help_template, DEFAULT_HELP_TEMPLATE)
       end
       
       # When subclassed, the configurations are duplicated and passed to 
@@ -17,10 +18,22 @@ module Tap
       def inherited(child)
         super
         child.instance_variable_set(:@source_file, nil)
+        child.instance_variable_set(:@help_template, help_template)
       end
       
       # Identifies source files for TDoc documentation.
       attr_accessor :source_file # :nodoc:
+      
+      DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= tdoc.summary.to_s.strip.empty? ? '' : ' -- ' %><%= tdoc.summary %>
+<% tdoc.desc.each do |line| %>
+  <%= line %>
+<% end %>
+
+<%= opts.to_s %>}
+
+      # Returns to the path for the class help template.  By default
+      # the DEFAULT_HELP_TEMPLATE.
+      attr_accessor :help_template
       
       # Returns the default name for the class: to_s.underscore
       def default_name
@@ -31,7 +44,7 @@ module Tap
       def tdoc
         @tdoc ||= TDoc[self]
       end
-
+      
       def parse_argv(argv, exit_on_help=false) # => name, config, argv
         config = {}
         opts = OptionParser.new
@@ -39,7 +52,7 @@ module Tap
         # Add configurations
         unless configurations.empty?
           opts.separator ""
-          opts.separator "Configurations:"
+          opts.separator "configurations:"
         end
         
         configurations.each do |receiver, key, configuration|
@@ -50,23 +63,20 @@ module Tap
       
         # Add options on_tail, giving priority to configurations
         opts.separator ""
-        opts.separator "Options:"
+        opts.separator "options:"
         
         opts.on_tail("-h", "--help", "Print this help") do
+          opts.banner = "usage: tap run -- #{tdoc.usage}"
           configurations.each do |receiver, key, configuration|
             configuration.desc = receiver.tdoc.config[key]
           end
           
-          puts self.to_s 
-          tdoc.desc.each {|line| puts line }
-          opts.banner = "Usage: #{tdoc.usage}"
-          puts opts
-          # rather than puts like this... erb into a template
-          # by default the standard usage.
-          # allow:
-          # class
-          #   help_template 
-          # end
+          print Templater.new(help_template, 
+            :task_class => self, 
+            :tdoc => tdoc, 
+            :opts => opts
+          ).build
+          
           exit if exit_on_help
         end
 
