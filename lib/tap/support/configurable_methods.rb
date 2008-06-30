@@ -133,13 +133,18 @@ module Tap
         
         # register with TDoc, not config, so that all bits can be
         # extracted at once
-        caller.each do |line|
+        caller.each_with_index do |line, index|
           case line
           when /in .config.$/ then next
-          when /^[^:]+:(\d+)/
-            config.line = $1.to_i
+          when /^([A-z]:)?[^:]+:(\d+)/
+            config.line = $2.to_i
             break
           end
+        end
+        
+        if config.line == nil
+          # would be nice if this were a different type of error...
+          raise %Q{could not determine configuration line: #{self}##{key}\n#{caller.join("\n")}} 
         end
         
         if reader
