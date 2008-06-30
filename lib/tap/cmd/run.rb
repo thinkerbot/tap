@@ -189,7 +189,7 @@ end
 
 if dump
   puts
-  app.task('tap/dump').enq
+  Tap::Dump.new.enq
   app.run
 end
 
