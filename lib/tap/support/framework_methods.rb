@@ -26,7 +26,7 @@ module Tap
       
       DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= tdoc.summary.to_s.strip.empty? ? '' : ' -- ' %><%= tdoc.summary %>
 
-<% tdoc.desc.each do |line| %>
+<% tdoc.desc(78).each do |line| %>
   <%= line %>
 <% end %>
 

@@ -253,8 +253,25 @@ module Tap
       # Summary line used in manifest
       attr_accessor :summary
     
-      # Full description printed in program help
-      attr_reader :desc
+      # Returns the full description, in lines wrapped to the number of specified cols
+      # and with tabs expanded with tabsize spaces.  
+      #
+      # If cols==nil, then the lines will be returned at their full length, with no tab
+      # expansion.
+      def desc(cols=nil, tabsize=2)
+        if cols == nil
+          @desc
+        else
+          
+          # wrapping algorithm is slightly modified from 
+          # http://blog.macromates.com/2006/wrapping-text-with-regular-expressions/
+          
+          @desc.collect do |line|
+            next(line) if line =~ /^\s*$/
+            line.gsub(/\t/, " " * tabsize).gsub(/(.{1,#{cols}})( +|$\r?\n?)|(.{1,#{cols}})/, "\\1\\3\n").split(/\s*\n/)
+          end.flatten
+        end
+      end
     
       # Program usage printed in program help
       attr_accessor :usage
