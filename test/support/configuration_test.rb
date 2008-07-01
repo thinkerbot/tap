@@ -88,16 +88,16 @@ class ConfigurationTest < Test::Unit::TestCase
     c = Configuration.new('name')
     assert_equal 'name', c.name
     assert_equal nil, c.default
-    assert_equal nil, c.properties
-    assert_equal :name, c.getter
-    assert_equal :name=, c.setter
+    assert_equal :name, c.reader
+    assert_equal :name=, c.writer
+    assert_equal nil, c.arg_type
     
-    c = Configuration.new('name', 'default', {:arg => :optional}, :alt, :alt=)
+    c = Configuration.new('name', 'default', {:arg_type => :optional, :reader => :alt, :writer => :alt=})
     assert_equal 'name', c.name
     assert_equal 'default', c.default
-    assert_equal({:arg => :optional}, c.properties)
-    assert_equal :alt, c.getter
-    assert_equal :alt=, c.setter
+    assert_equal :alt, c.reader
+    assert_equal :alt=, c.writer
+    assert_equal :optional, c.arg_type
   end
   
   #
@@ -174,21 +174,21 @@ class ConfigurationTest < Test::Unit::TestCase
   #
   
   #
-  # getter= test
+  # reader= test
   #
 
-  def test_set_getter_symbolizes_input
-    c.getter = 'getter'
-    assert_equal :getter, c.getter
+  def test_set_reader_symbolizes_input
+    c.reader = 'reader'
+    assert_equal :reader, c.reader
   end
   
   #
-  # setter= test
+  # writer= test
   #
 
-  def test_set_setter_symbolizes_input
-    c.setter = 'setter='
-    assert_equal :setter=, c.setter
+  def test_set_writer_symbolizes_input
+    c.writer = 'writer='
+    assert_equal :writer=, c.writer
   end  
   
   #
@@ -208,16 +208,16 @@ class ConfigurationTest < Test::Unit::TestCase
     another = Configuration.new('name', 2)
     assert config != another
     
-    config = Configuration.new('name', 1, :arg => :mandatory)
-    another = Configuration.new('name', 1, :arg => :optional)
+    config = Configuration.new('name', 1, :arg_type => :mandatory)
+    another = Configuration.new('name', 1, :arg_type => :optional)
     assert config != another
     
-    config = Configuration.new('name', 1, {}, :getter)
-    another = Configuration.new('name', 1, {}, :alt)
+    config = Configuration.new('name', 1, :reader => :reader)
+    another = Configuration.new('name', 1, :reader => :alt)
     assert config != another
     
-    config = Configuration.new('name', 1, {}, :getter, :setter=)
-    another = Configuration.new('name', 1, {}, :getter, :alt=)
+    config = Configuration.new('name', 1, :writer => :writer=)
+    another = Configuration.new('name', 1, :writer => :alt=)
     assert config != another
   end
 end

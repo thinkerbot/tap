@@ -18,7 +18,7 @@ module Tap
     #   c.respond_to?('one')                       # => true
     #   c.respond_to?('one=')                      # => true
     # 
-    # If a block is given, the block will be used to create the setter method
+    # If a block is given, the block will be used to create the writer method
     # for the config.  Used in this manner, config defines a :config_key= method 
     # wherein @config_key will be set to the return value of the block.
     #
@@ -32,7 +32,7 @@ module Tap
     #   ac.one               # => 'VALUE'
     #
     # The block has class-context in this case.  To have instance-context, use the
-    # config_attr method which defines the setter method using the block directly.
+    # config_attr method which defines the writer method using the block directly.
     #
     #   class YetAnotherConfigurableClass
     #     extend ConfigurableMethods
@@ -91,14 +91,14 @@ module Tap
       # instances of SampleClass, see Tap::Support::Configurable for more
       # details.
       # 
-      def config(key, value=nil, &block)
+      def config(key, value=nil, options={}, &block)
         if block_given?
           instance_variable = "@#{key}".to_sym
-          config_attr(key, value) do |input|
+          config_attr(key, value, options) do |input|
             instance_variable_set(instance_variable, block.call(input))
           end
         else
-          config_attr(key, value)
+          config_attr(key, value, options)
         end
       end
       
@@ -107,12 +107,18 @@ module Tap
       # Configurations are inherited, and can be overridden in subclasses. 
       #
       #   class SampleClass
-      #     extend ConfigurableMethods
+      #     include Tap::Support::Configurable
+      #
+      #     def initialize
+      #       initialize_config
+      #     end
       #
       #     config_attr :str, 'value'
       #     config_attr(:upcase, 'value') {|input| @upcase = input.upcase } 
       #   end
       #
+      #   # Regarding accesssors (and accessors only), 
+      #   # this is the same class
       #   class EquivalentClass
       #     attr_accessor :str
       #     attr_reader :upcase
@@ -122,50 +128,114 @@ module Tap
       #     end
       #   end
       #
-      # Regarding accessors, SampleClass is equivalent to EquivalentClass.  
-      # The default values recorded by SampleClass are used in configuring
-      # instances of SampleClass, see Tap::Support::Configurable for more
-      # details.
+      # Once declared, configurations may be set through config.  The config
+      # object is an InstanceConfiguration which forward get/set operations
+      # to the configuration reader and writer.  For example:
       #
-      def config_attr(key, value=nil, reader=true, writer=true, &block)
-        config = (configurations[key] || configurations.add(key))
-        config.default = value
-        
+      #   s = SampleClass.new
+      #   s.config.class            # => Tap::Support::InstanceConfiguration
+      #   s.str                     # => 'value'
+      #   s.config[:str]            # => 'value'
+      #
+      #   s.str = 'one'
+      #   s.config[:str]            # => 'one'
+      #   
+      #   s.config[:str] = 'two' 
+      #   s.str                     # => 'two'
+      # 
+      # Alternative reader and writer methods may be specified as an option,
+      # in which case config_attr assumes the methods are declared elsewhere
+      # and will not define the associated accessors.  
+      # 
+      #   class AlternativeClass
+      #     include Tap::Support::Configurable
+      #
+      #     config_attr :sym, 'value', :reader => :get_sym, :writer => :set_sym
+      #
+      #     def initialize
+      #       initialize_config
+      #     end
+      #
+      #     def get_sym
+      #       @sym
+      #     end
+      #
+      #     def set_sym(input)
+      #       @sym = input.to_sym
+      #     end
+      #   end
+      #
+      #   alt = AlternativeClass.new
+      #   alt.respond_to?(:sym)     # => false
+      #   alt.respond_to?(:sym=)    # => false
+      #   
+      #   alt.config[:sym] = 'one'
+      #   alt.get_sym               # => :one
+      #
+      #   alt.set_sym('two')
+      #   alt.config[:sym]          # => :two
+      #
+      # Idiosyncratically, true, false, and nil may also be provided as 
+      # reader/writer options. Specifying true is the same as using the 
+      # default.  Specifying false or nil prevents config_attr from 
+      # defining accessors, but the configuration still expects to use 
+      # the default reader/writer methods (ie key and key=) which must
+      # be defined elsewhere.
+      #
+      # See Tap::Support::Configurable for more details.
+      def config_attr(key, value=nil, options={}, &block)
+
         # register with TDoc, not config, so that all bits can be
         # extracted at once
         caller.each_with_index do |line, index|
           case line
           when /in .config.$/ then next
           when /^([A-z]:)?[^:]+:(\d+)/
-            config.line = $2.to_i
+            options[:line] = $2.to_i
             break
           end
         end
         
-        if config.line == nil
-          # would be nice if this were a different type of error...
+        if options[:line] == nil
+          # TODO -- make this a different type of error...
           raise %Q{could not determine configuration line: #{self}##{key}\n#{caller.join("\n")}} 
         end
         
-        if reader
+        # define the default public reader method
+        if !options.has_key?(:reader) || options[:reader] == true
           attr_reader(key) 
           public key
         end
         
+        # define the public writer method
         case
+        when options.has_key?(:writer) && options[:writer] != true
+          raise ArgumentError.new("block may not be specified with writer") if block_given?
         when block_given? 
           define_method("#{key}=", &block)
           public "#{key}="
-        when writer
+        else
           attr_writer(key)
           public "#{key}="
         end
+        
+        # remove any true, false, nil reader/writer declarations...
+        # implicitly reverting the option to the default reader
+        # and writer methods
+        [:reader, :writer].each do |option|
+          case options[option]
+          when true, false, nil then options.delete(option)
+          end
+        end
+        
+        configurations.add(key, value, options)
       end
 
       # Alias for Tap::Support::Validation
       def c
         Validation
       end
+      
     end
   end
 end

@@ -44,20 +44,48 @@ module Tap
         end
       end
       
-      attr_accessor :name
-      attr_accessor :properties
+      attr_reader :name
       attr_reader :duplicable
-      attr_reader :getter
-      attr_reader :setter
+      attr_reader :reader
+      attr_reader :writer
       
-      attr_accessor :line, :desc
+      attr_accessor :line
+      attr_accessor :desc
+      
+      attr_accessor :arg_name
+      attr_accessor :arg_type
+      attr_accessor :long
+      attr_accessor :short
+      
+      ATTRIBUTES = [:reader, :writer, :line, :desc, :arg_name, :arg_type, :long, :short]
 
-      def initialize(name, default=nil, properties=nil, getter=name, setter="#{name}=")
+      def initialize(name, default=nil, attributes={})
         @name = name
-        @properties = properties
         self.default = default
-        self.getter = getter
-        self.setter = setter
+        
+        self.reader = name
+        self.writer = "#{name}="
+        self.attributes = attributes
+      end
+      
+      def attributes=(attributes)
+        attributes.each_pair do |key, value|
+          case key
+          when *ATTRIBUTES
+            self.send("#{key}=", value)
+          else
+            raise ArgumentError.new("unknown or unsettable attribute: #{key}")
+          end
+        end
+      end
+      
+      def attributes(*exclusions)
+        attributes = {}
+        ATTRIBUTES.each do |key|
+          next if exclusions.include?(key)
+          attributes[key] = self.send(key)
+        end
+        attributes
       end
       
       # Sets the default value for self and determines if the
@@ -78,14 +106,14 @@ module Tap
         duplicate && duplicable ? @default.dup : @default
       end
       
-      # Sets the getter for self.  The getter is symbolized.
-      def getter=(value)
-        @getter = value.to_sym
+      # Sets the reader for self.  The reader is symbolized.
+      def reader=(value)
+        @reader = value.to_sym
       end
       
-      # Sets the setter for self.  The setter is symbolized.
-      def setter=(value)
-        @setter = value.to_sym
+      # Sets the writer for self.  The writer is symbolized.
+      def writer=(value)
+        @writer = value.to_sym
       end
       
       def empty?
@@ -100,12 +128,12 @@ module Tap
       
       def to_option_parser_argv
         argv = []
-        argv << Configuration.shortify(short) if short = property(:short)
-        long = Configuration.longify(property(:long) || name)
+        argv << Configuration.shortify(short) if short
+        long = Configuration.longify(long || name)
 
-        argv << case property(:arg)
+        argv << case arg_type
         when :optional 
-          "#{long} [#{property(:arg_name) || name.to_s.upcase}]"
+          "#{long} [#{arg_name || name.to_s.upcase}]"
         when :switch 
           Configuration.longify(long, true)
         when :flag
@@ -113,7 +141,7 @@ module Tap
         when :list 
           "#{long} x,y,z"
         else # assume mandatory
-          "#{long} #{property(:arg_name) || name.to_s.upcase}"
+          "#{long} #{arg_name || name.to_s.upcase}"
         end
         
         argv << self
@@ -124,17 +152,10 @@ module Tap
       def ==(another)
         another.kind_of?(Configuration) && 
         self.name == another.name &&
-        self.properties == another.properties &&
-        self.default(false) == another.default(false) &&
-        self.getter == another.getter &&
-        self.setter == another.setter
+        self.attributes(:line, :desc) == another.attributes(:line, :desc) &&
+        self.default(false) == another.default(false)
       end
       
-      protected
-      
-      def property(name)
-        properties ? properties[name] : nil
-      end
     end
   end
 end

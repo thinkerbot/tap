@@ -162,6 +162,63 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   end
   
   #
+  # config_attr test
+  #
+  
+  class DocSampleClass
+    include Tap::Support::Configurable
+
+    def initialize
+      initialize_config
+    end
+    
+    config_attr :str, 'value'
+    config_attr(:upcase, 'value') {|input| @upcase = input.upcase } 
+  end
+
+  class DocAlternativeClass
+    include Tap::Support::Configurable
+
+    config_attr :sym, 'value', :reader => :get_sym, :writer => :set_sym
+
+    def initialize
+      initialize_config
+    end
+    
+    def get_sym
+      @sym
+    end
+
+    def set_sym(input)
+      @sym = input.to_sym
+    end
+  end
+
+  def test_config_attr_documentation
+    s = DocSampleClass.new
+    assert_equal Tap::Support::InstanceConfiguration, s.config.class
+    assert_equal 'value', s.str
+    assert_equal 'value', s.config[:str]
+  
+    s.str = 'one'
+    assert_equal 'one', s.config[:str]
+    
+    s.config[:str] = 'two' 
+    assert_equal 'two', s.str
+    
+    ###
+    alt = DocAlternativeClass.new
+    assert_equal false, alt.respond_to?(:sym)
+    assert_equal false, alt.respond_to?(:sym=)
+    
+    alt.config[:sym] = 'one'
+    assert_equal :one, alt.get_sym
+  
+    alt.set_sym('two')
+    assert_equal :two, alt.config[:sym]
+  end
+  
+  #
   # context test
   #
   

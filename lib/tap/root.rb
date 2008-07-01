@@ -176,13 +176,13 @@ module Tap
     include Support::Configurable
 
     # The root directory.
-    config_attr(:root, '.', true, false)
+    config_attr(:root, '.', :writer => false)
     
     # A hash of (alias, relative path) pairs for aliased subdirectories.
-    config_attr(:directories, {}, true, false)
+    config_attr(:directories, {}, :writer => false)
     
     # A hash of (alias, relative path) pairs for aliased absolute paths.
-    config_attr(:absolute_paths, {}, false, false)
+    config_attr(:absolute_paths, {}, :reader => false, :writer => false)
     
     # A hash of (alias, expanded path) pairs for aliased subdirectories and absolute paths.
     attr_reader :paths

@@ -21,7 +21,7 @@ module Tap
       attr_reader :assignments
       
       # A map of config keys and instance methods used to set a 
-      # config (ie the getter and setter for a config)
+      # config (ie the reader and writer for a config)
       attr_reader :map
 
       def initialize(receiver, parent=nil)
@@ -42,8 +42,8 @@ module Tap
       # Initializes a Configuration using the inputs and sets it in self
       # using name as a key, overriding the current config by that name,
       # if it exists.  Returns the new config.
-      def add(name, default=nil, properties=nil)
-        self[name] = Configuration.new(name.to_sym, default, properties)
+      def add(name, default=nil, attributes={})
+        self[name] = Configuration.new(name.to_sym, default, attributes)
       end
       
       # Removes the specified configuration.

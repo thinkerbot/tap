@@ -49,13 +49,13 @@ module Tap
       end
       
       # Binds self to the specified receiver.  Mapped keys are
-      # removed from store and sent to their setter method on 
+      # removed from store and sent to their writer method on 
       # receiver.
       def bind(receiver)
         raise ArgumentError.new("receiver cannot be nil") if receiver == nil
         
         class_config.each_pair do |key, config|
-          receiver.send(config.setter, store.delete(key))
+          receiver.send(config.writer, store.delete(key))
         end
         @receiver = receiver
         
@@ -71,7 +71,7 @@ module Tap
       # are stored in store.  Returns the unbound receiver.
       def unbind
         class_config.each_pair do |key, config|
-          store[key] = receiver.send(config.getter)
+          store[key] = receiver.send(config.reader)
         end
         r = receiver
         @receiver = nil
@@ -89,11 +89,11 @@ module Tap
       
       # Associates the value the key.  If bound? and the key
       # is a class_config key, then the value will be forwarded
-      # to the class_config.setter method on the receiver.
+      # to the class_config.writer method on the receiver.
       def []=(key, value)
         case 
         when bound? && config = class_config.map[key.to_sym]
-          receiver.send(config.setter, value)
+          receiver.send(config.writer, value)
         else store[key] = value
         end
       end
@@ -104,7 +104,7 @@ module Tap
       def [](key)
         case 
         when bound? && config = class_config.map[key.to_sym]
-          receiver.send(config.getter)
+          receiver.send(config.reader)
         else store[key]
         end
       end
@@ -117,7 +117,7 @@ module Tap
       # Calls block once for each key-value pair stored in self.
       def each_pair # :yields: key, value
         class_config.each_pair do |key, config|
-          yield(key, receiver.send(config.getter))
+          yield(key, receiver.send(config.reader))
         end if bound?
         
         store.each_pair do |key, value|
