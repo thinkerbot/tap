@@ -7,6 +7,11 @@ doc/Command Reference
 Rakefile
 bin/tap
 lib/tap/app.rb
+lib/tap/cmd/console.rb
+lib/tap/cmd/destroy.rb
+lib/tap/cmd/generate.rb
+lib/tap/cmd/run.rb
+# lib/tap/cmd/server.rb
 lib/tap/constants.rb
 lib/tap/dump.rb
 lib/tap/env.rb
@@ -50,22 +55,22 @@ lib/tap/patches/rake/testtask.rb
 lib/tap/patches/ruby19/backtrace_filter.rb
 lib/tap/patches/ruby19/parsedate.rb
 lib/tap/root.rb
-lib/tap/cmd/console.rb
-lib/tap/cmd/destroy.rb
-lib/tap/cmd/generate.rb
-lib/tap/cmd/run.rb
-#lib/tap/cmd/server.rb
 lib/tap/support/aggregator.rb
+lib/tap/support/assignments.rb
 lib/tap/support/audit.rb
 lib/tap/support/batchable.rb
 lib/tap/support/batchable_methods.rb
 lib/tap/support/class_configuration.rb
 lib/tap/support/command_line.rb
-lib/tap/support/command_line_methods.rb
 lib/tap/support/configurable.rb
 lib/tap/support/configurable_methods.rb
+lib/tap/support/configuration.rb
+lib/tap/support/dependencies.rb
 lib/tap/support/executable.rb
 lib/tap/support/executable_queue.rb
+lib/tap/support/framework.rb
+lib/tap/support/framework_methods.rb
+lib/tap/support/instance_configuration.rb
 lib/tap/support/logger.rb
 lib/tap/support/rake.rb
 lib/tap/support/run_error.rb
@@ -74,128 +79,130 @@ lib/tap/support/tdoc/config_attr.rb
 lib/tap/support/tdoc/tdoc_html_generator.rb
 lib/tap/support/tdoc/tdoc_html_template.rb
 lib/tap/support/tdoc.rb
+lib/tap/support/templater.rb
 lib/tap/support/validation.rb
 lib/tap/support/versions.rb
 lib/tap/task.rb
 lib/tap/test/env_vars.rb
 lib/tap/test/file_methods.rb
+lib/tap/test/script_methods.rb
 lib/tap/test/subset_methods.rb
 lib/tap/test/tap_methods.rb
 lib/tap/test.rb
 lib/tap/workflow.rb
 lib/tap.rb
-test/app/config/another/task.yml
-test/app/config/batch.yml
-test/app/config/empty.yml
-test/app/config/erb.yml
-test/app/config/some/task.yml
-test/app/config/template.yml
-test/app/config/version-0.1.yml
-test/app/config/version.yml
-test/app/lib/app_test_task.rb
-test/app_test.rb
-#test/dump_test.rb
-test/env/test_configure/recurse_a.yml
-test/env/test_configure/recurse_b.yml
-test/env/test_configure/tap.yml
-test/env/test_load_env_config/dir/tap.yml
-test/env/test_load_env_config/recurse_a.yml
-test/env/test_load_env_config/recurse_b.yml
-test/env/test_load_env_config/tap.yml
-test/env_test.rb
-test/file_task/config/batch.yml
-test/file_task/config/configured.yml
-test/file_task/old_file_one.txt
-test/file_task/old_file_two.txt
-test/file_task_test.rb
-test/root/alt_lib/alt_module.rb
-test/root/glob/one.txt
-test/root/glob/two.txt
-test/root/lib/absolute_alt_filepath.rb
-test/root/lib/alternative_filepath.rb
-test/root/lib/another_module.rb
-test/root/lib/nested/some_module.rb
-test/root/lib/no_module_included.rb
-test/root/lib/some/module.rb
-test/root/lib/some_class.rb
-test/root/lib/some_module.rb
-test/root/load_path/load_path_module.rb
-test/root/load_path/skip_module.rb
-test/root/mtime/older.txt
-test/root/unload/full_path.rb
-test/root/unload/loaded_by_nested.rb
-test/root/unload/nested/nested_load.rb
-test/root/unload/nested/nested_with_ext.rb
-test/root/unload/nested/relative_path.rb
-test/root/unload/older.rb
-test/root/unload/unload_base.rb
-test/root/versions/another.yml
-test/root/versions/file-0.1.2.yml
-test/root/versions/file-0.1.yml
-test/root/versions/file.yml
-test/root/file.txt
-test/root_test.rb
-test/support/aggregator_test.rb
-test/support/audit_test.rb
-test/support/batchable_test.rb
-test/support/class_configuration_test.rb
-test/support/command_line_test.rb
-test/support/configurable/config/configured.yml
-test/support/configurable_test.rb
-test/support/executable_queue_test.rb
-test/support/executable_test.rb
-test/support/logger_test.rb
-test/support/rake_test.rb
-test/support/shell_utils_test.rb
-test/support/tdoc_test.rb
-test/support/validation_test.rb
-test/support/versions_test.rb
-test/tap_test_helper.rb
-test/tap_test_suite.rb
-test/task/config/batch.yml
-test/task/config/batched.yml
-test/task/config/configured.yml
-test/task/config/example.yml
-test/task_base_test.rb
-test/task_syntax_test.rb
-test/task_test.rb
-test/test/env_vars_test.rb
-test/test/file_methods/test_assert_files/expected/one.txt
-test/test/file_methods/test_assert_files/expected/two.txt
-test/test/file_methods/test_assert_files/input/one.txt
-test/test/file_methods/test_assert_files/input/two.txt
-test/test/file_methods/test_assert_files_can_have_no_expected_files_if_specified/expected
-test/test/file_methods/test_assert_files_can_have_no_expected_files_if_specified/input/one.txt
-test/test/file_methods/test_assert_files_can_have_no_expected_files_if_specified/input/two.txt
-test/test/file_methods/test_assert_files_fails_for_different_content/expected/one.txt
-test/test/file_methods/test_assert_files_fails_for_different_content/expected/two.txt
-test/test/file_methods/test_assert_files_fails_for_different_content/input/one.txt
-test/test/file_methods/test_assert_files_fails_for_different_content/input/two.txt
-test/test/file_methods/test_assert_files_fails_for_missing_expected_file/expected/one.txt
-test/test/file_methods/test_assert_files_fails_for_missing_expected_file/input/one.txt
-test/test/file_methods/test_assert_files_fails_for_missing_expected_file/input/two.txt
-test/test/file_methods/test_assert_files_fails_for_missing_output_file/expected/one.txt
-test/test/file_methods/test_assert_files_fails_for_missing_output_file/expected/two.txt
-test/test/file_methods/test_assert_files_fails_for_missing_output_file/input/one.txt
-test/test/file_methods/test_assert_files_fails_for_missing_output_file/input/two.txt
-test/test/file_methods/test_assert_files_fails_for_no_expected_files/input/one.txt
-test/test/file_methods/test_assert_files_fails_for_no_expected_files/input/two.txt
-test/test/file_methods/test_method_glob/expected/file.yml
-test/test/file_methods/test_method_glob/expected/file_1.txt
-test/test/file_methods/test_method_glob/expected/file_2.txt
-test/test/file_methods_doc/test_sub/expected/one.txt
-test/test/file_methods_doc/test_sub/expected/two.txt
-test/test/file_methods_doc/test_sub/input/one.txt
-test/test/file_methods_doc/test_sub/input/two.txt
-test/test/file_methods_doc_test.rb
-test/test/file_methods_test.rb
-test/test/subset_methods_test.rb
-test/test/tap_methods/test_assert_files/expected/task/name/a.txt
-test/test/tap_methods/test_assert_files/expected/task/name/b.txt
-test/test/tap_methods/test_assert_files/input/a.txt
-test/test/tap_methods/test_assert_files/input/b.txt
-test/test/tap_methods_test.rb
-test/workflow_test.rb
+# test/app/config/another/task.yml
+# test/app/config/batch.yml
+# test/app/config/empty.yml
+# test/app/config/erb.yml
+# test/app/config/some/task.yml
+# test/app/config/template.yml
+# test/app/config/version-0.1.yml
+# test/app/config/version.yml
+# test/app/lib/app_test_task.rb
+# test/app_test.rb
+# #test/dump_test.rb
+# test/env/test_configure/recurse_a.yml
+# test/env/test_configure/recurse_b.yml
+# test/env/test_configure/tap.yml
+# test/env/test_load_env_config/dir/tap.yml
+# test/env/test_load_env_config/recurse_a.yml
+# test/env/test_load_env_config/recurse_b.yml
+# test/env/test_load_env_config/tap.yml
+# test/env_test.rb
+# test/file_task/config/batch.yml
+# test/file_task/config/configured.yml
+# test/file_task/old_file_one.txt
+# test/file_task/old_file_two.txt
+# test/file_task_test.rb
+# test/root/alt_lib/alt_module.rb
+# test/root/glob/one.txt
+# test/root/glob/two.txt
+# test/root/lib/absolute_alt_filepath.rb
+# test/root/lib/alternative_filepath.rb
+# test/root/lib/another_module.rb
+# test/root/lib/nested/some_module.rb
+# test/root/lib/no_module_included.rb
+# test/root/lib/some/module.rb
+# test/root/lib/some_class.rb
+# test/root/lib/some_module.rb
+# test/root/load_path/load_path_module.rb
+# test/root/load_path/skip_module.rb
+# test/root/mtime/older.txt
+# test/root/unload/full_path.rb
+# test/root/unload/loaded_by_nested.rb
+# test/root/unload/nested/nested_load.rb
+# test/root/unload/nested/nested_with_ext.rb
+# test/root/unload/nested/relative_path.rb
+# test/root/unload/older.rb
+# test/root/unload/unload_base.rb
+# test/root/versions/another.yml
+# test/root/versions/file-0.1.2.yml
+# test/root/versions/file-0.1.yml
+# test/root/versions/file.yml
+# test/root/file.txt
+# test/root_test.rb
+# test/support/aggregator_test.rb
+# test/support/audit_test.rb
+# test/support/batchable_test.rb
+# test/support/class_configuration_test.rb
+# test/support/command_line_test.rb
+# test/support/configurable/config/configured.yml
+# test/support/configurable_test.rb
+# test/support/executable_queue_test.rb
+# test/support/executable_test.rb
+# test/support/logger_test.rb
+# test/support/rake_test.rb
+# test/support/shell_utils_test.rb
+# test/support/tdoc_test.rb
+# test/support/validation_test.rb
+# test/support/versions_test.rb
+# test/tap_test_helper.rb
+# test/tap_test_suite.rb
+# test/task/config/batch.yml
+# test/task/config/batched.yml
+# test/task/config/configured.yml
+# test/task/config/example.yml
+# test/task_base_test.rb
+# test/task_syntax_test.rb
+# test/task_test.rb
+# test/test/env_vars_test.rb
+# test/test/file_methods/test_assert_files/expected/one.txt
+# test/test/file_methods/test_assert_files/expected/two.txt
+# test/test/file_methods/test_assert_files/input/one.txt
+# test/test/file_methods/test_assert_files/input/two.txt
+# test/test/file_methods/test_assert_files_can_have_no_expected_files_if_specified/expected
+# test/test/file_methods/test_assert_files_can_have_no_expected_files_if_specified/input/one.txt
+# test/test/file_methods/test_assert_files_can_have_no_expected_files_if_specified/input/two.txt
+# test/test/file_methods/test_assert_files_fails_for_different_content/expected/one.txt
+# test/test/file_methods/test_assert_files_fails_for_different_content/expected/two.txt
+# test/test/file_methods/test_assert_files_fails_for_different_content/input/one.txt
+# test/test/file_methods/test_assert_files_fails_for_different_content/input/two.txt
+# test/test/file_methods/test_assert_files_fails_for_missing_expected_file/expected/one.txt
+# test/test/file_methods/test_assert_files_fails_for_missing_expected_file/input/one.txt
+# test/test/file_methods/test_assert_files_fails_for_missing_expected_file/input/two.txt
+# test/test/file_methods/test_assert_files_fails_for_missing_output_file/expected/one.txt
+# test/test/file_methods/test_assert_files_fails_for_missing_output_file/expected/two.txt
+# test/test/file_methods/test_assert_files_fails_for_missing_output_file/input/one.txt
+# test/test/file_methods/test_assert_files_fails_for_missing_output_file/input/two.txt
+# test/test/file_methods/test_assert_files_fails_for_no_expected_files/input/one.txt
+# test/test/file_methods/test_assert_files_fails_for_no_expected_files/input/two.txt
+# test/test/file_methods/test_method_glob/expected/file.yml
+# test/test/file_methods/test_method_glob/expected/file_1.txt
+# test/test/file_methods/test_method_glob/expected/file_2.txt
+# test/test/file_methods_doc/test_sub/expected/one.txt
+# test/test/file_methods_doc/test_sub/expected/two.txt
+# test/test/file_methods_doc/test_sub/input/one.txt
+# test/test/file_methods_doc/test_sub/input/two.txt
+# test/test/file_methods_doc_test.rb
+# test/test/file_methods_test.rb
+# test/test/subset_methods_test.rb
+# test/test/tap_methods/test_assert_files/expected/task/name/a.txt
+# test/test/tap_methods/test_assert_files/expected/task/name/b.txt
+# test/test/tap_methods/test_assert_files/input/a.txt
+# test/test/tap_methods/test_assert_files/input/b.txt
+# test/test/tap_methods_test.rb
+# test/workflow_test.rb
 vendor/rails_generator/base.rb
 vendor/rails_generator/commands.rb
 vendor/rails_generator/generated_attribute.rb
