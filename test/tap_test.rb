@@ -37,7 +37,7 @@ available commands:
   run
   server
 
-version 0.9.2 -- http://tap.rubyforge.org
+version #{Tap::VERSION} -- http://tap.rubyforge.org
 }
     end
   end

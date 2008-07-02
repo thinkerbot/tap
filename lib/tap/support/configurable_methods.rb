@@ -93,6 +93,9 @@ module Tap
       # 
       def config(key, value=nil, options={}, &block)
         if block_given?
+          # add arg_type implied by block, if necessary
+          options[:arg_type] = arg_type(block) if options[:arg_type] == nil
+          
           instance_variable = "@#{key}".to_sym
           config_attr(key, value, options) do |input|
             instance_variable_set(instance_variable, block.call(input))
@@ -184,7 +187,10 @@ module Tap
       #
       # See Tap::Support::Configurable for more details.
       def config_attr(key, value=nil, options={}, &block)
-
+        
+        # add arg_type implied by block, if necessary
+        options[:arg_type] = arg_type(block) if block_given? && options[:arg_type] == nil
+        
         # register with TDoc, not config, so that all bits can be
         # extracted at once
         caller.each_with_index do |line, index|
@@ -236,6 +242,15 @@ module Tap
         Validation
       end
       
+      private
+      
+      def arg_type(block) # :nodoc:
+        case block
+        when Validation::BOOLEAN then :switch
+        when Validation::ARRAY then :list
+        else nil
+        end
+      end
     end
   end
 end
