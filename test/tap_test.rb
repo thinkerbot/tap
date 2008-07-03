@@ -190,10 +190,18 @@ sample_without_doc  #
       cmd.check " run -- --+ --++", "Prints no task specified", no_task_specified
 
       cmd.check " run unknown", "Prints unknown task", %Q{unknown task: unknown\n}
-
+      
+      # run variations
+      
       cmd.check " run sample one", "Runs the sample task successfully", 
       /I\[\d\d:\d\d:\d\d\]             sample one was processed with value/
-  
+      
+      cmd.check " run -- sample one --key alt", "Runs the sample task with config", 
+      /I\[\d\d:\d\d:\d\d\]             sample one was processed with alt/
+      
+      cmd.check " run -- sample one --key=alt", "Runs the sample task with alt config syntax", 
+      /I\[\d\d:\d\d:\d\d\]             sample one was processed with alt/
+      
       # cmd.check " run sample-0.1 one", "Runs the versioned sample task"
       # /I\[\d\d:\d\d:\d\d\]             sample one was processed with sample 0.1 value/
 
@@ -202,7 +210,9 @@ sample_without_doc  #
 
       cmd.check " run sample one two", "Runs the sample task causing an argument error" ,
       /ArgumentError wrong number of arguments \(2 for 1\)/
-
+      
+      # help variations
+       
       cmd.check " run -- sample --help", "Prints the sample task help", %Q{
 Sample -- manifest summary
   command line description line one
@@ -247,6 +257,48 @@ options:
       # 
       # # should be it's own thing (test_cmd not test_run) ...
       # cmd.check " info", "Runs a command successfully"
+      
+      # config variations
+      
+      # array
+      cmd.check " run -- with_switch_config --switch", "Run with switch syntax", 
+      /with_switch_config true/
+      
+      cmd.check " run -- with_switch_config --no-switch", "Run with switch syntax", 
+      /with_switch_config false/
+      
+      cmd.check " run -- with_switch_config --help", "Prints the array config help",
+      /--\[no-\]switch                a switch config/
+      
+      # list
+      cmd.check " run -- with_list_config --list 1,2.2,str", "Run with list syntax", 
+      /with_list_config \[1, 2.2, "str"\]/
+      
+      cmd.check " run -- with_list_config --list=1,2.2,str", "Run with list syntax", 
+      /with_list_config \[1, 2.2, "str"\]/
+      
+      cmd.check " run -- with_list_config --list \"[1, 2.2, 'str']\"", "Run with list syntax", 
+      /with_list_config \[1, 2.2, "str"\]/
+      
+      cmd.check " run -- with_list_config --list \"[1, 2.2, 'str']\"", "Run with list syntax", 
+      /with_list_config \[1, 2.2, "str"\]/
+      
+      cmd.check " run -- with_list_config --help", "Prints the list config help",
+      /--list a,b,c                 a list config/
+      
+      # array
+      cmd.check " run -- with_array_config --array \"[1, 2.2, 'str']\"", "Run with array syntax", 
+      /with_array_config \[1, 2.2, "str"\]/
+      
+      cmd.check " run -- with_array_config --help", "Prints the array config help",
+      /--array '\[a, b, c\]'          an array config/
+      
+      # hash
+      cmd.check " run -- with_hash_config --hc \"{one: 1, two: 2}\"", "Run with hash syntax", 
+      /with_hash_config (\{"one"=>1, "two"=>2\}|\{"two"=>2, "one"=>1\})/
+      
+      cmd.check " run -- with_hash_config --help", "Prints the hash config help",
+      /--hc '\{one: 1, two: 2\}'      a hash config/
     end
   end
   

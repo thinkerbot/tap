@@ -138,8 +138,8 @@ module Tap
           Configuration.longify(long, true)
         when :flag
           long
-        when :list 
-          "#{long} x,y,z"
+        when :list
+          "#{long} a,b,c"
         else # assume mandatory
           "#{long} #{arg_name || name.to_s.upcase}"
         end

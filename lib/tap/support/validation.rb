@@ -22,6 +22,13 @@ module Tap
         end
       end
       
+      # Raised when yamlization fails.
+      class YamlizationError < ArgumentError
+        def initialize(input, error)
+          super "#{error} ('#{input}')"
+        end
+      end
+      
       module_function
       
       # Yaml conversion and checker.  Valid if any of the validations
@@ -57,6 +64,16 @@ module Tap
         end
       end
       
+      # Attempts to load the input as YAML.  Raises a YamlizationError
+      # for errors.
+      def yamlize(input)
+        begin
+          YAML.load(input)
+        rescue
+          raise YamlizationError.new(input, $!.message)
+        end
+      end
+      
       # Returns a block that calls validate using the block input
       # and the input validations.  Raises an error if no validations
       # are specified.
@@ -80,7 +97,7 @@ module Tap
       # returned without validation.
       def yaml(*validations)
         lambda do |input|
-          res = input.kind_of?(String) ? YAML.load(input) : input
+          res = input.kind_of?(String) ? yamlize(input) : input
           validations.empty? ? res : validate(res, validations)
         end
       end
@@ -91,7 +108,7 @@ module Tap
       # input is validated directly.
       def yamlize_and_check(*validations)
         lambda do |input|
-          input = YAML.load(input) if input.kind_of?(String)
+          input = yamlize(input) if input.kind_of?(String)
           validate(input, validations)
         end
       end
@@ -134,6 +151,9 @@ module Tap
       def boolean(); BOOLEAN; end
       BOOLEAN = yamlize_and_check(true, false, nil)
       
+      def switch(); SWITCH; end
+      SWITCH = yamlize_and_check(true, false, nil)
+
       # Returns a block that checks the input is an array.
       # String inputs are loaded as yaml first.
       #
@@ -145,6 +165,18 @@ module Tap
       def array(); ARRAY; end
       ARRAY = yamlize_and_check(Array)
 
+      def list(); LIST; end
+      LIST = lambda do |input|
+        if input.kind_of?(String)
+          input = case processed_input = yamlize(input)
+          when Array then processed_input
+          else input.split(/,/).collect {|arg| yamlize(arg) }
+          end
+        end
+        
+        validate(input, [Array])
+      end
+      
       # Returns a block that checks the input is a hash.
       # String inputs are loaded as yaml first.
       #

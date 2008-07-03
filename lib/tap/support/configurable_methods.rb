@@ -95,6 +95,7 @@ module Tap
         if block_given?
           # add arg_type implied by block, if necessary
           options[:arg_type] = arg_type(block) if options[:arg_type] == nil
+          options[:arg_name] = arg_name(block) if options[:arg_name] == nil
           
           instance_variable = "@#{key}".to_sym
           config_attr(key, value, options) do |input|
@@ -190,6 +191,7 @@ module Tap
         
         # add arg_type implied by block, if necessary
         options[:arg_type] = arg_type(block) if block_given? && options[:arg_type] == nil
+        options[:arg_name] = arg_name(block) if block_given? && options[:arg_name] == nil
         
         # register with TDoc, not config, so that all bits can be
         # extracted at once
@@ -244,10 +246,24 @@ module Tap
       
       private
       
+      # Returns special argument types for standard validation
+      # blocks, such as switch (Validation::SWITCH) and list
+      # (Validation::LIST).
       def arg_type(block) # :nodoc:
         case block
-        when Validation::BOOLEAN then :switch
-        when Validation::ARRAY then :list
+        when Validation::SWITCH then :switch
+        when Validation::LIST then :list
+        else nil
+        end
+      end
+      
+      # Returns special argument names for standard validation
+      # blocks, such as switch (Validation::ARRAY) and list
+      # (Validation::HASH).
+      def arg_name(block) # :nodoc:
+        case block
+        when Validation::ARRAY then "'[a, b, c]'"
+        when Validation::HASH then "'{one: 1, two: 2}'"
         else nil
         end
       end

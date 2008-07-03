@@ -58,7 +58,7 @@ module Tap
         
         configurations.each do |receiver, key, configuration|
           opts.on(*configuration.to_option_parser_argv) do |value|
-            config[key] = YAML.load(value)
+            config[key] = value
           end
         end
       
