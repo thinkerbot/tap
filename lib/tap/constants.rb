@@ -50,10 +50,16 @@ module Tap
         constantize  
       rescue(NameError)
         error_name = $!.name.to_s 
-        # check that the const_name BEGINS with error_name rather than
-        # equals, so that nested constants are passed on (ex: you look
-        # for "Sample::Task" and the NameError is for "Sample")
-        raise $! unless const_name.index(error_name) == 0
+        missing_const = const_name.split(/::/).inject(Object) do |current, const|
+          if current.const_defined?(const) 
+            current.const_get(const) 
+          else 
+            break(const)
+          end
+        end
+        
+        # check that the error_name is the first missing constant
+        raise $! unless missing_const == error_name
         yield(const_name)
       end
     end

@@ -20,7 +20,8 @@ lib/tap/generator/generators/command/command_generator.rb
 lib/tap/generator/generators/command/templates/command.erb
 lib/tap/generator/generators/command/USAGE
 lib/tap/generator/generators/config/config_generator.rb
-lib/tap/generator/generators/config/templates/config.erb
+lib/tap/generator/generators/config/templates/doc.erb
+lib/tap/generator/generators/config/templates/nodoc.erb
 lib/tap/generator/generators/config/USAGE
 lib/tap/generator/generators/file_task/file_task_generator.rb
 lib/tap/generator/generators/file_task/templates/file.txt

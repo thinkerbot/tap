@@ -12,7 +12,7 @@ autoload(:PP, "pp")
 # Apply version-specific patches
 case RUBY_VERSION
 when /^1.9/
-  $: << File.dirname(__FILE__) + "/tap/patches/ruby19"
+  $: << File.expand_path(File.dirname(__FILE__) + "/tap/patches/ruby19")
   
   # suppresses TDoc warnings
   $DEBUG_RDOC ||= nil 
@@ -20,7 +20,7 @@ end
 
 # require 'active_support/clean_logger'
 
-$:.unshift File.dirname(__FILE__)
+$:.unshift File.expand_path(File.dirname(__FILE__))
 
 require 'tap/constants'
 class String # :nodoc:

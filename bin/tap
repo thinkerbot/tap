@@ -24,20 +24,22 @@ after = nil
 default_config_file = Tap::Env::DEFAULT_CONFIG_FILE
 begin
   
-  env.reconfigure(Tap::Env.read_config(default_config_file)) do |unhandled_configs|
-    before = unhandled_configs.delete(:before)
-    after = unhandled_configs.delete(:after)
+  if File.exists?(default_config_file)
+    env.reconfigure(Tap::Env.read_config(default_config_file)) do |unhandled_configs|
+      before = unhandled_configs.delete(:before)
+      after = unhandled_configs.delete(:after)
     
-    unless unhandled_configs.empty?
-      env.log(:warn, "ignoring non-env configs: #{unhandled_configs.keys.join(',')}", Logger::DEBUG)
+      unless unhandled_configs.empty?
+        env.log(:warn, "ignoring non-env configs: #{unhandled_configs.keys.join(',')}", Logger::DEBUG)
+      end
+    
     end
-    
-  end if File.exists?(default_config_file)
+  else
+    env.gems = Tap::Env.known_gems(true)
+  end
 
-  #env.discover_gems unless 
-  
   env.command_paths << File.join( File.dirname(__FILE__), "../lib/tap/cmd")
-  
+
 rescue(Exception)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)

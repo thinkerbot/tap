@@ -2,7 +2,8 @@ require 'tap/root'
 require 'tap/support/configurable'
 
 autoload(:StringScanner, 'strscan')
-#autoload(:Dependencies, 'tap/support/dependencies')
+# causes an error with generators... something in the way Dependencies is set...
+# autoload(:Dependencies, 'tap/support/dependencies')
 Tap::Support.autoload(:Rake, 'tap/support/rake')
 
 module Tap
@@ -77,9 +78,9 @@ module Tap
         end
       end
 
-      # Returns the full_gem_path for the specified gem.  A gem version 
-      # can be specified in the name, like 'gem >= 1.2'.  The gem will
-      # be activated using +gem+ unless already active.
+      # Returns the gemspec for the specified gem.  A gem version 
+      # can be specified in the name, like 'gem >= 1.2'.  The gem 
+      # will be activated using +gem+ if necessary.
       def gemspec(gem_name)
         return gem_name if gem_name.kind_of?(Gem::Specification)
         
@@ -95,23 +96,19 @@ module Tap
         Gem.loaded_specs[name]
       end
       
-      #--
-      # Returns the path to all DEFAULT_CONFIG_FILEs for installed gems.
-      # If latest==true, then only the config files for the latest gem
-      # specs will be returned (ie for the most current version of a
-      # gem).
-      # def env_gemspecs(latest=true)
-      #   if latest
-      #     Gem.source_index.latest_specs.collect do |spec| 
-      #       config_file = File.join(spec.full_gem_path, DEFAULT_CONFIG_FILE)
-      #       File.exists?(config_file) ? spec : nil
-      #     end.compact
-      #   else
-      #     Gem.path.collect do |dir|
-      #       Dir.glob( File.join(dir, "gems/*", DEFAULT_CONFIG_FILE) )
-      #     end.flatten.uniq
-      #   end
-      # end
+      # Returns the gem name for all installed gems with a DEFAULT_CONFIG_FILE.
+      # If latest==true, then only the names for the most current gem specs
+      # will be returned.
+      def known_gems(latest=true)
+        index = latest ?
+          Gem.source_index.latest_specs :
+          Gem.source_index.gems.collect {|(name, spec)| spec }
+        
+        index.collect do |spec|
+          config_file = File.join(spec.full_gem_path, DEFAULT_CONFIG_FILE)
+          File.exists?(config_file) ? spec : nil
+        end.compact.sort
+      end
       
       protected
       
@@ -329,7 +326,7 @@ module Tap
         
         path_suffix = const_name.underscore.chomp('.rb') + '.rb'
 
-        load_paths.inject(nil) do |obj, base|
+        $:.inject(nil) do |obj, base|
           break(obj) if obj != nil
 
           path = File.join(base, path_suffix) # should already be expanded
@@ -346,7 +343,7 @@ module Tap
     # by default [$LOAD_PATH]. If use_dependencies == true, then
     # Dependencies.load_paths will also be included.
     def load_path_targets
-      use_dependencies ? [$LOAD_PATH, Dependencies.load_paths] : [$LOAD_PATH]
+      use_dependencies ? [$LOAD_PATH, ::Dependencies.load_paths] : [$LOAD_PATH]
     end
     
     # Unloads constants loaded by Dependencies, so that they will be reloaded
@@ -535,24 +532,6 @@ module Tap
     # Under construction
     #
     
-    # # Loads the config for the specified gem.  A gem version can be 
-    # # specified in the name, see full_gem_path.
-    # def load_gem(gem_name)
-    #   # prevent looping
-    #   full_gem_path = full_gem_path(gem_name)
-    #   return false if gems.include?(full_gem_path)
-    # 
-    #   gems << full_gem_path
-    #   load_config(full_gem_path)
-    # end
-    # 
-    # # Loads the config files discovered by gem_config_files(true).
-    # def discover_gems
-    #   gem_config_files.collect do |config_file|
-    #     load_config(config_file)
-    #   end
-    # end
-    
     def handle_error(err)
       case
       when $DEBUG
@@ -622,9 +601,9 @@ module Tap
     
     def reset_envs
       @envs = env_paths.collect do |path| 
-        Env.instances[path]
+        Env.instantiate(path)
       end + gems.collect do |spec|
-        Env.instances[spec.full_gem_path]
+        Env.instantiate(spec.full_gem_path)
       end.uniq
     end
   end
