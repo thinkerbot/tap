@@ -84,34 +84,101 @@ module Tap
           validations.empty? ? res : validate(res, validations)
         end
       end
-
-      # Returns a block that converts an input into a boolean
-      # using YAML (stringifying if needed), then validates 
-      # the result to be true, false or nil.
-      #
-      #   boolean.class           # => Proc
-      #   boolean.call(true)      # => true
-      #   boolean.call(false)     # => false
-      #   boolean.call(nil)       # => nil
-      #
-      #   # since the input is loaded as yaml, some variations...
-      #   boolean.call('true')    # => true
-      #   boolean.call('yes')     # => true
-      #   boolean.call('FALSE')   # => false
-      #
-      #   boolean.call(1)               # => ValidationError
-      #   boolean.call("str")           # => ValidationError
-      #
-      def boolean(); BOOLEAN; end
-      BOOLEAN = lambda do |input|
-        case input
-        when true, false, nil then input
-        else validate(YAML.load(input.to_s), [true, false, nil])
+      
+      # Returns a block loads a String input as YAML then
+      # validates the result is valid using the input
+      # validations.  If the input is not a String, the
+      # input is validated directly.
+      def yamlize_and_check(*validations)
+        lambda do |input|
+          input = YAML.load(input) if input.kind_of?(String)
+          validate(input, validations)
         end
       end
       
+      # Returns a block that checks the input is a string.
+      #
+      #   string.class              # => Proc
+      #   string.call('str')        # => 'str'
+      #   string.call(:sym)         # => ValidationError
+      #
+      def string(); STRING; end
+      STRING = check(String)
+      
+      # Returns a block that checks the input is a symbol.
+      # String inputs are loaded as yaml first.
+      #
+      #   symbol.class              # => Proc
+      #   symbol.call(:sym)         # => :sym
+      #   symbol.call(':sym')       # => :sym
+      #   symbol.call('str')        # => ValidationError
+      #
+      def symbol(); SYMBOL; end
+      SYMBOL = yamlize_and_check(Symbol)
+      
+      # Returns a block that checks the input is true, false or nil.
+      # String inputs are loaded as yaml first.
+      #
+      #   boolean.class             # => Proc
+      #   boolean.call(true)        # => true
+      #   boolean.call(false)       # => false
+      #   boolean.call(nil)         # => nil
+      #
+      #   boolean.call('true')      # => true
+      #   boolean.call('yes')       # => true
+      #   boolean.call('FALSE')     # => false
+      #
+      #   boolean.call(1)           # => ValidationError
+      #   boolean.call("str")       # => ValidationError
+      #
+      def boolean(); BOOLEAN; end
+      BOOLEAN = yamlize_and_check(true, false, nil)
+      
+      # Returns a block that checks the input is an array.
+      # String inputs are loaded as yaml first.
+      #
+      #   array.class               # => Proc
+      #   array.call([1,2,3])       # => [1,2,3]
+      #   array.call('[1, 2, 3]')   # => [1,2,3]
+      #   array.call('str')         # => ValidationError
+      #
       def array(); ARRAY; end
-      ARRAY = check(Array)
+      ARRAY = yamlize_and_check(Array)
+
+      # Returns a block that checks the input is a hash.
+      # String inputs are loaded as yaml first.
+      #
+      #   hash.class                     # => Proc
+      #   hash.call({'key' => 'value'})  # => {'key' => 'value'}
+      #   hash.call('key: value')        # => {'key' => 'value'}
+      #   hash.call('str')               # => ValidationError
+      #
+      def hash(); HASH; end
+      HASH = yamlize_and_check(Hash)
+      
+      # Returns a block that checks the input is an integer.
+      # String inputs are loaded as yaml first.
+      #
+      #   integer.class             # => Proc
+      #   integer.call(1)           # => 1
+      #   integer.call('1')         # => 1
+      #   integer.call(1.1)         # => ValidationError
+      #   integer.call('str')       # => ValidationError
+      #
+      def integer(); INTEGER; end
+      INTEGER = yamlize_and_check(Integer)
+      
+      # Returns a block that checks the input is a float.
+      # String inputs are loaded as yaml first.
+      #
+      #   float.class               # => Proc
+      #   float.call(1.1)           # => 1.1
+      #   float.call('1.1')         # => 1.1
+      #   float.call(1)             # => ValidationError
+      #   float.call('str')         # => ValidationError
+      #
+      def float(); FLOAT; end
+      FLOAT = yamlize_and_check(Float)
       
     end
   end
