@@ -13,38 +13,42 @@ task :default => :test
 #
 # Gem specification
 #
-Gem::manage_gems
 
-spec = Gem::Specification.new do |s|
-	s.name = "tap"
-	s.version = Tap::VERSION
-	s.author = "Simon Chiang"
-	s.email = "simon.chiang@uchsc.edu"
-	s.homepage = Tap::WEBSITE
-	s.platform = Gem::Platform::RUBY
-	s.summary = "A framework for configurable, distributable, and easy-to-use tasks and workflow applications."
-	s.files = File.read("Manifest.txt").split("\n").select {|f| f !~ /^\s*#/ && !File.directory?(f) }
-	s.require_path = "lib"
-	s.rubyforge_project = "tap"
-	s.test_file = "test/tap_test_suite.rb"
-	s.bindir = "bin"
-	s.executables = ["tap"]
-  s.default_executable = "tap"
-  
-	s.has_rdoc = true
-  s.rdoc_options << '--title' << 'Tap - Task Application' << '--main' << 'README' 
-	s.extra_rdoc_files = ["README", "MIT-LICENSE", "History", "doc/Tutorial", "doc/Basic Overview", "doc/Command Reference"]
-  s.add_dependency("activesupport", ">=2.0.1")
+def gemspec
+  data = File.read('tap.gemspec')
+  spec = nil
+  Thread.new { spec = eval("$SAFE = 3\n#{data}") }.join
+  spec
 end
 
-Rake::GemPackageTask.new(spec) do |pkg|
-	pkg.need_tar = true
+Rake::GemPackageTask.new(gemspec) do |pkg|
+  pkg.need_tar = true
 end
 
-desc 'Prints the gem manifest.'
+desc 'Prints the gemspec manifest.'
 task :print_manifest do
-  spec.files.each do |file|
-    puts file
+  # collect files from the gemspec, labeling 
+  # with true or false corresponding to the
+  # file existing or not
+  files = gemspec.files.inject({}) do |files, file|
+    files[File.expand_path(file)] = [File.exists?(file), file]
+    files
+  end
+  
+  # gather non-rdoc/pkg files for the project
+  # and add to the files list if they are not
+  # included already (marking by the absence
+  # of a label)
+  Dir.glob("**/*").each do |file|
+    next if file =~ /^(rdoc|pkg)/ || File.directory?(file)
+    
+    path = File.expand_path(file)
+    files[path] = ["", file] unless files.has_key?(path)
+  end
+  
+  # sort and output the results
+  files.values.sort_by {|exists, file| file }.each do |entry| 
+    puts "%-5s : %s" % entry
   end
 end
 
@@ -69,22 +73,14 @@ end
 desc 'Generate documentation.'
 Rake::RDocTask.new(:rdoc) do |rdoc|
   require 'tap/support/tdoc/config_attr'
+  spec = gemspec
   
   rdoc.rdoc_dir = 'rdoc'
   rdoc.title    = 'tap'
   rdoc.template = 'tap/support/tdoc/tdoc_html_template' 
   rdoc.options << '--line-numbers' << '--inline-source' << '--fmt' << 'tdoc'
-  rdoc.rdoc_files.include('README', 'MIT-LICENSE', "History", "doc/*")
-  rdoc.rdoc_files.include('lib/tap/**/*.rb')
-end
-
-#
-# Hoe tasks
-#
-
-desc 'Install the package as a gem'
-task :install_gem => [:package] do
-  sh "#{'sudo ' unless WINDOZE}gem install pkg/*.gem"
+  rdoc.rdoc_files.include( spec.extra_rdoc_files )
+  rdoc.rdoc_files.include( spec.files.select {|file| file =~ /^lib/} )
 end
 
 desc "Publish RDoc to RubyForge"
@@ -99,9 +95,4 @@ task :publish_rdoc => [:rdoc] do
   local_dir = "rdoc"
  
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
-end
-
-desc 'Show information about the gem.'
-task :debug_gem do
-  puts spec.to_ruby
 end
