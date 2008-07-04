@@ -32,7 +32,7 @@ gemspec = Gem::Specification.new do |s|
   s.has_rdoc = true
   s.add_dependency("tap", ">= <%= Tap::VERSION %>")
   s.extra_rdoc_files = %w{ ReadMe.txt }
-  s.files = Dir.glob("{test,lib}/**/*") + %w{ Rakefile ReadMe.txt }
+  s.files = Dir.glob("{test,lib}/**/*") + %w{ Rakefile ReadMe.txt tap.yml }
 end
 
 Rake::GemPackageTask.new(gemspec) do |pkg|
