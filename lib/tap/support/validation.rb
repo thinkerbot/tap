@@ -212,6 +212,23 @@ module Tap
       def float(); FLOAT; end
       FLOAT = yamlize_and_check(Float)
       
+      # Returns a block that checks the input is a regexp.
+      # String inputs are converted to regexps using
+      # Regexp#new.
+      #
+      #   regexp.class              # => Proc
+      #   regexp.call(/regexp/)     # => /regexp/
+      #   regexp.call('regexp')     # => /regexp/
+      #
+      #   # use of ruby-specific flags can turn on/off 
+      #   # features like case insensitive matching
+      #   regexp.call('(?i)regexp') # => /(?i)regexp/
+      #
+      def regexp(); REGEXP; end
+      REGEXP = lambda do |input|
+        input = Regexp.new(input) if input.kind_of?(String)
+        validate(input, [Regexp])
+      end
     end
   end
 end

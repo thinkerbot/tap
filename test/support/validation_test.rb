@@ -180,5 +180,16 @@ class ValidationTest < Test::Unit::TestCase
     assert_raise(ValidationError) { float.call(1) }
     assert_raise(ValidationError) { float.call('str') }
   end
+  
+  #
+  # regexp test
+  #
+  
+  def test_regexp_documentation
+    assert_equal Proc, regexp.class
+    assert_equal(/regexp/, regexp.call(/regexp/))
+    assert_equal(/regexp/, regexp.call('regexp'))
+    assert_equal(/(?i)regexp/, regexp.call('(?i)regexp'))
+  end
 
 end
