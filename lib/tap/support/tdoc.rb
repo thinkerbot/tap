@@ -137,7 +137,11 @@ module Tap
               unless line_fragments.empty?
                 tdoc.desc << line_fragments.join(' ') 
               end
-
+              
+              # trim away leading and trailing empty lines
+              tdoc.desc.shift while tdoc.desc.length > 0 && tdoc.desc[0] =~ /^\s*$/
+              tdoc.desc.pop while tdoc.desc.length > 0 && tdoc.desc[-1] =~ /^\s*$/
+        
             when USAGE_REGEXP # Parse Usage
               tdoc.usage = scanner.scan_until(/$/).strip
             end

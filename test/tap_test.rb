@@ -297,6 +297,7 @@ sample_without_doc  #
        
       cmd.check " run -- sample --help", "Prints the sample task help", %Q{
 Sample -- manifest summary
+
   command line description line one
   
   line two
