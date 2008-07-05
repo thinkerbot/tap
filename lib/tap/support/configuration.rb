@@ -65,6 +65,12 @@ module Tap
         
         self.reader = name
         self.writer = "#{name}="
+        self.line = nil
+        self.desc = nil
+        self.arg_name = nil
+        self.arg_type = nil
+        self.long = nil
+        self.short = nil
         self.attributes = attributes
       end
       
@@ -140,8 +146,10 @@ module Tap
           long
         when :list
           "#{long} a,b,c"
-        else # assume mandatory
+        when :mandatory, nil
           "#{long} #{arg_name || name.to_s.upcase}"
+        else
+          raise "unknown arg_type: #{arg_type}"
         end
         
         argv << self

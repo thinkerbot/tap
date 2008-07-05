@@ -7,23 +7,6 @@ $:.unshift "./lib"
 require 'tap/constants'
 require 'tap/patches/rake/testtask.rb'
 
-desc 'Default: Run tests.'
-task :default => :test
-
-desc 'Run tests.'
-Rake::TestTask.new(:test) do |t|
-  t.test_files = if ENV['check']
-    Dir.glob( File.join('test',  "**/*#{ENV['check']}*_check.rb") )
-  else
-    Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
-      filename =~ /test\/check/ || filename =~ /test\/tap\/.*/
-    end
-  end
-  
-  t.verbose = true
-  t.warning = true
-end
-
 #
 # Gem specification
 #
@@ -64,6 +47,27 @@ task :print_manifest do
   files.values.sort_by {|exists, file| file }.each do |entry| 
     puts "%-5s : %s" % entry
   end
+end
+
+#
+# Test tasks
+#
+
+desc 'Default: Run tests.'
+task :default => :test
+
+desc 'Run tests.'
+Rake::TestTask.new(:test) do |t|
+  t.test_files = if ENV['check']
+    Dir.glob( File.join('test',  "**/*#{ENV['check']}*_check.rb") )
+  else
+    Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
+      filename =~ /test\/check/ || filename =~ /test\/tap\/.*/
+    end
+  end
+  
+  t.verbose = true
+  t.warning = true
 end
 
 #
