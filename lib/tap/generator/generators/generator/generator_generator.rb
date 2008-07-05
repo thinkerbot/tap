@@ -10,7 +10,7 @@ module Tap::Generator::Generators
 
     def manifest
       record do |m|
-        generators_root = @app.relative_filepath(:root, @app['generators'])
+        generators_root = @app.relative_filepath(:root, @app['lib/generators'])
         m.directory File.join(generators_root, file_name, "templates")
         
         m.template "generator.erb", File.join(generators_root,  file_name, file_name + "_generator.rb")
