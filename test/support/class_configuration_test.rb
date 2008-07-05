@@ -1,139 +1,292 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/support/class_configuration'
-require 'tap/support/validation'
-require 'tap/support/configurable_methods'
-require 'tap/support/tdoc'
-require 'tap/support/configurable'
-
-# for documentation test
-class BaseTask 
-  include Tap::Support::Configurable
-  config :one, 1
-end
-class SubTask < BaseTask
-  config :one, 'one'
-  config :two, 'two'
-end
-class MergeTask < BaseTask
-  config :three, 'three'
-  config_merge SubTask
-end
-class ValidationTask < Tap::Task
-  config :one, 'one', &c.check(String)
-  config :two, 'two', &c.yaml(/two/, Integer)
-  config :three, 'three' do |v| 
-    v =~ /three/ ? v.upcase : raise("not three")
-  end
-end
-
-class FormatYamlClass
-  include Tap::Support::Configurable
-  
-  class << self
-    def source_files
-      [__FILE__]
-    end
-  end
-  
-  config :trailing, 'trailing value'  # trailing comment
-  
-  # leading comment
-  config :leading, 'leading value'
-  
-  # Line one of a long multiline leading comment
-  # Line two of a long multiline leading comment
-  # Line three of a long multiline leading comment
-  config :long_leading, 'long_leading value'
-  
-  # leading of leading_and_trailing comment
-  config :leading_and_trailing, 'leading_and_trailing value'  # trailing of leading_and_trailing comment
-  
-  config :no_comment, 'no_comment value'
-  
-  config :nil_config, nil
-end
-
-class FormatYamlSubClass < FormatYamlClass
-  config :trailing, 'new trailing value'  # new trailing comment
-  # subclass_config comment
-  config :subclass_config, 'subclass_config value'  
-  config :nil_config, 'no longer nil value'
-  config :no_comment, nil
-end
 
 class ClassConfigurationTest < Test::Unit::TestCase
   include Tap::Support
+  include Tap::Test::SubsetMethods
   
-  def test_config_merge
-    t = MergeTask.new
-    assert_equal({:one => 'one', :two => 'two', :three => 'three'}, t.config)
-    assert t.respond_to?(:two)
-    yaml = MergeTask.configurations.format_yaml
-    expected = %Q{
-###############################################################################
-# BaseTask configuration
-###############################################################################
-one: one
-
-###############################################################################
-# MergeTask configuration
-###############################################################################
-three: three
-
-###############################################################################
-# SubTask configuration
-###############################################################################
-two: two
-}
-
-    assert_equal expected[1..-1], yaml
-    assert_equal({'one' => 'one', 'two' => 'two', 'three' => 'three'}, YAML.load(yaml))
+  class Sample
   end
   
-  def test_config_validations
-    t = ValidationTask.new
-    assert_equal({:one => 'one', :two => 'two', :three => 'THREE'}, t.config)
-    
-    t.one = 'two'
-    assert_equal 'two', t.one  
-    assert_raise(Validation::ValidationError) { t.one = 1 }
-    
-    t.two = "two"
-    assert_equal 'two', t.two
-    t.two = 2
-    assert_equal 2, t.two    
-    t.two = "2"
-    assert_equal 2, t.two
-    assert_raise(Validation::ValidationError) { t.two = 'three' }
-    assert_raise(Validation::ValidationError) { t.two = 2.2 }
-    
-    t.three = "three"
-    assert_equal 'THREE', t.three
-    assert_raise(RuntimeError) { t.three = 'THREE' } 
+  class Another
   end
+  
+  attr_reader :c
+  
+  def setup
+    @c = ClassConfiguration.new Sample
+  end
+  
+  #
+  # initialization test
+  #
   
   def test_initialization
-    c = ClassConfiguration.new ClassConfigurationTest
+    assert_equal Sample, c.receiver
+    assert_equal [], c.assignments.to_a
+    assert_equal({}, c.map)
+  end
+  
+  def test_initialization_with_a_parent
+    c.add(:config, "default")
     
-    assert_equal ClassConfigurationTest, c.receiver
-    assert_equal [], c.declarations
-    assert_equal [[c.receiver, []]], c.declarations_array
-    assert_equal({}, c.default)
-    assert_equal({}, c.unprocessed_default)
-    assert_equal({}, c.process_blocks)
+    another = ClassConfiguration.new Another, c
+    
+    assert_equal [[Sample, [:config]]], another.assignments.to_a
+    assert_equal({:config => Configuration.new(:config, "default")}, c.map)
+  end
+  
+  def test_child_is_decoupled_from_parent
+    c.add(:one, "one")
+    another = ClassConfiguration.new Another, c
+    
+    c[:one].default = "ONE"
+    c.add(:two, "TWO")  
+    another.add(:two, "two")
+    
+    assert_equal [[Sample, [:one, :two]]], c.assignments.to_a
+    assert_equal({
+      :one => Configuration.new(:one, "ONE"),
+      :two => Configuration.new(:two, "TWO")
+    }, c.map)
+
+    assert_equal [[Sample, [:one]], [Another, [:two]]], another.assignments.to_a
+    assert_equal({
+      :one => Configuration.new(:one, "one"),
+      :two => Configuration.new(:two, "two")
+    }, another.map)
+  end
+  
+  
+  #
+  # add test
+  #
+  
+  def test_add_initializes_a_config_and_sets_the_config_by_key
+    c.add :config, "default"
+    assert_equal({:config => Configuration.new(:config, "default")}, c.map)
+  end
+  
+  def test_add_returns_the_new_config
+    assert_equal Configuration.new(:config, "default"), c.add(:config, "default")
+  end
+  
+  def test_add_overrides_an_existing_config_in_map
+    c.add :config
+    previous = c[:config]
+    
+    c.add :config
+    assert_not_equal previous.object_id, c[:config].object_id
+  end
+  
+  def test_add_symbolizes_keys
+    c.add :config, "symbol default"
+    c.add 'config', "string default"
+    assert_equal({:config => Configuration.new(:config, "string default")}, c.map)
+  end
+  
+  def test_the_default_value_for_a_config_is_nil
+    c.add :config
+    assert_equal({:config => Configuration.new(:config, nil)}, c.map)
+  end
+  
+  def test_add_adds_new_configs_to_assignments_keyed_by_receiver
+    c.add(:int)
+    assert_equal [[Sample, [:int]]], c.assignments.to_a
+  end
+  
+  def test_does_not_add_existing_configs_to_assignments
+    c.add(:one)
+    assert_equal [[Sample, [:one]]], c.assignments.to_a
+    
+    another = ClassConfiguration.new Another, c
+    
+    another.add(:one)
+    another.add(:two)
+    assert_equal [[Sample, [:one]], [Another, [:two]]], another.assignments.to_a
+  end
+  
+  #
+  # remove test
+  #
+  
+  def test_remove_removes_config_from_map
+    c.add(:one)
+    c.add(:two)
+    
+    assert_equal({
+      :one => Configuration.new(:one),
+      :two => Configuration.new(:two)
+    }, c.map)
+
+    c.remove :one
+    assert_equal({:two => Configuration.new(:two)}, c.map)
+
+    c.remove :two
+    assert_equal({}, c.map)
+  end
+  
+  def test_remove_symbolizes_keys
+    c.add(:one)
+    assert_equal({:one => Configuration.new(:one)}, c.map)
+
+    c.remove 'one'
+    assert_equal({}, c.map)
+  end
+  
+  def test_remove_does_not_raise_an_error_for_unknown_configs
+    assert_nothing_raised { c.remove :non_existant }
+  end
+  
+  def test_remove_removes_keys_from_assignments
+    c.add(:one)
+    c.add(:two)
+    
+    c.remove(:one)
+    assert_equal [[Sample, [:two]]], c.assignments.to_a
+    
+    c.remove(:two)
+    assert_equal [[Sample, []]], c.assignments.to_a
+  end
+  
+  def test_removal_does_not_affect_parent
+    c.add(:one)
+    another = ClassConfiguration.new Another, c
+    
+    another.remove(:one)
+    
+    assert_equal({:one => Configuration.new(:one)}, c.map)
+    assert_equal [[Sample, [:one]]], c.assignments.to_a
+    
+    assert_equal({}, another.map)
+    assert_equal [[Sample, []]], another.assignments.to_a
   end
 
   #
-  # format_yaml tests
+  # key? test
   #
   
-  def test_format_yaml
-    cc = FormatYamlClass.configurations
-    assert ClassConfiguration, cc.class
+  def test_key_is_true_if_key_is_a_config_key
+    c.add(:key)
+    assert c.key?(:key)
+    assert !c.key?('key')
+  end
 
-    expected = %Q{
+  #
+  # keys test
+  #
+  
+  def test_keys_returns_all_config_keys
+    c.add(:one)
+    c.add(:two)
+    c.add(:three)
+    assert_equal([:one, :two, :three].sort_by {|k| k.to_s }, c.keys.sort_by {|k| k.to_s })
+  end
+
+  #
+  # ordered_keys test
+  #
+  
+  def test_ordered_keys_returns_all_config_keys_in_order
+    c.add(:one)
+    c.add(:two)
+    c.add(:three)
+    assert_equal([:one, :two, :three], c.ordered_keys)
+  end
+  
+  # 
+  # each test
+  #
+  
+  def test_each_yields_each_receiver_key_config
+    c.add(:one)
+    c.add(:two)
+    another = ClassConfiguration.new Another, c
+    another.add(:three)
+    
+    results = []
+    another.each {|receiver, key, config| results << [receiver, key, config]}
+    
+    assert_equal [[Sample, :one, Configuration.new(:one)],[Sample, :two, Configuration.new(:two)],[Another, :three, Configuration.new(:three)]], results
+  end
+  
+  # 
+  # each_pair test
+  #
+  
+  def test_each_pair_returns_yields_each_key_config_pair
+    c.add(:one)
+    c.add(:two)
+    another = ClassConfiguration.new Another, c
+    another.add(:three)
+    
+    results = []
+    another.each_pair {|key, config| results << [key, config]}
+    
+    assert_equal [[:one, Configuration.new(:one)],[:two, Configuration.new(:two)],[:three, Configuration.new(:three)]], results
+  end
+  
+  #
+  # instance_config test
+  #
+  
+  def test_instance_config_returns_new_instance_config_set_to_self
+    assert_equal c, c.instance_config.class_config
+  end
+  
+  def test_instance_config_returns_new_instance_config_bound_to_receiver
+    s = Sample.new
+    config = c.instance_config(s)
+    assert_equal s, config.receiver
+    assert config.bound? 
+  end
+
+  #
+  # format_str tests
+  #
+  
+  class FormatYamlClass
+    include Tap::Support::Configurable
+
+    class << self
+      def source_files
+        [__FILE__]
+      end
+    end
+
+    config :trailing, 'trailing value'  # trailing comment
+
+    # leading comment
+    config :leading, 'leading value'
+
+    # Line one of a long multiline leading comment
+    # Line two of a long multiline leading comment
+    # Line three of a long multiline leading comment
+    config :long_leading, 'long_leading value'
+
+    # leading of leading_and_trailing comment
+    config :leading_and_trailing, 'leading_and_trailing value'  # trailing of leading_and_trailing comment
+
+    config :no_comment, 'no_comment value'
+
+    config :nil_config, nil
+  end
+
+  class FormatYamlSubClass < FormatYamlClass
+    config :trailing, 'new trailing value'  # new trailing comment
+    # subclass_config comment
+    config :subclass_config, 'subclass_config value'  
+    config :nil_config, 'no longer nil value'
+    config :no_comment, nil
+  end
+  
+  def test_format_str
+    extended_test do 
+      cc = FormatYamlClass.configurations
+      assert ClassConfiguration, cc.class
+
+      expected = %Q{
 ###############################################################################
-# FormatYamlClass configurations
+# ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
 
 # trailing comment
@@ -152,14 +305,16 @@ long_leading: long_leading value
 leading_and_trailing: leading_and_trailing value
 
 no_comment: no_comment value
+
 #nil_config: 
+
 }
     
-    assert_equal expected[1..-1], cc.format_yaml
+      assert_equal expected[1..-1], cc.format_str
     
-    expected_without_doc = %Q{
+      expected_without_doc = %Q{
 ###############################################################################
-# FormatYamlClass configurations
+# ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
 trailing: trailing value
 leading: leading value
@@ -167,15 +322,16 @@ long_leading: long_leading value
 leading_and_trailing: leading_and_trailing value
 no_comment: no_comment value
 #nil_config: 
+
 }
-    assert_equal expected_without_doc[1..-1], cc.format_yaml(false)
+      assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
     
-    cc = FormatYamlSubClass.configurations
-    assert ClassConfiguration, cc.class
+      cc = FormatYamlSubClass.configurations
+      assert ClassConfiguration, cc.class
     
-    expected = %Q{
+      expected = %Q{
 ###############################################################################
-# FormatYamlClass configurations
+# ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
 
 # trailing comment
@@ -194,10 +350,11 @@ long_leading: long_leading value
 leading_and_trailing: leading_and_trailing value
 
 #no_comment: 
+
 nil_config: no longer nil value
 
 ###############################################################################
-# FormatYamlSubClass configuration
+# ClassConfigurationTest::FormatYamlSubClass configuration
 ###############################################################################
 
 # subclass_config comment
@@ -205,11 +362,11 @@ subclass_config: subclass_config value
 
 }
 
-    assert_equal expected[1..-1], cc.format_yaml
+      assert_equal expected[1..-1], cc.format_str
 
-    expected_without_doc = %Q{
+      expected_without_doc = %Q{
 ###############################################################################
-# FormatYamlClass configurations
+# ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
 trailing: new trailing value
 leading: leading value
@@ -219,106 +376,13 @@ leading_and_trailing: leading_and_trailing value
 nil_config: no longer nil value
 
 ###############################################################################
-# FormatYamlSubClass configuration
+# ClassConfigurationTest::FormatYamlSubClass configuration
 ###############################################################################
 subclass_config: subclass_config value
+
 }
-    assert_equal expected_without_doc[1..-1], cc.format_yaml(false)
-  end
-
-#   def test_documentation
-#     assert_equal({:one => 1}, BaseTask.configurations.hash)
-#     assert_equal({:one => 'one', :two => 'two'}, SubTask.configurations.hash)
-#     
-#     assert_equal "# BaseTask configuration\none: 1\n", BaseTask.configurations.format_yaml    
-#      
-#     expected = %Q{
-# # BaseTask configuration
-# one: one             # the first configuration
-# 
-# # SubTask configuration
-# two: two             # the second configuration
-# }
-#     assert_equal expected[1..-1], SubTask.configurations.format_yaml
-#   end
-
-  #
-  # add configurations
-  #
-  
-  class AnotherClass
+      assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
+    end
   end
   
-  # def test_add
-  #   cc = ClassConfiguration.new
-  #   cc.add(:key, 'value', ClassConfigurationTest)
-  #   
-  #   assert_equal [[:key, 'value', ClassConfigurationTest]], cc.declarations
-  #   assert_equal({:key => 'value'}, cc.hash)
-  #   
-  #   cc.add(:key, 'new value', AnotherClass)  
-  #   assert_equal [
-  #     [:key, 'value', ClassConfigurationTest], 
-  #     [:key, 'new value', AnotherClass]
-  #   ], cc.declarations
-  #   assert_equal({:key => 'new value'}, cc.hash)
-  # end
-  # 
-  # def test_add_symbolizes_keys
-  #   cc = ClassConfiguration.new
-  #   cc.add('key', 'value', ClassConfigurationTest)
-  #   
-  #   assert_equal [[:key, 'value', ClassConfigurationTest]], cc.declarations
-  #   assert_equal({:key => 'value'}, cc.hash)
-  # end
-
-  # def test_add_raises_error_if_declarations_are_not_correct
-  #   cc = ClassConfiguration.new
-  #   assert_raise(ArgumentError) { cc.add(:key, 'value')}
-  #   assert_raise(ArgumentError) { cc.add([:key, 'value'])}
-  # end
-
-  #
-  # remove configurations
-  #
-  
-  # def test_remove
-  #   cc = ClassConfiguration.new(
-  #     [:one, 1, ClassConfigurationTest],
-  #     [:one, 'one', AnotherClass],
-  #     [:two, 'two', AnotherClass],
-  #     [:three, 'three', AnotherClass])
-  #   
-  #   assert_equal 4, cc.declarations.length
-  #   assert_equal({:one => 'one', :two => 'two', :three => 'three'}, cc.hash)
-  #   
-  #   cc.remove(:one, :three)
-  #   assert_equal [[:two, 'two', AnotherClass]], cc.declarations  
-  #   assert_equal({:two => 'two'}, cc.hash)
-  # end
-  # 
-  # def test_remove_symbolizes_inputs
-  #   cc = ClassConfiguration.new([:key, 'value', ClassConfigurationTest])
-  #   cc.remove('key')
-  #   assert_equal [], cc.declarations
-  # end
-
-  #
-  # merge test
-  #
-  
-  # def test_merge
-  #   c1 = ClassConfiguration.new([:one, 1, '', ClassConfigurationTest])
-  #   c2 = c1.merge([
-  #     [:one, 'one', '', AnotherClass], 
-  #     [:two, 'two', '', AnotherClass]])
-  #     
-  #   assert_not_equal c1.object_id, c2.object_id
-  #   
-  #   assert_equal [[:one, 1, '', ClassConfigurationTest]], c1.declarations 
-  #   assert_equal [
-  #     [:one, 1, '', ClassConfigurationTest],
-  #     [:one, 'one', '', AnotherClass], 
-  #     [:two, 'two', '', AnotherClass]], c2.declarations 
-  # end
 end

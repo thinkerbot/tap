@@ -26,7 +26,7 @@ class BatchableTest < Test::Unit::TestCase
     t2 = Tap::Task.new
     t3 = t2.initialize_batch_obj
   
-    Tap::Support::Batchable.batch(t1, t2)
+    Tap::Task.batch(t1, t2)
     assert_equal [t1,t2,t3], t3.batch
   end
   

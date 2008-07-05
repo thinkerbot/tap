@@ -1,3 +1,4 @@
+require 'active_support'
 require 'rails_generator'
 require 'tap/generator/options'
 require 'tap/generator/usage'

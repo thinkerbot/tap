@@ -126,25 +126,25 @@ class AppTest < Test::Unit::TestCase
     assert_equal 2, array.length
     assert_not_equal array[0], array[1]
     
-    array = []
-    Task::Base.initialize(array, :push)
-  
-    array.enq(1)
-    array.enq(2)
-  
-    assert array.empty?
-    app.run
-    assert_equal [1, 2], array
-  
-    array = []
-    m = array._method(:push)
-   
-    app.enq(m, 1)
-    app.mq(array, :push, 2)
-
-    assert array.empty?
-    app.run
-    assert_equal [1, 2], array
+    # array = []
+    # Task::Base.initialize(array, :push)
+    #   
+    # array.enq(1)
+    # array.enq(2)
+    #   
+    # assert array.empty?
+    # app.run
+    # assert_equal [1, 2], array
+    #   
+    # array = []
+    # m = array._method(:push)
+    #    
+    # app.enq(m, 1)
+    # app.mq(array, :push, 2)
+    # 
+    # assert array.empty?
+    # app.run
+    # assert_equal [1, 2], array
 
     ###
     t1 = Tap::Task.new('add_one') {|task, input| input += 1 }
@@ -210,11 +210,13 @@ o-[add_five] 8
     assert_equal Dir.pwd, app.root
     assert_equal({}, app.directories)
     assert_equal({}, app.options.marshal_dump)
-    assert_equal({}, app.map)
+
     assert_equal(Support::ExecutableQueue, app.queue.class)
     assert app.queue.empty?
+    
     assert_equal(Support::Aggregator, app.aggregator.class)
     assert app.aggregator.empty?
+    
     assert_equal App::State::READY, app.state
   end
   
@@ -225,14 +227,10 @@ o-[add_five] 8
   def test_config_returns_current_configurations
     app = App.new
     expected = {
-      :root => Dir.pwd,
+      :root => File.expand_path(Dir.pwd),
       :directories => {},
       :absolute_paths => {},
-      :options => {},
-      :logger => {
-        :device => STDOUT,
-        :level => 1, # corresponds to 'INFO'
-        :datetime_format => '%H:%M:%S'}
+      :options => OpenStruct.new()
     }
     assert_equal expected, app.config
     
@@ -240,22 +238,14 @@ o-[add_five] 8
     app.options.trace = true
     app[:lib] = 'alt/lib'
     app[:abs, true] = '/absolute/path'
-    strio = StringIO.new('')
-    app.logger = Logger.new(strio)
 
     expected = {
-      :root => Dir.pwd,
+      :root => File.expand_path(Dir.pwd),
       :directories => {:lib => 'alt/lib'},
       :absolute_paths => {:abs => File.expand_path('/absolute/path')},
-      :options => {:trace => true},
-      :logger => {
-        :device => strio,
-        :level => 0, 
-        :datetime_format => nil}
+      :options => OpenStruct.new(:trace => true)
     }
-    
-    assert_equal 0, app.logger.level
-    assert_equal nil, app.logger.datetime_format
+
     assert_equal expected, app.config
   end
   
@@ -266,12 +256,14 @@ o-[add_five] 8
   def test_reconfigure_documentation
     app = Tap::App.new :root => "/root", :directories => {:dir => 'path/to/dir'}
     app.reconfigure(
-      :root => "./new/root",
-      :logger => {:level => Logger::DEBUG})
+      :root => "./new/root", 
+      :options => {:quiet => true}, 
+      :key => 'value')
   
     assert_equal File.expand_path("./new/root"), app.root  
     assert_equal File.expand_path("./new/root/path/to/dir"), app[:dir]          
-    assert_equal Logger::DEBUG, app.logger.level   
+    assert_equal true, app.options.quiet
+    assert_equal 'value', app.config[:key]
   end
   
   def test_reconfigure_root_sets_app_root
@@ -302,111 +294,6 @@ o-[add_five] 8
     app.reconfigure :options => {:trace => true}
     assert_equal({:trace => true}, app.options.marshal_dump)
   end
-  
-  def test_reconfigure_logger_sets_logger
-    app = App.new
-    assert_equal STDOUT, app.logger.logdev.dev
-    strio = StringIO.new('')
-    app.reconfigure :logger => {:device => strio, :level => Logger::WARN}
-    assert_equal strio, app.logger.logdev.dev
-    assert_equal Logger::WARN, app.logger.level
-  end
-  
-  def test_reconfigure_map_sets_map
-    app = App.new
-    assert_equal({}, app.map)
-    app.reconfigure :map => {'some/task_name' => Tap::Task}
-    assert_equal({'some/task_name' => Tap::Task}, app.map)
-  end
-  
-  def test_reconfigure_sends_unhandled_options_to_block_if_given
-    app = App.new
-    was_in_block = false
-    app.reconfigure(:unknown => 'value') do |key, value|
-      assert_equal(:unknown, key)
-      assert_equal('value', value)
-      was_in_block = true
-    end
-    assert was_in_block
-  end
-  
-  def test_reconfigure_raises_error_for_unhandled_options
-    app = App.new
-    assert_raise(ArgumentError) { app.reconfigure(:unknown => 'value') }
-  end
-  
-  class AppHandlesConfig < App
-    attr_accessor :handled_configs
-    def initialize
-      self.handled_configs = []
-    end
-    def handle_configuation(key, value)
-      handled_configs.concat [key, value]
-      true
-    end
-  end
-  
-  def test_reconfigure_sends_unhandled_options_to_handle_configuation_if_defined
-    app = AppHandlesConfig.new
-    was_in_block = false
-    app.reconfigure(:unknown => 'value') do |key, value|
-      was_in_block = true
-    end
-    assert_equal [:unknown, 'value'], app.handled_configs
-    assert !was_in_block
-  end
-  
-  class AppDoesNotHandleConfig < AppHandlesConfig
-    def handle_configuation(key, value)
-      handled_configs.concat [key, value]
-      false
-    end
-  end
-  
-  def test_reconfigure_goes_to_block_if_handle_configuration_returns_false
-    app = AppDoesNotHandleConfig.new
-    was_in_block = false
-    app.reconfigure(:unknown => 'value') do |key, value|
-      was_in_block = true
-    end
-    assert_equal [:unknown, 'value'], app.handled_configs
-    assert was_in_block
-  end
-  
-  #
-  # reload test
-  #
-  
-  def test_reload_returns_unloaded_constants
-    app = Tap::App.instance
-    
-    Dependencies.clear
-    assert_equal [], app.reload
-    
-    begin
-      assert !Object.const_defined?("AppTestTask")
-      
-      Dependencies.load_paths << app['lib']
-      app_task_test_mod = AppTestTask
-      
-      assert Object.const_defined?("AppTestTask")
-      assert_equal [:AppTestTask], app.reload.collect {|c| c.to_sym }
-      assert !Object.const_defined?("AppTestTask")
-    ensure
-      Dependencies.clear
-      Dependencies.load_paths.delete(app['lib'])
-    end
-  end
-
-  #
-  # lookup_const test
-  #
-  
-  def test_lookup_const_does_not_mishandle_top_level_constants
-    assert !Object.const_defined?('LookupModule')
-    Object.const_set('LookupModule', Module.new)
-    assert_raise(Tap::App::LookupError) { app.lookup_const('lookup_module/file') }
-  end
 
   #
   # set logger tests
@@ -426,137 +313,19 @@ o-[add_five] 8
   #
 
   #
-  # task_class tests
-  #
-  
-  class TaskSubClass < Task
-  end
-  
-  class AnotherTask < Task
-  end
-  
-  def test_task_class_documentation
-    t_class = app.task_class('tap/file_task')
-    assert_equal Tap::FileTask, t_class
-  
-    app.map = {"mapped-task" => "Tap::FileTask"}
-    t_class = app.task_class('mapped-task-1.0')
-    assert_equal Tap::FileTask, t_class
-  end
-  
-  #
-  # task tests
-  #
-  
-  def test_task_documentation
-    t = app.task('tap/file_task')
-    assert_equal  Tap::FileTask, t.class      
-    assert_equal 'tap/file_task', t.name 
-
-    app.map = {"mapped-task" =>  "Tap::FileTask"}
-  
-    t = app.task('mapped-task-1.0', :key => 'value')
-    assert_equal  Tap::FileTask, t.class      
-    assert_equal "mapped-task-1.0", t.name 
-    assert_equal 'value', t.config[:key]
-  end
-  
-  def test_task_looks_up_and_instantiates_task
-    assert_equal TaskSubClass, app.task("AppTest::TaskSubClass").class
-  end
-  
-  def test_task_instantiates_a_new_task_for_each_call
-    t1 = app.task("AppTest::TaskSubClass")
-    t2 = app.task("AppTest::TaskSubClass")
-    
-    assert_not_equal t1.object_id, t2.object_id
-  end
-  
-  def test_task_translates_task_name_to_class_name_using_map_if_possible
-    app.map["mapped_name"] = "AppTest::TaskSubClass"
-    assert_equal TaskSubClass, app.task("mapped_name").class
-  end
-  
-  def test_task_translates_task_name_to_class_name_using_camelize_by_default
-    assert_equal TaskSubClass, app.task("app_test/task_sub_class").class
-  end
-  
-  def test_task_name_and_version_is_respected
-    t = app.task("app_test/task_sub_class-1.1")
-    assert_equal TaskSubClass, t.class
-    assert_equal "app_test/task_sub_class-1.1", t.name
-  end
-  
-  def test_task_looks_up_task_classes_along_Dependencies_load_paths
-    begin
-      assert !Object.const_defined?("AppTestTask")
-      
-      Dependencies.load_paths << app['lib']
-      t = app.task("AppTestTask")
-      
-      assert Object.const_defined?("AppTestTask")
-      assert_equal AppTestTask, t.class
-    ensure
-      Dependencies.clear
-      Dependencies.load_paths.delete(app['lib'])
-    end
-  end
-  
-  def test_task_raises_lookup_error_if_class_cannot_be_found
-    assert_raise(App::LookupError) { app.task("NonExistant") }
-  end
-  
-  #
-  # task_class_name test
-  #
-  
-  def test_task_class_name_documentation
-    app.map = {"mapped-task" => "Tap::FileTask"}
-    assert_equal "some/task_class", app.task_class_name('some/task_class')   
-    assert_equal "Tap::FileTask", app.task_class_name('mapped-task-1.0')   
-    
-    t1 = Task.new
-    assert_equal "Tap::Task", app.task_class_name(t1)     
-
-    t2 = ObjectWithExecute.new.extend Tap::Task::Base
-    assert_equal "ObjectWithExecute", app.task_class_name(t2)    
-  end
-  
-  def test_task_class_name_returns_task_class_name
-    task = Task.new
-    assert_equal "Tap::Task", app.task_class_name(task)
-    
-    subtask = TaskSubClass.new
-    assert_equal "AppTest::TaskSubClass", app.task_class_name(subtask)
-    
-    non_task = ObjectWithExecute.new
-    non_task.extend Tap::Task::Base
-    assert_equal "ObjectWithExecute", app.task_class_name(non_task)
-  end
-
-  def test_task_class_name_returns_deversioned_name
-    assert_equal "app_test/task_sub_class", app.task_class_name("app_test/task_sub_class-1.1")
-  end
-  
-  def test_task_class_name_resolves_names_using_map
-    app.map = {"mapped-task" => "AnotherTask"}
-    assert_equal "AnotherTask", app.task_class_name("mapped-task-1.1")
-  end
-  
-  #
   # each_config_template tests
   #
   
   def test_each_config_template_documentation
-    simple = output_tempfile
+    simple = method_tempfile
     File.open(simple, "w") {|f| f <<  "key: value"}
     assert_equal([{"key" => "value"}], app.each_config_template(simple))
   
-    erb = output_tempfile
+    erb = method_tempfile
     File.open(erb, "w") {|f| f <<  "app: <%= app.object_id %>\nfilepath: <%= filepath %>"}
     assert_equal([{"app" => app.object_id, "filepath" => erb}], app.each_config_template(erb))
   
-    batched_with_erb = output_tempfile
+    batched_with_erb = method_tempfile
     File.open(batched_with_erb, "w") do |f| 
       f << %Q{ 
 - key: <%= 1 %>

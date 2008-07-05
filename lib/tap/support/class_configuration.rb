@@ -1,279 +1,188 @@
-autoload(:GetOptLong, 'getoptlong')
+require 'tap/support/assignments'
+require 'tap/support/instance_configuration'
+require 'tap/support/configuration'
 
 module Tap
   module Support
-    # == UNDER CONSTRUCTION
-    #--
+    autoload(:Templater, 'tap/support/templater')
+
+    # ClassConfiguration tracks and handles the class configurations defined in a Tap::Task
+    # (or more generally any class that includes with Tap::Support::Configurable).
     #
-    # ClassConfiguration holds the class configurations defined in a Tap::Task.
-    # The configurations are stored as an array of declarations_array like:
-    # [name, default, msg, declaration_class].  In addition, ClassConfiguration
-    # collapse the array of declarations_array into a hash, which acts as the default
-    # task configuration.
-    #
-    # Storing metadata about the configurations, such as the declaration_class, 
-    # allows the creation of more user-friendly configuration files and facilitates 
-    # incorporation into command-line applications.
-    #
-    # In general, users will not have to interact with ClassConfigurations directly.
-    #
-    # === Example
+    # See Tap::Support::Configurable for more details.
     # 
-    #   class BaseTask < Tap::Configurable
-    #     class_configurations [:one, 1]
-    #   end
-    #
-    #   BaseTask.configurations.hash    # => {:one => 1}
-    #
-    #   class SubTask < BaseTask
-    #     class_configurations(
-    #       [:one, 'one', "the first configuration"],
-    #       [:two, 'two', "the second configuration"])
-    #   end
-    #
-    #   SubTask.configurations.hash    # => {:one => 'one', :two => 'two'}
-    #   
-    # Now you can see how the comments and declaring classes get used in the
-    # configuration files.  Note that configuration keys are stringified
-    # for clarity (this is ok -- they will be symbolized when loaded by a
-    # task).
-    #
-    #   [BaseTask.configurations.format_yaml]
-    #   # BaseTask configuration
-    #   one: 1        
-    #
-    #   [SubTask.configurations.format_yaml]
-    #   # BaseTask configuration
-    #   one: one             # the first configuration
-    #
-    #   # SubTask configuration
-    #   two: two             # the second configuration
-    #
-    #--
-    # TODO -
-    # Revisit config formatting... right now it's a bit jacked.
-    #++
     class ClassConfiguration
       include Enumerable
       
-      # The class receiving the configurations
+      # The class receiving new configurations
       attr_reader :receiver
-      
-      # An array of [receiver, configuration keys] arrays tracking
-      # the order in which configurations were declared across all
-      # receivers
-      attr_reader :declarations_array
-      
-      # An array of configuration keys declared by self
-      attr_reader :declarations
-      
-      # A hash of the unprocessed default values
-      attr_reader :unprocessed_default
-      
-      # A hash of the processed default values
-      attr_reader :default
-      
-      # A hash of the processing blocks
-      attr_reader :process_blocks
 
-      # A placeholder to indicate when no value 
-      # was specified during a call to add. 
-      NO_VALUE = Object.new
-    
+      # Tracks the assignment of the config keys to receivers
+      attr_reader :assignments
+      
+      # A map of config keys and instance methods used to set a 
+      # config (ie the reader and writer for a config)
+      attr_reader :map
+
       def initialize(receiver, parent=nil)
         @receiver = receiver
-        @default = parent != nil ? parent.default.dup : {}
-        @unprocessed_default = parent != nil ? parent.unprocessed_default.dup : {}
-        @process_blocks = parent != nil ? parent.process_blocks.dup : {}
         
-        # use same declarations array?  freeze declarations to ensure order?
-        # definitely falls out of order if parents are modfied after initialization
-        @declarations_array = parent != nil ? parent.declarations_array.dup : []
-        @declarations = []
-        declarations_array << [receiver, @declarations] 
-      end
-      
-      # Returns true if the key has been declared by some receiver.
-      # Note this is distinct from whether or not a particular config
-      # is currently in the default hash.
-      def declared?(key)
-        key = key.to_sym
-        declarations_array.each do |r,array| 
-          return true if array.include?(key)
+        if parent != nil
+          @map = parent.map.inject({}) do |hash, (key, config)|
+            hash[key] = config.dup
+            hash
+          end
+          @assignments = Assignments.new(parent.assignments)
+        else
+          @map = {}
+          @assignments = Assignments.new
         end
-        false
       end
-      
-      # Returns the class (receiver) that first added the config 
-      # indicated by key.
-      def declaration_class(key)
-        key = key.to_sym
-        declarations_array.each do |r,array| 
-          return r if array.include?(key)
-        end
-        nil
-      end
-      
-      # Returns the configurations first declared by the specified receiver.
-      def declarations_for(receiver)
-        declarations_array.each do |r,array| 
-          return array if r == receiver
-        end
-        nil
-      end
-      
-      # Adds a configuration.  If specified, the value is processed
-      # by the process_block and recorded adefault 
-      #
-      # The existing value and process_block for the
-      # configuration will not be overwritten unless specified. However,
-      # if a configuration is added without specifying a value and no previous 
-      # default value exists, the default and unprocessed_default for the 
-      # configuration will be set to nil.
-      #
-      #--
-      # Note -- existing blocks are NOT overwritten unless a new block is provided.
-      # This allows overide of the default value in subclasses while preserving the 
-      # validation/processing code.
-      def add(key, value=NO_VALUE, &process_block)
-        key = key.to_sym
-        value = unprocessed_default[key] if value == NO_VALUE
-        
-        declarations << key unless declared?(key)
-        process_blocks[key] = process_block if block_given?
-        unprocessed_default[key] = value
-        default[key] = process(key, value)
 
-        self
+      # Initializes a Configuration using the inputs and sets it in self
+      # using name as a key, overriding the current config by that name,
+      # if it exists.  Returns the new config.
+      def add(name, default=nil, attributes={})
+        self[name] = Configuration.new(name.to_sym, default, attributes)
       end
       
+      # Removes the specified configuration.
       def remove(key)
+        self[key] = nil
+      end
+      
+      # Gets the configuration specified by key.  The key is symbolized.
+      def [](key)
+        map[key.to_sym]  
+      end
+      
+      # Assigns the configuration to key.  A nil config unassigns the
+      # configuration key.  The key is symbolized.
+      def []=(key, config)
         key = key.to_sym
         
-        process_blocks.delete(key)
-        unprocessed_default.delete(key)
-        default.delete(key)
-        
-        self
-      end
-      
-      def merge(another)
-        # check for conflicts
-        another.each do |receiver, key|
-          dc = declaration_class(key)
-          next if dc == nil || dc == receiver
-          
-          raise "configuration conflict: #{key} (#{receiver}) already declared by #{dc}"
-        end
-        
-        # add the new configurations
-        another.each do |receiver, key|
-          # preserve the declarations for receiver
-          unless declarations = declarations_for(receiver) 
-            declarations = []
-            declarations_array << [receiver, declarations] 
-          end
-          unless declarations.include?(key)
-            declarations << key 
-            yield(key) if block_given?
-          end
-          
-          add(key, another.unprocessed_default[key], &another.process_blocks[key])
-        end
-      end
-    
-      def each # :yields: receiver, key
-        declarations_array.each do |receiver, keys|
-          keys.each {|key| yield(receiver, key) }
+        if config == nil
+          assignments.unassign(key)
+          map.delete(key)
+        else
+          assignments.assign(receiver, key) unless assignments.assigned?(key)
+          map[key] = config
         end
       end
       
-      # Sends value to the process block identified by key and returns the result.
-      # Returns value if no process block has been set for key.
-      def process(key, value)
-        block = process_blocks[key.to_sym]
-        block ? block.call(value) : value
+      # Returns true if key is a config key.
+      def key?(key)
+        map.has_key?(key)
       end
-    
-      # Nicely formats the configurations into yaml with messages and
-      # declaration class divisions.
-      def format_yaml(document=true)
-        lines = []
-        declarations_array.each do |receiver, keys|
-          
-          # do not consider keys that have been removed
-          keys = keys.delete_if {|key| !self.default.has_key?(key) }
+      
+      # Returns all config keys.
+      def keys
+        map.keys
+      end
+      
+      # Returns config keys in order.
+      def ordered_keys
+        assignments.values
+      end
+      
+      # Returns all mapped configs.
+      def values 
+        map.values
+      end
+      
+      def empty?
+        map.empty?
+      end
+      
+      # Calls block once for each [receiver, key, config] in self, 
+      # passing those elements as parameters, in the order in
+      # which they were assigned.  
+      def each
+        assignments.each do |receiver, key|
+          yield(receiver, key, map[key])
+        end
+      end
+      
+      # Calls block once for each [key, config] pair in self, 
+      # passing those elements as parameters, in the order in
+      # which they were assigned.
+      def each_pair
+        assignments.each do |receiver, key|
+          yield(key, map[key])
+        end
+      end
+      
+      # Initializes and returns a new InstanceConfiguration set to self 
+      # and bound to the receiver, if specified.
+      def instance_config(receiver=nil)
+        InstanceConfiguration.new(self, receiver)
+      end
+      
+      # The path to the :doc template (see format_str)
+      DOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/doc.erb"
+      
+      # The path to the :nodoc template (see format_str)
+      NODOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/nodoc.erb"
+
+      # Formats the configurations using the specified template.  Two default
+      # templates are defined, :doc and :nodoc.  These map to the contents of
+      # DOC_TEMPLATE_PATH and NODOC_TEMPLATE_PATH and correspond to the 
+      # documented and undocumented config generator templates.
+      #
+      # == Custom Templates
+      #
+      # format_str initializes a Tap::Support::Templater which formats each 
+      # [receiver, configurations] pair in turn, and puts the output to the 
+      # target using '<<'.   The templater is assigned the following 
+      # attributes for use in formatting:
+      #
+      # receiver:: The receiver
+      # class_doc:: The TDoc for the receiver, from Tap::Support::TDoc[receiver]
+      # configurations:: An array of configurations and associated comments
+      # 
+      # In the template these can be accessed as any ERB locals, for example:
+      #
+      #   <%= receiver.to_s %>
+      #   <% configurations.each do |key, config, comment| %>
+      #   ...
+      #   <% end %>
+      #
+      # The input template may be a String or an ERB; either may be used to 
+      # initialize the templater.
+      def format_str(template=:doc, target="")
+        template = case template
+        when :doc then File.read(DOC_TEMPLATE_PATH)
+        when :nodoc then File.read(NODOC_TEMPLATE_PATH)
+        else template
+        end
+        
+        templater = Templater.new(template)  
+        assignments.each_pair do |receiver, keys|
           next if keys.empty?
           
-          lines << "###############################################################################"
-          lines << "# #{receiver} configuration#{keys.length > 1 ? 's' : ''}"
-          lines << "###############################################################################"
-
-          class_doc = Tap::Support::TDoc[receiver]
-          configurations = (class_doc == nil ? [] : class_doc.configurations)
-          keys.each do |key|
-            tdoc_config = configurations.find {|config| config.name == key.to_s }
- 
-            # yaml adds a header and a final newline which should be removed:
-            #   {'key' => 'value'}.to_yaml           # => "--- \nkey: value\n"
-            #   {'key' => 'value'}.to_yaml[5...-1]   # => "key: value"
-            yaml = {key.to_s => unprocessed_default[key]}.to_yaml[5...-1]
-            yaml = "##{yaml}" if unprocessed_default[key] == nil
-            
-            message = tdoc_config ? tdoc_config.comment(false) : ""
-
-            if document && !message.empty?
-              lines << "" unless lines[-1].empty?
-              
-              # comment out new lines and add the message
-              message.split(/\n/).each do |msg|
-                lines << "# #{msg.strip.gsub(/^#\s*/, '')}"
-              end
-              lines << yaml
-              lines << ""
+          # set the template attributes
+          templater.receiver = receiver
+          templater.class_doc = Tap::Support::TDoc[receiver]
+          
+          configuration_doc = templater.class_doc ? templater.class_doc.configurations : nil
+          templater.configurations = keys.collect do |key|
+            name = key.to_s
+            config_attr = if configuration_doc
+              configuration_doc.find {|config| config.name == name }   
             else
-              # if there is no message, simply add the yaml
-              lines << yaml
+              Tap::Support::TDoc::ConfigAttr.new("", name, nil, "")
             end
+            
+            [key, map[key], config_attr.comment(false)]
           end
           
-          lines << "" # add a spacer
+          target << templater.build
         end
+        
+        target
+      end
       
-        lines.compact.join("\n")
-      end
-    
-      def opt_map(long_option)
-        raise ArgumentError.new("not a long option: #{long_option}") unless long_option =~ /^--(.*)$/
-        long = $1
-      
-        each do |receiver, key|
-          return key if long == key.to_s
-        end  
-        nil
-      end
-    
-      def to_opts
-        collect do |receiver, key|
-          # Note the receiver is used as a placeholder for desc,
-          # to be resolved using TDoc.
-          attributes = {
-            :long => key,
-            :short => nil,
-            :opt_type => GetoptLong::REQUIRED_ARGUMENT,
-            :desc => receiver  
-          }
-
-          long = attributes[:long]
-          attributes[:long] = "--#{long}" unless long =~ /^-{2}/
-
-          short = attributes[:short].to_s
-          attributes[:short] = "-#{short}" unless short.empty? || short =~ /^-/
-
-          [attributes[:long], attributes[:short], attributes[:opt_type], attributes[:desc]]
-        end  
-      end
-    
     end
   end
 end
+

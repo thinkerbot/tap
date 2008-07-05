@@ -78,4 +78,118 @@ class ValidationTest < Test::Unit::TestCase
     end
   end
   
+  #
+  # string test
+  #
+  
+  def test_string_documentation
+    assert_equal Proc, string.class
+    assert_equal 'str', string.call('str') 
+    assert_raise(ValidationError) { string.call(:sym) }
+  end
+
+  #
+  # symbol test
+  #
+
+  def test_symbol_documentation
+    assert_equal Proc, symbol.class
+    assert_equal :sym, symbol.call(:sym)
+    assert_equal :sym, symbol.call(':sym')
+    assert_raise(ValidationError) { symbol.call('str') }
+  end
+
+  #
+  # boolean test
+  #
+
+  def test_boolean_documentation
+    assert_equal Proc, boolean.class
+    assert_equal true, boolean.call(true)
+    assert_equal false, boolean.call(false)
+
+    assert_equal true, boolean.call('true')
+    assert_equal true, boolean.call('yes')
+    assert_equal nil, boolean.call(nil) 
+    assert_equal false,boolean.call('FALSE')
+
+    assert_raise(ValidationError) { boolean.call(1) }
+    assert_raise(ValidationError) { boolean.call("str") }
+  end
+
+  def test_boolean_block_converts_input_to_boolean_using_yaml_and_checks_result
+    assert_equal Proc, boolean.class
+
+    assert_equal true, boolean.call(true)
+    assert_equal true, boolean.call('true')
+    assert_equal true, boolean.call('TRUE')
+    assert_equal true, boolean.call('yes')
+
+    assert_equal nil, boolean.call(nil)
+    assert_equal false, boolean.call(false)
+    assert_equal false, boolean.call('false')
+    assert_equal false, boolean.call('FALSE')
+    assert_equal false, boolean.call('no')
+
+    assert_raise(ValidationError) { boolean.call(10) }
+    assert_raise(ValidationError) { boolean.call("str") }
+  end
+
+  #
+  # array test
+  #
+
+  def test_array_documentation
+    assert_equal Proc, array.class
+    assert_equal [1,2,3], array.call([1,2,3])
+    assert_equal [1,2,3], array.call('[1, 2, 3]')
+    assert_raise(ValidationError) { array.call('str') }
+  end
+
+  #
+  # hash test
+  #
+
+  def test_hash_documentation
+    assert_equal Proc, hash.class
+    assert_equal({'key' => 'value'}, hash.call({'key' => 'value'}))
+    assert_equal({'key' => 'value'}, hash.call('key: value'))
+    assert_raise(ValidationError) { hash.call('str') }
+  end
+
+  #
+  # integer test
+  #
+
+  def test_integer_documentation  
+    assert_equal Proc, integer.class
+    assert_equal 1, integer.call(1)
+    assert_equal 1, integer.call('1')
+    assert_raise(ValidationError) { integer.call(1.1) }
+    assert_raise(ValidationError) { integer.call('str') }
+  end
+
+  #
+  # float test
+  #
+
+  def test_float_documentation
+    assert_equal Proc, float.class
+    assert_equal 1.1, float.call(1.1)
+    assert_equal 1.1, float.call('1.1')
+    assert_raise(ValidationError) { float.call(1) }
+    assert_raise(ValidationError) { float.call('str') }
+  end
+  
+  #
+  # regexp test
+  #
+  
+  def test_regexp_documentation
+    assert_equal Proc, regexp.class
+    assert_equal(/regexp/, regexp.call(/regexp/))
+    assert_equal(/regexp/, regexp.call('regexp'))
+    assert_equal(/(?i)regexp/, regexp.call('(?i)regexp'))
+  end
+
 end

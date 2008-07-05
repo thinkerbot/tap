@@ -156,75 +156,9 @@ module Tap
   # See Tap::Task::Base and Tap::Support::Executable for more details as 
   # well as Tap::Support::Rake::Task, which makes Rake[http://rake.rubyforge.org/] 
   # tasks behave like Tap tasks.
-  class Task
-   
-    # Defines the essential behavior of a Task.  Using this module, 
-    # non-task classes can be made to behave like tasks; ie they can 
-    # be enqued, batched, and incorporated into workflows. 
-    module Base 
-      include Support::Executable
-      
-      attr_reader :app
-      
-      # Initializes obj to behave like a Task.  The input method will be
-      # called when obj is run by Tap::App.
-      def self.initialize(obj, method_name, app=App.instance)
-        obj.extend Base
-        obj.extend Support::Batchable
-        obj.instance_variable_set(:@app, app)
-        obj.instance_variable_set(:@batch, [])
-        obj.instance_variable_set(:@multithread, false)
-        obj.instance_variable_set(:@on_complete_block, nil)
-        obj.instance_variable_set(:@_method_name, method_name)
-        obj.initialize_batch_obj
-        obj
-      end
-    
-      # Enqueues self and self.batch to app with the inputs.  
-      # The number of inputs provided should match the number 
-      # of inputs specified by the arity of the _method_name method.
-      def enq(*inputs)
-        batch.each {|t| t.unbatched_enq(*inputs) }
-        self
-      end
-      
-      # Like enq, but only enques self and not self.batch.
-      def unbatched_enq(*inputs)
-        app.queue.enq(self, inputs)
-      end
-      
-      alias :unbatched_on_complete :on_complete
-      
-      # Sets the on_complete_block for self and self.batch.
-      # Use unbatched_on_complete to set the on_complete_block
-      # for just self.
-      def on_complete(override=false, &block)
-        batch.each {|t| t.unbatched_on_complete(override, &block)}
-        self
-      end
-      
-      alias :unbatched_multithread= :multithread=
-      
-      # Sets the multithread for self and self.batch.  Use 
-      # unbatched_multithread= to set multithread for just self.
-      def multithread=(value)
-        batch.each {|t| t.unbatched_multithread = value }
-        self
-      end
-      
-      # Raises a TerminateError if app.state == State::TERMINATE.
-      # check_terminate may be called at any time to provide a 
-      # breakpoint in long-running processes.
-      def check_terminate
-        if app.state == App::State::TERMINATE
-          raise App::TerminateError.new
-        end
-      end      
-    end
-    
-    include Base
-    include Support::Configurable
-    extend Support::CommandLineMethods
+  class Task 
+    include Support::Executable
+    include Support::Framework
     
     attr_reader :task_block
     
@@ -263,6 +197,16 @@ module Tap
       @_method_name = :execute
       super(name, config, app)
     end
+    
+    # Enqueues self and self.batch to app with the inputs.  
+    # The number of inputs provided should match the number 
+    # of inputs specified by the arity of the _method_name method.
+    def enq(*inputs)
+      app.queue.enq(self, inputs)
+    end
+    
+    batch_function :enq, :multithread=
+    batch_function(:on_complete) {}
     
     # Executes self with the given inputs.  Execute provides hooks for subclasses
     # to insert standard execution code: before_execute, on_execute_error,
@@ -320,17 +264,6 @@ module Tap
       end
       
       task_block.call(*inputs)
-    end
-
-    # Logs the inputs to the application logger (via app.log)
-    def log(action, msg="", level=Logger::INFO)
-      # TODO - add a task identifier?
-      app.log(action, msg, level)
-    end
-    
-    # Returns self.name
-    def to_s
-      name
     end
     
     protected

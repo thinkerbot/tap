@@ -81,9 +81,8 @@ module Tap
   #   app.results(w1.exit_points, w2.exit_points))    # => [8, -8]
   #
   class Workflow 
-    include Support::Configurable
-    extend Support::CommandLineMethods
-    
+    include Support::Framework
+
     # The entry point for self.
     attr_accessor :entry_point
     
@@ -142,33 +141,24 @@ module Tap
     # if the entry points have different input requirements, they
     # have to be enqued separately.
     def enq(*inputs)
-      batch.each {|t| t.unbatched_enq(*inputs) }
-      self
-    end
-    
-    # Enques all entry points to app with the inputs.
-    def unbatched_enq(*inputs)
       entry_points.each do |task|
         app.enq(task, *inputs)
       end
-      self
     end
+    
+    batch_function :enq
     
     # Sets the on_complete_block for all exit points for self and 
     # self.batch. Use unbatched_on_complete to set the on_complete_block
     # for just self.exit_points.
     def on_complete(override=false, &block)
-      batch.each {|t| t.unbatched_on_complete(override, &block)}
-      self
-    end
-    
-    # Sets the on_complete_block for all exit points for self.
-    def unbatched_on_complete(override=false, &block)
       exit_points.each do |task|
         task.on_complete(override, &block)
       end
       self
     end
+    
+    batch_function(:on_complete) {}
 
     # The workflow definition method.  By default workflow
     # simply calls the task_block.  In subclasses, workflow
@@ -187,11 +177,6 @@ module Tap
     # the name of the workflow if input == nil.
     def name(input=nil)
       input == nil ? @name : File.join(@name, input)
-    end
-    
-    # Returns name
-    def to_s
-      name
     end
     
     protected

@@ -1,19 +1,11 @@
-# == Description
-# Replace with a description.  The default task reads
-# in the lines of a text file and dumps them as YAML
-# into a yaml file.
-# === Usage
-# Replace with usage instructions
-#
+# :manifest: manifest summary
+# command line description
+
+# <%= class_name_without_nesting %> Documentation
 class <%= class_name_without_nesting %> < Tap::FileTask
-  # use config to set task configurations
-  # configs have accessors by default
-  
+
   config :key, 'value'           # a sample config
   
-  # process defines what the task does; use the
-  # same number of inputs to enque the task
-  # as specified here
   def process(filepath)
 
     # infer an output filepath relative to the :data directory, 

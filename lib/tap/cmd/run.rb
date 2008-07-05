@@ -1,9 +1,8 @@
-# = Usage
 # tap run {options} -- {task options} task INPUTS...
 #
 # examples:
-#   tap run --help                 Prints this help
-#   tap run -- task --help         Prints help for task
+#   tap run --help                     Prints this help
+#   tap run -- task --help             Prints help for task
 #
 
 env = Tap::Env.instance
@@ -12,30 +11,71 @@ app = Tap::App.instance
 #
 # handle options
 #
-
-opts = [
-  ['--help', '-h', GetoptLong::NO_ARGUMENT, "Print this help"],
-  ['--debug', '-d', GetoptLong::NO_ARGUMENT, "Trace execution and debug"],
-  ['--force', '-f', GetoptLong::NO_ARGUMENT, "Force execution at checkpoints"],
-  ['--dump', nil, GetoptLong::NO_ARGUMENT, "Specifies a default dump task"],
-  ['--quiet', '-q', GetoptLong::NO_ARGUMENT, "Suppress logging"]]
-
 dump = false
-Tap::Support::CommandLine.handle_options(*opts) do |opt, value| 
-  case opt
-  when '--help'
-    puts Tap::Support::CommandLine.command_help(__FILE__, opts)
+rake = true
+rake_app = nil
+print_manifest = false
+OptionParser.new do |opts|
+  
+  opts.separator ""
+  opts.separator "options:"
+
+  opts.on("-h", "--help", "Show this message") do
+    opts.banner = Tap::Support::TDoc.usage(__FILE__)
+    puts opts
     exit
-  
-  when '--dump'
-    dump = true
-    
-  when '--quiet', '--force', '--debug'
-    # simply track these have been set
-    opt =~ /^-+(\w+)/
-    app.options.send("#{$1}=", true)
-  
   end
+  
+  opts.on('-T', '--task-manifest', 'Print a list of available tasks') do |v|
+    print_manifest = true
+  end
+  
+  opts.on('-d', '--debug', 'Trace execution and debug') do |v|
+    app.options.debug = v
+  end
+
+  opts.on('--force', 'Force execution at checkpoints') do |v|
+    app.options.force = v
+  end
+  
+  opts.on('--dump', 'Specifies a default dump task') do |v|
+    dump = v
+  end
+  
+  opts.on('--[no-]rake', 'Enables or disables rake task handling') do |v|
+    rake = v
+  end
+  
+  opts.on('--quiet', 'Suppress logging') do |v|
+    app.options.quiet = v
+  end
+  
+end.parse!(ARGV)
+
+if print_manifest
+  widths = []
+  manifest_by_load_path = {}
+  env.tasks.each_pair do |name, spec| 
+    (manifest_by_load_path[spec[:load_path]] ||= {})[name] = spec
+    widths << name.length
+  end
+  width = widths.max || 10
+  
+  max_column = 80 - width - 7
+  manifest_by_load_path.each_pair do |path, specs|
+    puts "===  tap tasks (#{path})"
+    specs.each_pair do |name, spec|
+      printf "%-#{width}s  # %s\n", name, spec[:summary]#rake.truncate(spec.tdoc.comment, max_column)
+    end
+  end
+  
+  if rake 
+    puts "=== rake tasks"
+    ARGV.clear
+    env.rake_setup(['-T']).display_tasks_and_comments
+  end
+  
+  exit
 end
 
 #
@@ -47,52 +87,43 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
     ARGV.concat(args)
    
     td = Tap::Support::CommandLine.next_arg(ARGV)
-    case td
-    when 'rake', nil  
-      # remove --help as this will print the Rake help
-      ARGV.delete_if do |arg|
-        if arg == "--help"
-          env.log(:warn, "ignoring --help config for rake command") 
-          true
-        else
-          false
-        end
-      end
- 
-      rake = env.rake_setup
-    
-      # takes the place of rake.top_level
-      if rake.options.show_tasks
-        rake.display_tasks_and_comments
-        exit
-      elsif rake.options.show_prereqs
-        rake.display_prerequisites
-        exit
-      else
-        rake.top_level_tasks.each do |task_name| 
-          app.task(task_name).enq
-        end
-      end
-      
-    else  
+    case
+    when rake && td == 'rake'
+      rake_app = env.rake_setup if rake_app == nil
       begin
-        # attempt lookup the task class
-        task_class = app.task_class(td)
-      rescue(Tap::App::LookupError)
+        rake_app.enq_top_level(app)
+      rescue(RuntimeError)
+        if $!.message =~ /^Don't know how to build task '(.*)'$/
+          raise "unknown task: #{$1}"
+        else
+          raise $!
+        end
       end
+    
+    when td == nil
+      # warn?
+      next 
+    else  
+
+      # attempt lookup the task class
+      task_class = env.constantize(td) 
 
       # unless a Tap::Task was found, treat the
       # args as a specification for Rake.
-      if task_class == nil || !task_class.include?(Tap::Support::Configurable)
+      if task_class == nil || !task_class.include?(Tap::Support::Framework)
+        raise "unknown task: #{td}" unless rake
+        
         env.log(:warn, "implicit rake: #{td}#{ARGV.empty? ? '' : ' ...'}", Logger::DEBUG)
         args.unshift('rake')
         redo
       end
     
       # now let the class handle the argv
-      ARGV.collect! {|str| Tap::Support::CommandLine.parse_yaml(str) }
-      ARGV.unshift(td)
-      task_class.argv_enq(app)
+      name, config, argv = task_class.parse_argv(ARGV, true)
+      name = td if name == nil
+      
+      task = task_class.new(name, config, app)
+      task.enq *argv.collect {|str| Tap::Support::CommandLine.parse_yaml(str) }
     end
   end
 
@@ -158,7 +189,7 @@ end
 
 if dump
   puts
-  app.task('tap/dump').enq
+  Tap::Dump.new.enq
   app.run
 end
 

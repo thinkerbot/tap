@@ -459,7 +459,7 @@ module Tap
     #   File.exists?("path")                  # => false  
     #   FileUtils.mkdir("path")               # will not be removed
     #
-    #   t.make("path/to/file.txt")          
+    #   t.prepare("path/to/file.txt")          
     #   FileUtils.touch("path/to/file.txt") 
     #   File.exists?("path/to/file.txt")      # => true
     #

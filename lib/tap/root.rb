@@ -1,4 +1,5 @@
 require 'tap/support/versions'
+require 'tap/support/configurable'
 autoload(:FileUtils, 'fileutils')
 
 module Tap
@@ -101,6 +102,15 @@ module Tap
         end.flatten.uniq
       end
       
+      # Path suffix glob.  Globs along the base paths for 
+      # paths that match the specified suffix pattern.
+      def sglob(suffix_pattern, *base_paths)
+        base_paths.collect do |base|
+          base = File.expand_path(base)
+          Dir.glob(File.join(base, suffix_pattern))
+        end.flatten.uniq
+      end
+      
       # Executes the block in the specified directory.  Makes the directory, if
       # necessary when mkdir is specified.  Otherwise, indir raises an error 
       # for non-existant directories, as well as non-directory inputs.
@@ -163,12 +173,16 @@ module Tap
     end
   
     include Support::Versions
+    include Support::Configurable
+
+    # The root directory.
+    config_attr(:root, '.', :writer => false)
     
-    # The root directory
-    attr_reader :root
+    # A hash of (alias, relative path) pairs for aliased subdirectories.
+    config_attr(:directories, {}, :writer => false)
     
-    # A hash of (alias, relative path) pairs for aliased subdirectories
-    attr_reader :directories
+    # A hash of (alias, relative path) pairs for aliased absolute paths.
+    config_attr(:absolute_paths, {}, :reader => false, :writer => false)
     
     # A hash of (alias, expanded path) pairs for aliased subdirectories and absolute paths.
     attr_reader :paths
@@ -182,29 +196,30 @@ module Tap
     # and no aliased directories or absolute paths are specified.  
     def initialize(root=Dir.pwd, directories={}, absolute_paths={})
       assign_paths(root, directories, absolute_paths)
+      @config = self.class.configurations.instance_config(self)
     end
-  
-    # Sets the root directory.  All paths are reassigned accordingly.
+    
+    # Sets the root directory. All paths are reassigned accordingly.
     def root=(path)
       assign_paths(path, directories, absolute_paths)
     end
   
-    # Sets the directories to those provided.  'root' and :root are reserved  
+    # Sets the directories to those provided. 'root' and :root are reserved
     # and cannot be set using this method (use root= instead).
     #
-    #   r['alt']                               # => File.join(r.root, 'alt')
-    #   r.directories = {'alt' => 'dir'}
-    #   r['alt']                               # => File.join(r.root, 'dir')
+    # r['alt'] # => File.join(r.root, 'alt')
+    # r.directories = {'alt' => 'dir'}
+    # r['alt'] # => File.join(r.root, 'dir')
     def directories=(dirs)
       assign_paths(root, dirs, absolute_paths)
     end
     
-    # Sets the absolute paths to those provided. 'root' and :root are reserved  
+    # Sets the absolute paths to those provided. 'root' and :root are reserved
     # directory keys and cannot be set using this method (use root= instead).
     #
-    #   r['abs']                               # => File.join(r.root, 'abs')
-    #   r.absolute_paths = {'abs' => '/path/to/dir'}
-    #   r['abs']                               # => '/path/to/dir'
+    # r['abs'] # => File.join(r.root, 'abs')
+    # r.absolute_paths = {'abs' => '/path/to/dir'}
+    # r['abs'] # => '/path/to/dir'
     def absolute_paths=(paths)
       assign_paths(root, directories, paths)
     end

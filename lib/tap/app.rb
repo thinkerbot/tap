@@ -124,7 +124,11 @@ module Tap
   #   array[0] == array[1]           # => false
   #
   # Since App is geared towards methods, methods from non-task objects can get 
-  # hooked into a workflow as needed.  The preferred way to do so is to make the
+  # hooked into a workflow as needed.  
+  #---
+  # TODO REVISIT
+  #
+  # The preferred way to do so is to make the
   # non-task objects behave like tasks using Task::Base#initialize.  The objects
   # can now be enqued, incorporated into workflows, and batched.
   #
@@ -138,7 +142,9 @@ module Tap
   #   app.run
   #   array                          # => [1, 2]
   #
-  # Lastly, if you can't or don't want to turn your object into a task, Tap defines 
+  # Lastly, if you can't or don't want to turn your object into a task, 
+  #++
+  # Tap defines 
   # Object#_method to generate executable objects that can be enqued and 
   # incorporated into workflows, although they cannot be batched.  The mq 
   # (method enq) method generates and enques the method in one step.
@@ -219,7 +225,7 @@ module Tap
   # See Tap::Support::Audit for more details.
   class App < Root
     include MonitorMixin
-    
+
     class << self
       # Sets the current app instance
       attr_writer :instance
@@ -232,26 +238,28 @@ module Tap
     end
     
     # An OpenStruct containing the application options.
-    attr_reader :options
+    config :options, {} do |value|
+      case value
+      when OpenStruct then value
+      when Hash then OpenStruct.new(value)
+      when nil then OpenStruct.new()
+      else raise ArgumentError.new("cannot convert to OpenStruct: #{value.class}")
+      end
+    end
     
-    # The shared logger. 
+    # The shared logger
     attr_reader :logger
     
-    # The application queue.
+    # The application queue
     attr_reader :queue
     
-    # The state of the application (see App::State).
+    # The state of the application (see App::State)
     attr_reader :state
     
-    # A hash of (task_name, task_class_name) pairs mapping names to 
-    # classes for instantiating tasks that have a non-default name.   
-    # See task_class_name for more details.
-    attr_accessor :map
-    
     # A Tap::Support::Aggregator to collect the results of 
-    # methods that have no on_complete block.
+    # methods that have no on_complete block
     attr_reader :aggregator
-    
+     
     # The constants defining the possible App states.  
     module State
       READY = 0
@@ -274,8 +282,8 @@ module Tap
     DEFAULT_MAX_THREADS = 10
     
     # Creates a new App with the given configuration.  
-    # See reconfigure for configuration options.
-    def initialize(config={})
+    # See configure for configuration options.
+    def initialize(config={}, logger=TAP_DEFAULT_LOGGER)
       super()
       
       @state = State::READY
@@ -285,177 +293,18 @@ module Tap
       
       @queue = Support::ExecutableQueue.new
       @aggregator = Support::Aggregator.new
-
-      # defaults must be provided for options and logging to ensure
-      # that they will be initialized by reconfigure 
-      self.reconfigure( {
-        :options => {}, :logger => {}, :map => {}
-      }.merge(config) )
+      
+      initialize_config(config)
+      self.logger = logger
     end
     
-    # Clears the queue and aggregator.
-    #def clear(options={})
-    #  # syncrhonize?
-    #  ready
-    #  raise "cannot clear unless state == READY" unless state == State::READY
-    #
-    #  queue.clear
-    #  aggregator.clear
-    #end
+    TAP_DEFAULT_LOGGER = Logger.new(STDOUT)
+    TAP_DEFAULT_LOGGER.level = Logger::INFO
+    TAP_DEFAULT_LOGGER.datetime_format = '%H:%M:%S'
     
     # True if options.debug or the global variable $DEBUG is true.
     def debug?
-      options.debug || $DEBUG ? true : false
-    end
-     
-    # Returns the configuration of self.  
-    def config 
-      {:root => self.root,
-      :directories => self.directories,
-      :absolute_paths => self.absolute_paths,
-      :options => self.options.marshal_dump,
-      :logger => {
-        :device => self.logger.logdev.dev,
-        :level => self.logger.level,
-        :datetime_format => self.logger.datetime_format}}      
-    end
-    
-    # Reconfigures self with the input configurations; other configurations are not affected.
-    #
-    #   app = Tap::App.new :root => "/root", :directories => {:dir => 'path/to/dir'}
-    #   app.reconfigure(
-    #     :root => "./new/root",
-    #     :logger => {:level => Logger::DEBUG})
-    #
-    #   app.root           # => File.expand_path("./new/root")
-    #   app[:dir]          # => File.expand_path("./new/root/path/to/dir")
-    #   app.logger.level   # => Logger::DEBUG
-    #
-    # Available configurations:
-    # root:: resets the root directory of self using root=
-    # directories:: resets directory aliases using directories= (note ALL  
-    #               aliases are reset. use app[dir]= to set a single alias)
-    # absolute_paths:: resets absolute path aliases using absolute_paths= (note ALL  
-    #               aliases are reset. use app[dir]= to set a single alias)
-    # options:: resets the application options (note ALL options are reset.   
-    #           use app.options.opt= to set a single option)
-    # logger:: creates and sets a new logger from the configuration 
-    #
-    # Available logger configurations and defaults:
-    # device:: STDOUT
-    # level:: INFO (1) 
-    # datetime_format:: %H:%M:%S
-    #
-    # Unknown configurations raise an error.  
-    def reconfigure(config={})
-      config = config.symbolize_keys
-  
-      # ensure critical keys are evaluated in the proper order
-      keys = [:root, :directories, :absolute_paths, :options]
-      config.keys.each do |key|
-        keys << key unless keys.include?(key)
-      end 
-      
-      keys.each do |key|
-        next unless config.has_key?(key)
-        value = config[key]
-        
-        case key
-        when :root
-          self.root = value
-        when :directories 
-          self.directories = value
-        when :absolute_paths 
-          self.absolute_paths = value
-        when :options
-          @options = OpenStruct.new
-          value.each_pair {|k,v| options.send("#{k}=", v) }
-        when :logger
-          log_config = {
-            :device => STDOUT,
-            :level => 'INFO',
-            :datetime_format => '%H:%M:%S'
-          }.merge(value.symbolize_keys)
-
-          logger = Logger.new(log_config[:device]) 
-          logger.level = log_config[:level].kind_of?(String) ? Logger.const_get(log_config[:level]) : log_config[:level]
-          logger.datetime_format = log_config[:datetime_format]    
-          self.logger = logger
-        when :map
-          self.map = value
-        else
-          unless handle_configuation(key, value)
-            if block_given? 
-              yield(key, value)
-            else
-              raise ArgumentError.new("Unknown configuration: #{key}")
-            end
-          end
-        end
-      end
-      
-      self
-    end
-    
-    # Unloads constants loaded by Dependencies, so that they will be reloaded
-    # (with any changes made) next time they are called.  Returns the unloaded 
-    # constants.  
-    def reload
-      unloaded = []
-      
-      # echos the behavior of Dependencies.clear, 
-      # but collects unloaded constants
-      Dependencies.loaded.clear
-      Dependencies.autoloaded_constants.each do |const| 
-        Dependencies.remove_constant const
-        unloaded << const
-      end
-      Dependencies.autoloaded_constants.clear
-      Dependencies.explicitly_unloadable_constants.each do |const| 
-        Dependencies.remove_constant const
-        unloaded << const
-      end
-      
-      unloaded
-    end
-    
-    # Looks up the specified constant, dynamically loading via Dependencies
-    # if necessary.  Returns the const_name if const_name is a Module.
-    # Yields to the optional block if the constant cannot be found; otherwise
-    # raises a LookupError.
-    def lookup_const(const_name)
-      return const_name if const_name.kind_of?(Module)
-      
-      begin
-        const_name = const_name.camelize
-        
-        case RUBY_VERSION
-        when /^1.9/
-          
-          # a check is necessary to maintain the 1.8 behavior  
-          # of lookup_const in 1.9, where ancestor constants 
-          # may be returned by a direct evaluation
-          const_name.split("::").inject(Object) do |current, const|
-            const = const.to_sym
-            
-            current.const_get(const).tap do |c|
-              unless current.const_defined?(const, false)
-                raise NameError.new("uninitialized constant #{const_name}") 
-              end
-            end
-          end
-
-        else 
-          const_name.constantize
-        end
-       
-      rescue(NameError)
-        if block_given?
-          yield 
-        else
-          raise LookupError.new("unknown constant: #{const_name}")
-        end
-      end
+      options.debug || $DEBUG
     end
     
     #
@@ -466,10 +315,13 @@ module Tap
     # additional logging capabilities.  The logger level is set to Logger::DEBUG if 
     # the global variable $DEBUG is true.
     def logger=(logger)
+      
+      unless logger.nil?
+        logger.extend Support::Logger 
+        logger.level = Logger::DEBUG if $DEBUG
+      end
+      
       @logger = logger
-      @logger.extend Support::Logger unless @logger.nil?
-      @logger.level = Logger::DEBUG if $DEBUG
-      @logger
     end
     
     # Logs the action and message at the input level (default INFO).  
@@ -495,76 +347,6 @@ module Tap
         logger.format_add(level, msg, action) do |format| 
           block_given? ? yield(format) : format.chomp("\n")
         end
-      end
-    end
- 
-    #
-    # Task methods
-    #
-    
-    # Instantiates the specifed task with config (if provided).  The task
-    # class is determined by task_class.
-    #
-    #   t = app.task('tap/file_task')
-    #   t.class             # => Tap::FileTask
-    #   t.name              # => 'tap/file_task'
-    #
-    #   app.map = {"mapped-task" => "Tap::FileTask"}
-    #   t = app.task('mapped-task-1.0', :key => 'value')
-    #   t.class             # => Tap::FileTask
-    #   t.name              # => "mapped-task-1.0"
-    #   t.config[:key]      # => 'value'
-    #
-    # A new task is instantiated for each call to task; tasks may share the 
-    # same name.  
-    def task(task_name, config={}, &block)
-      task_class(task_name).new(task_name, config, &block) 
-    end
-    
-    # Looks up the specifed task class.  Names are mapped to task classes 
-    # using task_class_name.
-    #
-    #   t_class = app.task_class('tap/file_task')
-    #   t_class             # => Tap::FileTask
-    #
-    #   app.map = {"mapped-task" => "Tap::FileTask"}
-    #   t_class = app.task_class('mapped-task-1.0')
-    #   t_class             # => Tap::FileTask
-    #
-    # Notes:
-    # - The task class will be auto-loaded using Dependencies, if needed.
-    # - A LookupError is raised if the task class cannot be found.
-    def task_class(task_name)
-      lookup_const task_class_name(task_name) do
-        raise LookupError.new("unknown task '#{task_name}'")
-      end
-    end
-    
-    # Returns the class name of the specified task.  If the task 
-    # descriptor is a string, the class name is the de-versioned, 
-    # descriptor, or the class name as specified in map by the 
-    # de-versioned descriptor.  
-    #
-    #   app.map = {"mapped-task" => "Tap::FileTask"}
-    #   app.task_class_name('some/task_class')   # => "some/task_class" 
-    #   app.task_class_name('mapped-task-1.0')   # => "Tap::FileTask"
-    #
-    # If td is a type of Tap::Task::Base, then task_class_name 
-    # returns td.class.to_s
-    #
-    #   t1 = Task.new
-    #   app.task_class_name(t1)                   # => "Tap::Task"
-    #
-    #   t2 = Object.new.extend Tap::Task::Base
-    #   app.task_class_name(t2)                   # => "Object"
-    #
-    def task_class_name(td)
-      case td
-      when Tap::Task::Base then td.class.to_s
-      else
-        # de-version and resolve using map
-        name, version = deversion(td.to_s)
-        map.has_key?(name) ? map[name].to_s : name
       end
     end
     
@@ -822,7 +604,7 @@ module Tap
     # error handling code, perhaps performing rollbacks.
     #
     # Termination checks can be manually specified in a task
-    # using the check_terminate method (see Tap::Task::Base#check_terminate).
+    # using the check_terminate method (see Tap::Task#check_terminate).
     # Termination checks automatically occur before each task execution.
     #
     # Does nothing if state == State::READY.
@@ -852,17 +634,13 @@ module Tap
       end
     end
     
-    #
-    # workflow related
-    #
-    
     # Enques the task with the inputs.  If the task is batched, then each 
     # task in task.batch will be enqued with the inputs.  Returns task.
     #
     # An Executable may provided instead of a task.
     def enq(task, *inputs)
       case task
-      when Tap::Task::Base
+      when Tap::Task, Tap::Workflow
         raise "not assigned to enqueing app: #{task}" unless task.app == self
         task.enq(*inputs)
       when Support::Executable
@@ -898,7 +676,7 @@ module Tap
         current_task = next_task
       end
     end
-    
+
     # Sets a fork workflow pattern for the tasks such that each of the
     # targets will be enqueued with the results of the source when the
     # source completes. Batched tasks will have the pattern set for each 
@@ -914,7 +692,7 @@ module Tap
         end
       end
     end
-    
+
     # Sets a merge workflow pattern for the tasks such that the results
     # of each source will be enqueued to the target when the source 
     # completes. Batched tasks will have the pattern set for each 
@@ -961,7 +739,7 @@ module Tap
     protected
     
     # A hook for handling unknown configurations in subclasses, called from
-    # reconfigure.  If handle_configuration evaluates to false, then reconfigure
+    # configure.  If handle_configuration evaluates to false, then configure
     # raises an error.
     def handle_configuation(key, value)
       false
@@ -1080,10 +858,6 @@ module Tap
           end
         end
       end
-    end
-
-    # LookupErrors are raised for errors during dependency lookup
-    class LookupError < RuntimeError 
     end
 
     # TerminateErrors are raised to kill executing tasks when terminate 

@@ -57,6 +57,11 @@ module Tap
         # Contains the actual declaration for the config attribute. ex:  "c [:key, 'value']      # comment"
         attr_accessor :config_declaration, :default
         
+        def initialize(*args)
+          @comment = nil # suppress a warning in Ruby 1.9
+          super
+        end
+        
         alias original_comment comment
         
         def desc
@@ -157,7 +162,7 @@ module Tap
         def new(*args)
           parser = super
           parser.extend ConfigParser
-          parser.config_mode = 'config_accessor'
+          #parser.config_mode = 'config_accessor'
           parser
         end
       end
@@ -169,21 +174,8 @@ module Tap
         include RDoc::RubyToken
         include TokenStream
                  
-        CONFIG_ACCESSORS = ['config', 'declare_config', 'config_reader', 'config_writer', 'config_accessor']        
-        attr_accessor :config_mode
-        
-        # Returns the current config_rw mode, based on the config_mode flag.
-        def config_rw
-          case self.config_mode
-          when "config_accessor" then "RW"
-          when "declare_config" then nil
-          when "config_reader"   then "R"
-          when "config_writer"   then "W"
-          else
-            raise "unknown config mode: #{self.config_mode}"
-          end
-        end
-        
+        CONFIG_ACCESSORS = ['config', 'config_attr']        
+
         # Gets tokens until the next TkNL
         def get_tk_to_nl
           tokens = []
@@ -210,12 +202,16 @@ module Tap
           
           key_tk = nil
           value_tk = nil
-          
+
           tks.each do |token|
             next if token.kind_of?(TkSPACE)
             
             if key_tk == nil
-              key_tk = token if token.kind_of?(TkSYMBOL)
+              case token
+              when TkSYMBOL then key_tk = token
+              when TkLPAREN then next
+              else break
+              end
             else
               case token
               when TkCOMMA then value_tk = token
@@ -250,45 +246,11 @@ module Tap
               default = value_tk.text
             end
           end
-          att = TDoc::ConfigAttr.new(text, arg, config_rw, comment)
+          att = TDoc::ConfigAttr.new(text, arg, "RW", comment)
           att.config_declaration = get_tkread
           att.default = default
            
           context.add_attribute(att)
-        end
-        
-        # Works like the original parse_attr_accessor, except that the added
-        # attribute will be a TDoc::ConfigAttr.  config_mode is updated to the input
-        # token name, such that, for example, if tk.name == 'config_accessor' 
-        # then config_rw will return 'RW'.
-        #
-        # (see 'rdoc/parsers/parse_rb' line 2509)
-        def parse_config_accessor(context, single,  tk, comment)
-          self.config_mode = tk.name 
-          
-          tks = get_tk_to_nl
-          is_config_mode_flag = tks.select do |token| 
-            !token.kind_of?(TkSPACE) && !token.kind_of?(TkCOMMENT) 
-          end.empty?
-
-          # If no args are given, take this as a flag for c
-          return if is_config_mode_flag
-            
-          tks.reverse_each {|token| unget_tk(token) }
-          args = parse_symbol_arg
-          read = get_tkread
-          rw = "?"
-          
-          # If nodoc is given, don't document any of them
-
-          tmp = RDoc::CodeObject.new
-          read_documentation_modifiers(tmp, RDoc::ATTR_MODIFIERS)
-          return unless tmp.document_self
-
-          for name in args
-	          att = TDoc::ConfigAttr.new(get_tkread, name, config_rw, comment)
-            context.add_attribute(att)
-          end  
         end
         
         # Overrides the standard parse_attr_accessor method to hook in parsing
@@ -296,10 +258,8 @@ module Tap
         # CONFIG_ACCESSORS, it will be processed normally.
         def parse_attr_accessor(context, single, tk, comment)
           case tk.name
-          when 'config'
+          when 'config', 'config_attr'
               parse_config(context, single,  tk, comment)
-          when 'declare_config', 'config_reader', 'config_writer', 'config_accessor'
-              parse_config_accessor(context, single, tk, comment)
           else
             super
           end
