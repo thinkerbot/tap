@@ -111,7 +111,7 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
       # unless a Tap::Task was found, treat the
       # args as a specification for Rake.
       if task_class == nil || !task_class.include?(Tap::Support::Framework)
-        raise "unknown task: #{td}" unless rake
+        raise "unknown task: #{td}" if !rake || ARGV.include?('--help')
         
         env.log(:warn, "implicit rake: #{td}#{ARGV.empty? ? '' : ' ...'}", Logger::DEBUG)
         args.unshift('rake')

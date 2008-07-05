@@ -331,6 +331,8 @@ options:
         --name NAME                  Specify a name
         --use FILE                   Loads inputs from file
 }
+      cmd.check " run -- unknown --help", "help for unknown task",  %Q{unknown task: unknown\n}
+      
       # cmd.check " run --debug sample", "Runs the sample task debugging"
       # cmd.check " run -- sample --debug", "Runs the sample task debugging" 
       # cmd.check " run -- sample -d-", "Runs the sample full debugging" 
@@ -405,6 +407,7 @@ rake default_task  # Prints 'running default task'.
 }
 
       cmd.check " run -- rake --help", "Prints rake help", capture_sh("rake --help")
+      cmd.check " run -- rake unknown_task --help", "Prints rake help", capture_sh("rake --help")
     end
   end
   
