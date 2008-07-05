@@ -96,7 +96,7 @@ module Tap
         
             test.commands.each do |cmd, msg, expected, block|
               start = Time.now
-              result = capture_sh(cmd)
+              result = capture_sh(cmd) {|ok, status, tempfile_path| }
               elapsed = Time.now - start
 
               case expected

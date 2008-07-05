@@ -60,8 +60,8 @@ end
 
 at_exit do
   begin
-    eval(after.to_s) 
-  rescue
+    eval(after) if after != nil
+  rescue(Exception)
     puts "Error in after script."
     env.handle_error($!)
     exit(1)
@@ -73,12 +73,12 @@ end
 #
 
 begin
-  eval(before.to_s)
-rescue
+  eval(before) if before != nil
+rescue(Exception)
   puts "Error in before script."
   env.handle_error($!)
   exit(1)
-end
+end 
 
 #
 # run tap

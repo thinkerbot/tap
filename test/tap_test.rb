@@ -42,6 +42,88 @@ version #{Tap::VERSION} -- http://tap.rubyforge.org
     end
   end
   
+  def test_tap_with_before_and_after_script
+    script_test(method_root) do |cmd|
+      cmd.command_path = %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
+      cmd.check " --help", "Prints help with scripts", %Q{
+before line one
+before line two
+usage: tap <command> {options} [args]
+
+examples:
+  tap generate root .                  # generates a root dir
+  tap run taskname --option input      # runs the 'taskname' task
+
+help:
+  tap help                             # prints this help
+  tap command --help                   # prints help for 'command'
+
+available commands:
+  cmd
+  console
+  destroy
+  generate
+  help
+  run
+  server
+
+version #{Tap::VERSION} -- http://tap.rubyforge.org
+after line one
+after line two
+}
+    end
+  end
+
+  def test_tap_with_syntax_error_in_after
+   script_test(method_root) do |cmd|
+     cmd.command_path = %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
+     cmd.check " --help", "Syntax error in after script", %Q{
+before line one
+before line two
+usage: tap <command> {options} [args]
+
+examples:
+  tap generate root .                  # generates a root dir
+  tap run taskname --option input      # runs the 'taskname' task
+
+help:
+  tap help                             # prints this help
+  tap command --help                   # prints help for 'command'
+
+available commands:
+  cmd
+  console
+  destroy
+  generate
+  help
+  run
+  server
+
+version #{Tap::VERSION} -- http://tap.rubyforge.org
+Error in after script.
+(eval):1: compile error
+(eval):1: syntax error, unexpected tIDENTIFIER, expecting $end
+puts "after line one" puts "after line two"
+                          ^
+}
+    end
+  end
+
+  def test_tap_with_syntax_error_in_before
+    script_test(method_root) do |cmd|
+      cmd.command_path = %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
+      cmd.check " --help", "Syntax error in before script", %Q{
+Error in before script.
+(eval):1: compile error
+(eval):1: syntax error, unexpected tIDENTIFIER, expecting $end
+puts "before line one" puts "before line two"
+                           ^
+after line one
+after line two
+}
+    end
+  end
+  
   def test_generators
     script_test do |cmd|
       cmd.command_path = %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
