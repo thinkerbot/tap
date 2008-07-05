@@ -18,8 +18,6 @@ when /^1.9/
   $DEBUG_RDOC ||= nil 
 end
 
-# require 'active_support/clean_logger'
-
 $:.unshift File.expand_path(File.dirname(__FILE__))
 
 require 'tap/constants'

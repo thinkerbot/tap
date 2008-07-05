@@ -80,7 +80,7 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.template = 'tap/support/tdoc/tdoc_html_template' 
   rdoc.options << '--line-numbers' << '--inline-source' << '--fmt' << 'tdoc'
   rdoc.rdoc_files.include( spec.extra_rdoc_files )
-  rdoc.rdoc_files.include( spec.files.select {|file| file =~ /^lib/} )
+  rdoc.rdoc_files.include( spec.files.select {|file| file =~ /^lib.*\.rb$/} )
 end
 
 desc "Publish RDoc to RubyForge"
