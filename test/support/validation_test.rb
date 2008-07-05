@@ -85,6 +85,8 @@ class ValidationTest < Test::Unit::TestCase
   def test_string_documentation
     assert_equal Proc, string.class
     assert_equal 'str', string.call('str') 
+    assert_equal "\n", string.call('\n') 
+    assert_equal "\n", string.call("\n") 
     assert_raise(ValidationError) { string.call(:sym) }
   end
 

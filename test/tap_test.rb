@@ -383,6 +383,25 @@ options:
       
       cmd.check " run -- with_hash_config --help", "Prints the hash config help",
       /--hc '\{one: 1, two: 2\}'      a hash config/
+      
+      # string
+      cmd.check " run -- with_string_config --string \"\"", "Run with empty string syntax", 
+      /with_string_config \"\"/
+      
+      cmd.check %Q{ run -- with_string_config --string '\\n'}, "Run with newline string syntax", 
+      /with_string_config \"\\n\"/    # "\n"
+      
+      cmd.check %Q{ run -- with_string_config --string '\\\\n'}, "Run with newline string syntax", 
+      /with_string_config \"\\\\n\"/  # "\\n"
+      
+      cmd.check %Q{ run -- with_string_config --string "\\n"}, "Run with newline string syntax", 
+      /with_string_config \"\\n\"/    # "\n"
+      
+      cmd.check %Q{ run -- with_string_config --string "\\\\n"}, "Run with newline string syntax", 
+      /with_string_config \"\\n\"/    # "\n"
+      
+      cmd.check %Q{ run -- with_string_config --string "\\\\\\n"}, "Run with newline string syntax", 
+      /with_string_config \"\\\\n\"/  # "\\n"
     end
   end
   

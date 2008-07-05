@@ -114,13 +114,20 @@ module Tap
       end
       
       # Returns a block that checks the input is a string.
+      # Moreover, strings are re-evaluated as string 
+      # literals using %Q. 
       #
       #   string.class              # => Proc
       #   string.call('str')        # => 'str'
+      #   string.call('\n')         # => "\n"
+      #   string.call("\n")         # => "\n"
       #   string.call(:sym)         # => ValidationError
       #
       def string(); STRING; end
-      STRING = check(String)
+      STRING = lambda do |input|
+        input = validate(input, [String])
+        eval %Q{"#{input}"}
+      end
       
       # Returns a block that checks the input is a symbol.
       # String inputs are loaded as yaml first.
