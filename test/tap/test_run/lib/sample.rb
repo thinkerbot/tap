@@ -1,4 +1,4 @@
-# :manifest: manifest summary
+# ::manifest manifest summary
 # command line description 
 # line one
 #

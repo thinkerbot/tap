@@ -78,7 +78,7 @@ module Tap
     # On the plus side, you can now access/use RDoc within irb by requiring 'tap/support/tdoc'.
     # 
     class TDoc 
-      
+
       class << self
         
         # Hash of generated TDocs, keyed by file.
@@ -88,68 +88,92 @@ module Tap
         def clear
           @docs = {}
         end
-
+        
+        # $5:: class_name
+        # $7:: attribute_name
+        def attribute_regexp(attribute_name)
+          /^[ \t]*#([ \t]+|(--|\+\+)[ \t]+)(:(stop|start)doc:[ \t]+)?(([A-Z][A-z]*::)*[A-Z][A-z]*)?::(#{attribute_name.downcase})/
+        end
+        
+        def parse_manifests(str)
+          scanner = StringScanner.new(str)
+          manifests = []
+          
+          while !scanner.eos?
+            break if scanner.skip_until(MANIFEST_LINE_REGEXP) == nil
+            next unless scanner.matched =~ MANIFEST_REGEXP
+            manifests << [$5, scanner.scan_until(/$/).strip]
+          end
+          
+          manifests
+        end
+        
+        #  
         def parse(str)
           tdoc = TDoc.new
           scanner = StringScanner.new(str)
-          
+        
           while !scanner.eos?
-            break if scanner.skip_until(/^\s*#\s+(:(stop|start)doc:\s+)?:/) == nil
+            break if scanner.skip_until(ATTRIBUTE_LINE_REGEXP) == nil
 
-            case "# :#{scanner.scan(/[^:]+:/)}"
-            when DESC_BEGIN_REGEXP  # Parse Summary and Description
+            case scanner[1]
+            when 'manifest'
+              next unless scanner.matched =~ MANIFEST_REGEXP
+              
+              tdoc.class_name = $5
               tdoc.summary = scanner.scan_until(/$/).strip
 
-              line_fragments = []
-              while comment = scanner.scan(/^\s*#.*$/)
-                case comment
-                when /^(\r?\n){2}/, /^\s*#\s+:(stop|start)doc:\s*$/
+              current_line = []
+              while scanner.scan(/^(\s*)#[ \t]?(([ \t]*).*)$/)
+                leading_whitespace = scanner[1]
+                comment = scanner[2]
+                comment_whitespace = scanner[3]
+                
+                # collect continuous description line
+                # fragments and join into a single line
+                case
+                when comment =~ /[ \t]*:(stop|start)doc:/ || leading_whitespace =~ /([ \t]*\r?\n){2}/
                   # break if the description end is reached
                   break
-                when /^\s*#\s?((\s*).*)$/
-
-                  # collect continuous description line
-                  # fragments and join into a single line
-                  case
-                  when $1 == $2 
-                    # empty comment line
-                    unless line_fragments.empty?
-                      tdoc.desc << line_fragments.join(' ') 
-                      line_fragments = []
-                    end
-
-                    tdoc.desc << ""
-                  when $2.empty? 
-                    # continuation line
-                    line_fragments << $1.rstrip
-                  else 
-                    # indented line
-                    unless line_fragments.empty?
-                      tdoc.desc << line_fragments.join(' ') 
-                      line_fragments = []
-                    end
-
-                    tdoc.desc << $1.rstrip
+                when comment == comment_whitespace
+                  # empty comment line
+                  unless current_line.empty?
+                    tdoc.desc << current_line.join(' ') 
+                    current_line = []
                   end
+
+                  tdoc.desc << ""
+                when comment_whitespace.empty?
+                  # continuation line
+                  current_line << comment.rstrip
+                else 
+                  # indented line
+                  unless current_line.empty?
+                    tdoc.desc << current_line.join(' ') 
+                    current_line = []
+                  end
+
+                  tdoc.desc << comment.rstrip
                 end
               end
 
-              unless line_fragments.empty?
-                tdoc.desc << line_fragments.join(' ') 
+              unless current_line.empty?
+                tdoc.desc << current_line.join(' ') 
               end
-              
+
               # trim away leading and trailing empty lines
               tdoc.desc.shift while tdoc.desc.length > 0 && tdoc.desc[0] =~ /^\s*$/
               tdoc.desc.pop while tdoc.desc.length > 0 && tdoc.desc[-1] =~ /^\s*$/
-        
-            when USAGE_REGEXP # Parse Usage
+    
+            when 'usage'
+              next unless scanner.matched =~ USAGE_REGEXP
               tdoc.usage = scanner.scan_until(/$/).strip
             end
           end
-
+        
           # Yield for additional parsing
           yield(scanner, tdoc) if block_given?
-                 
+        
           tdoc
         end
         
@@ -200,7 +224,7 @@ module Tap
                     when /^\*/ then arg[1..-1] + "..."
                     else arg
                     end
-
+        
                   end.compact
                 else
                   ["ARGS..."]
@@ -241,22 +265,35 @@ module Tap
           comment.join('').rstrip
         end
         
-        protected
-        
-        def mregexp(modifier)
-          Regexp.new("#\s*:#{modifier}:")
-        end
       end
       
       clear
       
-      DESC_BEGIN_REGEXP = mregexp('manifest')
-      DESC_END_REGEXP = mregexp('')
-      USAGE_REGEXP = mregexp('usage')
-  
+      ATTRIBUTE_LINE_REGEXP = /^.*::([a-z]+)/
+      MANIFEST_LINE_REGEXP = /^.*::manifest/
+      
+      MANIFEST_REGEXP = attribute_regexp('manifest')
+      USAGE_REGEXP = attribute_regexp('usage')
+
       # Summary line used in manifest
       attr_accessor :summary
     
+      # Program usage printed in program help
+      attr_accessor :usage
+    
+      # Hash of config descriptions printed in program help
+      attr_reader :config
+      
+      attr_accessor :class_name
+      
+      def initialize(summary=nil, desc=[], usage=nil, config={})
+        @class_name = nil
+        @summary = summary
+        @desc = desc
+        @usage = usage
+        @config = config
+      end
+      
       # Returns the full description, in lines wrapped to the number of specified cols
       # and with tabs expanded with tabsize spaces.  
       #
@@ -276,19 +313,6 @@ module Tap
           end.flatten
         end
       end
-    
-      # Program usage printed in program help
-      attr_accessor :usage
-    
-      # Hash of config descriptions printed in program help
-      attr_reader :config
-      
-      def initialize(summary=nil, desc=[], usage=nil, config={})
-        @summary = summary
-        @desc = desc
-        @usage = usage
-        @config = config
-      end
       
       def empty?
         @summary == nil &&
@@ -296,92 +320,7 @@ module Tap
         @desc.empty? &&
         @config.empty? 
       end
-      
 
-      
-      # when scanner.skip_until(/^\s*def\s+process\(/) != nil
-      #   scanner.scan_until(/\)/).to_s.split(',').collect do |arg|
-      #     arg = arg.strip.upcase
-      #     case arg
-      #     when /^&/ then nil
-      #     when /^\*/ then arg[1..-1] + "..."
-      #     else arg
-      #     end
-      #   end.compact.join(' ')
-      # else nil
-      # end
-      
-      
-      # class << self
-      #   def search_for_files(base_paths, path_suffix)
-      #     # modified from 'activesupport/dependencies'
-      #     path_suffix = path_suffix + '.rb' unless path_suffix =~ /\.rb$/
-      #     Root.sglob(path_suffix, *base_paths)
-      #   end
-      # end
-      #attr_accessor :stats, :options, :documented_files, :load_paths
-      
-      # def reinitialize(argv=['--fmt', 'tdoc', '--quiet'])
-      #   @documented_files = []
-      #   @tl = RDoc::TopLevel::reset
-      #   @stats = RDoc::Stats.new
-      #   @options = Options.instance
-      #   @options.parse(argv, RDoc::RDoc::GENERATORS)
-      #   @load_paths = Tap::Env.instance.nil? ? $: : Tap::Env.instance.load_path_targets.flatten
-      # end
-      
-      # def search_for_source_files(klass)
-      #   source_files = []
-      #   # searches back for all configurable source files, so that
-      #   # inherited configs can be documented.
-      #   while klass.kind_of?(Tap::Support::ConfigurableMethods)
-      #     source_files.concat(search_for_files(klass.to_s.underscore))
-      #     klass = klass.superclass
-      #   end
-      #   
-      #   source_files.uniq
-      # end
-      
-      # def document(*filepaths)
-      #   filepaths.each do |filepath|
-      #     next if filepath == nil || instance.documented_files.include?(filepath) || !File.exists?(filepath)
-      # 
-      #     tl = RDoc::TopLevel.new(filepath)
-      #     parser = RDoc::RubyParser.new(tl, filepath, File.read(filepath), instance.options, instance.stats)
-      #     parser.scan
-      #     instance.documented_files << filepath
-      #   end
-      # end
-      # 
-      # def find_class_or_module_named(name)
-      #   RDoc::TopLevel.all_classes_and_modules.each do |c|
-      #     res = c.find_class_or_module_named(name) 
-      #     return res if res
-      #   end
-      #   nil
-      # end
-    
-      # def [](klass)      
-      #   name = klass.to_s
-      #   res = find_class_or_module_named(name)
-      # 
-      #   # If no result was found, try to document a sourcefile
-      #   # from the standard filepath and search again 
-      #   if res == nil 
-      #     source_files = klass.respond_to?(:source_files) ? klass.source_files : []
-      #     source_files = search_for_source_files(klass) if source_files.empty?
-      #   
-      #     unless source_files.empty?
-      #       document(*source_files) 
-      #       res = find_class_or_module_named(name)
-      #     end
-      #   end
-      #   
-      #   res
-      # end
-
-
-      
     end
   end
 end

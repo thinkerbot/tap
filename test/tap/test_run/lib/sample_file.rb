@@ -1,10 +1,3 @@
-# == Description
-# Replace with a description.  The default task reads
-# in the lines of a text file and dumps them as YAML
-# into a yaml file.
-# === Usage
-# Replace with usage instructions
-#
 class SampleFile < Tap::FileTask
   # use config to set task configurations
   # configs have accessors by default

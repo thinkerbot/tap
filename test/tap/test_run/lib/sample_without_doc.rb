@@ -1,4 +1,4 @@
-# :manifest:
+# ::manifest
 
 # SampleWithoutDoc documentation
 class SampleWithoutDoc < Tap::Task
