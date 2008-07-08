@@ -90,7 +90,7 @@ class ConfigurationTest < Test::Unit::TestCase
     assert_equal nil, c.default
     assert_equal :name, c.reader
     assert_equal :name=, c.writer
-    assert_equal nil, c.arg_type
+    assert_equal :mandatory, c.arg_type
     
     c = Configuration.new('name', 'default', {:arg_type => :optional, :reader => :alt, :writer => :alt=})
     assert_equal 'name', c.name

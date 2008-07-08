@@ -89,163 +89,155 @@ module Tap
           @docs = {}
         end
         
-        # $5:: class_name
-        # $7:: attribute_name
-        def attribute_regexp(attribute_name)
-          /^[ \t]*#([ \t]+|(--|\+\+)[ \t]+)(:(stop|start)doc:[ \t]+)?(([A-Z][A-z]*::)*[A-Z][A-z]*)?::(#{attribute_name.downcase})/
-        end
-        
-        def parse_manifests(str)
-          scanner = StringScanner.new(str)
-          manifests = []
-          
-          while !scanner.eos?
-            break if scanner.skip_until(MANIFEST_LINE_REGEXP) == nil
-            next unless scanner.matched =~ MANIFEST_REGEXP
-            manifests << [$5, scanner.scan_until(/$/).strip]
+        def parse(str, klass)
+          tdocs = {}
+          scanner = case str
+          when StringScanner then str
+          when String then StringScanner.new(str)
+          else raise ArgumentError, "expected StringScanner or String"
           end
           
-          manifests
-        end
-        
-        #  
-        def parse(str)
-          tdoc = TDoc.new
-          scanner = StringScanner.new(str)
-        
-          while !scanner.eos?
-            break if scanner.skip_until(ATTRIBUTE_LINE_REGEXP) == nil
-
-            case scanner[1]
+          CDoc.parse(scanner) do |namespace, key, value, comment|
+            class_name = namespace.empty? ? klass.to_s : namespace
+            tdoc = (docs[class_name] ||= TDoc.new(class_name))
+            
+            case key
             when 'manifest'
-              next unless scanner.matched =~ MANIFEST_REGEXP
-              
-              tdoc.class_name = $5
-              tdoc.summary = scanner.scan_until(/$/).strip
-
-              current_line = []
-              while scanner.scan(/^(\s*)#[ \t]?(([ \t]*).*)$/)
-                leading_whitespace = scanner[1]
-                comment = scanner[2]
-                comment_whitespace = scanner[3]
-                
-                # collect continuous description line
-                # fragments and join into a single line
-                case
-                when comment =~ /[ \t]*:(stop|start)doc:/ || leading_whitespace =~ /([ \t]*\r?\n){2}/
-                  # break if the description end is reached
-                  break
-                when comment == comment_whitespace
-                  # empty comment line
-                  unless current_line.empty?
-                    tdoc.desc << current_line.join(' ') 
-                    current_line = []
-                  end
-
-                  tdoc.desc << ""
-                when comment_whitespace.empty?
-                  # continuation line
-                  current_line << comment.rstrip
-                else 
-                  # indented line
-                  unless current_line.empty?
-                    tdoc.desc << current_line.join(' ') 
-                    current_line = []
-                  end
-
-                  tdoc.desc << comment.rstrip
-                end
-              end
-
-              unless current_line.empty?
-                tdoc.desc << current_line.join(' ') 
-              end
-
-              # trim away leading and trailing empty lines
-              tdoc.desc.shift while tdoc.desc.length > 0 && tdoc.desc[0] =~ /^\s*$/
-              tdoc.desc.pop while tdoc.desc.length > 0 && tdoc.desc[-1] =~ /^\s*$/
-    
-            when 'usage'
-              next unless scanner.matched =~ USAGE_REGEXP
-              tdoc.usage = scanner.scan_until(/$/).strip
+              tdoc.summary = value
+              tdoc.desc = comment
+            when 'args'
+              tdoc.args = value
+              # any use for comment?
+            when 'source_file'
+              tdoc.source_file = value
+            else
+              raise "unknown config key: #{namespace}::#{key}" # TODO -- new type of error
+            end
+            
+            tdocs[tdoc] ||= scanner.pos
+          end
+          
+          if tdocs.find {|tdoc, first_pos| tdoc.args == nil }
+            # sort out the ranges between first-declarations for the tdocs
+            sorted_tdocs = tdocs.to_a.sort_by {|tdoc, first_pos| first_pos }
+            sorted_tdocs.each_with_index do |(tdoc, first_pos), i|
+              tdocs[tdoc] = [first_pos, sorted_tdocs[i+1] || scanner.string.length]
+            end
+            
+            tdocs.each_pair do |tdoc, (range_begin, range_end)|
+              next if tdoc.args
+              tdoc.args = parse_process_args(scanner, range_begin, range_end)
             end
           end
-        
-          # Yield for additional parsing
-          yield(scanner, tdoc) if block_given?
-        
-          tdoc
+
+          tdocs.keys
         end
         
+        # try to parse arguments from the process method
+        # if no args have been explicitly stated for a 
+        # particular tdoc.  this is a tricky thing to do
+        # without having knowledge of the ruby code (as
+        # TDoc attempts to do, to speed parsing), and
+        # requires an assumption for the case where multiple
+        # tdocs are present in a single string. Assumption:
+        # - if the args are not explicitly stated, then
+        #   the process method will occur BETWEEN the
+        #   first declarations for a given tdoc.
+        #
+        # ex:
+        #
+        #   # First::Class::manifest
+        #   class First::Class
+        #     def process() end
+        #   end
+        #   # Second::Class::manifest
+        #   class Second::Class
+        #     def process() end
+        #   end
+        #
+        # rather than:
+        #
+        #   # First::Class::manifest
+        #   class First::Class
+        #     def process() end
+        #   end
+        #   class Second::Class
+        #     def process() end
+        #   end
+        #   # Second::Class::manifest
+        #
+        def parse_process_args(scanner, range_begin, range_end)
+
+          # parse for the process args, checking that the
+          # args are where they are expected to be
+          scanner.pos = range_begin
+          return nil unless scanner.skip_until(/^\s*def\s+process\(/) != nil
+            
+          args = scanner.scan_until(/\)/).to_s.chomp(')').split(',').collect do |arg|
+            arg = arg.strip.upcase
+            case arg
+            when /^&/ then nil
+            when /^\*/ then arg[1..-1] + "..."
+            else arg
+            end
+
+          end.compact
+
+          if args && scanner.pos >= range_end
+            raise "ranges for scanning process arguments are mixed"
+          end
+          
+          args
+        end
+
         # Returns the TDoc for the specified class or path.
         #--
         # Generates if necessary
         def [](klass, search_paths=$:)
-          case 
-          when docs.has_key?(klass)
-            docs[klass] 
-            
-          when klass.include?(Tap::Support::Framework) 
-            source_file = klass.source_file
-            if source_file == nil
-              source_files = Root.sglob(klass.default_name + '.rb', *search_paths)
-              source_file = case source_files.length
-              when 1 then source_files.first
-              when 0
-                raise ArgumentError.new("no source file found for: #{klass}")
-              else
-                raise ArgumentError.new("multiple source files found for: #{klass}")
-              end
-            end
-            
-            # clean this crap up, should all be one method.  Tdoc should track
-            # the klass as well?  Big trick will be to tokenize config lines
-            # to eol, pull out key and default.  The klass actually should NOT
-            # be necessary except for figuring some default names.
-            #
-            # Expand tdoc syntax to allow multiple tdocs per file:
-            # :Description (class): 
-            # :Usage (class):
-            #
-            # Then consider the expected class by source file as the default.
-            # Maybe eliminate usage and simply pull the process args?  Drill
-            # back for process args if no process is specified, using 
-            # klass.superclass?  Should not try to be too clever on this
-            # point.   
-            docs[klass] = parse(File.read(source_file)) do |scanner, tdoc|
-              if tdoc.usage == nil
-                scanner.reset
-                args = if scanner.skip_until(/^\s*def\s+process\(/) != nil
-                  args = scanner.scan_until(/\)/).to_s.chomp(')')
-                  args = args.split(',').collect do |arg|
-                    arg = arg.strip.upcase
-                    case arg
-                    when /^&/ then nil
-                    when /^\*/ then arg[1..-1] + "..."
-                    else arg
-                    end
-        
-                  end.compact
-                else
-                  ["ARGS..."]
-                end
-                
-                tdoc.usage = "#{klass.default_name} #{args.join(' ')}"
-              end
-              
-              unless klass.configurations.empty?
-                lines = scanner.string.split(/\r?\n/)
-                klass.configurations.each do |receiver, key, config|
-                  next unless receiver == klass
-                  # -1 .. starts counting at one
-                  tdoc.config[key] = (lines[config.line-1] =~ /^[^#]+#(.*)$/) ? $1.strip : ""
-                end
-              end
-            end
-            
-          else
-            raise ArgumentError.new("not a Framework class: #{klass}")
-          end
+          # case 
+          #  when docs.has_key?(klass)
+          #    docs[klass] 
+          #    
+          #  when klass.include?(Tap::Support::Framework) 
+          #    source_files = Root.sglob(klass.default_name + '.rb', *search_paths)
+          #    source_file = case source_files.length
+          #    when 1 then source_files.first
+          #    when 0
+          #      raise ArgumentError.new("no source file found for: #{klass}")
+          #    else
+          #      raise ArgumentError.new("multiple source files found for: #{klass}")
+          #    end
+          #    
+          #    # clean this crap up, should all be one method.  Tdoc should track
+          #    # the klass as well?  Big trick will be to tokenize config lines
+          #    # to eol, pull out key and default.  The klass actually should NOT
+          #    # be necessary except for figuring some default names.
+          #    #
+          #    # Expand tdoc syntax to allow multiple tdocs per file:
+          #    # :Description (class): 
+          #    # :Usage (class):
+          #    #
+          #    # Then consider the expected class by source file as the default.
+          #    # Maybe eliminate usage and simply pull the process args?  Drill
+          #    # back for process args if no process is specified, using 
+          #    # klass.superclass?  Should not try to be too clever on this
+          #    # point.   
+          #    source = File.read(source_file)
+
+          #      
+          #      unless klass.configurations.empty?
+          #        lines = scanner.string.split(/\r?\n/)
+          #        klass.configurations.each do |receiver, key, config|
+          #          next unless receiver == klass
+          #          # -1 .. starts counting at one
+          #          tdoc.config[key] = (lines[config.line-1] =~ /^[^#]+#(.*)$/) ? $1.strip : ""
+          #        end
+          #      end
+          #    end
+          #    
+          #  else
+          #    raise ArgumentError.new("not a Framework class: #{klass}")
+          #  end
         end
         
         def usage(program_file)
@@ -265,16 +257,11 @@ module Tap
           comment.join('').rstrip
         end
         
+
       end
       
       clear
       
-      ATTRIBUTE_LINE_REGEXP = /^.*::([a-z]+)/
-      MANIFEST_LINE_REGEXP = /^.*::manifest/
-      
-      MANIFEST_REGEXP = attribute_regexp('manifest')
-      USAGE_REGEXP = attribute_regexp('usage')
-
       # Summary line used in manifest
       attr_accessor :summary
     
@@ -286,12 +273,12 @@ module Tap
       
       attr_accessor :class_name
       
-      def initialize(summary=nil, desc=[], usage=nil, config={})
-        @class_name = nil
-        @summary = summary
-        @desc = desc
-        @usage = usage
-        @config = config
+      def initialize(class_name)#summary=nil, desc=[], usage=nil, config={})
+        @class_name = class_name
+        # @summary = summary
+        # @desc = desc
+       # @usage = usage
+       # @config = config
       end
       
       # Returns the full description, in lines wrapped to the number of specified cols

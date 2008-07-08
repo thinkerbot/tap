@@ -47,11 +47,11 @@ class CommentTest < Test::Unit::TestCase
   end
 
   def test_parse_accepts_string_scanner
-    c = Comment.parse(StringScanner.new %Q{
+    c = Comment.parse(StringScanner.new(%Q{
 # comment
 # spanning lines
  \t  # with whitespace   \t
-})
+}))
     assert_equal [['comment', 'spanning lines', 'with whitespace']], c.lines
   end
   

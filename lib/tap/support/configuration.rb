@@ -2,6 +2,8 @@ module Tap
   module Support
     class Configuration
       
+      @@registry = {}
+
       class << self
         SHORT_REGEXP = /^-[A-z]$/
         
@@ -42,56 +44,92 @@ module Tap
 
           str
         end
+
+        def registry
+          @@registry
+        end
+        
+        def resolve(key, registration)
+          return nil unless registration
+          
+          register_key, index = registration
+          register = registry[register_key]
+          
+          case register
+          when Hash then register[index][key]
+          when Array && File.exists?(register_key)
+            registry[register_key] = parse_register(File.read(register_key), register)
+            register[index][key]
+          else nil
+          end
+        end
+        
+        def parse_register(str, line_numbers)
+          lines = str.split(/\r?\n/)
+          
+          register = {}
+          line_numbers.each do |line|
+            hash = {}
+            hash[:summary] = (lines[line] =~ /^[^#]+#(.*)$/) ? $1.strip : ""
+            hash[:desc] = ""  # drill backwards for comment lines
+            
+            register[index] = hash
+          end
+          register
+        end
+        
       end
       
       attr_reader :name
-      attr_reader :duplicable
       attr_reader :reader
       attr_reader :writer
+      attr_reader :duplicable
       
-      attr_accessor :line
-      attr_accessor :desc
-      
-      attr_accessor :arg_name
-      attr_accessor :arg_type
-      attr_accessor :long
-      attr_accessor :short
-      
-      ATTRIBUTES = [:reader, :writer, :line, :desc, :arg_name, :arg_type, :long, :short]
-
       def initialize(name, default=nil, attributes={})
         @name = name
+        @registration = nil
         self.default = default
         
         self.reader = name
         self.writer = "#{name}="
-        self.line = nil
-        self.desc = nil
-        self.arg_name = nil
-        self.arg_type = nil
-        self.long = nil
-        self.short = nil
         self.attributes = attributes
       end
       
       def attributes=(attributes)
-        attributes.each_pair do |key, value|
-          case key
-          when *ATTRIBUTES
-            self.send("#{key}=", value)
-          else
-            raise ArgumentError.new("unknown or unsettable attribute: #{key}")
-          end
-        end
+        @attributes = attributes.delete_if {|key, value| value == nil}
+        self.reader = attributes.delete(:reader) if attributes[:reader]
+        self.writer = attributes.delete(:writer) if attributes[:writer]
+        
+        @attributes = EMPTY_ATTRS if @attributes.empty?
       end
       
-      def attributes(*exclusions)
+      def attributes
         attributes = {}
-        ATTRIBUTES.each do |key|
-          next if exclusions.include?(key)
-          attributes[key] = self.send(key)
+        [:reader, :writer, :arg_name, :arg_type, :long, :short, :desc, :summary].each do |key|
+          attributes[key] = send(key)
         end
         attributes
+      end
+      
+      def register(source_file, line)
+        key = File.expand_path(source_file)
+        array = Configuration.registry[key] ||= []
+        
+        index = array.index(line)
+        if index == nil
+          index = array.length
+          array << line
+        end
+        
+        @registration = [key, index]
+      end
+      
+      def line
+        @registration ? self.class.registry[@registration[0]][@registration[1]] : nil
+      end
+      
+      def source_file
+        @registration ? @registration[0] : nil
       end
       
       # Sets the default value for self and determines if the
@@ -122,6 +160,30 @@ module Tap
         @writer = value.to_sym
       end
       
+      def arg_name
+        @attributes[:arg_name] || name.to_s.upcase
+      end
+      
+      def arg_type
+        @attributes[:arg_type] || :mandatory
+      end
+      
+      def long
+        @attributes[:long] || name
+      end
+      
+      def short
+        @attributes[:short]
+      end
+      
+      def summary
+        @attributes[:summary] || self.class.resolve(:summary, @registration)
+      end
+      
+      def desc
+        @attributes[:desc] || self.class.resolve(:desc, @registration)
+      end
+      
       def empty?
         # Hack to allow Configuration to act as it's own description
         # in OptionParser
@@ -135,11 +197,11 @@ module Tap
       def to_option_parser_argv
         argv = []
         argv << Configuration.shortify(short) if short
-        long = Configuration.longify(long || name)
+        long = Configuration.longify(long)
 
         argv << case arg_type
         when :optional 
-          "#{long} [#{arg_name || name.to_s.upcase}]"
+          "#{long} [#{arg_name}]"
         when :switch 
           Configuration.longify(long, true)
         when :flag
@@ -147,12 +209,12 @@ module Tap
         when :list
           "#{long} a,b,c"
         when :mandatory, nil
-          "#{long} #{arg_name || name.to_s.upcase}"
+          "#{long} #{arg_name}"
         else
           raise "unknown arg_type: #{arg_type}"
         end
         
-        argv << self
+        argv << self # such that self acts as desc
         argv  
       end
       
@@ -160,10 +222,13 @@ module Tap
       def ==(another)
         another.kind_of?(Configuration) && 
         self.name == another.name &&
-        self.attributes(:line, :desc) == another.attributes(:line, :desc) &&
+        self.attributes == another.attributes &&
         self.default(false) == another.default(false)
       end
       
+      private
+      
+      EMPTY_ATTRS = {}.freeze
     end
   end
 end

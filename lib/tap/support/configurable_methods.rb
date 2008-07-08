@@ -192,23 +192,7 @@ module Tap
         # add arg_type implied by block, if necessary
         options[:arg_type] = arg_type(block) if block_given? && options[:arg_type] == nil
         options[:arg_name] = arg_name(block) if block_given? && options[:arg_name] == nil
-        
-        # register with TDoc, not config, so that all bits can be
-        # extracted at once
-        caller.each_with_index do |line, index|
-          case line
-          when /in .config.$/ then next
-          when /^([A-z]:)?[^:]+:(\d+)/
-            options[:line] = $2.to_i
-            break
-          end
-        end
-        
-        if options[:line] == nil
-          # TODO -- make this a different type of error...
-          raise %Q{could not determine configuration line: #{self}##{key}\n#{caller.join("\n")}} 
-        end
-        
+
         # define the default public reader method
         if !options.has_key?(:reader) || options[:reader] == true
           attr_reader(key) 
@@ -226,7 +210,7 @@ module Tap
           attr_writer(key)
           public "#{key}="
         end
-        
+
         # remove any true, false, nil reader/writer declarations...
         # implicitly reverting the option to the default reader
         # and writer methods
@@ -235,8 +219,20 @@ module Tap
           when true, false, nil then options.delete(option)
           end
         end
+
+        config = configurations.add(key, value, options)
         
-        configurations.add(key, value, options)
+        # register with so that all extra documentation can be extracted at once
+        caller.each_with_index do |line, index|
+          case line
+          when /in .config.$/ then next
+          when /^(([A-z]:)?[^:]+):(\d+)/
+            config.register($1, $3.to_i)
+            break
+          end
+        end
+        
+        config
       end
 
       # Alias for Tap::Support::Validation

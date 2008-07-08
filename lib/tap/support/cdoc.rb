@@ -8,20 +8,32 @@ module Tap
       
       # $1:: namespace
       # $3:: key
-      CDOC_REGEXP = /(::|([A-Z][A-z]*::)+)([a-z]+)/
+      CDOC_REGEXP = /(::|([A-Z][A-z]*::)+)([a-z_]+)/
       
       def scan(str, key)
-        scanner = StringScanner.new(str)
+        scanner = case str
+        when StringScanner then str
+        when String then StringScanner.new(str)
+        else raise ArgumentError, "expected StringScanner or String"
+        end
+        
         regexp = /(::|([A-Z][A-z]*::)+)(#{key})([ \t].*)?$/
         
         while !scanner.eos?
           break if scanner.skip_until(regexp) == nil
           yield(scanner[1].chomp('::'), scanner[3], scanner[4].to_s.strip)
         end
+        
+        scanner
       end
       
       def parse(str) # :yields: namespace, key, value, comment
-        scanner = StringScanner.new(str)
+        scanner = case str
+        when StringScanner then str
+        when String then StringScanner.new(str)
+        else raise ArgumentError, "expected StringScanner or String"
+        end
+        
         while !scanner.eos?
           break unless scanner.skip_until(CDOC_REGEXP)
           
@@ -42,6 +54,8 @@ module Tap
 
           yield(namespace, key, value, comment)
         end
+        
+        scanner
       end  
       
     end
