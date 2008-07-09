@@ -81,6 +81,37 @@ class ConfigurationTest < Test::Unit::TestCase
   end
   
   #
+  # parse_register test
+  #
+  
+  def test_parse_register_returns_array_of_summary_and_descs_at_specified_lines
+    str = %Q{
+# some multiline
+# description
+config :key, 'value' # summary one
+
+# another multiline
+# description
+config :key, 'value' # summary two
+}
+    assert_equal [
+      {:summary => 'summary one', :desc => ''}, # [['some multiline', 'description']]
+      {:summary => 'summary two', :desc => ''} # [['another multiline', 'description']]
+    ], Configuration.parse_register(str, [4, 8])
+  end
+  
+  def test_parse_register_skips_malformatted_config_lines
+    str = %Q{
+broken_config :key, 'value' # summary one
+config :key, 'value' # summary two
+}
+    assert_equal [
+      {:summary => nil, :desc => ''}, # [['some multiline', 'description']]
+      {:summary => 'summary two', :desc => ''} # [['another multiline', 'description']]
+    ], Configuration.parse_register(str, [2, 3])
+  end
+  
+  #
   # initialize test
   #
   

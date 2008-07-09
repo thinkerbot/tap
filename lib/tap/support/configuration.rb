@@ -67,11 +67,30 @@ module Tap
         end
         
         def parse_register(str, line_numbers)
+          # scanner = StringScanner.new(str)
+          # current = 1
+          # line_numbers.collect do |line_number|
+          #   hash = {}
+          #   
+          #   scanner.skip_until(/(.*?\n){#{line_number-current}}/)
+          #   hash[:desc] = ""
+          #   
+          #   hash[:summary] = if scanner.skip(/^[ \t]*config(.*)#(.*)$/)
+          #     # params = scanner[2]
+          #     scanner[2].strip
+          #   else
+          #     nil
+          #   end
+          #   
+          #   current = line_number
+          #   hash
+          # end
+          
           lines = str.split(/\r?\n/)
           line_numbers.collect do |line_number|
             hash = {}
- 
-            hash[:summary] = (lines[line_number-1] =~ /^[^#]+#(.*)$/) ? $1.strip : ""
+           
+            hash[:summary] = (lines[line_number-1] =~ /^[ \t]*config(.*)#(.*)$/) ? $2.strip : nil
             hash[:desc] = ""  # drill backwards for comment lines
             hash
           end
@@ -110,21 +129,22 @@ module Tap
         attributes
       end
       
-      def register(source_file, line)
+      def register(source_file, line_number)
         key = File.expand_path(source_file)
         array = Configuration.registry[key] ||= []
         
-        index = array.index(line)
+        index = array.index(line_number)
         if index == nil
           index = array.length
-          array << line
+          array << (line_number)
         end
         
         @registration = [key, index]
       end
       
-      def line
-        @registration ? self.class.registry[@registration[0]][@registration[1]] : nil
+      def line_number
+        # won't work after resolution!
+        @registration ? (self.class.registry[@registration[0]][@registration[1]]) : nil
       end
       
       def source_file
