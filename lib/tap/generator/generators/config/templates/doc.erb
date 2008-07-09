@@ -1,15 +1,14 @@
 ###############################################################################
 # <%= receiver %> configuration<%= configurations.length > 1 ? 's' : '' %>
 ###############################################################################
-<% configurations.each do |key, config, comment| 
-		 comment_lines = comment.split(/\n/).collect do |comment_line|
-			 comment_line = comment_line.strip.gsub(/^#\s*/, '')
-			 comment_line.empty? ? nil : comment_line
+<% configurations.each do |key, config| 
+		 lines = config.desc.split(/\n/).collect do |line|
+			 line = line.strip.gsub(/^#\s*/, '')
+			 line.empty? ? nil : line
 		 end.compact
 	
-		 comment_lines.each do |comment_line| %>
-# <%= comment_line %><% end %>
+		 lines.each do |line| %>
+# <%= line %><% end %>
 <%= config.default == nil ? '#' : ''%><%= yamlize({key.to_s => config.default}) %>
 
 <% end %>
-

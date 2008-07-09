@@ -275,7 +275,7 @@ sample_without_doc  #
       
       # run variations
       
-      cmd.check " run sample one", "Runs the sample task successfully", 
+      cmd.check " run sample one -d-", "Runs the sample task successfully", 
       /I\[\d\d:\d\d:\d\d\]             sample one was processed with value/
       
       cmd.check " run -- sample one --key alt", "Runs the sample task with config", 
@@ -352,7 +352,7 @@ options:
       cmd.check " run -- with_switch_config --no-switch", "Run with switch syntax", 
       /with_switch_config false/
       
-      cmd.check " run -- with_switch_config --help", "Prints the array config help",
+      cmd.check " run -- with_switch_config --help -d-", "Prints the array config help",
       /--\[no-\]switch                a switch config/
       
       # list

@@ -10,7 +10,7 @@ module Tap
       # $3:: key
       CDOC_REGEXP = /(::|([A-Z][A-z]*::)+)([a-z_]+)/
       
-      def scan(str, key)
+      def scan(str, key) # :yields: namespace, key, value
         scanner = case str
         when StringScanner then str
         when String then StringScanner.new(str)

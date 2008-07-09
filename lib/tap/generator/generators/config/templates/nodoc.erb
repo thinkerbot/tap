@@ -1,7 +1,7 @@
 ###############################################################################
 # <%= receiver %> configuration<%= configurations.length > 1 ? 's' : '' %>
 ###############################################################################
-<% configurations.each do |key, config, comment| %>
+<% configurations.each do |key, config| %>
 <%= config.default == nil ? '#' : ''%><%= yamlize({key.to_s => config.default}) %>
 
 <% end %>

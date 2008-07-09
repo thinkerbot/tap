@@ -18,7 +18,7 @@ class Sample < Tap::Task
 
   config :key, 'value'     # a sample config
   
-  # :startdoc: :usage: sample one
+  # :startdoc::args one
   def process(input) 
     # use log to record information
     result = "#{input} was processed with #{key}"

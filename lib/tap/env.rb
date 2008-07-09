@@ -1,10 +1,10 @@
 require 'tap/root'
 require 'tap/support/configurable'
 
-autoload(:StringScanner, 'strscan')
 # causes an error with generators... something in the way Dependencies is set...
 # autoload(:Dependencies, 'tap/support/dependencies')
 Tap::Support.autoload(:Rake, 'tap/support/rake')
+Tap::Support.autoload(:TDoc, 'tap/support/tdoc')
 
 module Tap
 
@@ -247,16 +247,12 @@ module Tap
     manifest(:tasks, :load_paths) do |tasks, load_path|
       root.glob(load_path, "**/*.rb").each do |fullpath|
         
-        scanner = StringScanner.new(File.read(fullpath))
-        next unless scanner.skip_until(TASK_MANIFEST_REGEXP)
+        Support::TDoc.parse_manifests(File.read(fullpath)) do |class_name, summary|
+          path = root.relative_filepath(load_path, fullpath)
+          class_name = path.chomp('.rb').camelize if class_name.to_s.empty?
           
-        path = root.relative_filepath(load_path, fullpath)
-        name = path.chomp('.rb')    
- 
-        class_name = scanner.scan(/\s+\(/) ? scanner.scan_until(/\)/).chomp(')') : name.camelize
-        summary = scanner.scan_until(/$/).strip
-        
-        tasks[name] = {:class_name => class_name, :path => path, :load_path => load_path, :env => self, :summary => summary}
+          tasks[class_name] = {:class_name => class_name, :path => path, :load_path => load_path, :summary => summary}
+        end
       end
     end
     

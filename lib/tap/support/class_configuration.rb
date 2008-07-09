@@ -162,18 +162,8 @@ module Tap
           
           # set the template attributes
           templater.receiver = receiver
-          templater.class_doc = Tap::Support::TDoc[receiver]
-          
-          configuration_doc = templater.class_doc ? templater.class_doc.configurations : nil
           templater.configurations = keys.collect do |key|
-            name = key.to_s
-            config_attr = if configuration_doc
-              configuration_doc.find {|config| config.name == name }   
-            else
-              Tap::Support::TDoc::ConfigAttr.new("", name, nil, "")
-            end
-            
-            [key, map[key], config_attr.comment(false)]
+            [key, map[key]]
           end
           
           target << templater.build

@@ -110,13 +110,17 @@ module Tap
           self
         end
         
+        def empty?
+          !lines.find {|array| !array.empty?}
+        end
+        
         # Returns lines as a string where line fragments are joined by
         # fragment_sep and lines are joined by line_sep.  If cols is
         # specified, each line will be wrapped with the specified
         # number of columns.  If tabsize is specified, tabs will be
         # resolved to tabsize spaces.
         def to_s(fragment_sep=" ", line_sep="\n", cols=nil, tabsize=nil)
-          lines.collect do |line|
+          resolved_lines = lines.collect do |line|
             line_str = line.join(fragment_sep)
             line_str = line_str.gsub(/\t/, " " * tabsize) unless tabsize == nil
             
@@ -127,7 +131,9 @@ module Tap
               # http://blog.macromates.com/2006/wrapping-text-with-regular-expressions/
               line_str.gsub(/(.{1,#{cols}})( +|$\r?\n?)|(.{1,#{cols}})/, "\\1\\3\n").split(/\s*\n/)
             end
-          end.flatten.join(line_sep)
+          end.flatten
+          
+          line_sep ? resolved_lines.join(line_sep) : resolved_lines
         end
       end
     end

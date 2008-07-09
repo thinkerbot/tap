@@ -55,7 +55,8 @@ end.parse!(ARGV)
 if print_manifest
   widths = []
   manifest_by_load_path = {}
-  env.tasks.each_pair do |name, spec| 
+  env.tasks.each_pair do |class_name, spec|
+    name = class_name.underscore
     (manifest_by_load_path[spec[:load_path]] ||= {})[name] = spec
     widths << name.length
   end
@@ -122,8 +123,8 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
       name, config, argv = task_class.parse_argv(ARGV, true)
       name = td if name == nil
       
-      task = task_class.new(name, config, app)
-      task.enq *argv.collect {|str| Tap::Support::CommandLine.parse_yaml(str) }
+      argv.collect! {|str| Tap::Support::CommandLine.parse_yaml(str) }
+      task_class.enq(name, config, app, argv)
     end
   end
 

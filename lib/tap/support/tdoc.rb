@@ -1,7 +1,4 @@
-#require 'tap/env'
-#require 'tap/support/tdoc/config_attr'
-# require 'singleton'
-require 'strscan'
+require 'tap/support/cdoc'
 
 module Tap
   module Support
@@ -89,7 +86,13 @@ module Tap
           @docs = {}
         end
         
-        def parse(str, klass)
+        def parse_manifests(str) # :yields: class_name, summary
+          CDoc.scan(str, 'manifest') do |namespace, key, value|
+            yield(namespace, value)
+          end
+        end
+        
+        def parse(str, default_namespace)
           tdocs = {}
           scanner = case str
           when StringScanner then str
@@ -98,7 +101,7 @@ module Tap
           end
           
           CDoc.parse(scanner) do |namespace, key, value, comment|
-            class_name = namespace.empty? ? klass.to_s : namespace
+            class_name = namespace.empty? ? default_namespace.to_s : namespace
             tdoc = (docs[class_name] ||= TDoc.new(class_name))
             
             case key
@@ -193,51 +196,22 @@ module Tap
         # Returns the TDoc for the specified class or path.
         #--
         # Generates if necessary
-        def [](klass, search_paths=$:)
-          # case 
-          #  when docs.has_key?(klass)
-          #    docs[klass] 
-          #    
-          #  when klass.include?(Tap::Support::Framework) 
-          #    source_files = Root.sglob(klass.default_name + '.rb', *search_paths)
-          #    source_file = case source_files.length
-          #    when 1 then source_files.first
-          #    when 0
-          #      raise ArgumentError.new("no source file found for: #{klass}")
-          #    else
-          #      raise ArgumentError.new("multiple source files found for: #{klass}")
-          #    end
-          #    
-          #    # clean this crap up, should all be one method.  Tdoc should track
-          #    # the klass as well?  Big trick will be to tokenize config lines
-          #    # to eol, pull out key and default.  The klass actually should NOT
-          #    # be necessary except for figuring some default names.
-          #    #
-          #    # Expand tdoc syntax to allow multiple tdocs per file:
-          #    # :Description (class): 
-          #    # :Usage (class):
-          #    #
-          #    # Then consider the expected class by source file as the default.
-          #    # Maybe eliminate usage and simply pull the process args?  Drill
-          #    # back for process args if no process is specified, using 
-          #    # klass.superclass?  Should not try to be too clever on this
-          #    # point.   
-          #    source = File.read(source_file)
+        def [](class_name, search_paths=$:)
+          class_name = class_name.to_s
+          unless docs.has_key?(class_name)
+            source_files = Root.sglob(class_name.underscore + '.rb', *search_paths)
+            source_file = case source_files.length
+            when 1 then source_files.first
+            when 0
+              raise ArgumentError.new("no source file found for: #{class_name}")
+            else
+              raise ArgumentError.new("multiple source files found for: #{class_name}")
+            end
+            
+            parse(File.read(source_file), class_name)
+          end
 
-          #      
-          #      unless klass.configurations.empty?
-          #        lines = scanner.string.split(/\r?\n/)
-          #        klass.configurations.each do |receiver, key, config|
-          #          next unless receiver == klass
-          #          # -1 .. starts counting at one
-          #          tdoc.config[key] = (lines[config.line-1] =~ /^[^#]+#(.*)$/) ? $1.strip : ""
-          #        end
-          #      end
-          #    end
-          #    
-          #  else
-          #    raise ArgumentError.new("not a Framework class: #{klass}")
-          #  end
+          docs[class_name] ||= TDoc.new(class_name)
         end
         
         def usage(program_file)
@@ -256,8 +230,6 @@ module Tap
           
           comment.join('').rstrip
         end
-        
-
       end
       
       clear
@@ -266,44 +238,24 @@ module Tap
       attr_accessor :summary
     
       # Program usage printed in program help
-      attr_accessor :usage
+      attr_accessor :args
+      attr_accessor :desc
     
       # Hash of config descriptions printed in program help
-      attr_reader :config
+      #attr_reader :config
       
       attr_accessor :class_name
       
       def initialize(class_name)#summary=nil, desc=[], usage=nil, config={})
         @class_name = class_name
-        # @summary = summary
-        # @desc = desc
-       # @usage = usage
-       # @config = config
-      end
-      
-      # Returns the full description, in lines wrapped to the number of specified cols
-      # and with tabs expanded with tabsize spaces.  
-      #
-      # If cols==nil, then the lines will be returned at their full length, with no tab
-      # expansion.
-      def desc(cols=nil, tabsize=2)
-        if cols == nil
-          @desc
-        else
-          
-          # wrapping algorithm is slightly modified from 
-          # http://blog.macromates.com/2006/wrapping-text-with-regular-expressions/
-          
-          @desc.collect do |line|
-            next(line) if line =~ /^\s*$/
-            line.gsub(/\t/, " " * tabsize).gsub(/(.{1,#{cols}})( +|$\r?\n?)|(.{1,#{cols}})/, "\\1\\3\n").split(/\s*\n/)
-          end.flatten
-        end
+        @summary = nil
+        @args = nil
+        @desc = CDoc::Comment.new
       end
       
       def empty?
         @summary == nil &&
-        @usage == nil &&
+        @args == nil &&
         @desc.empty? &&
         @config.empty? 
       end

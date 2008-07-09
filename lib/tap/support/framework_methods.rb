@@ -28,7 +28,7 @@ module Tap
 
 <% unless tdoc.desc.empty? %>
 
-<% tdoc.desc(78).each do |line| %>
+<% tdoc.desc.to_s(' ', nil, 78, 2).each do |line| %>
   <%= line %>
 <% end %>
 <% end %>
@@ -47,6 +47,10 @@ module Tap
       # Returns the TDoc documentation for self. 
       def tdoc
         @tdoc ||= TDoc[self]
+      end
+      
+      def enq(name=nil, config={}, app=App.instance, argv=[])
+        new(name, config, app).enq(*argv)
       end
       
       def parse_argv(argv, exit_on_help=false) # => name, config, argv
@@ -70,10 +74,7 @@ module Tap
         opts.separator "options:"
         
         opts.on_tail("-h", "--help", "Print this help") do
-          opts.banner = "usage: tap run -- #{tdoc.usage}"
-          configurations.each do |receiver, key, configuration|
-            configuration.desc = receiver.tdoc.config[key]
-          end
+          opts.banner = "usage: tap run -- #{self.to_s.underscore} #{tdoc.args}"
           
           print Templater.new(help_template, 
             :task_class => self, 

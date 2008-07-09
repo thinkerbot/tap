@@ -52,30 +52,29 @@ module Tap
         def resolve(key, registration)
           return nil unless registration
           
-          register_key, index = registration
-          register = registry[register_key]
-          
-          case register
-          when Hash then register[index][key]
-          when Array && File.exists?(register_key)
-            registry[register_key] = parse_register(File.read(register_key), register)
-            register[index][key]
+          register_key, line_number = registration
+          hash = registry[register_key][line_number]
+
+          case hash
+          when Hash
+            hash[key]
+          when Integer
+            return nil unless File.exists?(register_key)
+            registry[register_key] = parse_register(File.read(register_key), registry[register_key])
+            registry[register_key][line_number][key]
           else nil
           end
         end
         
         def parse_register(str, line_numbers)
           lines = str.split(/\r?\n/)
-          
-          register = {}
-          line_numbers.each do |line|
+          line_numbers.collect do |line_number|
             hash = {}
-            hash[:summary] = (lines[line] =~ /^[^#]+#(.*)$/) ? $1.strip : ""
+ 
+            hash[:summary] = (lines[line_number-1] =~ /^[^#]+#(.*)$/) ? $1.strip : ""
             hash[:desc] = ""  # drill backwards for comment lines
-            
-            register[index] = hash
+            hash
           end
-          register
         end
         
       end
@@ -191,19 +190,19 @@ module Tap
       end
       
       def to_str
-        desc.to_s
+        summary.to_s
       end
       
       def to_option_parser_argv
         argv = []
         argv << Configuration.shortify(short) if short
-        long = Configuration.longify(long)
+        long = Configuration.longify(self.long)
 
         argv << case arg_type
         when :optional 
           "#{long} [#{arg_name}]"
         when :switch 
-          Configuration.longify(long, true)
+          Configuration.longify(self.long, true)
         when :flag
           long
         when :list
@@ -222,7 +221,7 @@ module Tap
       def ==(another)
         another.kind_of?(Configuration) && 
         self.name == another.name &&
-        self.attributes == another.attributes &&
+        #self.attributes == another.attributes &&
         self.default(false) == another.default(false)
       end
       
