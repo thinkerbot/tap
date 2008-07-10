@@ -151,6 +151,10 @@ module Tap
           @target_line = nil
           @line_number = line_number
         end
+        
+        def summary
+          target_line.to_s =~ /#(.*)$/ ? $1.strip : ""
+        end
 
         # Pushes the fragment onto the last line array.  If fragment is an
         # array itself, then fragment will be pushed onto lines.

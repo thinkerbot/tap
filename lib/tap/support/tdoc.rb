@@ -210,10 +210,7 @@ module Tap
             
             str = File.read(source_file)
             parse(str, class_name)
-            if class_name.respond_to?(:configurations)
-              line_numbers = Configurations.registry[source_file] 
-              Configurations.registry[source_file] = Configurations.parse_register(str, line_numbers)
-            end
+            CDoc.register.resolve(source_file, str)
           end
 
           docs[class_name] ||= TDoc.new(class_name)

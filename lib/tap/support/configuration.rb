@@ -1,9 +1,6 @@
 module Tap
   module Support
     class Configuration
-      
-      @@registry = {}
-
       class << self
         SHORT_REGEXP = /^-[A-z]$/
         
@@ -44,58 +41,6 @@ module Tap
 
           str
         end
-
-        def registry
-          @@registry
-        end
-        
-        def resolve(key, registration)
-          return nil unless registration
-          
-          register_key, line_number = registration
-          hash = registry[register_key][line_number]
-
-          case hash
-          when Hash
-            hash[key]
-          when Integer
-            return nil unless File.exists?(register_key)
-            registry[register_key] = parse_register(File.read(register_key), registry[register_key])
-            registry[register_key][line_number][key]
-          else nil
-          end
-        end
-        
-        def parse_register(str, line_numbers)
-          # scanner = StringScanner.new(str)
-          # current = 1
-          # line_numbers.collect do |line_number|
-          #   hash = {}
-          #   
-          #   scanner.skip_until(/(.*?\n){#{line_number-current}}/)
-          #   hash[:desc] = ""
-          #   
-          #   hash[:summary] = if scanner.skip(/^[ \t]*config(.*)#(.*)$/)
-          #     # params = scanner[2]
-          #     scanner[2].strip
-          #   else
-          #     nil
-          #   end
-          #   
-          #   current = line_number
-          #   hash
-          # end
-          
-          lines = str.split(/\r?\n/)
-          line_numbers.collect do |line_number|
-            hash = {}
-           
-            hash[:summary] = (lines[line_number-1] =~ /^[ \t]*config(.*)#(.*)$/) ? $2.strip : nil
-            hash[:desc] = ""  # drill backwards for comment lines
-            hash
-          end
-        end
-        
       end
       
       attr_reader :name
@@ -105,7 +50,6 @@ module Tap
       
       def initialize(name, default=nil, attributes={})
         @name = name
-        @registration = nil
         self.default = default
         
         self.reader = name
@@ -127,19 +71,6 @@ module Tap
           attributes[key] = send(key)
         end
         attributes
-      end
-      
-      def register(source_file, line_number)
-        key = File.expand_path(source_file)
-        array = Configuration.registry[key] ||= []
-        
-        index = array.index(line_number)
-        if index == nil
-          index = array.length
-          array << (line_number)
-        end
-        
-        @registration = [key, index]
       end
       
       def line_number
@@ -196,11 +127,16 @@ module Tap
       end
       
       def summary
-        @attributes[:summary] || self.class.resolve(:summary, @registration)
+        summary = @attributes[:summary]
+        if summary.respond_to?(:target_line)
+          summary.summary
+        else
+          summary
+        end
       end
       
       def desc
-        @attributes[:desc] || self.class.resolve(:desc, @registration)
+        @attributes[:desc]
       end
       
       def empty?

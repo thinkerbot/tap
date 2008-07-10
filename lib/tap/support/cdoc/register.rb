@@ -3,9 +3,7 @@ require 'tap/support/cdoc/comment'
 module Tap
   module Support
     module CDoc
-      
       class Register
-        
         class << self
           
           # Keyifies the input by expanding (using File#expand_path)
@@ -63,9 +61,19 @@ module Tap
           comments.collect! do |comment|
             line_number = comment.line_number
             comment.target_line = lines[line_number]
-            while (line_number -= 1) > 0
-              break unless comment.prepend(lines[line_number])
+            
+            # remove whitespace lines
+            line_number -= 1
+            while lines[line_number].strip.empty?
+              line_number -= 1
             end
+          
+            # put together the comment
+            while line_number > 0
+              break unless comment.prepend(lines[line_number])
+              line_number -= 1
+            end
+            
             comment
           end.freeze
         end

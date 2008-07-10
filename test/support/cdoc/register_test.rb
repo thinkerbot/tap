@@ -93,6 +93,7 @@ class RegisterTest < Test::Unit::TestCase
 target line one
 
 # comment two
+
 target line two
 
 # ignored
@@ -100,7 +101,7 @@ not a target line
 }
 
     c1 = Comment.new(6)
-    c2 = Comment.new(9)
+    c2 = Comment.new(10)
     r.registry[:source_file] = [c1, c2]
     r.resolve(:source_file, str)
     
@@ -110,7 +111,7 @@ not a target line
     
     assert_equal [['comment two']], c2.lines
     assert_equal "target line two", c2.target_line
-    assert_equal 9, c2.line_number
+    assert_equal 10, c2.line_number
   end
   
   def test_resolve_freezes_comments_for_source_file

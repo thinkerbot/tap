@@ -1,5 +1,6 @@
 require 'tap/support/class_configuration'
 require 'tap/support/validation'
+require 'tap/support/cdoc'
 
 module Tap
   module Support
@@ -220,19 +221,19 @@ module Tap
           end
         end
 
-        config = configurations.add(key, value, options)
-        
-        # register with so that all extra documentation can be extracted at once
+        # register with CDoc so that all extra documentation can be extracted
         caller.each_with_index do |line, index|
           case line
           when /in .config.$/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
-            config.register($1, $3.to_i)
+            comment = CDoc.register.register($1, $3.to_i - 1)
+            options[:desc] = comment if options[:desc] == nil
+            options[:summary] = comment if options[:summary] == nil
             break
           end
         end
         
-        config
+        configurations.add(key, value, options)
       end
 
       # Alias for Tap::Support::Validation

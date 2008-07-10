@@ -1,10 +1,16 @@
-require 'tap/support/cdoc/comment'
+require 'tap/support/cdoc/register'
 
 module Tap
   module Support
     module CDoc
       
       module_function
+      
+            
+      def register
+        @register ||= Register.new
+      end
+      
       
       # $1:: namespace
       # $3:: key
@@ -42,15 +48,15 @@ module Tap
           value = scanner.scan_until(/$/).strip
           comment = Comment.parse(scanner) do |comment|
             if comment =~ CDOC_REGEXP
-              # rewind to capture the next comment unless
-              # an end is specified.
-              unless comment =~ /#{namespace}::#{key}-end/
-                scanner.pos = scanner.pos - comment.length
-              end
+              # rewind to capture the next comment unless an end is specified.
+              scanner.unscan unless comment =~ /#{namespace}::#{key}-end/
               true
             else false
             end
           end
+          
+          # rewind to capture the target line
+          scanner.unscan if comment.target_line != nil
 
           yield(namespace, key, value, comment)
         end
