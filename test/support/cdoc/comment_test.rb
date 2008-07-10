@@ -165,7 +165,7 @@ target line
 # ignored
 })
 
-    assert_equal [[]], c.lines
+    assert_equal [], c.lines
     assert_equal 'target line', c.target_line
   end
   
@@ -175,7 +175,7 @@ target line # with a trailing comment
 # ignored
 })
 
-    assert_equal [[]], c.lines
+    assert_equal [], c.lines
     assert_equal 'target line # with a trailing comment', c.target_line
   end
   
@@ -224,7 +224,9 @@ target line # with a trailing comment
   
   def test_initialize
     c = Comment.new
-    assert_equal [[]], c.lines
+    assert_equal [], c.lines
+    assert_equal nil, c.target_line
+    assert_equal nil, c.line_number
   end
   
   #
@@ -306,7 +308,7 @@ target line # with a trailing comment
     assert_equal [[''],['']], c.lines
     
     c.trim
-    assert_equal [[]], c.lines
+    assert_equal [], c.lines
   end
   
   def test_trim_returns_self
@@ -318,7 +320,7 @@ target line # with a trailing comment
   #
   
   def test_empty_is_true_if_there_are_no_non_empty_lines_in_self
-    assert_equal [[]], c.lines
+    assert_equal [], c.lines
     assert c.empty?
     
     c.lines.push "line"

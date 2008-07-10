@@ -142,10 +142,14 @@ module Tap
         # This is the line that would receive the comment
         # in RDoc documentation.
         attr_accessor :target_line
+        
+        # Returns the line number for the target line, if known.
+        attr_accessor :line_number
       
-        def initialize(target_line=nil)
-          @lines = [[]]
-          @target_line = target_line
+        def initialize(line_number=nil)
+          @lines = []
+          @target_line = nil
+          @line_number = line_number
         end
 
         # Pushes the fragment onto the last line array.  If fragment is an
@@ -158,6 +162,8 @@ module Tap
         #   c.lines         # => [["some line", "fragments"], ["a", "whole", "new line"]]
         #
         def push(fragment)
+          lines << [] if lines.empty?
+          
           case fragment
           when Array
             if lines[-1].empty? 
@@ -185,6 +191,8 @@ module Tap
         #   c.lines         # => [["a", "whole", "new line"], ["fragments", "some line"]]
         #
         def unshift(fragment)
+          lines << [] if lines.empty?
+          
           case fragment
           when Array
             if lines[0].empty? 
@@ -210,8 +218,6 @@ module Tap
         def trim
           lines.shift while !lines.empty? && (lines[0].empty? || lines[0].join.strip.empty?)
           lines.pop while !lines.empty? && (lines[-1].empty? || lines[-1].join.strip.empty?)
-        
-          lines.push [] if lines.empty?
           self
         end
         
