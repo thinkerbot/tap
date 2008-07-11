@@ -53,22 +53,25 @@ OptionParser.new do |opts|
 end.parse!(ARGV)
 
 if print_manifest
-  widths = []
-  manifest_by_load_path = {}
-  env.each do |env|
-    env.tasks.each_pair do |class_name, spec|
-      name = class_name.underscore
-      (manifest_by_load_path[spec[:load_path]] ||= {})[name] = spec
-      widths << name.length
+  tasks_by_load_path = {}
+  width = 10
+  env.each do |e|
+    e.tasks.each_pair do |load_path, documents|
+      documents.each do |document|
+        document.attributes.each_pair do |namespace, hash|
+          name = namespace.underscore
+          width = name.length if width < name.length
+          (tasks_by_load_path[load_path] ||= []) << [name, hash[:summary]]
+        end
+      end
     end
   end
-  width = widths.max || 10
-  
+
   max_column = 80 - width - 7
-  manifest_by_load_path.each_pair do |path, specs|
+  tasks_by_load_path.each_pair do |path, tasks|
     puts "===  tap tasks (#{path})"
-    specs.each_pair do |name, spec|
-      printf "%-#{width}s  # %s\n", name, spec[:summary]#rake.truncate(spec.tdoc.comment, max_column)
+    tasks.each do |task|
+      print("%-#{width}s  # %s\n" % task)#rake.truncate(spec.tdoc.comment, max_column)
     end
   end
   

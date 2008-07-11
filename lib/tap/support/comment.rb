@@ -40,7 +40,7 @@ module Tap
           scanner = case str
           when StringScanner then str
           when String then StringScanner.new(str)
-          else raise ArgumentError, "expected StringScanner or String"
+          else raise TypeError, "can't convert #{str.class} into StringScanner or String"
           end
         
           comment = Comment.new

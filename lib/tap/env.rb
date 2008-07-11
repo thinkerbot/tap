@@ -249,10 +249,13 @@ module Tap
     manifest(:tasks, :load_paths) do |tasks, load_path|
       root.glob(load_path, "**/*.rb").each do |fullpath|
         Support::TDoc.parse_manifests(File.read(fullpath)) do |class_name, summary|
-          path = root.relative_filepath(load_path, fullpath)
-          class_name = path.chomp('.rb').camelize if class_name.to_s.empty?
+          if class_name.empty?
+            class_name = root.relative_filepath(load_path, fullpath).chomp('.rb').camelize 
+          end
           
-          tasks[class_name] = {:class_name => class_name, :path => path, :load_path => load_path, :summary => summary}
+          document = Support::CDoc.instance.document_for(fullpath) 
+          document[class_name, :summary] = summary
+          (tasks[load_path] ||= []) << document
         end
       end
     end

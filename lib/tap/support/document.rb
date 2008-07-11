@@ -16,7 +16,7 @@ module Tap
           scanner = case str
           when StringScanner then str
           when String then StringScanner.new(str)
-          else raise ArgumentError, "expected StringScanner or String"
+          else raise TypeError, "can't convert #{str.class} into StringScanner or String"
           end
    
           regexp = /(#{key})([ \t-].*$|$)/
@@ -39,7 +39,7 @@ module Tap
           scanner = case str
           when StringScanner then str
           when String then StringScanner.new(str)
-          else raise ArgumentError, "expected StringScanner or String"
+          else raise TypeError, "can't convert #{str.class} into StringScanner or String"
           end
           
           scan(scanner, '[a-z_]+') do |namespace, key, value|
@@ -85,6 +85,10 @@ module Tap
       def resolved?
         @resolved
       end
+      
+      def []=(namespace, attribute, value)
+        (attributes[namespace] ||= {})[attribute] = value
+      end
 
       def resolve(str=nil)
         return(false) if resolved?
@@ -95,7 +99,7 @@ module Tap
         end
         
         Document.parse(str) do |namespace, key, comment|
-          (attributes[namespace] ||= {})[key] = comment
+          self[namespace, key] = comment
         end
         
         lines = str.split(/\r?\n/)

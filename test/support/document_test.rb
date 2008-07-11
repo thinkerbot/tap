@@ -226,7 +226,7 @@ skipped
 }
 
       str = %Q{              key value#{comment}} * 10
-      n = 1000
+      n = 100
       x.report("#{n}x #{str.length} chars") do 
         n.times do 
           Document.parse(str) {|*args|}
