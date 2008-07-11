@@ -128,11 +128,7 @@ module Tap
       
       def summary
         summary = @attributes[:summary]
-        if summary.respond_to?(:target_line)
-          summary.summary
-        else
-          summary
-        end
+        summary.respond_to?(:subject) ? summary.subject : summary
       end
       
       def desc

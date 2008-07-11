@@ -226,7 +226,7 @@ module Tap
           case line
           when /in .config.$/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
-            comment = CDoc.register.register($1, $3.to_i - 1)
+            comment = CDoc.instance.register($1, $3.to_i - 1)
             options[:desc] = comment if options[:desc] == nil
             options[:summary] = comment if options[:summary] == nil
             break

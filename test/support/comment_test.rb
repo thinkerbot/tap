@@ -1,8 +1,8 @@
-require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/cdoc/comment'
+require  File.join(File.dirname(__FILE__), '../tap_test_helper')
+require 'tap/support/comment'
 
 class CommentTest < Test::Unit::TestCase
-  include Tap::Support::CDoc
+  include Tap::Support
   
   attr_reader :c
   
@@ -22,7 +22,7 @@ class CommentTest < Test::Unit::TestCase
 #   while indented lines
 #   are preserved individually
 #    
-this is the target line
+this is the subject line
 
 # this line is not parsed as it
 # is after a non-comment line
@@ -37,7 +37,7 @@ this is the target line
     [''],
     []], c.lines)
     
-    assert_equal "this is the target line", c.target_line
+    assert_equal "this is the subject line", c.subject
   end
   
   def test_parse
@@ -47,7 +47,7 @@ this is the target line
  \t  # with whitespace   \t
 })
     assert_equal [['comment', 'spanning lines', 'with whitespace']], c.lines
-    assert_equal nil, c.target_line
+    assert_equal nil, c.subject
   end
 
   def test_parse_accepts_string_scanner
@@ -57,7 +57,7 @@ this is the target line
  \t  # with whitespace   \t
 }))
     assert_equal [['comment', 'spanning lines', 'with whitespace']], c.lines
-    assert_equal nil, c.target_line
+    assert_equal nil, c.subject
   end
   
   def test_parse_treats_indented_lines_as_new_lines
@@ -69,7 +69,7 @@ this is the target line
 # line
 })
     assert_equal [['comment'],[' with indented'], ["\tlines"], ['new spanning', 'line']], c.lines
-    assert_equal nil, c.target_line
+    assert_equal nil, c.subject
   end
   
   def test_parse_preserves_newlines
@@ -85,7 +85,7 @@ this is the target line
 # line
 })
     assert_equal [['comment'],[''],[''],[' with indented'],[''],["\tlines"],[''],['new spanning', 'line']], c.lines
-    assert_equal nil, c.target_line
+    assert_equal nil, c.subject
   end
   
   def test_parse_stops_at_non_comment_line
@@ -96,7 +96,7 @@ this is the target line
 # ignored
 })
     assert_equal [['comment', 'spanning lines']], c.lines
-    assert_equal nil, c.target_line
+    assert_equal nil, c.subject
   end
 
   def test_parse_stops_when_block_returns_true
@@ -109,74 +109,74 @@ this is the target line
   comment =~ /^end/
 end
     assert_equal [['comment', 'spanning lines']], c.lines
-    assert_equal nil, c.target_line
+    assert_equal nil, c.subject
   end
   
-  def test_parse_sets_target_line_if_next_line_is_not_a_comment
+  def test_parse_sets_subject_if_next_line_is_not_a_comment
     c = Comment.parse(%Q{
 # comment
-target line
+subject line
 ignored
 })
     assert_equal [['comment']], c.lines
-    assert_equal "target line", c.target_line
+    assert_equal "subject line", c.subject
   end
   
-  def test_parse_sets_target_line_as_next_non_comment_line
+  def test_parse_sets_subject_as_next_non_comment_line
     c = Comment.parse(%Q{
 # comment
 
-target line
+subject line
 ignored
 })
     assert_equal [['comment']], c.lines
-    assert_equal "target line", c.target_line
+    assert_equal "subject line", c.subject
   end
   
-  def test_parse_does_not_set_target_line_if_comment_breaks_from_block
+  def test_parse_does_not_set_subject_if_comment_breaks_from_block
     c = Comment.parse(%Q{
 # comment
 # end
 # ignored
-not the target line
+not the subject line
 }) do |comment|
   comment =~ /^end/
 end
 
     assert_equal [['comment']], c.lines
-    assert_equal nil, c.target_line
+    assert_equal nil, c.subject
   end
   
-  def test_parse_does_not_set_target_line_if_the_next_line_is_a_comment
+  def test_parse_does_not_set_subject_if_the_next_line_is_a_comment
     c = Comment.parse(%Q{
 # comment
 
-# not a target line
+# not a subject line
 })
 
     assert_equal [['comment']], c.lines
-    assert_equal nil, c.target_line
+    assert_equal nil, c.subject
   end
   
-  def test_parse_just_parses_target_if_no_comments_are_given
+  def test_parse_just_parses_subject_if_no_comments_are_given
     c = Comment.parse(%Q{
 
-target line
+subject line
 # ignored
 })
 
     assert_equal [], c.lines
-    assert_equal 'target line', c.target_line
+    assert_equal 'subject line', c.subject
   end
   
-  def test_target_lines_may_contain_trailing_comments
+  def test_subjects_may_contain_trailing_comments
     c = Comment.parse(%Q{
-target line # with a trailing comment
+subject line # with a trailing comment
 # ignored
 })
 
     assert_equal [], c.lines
-    assert_equal 'target line # with a trailing comment', c.target_line
+    assert_equal 'subject line # with a trailing comment', c.subject
   end
   
   def test_parse_can_handle_an_empty_or_whitespace_string_without_error
@@ -225,7 +225,7 @@ target line # with a trailing comment
   def test_initialize
     c = Comment.new
     assert_equal [], c.lines
-    assert_equal nil, c.target_line
+    assert_equal nil, c.subject
     assert_equal nil, c.line_number
   end
   
