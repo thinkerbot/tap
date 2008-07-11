@@ -16,9 +16,8 @@ module Tap
           when String then StringScanner.new(str)
           else raise ArgumentError, "expected StringScanner or String"
           end
-        
-          regexp = /(::|([A-Z][A-z]*::)+)(#{key})([ \t].*)?$/
-        
+   
+          regexp = /(::|([A-Z][A-z]*::)+)(#{key.downcase})([ \t-]?.*$|$)/
           while !scanner.eos?
             break if scanner.skip_until(regexp) == nil
             yield(scanner[1].chomp('::'), scanner[3], scanner[4].to_s.strip)

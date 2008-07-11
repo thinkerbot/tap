@@ -13,6 +13,8 @@ module Tap
   # whenever these configs are reset.
   class Env
     include Support::Configurable
+    include Enumerable
+    
     @@instance = nil
     @@instances = {}
     @@manifests = {}
@@ -151,21 +153,21 @@ module Tap
         manifest_key = manifest_key.to_sym
         paths_key = paths_key.to_sym
         discover_method = "discover_#{manifest_key}".to_sym
+        instance_variable = "@#{manifest_key}".to_sym
         
         define_method(discover_method, &block)
         protected discover_method
         
-        define_method(manifest_key) do
-          manifest = manifests[manifest_key]
-          return manifest unless manifest == nil
-          
-          manifest = default.dup
-          send(reverse ? :reverse_each : :each) do |env|
-            env.send(paths_key).each do |path|
-              env.send(discover_method, manifest, path)
-            end
+        define_method(manifest_key) do 
+          if !instance_variable_defined?(instance_variable)
+             manifest = default.dup
+             send(paths_key).each do |path|
+               send(discover_method, manifest, path)
+             end
+             instance_variable_set(instance_variable, manifest)
           end
-          manifests[manifest_key] = manifest
+           
+          instance_variable_get(instance_variable)
         end
       end
     end
@@ -190,7 +192,7 @@ module Tap
     attr_reader :envs
     
     # A hash of the calculated manifests.
-    attr_reader :manifests
+    #attr_reader :manifests
     
     # Specify gems to load as nested Envs.  Gems may be specified 
     # by name and/or version, like 'gemname >= 1.2'; by default the 
@@ -246,7 +248,6 @@ module Tap
     
     manifest(:tasks, :load_paths) do |tasks, load_path|
       root.glob(load_path, "**/*.rb").each do |fullpath|
-        
         Support::TDoc.parse_manifests(File.read(fullpath)) do |class_name, summary|
           path = root.relative_filepath(load_path, fullpath)
           class_name = path.chomp('.rb').camelize if class_name.to_s.empty?

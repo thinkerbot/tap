@@ -55,10 +55,12 @@ end.parse!(ARGV)
 if print_manifest
   widths = []
   manifest_by_load_path = {}
-  env.tasks.each_pair do |class_name, spec|
-    name = class_name.underscore
-    (manifest_by_load_path[spec[:load_path]] ||= {})[name] = spec
-    widths << name.length
+  env.each do |env|
+    env.tasks.each_pair do |class_name, spec|
+      name = class_name.underscore
+      (manifest_by_load_path[spec[:load_path]] ||= {})[name] = spec
+      widths << name.length
+    end
   end
   width = widths.max || 10
   
