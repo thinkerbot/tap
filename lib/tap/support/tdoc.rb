@@ -87,15 +87,8 @@ module Tap
         end
         
         def parse_manifests(str) # :yields: class_name, summary
-          parse = true
           Document.scan(str, 'manifest') do |namespace, key, value|
-            case value
-            when '-on' then parse = true
-            when '-off' then parse = false
-            when '-end' then next
-            else
-              yield(namespace, value) if parse
-            end
+            yield(namespace, value)
           end
         end
         
@@ -155,7 +148,7 @@ module Tap
         #   first declarations for a given tdoc.
         #
         # ex:
-        # :startdoc::manifest-off
+        # :startdoc:::-
         #
         #   # First::Class::manifest
         #   class First::Class
@@ -177,7 +170,7 @@ module Tap
         #   end
         #   # Second::Class::manifest
         #
-        # :startdoc::manifest-on
+        # :startdoc:::+
         def parse_process_args(scanner, range_begin, range_end)
 
           # parse for the process args, checking that the

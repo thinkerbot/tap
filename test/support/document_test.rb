@@ -3,6 +3,7 @@ require 'tap/support/document'
 
 class DocumentTest < Test::Unit::TestCase
   include Tap::Support
+  include Tap::Test::SubsetMethods
   
   attr_reader :doc
 
@@ -57,8 +58,59 @@ class DocumentTest < Test::Unit::TestCase
    assert_equal [
      ["Name::Space", "key", "value2"],
      ["Name::Space", "key", "value3"],
-     ["", "key", ""]
+     ["",  "key",  ""]
     ], results
+  end
+  
+  def test_scan_skips_areas_flagged_as_off
+    results = []
+    Document.scan(%Q{
+# Name::Space::key value1
+# Name::Space:::-
+# Name::Space::key value2
+# Name::Space:::+
+# Name::Space::key value3
+}, "key") do |namespace, key, value|
+     results << [namespace, key, value]
+   end
+
+   assert_equal [
+     ["Name::Space", "key", "value1"],
+     ["Name::Space", "key", "value3"]
+    ], results
+  end
+  
+  def test_scan_speed
+    benchmark_test(25) do |x|
+      str = %Q{              key value} * 100
+      n = 1000
+      x.report("#{n}x #{str.length} chars") do 
+        n.times do 
+          Document.scan(str,  'key') {|*args|}
+        end
+      end
+      
+      str = %Q{Name::Space::key  value} * 100
+      x.report("same but matching") do 
+        n.times do 
+          Document.scan(str,  'key') {|*args|}
+        end
+      end
+      
+      str = %Q{           ::key  value} * 100
+      x.report("just ::key syntax") do 
+        n.times do 
+          Document.scan(str,  'key') {|*args|}
+        end
+      end
+      
+      str = %Q{Name::Space:: key value} * 100
+      x.report("unmatching") do 
+        n.times do 
+          Document.scan(str,  'key') {|*args|}
+        end
+      end
+    end
   end
 
   #
@@ -134,7 +186,7 @@ blah blah # ::key value7
 # ::key
 # comment2 spanning
 # multiple lines
-# ::key-end
+# ::key-
 # ignored
 }) do |namespace, key, comment|
      results << comment.lines
@@ -158,6 +210,50 @@ skipped
    end
 
    assert results.empty?
+  end
+  
+  def test_parse_speed
+    benchmark_test(25) do |x|
+      comment = %Q{
+# comment spanning
+# multiple lines
+#   with indented
+#   lines
+#
+# and a new
+# spanning line
+
+}
+
+      str = %Q{              key value#{comment}} * 10
+      n = 1000
+      x.report("#{n}x #{str.length} chars") do 
+        n.times do 
+          Document.parse(str) {|*args|}
+        end
+      end
+      
+      str = %Q{Name::Space::key  value#{comment}} * 10
+      x.report("same but matching") do 
+        n.times do 
+          Document.parse(str) {|*args|}
+        end
+      end
+      
+      str = %Q{           ::key  value#{comment}} * 10
+      x.report("just ::key syntax") do 
+        n.times do 
+          Document.parse(str) {|*args|}
+        end
+      end
+      
+      str = %Q{Name::Space:: key value#{comment}} * 10
+      x.report("unmatching") do 
+        n.times do 
+          Document.parse(str) {|*args|}
+        end
+      end
+    end
   end
   
   #

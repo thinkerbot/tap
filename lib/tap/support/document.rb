@@ -7,7 +7,9 @@ module Tap
       
       # $1:: namespace
       # $3:: key
-      ATTRIBUTE_REGEXP = /(::|([A-Z][A-z]*::)+)([a-z_]+)/
+      # $4:: flag char
+      ATTRIBUTE_REGEXP = /(::|([A-Z][A-z]*::)+)([a-z_]+)(-?)/
+      CONSTANT_REGEXP = /(::|([A-Z][A-z]*::)+)/
       
       class << self
         def scan(str, key) # :yields: namespace, key, value
@@ -17,10 +19,17 @@ module Tap
           else raise ArgumentError, "expected StringScanner or String"
           end
    
-          regexp = /(::|([A-Z][A-z]*::)+)(#{key.downcase})([ \t-]?.*$|$)/
+          regexp = /(#{key})([ \t-].*$|$)/
           while !scanner.eos?
-            break if scanner.skip_until(regexp) == nil
-            yield(scanner[1].chomp('::'), scanner[3], scanner[4].to_s.strip)
+            break if scanner.skip_until(CONSTANT_REGEXP) == nil
+            namespace = scanner[1]
+            
+            case
+            when scanner.scan(regexp)
+              yield(namespace.chomp('::'), scanner[1], scanner[2].strip)
+            when scanner.scan(/:-/)
+              scanner.skip_until(/:\+/)
+            end
           end
         
           scanner
@@ -32,27 +41,19 @@ module Tap
           when String then StringScanner.new(str)
           else raise ArgumentError, "expected StringScanner or String"
           end
-        
-          while !scanner.eos?
-            break unless scanner.skip_until(ATTRIBUTE_REGEXP)
           
-            namespace = scanner[1].chomp('::')
-            key = scanner[3]
-            value = scanner.scan_until(/$/).strip
+          scan(scanner, '[a-z_]+') do |namespace, key, value|
             comment = Comment.parse(scanner, false) do |comment|
-              if comment =~ ATTRIBUTE_REGEXP
-                # rewind to capture the next comment unless an end is specified.
-                scanner.unscan unless comment =~ /#{namespace}::#{key}-end/
+              if comment =~ /::/ && comment =~ ATTRIBUTE_REGEXP
+                # rewind to capture the next attribute unless an end is specified.
+                scanner.unscan unless !$4.empty? && $1.chomp("::") == namespace && $3 == key
                 true
               else false
               end
             end
             comment.subject = value
-
             yield(namespace, key, comment)
           end
-        
-          scanner
         end
       end
       
