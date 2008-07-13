@@ -29,11 +29,9 @@ help:
   tap command --help                   # prints help for 'command'
 
 available commands:
-  cmd
   console
   destroy
   generate
-  help
   run
   server
 
@@ -59,11 +57,9 @@ help:
   tap command --help                   # prints help for 'command'
 
 available commands:
-  cmd
   console
   destroy
   generate
-  help
   run
   server
 
@@ -91,11 +87,9 @@ help:
   tap command --help                   # prints help for 'command'
 
 available commands:
-  cmd
   console
   destroy
   generate
-  help
   run
   server
 
@@ -234,7 +228,7 @@ options:
       # manifest
       
       manifest = %Q{
-===  tap tasks (#{method_filepath('lib')})
+=== test_run (#{method_root})
 sample              # manifest summary
 sample_without_doc  # 
 === rake tasks
@@ -253,7 +247,7 @@ rake test             # Run tests
       cmd.check " run -T -- --no-rake", "Prints manifest", manifest
       
       manifest_without_rake = %Q{
-===  tap tasks (#{method_filepath('lib')})
+=== test_run (#{method_root})
 sample              # manifest summary
 sample_without_doc  # 
 }

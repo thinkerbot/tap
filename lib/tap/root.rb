@@ -170,6 +170,54 @@ module Tap
           nil
         end
       end
+      
+      # Reduces a set of paths to the unique minimum set of basename identifiers
+      # for the paths.  For example:
+      #
+      #   Root.reduce('to/file.txt', 'path/to/file.txt', 'path/to/another/file.txt')
+      #   # => ['to/file.txt', 'another/file.txt']
+      #
+      # Each of the non-reduced paths maps to one of the reduced paths, based
+      # on the end part of the path string.  Paths are expanded before reduction.
+      def reduce(paths)
+        splits = paths.uniq.collect do |path|
+          [File.dirname(path), File.basename(path)]
+        end
+        
+        base_paths = []
+        while !splits.empty?
+          splits = splits.collect do |(dir, base)|
+            if splits.inject(0) {|count, (d,b)| b == base ? count + 1 : count} == 1
+              base_paths << base
+              nil
+            else
+              [File.dirname(dir), "#{File.basename(dir)}/#{base}"]
+            end
+          end.compact
+        end
+        
+        if block_given?
+          paths.each do |path|
+            base_path = base_paths.find do |base| 
+              path[-base.length, base.length] == base 
+            end
+            
+            yield(path, base_path)
+          end
+        end 
+        
+        base_paths
+      end
+      
+      def reduce_map(map, reverse=false)
+        results = {}
+        if reverse
+          reduce(map.keys) {|p, rp| results[map[p]] = rp }
+        else
+          reduce(map.keys) {|p, rp| results[rp] = map[p] }
+        end
+        results
+      end
     end
   
     include Support::Versions

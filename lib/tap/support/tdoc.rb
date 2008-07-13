@@ -92,49 +92,49 @@ module Tap
           end
         end
         
-        def parse(str, default_namespace)
-          tdocs = {}
-          scanner = case str
-          when StringScanner then str
-          when String then StringScanner.new(str)
-          else raise ArgumentError, "expected StringScanner or String"
-          end
-          
-          CDoc.parse(scanner) do |namespace, key, value, comment|
-            class_name = namespace.empty? ? default_namespace.to_s : namespace
-            tdoc = (docs[class_name] ||= TDoc.new(class_name))
-            
-            case key
-            when 'manifest'
-              tdoc.summary = value
-              tdoc.desc = comment
-            when 'args'
-              tdoc.args = value
-              # any use for comment?
-            when 'source_file'
-              tdoc.source_file = value
-            else
-              raise "unknown config key: #{namespace}::#{key}" # TODO -- new type of error
-            end
-            
-            tdocs[tdoc] ||= scanner.pos
-          end
-          
-          if tdocs.find {|tdoc, first_pos| tdoc.args == nil }
-            # sort out the ranges between first-declarations for the tdocs
-            sorted_tdocs = tdocs.to_a.sort_by {|tdoc, first_pos| first_pos }
-            sorted_tdocs.each_with_index do |(tdoc, first_pos), i|
-              tdocs[tdoc] = [first_pos, sorted_tdocs[i+1] || scanner.string.length]
-            end
-            
-            tdocs.each_pair do |tdoc, (range_begin, range_end)|
-              next if tdoc.args
-              tdoc.args = parse_process_args(scanner, range_begin, range_end)
-            end
-          end
-
-          tdocs.keys
-        end
+        # def parse(str, default_namespace)
+        #   tdocs = {}
+        #   scanner = case str
+        #   when StringScanner then str
+        #   when String then StringScanner.new(str)
+        #   else raise ArgumentError, "expected StringScanner or String"
+        #   end
+        #   
+        #   CDoc.parse(scanner) do |namespace, key, value, comment|
+        #     class_name = namespace.empty? ? default_namespace.to_s : namespace
+        #     tdoc = (docs[class_name] ||= TDoc.new(class_name))
+        #     
+        #     case key
+        #     when 'manifest'
+        #       tdoc.summary = value
+        #       tdoc.desc = comment
+        #     when 'args'
+        #       tdoc.args = value
+        #       # any use for comment?
+        #     when 'source_file'
+        #       tdoc.source_file = value
+        #     else
+        #       raise "unknown config key: #{namespace}::#{key}" # TODO -- new type of error
+        #     end
+        #     
+        #     tdocs[tdoc] ||= scanner.pos
+        #   end
+        #   
+        #   if tdocs.find {|tdoc, first_pos| tdoc.args == nil }
+        #     # sort out the ranges between first-declarations for the tdocs
+        #     sorted_tdocs = tdocs.to_a.sort_by {|tdoc, first_pos| first_pos }
+        #     sorted_tdocs.each_with_index do |(tdoc, first_pos), i|
+        #       tdocs[tdoc] = [first_pos, sorted_tdocs[i+1] || scanner.string.length]
+        #     end
+        #     
+        #     tdocs.each_pair do |tdoc, (range_begin, range_end)|
+        #       next if tdoc.args
+        #       tdoc.args = parse_process_args(scanner, range_begin, range_end)
+        #     end
+        #   end
+        # 
+        #   tdocs.keys
+        # end
         
         # try to parse arguments from the process method
         # if no args have been explicitly stated for a 
@@ -171,52 +171,52 @@ module Tap
         #   # Second::Class::manifest
         #
         # :startdoc:::+
-        def parse_process_args(scanner, range_begin, range_end)
-
-          # parse for the process args, checking that the
-          # args are where they are expected to be
-          scanner.pos = range_begin
-          return nil unless scanner.skip_until(/^\s*def\s+process\(/) != nil
-            
-          args = scanner.scan_until(/\)/).to_s.chomp(')').split(',').collect do |arg|
-            arg = arg.strip.upcase
-            case arg
-            when /^&/ then nil
-            when /^\*/ then arg[1..-1] + "..."
-            else arg
-            end
-
-          end.compact
-
-          if args && scanner.pos >= range_end
-            raise "ranges for scanning process arguments are mixed"
-          end
-          
-          args
-        end
+        # def parse_process_args(scanner, range_begin, range_end)
+        # 
+        #   # parse for the process args, checking that the
+        #   # args are where they are expected to be
+        #   scanner.pos = range_begin
+        #   return nil unless scanner.skip_until(/^\s*def\s+process\(/) != nil
+        #     
+        #   args = scanner.scan_until(/\)/).to_s.chomp(')').split(',').collect do |arg|
+        #     arg = arg.strip.upcase
+        #     case arg
+        #     when /^&/ then nil
+        #     when /^\*/ then arg[1..-1] + "..."
+        #     else arg
+        #     end
+        # 
+        #   end.compact
+        # 
+        #   if args && scanner.pos >= range_end
+        #     raise "ranges for scanning process arguments are mixed"
+        #   end
+        #   
+        #   args
+        # end
 
         # Returns the TDoc for the specified class or path.
         #--
         # Generates if necessary
-        def [](class_name, search_paths=$:)
-          class_name = class_name.to_s
-          unless docs.has_key?(class_name)
-            source_files = Root.sglob(class_name.underscore + '.rb', *search_paths)
-            source_file = case source_files.length
-            when 1 then source_files.first
-            when 0
-              raise ArgumentError.new("no source file found for: #{class_name}")
-            else
-              raise ArgumentError.new("multiple source files found for: #{class_name}")
-            end
-            
-            str = File.read(source_file)
-            parse(str, class_name)
-            CDoc.register.resolve(source_file, str)
-          end
-
-          docs[class_name] ||= TDoc.new(class_name)
-        end
+        # def [](class_name, search_paths=$:)
+        #   class_name = class_name.to_s
+        #   unless docs.has_key?(class_name)
+        #     source_files = Root.sglob(class_name.underscore + '.rb', *search_paths)
+        #     source_file = case source_files.length
+        #     when 1 then source_files.first
+        #     when 0
+        #       raise ArgumentError.new("no source file found for: #{class_name}")
+        #     else
+        #       raise ArgumentError.new("multiple source files found for: #{class_name}")
+        #     end
+        #     
+        #     str = File.read(source_file)
+        #     parse(str, class_name)
+        #     CDoc.register.resolve(source_file, str)
+        #   end
+        # 
+        #   docs[class_name] ||= TDoc.new(class_name)
+        # end
         
         def usage(program_file)
           comment = []

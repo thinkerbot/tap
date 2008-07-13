@@ -263,7 +263,7 @@ skipped
   def test_initialize
     doc = Document.new
     assert_equal(nil, doc.source_file)
-    assert_equal({}, doc.attributes)
+    assert_equal({}, doc.const_attrs)
     assert_equal([], doc.code_comments)
     assert !doc.resolved?
   end
@@ -320,16 +320,16 @@ not a subject line
     assert_equal 10, c2.line_number
   end
 
-  def test_resolve_reads_attributes_from_str
+  def test_resolve_reads_const_attrs_from_str
     doc.resolve %Q{
 # Name::Space::key subject line
 # attribute comment
 }
 
-    assert doc.attributes.has_key?('Name::Space')
-    assert doc.attributes['Name::Space'].has_key?('key')
-    assert_equal [['attribute comment']], doc.attributes['Name::Space']['key'].lines
-    assert_equal 'subject line', doc.attributes['Name::Space']['key'].subject
+    assert doc.const_attrs.has_key?('Name::Space')
+    assert doc.const_attrs['Name::Space'].has_key?('key')
+    assert_equal [['attribute comment']], doc.const_attrs['Name::Space']['key'].lines
+    assert_equal 'subject line', doc.const_attrs['Name::Space']['key'].subject
   end
   
   def test_resolve_reads_str_from_source_file_if_str_is_unspecified
@@ -351,10 +351,10 @@ subject line one
     assert_equal "subject line one", c.subject
     assert_equal 2, c.line_number
     
-    assert doc.attributes.has_key?('Name::Space')
-    assert doc.attributes['Name::Space'].has_key?('key')
-    assert_equal [['attribute comment']], doc.attributes['Name::Space']['key'].lines
-    assert_equal 'subject line', doc.attributes['Name::Space']['key'].subject
+    assert doc.const_attrs.has_key?('Name::Space')
+    assert doc.const_attrs['Name::Space'].has_key?('key')
+    assert_equal [['attribute comment']], doc.const_attrs['Name::Space']['key'].lines
+    assert_equal 'subject line', doc.const_attrs['Name::Space']['key'].subject
   end
   
   def test_resolve_sets_resolved_to_true

@@ -149,25 +149,26 @@ module Tap
       # carry it's own slice of the manifest without having to recalculate.
       # On the down side, the merging would have to occur in some separate
       # method that cannot be defined here.
-      def manifest(manifest_key, paths_key, default={}, reverse=true, &block)
+      def manifest(manifest_key, paths_key, use_hash=false, &block)
         manifest_key = manifest_key.to_sym
         paths_key = paths_key.to_sym
         discover_method = "discover_#{manifest_key}".to_sym
-        instance_variable = "@#{manifest_key}".to_sym
-        
+
         define_method(discover_method, &block)
         protected discover_method
         
-        define_method(manifest_key) do 
-          if !instance_variable_defined?(instance_variable)
-             manifest = default.dup
-             send(paths_key).each do |path|
-               send(discover_method, manifest, path)
-             end
-             instance_variable_set(instance_variable, manifest)
+        define_method(manifest_key) do
+          # check_active ???
+          
+          manifest = manifests[manifest_key]
+          return manifest unless manifest == nil
+          
+          manifest = use_hash ? {} : []
+          send(paths_key).each do |path|
+            send(discover_method, manifest, path)
           end
-           
-          instance_variable_get(instance_variable)
+          manifest.uniq! if manifest.kind_of?(Array)
+          manifests[manifest_key] = manifest
         end
       end
     end
@@ -192,7 +193,7 @@ module Tap
     attr_reader :envs
     
     # A hash of the calculated manifests.
-    #attr_reader :manifests
+    attr_reader :manifests
     
     # Specify gems to load as nested Envs.  Gems may be specified 
     # by name and/or version, like 'gemname >= 1.2'; by default the 
@@ -244,27 +245,24 @@ module Tap
     
     config :debug, false, &c.boolean
     
-    TASK_MANIFEST_REGEXP = /#(--)?\s*(:(stop|start)doc:\s+)?:manifest:/
-    
-    manifest(:tasks, :load_paths) do |tasks, load_path|
+    manifest(:tasks, :load_paths, true) do |tasks, load_path|
       root.glob(load_path, "**/*.rb").each do |fullpath|
-        Support::TDoc.parse_manifests(File.read(fullpath)) do |class_name, summary|
-          if class_name.empty?
-            class_name = root.relative_filepath(load_path, fullpath).chomp('.rb').camelize 
-          end
-          
-          document = Support::CDoc.instance.document_for(fullpath) 
-          document[class_name, :summary] = summary
-          (tasks[load_path] ||= []) << document
+        document = Support::CDoc.instance.document_for(fullpath)
+        
+        Support::Document.scan(File.read(fullpath), 'manifest') do |const_name, key, comment|
+          const_name = root.relative_filepath(load_path, fullpath).chomp('.rb').camelize if const_name.empty?
+          document[const_name][:summary] = comment
+        end
+        
+        document.const_names.each do |const_name|
+          name = const_name.underscore
+          # raise manifest error if tasks.has_key?(name)
+          # as this means that in a single env there are
+          # multiple filepaths manifesting the same task
+          # constant
+          tasks[name] = [const_name, document]
         end
       end
-    end
-    
-    # A hash of the default tap commands.
-    DEFAULT_COMMANDS = {}
-    Dir.glob(File.dirname(__FILE__) + "/cmd").each do |path|
-      cmd = File.basename(path).chomp(".rb")
-      DEFAULT_COMMANDS[cmd] = File.expand_path(path)
     end
     
     # --
@@ -272,32 +270,15 @@ module Tap
     # as well as the default tap commands.  Commands with conflicting names
     # raise an error; however, user commands are allowed to override the
     # default tap commands and will NOT raise an error.
-    manifest(:commands, :command_paths, DEFAULT_COMMANDS) do |commands, command_path|
+    manifest(:commands, :command_paths) do |commands, command_path|
       root.glob(command_path, "**/*.rb").each do |path|
-        cmd = root.relative_filepath(command_path, path).chomp(".rb")
-        if commands.include?(cmd)
-          log :warn, "command name confict: #{cmd} (overriding '#{commands[cmd]}' with '#{path}')", Logger::DEBUG
-        end
-        
-        commands[cmd] = path
+        commands << path
       end
     end
-
-    # A hash of the default tap generators.
-    DEFAULT_GENERATORS = {}
-    Dir.glob(File.dirname(__FILE__) + "/generator/generators/*/*_generator.rb").each do |path|
-      generator = File.basename(path).chomp("_generator.rb")
-      DEFAULT_GENERATORS[generator] = File.expand_path(path)
-    end
-
-    manifest(:generators, :generator_paths, DEFAULT_GENERATORS) do |generators, generator_path|
+    
+    manifest(:generators, :generator_paths) do |generators, generator_path|
       root.glob(generator_path, "**/*_generator.rb").each do |path|
-        generator = root.relative_filepath(generator_path, path).chomp("_generator.rb")
-        if generators.include?(cmd)
-          log :warn, "generator name confict: #{generator} (overriding '#{generators[cmd]}' with '#{path}')", Logger::DEBUG
-        end
-        
-        generators[generator] = path
+        generators << path
       end
     end
     
@@ -470,9 +451,10 @@ module Tap
       true
     end
     
-    # Deactivates self by deleting load_paths for self from the load_path_targets.
-    # Env.instance will no longer reference self and the configurations are 
-    # unfrozen (using duplication as needed, but it amounts to the same thing).
+    # Deactivates self by clearing manifests and deleting load_paths for self 
+    # from the load_path_targets. Env.instance will no longer reference self 
+    # and the configurations are unfrozen (using duplication).
+    #
     # Returns true if deactivate succeeded, or false if self is not active.
     def deactivate
       return false unless active?
@@ -493,6 +475,7 @@ module Tap
       end
       
       @active = false
+      @manifests.clear
       @@instance = nil if @@instance == self
       
       # dectivate nested envs
@@ -526,6 +509,82 @@ module Tap
         end
       end
       yield(self)
+    end
+    
+    def count
+      count = 0
+      each {|e| count += 1 }
+      count
+    end
+    
+    # Returns a hash mapping lookup paths to their env.  A lookup path is 
+    # the minimum base path that uniquely identifies an env by its root.
+    #
+    # Raises an InconsistencyError if multiple envs have the same root 
+    # path.
+    def lookup_paths(reverse=false)
+      map = {}
+      each do |env|
+        root_path = env.root.root
+        
+        if map.has_key?(root_path)
+          # no expansion should be necessary as root.root is already expanded
+          inconsistents = select {|e| e.root.root == root_path }.collect {|e| e.inspect(true)}
+          raise InconsistencyError, "multiple env share the same root path '#{root_path}': [#{inconsistents.join(', ')}]" 
+        end
+        
+        map[root_path] = env
+      end
+  
+      Tap::Root.reduce_map(map, reverse)
+    end
+    
+    def lookup_paths_for(manifest_key, reverse=false)
+      map = {}
+      each do |env|
+        manifest = env.send(manifest_key)
+
+        manifest = case manifest
+        when Hash then manifest
+        else 
+          # no worries of inconsistency... since obj maps to obj,
+          # even duplicates will result in only one mapping.
+          manifest.inject({}) do |hash, obj|
+            hash[obj] = obj
+            hash
+          end
+        end
+        
+        lookups = Tap::Root.reduce_map(manifest, reverse)
+        map[env] = lookups.to_a.sort_by {|a,b| a } unless lookups.empty?
+      end
+      map
+    end
+    
+    def lookup(manifest_key, pattern)
+      envs, key = case pattern
+      when /^(.*):([^:]+)$/ 
+        environment = lookup_paths[$1]
+        raise ArgumentError, "could not find env: #{$1}" if environment == nil
+        [[environment], $2]
+      else 
+        [self, pattern]
+      end
+      
+      envs.each do |env|
+        manifest = env.send(manifest_key)
+        if manifest.kind_of?(Hash)
+          manifest.each_pair {|path, obj| return(obj) if path[-key.length, key.length] == key }
+        else 
+          manifest.each {|obj| return(obj) if obj[-key.length, key.length] == key }
+        end
+      end
+
+      nil
+    end
+
+    def inspect(brief=false)
+      brief ? "#<#{self.class}:#{object_id} root='#{root.root}'>" : super()
     end
 
     #
@@ -594,7 +653,7 @@ module Tap
     end
     
     protected
-    
+
     def check_configurable
       raise "path configurations are disabled when active" if active?
     end
@@ -605,6 +664,9 @@ module Tap
       end + gems.collect do |spec|
         Env.instantiate(spec.full_gem_path)
       end.uniq
+    end
+    
+    class InconsistencyError < StandardError
     end
   end
 end

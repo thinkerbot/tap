@@ -5,14 +5,14 @@ module Tap
 
     class Document
       
-      # $1:: namespace
+      # $1:: const_name
       # $3:: key
       # $4:: flag char
       ATTRIBUTE_REGEXP = /(::|([A-Z][A-z]*::)+)([a-z_]+)(-?)/
       CONSTANT_REGEXP = /(::|([A-Z][A-z]*::)+)/
       
       class << self
-        def scan(str, key) # :yields: namespace, key, value
+        def scan(str, key) # :yields: const_name, key, value
           scanner = case str
           when StringScanner then str
           when String then StringScanner.new(str)
@@ -22,11 +22,11 @@ module Tap
           regexp = /(#{key})([ \t-].*$|$)/
           while !scanner.eos?
             break if scanner.skip_until(CONSTANT_REGEXP) == nil
-            namespace = scanner[1]
+            const_name = scanner[1]
             
             case
             when scanner.scan(regexp)
-              yield(namespace.chomp('::'), scanner[1], scanner[2].strip)
+              yield(const_name.chomp('::'), scanner[1], scanner[2].strip)
             when scanner.scan(/:-/)
               scanner.skip_until(/:\+/)
             end
@@ -35,37 +35,41 @@ module Tap
           scanner
         end
       
-        def parse(str) # :yields: namespace, key, comment
+        def parse(str) # :yields: const_name, key, comment
           scanner = case str
           when StringScanner then str
           when String then StringScanner.new(str)
           else raise TypeError, "can't convert #{str.class} into StringScanner or String"
           end
           
-          scan(scanner, '[a-z_]+') do |namespace, key, value|
-            comment = Comment.parse(scanner, false) do |comment|
-              if comment =~ /::/ && comment =~ ATTRIBUTE_REGEXP
+          scan(scanner, '[a-z_]+') do |const_name, key, value|
+            comment = Comment.parse(scanner, false) do |line|
+              if line =~ /::/ && line =~ ATTRIBUTE_REGEXP
                 # rewind to capture the next attribute unless an end is specified.
-                scanner.unscan unless !$4.empty? && $1.chomp("::") == namespace && $3 == key
+                scanner.unscan unless !$4.empty? && $1.chomp("::") == const_name && $3 == key
                 true
               else false
               end
             end
             comment.subject = value
-            yield(namespace, key, comment)
+            yield(const_name, key, comment)
           end
         end
       end
       
-      attr_accessor :source_file
+      attr_reader :source_file
       attr_reader :code_comments
-      attr_reader :attributes
+      attr_reader :const_attrs
 
-      def initialize(source_file=nil, code_comments=[], attributes={})
-        @source_file = source_file
+      def initialize(source_file=nil, code_comments=[], const_attrs={})
+        self.source_file = source_file
         @code_comments = code_comments
-        @attributes = attributes
+        @const_attrs = const_attrs
         @resolved = false
+      end
+      
+      def source_file=(source_file)
+        @source_file = source_file == nil ? nil : File.expand_path(source_file)
       end
 
       # CDoc the specified line numbers to source_file.
@@ -86,10 +90,33 @@ module Tap
         @resolved
       end
       
-      def []=(namespace, attribute, value)
-        (attributes[namespace] ||= {})[attribute] = value
+      def [](const_name)
+        const_attrs[const_name] ||= {}
       end
-
+      
+      include Enumerable
+      
+      def each
+        const_attrs.each_pair do |const_name, attrs|
+          yield(const_name, attrs) unless attrs.empty?
+        end
+      end
+      
+      def const_names
+        names = []
+        const_attrs.each_pair do |const_name, attrs|
+          names << const_name unless attrs.empty?
+        end
+        names
+      end
+      
+      def has_const?(const_name)
+        const_attrs.each_pair do |constname, attrs|
+          return true unless attrs.empty?
+        end
+        false
+      end
+      
       def resolve(str=nil)
         return(false) if resolved?
         
@@ -98,8 +125,8 @@ module Tap
           str = File.read(source_file)
         end
         
-        Document.parse(str) do |namespace, key, comment|
-          self[namespace, key] = comment
+        Document.parse(str) do |const_name, key, comment|
+          self[const_name][key] = comment
         end
         
         lines = str.split(/\r?\n/)

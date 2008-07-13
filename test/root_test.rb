@@ -264,6 +264,34 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
+  # Tap::Root.reduce test
+  #
+  
+  def test_reduce_collects_unique_basenames_for_paths
+    assert_equal [], Tap::Root.reduce([])
+    assert_equal ['file.txt'], Tap::Root.reduce(['file.txt'])
+    assert_equal ['file.txt'], Tap::Root.reduce(['file.txt', 'file.txt'])
+    assert_equal ['file.txt', 'another.txt'], Tap::Root.reduce(['path/to/file.txt','path/to/another.txt'])
+    assert_equal ['some/file.txt', 'another/file.txt'], Tap::Root.reduce(['path/to/some/file.txt','path/to/another/file.txt'])
+    assert_equal ['to/file.txt', 'another/file.txt'], Tap::Root.reduce(['path/to/file.txt','path/to/another/file.txt'])
+    assert_equal ['to', 'file.txt'], Tap::Root.reduce(['path/to','path/to/file.txt'])
+    assert_equal ['file', 'file.txt'], Tap::Root.reduce(['path/to/file','path/to/file.txt'])
+  end
+  
+  def test_reduce_speed
+    benchmark_test(30) do |x|  
+      paths = (0..3).collect {|i| 'path/num#{i}/file'}
+      x.report("10k times 3 short paths ") { 10000.times { Tap::Root.reduce(paths) } }
+      
+      paths = (0..3).collect {|i| 'path/num#{i}/to/some/long/path/file'}
+      x.report("10k times 3 long paths ") { 10000.times { Tap::Root.reduce(paths) } }
+      
+      paths = (0..1000000).collect {|i| 'path/num#{i}/file'}
+      x.report("1M short paths") { Tap::Root.reduce(paths) }
+    end
+  end
+  
+  #
   # initialize tests
   #
   

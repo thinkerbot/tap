@@ -170,27 +170,57 @@ class EnvTest < Test::Unit::TestCase
   #
   
   class ManifestEnv < Tap::Env
-    path_config(:test_paths)
-    manifest(:tests, :test_paths) do |tests, test_path|
-      (tests[self.object_id] ||= []) << {:index => tests.values.flatten.length, :path => test_path}
+    path_config(:array_paths)
+    manifest(:arrays, :array_paths) do |arrays, array_path|
+      arrays << File.expand_path(array_path)
+    end
+    
+    path_config(:hash_paths)
+    manifest(:hashes, :hash_paths, true) do |hashes, hash_path|
+      hash_path = File.expand_path(hash_path)
+      hashes[File.basename(hash_path).chomp('.rb')] = hash_path
     end
   end
   
   def test_manifest_defines_protected_discover_manifest_method
     e = ManifestEnv.new
-    assert e.respond_to?(:discover_tests)
-    assert ManifestEnv.protected_instance_methods.collect {|m| m.to_sym }.include?(:discover_tests)
+    assert e.respond_to?(:discover_arrays)
+    assert ManifestEnv.protected_instance_methods.collect {|m| m.to_sym }.include?(:discover_arrays)
+    
+    assert e.respond_to?(:discover_hashes)
+    assert ManifestEnv.protected_instance_methods.collect {|m| m.to_sym }.include?(:discover_hashes)
+    
+    arrays = []
+    e.send(:discover_arrays, arrays, '/one')
+    e.send(:discover_arrays, arrays, '/two')
+    e.send(:discover_arrays, arrays, '/three')
+    assert_equal(['/one', '/two', '/three'], arrays)
+    
+    hashes = {}
+    e.send(:discover_hashes, hashes, '/one.rb')
+    e.send(:discover_hashes, hashes, '/two.rb')
+    e.send(:discover_hashes, hashes, '/three.rb')
+    assert_equal({'one' => '/one.rb', 'two' => '/two.rb', 'three' => '/three.rb'}, hashes)
   end
   
-  def test_manifest_visits_each_env_in_envs_in_reverse_order
-    e = ManifestEnv.new :test_paths => ['/one', '/two']
-    e1 = ManifestEnv.new :test_paths => ['/three', '/four']
-    
-    e.envs << e1
-    assert_equal({
-      e1.object_id => [{:index => 0, :path => root['/three'] }, {:index => 1, :path => root['/four']}],
-      e.object_id => [{:index => 2, :path => root['/one'] }, {:index => 3, :path => root['/two']}]
-    }, e.tests)
+  def test_manifest_method_visits_each_path_with_hash_or_array_as_specified_in_declaration
+    e = ManifestEnv.new :array_paths => ['/one', '/two'], :hash_paths => ['/one.rb', '/two.rb']
+    assert_equal(['/one', '/two'], e.arrays)
+    assert_equal({'one' => '/one.rb', 'two' => '/two.rb'}, e.hashes)
+  end
+  
+  def test_manifest_removes_duplicates_from_array_manifests
+    e =  ManifestEnv.new :array_paths => ['/one', '/two', '/one', '/dir/.././one']
+    assert_equal(['/one', '/two'], e.arrays)
+  end
+  
+  def test_manifest_method_registers_manifest_with_manifests_using_manifest_key
+    e = ManifestEnv.new
+    assert_equal({}, e.manifests)
+    e.arrays
+    assert_equal({:arrays => []}, e.manifests)
+    e.hashes
+    assert_equal({:arrays => [], :hashes => {}}, e.manifests)
   end
   
   #
@@ -393,6 +423,14 @@ class EnvTest < Test::Unit::TestCase
     
     e.deactivate
     assert_nil Tap::Env.instance
+  end
+  
+  def test_deactivate_clears_manifests
+    e.activate
+    e.manifests[:key] = :value
+    assert !e.manifests.empty?
+    e.deactivate
+    assert e.manifests.empty?
   end
   
   #
@@ -648,30 +686,131 @@ class EnvTest < Test::Unit::TestCase
     
     assert_equal [e3, e2, e1, e], envs
   end
- 
-  # #
-  # # commands test 
-  # #
+  
+  #
+  # lookup_paths test
+  #
+  
+  def test_lookup_paths_returns_a_hash_mapping_a_reduced_root_path_to_an_env
+    e1 = Tap::Env.new({}, Tap::Root.new('/path/to/env'))
+    e2 = Tap::Env.new({}, Tap::Root.new('/path/to/another/env'))
+    e3 = Tap::Env.new({}, Tap::Root.new('/path/to/environment'))
+
+    e1.envs << e2
+    e2.envs << e3
+    
+    assert_equal({'to/env' => e1, 'another/env' => e2, 'environment' => e3}, e1.lookup_paths)
+  end
+  
+  def test_lookup_paths_raises_an_error_if_multiple_envs_map_to_the_same_lookup
+    e1 = Tap::Env.new({}, Tap::Root.new('/path/to/env'))
+    e2 = Tap::Env.new({}, Tap::Root.new('/path/to/env'))
+    e1.envs << e2
+    
+    assert_raise(Tap::Env::InconsistencyError) { e1.lookup_paths }
+    assert_raise(Tap::Env::InconsistencyError) { e1.lookup_paths(true) }
+  end
+
+  def test_reverse_lookup_paths_returns_a_hash_mapping_envs_to_a_reduced_root_path
+    e1 = Tap::Env.new({}, Tap::Root.new('/path/to/env'))
+    e2 = Tap::Env.new({}, Tap::Root.new('/path/to/another/env'))
+    e3 = Tap::Env.new({}, Tap::Root.new('/path/to/environment'))
+
+    e1.envs << e2
+    e2.envs << e3
+    
+    assert_equal({e1 => 'to/env', e2 => 'another/env', e3 => 'environment'}, e1.lookup_paths(true))
+  end
+  
+  #
+  # lookup_paths_for test
   # 
-  # 
-  # def test_commands_selects_commands_from_all_command_paths
-  #   e.command_paths << method_dir(:one)
-  #   e.command_paths << method_dir(:two)
-  #   
-  #   expected = {
-  #     'cmd_one' => method_filepath(:one, 'cmd_one.rb'),
-  #     'cmd_two' => method_filepath(:two, 'cmd_two.rb')
-  #   }
-  #   
-  #   assert_equal expected, e.commands
-  # end
-  # 
-  # def test_commands_selects_command_paths_in_reverse_order_of_command_path
-  #   e.command_paths << method_dir(:one)
-  #   e.command_paths << method_dir(:two)
-  #   
-  #   expected = {'cmd_two' => method_filepath(:one, 'cmd_two.rb')}
-  #   
-  #   assert_equal expected, e.commands
-  # end
+  
+  def lookup_test_setup
+    e1 = ManifestEnv.new({
+      :array_paths => ['/e1/one', '/e1/another/one', '/e1/two'], 
+      :hash_paths =>  ['/e1/hash/one.rb', '/e1/hash/two.rb']
+    }, Tap::Root.new('/path/to/env'))
+    e2 = ManifestEnv.new({
+      :array_paths => ['/e2/two', '/e2/another/two', '/e2/three'], 
+      :hash_paths =>  ['/e2/hash/two.rb', '/e2/hash/three.rb']
+    }, Tap::Root.new('/path/to/another/env'))
+    e3 = ManifestEnv.new({
+      :array_paths => ['/e3/three', '/e3/another/three', '/e3/four'], 
+      :hash_paths =>  ['/e3/hash/three.rb', '/e3/hash/four.rb']
+    }, Tap::Root.new('/path/to/environment'))
+
+    e1.envs << e2
+    e2.envs << e3
+    
+    [e1, e2, e3]
+  end
+
+  def test_lookup_paths_for_maps_reduced_path_to_manifest_object_for_the_env
+    e1, e2, e3 = lookup_test_setup
+
+    assert_equal({
+      e1 => [['another/one', '/e1/another/one'], ['e1/one', '/e1/one'], ['two', '/e1/two']],
+      e2 => [['another/two', '/e2/another/two'], ['e2/two', '/e2/two'], ['three', '/e2/three']],
+      e3 => [['another/three', '/e3/another/three'], ['e3/three', '/e3/three'], ['four', '/e3/four']]
+    }, e1.lookup_paths_for(:arrays))
+
+    assert_equal({
+      e1 => [['one', '/e1/hash/one.rb'], ['two', '/e1/hash/two.rb']],
+      e2 => [['three', '/e2/hash/three.rb'], ['two', '/e2/hash/two.rb']],
+      e3 => [['four', '/e3/hash/four.rb'], ['three', '/e3/hash/three.rb']]
+    }, e1.lookup_paths_for(:hashes))
+  end
+  
+  #
+  # lookup test
+  #
+  
+  def test_lookup_arrays_cascades_through_evns_to_manifest_object_ending_in_pattern
+    e1, e2, e3 = lookup_test_setup
+    
+    assert_equal('/e1/one', e1.lookup(:arrays, 'one'))
+    assert_equal('/e1/two', e1.lookup(:arrays, 'two'))
+    assert_equal('/e2/three', e1.lookup(:arrays, 'three'))
+    assert_equal('/e3/four', e1.lookup(:arrays, 'four'))
+    assert_equal(nil, e1.lookup(:arrays, 'five'))
+    assert_equal(nil, e2.lookup(:arrays, 'one'))
+  end
+  
+  def test_lookup_arrays_only_searches_env_mapped_to_root_pattern
+    e1, e2, e3 = lookup_test_setup
+    
+    assert_equal('/e1/one', e1.lookup(:arrays, 'to/env:one'))
+    assert_equal('/e1/two', e1.lookup(:arrays, 'to/env:two'))
+    assert_equal('/e2/two', e1.lookup(:arrays, 'another/env:two'))
+    assert_equal(nil, e1.lookup(:arrays, 'to/env:three'))
+  end
+  
+  def test_lookup_hashes_cascades_through_evns_to_manifest_path_ending_in_pattern
+    e1, e2, e3 = lookup_test_setup
+    
+    assert_equal('/e1/hash/one.rb', e1.lookup(:hashes, 'one'))
+    assert_equal('/e1/hash/two.rb', e1.lookup(:hashes, 'two'))
+    assert_equal('/e2/hash/three.rb', e1.lookup(:hashes, 'three'))
+    assert_equal('/e3/hash/four.rb', e1.lookup(:hashes, 'four'))
+    assert_equal(nil, e1.lookup(:hashes, 'four.rb'))
+    assert_equal(nil, e1.lookup(:hashes, 'five'))
+    assert_equal(nil, e2.lookup(:hashes, 'one'))
+  end
+  
+  def test_lookup_hashes_only_searches_env_mapped_to_root_pattern
+    e1, e2, e3 = lookup_test_setup
+    
+    assert_equal('/e1/hash/one.rb', e1.lookup(:hashes, 'to/env:one'))
+    assert_equal('/e1/hash/two.rb', e1.lookup(:hashes, 'to/env:two'))
+    assert_equal('/e2/hash/two.rb', e1.lookup(:hashes, 'another/env:two'))
+    assert_equal(nil, e1.lookup(:hashes, 'to/env:three'))
+  end
+  
+  def test_lookup_raises_error_if_env_cannot_be_found
+    e1, e2, e3 = lookup_test_setup
+    assert_raise(ArgumentError) { e1.lookup(:arrays, 'non_existant:one') }
+    assert_raise(ArgumentError) { e2.lookup(:arrays, 'to/env:one') }
+  end
+  
 end

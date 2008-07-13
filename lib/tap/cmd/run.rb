@@ -53,28 +53,23 @@ OptionParser.new do |opts|
 end.parse!(ARGV)
 
 if print_manifest
-  tasks_by_load_path = {}
+  
   width = 10
-  env.each do |e|
-    e.tasks.each_pair do |load_path, documents|
-      documents.each do |document|
-        document.attributes.each_pair do |namespace, hash|
-          name = namespace.underscore
-          width = name.length if width < name.length
-          (tasks_by_load_path[load_path] ||= []) << [name, hash[:summary]]
-        end
-      end
-    end
-  end
-
-  max_column = 80 - width - 7
-  tasks_by_load_path.each_pair do |path, tasks|
-    puts "===  tap tasks (#{path})"
-    tasks.each do |task|
-      print("%-#{width}s  # %s\n" % task)#rake.truncate(spec.tdoc.comment, max_column)
+  lines = []
+  tasks = env.lookup_paths_for(:tasks)
+  env.lookup_paths.each_pair do |env_lookup, environment|
+    next unless tasks.has_key?(environment)
+    lines << "=== #{env_lookup} (#{environment.root.root})" 
+    tasks[environment].each do |(path_lookup, (const_name, document))|
+      width = path_lookup.length if width < path_lookup.length
+      lines << [path_lookup, document[const_name][:summary]]
     end
   end
   
+  lines.each do |line|
+    puts(line.kind_of?(Array) ? ("%-#{width}s  # %s" % line) : line)
+  end
+
   if rake 
     puts "=== rake tasks"
     ARGV.clear

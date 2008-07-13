@@ -45,8 +45,8 @@ module Tap
       end
 
       # Returns the TDoc documentation for self. 
-      def tdoc
-        @tdoc ||= TDoc[self]
+      def cdoc
+        @cdoc ||= CDoc.documents_for_const(self.to_s)
       end
       
       def enq(name=nil, config={}, app=App.instance, argv=[])

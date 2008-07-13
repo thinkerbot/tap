@@ -14,7 +14,7 @@ require File.join( File.dirname(__FILE__), "../lib/tap.rb")
 
 # setup the environment
 app = Tap::App.instance
-env = Tap::Env.new({}, app ,app.logger)
+env = Tap::Env.new({}, app, app.logger)
 env.debug_setup if ARGV.delete('-d-')
 
 before = nil
@@ -37,7 +37,9 @@ begin
   else
     env.gems = Tap::Env.known_gems(true)
   end
-
+  
+  # ensure the default command path is in command paths
+  # or better... add env to a default env with these set...
   env.command_paths << File.join( File.dirname(__FILE__), "../lib/tap/cmd")
 
 rescue(Exception)
@@ -47,11 +49,6 @@ rescue(Exception)
   puts $!.backtrace if $DEBUG
   puts "Check #{default_config_file} configurations"
   exit(1)
-end
-
-# alert the user to the root directory if it's not Dir.pwd
-unless app.options.quiet || app.root == File.expand_path(Dir.pwd)
-  puts "root: #{app.root}" 
 end
 
 #
@@ -86,33 +83,24 @@ end
 
 begin
   env.activate
-  
-  available_commands = env.commands
+
   command = ARGV.shift
 
   case command  
   when "--help", "-h", "help", "?", nil 
     # give some help
-    File.open(__FILE__) do |file|
-      bang_line = true
-      file.each_line do |line|
-        if bang_line
-          bang_line = false
-          next
-        end
-        
-        break if line !~ /^#\s?(.*)/
-        puts $1
+    puts Tap::Support::CDoc.usage(File.read(__FILE__))
+    puts "available commands:"
+    
+    commands = env.lookup_paths_for(:commands)
+    env.lookup_paths.each_pair do |env_lookup, environment|
+      next unless commands.has_key?(environment)
+      puts "=== #{env_lookup} (#{environment.root.root})" if commands.length > 1
+      commands[environment].each do |(path_lookup, path)|
+        puts "  #{path_lookup.chomp('.rb')}"
       end
     end
     
-    puts "available commands:"
-
-    commands = available_commands.keys
-    commands.unshift("help")
-    
-    print "  "
-    puts commands.sort.join("\n  ")
     puts
     puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
   when Tap::Support::CommandLine::SPLIT_ARGV_REGEXP
@@ -121,9 +109,8 @@ begin
     ARGV.unshift '--dump'
     load available_commands['run']
   else
-    if available_commands.has_key?(command)
-      # run the command, if it exists
-      load available_commands[command]
+    if path = env.lookup(:commands, File.extname(command) == "" ? "#{command}.rb" : command)
+      load path # run the command, if it exists
     else
       puts "Unknown command: '#{command}'"
       puts "Type 'tap help' for usage information."
