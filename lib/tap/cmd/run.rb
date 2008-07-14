@@ -60,9 +60,9 @@ if print_manifest
   env.lookup_paths.each_pair do |env_lookup, environment|
     next unless tasks.has_key?(environment)
     lines << "=== #{env_lookup} (#{environment.root.root})" 
-    tasks[environment].each do |(path_lookup, (const_name, document))|
+    tasks[environment].each do |(path_lookup, (name, document))|
       width = path_lookup.length if width < path_lookup.length
-      lines << [path_lookup, document[const_name][:summary]]
+      lines << [path_lookup, document[name.camelize][:summary]]
     end
   end
   

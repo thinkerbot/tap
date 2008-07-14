@@ -260,7 +260,7 @@ module Tap
           # as this means that in a single env there are
           # multiple filepaths manifesting the same task
           # constant
-          tasks[name] = [const_name, document]
+          tasks[name] = document
         end
       end
     end
@@ -545,7 +545,11 @@ module Tap
         manifest = env.send(manifest_key)
 
         manifest = case manifest
-        when Hash then manifest
+        when Hash 
+          manifest.to_a.inject({}) do |hash, pair|
+            hash[pair[0]] = pair
+            hash
+          end
         else 
           # no worries of inconsistency... since obj maps to obj,
           # even duplicates will result in only one mapping.
