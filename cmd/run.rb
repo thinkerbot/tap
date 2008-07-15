@@ -11,10 +11,11 @@ app = Tap::App.instance
 #
 # handle options
 #
+
 dump = false
-rake = true
-rake_app = nil
+rake = false
 print_manifest = false
+
 OptionParser.new do |opts|
   
   opts.separator ""
@@ -26,16 +27,8 @@ OptionParser.new do |opts|
     exit
   end
   
-  opts.on('-T', '--task-manifest', 'Print a list of available tasks') do |v|
+  opts.on('-T', '--manifest', 'Print a list of available tasks') do |v|
     print_manifest = true
-  end
-  
-  opts.on('-d', '--debug', 'Trace execution and debug') do |v|
-    app.options.debug = v
-  end
-
-  opts.on('--force', 'Force execution at checkpoints') do |v|
-    app.options.force = v
   end
   
   opts.on('--dump', 'Specifies a default dump task') do |v|
@@ -44,10 +37,6 @@ OptionParser.new do |opts|
   
   opts.on('--[no-]rake', 'Enables or disables rake task handling') do |v|
     rake = v
-  end
-  
-  opts.on('--quiet', 'Suppress logging') do |v|
-    app.options.quiet = v
   end
   
 end.parse!(ARGV)
@@ -65,6 +54,8 @@ if print_manifest
       lines << [path_lookup, document[name.camelize][:summary]]
     end
   end
+  
+  lines << "=== no tap tasks found" if lines.empty?
   
   lines.each do |line|
     puts(line.kind_of?(Array) ? ("%-#{width}s  # %s" % line) : line)
@@ -90,9 +81,9 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
     td = Tap::Support::CommandLine.next_arg(ARGV)
     case
     when rake && td == 'rake'
-      rake_app = env.rake_setup if rake_app == nil
+      rake = env.rake_setup if rake == true
       begin
-        rake_app.enq_top_level(app)
+        rake.enq_top_level(app)
       rescue(RuntimeError)
         if $!.message =~ /^Don't know how to build task '(.*)'$/
           raise "unknown task: #{$1}"

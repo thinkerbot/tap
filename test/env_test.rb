@@ -253,10 +253,14 @@ class EnvTest < Test::Unit::TestCase
     assert_equal({File.expand_path("path/#{Tap::Env::DEFAULT_CONFIG_FILE}") => e}, Tap::Env.instances)
   end
   
-  def test_instantiate_returns_existing_env_in_instances
+  #
+  # Env#instance_for test
+  #
+  
+  def test_instantiate_for_returns_existing_env_in_instances
     e = Tap::Env.new
     Tap::Env.instances[File.expand_path("path.yml")] = e
-    assert_equal(e, Tap::Env.instantiate("path.yml"))
+    assert_equal(e, Tap::Env.instance_for("path.yml"))
   end
   
   #
@@ -756,9 +760,9 @@ class EnvTest < Test::Unit::TestCase
     }, e1.lookup_paths_for(:arrays))
 
     assert_equal({
-      e1 => [['one', '/e1/hash/one.rb'], ['two', '/e1/hash/two.rb']],
-      e2 => [['three', '/e2/hash/three.rb'], ['two', '/e2/hash/two.rb']],
-      e3 => [['four', '/e3/hash/four.rb'], ['three', '/e3/hash/three.rb']]
+      e1 => [['one', ['one', '/e1/hash/one.rb']], ['two', ['two', '/e1/hash/two.rb']]],
+      e2 => [['three', ['three', '/e2/hash/three.rb']], ['two', ['two', '/e2/hash/two.rb']]],
+      e3 => [['four', ['four', '/e3/hash/four.rb']], ['three', ['three', '/e3/hash/three.rb']]]
     }, e1.lookup_paths_for(:hashes))
   end
   

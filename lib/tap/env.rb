@@ -262,6 +262,8 @@ module Tap
     
     config :debug, false, &c.boolean
     
+    config :short_run_options, ['--dump', '--rake'], &c.array
+    
     manifest(:tasks, :load_paths, true) do |tasks, load_path|
       root.glob(load_path, "**/*.rb").each do |fullpath|
         document = Support::CDoc.instance.document_for(fullpath)

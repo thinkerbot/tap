@@ -81,7 +81,7 @@ begin
   command = ARGV.shift
 
   case command  
-  when "--help", "-h", "help", "?", nil 
+  when nil 
     # give some help
     puts Tap::Support::CDoc.usage(File.read(__FILE__))
     puts "available commands:"
@@ -98,10 +98,18 @@ begin
     puts
     puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
   when Tap::Support::CommandLine::SPLIT_ARGV_REGEXP
-    ARGV.unshift command
-    ARGV.unshift '--'
-    ARGV.unshift '--dump'
-    load available_commands['run']
+    if ARGV.empty?
+      ARGV.unshift '-T'     
+    else
+      ARGV.unshift command
+      ARGV.unshift '--'
+    end
+    
+    env.short_run_options.reverse_each do |opt|
+      ARGV.unshift(opt)
+    end
+    
+    load tap.lookup(:commands, 'run.rb')  
   else
     if path = tap.lookup(:commands, File.extname(command) == "" ? "#{command}.rb" : command)
       load path # run the command, if it exists
