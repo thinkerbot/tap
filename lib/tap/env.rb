@@ -48,18 +48,34 @@ module Tap
       # The Env is initialized using configurations read from the env config file using
       # read_config, and a Root initialized to the config file directory. An instance 
       # will be initialized regardless of whether the config file or directory exists.
-      def instantiate(path)
+      def instantiate(path_or_root, default_config={}, logger=nil)
+        path = path_or_root.kind_of?(Root) ? path_or_root.root : path_or_root
+        path = pathify(path)
+        
+        begin
+          root = path_or_root.kind_of?(Root) ? path_or_root : Root.new(File.dirname(path))
+          config = default_config.merge(read_config(path))
+          
+          # note the assignment of env to instances MUST occur before
+          # reconfigure to prevent infinite looping
+          (instances[path] = Env.new({}, root, logger)).reconfigure(config) do |unhandled_configs|
+            yield(unhandled_configs) if block_given?
+          end
+        rescue(Exception)
+          raise Env::ConfigError.new($!, path)
+        end
+      end
+      
+      def pathify(path)
         if File.directory?(path) || (!File.exists?(path) && File.extname(path) == "")
           path = File.join(path, DEFAULT_CONFIG_FILE) 
         end
-        path = File.expand_path(path)
-        
-        # return the existing instance if possible
-        return instances[path] if instances.has_key?(path)
-        
-        # note the assignment of env to instances MUST occur before
-        # reconfigure to prevent infinite looping
-        (instances[path] = Env.new({}, Root.new(File.dirname(path)))).reconfigure(read_config(path))
+        File.expand_path(path)
+      end
+      
+      def instance_for(path)
+        path = pathify(path)
+        instances.has_key?(path) ? instances[path] : instantiate(path)
       end
       
       # Templates the input filepath using ERB then loads it as YAML.  
@@ -175,7 +191,8 @@ module Tap
     
     # The default config file path
     DEFAULT_CONFIG_FILE = "tap.yml"
-    
+    GLOBAL_CONFIG_FILE = File.expand_path("~/.tap/tap.yml")
+
     # The Root directory structure for self.
     attr_reader :root
     
@@ -210,7 +227,7 @@ module Tap
         
         case spec
         when nil then log(:warn, "unknown gem: #{gem_name}", Logger::WARN)
-        else Env.instantiate(spec.full_gem_path)
+        else Env.instance_for(spec.full_gem_path)
         end
         
         spec
@@ -222,7 +239,7 @@ module Tap
     config_attr :env_paths, [] do |input|
       check_configurable
       @env_paths = [*input].compact.collect do |path| 
-        Env.instantiate(root[path]).env_path
+        Env.instance_for(root[path]).env_path
       end.uniq
       reset_envs
     end
@@ -491,21 +508,40 @@ module Tap
       @active
     end
     
+    def unshift(env)
+      self.envs = envs.unshift(env)
+    end
+    
+    def push(env)
+      self.envs = envs.push(env)
+    end
+    
     # Passes each nested env to the block in order, starting with self.
     def each
       yield(self)
+      visited = [self]
+      
       envs.each do |env|
+        next if visited.include?(env)
+        
         env.each do |e|
+          next if visited.include?(e)
           yield(e)
+          visited << e
         end
       end
     end
     
     # Passes each nested env to the block in reverse order, ending with self.
     def reverse_each
+      visited = []
       envs.reverse_each do |env|
+        next if visited.include?(env)
+        
         env.reverse_each do |e|
+          next if visited.include?(e)
           yield(e)
+          visited << e
         end
       end
       yield(self)
@@ -662,15 +698,39 @@ module Tap
       raise "path configurations are disabled when active" if active?
     end
     
+    def check_consistency
+      envs == envs.uniq.delete_if {|e| e == self }
+    end
+    
+    def envs=(envs)
+      @envs = envs.uniq.delete_if {|e| e == self }
+    end
+    
     def reset_envs
-      @envs = env_paths.collect do |path| 
-        Env.instantiate(path)
+      self.envs = env_paths.collect do |path| 
+        Env.instance_for(path)
       end + gems.collect do |spec|
-        Env.instantiate(spec.full_gem_path)
-      end.uniq
+        Env.instance_for(spec.full_gem_path)
+      end
     end
     
     class InconsistencyError < StandardError
+    end
+    
+    class ConfigError < StandardError
+      attr_reader :original_error, :env_path
+      
+      def initialize(original_error, env_path)
+        @original_error = original_error
+        @env_path = env_path
+        super()
+      end
+      
+      def message
+        "Configuration error: #{original_error.message}\n" +
+        ($DEBUG ? "#{original_error.backtrace}\n" : "") + 
+        "Check '#{env_path}' configurations"
+      end
     end
   end
 end

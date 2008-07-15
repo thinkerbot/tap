@@ -19,10 +19,8 @@ module Rails # :nodoc:
       
       # Used to discover generators within tap.  Adapted from code
       # in 'rails/rails_generator/lookup.rb'
-      def self.use_tap_sources!
+      def self.use_env_sources!
         reset_sources
-        sources << PathSource.new(:builtin, "#{File.dirname(__FILE__)}/generator/generators")
-        
         Tap::Env.instance.config['generator_paths'].each do |path|
           sources << PathSource.new(:builtin, path)
         end
