@@ -24,11 +24,11 @@ module Tap
       # Identifies source files for TDoc documentation.
       attr_accessor :source_file # :nodoc:
       
-      DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= tdoc.summary.to_s.strip.empty? ? '' : ' -- ' %><%= tdoc.summary %>
+      DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= comment.summary.to_s.strip.empty? ? '' : ' -- ' %><%= comment.summary %>
 
-<% unless tdoc.desc.empty? %>
+<% unless comment.empty? %>
 
-<% tdoc.desc.to_s(' ', nil, 78, 2).each do |line| %>
+<% comment.to_s(' ', nil, 78, 2).each do |line| %>
   <%= line %>
 <% end %>
 <% end %>
@@ -45,8 +45,8 @@ module Tap
       end
 
       # Returns the TDoc documentation for self. 
-      def cdoc
-        @cdoc ||= CDoc.documents_for_const(self.to_s)
+      def tdoc
+        @tdoc ||= TDoc.instance.document_for_const(self.to_s)
       end
       
       def enq(name=nil, config={}, app=App.instance, argv=[])
@@ -74,11 +74,23 @@ module Tap
         opts.separator "options:"
         
         opts.on_tail("-h", "--help", "Print this help") do
-          opts.banner = "usage: tap run -- #{self.to_s.underscore} #{tdoc.args}"
+          tdoc.resolve(nil, /^\s*def\s+process\((.*?)\)/) do |comment, match|
+            tdoc[''][:args] ||= match[1].split(',').collect do |arg|
+              arg = arg.strip.upcase
+              case arg
+              when /^&/ then nil
+              when /^\*/ then arg[1..-1] + "..."
+              else arg
+              end
+            end
+          end
+
+          comment = tdoc['']['manifest'] || Comment.new
+          opts.banner = "usage: tap run -- #{self.to_s.underscore} #{tdoc[''][:args].join(' ')}"
           
           print Templater.new(help_template, 
             :task_class => self, 
-            :tdoc => tdoc, 
+            :comment => comment, 
             :opts => opts
           ).build
           

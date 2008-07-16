@@ -4,7 +4,6 @@ require 'tap/support/configurable'
 # causes an error with generators... something in the way Dependencies is set...
 # autoload(:Dependencies, 'tap/support/dependencies')
 Tap::Support.autoload(:Rake, 'tap/support/rake')
-Tap::Support.autoload(:TDoc, 'tap/support/tdoc')
 
 module Tap
 
@@ -189,10 +188,12 @@ module Tap
       end
     end
     
+    # The global config file path
+    GLOBAL_CONFIG_FILE = File.expand_path("~/.tap.yml")
+    
     # The default config file path
     DEFAULT_CONFIG_FILE = "tap.yml"
-    GLOBAL_CONFIG_FILE = File.expand_path("~/.tap/tap.yml")
-
+    
     # The Root directory structure for self.
     attr_reader :root
     
@@ -255,22 +256,24 @@ module Tap
     # Designate paths for discovering generators.  
     path_config :generator_paths, ["lib/generators"]
     
+    #-- TODO - move to tap as unhandled configs
+    
     # Specifies automatic loading of dependencies through
     # the active_support Dependencies module.  Naturally,
     # active_support must be installed for this to work.
     static_config :use_dependencies, false, &c.boolean
-    
-    config :debug, false, &c.boolean
-    
+    config :debug, false, &c.boolean  
     config :short_run_options, ['--dump', '--rake'], &c.array
+    
+    #--
     
     manifest(:tasks, :load_paths, true) do |tasks, load_path|
       root.glob(load_path, "**/*.rb").each do |fullpath|
-        document = Support::CDoc.instance.document_for(fullpath)
+        default_const_name = root.relative_filepath(load_path, fullpath).chomp('.rb').camelize
+        document = Support::TDoc.instance.document_for(fullpath, default_const_name)
         
         Support::Document.scan(File.read(fullpath), 'manifest') do |const_name, key, comment|
-          const_name = root.relative_filepath(load_path, fullpath).chomp('.rb').camelize if const_name.empty?
-          document[const_name][:summary] = comment
+          document[const_name][key] = comment
         end
         
         document.const_names.each do |const_name|
@@ -616,7 +619,7 @@ module Tap
       envs.each do |env|
         manifest = env.send(manifest_key)
         if manifest.kind_of?(Hash)
-          manifest.each_pair {|path, obj| return(obj) if path[-key.length, key.length] == key }
+          manifest.each_pair {|path, obj| return([path, obj]) if path[-key.length, key.length] == key }
         else 
           manifest.each {|obj| return(obj) if obj[-key.length, key.length] == key }
         end

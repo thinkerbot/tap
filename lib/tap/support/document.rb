@@ -60,19 +60,21 @@ module Tap
       attr_reader :source_file
       attr_reader :code_comments
       attr_reader :const_attrs
+      attr_reader :default_const_name
 
-      def initialize(source_file=nil, code_comments=[], const_attrs={})
+      def initialize(source_file=nil, default_const_name='', code_comments=[], const_attrs={})
         self.source_file = source_file
         @code_comments = code_comments
         @const_attrs = const_attrs
         @resolved = false
+        @default_const_name = default_const_name
       end
       
       def source_file=(source_file)
         @source_file = source_file == nil ? nil : File.expand_path(source_file)
       end
 
-      # CDoc the specified line numbers to source_file.
+      # TDoc the specified line numbers to source_file.
       # Returns a Comment object corresponding to the line.
       def register(line_number)
         comment = code_comments.find {|c| c.line_number == line_number }
@@ -91,7 +93,7 @@ module Tap
       end
       
       def [](const_name)
-        const_attrs[const_name] ||= {}
+        const_attrs[const_name.empty? ? default_const_name : const_name] ||= {}
       end
       
       include Enumerable
@@ -117,7 +119,7 @@ module Tap
         false
       end
       
-      def resolve(str=nil)
+      def resolve(str=nil, comment_regexp=nil)
         return(false) if resolved?
         
         if str == nil 
@@ -130,7 +132,13 @@ module Tap
         end
         
         lines = str.split(/\r?\n/)
-
+        
+        lines.each_with_index do |line, line_number|
+          next unless line =~ comment_regexp
+          comment = register(line_number)
+          yield(comment, $~) if block_given?
+        end unless comment_regexp == nil
+          
         code_comments.collect! do |comment|
           line_number = comment.line_number
           comment.subject = lines[line_number]

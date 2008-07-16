@@ -793,10 +793,10 @@ class EnvTest < Test::Unit::TestCase
   def test_lookup_hashes_cascades_through_evns_to_manifest_path_ending_in_pattern
     e1, e2, e3 = lookup_test_setup
     
-    assert_equal('/e1/hash/one.rb', e1.lookup(:hashes, 'one'))
-    assert_equal('/e1/hash/two.rb', e1.lookup(:hashes, 'two'))
-    assert_equal('/e2/hash/three.rb', e1.lookup(:hashes, 'three'))
-    assert_equal('/e3/hash/four.rb', e1.lookup(:hashes, 'four'))
+    assert_equal(['one', '/e1/hash/one.rb'], e1.lookup(:hashes, 'one'))
+    assert_equal(['two', '/e1/hash/two.rb'], e1.lookup(:hashes, 'two'))
+    assert_equal(['three', '/e2/hash/three.rb'], e1.lookup(:hashes, 'three'))
+    assert_equal(['four', '/e3/hash/four.rb'], e1.lookup(:hashes, 'four'))
     assert_equal(nil, e1.lookup(:hashes, 'four.rb'))
     assert_equal(nil, e1.lookup(:hashes, 'five'))
     assert_equal(nil, e2.lookup(:hashes, 'one'))
@@ -805,9 +805,9 @@ class EnvTest < Test::Unit::TestCase
   def test_lookup_hashes_only_searches_env_mapped_to_root_pattern
     e1, e2, e3 = lookup_test_setup
     
-    assert_equal('/e1/hash/one.rb', e1.lookup(:hashes, 'to/env:one'))
-    assert_equal('/e1/hash/two.rb', e1.lookup(:hashes, 'to/env:two'))
-    assert_equal('/e2/hash/two.rb', e1.lookup(:hashes, 'another/env:two'))
+    assert_equal(['one', '/e1/hash/one.rb'], e1.lookup(:hashes, 'to/env:one'))
+    assert_equal(['two', '/e1/hash/two.rb'], e1.lookup(:hashes, 'to/env:two'))
+    assert_equal(['two', '/e2/hash/two.rb'], e1.lookup(:hashes, 'another/env:two'))
     assert_equal(nil, e1.lookup(:hashes, 'to/env:three'))
   end
   

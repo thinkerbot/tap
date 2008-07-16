@@ -218,12 +218,9 @@ examples:
 
 options:
     -h, --help                       Show this message
-    -T, --task-manifest              Print a list of available tasks
-    -d, --debug                      Trace execution and debug
-        --force                      Force execution at checkpoints
+    -T, --manifest                   Print a list of available tasks
         --dump                       Specifies a default dump task
         --[no-]rake                  Enables or disables rake task handling
-        --quiet                      Suppress logging
 }
       # manifest
       

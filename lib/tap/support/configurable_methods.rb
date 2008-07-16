@@ -1,6 +1,6 @@
 require 'tap/support/class_configuration'
 require 'tap/support/validation'
-require 'tap/support/cdoc'
+require 'tap/support/tdoc'
 
 module Tap
   module Support
@@ -221,12 +221,12 @@ module Tap
           end
         end
 
-        # register with CDoc so that all extra documentation can be extracted
+        # register with TDoc so that all extra documentation can be extracted
         caller.each_with_index do |line, index|
           case line
           when /in .config.$/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
-            comment = CDoc.instance.register($1, $3.to_i - 1)
+            comment = TDoc.instance.register($1, $3.to_i - 1)
             options[:desc] = comment if options[:desc] == nil
             options[:summary] = comment if options[:summary] == nil
             break

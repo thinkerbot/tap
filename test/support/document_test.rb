@@ -319,6 +319,48 @@ not a subject line
     assert_equal "subject line two", c2.subject
     assert_equal 10, c2.line_number
   end
+  
+  def test_resolve_adds_code_comments_for_line_matching_comment_regexp
+    str = %Q{
+# comment one
+# spanning multiple lines
+#
+#   indented line
+#    
+subject line one
+
+# comment two
+
+subject line two
+
+# ignored
+not a subject line
+}
+    doc.resolve(str, /subject line/)
+    c1, c2 = doc.code_comments
+    
+    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c1.lines
+    assert_equal "subject line one", c1.subject
+    assert_equal 6, c1.line_number
+
+    assert_equal [['comment two']], c2.lines
+    assert_equal "subject line two", c2.subject
+    assert_equal 10, c2.line_number
+  end
+  
+  def test_resolve_passes_matched_code_comment_and_regexp_match_to_block_if_given
+    str = %Q{
+line two match
+line three match
+}
+   
+    comment_lines = []
+    doc.resolve(str, /line (.*) /) do |comment, match|
+      comment_lines << [comment.line_number, match[1]]
+    end
+    
+    assert_equal [[1,'two'], [2,'three']], comment_lines
+  end
 
   def test_resolve_reads_const_attrs_from_str
     doc.resolve %Q{

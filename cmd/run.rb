@@ -13,7 +13,7 @@ app = Tap::App.instance
 #
 
 dump = false
-rake = false
+rake = true
 print_manifest = false
 
 OptionParser.new do |opts|
@@ -51,7 +51,7 @@ if print_manifest
     lines << "=== #{env_lookup} (#{environment.root.root})" 
     tasks[environment].each do |(path_lookup, (name, document))|
       width = path_lookup.length if width < path_lookup.length
-      lines << [path_lookup, document[name.camelize][:summary]]
+      lines << [path_lookup, document[name.camelize]['manifest']]
     end
   end
   
