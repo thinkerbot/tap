@@ -269,15 +269,15 @@ module Tap
     
     manifest(:tasks, :load_paths, true) do |tasks, load_path|
       root.glob(load_path, "**/*.rb").each do |fullpath|
-        default_const_name = root.relative_filepath(load_path, fullpath).chomp('.rb').camelize
-        document = Support::TDoc.instance.document_for(fullpath, default_const_name)
+        document = Support::TDoc.instance.document_for(fullpath)
         
         Support::Document.scan(File.read(fullpath), 'manifest') do |const_name, key, comment|
           document[const_name][key] = comment
         end
         
         document.const_names.each do |const_name|
-          name = const_name.underscore
+          name = const_name == "" ? root.relative_filepath(load_path, fullpath).chomp('.rb') : const_name.underscore
+          
           # raise manifest error if tasks.has_key?(name)
           # as this means that in a single env there are
           # multiple filepaths manifesting the same task

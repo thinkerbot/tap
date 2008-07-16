@@ -24,11 +24,11 @@ module Tap
       # Identifies source files for TDoc documentation.
       attr_accessor :source_file # :nodoc:
       
-      DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= comment.summary.to_s.strip.empty? ? '' : ' -- ' %><%= comment.summary %>
+      DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= manifest.subject.to_s.strip.empty? ? '' : ' -- ' %><%= manifest.subject %>
 
-<% unless comment.empty? %>
+<% unless manifest.empty? %>
 
-<% comment.to_s(' ', nil, 78, 2).each do |line| %>
+<% manifest.to_s(' ', nil, 78, 2).each do |line| %>
   <%= line %>
 <% end %>
 <% end %>
@@ -74,23 +74,27 @@ module Tap
         opts.separator "options:"
         
         opts.on_tail("-h", "--help", "Print this help") do
-          tdoc.resolve(nil, /^\s*def\s+process\((.*?)\)/) do |comment, match|
-            tdoc[''][:args] ||= match[1].split(',').collect do |arg|
+          tdoc.resolve(nil, /^\s*def\s+process(\((.*?)\))?/) do |comment, match|
+            comment.subject = match[2].to_s.split(',').collect do |arg|
               arg = arg.strip.upcase
               case arg
               when /^&/ then nil
               when /^\*/ then arg[1..-1] + "..."
               else arg
               end
-            end
+            end.join(', ')
+
+            tdoc['']['args'] ||= comment
           end
 
-          comment = tdoc['']['manifest'] || Comment.new
-          opts.banner = "usage: tap run -- #{self.to_s.underscore} #{tdoc[''][:args].join(' ')}"
+          manifest = tdoc[self.to_s]['manifest'] || tdoc['']['manifest'] || Comment.new
+          args = tdoc[self.to_s]['args'] || tdoc['']['args'] || Comment.new
+
+          opts.banner = "usage: tap run -- #{self.to_s.underscore} #{args.subject}"
           
           print Templater.new(help_template, 
             :task_class => self, 
-            :comment => comment, 
+            :manifest => manifest, 
             :opts => opts
           ).build
           

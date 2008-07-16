@@ -39,7 +39,7 @@ module Tap
         source_file = File.expand_path(source_file)
         document = registry.find {|doc| doc.source_file == source_file }
         if document == nil
-          document = Document.new(source_file, default_const_name)
+          document = Document.new(source_file)
           registry << document
         end
         document
@@ -60,7 +60,7 @@ module Tap
           path_suffix = const_name.underscore.chomp('.rb') + '.rb'
           $:.each do |load_path|
             path = File.join(load_path, path_suffix)
-            return document_for(path, const_name.to_s) if File.exists?(path)
+            return document_for(path) if File.exists?(path)
           end
         when 1 then docs[0]
         else raise "multiple documents found for: #{const_name}"
@@ -69,10 +69,9 @@ module Tap
       
       # TDoc the specified line numbers to source_file.
       # Returns a CodeComment object corresponding to the line.
-      def register(source_file, line_number=nil)
+      def register(source_file, line_number)
         document = document_for(source_file)
-        document.register(line_number) if line_number != nil
-        document
+        document.register(line_number)
       end
 
       # Returns true if the comments for source_file are frozen.

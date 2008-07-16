@@ -60,14 +60,12 @@ module Tap
       attr_reader :source_file
       attr_reader :code_comments
       attr_reader :const_attrs
-      attr_reader :default_const_name
 
-      def initialize(source_file=nil, default_const_name='', code_comments=[], const_attrs={})
+      def initialize(source_file=nil, code_comments=[], const_attrs={})
         self.source_file = source_file
         @code_comments = code_comments
         @const_attrs = const_attrs
         @resolved = false
-        @default_const_name = default_const_name
       end
       
       def source_file=(source_file)
@@ -93,7 +91,7 @@ module Tap
       end
       
       def [](const_name)
-        const_attrs[const_name.empty? ? default_const_name : const_name] ||= {}
+        const_attrs[const_name] ||= {}
       end
       
       include Enumerable
@@ -141,7 +139,7 @@ module Tap
           
         code_comments.collect! do |comment|
           line_number = comment.line_number
-          comment.subject = lines[line_number]
+          comment.subject = lines[line_number] if comment.subject == nil
 
           # remove whitespace lines
           line_number -= 1

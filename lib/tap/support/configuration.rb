@@ -128,7 +128,7 @@ module Tap
       
       def summary
         summary = @attributes[:summary]
-        summary.respond_to?(:subject) ? summary.subject : summary
+        summary.respond_to?(:subject) ? summary.summary : summary
       end
       
       def desc

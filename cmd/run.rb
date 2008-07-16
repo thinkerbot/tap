@@ -51,7 +51,7 @@ if print_manifest
     lines << "=== #{env_lookup} (#{environment.root.root})" 
     tasks[environment].each do |(path_lookup, (name, document))|
       width = path_lookup.length if width < path_lookup.length
-      lines << [path_lookup, document[name.camelize]['manifest']]
+      lines << [path_lookup, document[name.camelize]['manifest'] || document['']['manifest']]
     end
   end
   

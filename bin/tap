@@ -81,7 +81,7 @@ begin
   command = ARGV.shift
 
   case command  
-  when nil 
+  when nil, '--help'
     # give some help
     puts Tap::Support::TDoc.usage(__FILE__)
     puts
