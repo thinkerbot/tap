@@ -98,7 +98,11 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
     else  
 
       # attempt lookup the task class
-      task_class = env.constantize(td) 
+      name, document = env.lookup(:tasks, td) 
+      task_class = name == nil ? nil : name.camelize.try_constantize do |const_name|
+        require document.source_file
+        const_name.constantize
+      end
 
       # unless a Tap::Task was found, treat the
       # args as a specification for Rake.

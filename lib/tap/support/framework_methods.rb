@@ -1,8 +1,6 @@
 module Tap
   module Support
-    autoload(:TDoc, 'tap/support/tdoc')
-    autoload(:CommandLine, 'tap/support/command_line')
-    
+
     # FrameworkMethods encapsulates class methods related to Framework.
     module FrameworkMethods
       
