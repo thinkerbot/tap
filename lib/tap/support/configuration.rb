@@ -47,6 +47,7 @@ module Tap
       attr_reader :reader
       attr_reader :writer
       attr_reader :duplicable
+      attr_writer :code_comment
       
       def initialize(name, default=nil, attributes={})
         @name = name
@@ -71,15 +72,6 @@ module Tap
           attributes[key] = send(key)
         end
         attributes
-      end
-      
-      def line_number
-        # won't work after resolution!
-        @registration ? (self.class.registry[@registration[0]][@registration[1]]) : nil
-      end
-      
-      def source_file
-        @registration ? @registration[0] : nil
       end
       
       # Sets the default value for self and determines if the
@@ -110,6 +102,10 @@ module Tap
         @writer = value.to_sym
       end
       
+      def code_comment
+        @code_comment ||= Comment.new
+      end
+      
       def arg_name
         @attributes[:arg_name] || name.to_s.upcase
       end
@@ -119,7 +115,7 @@ module Tap
       end
       
       def long
-        @attributes[:long] || name
+        @attributes[:long] || name.to_s
       end
       
       def short
@@ -127,22 +123,19 @@ module Tap
       end
       
       def summary
-        summary = @attributes[:summary]
-        summary.respond_to?(:subject) ? summary.summary : summary
+        @attributes[:summary] || code_comment.summary
       end
       
       def desc
-        @attributes[:desc]
+        @attributes[:desc] || code_comment.to_s
       end
       
       def empty?
-        # Hack to allow Configuration to act as it's own description
-        # in OptionParser
-        to_str.empty?
+        summary.empty?
       end
       
       def to_str
-        summary.to_s
+        summary
       end
       
       def to_option_parser_argv
@@ -165,7 +158,7 @@ module Tap
           raise "unknown arg_type: #{arg_type}"
         end
         
-        argv << self # such that self acts as desc
+        argv << self
         argv  
       end
       
@@ -173,7 +166,7 @@ module Tap
       def ==(another)
         another.kind_of?(Configuration) && 
         self.name == another.name &&
-        #self.attributes == another.attributes &&
+        self.attributes == another.attributes &&
         self.default(false) == another.default(false)
       end
       

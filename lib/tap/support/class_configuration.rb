@@ -118,11 +118,19 @@ module Tap
         InstanceConfiguration.new(self, receiver)
       end
       
+      def resolve_documentation
+        code_comments = values.collect {|config| config.code_comment }.flatten
+        TDoc.instance.registry.each do |doc| 
+          next if (code_comments & doc.code_comments).empty?
+          doc.resolve
+        end
+      end
+      
       # The path to the :doc template (see format_str)
-      DOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/doc.erb"
+      DOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../../generators/config/templates/doc.erb"
       
       # The path to the :nodoc template (see format_str)
-      NODOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/nodoc.erb"
+      NODOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../../generators/config/templates/nodoc.erb"
 
       # Formats the configurations using the specified template.  Two default
       # templates are defined, :doc and :nodoc.  These map to the contents of
@@ -150,6 +158,8 @@ module Tap
       # The input template may be a String or an ERB; either may be used to 
       # initialize the templater.
       def format_str(template=:doc, target="")
+        resolve_documentation
+        
         template = case template
         when :doc then File.read(DOC_TEMPLATE_PATH)
         when :nodoc then File.read(NODOC_TEMPLATE_PATH)

@@ -57,19 +57,71 @@ module Tap
         end
       end
       
+      include Enumerable
+      
+      # The source file for self, used in resolving comments and
+      # attributes.
       attr_reader :source_file
+      
+      # An array of Comment objects identifying lines resolved or
+      # to-be-resolved for self.
       attr_reader :code_comments
+      
+      # A hash of (const_name, attributes) pairs tracking the constant 
+      # attributes resolved or to-be-resolved for self.
       attr_reader :const_attrs
 
-      def initialize(source_file=nil, code_comments=[], const_attrs={})
+      def initialize(source_file=nil)
         self.source_file = source_file
-        @code_comments = code_comments
-        @const_attrs = const_attrs
+        @code_comments = []
+        @const_attrs = {}
         @resolved = false
       end
       
+      # Sets the source file for self.  Expands the source file path if necessary.
       def source_file=(source_file)
         @source_file = source_file == nil ? nil : File.expand_path(source_file)
+      end
+
+      # Returns the attributes for the specified const_name.
+      def attributes(const_name)
+        const_attrs[const_name] ||= {}
+      end
+      
+      # Returns default document attributes (ie attributes(''))
+      def default_attributes
+        attributes('')
+      end
+      
+      # Returns the attributes for const_name merged to the default
+      # document attributes.
+      def [](const_name)
+        default_attributes.merge(attributes(const_name))
+      end
+      
+      # Yields each const_name and attributes to the block; const_names where
+      # the attributes are empty are skipped.
+      def each
+        const_attrs.each_pair do |const_name, attrs|
+          yield(const_name, attrs) unless attrs.empty?
+        end
+      end
+      
+      def has_const?(const_name)
+        const_attrs.each_pair do |constname, attrs|
+          next unless constname == const_name
+          return !attrs.empty?
+        end
+        
+        false
+      end
+      
+      def const_names
+        names = []
+        const_attrs.each_pair do |const_name, attrs|
+          names << const_name unless attrs.empty?
+        end
+        names
       end
 
       # TDoc the specified line numbers to source_file.
@@ -84,40 +136,13 @@ module Tap
 
         comment
       end
-
+      
       # Returns true if the code_comments for source_file are frozen.
       def resolved?
         @resolved
       end
       
-      def [](const_name)
-        const_attrs[const_name] ||= {}
-      end
-      
-      include Enumerable
-      
-      def each
-        const_attrs.each_pair do |const_name, attrs|
-          yield(const_name, attrs) unless attrs.empty?
-        end
-      end
-      
-      def const_names
-        names = []
-        const_attrs.each_pair do |const_name, attrs|
-          names << const_name unless attrs.empty?
-        end
-        names
-      end
-      
-      def has_const?(const_name)
-        const_attrs.each_pair do |constname, attrs|
-          return true unless attrs.empty?
-        end
-        false
-      end
-      
-      def resolve(str=nil, comment_regexp=nil)
+      def resolve(str=nil, comment_regexp=nil) # :yields: comment, match
         return(false) if resolved?
         
         if str == nil 
@@ -126,11 +151,10 @@ module Tap
         end
         
         Document.parse(str) do |const_name, key, comment|
-          self[const_name][key] = comment
+          attributes(const_name)[key] = comment
         end
         
         lines = str.split(/\r?\n/)
-        
         lines.each_with_index do |line, line_number|
           next unless line =~ comment_regexp
           comment = register(line_number)

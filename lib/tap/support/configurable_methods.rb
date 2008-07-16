@@ -220,20 +220,20 @@ module Tap
           when true, false, nil then options.delete(option)
           end
         end
-
+        
+        config = configurations.add(key, value, options)
+        
         # register with TDoc so that all extra documentation can be extracted
         caller.each_with_index do |line, index|
           case line
           when /in .config.$/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
-            comment = TDoc.instance.register($1, $3.to_i - 1)
-            options[:desc] = comment if options[:desc] == nil
-            options[:summary] = comment if options[:summary] == nil
+            config.code_comment = TDoc.instance.register($1, $3.to_i - 1)
             break
           end
         end
         
-        configurations.add(key, value, options)
+        config
       end
 
       # Alias for Tap::Support::Validation

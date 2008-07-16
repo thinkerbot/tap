@@ -35,7 +35,7 @@ module Tap
       
       # Returns the document in registry for the specified source file.
       # If no such document exists, one will be created for it.
-      def document_for(source_file, default_const_name=nil)
+      def document_for(source_file)
         source_file = File.expand_path(source_file)
         document = registry.find {|doc| doc.source_file == source_file }
         if document == nil
@@ -44,7 +44,7 @@ module Tap
         end
         document
       end
-      
+
       # Returns an array of documents in registry for which
       # document.has_const?(const_name) == true
       def documents_for_const(const_name)

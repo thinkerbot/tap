@@ -113,6 +113,20 @@ module Tap
           true
         end
         
+        def wrap(lines, cols=80, tabsize=2)
+          lines.collect do |line|
+            line = line.gsub(/\t/, " " * tabsize) unless tabsize == nil
+        
+            if line.strip.empty? 
+              line
+            else
+              # wrapping algorithm is slightly modified from 
+              # http://blog.macromates.com/2006/wrapping-text-with-regular-expressions/
+              line.gsub(/(.{1,#{cols}})( +|$\r?\n?)|(.{1,#{cols}})/, "\\1\\3\n").split(/\s*\n/)
+            end
+          end.flatten
+        end
+        
         private
         
         def categorize(fragment, indent)

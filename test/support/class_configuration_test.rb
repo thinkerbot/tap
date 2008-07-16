@@ -289,19 +289,17 @@ class ClassConfigurationTest < Test::Unit::TestCase
 # ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
 
-# trailing comment
 trailing: trailing value
 
 # leading comment
 leading: leading value
 
-# Line one of a long multiline leading comment
-# Line two of a long multiline leading comment
-# Line three of a long multiline leading comment
+# Line one of a long multiline leading comment Line
+# two of a long multiline leading comment Line three
+# of a long multiline leading comment
 long_leading: long_leading value
 
 # leading of leading_and_trailing comment
-# trailing of leading_and_trailing comment
 leading_and_trailing: leading_and_trailing value
 
 no_comment: no_comment value
@@ -334,19 +332,17 @@ no_comment: no_comment value
 # ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
 
-# trailing comment
 trailing: new trailing value
 
 # leading comment
 leading: leading value
 
-# Line one of a long multiline leading comment
-# Line two of a long multiline leading comment
-# Line three of a long multiline leading comment
+# Line one of a long multiline leading comment Line
+# two of a long multiline leading comment Line three
+# of a long multiline leading comment
 long_leading: long_leading value
 
 # leading of leading_and_trailing comment
-# trailing of leading_and_trailing comment
 leading_and_trailing: leading_and_trailing value
 
 #no_comment: 

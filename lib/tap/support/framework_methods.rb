@@ -8,7 +8,14 @@ module Tap
       
       # ConfigurableMethods initializes base.configurations on extend.
       def self.extended(base)
-        base.instance_variable_set(:@source_file, nil)
+        caller.each_with_index do |line, index|
+          case line
+          when /\/framework.rb/ then next
+          when /^(([A-z]:)?[^:]+):(\d+)/
+            base.instance_variable_set(:@tdoc, TDoc.instance.document_for($1))
+            break
+          end
+        end
         base.instance_variable_set(:@help_template, DEFAULT_HELP_TEMPLATE)
       end
       
@@ -17,12 +24,13 @@ module Tap
       # the configurations of the parent class.
       def inherited(child)
         super
-        child.instance_variable_set(:@source_file, nil)
+        caller.first =~ /^(([A-z]:)?[^:]+):(\d+)/
+        child.instance_variable_set(:@tdoc, TDoc.instance.document_for($1))
         child.instance_variable_set(:@help_template, help_template)
       end
       
       # Identifies source files for TDoc documentation.
-      attr_accessor :source_file # :nodoc:
+      attr_reader :tdoc
       
       DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= manifest.subject.to_s.strip.empty? ? '' : ' -- ' %><%= manifest.subject %>
 
@@ -44,11 +52,6 @@ module Tap
         @default_name ||= to_s.underscore
       end
 
-      # Returns the TDoc documentation for self. 
-      def tdoc
-        @tdoc ||= TDoc.instance.document_for_const(self.to_s)
-      end
-      
       def enq(name=nil, config={}, app=App.instance, argv=[])
         new(name, config, app).enq(*argv)
       end
@@ -86,9 +89,11 @@ module Tap
 
             tdoc['']['args'] ||= comment
           end
+          
+          configurations.resolve_documentation
 
-          manifest = tdoc[self.to_s]['manifest'] || tdoc['']['manifest'] || Comment.new
-          args = tdoc[self.to_s]['args'] || tdoc['']['args'] || Comment.new
+          manifest = tdoc[self.to_s]['manifest'] || Comment.new
+          args = tdoc[self.to_s]['args'] || Comment.new
 
           opts.banner = "usage: tap run -- #{self.to_s.underscore} #{args.subject}"
           

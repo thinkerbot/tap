@@ -269,6 +269,87 @@ skipped
   end
 
   #
+  # source_file= test
+  #
+  
+  def test_set_source_file_sets_source_file_to_the_expanded_input_path
+    assert_nil doc.source_file
+    doc.source_file = "path/to/file.txt"
+    assert_equal File.expand_path("path/to/file.txt"), doc.source_file
+  end
+  
+  def test_source_file_may_be_set_to_nil
+    doc.source_file = "path/to/file.txt"
+    assert_not_nil doc.source_file
+    doc.source_file = nil
+    assert_nil doc.source_file
+  end
+  
+  #
+  # attributes test
+  #
+  
+  def test_attributes_returns_attributes_associated_with_the_const_name
+    doc.const_attrs['Const::Name'] = {:one => 1}
+    assert_equal({:one => 1}, doc.attributes('Const::Name'))
+  end
+  
+  def test_attributes_initializes_hash_in_const_attrs_if_necessary
+    assert doc.const_attrs.empty?
+    assert_equal({}, doc.attributes('Const::Name'))
+    assert_equal({'Const::Name' => {}}, doc.const_attrs)
+  end
+  
+  #
+  # defualt_attributes test
+  #
+  
+  def test_default_attributes_returns_attributes_for_empty_const_name
+    doc.const_attrs[''] = {:one => 1}
+    assert_equal({:one => 1}, doc.attributes(''))
+    assert_equal({:one => 1}, doc.default_attributes)
+  end
+  
+  #
+  # [] test 
+  #
+  
+  def test_get_returns_attributes_for_const_name_merged_to_the_default_attributes_for_self
+    doc.const_attrs[''] = {:one => 'one', :two => 'two'}
+    doc.const_attrs['Const::Name'] = {:one => 1, :three => 3}
+    assert_equal({:one => 1, :two => 'two', :three => 3}, doc['Const::Name'])
+  end
+  
+  #
+  # each test
+  #
+  
+  def test_each_yields_each_const_name_and_attrs_pair_to_block
+    doc.const_attrs[''] = {:one => 'one'}
+    doc.const_attrs['Const::Name'] = {:one => 1}
+    
+    results = []
+    doc.each do |const_name, attrs|
+      results << [const_name, attrs]
+    end
+    results = results.sort_by {|entry| entry.first }
+    
+    assert_equal [['', {:one => 'one'}], ['Const::Name', {:one => 1}]], results
+  end
+  
+  def test_each_skips_pairs_with_empty_attrs
+    doc.const_attrs[''] = {}
+    doc.const_attrs['Const::Name'] = {}
+    
+    results = []
+    doc.each do |const_name, attrs|
+      results << [const_name, attrs]
+    end
+    
+    assert_equal [], results
+  end
+  
+  #
   # register test
   #
 
@@ -319,7 +400,7 @@ not a subject line
     assert_equal "subject line two", c2.subject
     assert_equal 10, c2.line_number
   end
-  
+    
   def test_resolve_adds_code_comments_for_line_matching_comment_regexp
     str = %Q{
 # comment one

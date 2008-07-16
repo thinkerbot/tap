@@ -272,7 +272,7 @@ module Tap
         document = Support::TDoc.instance.document_for(fullpath)
         
         Support::Document.scan(File.read(fullpath), 'manifest') do |const_name, key, comment|
-          document[const_name][key] = comment
+          document.attributes(const_name)[key] = comment
         end
         
         document.const_names.each do |const_name|
