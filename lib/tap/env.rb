@@ -189,7 +189,7 @@ module Tap
     end
     
     # The global config file path
-    GLOBAL_CONFIG_FILE = File.expand_path("~/.tap.yml")
+    GLOBAL_CONFIG_FILE = File.join(Gem.user_home, ".tap.yml")
     
     # The default config file path
     DEFAULT_CONFIG_FILE = "tap.yml"
