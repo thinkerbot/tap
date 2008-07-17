@@ -1,3 +1,5 @@
+require 'tap/support/framework_methods'
+
 module Tap
   module Support
     

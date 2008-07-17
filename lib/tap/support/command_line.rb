@@ -48,91 +48,16 @@ module Tap
         index == nil ? nil : argv.delete_at(index)
       end
 
-      # Handles options using GetoptLong, and passes each option and
-      # value in ARGV to the block. 
-      #
-      #--
-      # expect [long, <short>, type, desc]
-      #++
-      def handle_options(*options)
-        options = options.collect do |opt|
-          opt = opt[0..-2]
-          opt.compact
-        end
-
-        opts = GetoptLong.new(*options)
-        opts.quiet = true
-        opts.each do |opt, value| 
-          yield(opt, value)
-        end
+      def usage(path, cols=80)
+        parse_usage(File.read(path), cols)
       end
-      
-      def command_help(program_file, opts)
-        lines = []
-        lines << usage(program_file, "Usage", "Description", :keep_headers => false)
-        unless opts.empty?
-          lines.concat ["Options:", usage_options(opts)]
-        end
-        lines.join("\n")
+        
+      def parse_usage(str, cols=80)
+        scanner = StringScanner.new(str)
+        scanner.scan(/^#!.*?$/)
+        Comment.parse(scanner, false).wrap(cols, 2).strip
       end
 
-      def usage(program_file, *sections)
-        options = sections.last.kind_of?(Hash) ? sections.pop : {}
-        options = {:keep_headers => true}.merge(options)
-        comment = Tap::Support::TDoc.usage(program_file, sections, options[:keep_headers])
-        comment.rstrip + "\n"
-      end
-
-      def usage_options(opts)
-        opt_lines = []
-        opts.each do |long, short, mode, desc|
-
-          if desc.kind_of?(Class) && desc.include?(Tap::Support::Configurable)
-            key = desc.configurations.opt_map(long)
-            default = PP.singleline_pp(desc.configurations.default[key], "")
-            config_attr = desc.tdoc.find_configuration_named(key.to_s)
-            desc = config_attr.desc
-          end
-
-          short = short == nil ? "    " : "(#{short})"
-          opt_lines << "  %-25s %s      %s" % [long, short, desc]
-        end
-        opt_lines.join("\n")
-      end
-      
-      def opt_map(long_option)
-        raise ArgumentError.new("not a long option: #{long_option}") unless long_option =~ /^--(.*)$/
-        long = $1
-      
-        each do |receiver, key|
-          return key if long == key.to_s
-        end  
-        nil
-      end
-    
-      def to_opts(configurations)
-        opts = []
-        configurations.each_assignment do |receiver, key|
-          # Note the receiver is used as a placeholder for desc,
-          # to be resolved using TDoc.
-          attributes = {
-            :long => key,
-            :short => nil,
-            :opt_type => GetoptLong::REQUIRED_ARGUMENT,
-            :desc => receiver  
-          }
-
-          long = attributes[:long]
-          attributes[:long] = "--#{long}" unless long =~ /^-{2}/
-
-          short = attributes[:short].to_s
-          attributes[:short] = "-#{short}" unless short.empty? || short =~ /^-/
-
-          opts << [attributes[:long], attributes[:short], attributes[:opt_type], attributes[:desc]]
-        end 
-        opts
-      end
-      
     end
   end
 end

@@ -3,7 +3,7 @@ require 'tap/support/comment'
 module Tap
   module Support
 
-    class Document
+    class Lazydoc
       
       # $1:: const_name
       # $3:: key
@@ -53,6 +53,39 @@ module Tap
             end
             comment.subject = value
             yield(const_name, key, comment)
+          end
+        end
+
+        # A hash of (source_file, [CodeComment]) pairs that
+        # tracks which lines are registered for documentation
+        # for the given source file.  Source file keys are
+        # keyified using Lazydoc#key.
+        def registry
+          @registry ||= []
+        end
+        
+        # Returns the document in registry for the specified source file.
+        # If no such document exists, one will be created for it.
+        def [](source_file)
+          source_file = File.expand_path(source_file.to_s)
+          document = registry.find {|doc| doc.source_file == source_file }
+          if document == nil
+            document = new(source_file)
+            registry << document
+          end
+          document
+        end
+
+        # Lazydoc the specified line numbers to source_file.
+        # Returns a CodeComment object corresponding to the line.
+        def register(source_file, line_number)
+          Lazydoc[source_file].register(line_number)
+        end
+
+        def resolve(code_comments)
+          registry.each do |doc|
+            next if (code_comments & doc.code_comments).empty?
+            doc.resolve
           end
         end
       end
@@ -124,7 +157,7 @@ module Tap
         names
       end
 
-      # TDoc the specified line numbers to source_file.
+      # Lazydoc the specified line numbers to source_file.
       # Returns a Comment object corresponding to the line.
       def register(line_number)
         comment = code_comments.find {|c| c.line_number == line_number }
@@ -152,7 +185,7 @@ module Tap
           str = File.read(source_file)
         end
         
-        Document.parse(str) do |const_name, key, comment|
+        Lazydoc.parse(str) do |const_name, key, comment|
           attributes(const_name)[key] = comment
         end
         

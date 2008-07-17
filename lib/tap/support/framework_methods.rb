@@ -31,7 +31,7 @@ module Tap
       
       # Returns the tdoc for source_file
       def tdoc
-        TDoc.instance.document_for(source_file)
+        Lazydoc[source_file]
       end
       
       # Returns the default name for the class: to_s.underscore
@@ -93,7 +93,7 @@ module Tap
             tdoc.default_attributes['args'] ||= comment
           end
          
-          TDoc.instance.resolve(configurations.code_comments)
+          Lazydoc.resolve(configurations.code_comments)
 
           manifest = tdoc[to_s]['manifest'] || Tap::Support::Comment.new
           args = tdoc[to_s]['args'] || Tap::Support::Comment.new

@@ -1,14 +1,14 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/support/document'
+require 'tap/support/lazydoc'
 
-class DocumentTest < Test::Unit::TestCase
+class LazydocTest < Test::Unit::TestCase
   include Tap::Support
   include Tap::Test::SubsetMethods
   
   attr_reader :doc
 
   def setup
-    @doc = Document.new
+    @doc = Lazydoc.new
   end
 
   #
@@ -16,7 +16,7 @@ class DocumentTest < Test::Unit::TestCase
   #
 
   def test_ATTRIBUTE_REGEXP
-    r = Document::ATTRIBUTE_REGEXP
+    r = Lazydoc::ATTRIBUTE_REGEXP
 
     assert r =~ "::key"
     assert_equal("::", $1)
@@ -45,7 +45,7 @@ class DocumentTest < Test::Unit::TestCase
 
   def test_scan_only_finds_the_specified_key
     results = []
-    Document.scan(%Q{
+    Lazydoc.scan(%Q{
 # Name::Space::key1 value1
 # Name::Space::key value2
 # Name::Space::key value3
@@ -64,7 +64,7 @@ class DocumentTest < Test::Unit::TestCase
   
   def test_scan_skips_areas_flagged_as_off
     results = []
-    Document.scan(%Q{
+    Lazydoc.scan(%Q{
 # Name::Space::key value1
 # Name::Space:::-
 # Name::Space::key value2
@@ -86,28 +86,28 @@ class DocumentTest < Test::Unit::TestCase
       n = 1000
       x.report("#{n}x #{str.length} chars") do 
         n.times do 
-          Document.scan(str,  'key') {|*args|}
+          Lazydoc.scan(str,  'key') {|*args|}
         end
       end
       
       str = %Q{Name::Space::key  value} * 100
       x.report("same but matching") do 
         n.times do 
-          Document.scan(str,  'key') {|*args|}
+          Lazydoc.scan(str,  'key') {|*args|}
         end
       end
       
       str = %Q{           ::key  value} * 100
       x.report("just ::key syntax") do 
         n.times do 
-          Document.scan(str,  'key') {|*args|}
+          Lazydoc.scan(str,  'key') {|*args|}
         end
       end
       
       str = %Q{Name::Space:: key value} * 100
       x.report("unmatching") do 
         n.times do 
-          Document.scan(str,  'key') {|*args|}
+          Lazydoc.scan(str,  'key') {|*args|}
         end
       end
     end
@@ -119,7 +119,7 @@ class DocumentTest < Test::Unit::TestCase
 
   def test_parse
     results = []
-    Document.parse(%Q{
+    Lazydoc.parse(%Q{
 ignored
 # leader
 
@@ -150,7 +150,7 @@ ignored
 
   def test_parse_with_various_declaration_syntaxes
     results = []
-    Document.parse(%Q{
+    Lazydoc.parse(%Q{
 # Name::Space::key value1
 # :startdoc:Name::Space::key value2
 # :startdoc: Name::Space::key value3
@@ -179,7 +179,7 @@ blah blah # ::key value7
 
   def test_parse_stops_reading_comment_at_new_declaration_or_end_declaration
     results = []
-    Document.parse(%Q{
+    Lazydoc.parse(%Q{
 # ::key
 # comment1 spanning
 # multiple lines
@@ -199,7 +199,7 @@ blah blah # ::key value7
 
   def test_parse_ignores
     results = []
-    Document.parse(%Q{
+    Lazydoc.parse(%Q{
 # Skipped::Key
 # skipped::Key
 # :skipped:
@@ -229,31 +229,55 @@ skipped
       n = 100
       x.report("#{n}x #{str.length} chars") do 
         n.times do 
-          Document.parse(str) {|*args|}
+          Lazydoc.parse(str) {|*args|}
         end
       end
       
       str = %Q{Name::Space::key  value#{comment}} * 10
       x.report("same but matching") do 
         n.times do 
-          Document.parse(str) {|*args|}
+          Lazydoc.parse(str) {|*args|}
         end
       end
       
       str = %Q{           ::key  value#{comment}} * 10
       x.report("just ::key syntax") do 
         n.times do 
-          Document.parse(str) {|*args|}
+          Lazydoc.parse(str) {|*args|}
         end
       end
       
       str = %Q{Name::Space:: key value#{comment}} * 10
       x.report("unmatching") do 
         n.times do 
-          Document.parse(str) {|*args|}
+          Lazydoc.parse(str) {|*args|}
         end
       end
     end
+  end
+  
+  #
+  # registry test
+  #
+  
+  def test_registry
+    assert Lazydoc.registry.kind_of?(Array)
+  end
+  
+  #
+  # [] test
+  #
+  
+  def test_get_returns_document_in_registry_for_source_file
+    doc = Lazydoc.new('/path/to/file')
+    Lazydoc.registry << doc
+    assert_equal doc, Lazydoc['/path/to/file']
+  end
+  
+  def test_get_initializes_new_document_if_necessary
+    assert !Lazydoc.registry.find {|doc| doc.source_file == '/path/for/non_existant_doc'}
+    doc = Lazydoc['/path/for/non_existant_doc']
+    assert Lazydoc.registry.include?(doc)
   end
   
   #
@@ -261,7 +285,7 @@ skipped
   #
 
   def test_initialize
-    doc = Document.new
+    doc = Lazydoc.new
     assert_equal(nil, doc.source_file)
     assert_equal({}, doc.const_attrs)
     assert_equal([], doc.code_comments)

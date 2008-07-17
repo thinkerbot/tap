@@ -1,5 +1,4 @@
 require 'tap/root'
-require 'tap/support/configurable'
 
 # causes an error with generators... something in the way Dependencies is set...
 # autoload(:Dependencies, 'tap/support/dependencies')
@@ -269,9 +268,9 @@ module Tap
     
     manifest(:tasks, :load_paths, true) do |tasks, load_path|
       root.glob(load_path, "**/*.rb").each do |fullpath|
-        document = Support::TDoc.instance.document_for(fullpath)
+        document = Support::Lazydoc[fullpath]
         
-        Support::Document.scan(File.read(fullpath), 'manifest') do |const_name, key, comment|
+        Support::Lazydoc.scan(File.read(fullpath), 'manifest') do |const_name, key, comment|
           document.attributes(const_name)[key] = comment
         end
         

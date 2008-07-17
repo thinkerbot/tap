@@ -1,3 +1,5 @@
+require 'tap/support/shell_utils'
+
 module Tap
   
   # == Overview

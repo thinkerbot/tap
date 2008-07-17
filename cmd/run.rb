@@ -22,7 +22,7 @@ OptionParser.new do |opts|
   opts.separator "options:"
 
   opts.on("-h", "--help", "Show this message") do
-    opts.banner = Tap::Support::TDoc.usage(__FILE__)
+    opts.banner = Tap::Support::CommandLine.usage(__FILE__)
     puts opts
     exit
   end

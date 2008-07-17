@@ -1,3 +1,6 @@
+require 'tap/support/run_error'
+require 'tap/support/logger'
+
 module Tap
   
   # = Overview

@@ -1,3 +1,5 @@
+require 'tap/support/batchable_methods'
+
 module Tap
   module Support
 

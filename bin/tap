@@ -84,7 +84,7 @@ begin
   case command  
   when nil, '--help'
     # give some help
-    puts Tap::Support::TDoc.usage(__FILE__)
+    puts Tap::Support::CommandLine.usage(__FILE__)
     puts
     puts "available commands:"
     

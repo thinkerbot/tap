@@ -2,7 +2,7 @@ require 'strscan'
 
 module Tap
   module Support 
-    # Comment represents a comment parsed by TDoc.
+    # Comment represents a comment parsed by Lazydoc.
     class Comment
     
       class << self

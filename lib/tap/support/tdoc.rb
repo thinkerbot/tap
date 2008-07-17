@@ -1,81 +1,27 @@
-require 'tap/support/document'
 
 module Tap
   module Support
-    class TDoc
+    #module TDoc
       
-      class << self
-        attr_writer :instance
-        
-        def instance
-          @instance ||= TDoc.new
-        end
-        
-        def usage(path, cols=80)
-          parse_usage(File.read(path), cols)
-        end
-        
-        def parse_usage(str, cols=80)
-          scanner = StringScanner.new(str)
-          scanner.scan(/^#!.*?$/)
-          Comment.parse(scanner, false).wrap(cols, 2).strip
-        end
-        
-      end
-      
-      # A hash of (source_file, [CodeComment]) pairs that
-      # tracks which lines are registered for documentation
-      # for the given source file.  Source file keys are
-      # keyified using TDoc#key.
-      attr_reader :registry
-
-      def initialize
-        @registry = []
-      end
-      
-      # Returns the document in registry for the specified source file.
-      # If no such document exists, one will be created for it.
-      def document_for(source_file)
-        source_file = File.expand_path(source_file.to_s)
-        document = registry.find {|doc| doc.source_file == source_file }
-        if document == nil
-          document = Document.new(source_file)
-          registry << document
-        end
-        document
-      end
-
-      # TDoc the specified line numbers to source_file.
-      # Returns a CodeComment object corresponding to the line.
-      def register(source_file, line_number)
-        document_for(source_file).register(line_number)
-      end
-
-      def resolve(code_comments)
-        registry.each do |doc|
-          next if (code_comments & doc.code_comments).empty?
-          doc.resolve
-        end
-      end
-    end
+    #end
   end
 end
 
 
 # == Overview
-# TDoc hooks into and extends RDoc to make task documentation available for command line
-# applications as well as for inclusion in RDoc html.  In particular, TDoc makes available
-# documentation for Task configurations, when they are present.  TDoc provides an extension
+# Lazydoc hooks into and extends RDoc to make task documentation available for command line
+# applications as well as for inclusion in RDoc html.  In particular, Lazydoc makes available
+# documentation for Task configurations, when they are present.  Lazydoc provides an extension
 # to the standard RDoc HTMLGenerator and template.  
 #
 # === Usage
-# To generate task documentation with configuration information, TDoc must be loaded and 
+# To generate task documentation with configuration information, Lazydoc must be loaded and 
 # the appropriate flags passed to rdoc .  Essentially what you want is:
 #
 #   % rdoc --fmt tdoc --template tap/support/tdoc/tdoc_html_template [file_names....]
 #
 # Unfortunately, there is no way to load or require a file into the rdoc utility directly; the 
-# above code causes an 'Invalid output formatter' error.  However, TDoc is easy to utilize 
+# above code causes an 'Invalid output formatter' error.  However, Lazydoc is easy to utilize 
 # from a Rake::RDocTask:
 #
 #   require 'rake'
@@ -95,7 +41,7 @@ end
 #
 #   % rake rdoc
 #
-# TDoc may also be utilized programatically, but you should be aware that RDoc in Ruby
+# Lazydoc may also be utilized programatically, but you should be aware that RDoc in Ruby
 # can raise errors and/or cause namespace conflicts (see below).
 #
 # === Implementation
@@ -103,31 +49,31 @@ end
 # flags like 'config_accessor' or the 'c' config specifier is to use the '--accessor' option
 # (see 'rdoc --help' or the RDoc documentation for more details).  
 #
-# TDoc hooks into the '--accessor' parsing process to pull out configuration attributes and
+# Lazydoc hooks into the '--accessor' parsing process to pull out configuration attributes and
 # format them into their own Configuration section on an RDoc html page.  When 'tdoc' is
-# specified as an rdoc option, TDoc in effect sets accessor flags for all the standard Task
+# specified as an rdoc option, Lazydoc in effect sets accessor flags for all the standard Task
 # configuration methods, and then extends the RDoc::RubyParser handle these specially.  
 #
-# If 'tdoc' is not specified as the rdoc format, TDoc does not affect the RDoc output.
+# If 'tdoc' is not specified as the rdoc format, Lazydoc does not affect the RDoc output.
 # Similarly, the configuration attributes will not appear in the output unless you specify a 
 # template that utilizes them.
 #
 # === Namespace conflicts
 # RDoc creates a namespace conflict with other libraries that define RubyToken and RubyLex
-# in the Object namespace (the prime example being IRB).  TDoc checks for such a conflict
+# in the Object namespace (the prime example being IRB).  Lazydoc checks for such a conflict
 # and redfines the RDoc RubyToken and RubyLex within the RDoc namespace. Essentially:
 #
 #   RubyToken => RDoc::RubyToken
 #   RubyLex => RDoc::RubyLex
 #
 # The redefinition should not affect the existing RubyToken and RubyLex constants, but if 
-# you directly use the RDoc versions after loading TDoc, you should be aware that they must 
+# you directly use the RDoc versions after loading Lazydoc, you should be aware that they must 
 # be accessed through the new constants.  Unfortunatley the trick is not seamless.  The RDoc 
 # RubyLex makes a few calls to the RubyLex class method 'debug?'... these will be issued to 
 # the existing RubyLex method and not RDoc::RubyLex.debug?
 #
 # In addition, because of the RubyLex calls, the RDoc::RubyLex cannot be fully hidden when 
-# TDoc is loaded before the conflicting RubyLex; you cannot load TDoc before loading IRB 
+# Lazydoc is loaded before the conflicting RubyLex; you cannot load Lazydoc before loading IRB 
 # without raising warnings.  I hope to submit a patch for RDoc to stop this nonsense in the 
 # future.
 #
@@ -138,7 +84,7 @@ end
 # if no args have been explicitly stated for a 
 # particular tdoc.  this is a tricky thing to do
 # without having knowledge of the ruby code (as
-# TDoc attempts to do, to speed parsing), and
+# Lazydoc attempts to do, to speed parsing), and
 # requires an assumption for the case where multiple
 # tdocs are present in a single string. Assumption:
 # - if the args are not explicitly stated, then

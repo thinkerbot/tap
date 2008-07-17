@@ -159,7 +159,7 @@ module Tap
       # The input template may be a String or an ERB; either may be used to 
       # initialize the templater.
       def format_str(template=:doc, target="")
-        TDoc.instance.resolve(code_comments)
+        Lazydoc.resolve(code_comments)
         
         template = case template
         when :doc then File.read(DOC_TEMPLATE_PATH)
