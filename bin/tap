@@ -88,12 +88,11 @@ begin
     puts
     puts "available commands:"
     
-    commands = tap.lookup_paths_for(:commands)
-    tap.lookup_paths.each_pair do |env_lookup, env|
-      next unless commands.has_key?(env)
-      puts "=== #{env_lookup} (#{env.root.root})" if commands.length > 1
-      commands[env].each do |(path_lookup, path)|
-        puts "  #{path_lookup.chomp('.rb')}"
+    mappings = tap.commands_mappings
+    mappings.each do |(env_lookup, env, map)|
+      puts "=== #{env_lookup} (#{env.root.root})" if mappings.length > 1
+      map.each do |(key, path)|
+        puts "  #{key}"
       end
     end
     
@@ -111,10 +110,10 @@ begin
       ARGV.unshift(opt)
     end
     
-    load tap.lookup(:commands, 'run.rb')  
+    load tap.search_commands('run')  
   else
-    if path = tap.lookup(:commands, File.extname(command) == "" ? "#{command}.rb" : command)
-      load path # run the command, if it exists
+    if map = tap.search_commands(command)
+      load map[1] # run the command, if it exists
     else
       puts "Unknown command: '#{command}'"
       puts "Type 'tap help' for usage information."

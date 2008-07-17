@@ -45,13 +45,12 @@ if print_manifest
   
   width = 10
   lines = []
-  tasks = env.lookup_paths_for(:tasks)
-  env.lookup_paths.each_pair do |env_lookup, environment|
-    next unless tasks.has_key?(environment)
-    lines << "=== #{env_lookup} (#{environment.root.root})" 
-    tasks[environment].each do |(path_lookup, (name, document))|
-      width = path_lookup.length if width < path_lookup.length
-      lines << [path_lookup, document[name.camelize]['manifest'] || document['']['manifest']]
+  env.tasks_mappings.each do |(env_lookup, env, map)|
+    lines <<  "=== #{env_lookup} (#{env.root.root})" 
+    map.each do |(key, path)|
+      width = key.length if width < key.length
+      document = Tap::Support::Lazydoc[path]
+      lines <<  [key, document['']['manifest']]
     end
   end
   
@@ -99,9 +98,9 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
 
       # attempt lookup the task class
       task_class = env.constantize(td) do |const_name|
-        name, document = env.lookup(:tasks, td) 
-        name == nil ? nil : name.camelize.try_constantize do |const_name|
-          require document.source_file
+        name, path = env.search_tasks(td)
+        name == nil ? nil : const_name.try_constantize do |const_name|
+          require path
           const_name.constantize
         end
       end

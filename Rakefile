@@ -76,7 +76,7 @@ end
 
 desc 'Generate documentation.'
 Rake::RDocTask.new(:rdoc) do |rdoc|
-  require 'tap/support/tdoc/config_attr'
+ # require 'tap/support/tdoc/config_attr'
   spec = gemspec
   
   rdoc.rdoc_dir = 'rdoc'

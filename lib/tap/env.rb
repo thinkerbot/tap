@@ -163,27 +163,55 @@ module Tap
       # carry it's own slice of the manifest without having to recalculate.
       # On the down side, the merging would have to occur in some separate
       # method that cannot be defined here.
-      def manifest(manifest_key, paths_key, use_hash=false, &block)
-        manifest_key = manifest_key.to_sym
-        paths_key = paths_key.to_sym
-        discover_method = "discover_#{manifest_key}".to_sym
-
-        define_method(discover_method, &block)
-        protected discover_method
+      def manifest(manifest_key, paths_key, extname=".rb", &block)
+        return manifest(manifest_key, paths_key, extname) do |manifest_path, path| 
+          [path.chomp(extname)] 
+        end unless block_given?
         
-        define_method(manifest_key) do
-          # check_active ???
-          
-          manifest = manifests[manifest_key]
-          return manifest unless manifest == nil
-          
-          manifest = use_hash ? {} : []
-          send(paths_key).each do |path|
-            send(discover_method, manifest, path)
-          end
-          manifest.uniq! if manifest.kind_of?(Array)
-          manifests[manifest_key] = manifest
+        keys_method = "#{manifest_key}_keys".to_sym
+        
+        define_method(keys_method, &block)
+        protected keys_method
+        
+        module_eval %Q{
+      def #{manifest_key}
+        manifest = manifests[:#{manifest_key}] ||= {}
+        return manifest if manifest.frozen?
+        
+        manifest_search(:#{paths_key}, :#{keys_method}, "**/*#{extname}") do |key, path|
+          # raise ManifestConflict if manifest.has_key?(key) && manifest[key] != key
+          manifest[key] = path
         end
+        manifest.freeze
+        manifest
+      end
+      
+      def #{manifest_key}_map
+        Tap::Root.reduce_map(self.#{manifest_key}, false)
+      end
+      
+      def #{manifest_key}_mappings
+        mappings = []
+        env_map.each_pair do |env_lookup, env|
+         map = env.#{manifest_key}_map.to_a.sort_by {|(k,v)| k }
+         mappings << [env_lookup, env, map] unless map.empty?
+        end
+        mappings
+      end
+    
+      def search_#{manifest_key}(pattern)
+        manifest = manifests[:#{manifest_key}] ||= {}
+        manifest_search(:#{paths_key}, :#{keys_method}, "**/*\#{pattern}*") do |key, path|
+          manifest[key] = path 
+          return [key, path] if key[-pattern.length, pattern.length] == pattern
+        end unless manifest.frozen?
+        
+        self.#{manifest_key}.each_pair do |key, path| 
+          return [key, path] if key[-pattern.length, pattern.length] == pattern
+        end
+        
+        nil
+      end}
       end
     end
     
@@ -266,23 +294,15 @@ module Tap
     
     #--
     
-    manifest(:tasks, :load_paths, true) do |tasks, load_path|
-      root.glob(load_path, "**/*.rb").each do |fullpath|
-        document = Support::Lazydoc[fullpath]
+    manifest(:tasks, :load_paths) do |load_path, path|
+      document = Support::Lazydoc[path]
         
-        Support::Lazydoc.scan(File.read(fullpath), 'manifest') do |const_name, key, comment|
-          document.attributes(const_name)[key] = comment
-        end
+      Support::Lazydoc.scan(File.read(path), 'manifest') do |const_name, key, comment|
+        document.attributes(const_name)[key] = comment
+      end
         
-        document.const_names.each do |const_name|
-          name = const_name == "" ? root.relative_filepath(load_path, fullpath).chomp('.rb') : const_name.underscore
-          
-          # raise manifest error if tasks.has_key?(name)
-          # as this means that in a single env there are
-          # multiple filepaths manifesting the same task
-          # constant
-          tasks[name] = document
-        end
+      document.const_names.collect do |const_name|
+        const_name == "" ? root.relative_filepath(load_path, path).chomp('.rb') : const_name.underscore
       end
     end
     
@@ -291,17 +311,9 @@ module Tap
     # as well as the default tap commands.  Commands with conflicting names
     # raise an error; however, user commands are allowed to override the
     # default tap commands and will NOT raise an error.
-    manifest(:commands, :command_paths) do |commands, command_path|
-      root.glob(command_path, "**/*.rb").each do |path|
-        commands << path
-      end
-    end
+    manifest(:commands, :command_paths) 
     
-    manifest(:generators, :generator_paths) do |generators, generator_path|
-      root.glob(generator_path, "**/*_generator.rb").each do |path|
-        generators << path
-      end
-    end
+    #manifest(:generators, :generator_paths, '_generator.rb') 
     
     def initialize(config={}, root=Tap::Root.new, logger=nil)
       @root = root 
@@ -564,7 +576,7 @@ module Tap
     #
     # Raises an InconsistencyError if multiple envs have the same root 
     # path.
-    def lookup_paths(reverse=false)
+    def env_map(reverse=false)
       map = {}
       each do |env|
         root_path = env.root.root
@@ -579,54 +591,6 @@ module Tap
       end
   
       Tap::Root.reduce_map(map, reverse)
-    end
-    
-    def lookup_paths_for(manifest_key, reverse=false)
-      map = {}
-      each do |env|
-        manifest = env.send(manifest_key)
-
-        manifest = case manifest
-        when Hash 
-          manifest.to_a.inject({}) do |hash, pair|
-            hash[pair[0]] = pair
-            hash
-          end
-        else 
-          # no worries of inconsistency... since obj maps to obj,
-          # even duplicates will result in only one mapping.
-          manifest.inject({}) do |hash, obj|
-            hash[obj] = obj
-            hash
-          end
-        end
-        
-        lookups = Tap::Root.reduce_map(manifest, reverse)
-        map[env] = lookups.to_a.sort_by {|a,b| a } unless lookups.empty?
-      end
-      map
-    end
-    
-    def lookup(manifest_key, pattern)
-      envs, key = case pattern
-      when /^(.*):([^:]+)$/ 
-        environment = lookup_paths[$1]
-        raise ArgumentError, "could not find env: #{$1}" if environment == nil
-        [[environment], $2]
-      else 
-        [self, pattern]
-      end
-      
-      envs.each do |env|
-        manifest = env.send(manifest_key)
-        if manifest.kind_of?(Hash)
-          manifest.each_pair {|path, obj| return([path, obj]) if path[-key.length, key.length] == key }
-        else 
-          manifest.each {|obj| return(obj) if obj[-key.length, key.length] == key }
-        end
-      end
-
-      nil
     end
 
     def inspect(brief=false)
@@ -699,7 +663,17 @@ module Tap
     end
     
     protected
-
+    
+    def manifest_search(paths_key, keys_method, pattern)
+      send(paths_key).each do |manifest_path|
+        root.glob(manifest_path, pattern).each do |path|
+          send(keys_method, manifest_path, path).each do |key|
+            yield(key, path)
+          end
+        end
+      end
+    end
+    
     def check_configurable
       raise "path configurations are disabled when active" if active?
     end
