@@ -280,11 +280,10 @@ class ClassConfigurationTest < Test::Unit::TestCase
   end
   
   def test_format_str
-    extended_test do 
-      cc = FormatYamlClass.configurations
-      assert ClassConfiguration, cc.class
+    cc = FormatYamlClass.configurations
+    assert ClassConfiguration, cc.class
 
-      expected = %Q{
+    expected = %Q{
 ###############################################################################
 # ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
@@ -308,9 +307,12 @@ no_comment: no_comment value
 
 }
     
-      assert_equal expected[1..-1], cc.format_str
-    
-      expected_without_doc = %Q{
+    assert_equal expected[1..-1], cc.format_str
+  end
+  
+  def test_format_str_without_documentation
+    cc = FormatYamlClass.configurations
+    expected_without_doc = %Q{
 ###############################################################################
 # ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
@@ -322,12 +324,15 @@ no_comment: no_comment value
 #nil_config: 
 
 }
-      assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
+    assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
     
-      cc = FormatYamlSubClass.configurations
-      assert ClassConfiguration, cc.class
-    
-      expected = %Q{
+  end
+  
+  def test_format_str_using_subclass
+    cc = FormatYamlSubClass.configurations
+    assert ClassConfiguration, cc.class
+  
+    expected = %Q{
 ###############################################################################
 # ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
@@ -358,9 +363,12 @@ subclass_config: subclass_config value
 
 }
 
-      assert_equal expected[1..-1], cc.format_str
-
-      expected_without_doc = %Q{
+    assert_equal expected[1..-1], cc.format_str
+  end
+  
+  def test_format_str_using_subclass_without_doc
+    cc = FormatYamlSubClass.configurations
+    expected_without_doc = %Q{
 ###############################################################################
 # ClassConfigurationTest::FormatYamlClass configurations
 ###############################################################################
@@ -377,8 +385,7 @@ nil_config: no longer nil value
 subclass_config: subclass_config value
 
 }
-      assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
-    end
+    assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
   end
   
 end

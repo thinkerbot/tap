@@ -329,15 +329,17 @@ module Tap
         
         path_suffix = const_name.underscore.chomp('.rb') + '.rb'
 
-        $:.inject(nil) do |obj, base|
-          break(obj) if obj != nil
-
-          path = File.join(base, path_suffix) # should already be expanded
+        $:.each do |load_path|
+          path = File.join(load_path, path_suffix) # should already be expanded
           next unless File.exists?(path) 
 
           log(:crequire, path, Logger::DEBUG)
           require path
-          constantize(const_name)
+          break
+        end
+        
+        const_name.try_constantize do |const_name|
+          yield(const_name) if block_given?
         end
       end
     end

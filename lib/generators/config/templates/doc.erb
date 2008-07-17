@@ -3,7 +3,7 @@
 ###############################################################################
 <% configurations.each do |key, config| %>
 
-<% Comment.wrap(config.desc.split(/\r?\n/), 50, 2).each do |line|  %>
+<% Comment.wrap(config.desc.to_s.split(/\r?\n/), 50, 2).each do |line|  %>
 # <%=  line %>
 <% end %>
 <%= config.default == nil ? '#' : '' %><%= yamlize({key.to_s => config.default}) %>

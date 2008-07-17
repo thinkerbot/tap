@@ -170,10 +170,6 @@ class ConfigurationTest < Test::Unit::TestCase
   end
   
   #
-  # to_option_parser_argv test
-  #
-  
-  #
   # reader= test
   #
 
@@ -195,7 +191,7 @@ class ConfigurationTest < Test::Unit::TestCase
   # == test
   #
   
-  def test_another_is_equal_to_self_if_all_attributes_are_equal
+  def test_another_is_equal_to_self_if_name_default_reader_and_writer_are_equal
     config = Configuration.new('name')
     another = Configuration.new('name')
     assert config == another
@@ -208,10 +204,6 @@ class ConfigurationTest < Test::Unit::TestCase
     another = Configuration.new('name', 2)
     assert config != another
     
-    config = Configuration.new('name', 1, :arg_type => :mandatory)
-    another = Configuration.new('name', 1, :arg_type => :optional)
-    assert config != another
-    
     config = Configuration.new('name', 1, :reader => :reader)
     another = Configuration.new('name', 1, :reader => :alt)
     assert config != another
@@ -219,5 +211,11 @@ class ConfigurationTest < Test::Unit::TestCase
     config = Configuration.new('name', 1, :writer => :writer=)
     another = Configuration.new('name', 1, :writer => :alt=)
     assert config != another
+  end
+  
+  def test_equals_does_not_take_into_account_attributes
+    config = Configuration.new('name', 1, :arg_type => :mandatory)
+    another = Configuration.new('name', 1, :arg_type => :optional)
+    assert config == another
   end
 end

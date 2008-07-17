@@ -35,20 +35,4 @@ class TDocTest < Test::Unit::TestCase
     assert_equal [doc], c.registry 
   end
   
-  #
-  # documents_for_const
-  #
-  
-  def test_documents_for_const_returns_all_documents_with_attrs_for_specified_const
-    doc1 = Document.new
-    doc1['Const::Name'][:key] = 'value'
-    doc2 = Document.new
-    doc2['Const::Name'][:key] = 'value'
-    doc3 = Document.new
-    
-    c.registry << doc1 << doc2
-    assert doc1.has_const?('Const::Name')
-    assert doc2.has_const?('Const::Name')
-    assert_equal([doc1, doc2], c.documents_for_const('Const::Name'))
-  end
 end

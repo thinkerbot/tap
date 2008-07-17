@@ -98,10 +98,12 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
     else  
 
       # attempt lookup the task class
-      name, document = env.lookup(:tasks, td) 
-      task_class = name == nil ? nil : name.camelize.try_constantize do |const_name|
-        require document.source_file
-        const_name.constantize
+      task_class = env.constantize(td) do |const_name|
+        name, document = env.lookup(:tasks, td) 
+        name == nil ? nil : name.camelize.try_constantize do |const_name|
+          require document.source_file
+          const_name.constantize
+        end
       end
 
       # unless a Tap::Task was found, treat the
@@ -115,11 +117,7 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
       end
     
       # now let the class handle the argv
-      name, config, argv = task_class.parse_argv(ARGV) do |opts|
-
-          exit
-      end
-      
+      name, config, argv = task_class.parse_argv(ARGV)
       name = td if name == nil
       
       argv.collect! {|str| Tap::Support::CommandLine.parse_yaml(str) }

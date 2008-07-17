@@ -89,11 +89,11 @@ module Tap
               end
             end.join(', ')
          
-            tdoc['']['args'] ||= comment
+            tdoc.default_attributes['args'] ||= comment
           end
          
           configurations.resolve_documentation
-         
+
           manifest = tdoc[to_s]['manifest'] || Tap::Support::Comment.new
           args = tdoc[to_s]['args'] || Tap::Support::Comment.new
 

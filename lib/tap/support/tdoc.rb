@@ -45,28 +45,6 @@ module Tap
         document
       end
 
-      # Returns an array of documents in registry for which
-      # document.has_const?(const_name) == true
-      def documents_for_const(const_name)
-        registry.select do |document| 
-          document.has_const?(const_name)
-        end
-      end
-      
-      def document_for_const(const_name)
-        docs = documents_for_const(const_name)
-        case docs.length
-        when 0
-          path_suffix = const_name.underscore.chomp('.rb') + '.rb'
-          $:.each do |load_path|
-            path = File.join(load_path, path_suffix)
-            return document_for(path) if File.exists?(path)
-          end
-        when 1 then docs[0]
-        else raise "multiple documents found for: #{const_name}"
-        end
-      end
-      
       # TDoc the specified line numbers to source_file.
       # Returns a CodeComment object corresponding to the line.
       def register(source_file, line_number)

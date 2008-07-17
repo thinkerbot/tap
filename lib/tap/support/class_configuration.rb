@@ -192,7 +192,7 @@ module Tap
       
       module ConfigComment
         def empty?
-          false
+          to_str.empty?
         end
 
         def to_str

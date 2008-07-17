@@ -26,8 +26,15 @@ class FrameworkTest < Test::Unit::TestCase
   # source_file test
   #
 
-  def test_source_file_is_set_to_nil_by_default
-    assert_nil Sample.source_file
+  def test_source_file_is_set_to_file_first_including_Framework_in_class
+    assert_equal File.expand_path(__FILE__), Sample.source_file
+  end
+  
+  class SampleSubclass < Sample
+  end
+  
+  def test_source_file_is_set_to_file_where_subclass_first_inherits_Framework
+    assert_equal File.expand_path(__FILE__), SampleSubclass.source_file
   end
 
   #

@@ -142,6 +142,8 @@ module Tap
         @resolved
       end
       
+      attr_writer :resolved
+      
       def resolve(str=nil, comment_regexp=nil) # :yields: comment, match
         return(false) if resolved?
         

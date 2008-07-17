@@ -12,8 +12,6 @@ module Tap
         #
         def shortify(str)
           str = str.to_s
-          return nil if str.empty?
-          
           str = "-#{str}" unless str[0] == ?-
           raise "invalid short option: #{str}" unless str =~ SHORT_REGEXP
           str
@@ -32,8 +30,6 @@ module Tap
         #
         def longify(str, switch_notation=false, hyphenize=true)
           str = str.to_s
-          return nil if str.empty?
-          
           str = "--#{str}" unless str.index("--")
           str.gsub!(/_/, '-') if hyphenize
           
@@ -120,18 +116,21 @@ module Tap
       end
       
       def short
-        Configuration.shortify(attributes[:short])
+        attributes[:short] ? Configuration.shortify(attributes[:short]) : nil
       end
       
       def desc
         attributes[:desc]
       end
 
-      # True if another is a kind of Configuration with the same name and
-      # default value; attributes are NOT taken into account.
+      # True if another is a kind of Configuration with the same name,
+      # default value, reader and writer; other attributes are NOT 
+      # taken into account.
       def ==(another)
         another.kind_of?(Configuration) && 
         self.name == another.name &&
+        self.reader == another.reader &&
+        self.writer == another.writer &&
         self.default(false) == another.default(false)
       end
       
