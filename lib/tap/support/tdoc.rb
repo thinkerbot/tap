@@ -36,7 +36,7 @@ module Tap
       # Returns the document in registry for the specified source file.
       # If no such document exists, one will be created for it.
       def document_for(source_file)
-        source_file = File.expand_path(source_file)
+        source_file = File.expand_path(source_file.to_s)
         document = registry.find {|doc| doc.source_file == source_file }
         if document == nil
           document = Document.new(source_file)

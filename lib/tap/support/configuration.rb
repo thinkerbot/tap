@@ -12,6 +12,8 @@ module Tap
         #
         def shortify(str)
           str = str.to_s
+          return nil if str.empty?
+          
           str = "-#{str}" unless str[0] == ?-
           raise "invalid short option: #{str}" unless str =~ SHORT_REGEXP
           str
@@ -30,6 +32,8 @@ module Tap
         #
         def longify(str, switch_notation=false, hyphenize=true)
           str = str.to_s
+          return nil if str.empty?
+          
           str = "--#{str}" unless str.index("--")
           str.gsub!(/_/, '-') if hyphenize
           
@@ -47,33 +51,17 @@ module Tap
       attr_reader :reader
       attr_reader :writer
       attr_reader :duplicable
-      attr_writer :code_comment
-      
-      def initialize(name, default=nil, attributes={})
+      attr_reader :attributes
+ 
+      def initialize(name, default=nil, options={})
         @name = name
         self.default = default
         
-        self.reader = name
-        self.writer = "#{name}="
-        self.attributes = attributes
+        self.reader = options.delete(:reader) || name
+        self.writer = options.delete(:writer) || "#{name}="
+        @attributes = options
       end
-      
-      def attributes=(attributes)
-        @attributes = attributes.delete_if {|key, value| value == nil}
-        self.reader = attributes.delete(:reader) if attributes[:reader]
-        self.writer = attributes.delete(:writer) if attributes[:writer]
-        
-        @attributes = EMPTY_ATTRS if @attributes.empty?
-      end
-      
-      def attributes
-        attributes = {}
-        [:reader, :writer, :arg_name, :arg_type, :long, :short, :desc, :summary].each do |key|
-          attributes[key] = send(key)
-        end
-        attributes
-      end
-      
+
       # Sets the default value for self and determines if the
       # default is duplicable (ie not nil, true, false, Symbol, 
       # Numeric, and responds_to?(:dup)).
@@ -102,52 +90,20 @@ module Tap
         @writer = value.to_sym
       end
       
-      def code_comment
-        @code_comment ||= Comment.new
-      end
-      
       def arg_name
-        @attributes[:arg_name] || name.to_s.upcase
+        attributes[:arg_name] || name.to_s.upcase
       end
       
       def arg_type
-        @attributes[:arg_type] || :mandatory
+        attributes[:arg_type] || :mandatory
       end
       
-      def long
-        @attributes[:long] || name.to_s
-      end
-      
-      def short
-        @attributes[:short]
-      end
-      
-      def summary
-        @attributes[:summary] || code_comment.summary
-      end
-      
-      def desc
-        @attributes[:desc] || code_comment.to_s
-      end
-      
-      def empty?
-        summary.empty?
-      end
-      
-      def to_str
-        summary
-      end
-      
-      def to_option_parser_argv
-        argv = []
-        argv << Configuration.shortify(short) if short
-        long = Configuration.longify(self.long)
-
-        argv << case arg_type
+      def arg_type_for_option_parser
+        case arg_type
         when :optional 
           "#{long} [#{arg_name}]"
         when :switch 
-          Configuration.longify(self.long, true)
+          long(true)
         when :flag
           long
         when :list
@@ -157,22 +113,28 @@ module Tap
         else
           raise "unknown arg_type: #{arg_type}"
         end
-        
-        argv << self
-        argv  
       end
       
-      # True if another is a kind of Configuration and all attributes are equal.
+      def long(switch_notation=false, hyphenize=true)
+        Configuration.longify(attributes[:long] || name.to_s, switch_notation, hyphenize)
+      end
+      
+      def short
+        Configuration.shortify(attributes[:short])
+      end
+      
+      def desc
+        attributes[:desc]
+      end
+
+      # True if another is a kind of Configuration with the same name and
+      # default value; attributes are NOT taken into account.
       def ==(another)
         another.kind_of?(Configuration) && 
         self.name == another.name &&
-        self.attributes == another.attributes &&
         self.default(false) == another.default(false)
       end
       
-      private
-      
-      EMPTY_ATTRS = {}.freeze
     end
   end
 end

@@ -4,6 +4,7 @@ require 'tap/support/configuration'
 
 module Tap
   module Support
+    autoload(:TDoc, 'tap/support/tdoc')
     autoload(:Templater, 'tap/support/templater')
 
     # ClassConfiguration tracks and handles the class configurations defined in a Tap::Task
@@ -119,11 +120,18 @@ module Tap
       end
       
       def resolve_documentation
-        code_comments = values.collect {|config| config.code_comment }.flatten
-        TDoc.instance.registry.each do |doc| 
-          next if (code_comments & doc.code_comments).empty?
-          doc.resolve
-        end
+        values.collect do |config| 
+          next unless config.desc.kind_of?(Array)
+          
+          source_file, line_number = config.desc
+          doc = TDoc.instance.document_for(source_file)
+          
+          desc = doc.register(line_number)
+          desc.extend ConfigComment
+          config.attributes[:desc] = desc
+          
+          doc
+        end.compact.uniq.each {|doc| doc.resolve}
       end
       
       # The path to the :doc template (see format_str)
@@ -182,6 +190,15 @@ module Tap
         target
       end
       
+      module ConfigComment
+        def empty?
+          false
+        end
+
+        def to_str
+          subject.to_s =~ /#(.*)$/ ? $1.strip : ""
+        end
+      end
     end
   end
 end

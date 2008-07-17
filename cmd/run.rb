@@ -116,41 +116,7 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
     
       # now let the class handle the argv
       name, config, argv = task_class.parse_argv(ARGV) do |opts|
-          document.resolve(nil, /^\s*def\s+process(\((.*?)\))?/) do |comment, match|
-            comment.subject = match[2].to_s.split(',').collect do |arg|
-              arg = arg.strip.upcase
-              case arg
-              when /^&/ then nil
-              when /^\*/ then arg[1..-1] + "..."
-              else arg
-              end
-            end.join(', ')
 
-            document['']['args'] ||= comment
-          end
-          
-         task_class.configurations.resolve_documentation
-
-          manifest = document[task_class.to_s]['manifest'] || Tap::Support::Comment.new
-          args = document[task_class.to_s]['args'] || Tap::Support::Comment.new
-
-          opts.banner = "usage: tap run -- #{name} #{args.subject}"
-          
-          print Tap::Support::Templater.new(%Q{<%= task_class %><%= manifest.subject.to_s.strip.empty? ? '' : ' -- ' %><%= manifest.subject %>
-
-<% unless manifest.empty? %>
-
-<% manifest.to_s(' ', nil, 78, 2).each do |line| %>
-  <%= line %>
-<% end %>
-<% end %>
-
-<%= opts.to_s %>}, 
-            :task_class => task_class, 
-            :manifest => manifest, 
-            :opts => opts
-          ).build
-          
           exit
       end
       

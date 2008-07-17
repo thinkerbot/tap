@@ -1,6 +1,6 @@
 module Tap
   module Support
-
+  
     # FrameworkMethods encapsulates class methods related to Framework.
     module FrameworkMethods
       
@@ -10,7 +10,7 @@ module Tap
           case line
           when /\/framework.rb/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
-            base.instance_variable_set(:@tdoc, TDoc.instance.document_for($1))
+            base.instance_variable_set(:@source_file, File.expand_path($1))
             break
           end
         end
@@ -22,19 +22,40 @@ module Tap
       def inherited(child)
         super
         caller.first =~ /^(([A-z]:)?[^:]+):(\d+)/
-        child.instance_variable_set(:@tdoc, TDoc.instance.document_for($1))
+        child.instance_variable_set(:@source_file, File.expand_path($1))
+      end
+      
+      # The source_file for self.  By default the first file
+      # to define the class inheriting FrameworkMethods.
+      attr_accessor :source_file
+      
+      # Returns the tdoc for source_file
+      def tdoc
+        TDoc.instance.document_for(source_file)
       end
       
       # Returns the default name for the class: to_s.underscore
       def default_name
         @default_name ||= to_s.underscore
       end
+      
+      DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= manifest.subject.to_s.strip.empty? ? '' : ' -- ' %><%= manifest.subject %>
+
+<% unless manifest.empty? %>
+
+<% manifest.to_s(' ', nil, 78, 2).each do |line| %>
+  <%= line %>
+<% end %>
+<% end %>
+
+<%= opts.to_s %>
+}
 
       def enq(name=nil, config={}, app=App.instance, argv=[])
         new(name, config, app).enq(*argv)
       end
       
-      def parse_argv(argv) # => name, config, argv
+      def parse_argv(argv, exit_on_help=true) # => name, config, argv
         config = {}
         opts = OptionParser.new
 
@@ -45,7 +66,10 @@ module Tap
         end
         
         configurations.each do |receiver, key, configuration|
-          opts.on(*configuration.to_option_parser_argv) do |value|
+          desc = configuration.desc
+          desc = TDoc.instance.register(*desc) if desc.kind_of?(Array)
+          configv = [configuration.short, configuration.arg_type_for_option_parser, desc]
+          opts.on(*configv.compact) do |value|
             config[key] = value
           end
         end
@@ -55,8 +79,34 @@ module Tap
         opts.separator "options:"
         
         opts.on_tail("-h", "--help", "Print this help") do
-          yield(opts)
-        end if block_given?
+          tdoc.resolve(nil, /^\s*def\s+process(\((.*?)\))?/) do |comment, match|
+            comment.subject = match[2].to_s.split(',').collect do |arg|
+              arg = arg.strip.upcase
+              case arg
+              when /^&/ then nil
+              when /^\*/ then arg[1..-1] + "..."
+              else arg
+              end
+            end.join(', ')
+         
+            tdoc['']['args'] ||= comment
+          end
+         
+          configurations.resolve_documentation
+         
+          manifest = tdoc[to_s]['manifest'] || Tap::Support::Comment.new
+          args = tdoc[to_s]['args'] || Tap::Support::Comment.new
+
+          opts.banner = "usage: tap run -- #{to_s.underscore} #{args.subject}"
+          
+          print Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, 
+            :task_class => self, 
+            :manifest => manifest, 
+            :opts => opts
+          ).build
+          
+          exit if exit_on_help
+        end
 
         name = nil
         opts.on_tail('--name NAME', /^[^-].*/, 'Specify a name') do |value|
