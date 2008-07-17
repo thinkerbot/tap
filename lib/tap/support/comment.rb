@@ -116,7 +116,7 @@ module Tap
         def wrap(lines, cols=80, tabsize=2)
           lines.collect do |line|
             line = line.gsub(/\t/, " " * tabsize) unless tabsize == nil
-        
+
             if line.strip.empty? 
               line
             else
@@ -161,10 +161,6 @@ module Tap
         @lines = []
         @subject = nil
         @line_number = line_number
-      end
-      
-      def summary
-        subject.to_s =~ /#(.*)$/ ? $1.strip : ""
       end
 
       # Pushes the fragment onto the last line array.  If fragment is an
@@ -240,26 +236,16 @@ module Tap
       def empty?
         !lines.find {|array| !array.empty?}
       end
+      
+      def wrap(cols=80, tabsize=2, line_sep="\n", fragment_sep=" ")
+        resolved_lines = Comment.wrap(to_s(fragment_sep, nil), cols, tabsize)
+        line_sep ? resolved_lines.join(line_sep) : resolved_lines
+      end
     
       # Returns lines as a string where line fragments are joined by
-      # fragment_sep and lines are joined by line_sep.  If cols is
-      # specified, each line will be wrapped with the specified
-      # number of columns.  If tabsize is specified, tabs will be
-      # resolved to tabsize spaces.
-      def to_s(fragment_sep=" ", line_sep="\n", cols=nil, tabsize=nil)
-        resolved_lines = lines.collect do |line|
-          line_str = line.join(fragment_sep)
-          line_str = line_str.gsub(/\t/, " " * tabsize) unless tabsize == nil
-        
-          if cols == nil || line_str.strip.empty? 
-            line_str
-          else
-            # wrapping algorithm is slightly modified from 
-            # http://blog.macromates.com/2006/wrapping-text-with-regular-expressions/
-            line_str.gsub(/(.{1,#{cols}})( +|$\r?\n?)|(.{1,#{cols}})/, "\\1\\3\n").split(/\s*\n/)
-          end
-        end.flatten
-      
+      # fragment_sep and lines are joined by line_sep. 
+      def to_s(fragment_sep=" ", line_sep="\n")
+        resolved_lines = lines.collect {|line| line.join(fragment_sep)}
         line_sep ? resolved_lines.join(line_sep) : resolved_lines
       end
       

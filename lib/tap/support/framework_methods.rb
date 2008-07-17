@@ -43,7 +43,7 @@ module Tap
 
 <% unless manifest.empty? %>
 
-<% manifest.to_s(' ', nil, 78, 2).each do |line| %>
+<% manifest.wrap(78, 2, nil).each do |line| %>
   <%= line %>
 <% end %>
 <% end %>
@@ -67,7 +67,8 @@ module Tap
         
         configurations.each do |receiver, key, configuration|
           desc = configuration.desc
-          desc = TDoc.instance.register(*desc) if desc.kind_of?(Array)
+          desc.extend(OptParseComment) if desc.kind_of?(Comment)
+          
           configv = [configuration.short, configuration.arg_type_for_option_parser, desc]
           opts.on(*configv.compact) do |value|
             config[key] = value
@@ -92,7 +93,7 @@ module Tap
             tdoc.default_attributes['args'] ||= comment
           end
          
-          configurations.resolve_documentation
+          TDoc.instance.resolve(configurations.code_comments)
 
           manifest = tdoc[to_s]['manifest'] || Tap::Support::Comment.new
           args = tdoc[to_s]['args'] || Tap::Support::Comment.new
@@ -125,6 +126,15 @@ module Tap
         [name, config, argv]
       end
       
+      module OptParseComment
+        def empty?
+          to_str.empty?
+        end
+
+        def to_str
+          subject.to_s =~ /#(.*)$/ ? $1.strip : ""
+        end
+      end
     end
   end
 end

@@ -219,6 +219,22 @@ subject line # with a trailing comment
   end
   
   #
+  # wrap test
+  #
+  
+  def test_wraps_str_to_cols
+    assert_equal ["some line", "that will", "wrap"], Comment.wrap("some line that will wrap", 10)
+  end
+  
+  def test_wrap_breaks_on_newlines
+    assert_equal ["line that", "will wrap", "a line", "that wont"], Comment.wrap("line that will wrap\na line\nthat wont", 10)
+  end
+  
+  def test_wrap_resolves_tabs_using_tabsize
+    assert_equal ["a    line", "that", "wraps"], Comment.wrap("a\tline that\twraps", 10, 4)
+  end
+  
+  #
   # initialize test
   #
   
@@ -340,13 +356,11 @@ subject line # with a trailing comment
     assert_equal "some line.fragments:a.whole.new line", c.to_s('.', ':')
   end
   
-  def test_to_s_wraps_lines_to_cols
-    c.push "some line that will wrap"
-    assert_equal "some line\nthat will\nwrap", c.to_s(' ', "\n", 10)
-  end
-  
-  def test_to_s_resolves_tabs_to_tabsize
-    c.push "some\tresolved tab"
-    assert_equal "some   resolved tab", c.to_s(' ', "\n", nil, 3)
+  def test_to_s_does_not_join_lines_when_line_sep_is_nil
+    c.push "some line"
+    c.push "fragments"
+    c.push ["a", "whole", "new line"]
+    
+    assert_equal ["some line.fragments", "a.whole.new line"], c.to_s('.', nil)
   end
 end

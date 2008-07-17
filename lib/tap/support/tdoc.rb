@@ -18,7 +18,7 @@ module Tap
         def parse_usage(str, cols=80)
           scanner = StringScanner.new(str)
           scanner.scan(/^#!.*?$/)
-          Comment.parse(scanner, false).to_s(" ", "\n", cols, 2).strip
+          Comment.parse(scanner, false).wrap(cols, 2).strip
         end
         
       end
@@ -48,17 +48,14 @@ module Tap
       # TDoc the specified line numbers to source_file.
       # Returns a CodeComment object corresponding to the line.
       def register(source_file, line_number)
-        document = document_for(source_file)
-        document.register(line_number)
+        document_for(source_file).register(line_number)
       end
 
-      # Returns true if the comments for source_file are frozen.
-      def resolved?(source_file)
-        document_for(source_file).resolved?
-      end
-
-      def resolve(source_file, str=nil)
-        document_for(source_file).resolve(str)
+      def resolve(code_comments)
+        registry.each do |doc|
+          next if (code_comments & doc.code_comments).empty?
+          doc.resolve
+        end
       end
     end
   end

@@ -119,19 +119,12 @@ module Tap
         InstanceConfiguration.new(self, receiver)
       end
       
-      def resolve_documentation
-        values.collect do |config| 
-          next unless config.desc.kind_of?(Array)
-          
-          source_file, line_number = config.desc
-          doc = TDoc.instance.document_for(source_file)
-          
-          desc = doc.register(line_number)
-          desc.extend ConfigComment
-          config.attributes[:desc] = desc
-          
-          doc
-        end.compact.uniq.each {|doc| doc.resolve}
+      def code_comments
+        code_comments = []
+        values.each do |config| 
+          code_comments << config.desc if config.desc.kind_of?(Comment)
+        end
+        code_comments
       end
       
       # The path to the :doc template (see format_str)
@@ -166,7 +159,7 @@ module Tap
       # The input template may be a String or an ERB; either may be used to 
       # initialize the templater.
       def format_str(template=:doc, target="")
-        resolve_documentation
+        TDoc.instance.resolve(code_comments)
         
         template = case template
         when :doc then File.read(DOC_TEMPLATE_PATH)
@@ -188,16 +181,6 @@ module Tap
         end
         
         target
-      end
-      
-      module ConfigComment
-        def empty?
-          to_str.empty?
-        end
-
-        def to_str
-          subject.to_s =~ /#(.*)$/ ? $1.strip : ""
-        end
       end
     end
   end

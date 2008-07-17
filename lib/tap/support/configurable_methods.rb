@@ -1,5 +1,6 @@
 require 'tap/support/class_configuration'
 require 'tap/support/validation'
+require 'tap/support/tdoc'
 
 module Tap
   module Support
@@ -225,7 +226,7 @@ module Tap
           case line
           when /in .config.$/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
-            options[:desc] = [$1.to_sym, $3.to_i - 1]
+            options[:desc] = TDoc.instance.register($1, $3.to_i - 1)
             break
           end
         end if options[:desc] == nil
