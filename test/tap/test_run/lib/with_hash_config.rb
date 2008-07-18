@@ -1,3 +1,4 @@
+# ::manifest
 class WithHashConfig < Tap::Task
 
   config :hc, {}, &c.hash            # a hash config

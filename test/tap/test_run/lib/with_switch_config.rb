@@ -1,3 +1,4 @@
+# ::manifest
 class WithSwitchConfig < Tap::Task
 
   config :switch, false, &c.switch            # a switch config

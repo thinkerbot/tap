@@ -1,5 +1,5 @@
 module Tap
-  # == Description
+  # ::manifest
   # A primitive dump task (still in development) to print  
   # application results to a file or IO.  The results are
   # printed in a tap-readable format allowing the use of

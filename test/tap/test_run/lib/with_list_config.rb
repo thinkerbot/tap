@@ -1,3 +1,4 @@
+# ::manifest
 class WithListConfig < Tap::Task
 
   config :list, [], &c.list            # a list config

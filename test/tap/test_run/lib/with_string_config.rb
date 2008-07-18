@@ -1,3 +1,4 @@
+# ::manifest
 class WithStringConfig < Tap::Task
 
   config :string, '', &c.string            # a string config

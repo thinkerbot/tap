@@ -228,6 +228,11 @@ options:
 === test_run (#{method_root})
 sample              # manifest summary
 sample_without_doc  # 
+with_array_config   # 
+with_hash_config    # 
+with_list_config    # 
+with_string_config  # 
+with_switch_config  # 
 === rake tasks
 rake clobber_package  # Remove package products
 rake clobber_rdoc     # Remove rdoc products
@@ -247,6 +252,11 @@ rake test             # Run tests
 === test_run (#{method_root})
 sample              # manifest summary
 sample_without_doc  # 
+with_array_config   # 
+with_hash_config    # 
+with_list_config    # 
+with_string_config  # 
+with_switch_config  # 
 }
 
       cmd.check " run -T --no-rake", "Prints manifest wihtout rake", manifest_without_rake

@@ -100,8 +100,7 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
       # attempt lookup the task class
       name, path = env.search(:tasks, td)
       task_class = if name == nil 
-        # should be removed... ?
-        env.constantize(td)
+        nil
       else
         require path
         name.camelize.constantize
