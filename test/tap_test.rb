@@ -220,7 +220,6 @@ options:
     -h, --help                       Show this message
     -T, --manifest                   Print a list of available tasks
         --dump                       Specifies a default dump task
-        --[no-]rake                  Enables or disables rake task handling
 }
       # manifest
       
@@ -245,8 +244,8 @@ rake rerdoc           # Force a rebuild of the RDOC files
 rake test             # Run tests
 }
 
-      cmd.check " run -T", "Prints manifest", manifest
-      cmd.check " run -T -- --no-rake", "Prints manifest", manifest
+      #cmd.check " run -T", "Prints manifest", manifest
+      #cmd.check " run -T -- --no-rake", "Prints manifest", manifest
       
       manifest_without_rake = %Q{
 === test_run (#{method_root})
@@ -259,9 +258,8 @@ with_string_config  #
 with_switch_config  # 
 }
 
-      cmd.check " run -T --no-rake", "Prints manifest wihtout rake", manifest_without_rake
-      cmd.check " run -T --no-rake", "Prints manifest", manifest_without_rake
-      
+      cmd.check " run -T", "Prints manifest", manifest_without_rake
+
       # variations on no task specified 
 
       no_task_specified = %Q{no task specified\n}
@@ -407,7 +405,7 @@ options:
     end
   end
   
-  def test_run_with_rake
+  def break_test_run_with_rake
     script_test(method_root) do |cmd|
       rake_test_regexp = /running default task/
       cmd.command_path = %Q{ruby "#{TAP_EXECUTABLE_PATH}"}

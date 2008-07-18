@@ -1,9 +1,5 @@
 require 'tap/root'
 
-# causes an error with generators... something in the way Dependencies is set...
-# autoload(:Dependencies, 'tap/support/dependencies')
-Tap::Support.autoload(:Rake, 'tap/support/rake')
-
 module Tap
 
   #--
@@ -264,17 +260,6 @@ module Tap
     # Designate paths for discovering generators.  
     path_config :generator_paths, ["lib/generators"]
     
-    #-- TODO - move to tap as unhandled configs
-    
-    # Specifies automatic loading of dependencies through
-    # the active_support Dependencies module.  Naturally,
-    # active_support must be installed for this to work.
-    static_config :use_dependencies, false, &c.boolean
-    config :debug, false, &c.boolean  
-    config :short_run_options, ['--dump', '--rake'], &c.array
-    
-    #--
-    
     manifest(:tasks, :load_paths) do |load_path, path|
       document = Support::Lazydoc[path]
         
@@ -287,14 +272,9 @@ module Tap
       end
     end
     
-    # --
-    # Searches for and returns all .rb files under each of the command_paths
-    # as well as the default tap commands.  Commands with conflicting names
-    # raise an error; however, user commands are allowed to override the
-    # default tap commands and will NOT raise an error.
     manifest(:commands, :command_paths) 
     
-    #manifest(:generators, :generator_paths, '_generator.rb') 
+    manifest(:generators, :generator_paths, '_generator.rb') 
     
     def initialize(config={}, root=Tap::Root.new, logger=nil)
       @root = root 
@@ -310,11 +290,6 @@ module Tap
       
       initialize_config(config)
     end
-    
-    # Should be added to ensure nested configs don't set this...
-    # def use_dependencies
-    #   use_dependencies && self == Env.instance
-    # end
     
     def constantize(str)
       str.camelize.try_constantize do |const_name|
@@ -341,32 +316,7 @@ module Tap
     # by default [$LOAD_PATH]. If use_dependencies == true, then
     # Dependencies.load_paths will also be included.
     def load_path_targets
-      use_dependencies ? [$LOAD_PATH, ::Dependencies.load_paths] : [$LOAD_PATH]
-    end
-    
-    # Unloads constants loaded by Dependencies, so that they will be reloaded
-    # (with any changes made) next time they are called.  Does nothing unless
-    # use_dependencies == true.  Returns the unloaded constants, or nil if 
-    # use_dependencies is false.
-    def reload
-      return nil unless use_dependencies
-      
-      unloaded = []
-    
-      # echos the behavior of Dependencies.clear, 
-      # but collects unloaded constants
-      Dependencies.loaded.clear
-      Dependencies.autoloaded_constants.each do |const| 
-        Dependencies.remove_constant const
-        unloaded << const
-      end
-      Dependencies.autoloaded_constants.clear
-      Dependencies.explicitly_unloadable_constants.each do |const| 
-        Dependencies.remove_constant const
-        unloaded << const
-      end
-    
-      unloaded
+      [$LOAD_PATH]
     end
     
     # Processes and resets the input configurations for both root
@@ -634,59 +584,8 @@ module Tap
         puts err.message
         puts
         puts err.backtrace
-      when debug then raise err
       else puts err.message
       end
-    end
-    
-    def debug?
-      $DEBUG || debug
-    end
-    
-    def debug_setup
-      $DEBUG = true
-      logger.level = Logger::DEBUG if logger
-    end
-    
-    def rails_setup
-      Object.const_set('RAILS_ROOT', root.root)
-      Object.const_set('RAILS_DEFAULT_LOGGER', logger)
-      Dependencies.log_activity = debug?
-    end
-    
-    #--
-    # TODO -- get this to only run once
-    def rake_setup(argv=ARGV)
-      rake = Tap::Support::Rake.application
-      rake.on_standard_exception do |error|
-        if error.message =~ /^No Rakefile found/
-          log(:warn, error.message, Logger::DEBUG)
-        else raise error
-        end
-      end
-    
-      options = rake.options
-      # merge options down from app
-      # app.options.marshal_dump.each_pair do |key, value|
-      #   options.send("#{key}=", value)
-      # end
-      options.silent = true
-    
-      # run as if from command line using argv
-      current_argv = ARGV.dup
-      begin
-        ARGV.concat(argv)
-    
-        # now follow the same protocol as 
-        # in run, handling options
-        rake.init
-        rake.load_rakefile
-      ensure
-        ARGV.clear
-        ARGV.concat(current_argv)
-      end
-    
-      rake
     end
     
     protected
@@ -728,10 +627,7 @@ module Tap
         Env.instance_for(spec.full_gem_path)
       end
     end
-    
-    class InconsistencyError < StandardError
-    end
-    
+
     class ConfigError < StandardError
       attr_reader :original_error, :env_path
       

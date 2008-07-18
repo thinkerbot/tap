@@ -20,12 +20,14 @@ begin
   $DEBUG = true if ARGV.delete('-d-')
   before = nil
   after = nil
-
+  short_run_options = ['--dump', '--rake']
+  
   app = Tap::App.instance
   env = Tap::Env.instantiate(app, Tap::Env.read_config(Tap::Env::GLOBAL_CONFIG_FILE), app.logger) do |unhandled_configs|
     before = unhandled_configs.delete(:before)
     after = unhandled_configs.delete(:after)
-  
+    short_run_options = unhandled_configs.delete(:short_run_options)
+
     unless unhandled_configs.empty?
       local.log(:warn, "ignoring non-env configs: #{unhandled_configs.keys.join(',')}", Logger::DEBUG)
     end
@@ -106,7 +108,7 @@ begin
       ARGV.unshift '--'
     end
     
-    env.short_run_options.reverse_each do |opt|
+    short_run_options.reverse_each do |opt|
       ARGV.unshift(opt)
     end
     
