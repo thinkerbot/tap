@@ -88,9 +88,9 @@ begin
     puts
     puts "available commands:"
     
-    mappings = tap.commands_mappings
-    mappings.each do |(env_lookup, env, map)|
-      puts "=== #{env_lookup} (#{env.root.root})" if mappings.length > 1
+    commands_map = tap.map(:commands)
+    commands_map.each do |(env_lookup, env, map)|
+      puts "=== #{env_lookup} (#{env.root.root})" if commands_map.length > 1
       map.each do |(key, path)|
         puts "  #{key}"
       end
@@ -112,7 +112,7 @@ begin
     
     load tap.search_commands('run')  
   else
-    if map = tap.search_commands(command)
+    if map = tap.search(:commands, command)
       load map[1] # run the command, if it exists
     else
       puts "Unknown command: '#{command}'"

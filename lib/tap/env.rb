@@ -163,55 +163,36 @@ module Tap
       # carry it's own slice of the manifest without having to recalculate.
       # On the down side, the merging would have to occur in some separate
       # method that cannot be defined here.
-      def manifest(manifest_key, paths_key, extname=".rb", &block)
-        return manifest(manifest_key, paths_key, extname) do |manifest_path, path| 
-          [path.chomp(extname)] 
+      def manifest(name, paths_key, extname=".rb", &block)
+        return manifest(name, paths_key, extname) do |manifest_path, path| 
+          path.chomp(extname) 
         end unless block_given?
         
-        keys_method = "#{manifest_key}_keys".to_sym
+        manifest_keys = "keys_for_#{name}_manifest".to_sym
         
-        define_method(keys_method, &block)
-        protected keys_method
+        define_method(manifest_keys, &block)
+        protected manifest_keys
+        
+        # tasks => {key => path}
+        # iterate_tasks(pattern=nil) :yields: key, path
+        # tasks_keys
         
         module_eval %Q{
-      def #{manifest_key}
-        manifest = manifests[:#{manifest_key}] ||= {}
-        return manifest if manifest.frozen?
-        
-        manifest_search(:#{paths_key}, :#{keys_method}, "**/*#{extname}") do |key, path|
-          # raise ManifestConflict if manifest.has_key?(key) && manifest[key] != key
-          manifest[key] = path
-        end
-        manifest.freeze
-        manifest
-      end
-      
-      def #{manifest_key}_map
-        Tap::Root.reduce_map(self.#{manifest_key}, false)
-      end
-      
-      def #{manifest_key}_mappings
-        mappings = []
-        env_map.each_pair do |env_lookup, env|
-         map = env.#{manifest_key}_map.to_a.sort_by {|(k,v)| k }
-         mappings << [env_lookup, env, map] unless map.empty?
-        end
-        mappings
-      end
-    
-      def search_#{manifest_key}(pattern)
-        manifest = manifests[:#{manifest_key}] ||= {}
-        manifest_search(:#{paths_key}, :#{keys_method}, "**/*\#{pattern}*") do |key, path|
-          manifest[key] = path 
-          return [key, path] if key[-pattern.length, pattern.length] == pattern
-        end unless manifest.frozen?
-        
-        self.#{manifest_key}.each_pair do |key, path| 
-          return [key, path] if key[-pattern.length, pattern.length] == pattern
-        end
-        
-        nil
-      end}
+          def iterate_#{name}(pattern='**/*#{extname}')
+            self.#{paths_key}.each do |manifest_path|
+              root.glob(manifest_path, pattern).each do |path|
+                keys = self.#{manifest_keys}(manifest_path, path)
+                case keys
+                when Array then keys.each {|key| yield(key, path) }
+                when Hash then keys.each_pair {|key, value| yield(key, value) }
+                when nil then next
+                else yield(keys, path)
+                end
+              end
+            end
+          end
+        }
+
       end
     end
     
@@ -321,6 +302,7 @@ module Tap
       @envs = []
       @active = false
       @manifests = {}
+      @manifested = []
       
       # initialize these for reset_env
       @gems = []
@@ -571,26 +553,68 @@ module Tap
       count
     end
     
-    # Returns a hash mapping lookup paths to their env.  A lookup path is 
-    # the minimum base path that uniquely identifies an env by its root.
-    #
-    # Raises an InconsistencyError if multiple envs have the same root 
-    # path.
-    def env_map(reverse=false)
-      map = {}
-      each do |env|
-        root_path = env.root.root
-        
-        if map.has_key?(root_path)
-          # no expansion should be necessary as root.root is already expanded
-          inconsistents = select {|e| e.root.root == root_path }.collect {|e| e.inspect(true)}
-          raise InconsistencyError, "multiple env share the same root path '#{root_path}': [#{inconsistents.join(', ')}]" 
-        end
-        
-        map[root_path] = env
+    def manifested?(name)
+      @manifested.include?(name)
+    end
+    
+    def manifest(name)
+      manifest = manifests[name] ||= {}
+      return manifest if manifested?(name)
+      
+      send("iterate_#{name}") {|key, path| add_manifest(manifest, key, path) }
+      @manifested << name
+      manifest
+    end
+    
+    def reduce_map(name)
+      Tap::Root.reduce_map(manifest(name), false)
+    end
+    
+    def map(name)
+      maps = []
+      reduce_map(:envs).each_pair do |key, env|
+       map = env.reduce_map(name).to_a.sort_by {|(k,v)| k }
+       maps << [key, env, map] unless map.empty?
       end
-  
-      Tap::Root.reduce_map(map, reverse)
+      maps
+    end
+    
+    def find(name, pattern)
+      manifest = manifests[name] ||= {}
+      send("iterate_#{name}", "**/*\#{pattern}*") do |key, path|
+        add_manifest(manifest, key, path)
+        return [key, path] if manifest_match?(key, pattern)
+      end unless manifested?(name)
+      
+      self.manifest(name).each_pair do |key, path| 
+        return [key, path] if manifest_match?(key, pattern)
+      end
+      
+      nil
+    end
+    
+    def search(name, pattern)
+      return find(name, pattern) if name == :envs
+      
+      envs = case pattern
+      when /^(.*):([^:]+)$/
+        env_pattern = $1
+        pattern = $2
+        if match = find(:envs, env_pattern) 
+          match[1] 
+        else
+          raise(ArgumentError, "could not find env: #{env_pattern}")
+        end
+      else self
+      end
+      
+      envs.each do |env|
+        if result = env.find(name, pattern)
+          return result
+        end
+      end
+      
+      nil
     end
 
     def inspect(brief=false)
@@ -664,14 +688,22 @@ module Tap
     
     protected
     
-    def manifest_search(paths_key, keys_method, pattern)
-      send(paths_key).each do |manifest_path|
-        root.glob(manifest_path, pattern).each do |path|
-          send(keys_method, manifest_path, path).each do |key|
-            yield(key, path)
-          end
-        end
+    def iterate_envs(pattern=nil)
+      each do |env|
+        yield(env.root.root, env)
       end
+    end    
+    
+    def add_manifest(manifest, key, path)
+      raise 'ManifestConflict' if manifest.has_key?(key) && manifest[key] != path
+      manifest[key] = path
+    end
+    
+    def manifest_match?(key, pattern)
+      # key ends with pattern AND basenames of each are equal... 
+      # the last check ensures that a full path segment has 
+      # been specified
+      key[-pattern.length, pattern.length] == pattern #&& File.basename(key) == File.basename(pattern)
     end
     
     def check_configurable

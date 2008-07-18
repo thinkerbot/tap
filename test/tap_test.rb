@@ -266,7 +266,7 @@ sample_without_doc  #
       
       # run variations
       
-      cmd.check " run sample one -d-", "Runs the sample task successfully", 
+      cmd.check " run sample one", "Runs the sample task successfully", 
       /I\[\d\d:\d\d:\d\d\]             sample one was processed with value/
       
       cmd.check " run -- sample one --key alt", "Runs the sample task with config", 

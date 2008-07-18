@@ -45,7 +45,7 @@ if print_manifest
   
   width = 10
   lines = []
-  env.tasks_mappings.each do |(env_lookup, env, map)|
+  env.map(:tasks).each do |(env_lookup, env, map)|
     lines <<  "=== #{env_lookup} (#{env.root.root})" 
     map.each do |(key, path)|
       width = key.length if width < key.length
@@ -97,12 +97,13 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
     else  
 
       # attempt lookup the task class
-      task_class = env.constantize(td) do |const_name|
-        name, path = env.search_tasks(td)
-        name == nil ? nil : const_name.try_constantize do |const_name|
-          require path
-          const_name.constantize
-        end
+      name, path = env.search(:tasks, td)
+      task_class = if name == nil 
+        # should be removed... ?
+        env.constantize(td)
+      else
+        require path
+        name.camelize.constantize
       end
 
       # unless a Tap::Task was found, treat the
