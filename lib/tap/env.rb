@@ -581,11 +581,14 @@ module Tap
     
     def find(name, pattern)
       manifest = manifests[name] ||= {}
-      send("iterate_#{name}", "**/*\#{pattern}*") do |key, path|
+      send("iterate_#{name}", "**/*#{pattern}*") do |key, path|
         add_manifest(manifest, key, path)
         return [key, path] if manifest_match?(key, pattern)
       end unless manifested?(name)
       
+      # does this need to be run when the first search fails?
+      # may depend on the pattern being input... does it filter
+      # out the matching pattern...
       self.manifest(name).each_pair do |key, path| 
         return [key, path] if manifest_match?(key, pattern)
       end

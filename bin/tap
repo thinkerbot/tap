@@ -110,7 +110,7 @@ begin
       ARGV.unshift(opt)
     end
     
-    load tap.search_commands('run')  
+    load tap.search(:commands, 'run')
   else
     if map = tap.search(:commands, command)
       load map[1] # run the command, if it exists
