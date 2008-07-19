@@ -1,20 +1,30 @@
-begin
-  $:.unshift File.dirname(__FILE__) + "/../../../vendor"
-  require 'tap/generator'
-rescue(LoadError)
-  puts "The 'rails' gem is required for generators -- install using:"
-  puts "  % gem install rails"
+require 'tap/generator/base'
+require 'tap/generator/generate'
+
+env = Tap::Env.instance
+
+if ARGV.empty?
+  puts env.summarize(:generators) {|const| const.document['']['generator'] }
   exit
 end
 
-Rails::Generator::Base.use_env_sources!
+td = ARGV.shift
+const = env.search(:generators, td) or raise "unknown generator: #{td}"
 
-require 'rails_generator/scripts/generate'
-generator = ARGV.shift
+generator = const.constantize.new
+generator.extend(Tap::Generator::Generate)
+generator.enq(*ARGV)
 
-# Ensure help is printed if help is the first argument
-generator = nil if generator == '--help' || generator == '-h'
+generator.app.run
 
-script = Rails::Generator::Scripts::Generate.new
-script.extend Tap::Generator::Usage
-script.run(ARGV, :generator => generator)
+# Rails::Generator::Base.use_env_sources!
+# 
+# require 'rails_generator/scripts/generate'
+# generator = ARGV.shift
+# 
+# # Ensure help is printed if help is the first argument
+# generator = nil if generator == '--help' || generator == '-h'
+# 
+# script = Rails::Generator::Scripts::Generate.new
+# script.extend Tap::Generator::Usage
+# script.run(ARGV, :generator => generator)

@@ -128,10 +128,10 @@ module Tap
       end
       
       # The path to the :doc template (see format_str)
-      DOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../../generators/config/templates/doc.erb"
+      DOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/doc.erb"
       
       # The path to the :nodoc template (see format_str)
-      NODOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../../generators/config/templates/nodoc.erb"
+      NODOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/nodoc.erb"
 
       # Formats the configurations using the specified template.  Two default
       # templates are defined, :doc and :nodoc.  These map to the contents of

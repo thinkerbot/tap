@@ -6,15 +6,23 @@ module Tap
       end
       
       def directory(path)
-        log_relative :rm, path
-        added_files << path
-        rmdir(path)
+        if File.exists?(path)
+          log_relative :rm, path
+          added_files << File.expand_path(path)
+          rmdir(path)
+        else
+          log_relative :missing, path
+        end
       end
     
       def file(path)
-        log_relative :rm, path
-        added_files << path
-        rm(path)
+        if File.exists?(path)
+          log_relative :rm, path
+          added_files << File.expand_path(path)
+          rm(path)
+        else
+          log_relative :missing, path
+        end
       end
     end
     

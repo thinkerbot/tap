@@ -20,13 +20,13 @@ begin
   $DEBUG = true if ARGV.delete('-d-')
   before = nil
   after = nil
-  short_run_options = ['--dump', '--rake']
+  short_run_options = nil
   
   app = Tap::App.instance
   env = Tap::Env.instantiate(app, Tap::Env.read_config(Tap::Env::GLOBAL_CONFIG_FILE), app.logger) do |unhandled_configs|
     before = unhandled_configs.delete(:before)
     after = unhandled_configs.delete(:after)
-    short_run_options = unhandled_configs.delete(:short_run_options)
+    short_run_options = unhandled_configs.delete(:short_run_options) || ['--dump']
 
     unless unhandled_configs.empty?
       local.log(:warn, "ignoring non-env configs: #{unhandled_configs.keys.join(',')}", Logger::DEBUG)
@@ -89,15 +89,7 @@ begin
     puts Tap::Support::CommandLine.usage(__FILE__)
     puts
     puts "available commands:"
-    
-    commands_map = tap.map(:commands)
-    commands_map.each do |(env_lookup, env, map)|
-      puts "=== #{env_lookup} (#{env.root.root})" if commands_map.length > 1
-      map.each do |(key, path)|
-        puts "  #{key}"
-      end
-    end
-    
+    puts tap.summarize(:commands)
     puts
     puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
   when Tap::Support::CommandLine::SPLIT_ARGV_REGEXP
@@ -114,8 +106,8 @@ begin
     
     load tap.search(:commands, 'run')
   else
-    if map = tap.search(:commands, command)
-      load map[1] # run the command, if it exists
+    if path = tap.search(:commands, command)
+      load path # run the command, if it exists
     else
       puts "Unknown command: '#{command}'"
       puts "Type 'tap help' for usage information."

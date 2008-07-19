@@ -12,6 +12,15 @@ module Tap
       CONSTANT_REGEXP = /(::|([A-Z][A-z]*::)+)/
       
       class << self
+        
+        def scan_doc(path, key)
+          document = self[path]
+          scan(File.read(path), key) do |const_name, key, comment|
+            document.attributes(const_name)[key] = comment
+          end
+          document
+        end
+        
         def scan(str, key) # :yields: const_name, key, value
           scanner = case str
           when StringScanner then str
@@ -19,7 +28,7 @@ module Tap
           else raise TypeError, "can't convert #{str.class} into StringScanner or String"
           end
    
-          regexp = /(#{key})([ \t-].*$|$)/
+          regexp = /(#{key})([ \r\t-].*$|$)/
           while !scanner.eos?
             break if scanner.skip_until(CONSTANT_REGEXP) == nil
             const_name = scanner[1]

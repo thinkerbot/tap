@@ -5,7 +5,7 @@
 #   tap run -- task --help             Prints help for task
 #
 
-env = Tap::Env.instance.envs[0]
+env = Tap::Env.instance#.envs[0]
 app = Tap::App.instance
 
 #
@@ -25,23 +25,7 @@ OptionParser.new do |opts|
   end
   
   opts.on('-T', '--manifest', 'Print a list of available tasks') do |v|
-    width = 10
-    lines = []
-    env.map(:tasks).each do |(env_lookup, env, map)|
-      lines <<  "=== #{env_lookup} (#{env.root.root})" 
-      map.each do |(key, path)|
-        width = key.length if width < key.length
-        document = Tap::Support::Lazydoc[path]
-        lines <<  [key, document['']['manifest']]
-      end
-    end
-  
-    lines << "=== no tap tasks found" if lines.empty?
-  
-    lines.each do |line|
-      puts(line.kind_of?(Array) ? ("%-#{width}s  # %s" % line) : line)
-    end
-
+    puts env.summarize(:tasks) {|const| const.document['']['manifest'] }
     exit
   end
   
@@ -66,19 +50,8 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
     next if td == nil
 
     # attempt lookup the task class
-    name, path = env.search(:tasks, td)
-    task_class = if name == nil 
-      nil
-    else
-      require path
-      name.camelize.try_constantize {|const_name| nil }
-    end
-
-    # unless a Tap::Task was found, treat the
-    # args as a specification for Rake.
-    if task_class == nil || !task_class.include?(Tap::Support::Framework)
-      raise "unknown task: #{td}"
-    end
+    const = env.search(:tasks, td) or raise "unknown task: #{td}"
+    task_class = const.constantize or raise "unknown task: #{td}"
     
     # now let the class handle the argv
     name, config, argv = task_class.parse_argv(ARGV)

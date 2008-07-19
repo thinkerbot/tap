@@ -1,4 +1,6 @@
 require 'tap/root'
+require 'tap/support/constant'
+require 'tap/support/summary'
 
 module Tap
 
@@ -177,6 +179,8 @@ module Tap
           def iterate_#{name}(pattern='**/*#{extname}')
             self.#{paths_key}.each do |manifest_path|
               root.glob(manifest_path, pattern).each do |path|
+                next if File.directory?(path)
+                
                 keys = self.#{manifest_keys}(manifest_path, path)
                 case keys
                 when Array then keys.each {|key| yield(key, path) }
@@ -258,23 +262,39 @@ module Tap
     path_config :command_paths, ["cmd"]
     
     # Designate paths for discovering generators.  
-    path_config :generator_paths, ["lib/generators"]
+    path_config :generator_paths, ["lib"]
     
+
     manifest(:tasks, :load_paths) do |load_path, path|
-      document = Support::Lazydoc[path]
-        
-      Support::Lazydoc.scan(File.read(path), 'manifest') do |const_name, key, comment|
-        document.attributes(const_name)[key] = comment
-      end
-        
-      document.const_names.collect do |const_name|
-        const_name == "" ? root.relative_filepath(load_path, path).chomp('.rb') : const_name.underscore
+      document = Support::Lazydoc.scan_doc(path, 'manifest')
+      document.const_names.inject({}) do |tasks, const_name|
+        if const_name.empty?
+          key = root.relative_filepath(load_path, path).chomp('.rb')
+          tasks[key] = Support::Constant.new(key.camelize, path)
+        else
+          tasks[const_name.underscore] = Support::Constant.new(const_name, path)
+        end
+        tasks
       end
     end
     
     manifest(:commands, :command_paths) 
     
-    manifest(:generators, :generator_paths, '_generator.rb') 
+    manifest(:generators, :generator_paths, '_generator.rb') do |load_path, path|
+      dirname = File.dirname(path)
+      next unless "#{File.basename(dirname)}_generator.rb" == File.basename(path)
+      
+      document = Support::Lazydoc.scan_doc(path, 'generator')
+      document.const_names.inject({}) do |generators, const_name|
+        if const_name.empty?
+          key = root.relative_filepath(load_path, dirname)
+          generators[key] = Support::Constant.new((key + '_generator').camelize, path)
+        else
+          generators[const_name.underscore] = Support::Constant.new(const_name, path)
+        end
+        generators
+      end
+    end
     
     def initialize(config={}, root=Tap::Root.new, logger=nil)
       @root = root 
@@ -289,27 +309,6 @@ module Tap
       @env_paths = []
       
       initialize_config(config)
-    end
-    
-    def constantize(str)
-      str.camelize.try_constantize do |const_name|
-        log(:warn, "NameError: #{const_name}", Logger::DEBUG)
-        
-        path_suffix = const_name.underscore.chomp('.rb') + '.rb'
-
-        $:.each do |load_path|
-          path = File.join(load_path, path_suffix) # should already be expanded
-          next unless File.exists?(path) 
-
-          log(:crequire, path, Logger::DEBUG)
-          require path
-          break
-        end
-        
-        const_name.try_constantize do |const_name|
-          yield(const_name) if block_given?
-        end
-      end
     end
     
     # Returns a list of arrays that receive load_paths on activate,
@@ -516,31 +515,36 @@ module Tap
       manifest
     end
     
-    def reduce_map(name)
+    def map(name)
       Tap::Root.reduce_map(manifest(name), false)
     end
     
-    def map(name)
-      maps = []
-      reduce_map(:envs).each_pair do |key, env|
-       map = env.reduce_map(name).to_a.sort_by {|(k,v)| k }
-       maps << [key, env, map] unless map.empty?
+    def summary(name)
+      summary = Support::Summary.new
+      map(:envs).each_pair do |key, env|
+       summary.add(key, env, env.map(name))
       end
-      maps
+      summary
+    end
+    
+    def summarize(name, &block)
+      lines = summary(name).lines(&block)
+      lines << "=== no #{name} found" if lines.empty?
+      lines.join("\n")
     end
     
     def find(name, pattern)
       manifest = manifests[name] ||= {}
       send("iterate_#{name}", "**/*#{pattern}*") do |key, path|
         add_manifest(manifest, key, path)
-        return [key, path] if manifest_match?(key, pattern)
+        return path if manifest_match?(key, pattern)
       end unless manifested?(name)
       
       # does this need to be run when the first search fails?
       # may depend on the pattern being input... does it filter
       # out the matching pattern...
       self.manifest(name).each_pair do |key, path| 
-        return [key, path] if manifest_match?(key, pattern)
+        return path if manifest_match?(key, pattern)
       end
       
       nil
@@ -553,11 +557,7 @@ module Tap
       when /^(.*):([^:]+)$/
         env_pattern = $1
         pattern = $2
-        if match = find(:envs, env_pattern) 
-          match[1] 
-        else
-          raise(ArgumentError, "could not find env: #{env_pattern}")
-        end
+        find(:envs, env_pattern) or raise(ArgumentError, "could not find env: #{env_pattern}")
       else self
       end
       
@@ -605,7 +605,7 @@ module Tap
       # key ends with pattern AND basenames of each are equal... 
       # the last check ensures that a full path segment has 
       # been specified
-      key[-pattern.length, pattern.length] == pattern #&& File.basename(key) == File.basename(pattern)
+      key[-pattern.length, pattern.length] == pattern && File.basename(key) == File.basename(pattern)
     end
     
     def check_configurable
