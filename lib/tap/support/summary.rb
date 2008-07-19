@@ -13,10 +13,6 @@ module Tap
         end
       end
       
-      def width
-        @width
-      end
-      
       def lines
         lines = []
         @map.each do |(env_lookup, env, map)|
@@ -24,7 +20,7 @@ module Tap
           map.to_a.sort_by {|(key, path)| key }.each do |(key, path)|
             desc = block_given? ? yield(path) : ''
             desc = "  # #{desc}" unless desc.empty?
-            lines << ("  %-#{width}s%s" % [key, desc])
+            lines << ("  %-#{@width}s%s" % [key, desc])
           end
         end
         lines

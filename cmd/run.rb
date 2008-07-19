@@ -5,7 +5,7 @@
 #   tap run -- task --help             Prints help for task
 #
 
-env = Tap::Env.instance#.envs[0]
+env = Tap::Env.instance.envs[0]
 app = Tap::App.instance
 
 #
