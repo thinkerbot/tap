@@ -42,11 +42,91 @@ end
 
 class TemplaterUtilsTest < Test::Unit::TestCase
   include Tap::Support::Templater::Utils
+  include Tap::Test::SubsetMethods
+  
+  #
+  # yamlize test
+  #
   
   def test_yamlize_returns_to_yaml_minus_header_and_newline
     assert_equal "key: value", yamlize({'key' => 'value'})
     assert_equal "", yamlize(nil)
     assert_equal "- 1\n- 2\n- 3", yamlize([1, 2, 3])
   end
+  
+  #
+  # nest test
+  #
+  
+  def test_nest_documentation
+    result = nest([["\nmodule Some", "end\n"],["module Nested", "end"]]) { "class Const\nend" }
+    expected = %Q{
+module Some
+  module Nested
+    class Const
+    end
+  end
+end
+}
+    
+    assert_equal expected, result
+  end
+  
+  def test_nest_nests_content_in_nesting_constant
+    content = "multiline\ncontent"
+    nested_content = %Q{
+module Sample
+  module Nest
+    multiline
+    content
+  end
+end
+}.strip
 
+    assert_equal nested_content, nest([['module Sample', 'end'], ['module Nest', 'end']]) { content }
+    assert_equal content, nest([]) { content }
+  end
+  
+  def test_nest_speed
+    benchmark_test do |x|
+      content = "some content\n" * 100
+      nesting = [['module Sample', 'end'], ['module Nest', 'end']]
+      
+      n = 1000
+      x.report("#{n}x nest") { n.times { nest(nesting) {content} } }
+    end
+  end
+  
+  #
+  # module_nest test
+  #
+  
+  def test_module_nest_documentation
+    result = module_nest('Some::Nested') { "class Const\nend" }
+    expected = %Q{
+module Some
+  module Nested
+    class Const
+    end
+  end
+end
+}.strip
+
+    assert_equal expected, result
+  end
+  
+  def test_module_nest_nests_content_in_nesting_module
+    content = "multiline\ncontent"
+    nested_content = %Q{
+module Sample
+  module Nest
+    multiline
+    content
+  end
+end
+}.strip
+
+    assert_equal nested_content, module_nest('Sample::Nest') { content }
+    assert_equal content, module_nest('') { content }
+  end
 end

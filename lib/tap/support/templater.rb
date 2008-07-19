@@ -29,6 +29,54 @@ module Tap
         def yamlize(object)
         	object.to_yaml[5...-1]
         end
+        
+        # Nest the return of the block in the nesting lines.
+        #
+        #  nest([["\nmodule Some", "end\n"],["module Nested", "end"]]) { "class Const\nend" }
+        #  # => %Q{
+        #  # module Some
+        #  #   module Nested
+        #  #     class Const
+        #  #     end
+        #  #   end
+        #  # end
+        #  # }
+        #
+        def nest(nesting, indent="  ", line_sep="\n")
+          content = yield
+          return content if nesting.empty?
+          
+          depth = nesting.length
+          lines = [indent * depth + content.gsub(/#{line_sep}/, line_sep + indent * depth)]
+
+          nesting.reverse_each do |(start_line, end_line)|
+            depth -= 1
+            lines.unshift(indent * depth + start_line)
+            lines << (indent * depth + end_line)
+          end
+
+          lines.join(line_sep)
+        end
+        
+        # Nest the return of the block in the nesting module.
+        #
+        #  module_nest('Some::Nested') { "class Const\nend" }
+        #  # => %Q{
+        #  # module Some
+        #  #   module Nested
+        #  #     class Const
+        #  #     end
+        #  #   end
+        #  # end
+        #  # }.strip
+        #
+        def module_nest(const_name, indent="  ", line_sep="\n")
+          nesting = const_name.split(/::/).collect do |name|
+            ["module #{name}", "end"]
+          end
+          
+          nest(nesting, indent, line_sep) { yield }
+        end
       end
       
       include Utils

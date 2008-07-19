@@ -540,6 +540,14 @@ module Tap
         return path if manifest_match?(key, pattern)
       end unless manifested?(name)
       
+      # TODO -- switch order so that known paths are checked first
+      # then iterate, then mark as manifested if necessary.
+      
+      # conceivably, there could be a mis-ordered match in this
+      # process since the pattern filters which paths get searched
+      # first?  Only an issue if you start short cutting the pattern,
+      # I think.
+      
       # does this need to be run when the first search fails?
       # may depend on the pattern being input... does it filter
       # out the matching pattern...

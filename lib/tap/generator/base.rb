@@ -59,70 +59,15 @@ module Tap
         end
       end
       
-      def template(path, template_path, attributes=default_attributes, options={})
+      def template(path, template_path, attributes={}, options={})
         template_path = File.expand_path(template_path, template_dir)
         templater = Support::Templater.new(File.read(template_path), attributes)
-        templater.target_path = path
-        
-        content = templater.build
-        nesting = options.delete(:nesting)
         
         file(path, options) do |file| 
-          file << nest(nesting, content)
+          file << templater.build
         end
       end
-      
-      def file_name
-        File.basename(target_dir)
-      end
-      
-      def class_name
-        file_name.camelize
-      end
-      
-      def const_name
-        target_dir.camelize
-      end
-      
-      def const_path
-        target_dir
-      end
-      
-      def nesting
-        nesting = File.dirname(target_dir).camelize
-        nesting == "." ? nil : nesting
-      end
-      
-      def nesting_depth
-        nesting ? nesting.count('::') : 0
-      end
-      
-      def default_attributes
-        { :file_name => file_name, 
-          :class_name => class_name,
-          :const_name => const_name, 
-          :nesting_depth => nesting_depth, 
-          :const_path => const_path
-        }
-      end
-      
-      def nest(nesting, content)
-        return content if nesting.to_s.empty?
-        
-        nestings = nesting.split(/::/)
-        lines = content.split(/\r?\n/)
-
-        depth = nestings.length
-        lines.collect! {|line| "  " * depth + line}
-
-        nestings.reverse_each do |mod_name|
-          depth -= 1
-          lines.unshift("  " * depth + "module #{mod_name}")
-          lines << ("  " * depth + "end")
-        end
-
-        lines.join("\n")
-      end
+  
     end
   end
 end
