@@ -1,11 +1,11 @@
-require File.join(File.dirname(__FILE__), '<%= '../' * nesting_depth %>tap_test_helper.rb') 
-require '<%= const_path %>'
+require File.join(File.dirname(__FILE__), '<%= '../' * const.nesting_depth %>tap_test_helper.rb') 
+require '<%= const.path %>'
 
-class <%= const_name %>Test < Test::Unit::TestCase
+class <%= const.name %>Test < Test::Unit::TestCase
   acts_as_tap_test 
   
-  def test_<%= file_name %>
-    t = <%= const_name %>.new nil, :key => 'value'
+  def test_<%= const.basename %>
+    t = <%= const.name %>.new nil, :key => 'value'
     
     # specify application options
     with_options(:quiet => true, :debug => true) do  
@@ -20,5 +20,4 @@ class <%= const_name %>Test < Test::Unit::TestCase
 
     end
   end
-  
 end

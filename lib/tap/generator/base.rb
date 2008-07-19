@@ -3,10 +3,11 @@ require 'tap/generator/manifest'
 module Tap
   module Generator 
     class Base < Tap::Task
+      Constant = Tap::Support::Constant
 
-      config :pretend, false, &c.boolean         # Run but rollback any changes.
-      config :force, false, &c.boolean           # Overwrite files that already exist.
-      config :skip, false, &c.boolean            # Skip files that already exist.
+      config :pretend, false, &c.flag         # Run but rollback any changes.
+      config :force, false, &c.flag           # Overwrite files that already exist.
+      config :skip, false, &c.flag            # Skip files that already exist.
       
       attr_accessor :file_task, :template_dir, :target_dir
       
@@ -19,9 +20,7 @@ module Tap
         end
       end
       
-      def process(target_dir, *argv)
-        @target_dir = target_dir
-        
+      def process(*argv)
         actions = []
         manifest(Manifest.new(actions), *argv)
         

@@ -381,7 +381,7 @@ module Tap
         # remove directories and parents until the
         # directory was not made by the task 
         while added_files.include?(dir)
-          break unless Dir.entries(dir).delete_if {|d| d == "." || d == ".."}.empty?
+          break unless dir_empty?(dir)
           
           if File.exists?(dir)
             log :rmdir, dir, Logger::DEBUG
@@ -393,6 +393,10 @@ module Tap
         end
       end
       removed
+    end
+    
+    def dir_empty?(dir)
+      Dir.entries(dir).delete_if {|d| d == "." || d == ".."}.empty?
     end
     
     # Prepares the input list of files by backing them up (if they exist),

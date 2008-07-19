@@ -86,19 +86,48 @@ module Tap
       # ERB with a trim_mode of "<>".
       def initialize(template, attributes={})
         @template = case template
-        when ERB then template
+        when ERB 
+          if template.instance_variable_get(:@src).index('_erbout =') != 0
+            raise ArgumentError, "Templater does not work with ERB templates where eoutvar != '_erbout'"
+          end
+          template
         when String then ERB.new(template, nil, "<>")
-        else raise ArgumentError.new("cannot convert #{template.class} into an ERB template")
+        else raise ArgumentError, "cannot convert #{template.class} into an ERB template"
         end
         
+        src = @template.instance_variable_get(:@src)
+        @template.instance_variable_set(:@src, "self." + src) 
+
         super(attributes)
+      end
+      
+      def _erbout
+        self
+      end
+      
+      def _erbout=(input)
+        @_erbout = input
+      end
+      
+      def redirect
+        current = @_erbout
+        @_erbout = ""
+        result = yield(@_erbout)
+        @_erbout = current
+        concat(result)
+      end
+      
+      def concat(input)
+        @_erbout << input
       end
       
       # Build the template.  All methods of self will be 
       # accessible in the template.
       def build
         @template.result(binding)
+        @_erbout
       end
+      
     end
   end
 end

@@ -35,7 +35,12 @@ module Tap
       
       # Returns an array of the nesting constants of name.
       def nesting
-        @nesting ||= (name =~ /(.*)::.*$/ ? $1.split(/::/) : [])
+        @nesting ||= (name =~ /(.*)::.*$/ ? $1 : '')
+      end
+      
+      # Returns the number of constants in nesting.
+      def nesting_depth
+        @nesting_depth ||= nesting.split(/::/).length
       end
   
       # Returns the document for require_path, if set, or nil otherwise.

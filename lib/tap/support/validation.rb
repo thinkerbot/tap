@@ -160,6 +160,9 @@ module Tap
       
       def switch(); SWITCH; end
       SWITCH = yamlize_and_check(true, false, nil)
+      
+      def flag(); FLAG; end
+      FLAG = yamlize_and_check(true, false, nil)
 
       # Returns a block that checks the input is an array.
       # String inputs are loaded as yaml first.

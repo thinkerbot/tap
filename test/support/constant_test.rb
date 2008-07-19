@@ -66,8 +66,8 @@ class ConstantTest < Test::Unit::TestCase
   #
   
   def test_nesting_returns_the_nesting_for_name
-    assert_equal [], c.nesting
-    assert_equal ['Nested', 'Sample'], nested.nesting
+    assert_equal '', c.nesting
+    assert_equal 'Nested::Sample', nested.nesting
   end
   
   #

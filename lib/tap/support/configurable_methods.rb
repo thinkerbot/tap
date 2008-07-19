@@ -247,6 +247,7 @@ module Tap
       def arg_type(block) # :nodoc:
         case block
         when Validation::SWITCH then :switch
+        when Validation::FLAG then :flag
         when Validation::LIST then :list
         else nil
         end

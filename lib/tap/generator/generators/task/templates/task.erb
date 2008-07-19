@@ -1,8 +1,8 @@
-# ::manifest manifest summary
+<% redirect do |target| %># ::manifest manifest summary
 # command line description
 
-# <%= class_name %> Documentation
-class <%= class_name %> < Tap::Task
+# <%= const.const_name %> Documentation
+class <%= const.const_name %> < Tap::Task
 
   config :key, 'value'           # a sample config
   
@@ -13,5 +13,4 @@ class <%= class_name %> < Tap::Task
   
     result
   end
-  
-end
+end <% module_nest(const.nesting, '  ') { target } end %>
