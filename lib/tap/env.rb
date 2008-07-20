@@ -537,7 +537,7 @@ module Tap
       manifest = manifests[name] ||= {}
       send("iterate_#{name}", "**/*#{pattern}*") do |key, path|
         add_manifest(manifest, key, path)
-        return path if manifest_match?(key, pattern)
+        return path if Root.reduce_match?(key, pattern)
       end unless manifested?(name)
       
       # TODO -- switch order so that known paths are checked first
@@ -552,7 +552,7 @@ module Tap
       # may depend on the pattern being input... does it filter
       # out the matching pattern...
       self.manifest(name).each_pair do |key, path| 
-        return path if manifest_match?(key, pattern)
+        return path if Root.reduce_match?(key, pattern)
       end
       
       nil
@@ -607,13 +607,6 @@ module Tap
     def add_manifest(manifest, key, path)
       raise 'ManifestConflict' if manifest.has_key?(key) && manifest[key] != path
       manifest[key] = path
-    end
-    
-    def manifest_match?(key, pattern)
-      # key ends with pattern AND basenames of each are equal... 
-      # the last check ensures that a full path segment has 
-      # been specified
-      key[-pattern.length, pattern.length] == pattern && File.basename(key) == File.basename(pattern)
     end
     
     def check_configurable

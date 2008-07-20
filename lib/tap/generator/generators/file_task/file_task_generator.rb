@@ -2,7 +2,7 @@ require 'tap/generator/generators/task/task_generator'
 
 module Tap::Generator::Generators
   
-  # ::generator
+  # ::generator generates a FileTask
   # Generates a new FileTask and test files.  Pass the task name, 
   # either CamelCased or under_scored.
   class FileTaskGenerator < TaskGenerator

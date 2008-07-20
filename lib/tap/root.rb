@@ -199,7 +199,7 @@ module Tap
         if block_given?
           paths.each do |path|
             base_path = base_paths.find do |base| 
-              path[-base.length, base.length] == base 
+              reduce_match?(path, base)
             end
             
             yield(path, base_path)
@@ -217,6 +217,13 @@ module Tap
           reduce(map.keys) {|p, rp| results[rp] = map[p] }
         end
         results
+      end
+      
+      def reduce_match?(path, reduce_path)
+        # key ends with pattern AND basenames of each are equal... 
+        # the last check ensures that a full path segment has 
+        # been specified
+        path[-reduce_path.length, reduce_path.length] == reduce_path  && File.basename(path) == File.basename(reduce_path)
       end
     end
   
