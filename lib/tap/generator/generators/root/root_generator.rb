@@ -6,6 +6,7 @@ module Tap::Generator::Generators
   class RootGenerator < Tap::Generator::Base
     
     def manifest(m, root, project_name=File.basename(root))
+      project_name = 'project' if project_name == '.'
       r = Tap::Root.new(root)
       
       m.directory r.root

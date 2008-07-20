@@ -199,7 +199,7 @@ after line two
       end
       
       cmd.check " destroy root .", "Destroys the root directory" do |result|
-        assert_equal [], method_glob(:output, "**/*")
+        assert !File.exists?(method_dir(:output))
       end
     end
   end
