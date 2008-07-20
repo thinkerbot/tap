@@ -1,33 +1,32 @@
-require File.join(File.dirname(__FILE__), '<%= '../' * class_nesting_depth %>tap_test_helper.rb') 
-require '<%= class_path.empty? ? file_name : File.join(class_path, file_name) %>'
+require File.join(File.dirname(__FILE__), '<%= '../' * const.nesting_depth %>tap_test_helper.rb') 
+require '<%= const.path %>'
 
-class <%= class_name %>Test < Test::Unit::TestCase
+class <%= const.name %>Test < Test::Unit::TestCase
   acts_as_tap_test 
   
-  def test_<%= file_name.underscore %>
-    # assert_expected_result_files provides a list of the
-    # files in '<%= class_name_without_nesting.underscore %>/test_<%= file_name.underscore %>/input'
-    # and expects that the block makes a list of output
-    # files in '<%= class_name_without_nesting.underscore %>/test_<%= file_name.underscore %>/output'
-    #
-    # These outputs are compared by content with the 
-    # files in '<%= class_name_without_nesting.underscore %>/test_<%= file_name.underscore %>/expected'
-    # 
-    # The output directory is cleaned up by default.  To 
-    # preserve it, set the KEEP_OUTPUTS env variable:
-    #
-    #   % rake test keep_outputs=true
+  def test_<%= const.basename %>
+	  # Use assert_files to test file transform tasks.  The block  
+	  # recieves the method/input files and compares the results 
+	  # to the method/expected files.
+  
+	  # Generated files are often placed in method/output, as it
+	  # is cleaned up by default.  To keep output files, set the 
+	  # KEEP_OUTPUTS variable:
+	  #   % rake test keep_outputs=true
+  
+	  t = SampleFile.new 
+	  assert_files do |input_files|
+	    input_files.each do |source|
+	      target = method_filepath(:output, 'result.yml') 
+	      t.enq(source, target)
+	    end
     
-    t = <%= class_name %>.new 
-    assert_files do |input_files|
-      input_files.each {|file| t.enq(file)}
-      
-      with_config :directories => {:data => 'output'} do 
-        app.run
-      end
-      
-      app.results(t)
-    end
+	    with_config(:quiet => true) do 
+	      app.run
+	    end
+    
+	    app.results(t)
+	  end
   end
   
 end

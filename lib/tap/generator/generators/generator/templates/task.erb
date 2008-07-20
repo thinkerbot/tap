@@ -1,0 +1,11 @@
+<% redirect do |target| %># ::generator <replace with manifest summary>
+# <replace with command line description>
+
+# <%= const.const_name %> Documentation
+class <%= const.const_name %> < Tap::Generator::Base
+
+  config :key, 'value'           # a sample config
+  
+  def manifest(m, input)
+  end
+end <% module_nest(const.nesting, '  ') { target } end %>

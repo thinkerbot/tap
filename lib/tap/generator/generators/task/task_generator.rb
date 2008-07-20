@@ -20,6 +20,8 @@ module Tap::Generator::Generators
         m.directory File.dirname(test_path)
         m.template test_path, "test.erb", :const => const
       end
+      
+      const
     end
 
   end

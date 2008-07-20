@@ -44,7 +44,7 @@ module Tap
           end
         
           comment = Comment.new
-          while scanner.scan(/\r?\n?[ \t]*#[ \t]?(([ \t]*).*?)$/)
+          while scanner.scan(/\r?\n?[ \t]*#[ \t]?(([ \t]*).*?)\r?$/)
             fragment = scanner[1]
             indent = scanner[2]
             
@@ -106,7 +106,7 @@ module Tap
         #   # []]
         #
         def scan(line) # :yields: fragment
-          return false unless line =~ /^[ \t]*#[ \t]?(([ \t]*).*?)$/
+          return false unless line =~ /^[ \t]*#[ \t]?(([ \t]*).*?)\r?$/
           categorize($1, $2) do |fragment|
             yield(fragment)
           end
@@ -237,15 +237,22 @@ module Tap
         !lines.find {|array| !array.empty?}
       end
       
-      def wrap(cols=80, tabsize=2, line_sep="\n", fragment_sep=" ")
-        resolved_lines = Comment.wrap(to_s(fragment_sep, nil), cols, tabsize)
+      def wrap(cols=80, tabsize=2, line_sep="\n", fragment_sep=" ", strip=true)
+        resolved_lines = Comment.wrap(to_s(fragment_sep, nil, strip), cols, tabsize)
         line_sep ? resolved_lines.join(line_sep) : resolved_lines
       end
     
       # Returns lines as a string where line fragments are joined by
       # fragment_sep and lines are joined by line_sep. 
-      def to_s(fragment_sep=" ", line_sep="\n")
+      def to_s(fragment_sep=" ", line_sep="\n", strip=true)
         resolved_lines = lines.collect {|line| line.join(fragment_sep)}
+        
+        # strip leading an trailing whitespace lines
+        if strip
+          resolved_lines.shift while !resolved_lines.empty? && resolved_lines[0].empty?
+          resolved_lines.pop while !resolved_lines.empty? && resolved_lines[-1].empty?
+        end
+        
         line_sep ? resolved_lines.join(line_sep) : resolved_lines
       end
       

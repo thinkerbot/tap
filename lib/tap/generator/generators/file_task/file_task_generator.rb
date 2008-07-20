@@ -1,21 +1,26 @@
 require 'tap/generator/generators/task/task_generator'
 
 module Tap::Generator::Generators
-  class FileTaskGenerator < TaskGenerator # :nodoc:
+  
+  # ::generator
+  # Generates a new FileTask and test files.  Pass the task name, 
+  # either CamelCased or under_scored.
+  class FileTaskGenerator < TaskGenerator
     
-    def task_manifest(m)
-      return unless options[:test]
+    def manifest(m, const_name)
+      const = super
       
-      test_path = @app.relative_filepath(:root, @app[:test])
-      m.directory File.join(test_path, class_name.underscore)
+      if test
+        test_dir = app.filepath('test', const.path, "test_#{const.basename}")
         
-      method_test_path = File.join(test_path, class_name.underscore, "test_#{file_name.underscore}")
-      m.directory method_test_path
-      m.directory File.join(method_test_path, "input")
-      m.directory File.join(method_test_path, "expected")
+        m.directories test_dir, %W{
+          input
+          expected
+        }
         
-      m.file "file.txt", File.join(method_test_path, "input", "file.txt")
-      m.file "file.yml", File.join(method_test_path, "expected", "file.yml")
+        m.template File.join(test_dir, 'input/file.txt'), "file.txt", :const => const, :test_dir => test_dir
+        m.template File.join(test_dir, 'expected/result.yml'), "result.yml", :const => const, :test_dir => test_dir
+      end
     end
     
   end

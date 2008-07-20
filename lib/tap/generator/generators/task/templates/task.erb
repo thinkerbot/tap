@@ -1,9 +1,10 @@
-<% redirect do |target| %># ::manifest manifest summary
-# command line description
+<% redirect do |target| %># ::manifest <replace with manifest summary>
+# <replace with command line description>
 
 # <%= const.const_name %> Documentation
 class <%= const.const_name %> < Tap::Task
 
+  # <config file documentation>
   config :key, 'value'           # a sample config
   
   def process(input)

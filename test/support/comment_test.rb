@@ -40,40 +40,51 @@ this is the subject line
     assert_equal "this is the subject line", c.subject
   end
   
+  def comment_test(str)
+    yield(str.gsub(/\r?\n/, "\n"))
+    yield(str.gsub(/\r?\n/, "\r\n"))
+  end
+  
   def test_parse
-    c = Comment.parse(%Q{
+    comment_test(%Q{
 # comment
 # spanning lines
  \t  # with whitespace   \t
-})
-    assert_equal [['comment', 'spanning lines', 'with whitespace']], c.lines
-    assert_equal nil, c.subject
+})  do |str|
+      c = Comment.parse(str)
+      assert_equal [['comment', 'spanning lines', 'with whitespace']], c.lines
+      assert_equal nil, c.subject
+    end
   end
 
   def test_parse_accepts_string_scanner
-    c = Comment.parse(StringScanner.new(%Q{
+    comment_test(%Q{
 # comment
 # spanning lines
  \t  # with whitespace   \t
-}))
-    assert_equal [['comment', 'spanning lines', 'with whitespace']], c.lines
-    assert_equal nil, c.subject
+})  do |str|      
+      c = Comment.parse(StringScanner.new(str))
+      assert_equal [['comment', 'spanning lines', 'with whitespace']], c.lines
+      assert_equal nil, c.subject
+    end
   end
   
   def test_parse_treats_indented_lines_as_new_lines
-    c = Comment.parse(%Q{
+    comment_test(%Q{
 # comment
 #  with indented
 # \tlines \t
 # new spanning
 # line
-})
-    assert_equal [['comment'],[' with indented'], ["\tlines"], ['new spanning', 'line']], c.lines
-    assert_equal nil, c.subject
+})  do |str|
+      c = Comment.parse(str)
+      assert_equal [['comment'],[' with indented'], ["\tlines"], ['new spanning', 'line']], c.lines
+      assert_equal nil, c.subject
+    end
   end
   
   def test_parse_preserves_newlines
-    c = Comment.parse(%Q{
+   comment_test(%Q{
 # comment
 #
 #   \t   
@@ -83,100 +94,115 @@ this is the subject line
 #   \t  
 # new spanning
 # line
-})
-    assert_equal [['comment'],[''],[''],[' with indented'],[''],["\tlines"],[''],['new spanning', 'line']], c.lines
-    assert_equal nil, c.subject
+})  do |str|
+      c = Comment.parse(str)
+      assert_equal [['comment'],[''],[''],[' with indented'],[''],["\tlines"],[''],['new spanning', 'line']], c.lines
+      assert_equal nil, c.subject
+    end
   end
   
   def test_parse_stops_at_non_comment_line
-    c = Comment.parse(%Q{
+    comment_test(%Q{
 # comment
 # spanning lines
 
 # ignored
-})
-    assert_equal [['comment', 'spanning lines']], c.lines
-    assert_equal nil, c.subject
+})  do |str|
+      c = Comment.parse(str)
+      assert_equal [['comment', 'spanning lines']], c.lines
+      assert_equal nil, c.subject
+    end
   end
 
   def test_parse_stops_when_block_returns_true
-    c = Comment.parse(%Q{
+    comment_test(%Q{
 # comment
 # spanning lines
 # end
 # ignored
-}) do |comment|
-  comment =~ /^end/
-end
-    assert_equal [['comment', 'spanning lines']], c.lines
-    assert_equal nil, c.subject
+})  do |str|
+      c = Comment.parse(str) do |comment|
+        comment =~ /^end/
+      end
+      assert_equal [['comment', 'spanning lines']], c.lines
+      assert_equal nil, c.subject
+    end
   end
   
   def test_parse_sets_subject_if_next_line_is_not_a_comment
-    c = Comment.parse(%Q{
+    comment_test(%Q{
 # comment
 subject line
 ignored
-})
-    assert_equal [['comment']], c.lines
-    assert_equal "subject line", c.subject
+})  do |str|
+      c = Comment.parse(str)
+      assert_equal [['comment']], c.lines
+      assert_equal "subject line", c.subject
+    end
   end
   
   def test_parse_sets_subject_as_next_non_comment_line
-    c = Comment.parse(%Q{
+    comment_test(%Q{
 # comment
 
 subject line
 ignored
-})
-    assert_equal [['comment']], c.lines
-    assert_equal "subject line", c.subject
+})  do |str|
+      c = Comment.parse(str)
+      assert_equal [['comment']], c.lines
+      assert_equal "subject line", c.subject
+    end
   end
   
   def test_parse_does_not_set_subject_if_comment_breaks_from_block
-    c = Comment.parse(%Q{
+    comment_test(%Q{
 # comment
 # end
 # ignored
 not the subject line
-}) do |comment|
-  comment =~ /^end/
-end
+})  do |str|
+      c = Comment.parse(str) do |comment|
+        comment =~ /^end/
+      end
 
-    assert_equal [['comment']], c.lines
-    assert_equal nil, c.subject
+      assert_equal [['comment']], c.lines
+      assert_equal nil, c.subject
+    end
   end
   
   def test_parse_does_not_set_subject_if_the_next_line_is_a_comment
-    c = Comment.parse(%Q{
+    comment_test(%Q{
 # comment
 
 # not a subject line
-})
-
-    assert_equal [['comment']], c.lines
-    assert_equal nil, c.subject
+})  do |str|
+      c = Comment.parse(str)
+      assert_equal [['comment']], c.lines
+      assert_equal nil, c.subject
+    end
   end
   
   def test_parse_just_parses_subject_if_no_comments_are_given
-    c = Comment.parse(%Q{
+    comment_test(%Q{
 
 subject line
 # ignored
-})
-
-    assert_equal [], c.lines
-    assert_equal 'subject line', c.subject
+})  do |str|
+      c = Comment.parse(str)
+      assert_equal [], c.lines
+      assert_equal 'subject line', c.subject
+    end
   end
   
   def test_subjects_may_contain_trailing_comments
-    c = Comment.parse(%Q{
+    comment_test(%Q{
 subject line # with a trailing comment
 # ignored
-})
-
-    assert_equal [], c.lines
-    assert_equal 'subject line # with a trailing comment', c.subject
+})  do |str|
+      c = Comment.parse(str)
+      assert_equal [], c.lines
+      assert_equal 'subject line # with a trailing comment', c.subject
+    end
   end
   
   def test_parse_can_handle_an_empty_or_whitespace_string_without_error

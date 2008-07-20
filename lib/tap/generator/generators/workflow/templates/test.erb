@@ -1,7 +1,7 @@
-require File.join(File.dirname(__FILE__), '<%= '../' * class_nesting_depth %>tap_test_helper.rb') 
-require '<%= class_path.empty? ? file_name : File.join(class_path, file_name) %>'
+require File.join(File.dirname(__FILE__), '<%= '../' * const.nesting_depth %>tap_test_helper.rb') 
+require '<%= const.path %>'
 
-class <%= class_name %>Test < Test::Unit::TestCase
-  acts_as_tap_test 
-  
+class <%= const.name %>Test < Test::Unit::TestCase
+  acts_as_tap_test
+
 end

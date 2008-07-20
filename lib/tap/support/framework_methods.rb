@@ -55,6 +55,34 @@ module Tap
         new(name, config, app).enq(*argv)
       end
       
+      def help(opts)
+        tdoc.resolve(nil, /^\s*def\s+process(\((.*?)\))?/) do |comment, match|
+          comment.subject = match[2].to_s.split(',').collect do |arg|
+            arg = arg.strip.upcase
+            case arg
+            when /^&/ then nil
+            when /^\*/ then arg[1..-1] + "..."
+            else arg
+            end
+          end.join(', ')
+       
+          tdoc.default_attributes['args'] ||= comment
+        end
+       
+        Lazydoc.resolve(configurations.code_comments)
+
+        manifest = tdoc[to_s]['manifest'] || Tap::Support::Comment.new
+        args = tdoc[to_s]['args'] || Tap::Support::Comment.new
+
+        opts.banner = "usage: tap run -- #{to_s.underscore} #{args.subject}"
+        
+        Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, 
+          :task_class => self, 
+          :manifest => manifest, 
+          :opts => opts
+        ).build
+      end
+      
       def parse_argv(argv, exit_on_help=true) # => name, config, argv
         config = {}
         opts = OptionParser.new
@@ -80,32 +108,7 @@ module Tap
         opts.separator "options:"
         
         opts.on_tail("-h", "--help", "Print this help") do
-          tdoc.resolve(nil, /^\s*def\s+process(\((.*?)\))?/) do |comment, match|
-            comment.subject = match[2].to_s.split(',').collect do |arg|
-              arg = arg.strip.upcase
-              case arg
-              when /^&/ then nil
-              when /^\*/ then arg[1..-1] + "..."
-              else arg
-              end
-            end.join(', ')
-         
-            tdoc.default_attributes['args'] ||= comment
-          end
-         
-          Lazydoc.resolve(configurations.code_comments)
-
-          manifest = tdoc[to_s]['manifest'] || Tap::Support::Comment.new
-          args = tdoc[to_s]['args'] || Tap::Support::Comment.new
-
-          opts.banner = "usage: tap run -- #{to_s.underscore} #{args.subject}"
-          
-          print Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, 
-            :task_class => self, 
-            :manifest => manifest, 
-            :opts => opts
-          ).build
-          
+          print help(opts)
           exit if exit_on_help
         end
 

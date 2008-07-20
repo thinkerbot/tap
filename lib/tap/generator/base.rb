@@ -3,6 +3,38 @@ require 'tap/generator/manifest'
 module Tap
   module Generator 
     class Base < Tap::Task
+      class << self
+        def help(opts)
+          tdoc.resolve(nil, /^\s*def\s+manifest(\((.*?)\))?/) do |comment, match|
+            args = match[2].to_s.split(',').collect do |arg|
+              arg = arg.strip.upcase
+              case arg
+              when /^&/ then nil
+              when /^\*/ then arg[1..-1] + "..."
+              else arg
+              end
+            end
+            args.unshift # m
+            
+            comment.subject = args.join(', ')
+            tdoc.default_attributes['args'] ||= comment
+          end
+
+          Tap::Support::Lazydoc.resolve(configurations.code_comments)
+
+          manifest = tdoc[to_s]['generator'] || Tap::Support::Comment.new
+          args = tdoc[to_s]['args'] || Tap::Support::Comment.new
+
+          opts.banner = "usage: tap run -- #{File.basename(File.dirname(source_file))} #{args.subject}"
+
+          Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, 
+            :task_class => self, 
+            :manifest => manifest, 
+            :opts => opts
+          ).build
+        end  
+      end
+      
       Constant = Tap::Support::Constant
 
       config :pretend, false, &c.flag         # Run but rollback any changes.
@@ -52,9 +84,10 @@ module Tap
         raise NotImplementedError
       end
       
-      def directories(targets, options={})
+      def directories(root, targets, options={})
+        directory(root)
         targets.each do |target|
-          directory(target, options)
+          directory(File.join(root, target), options)
         end
       end
       
