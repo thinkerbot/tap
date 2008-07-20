@@ -1,17 +1,22 @@
 module Tap::Generator::Generators
-  class CommandGenerator < Rails::Generator::NamedBase # :nodoc:
-    def initialize(*args)
-      super(*args)    
-      @destination_root  = Tap::App.instance[:root]
-      @app = Tap::App.instance
-  	end
+  
+  # ::generator
+  #
+  # Generates a new Tap command under the cmd directory. Pass 
+  # the command name, either CamelCased or under_scored.  The  
+  # new command can be run from the command line using:
+  # 
+  #   % tap <command name>
+  class CommandGenerator < Tap::Generator::Base
+    
+    def manifest(m, command_name)
 
-    def manifest
-      record do |m|
-        command_path = @app.relative_filepath(:root, @app[:cmd])
-        m.directory class_path.empty? ? command_path : File.join(command_path, class_path)
-        m.template "command.erb", File.join(command_path, class_name.underscore + ".rb")
+      m.directory app['cmd']
+      
+      template_files do |source, target|
+        m.template app.filepath('cmd', "#{command_name}.rb"), source, :command_name => command_name
       end
     end
+    
   end
 end

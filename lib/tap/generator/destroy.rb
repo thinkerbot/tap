@@ -5,30 +5,30 @@ module Tap
         actions.reverse_each {|action| yield(action) }
       end
       
-      def directory(path, options={})
-        path = File.expand_path(path, target_dir)
+      def directory(target, options={})
+        target = File.expand_path(target, target_dir)
         
         case
-        when !File.exists?(path)
-          log_relative :missing, path
-        when !file_task.dir_empty?(path)
-          log_relative 'not empty', path
+        when !File.exists?(target)
+          log_relative :missing, target
+        when !file_task.dir_empty?(target)
+          log_relative 'not empty', target
         else
-          log_relative :rm, path
-          file_task.added_files << File.expand_path(path)
-          file_task.rmdir(path) unless pretend    
+          log_relative :rm, target
+          file_task.added_files << File.expand_path(target)
+          file_task.rmdir(target) unless pretend    
         end
       end
     
-      def file(path, options={})
-        path = File.expand_path(path, target_dir)
+      def file(target, options={})
+        target = File.expand_path(target, target_dir)
         
-        if File.exists?(path)
-          log_relative :rm, path
-          file_task.added_files << File.expand_path(path)
-          file_task.rm(path) unless pretend
+        if File.exists?(target)
+          log_relative :rm, target
+          file_task.added_files << File.expand_path(target)
+          file_task.rm(target) unless pretend
         else
-          log_relative :missing, path
+          log_relative :missing, target
         end
       end
     end

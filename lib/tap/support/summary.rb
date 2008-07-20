@@ -3,7 +3,7 @@ module Tap
     class Summary
       def initialize
         @map = []
-        @width = 10
+        @width = 0
       end
       
       def add(key, env, map)

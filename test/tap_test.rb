@@ -29,11 +29,11 @@ help:
   tap command --help                   # prints help for 'command'
 
 available commands:
-  console
-  destroy
+  console 
+  destroy 
   generate
-  run
-  server
+  run     
+  server  
 
 version #{Tap::VERSION} -- http://tap.rubyforge.org
 }
@@ -57,11 +57,11 @@ help:
   tap command --help                   # prints help for 'command'
 
 available commands:
-  console
-  destroy
+  console 
+  destroy 
   generate
-  run
-  server
+  run     
+  server  
 
 version #{Tap::VERSION} -- http://tap.rubyforge.org
 after line one
@@ -87,11 +87,11 @@ help:
   tap command --help                   # prints help for 'command'
 
 available commands:
-  console
-  destroy
+  console 
+  destroy 
   generate
-  run
-  server
+  run     
+  server  
 
 version #{Tap::VERSION} -- http://tap.rubyforge.org
 Error in after script.
@@ -129,7 +129,8 @@ after line two
         assert File.exists?(method_filepath(:output, 'test/tap_test_suite.rb'))
         assert File.exists?(method_filepath(:output, 'tap.yml'))
         assert File.exists?(method_filepath(:output, 'Rakefile'))
-        assert File.exists?(method_filepath(:output, 'ReadMe.txt'))
+        assert File.exists?(method_filepath(:output, 'README'))
+        assert File.exists?(method_filepath(:output, 'MIT-LICENSE'))
       end
       
       # cmd.check " generate task", "Prints task generator doc"
@@ -225,13 +226,13 @@ options:
       
       manifest = %Q{
 === test_run (#{method_root})
-sample              # manifest summary
-sample_without_doc  # 
-with_array_config   # 
-with_hash_config    # 
-with_list_config    # 
-with_string_config  # 
-with_switch_config  # 
+  sample              # manifest summary
+  sample_without_doc
+  with_array_config 
+  with_hash_config  
+  with_list_config  
+  with_string_config
+  with_switch_config
 === rake tasks
 rake clobber_package  # Remove package products
 rake clobber_rdoc     # Remove rdoc products
@@ -248,14 +249,13 @@ rake test             # Run tests
       #cmd.check " run -T -- --no-rake", "Prints manifest", manifest
       
       manifest_without_rake = %Q{
-=== test_run (#{method_root})
-sample              # manifest summary
-sample_without_doc  # 
-with_array_config   # 
-with_hash_config    # 
-with_list_config    # 
-with_string_config  # 
-with_switch_config  # 
+  sample              # manifest summary
+  sample_without_doc
+  with_array_config 
+  with_hash_config  
+  with_list_config  
+  with_string_config
+  with_switch_config
 }
 
       cmd.check " run -T", "Prints manifest", manifest_without_rake
@@ -443,7 +443,7 @@ rake default_task  # Prints 'running default task'.
 
       # cmd.check " console", "Console Interaction"
       cmd.check " destroy task sample/task", "Destroys a task" do |result|
-        assert_equal [], method_glob(:output, "**/*")
+        assert_equal [], method_glob(:output, "**/*.rb")
       end
     end
   end

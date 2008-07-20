@@ -44,26 +44,33 @@ module Tap
         raise NotImplementedError
       end
     
-      def directory(path, options={})
+      def directory(target, options={})
         raise NotImplementedError
       end
     
-      def file(path, options={})
+      def file(target, options={})
         raise NotImplementedError
       end
       
-      def directories(paths, options={})
-        paths.each do |path|
-          directory(path, options)
+      def directories(targets, options={})
+        targets.each do |target|
+          directory(target, options)
         end
       end
       
-      def template(path, template_path, attributes={}, options={})
-        template_path = File.expand_path(template_path, template_dir)
+      def template(target, source, attributes={}, options={})
+        template_path = File.expand_path(source, template_dir)
         templater = Support::Templater.new(File.read(template_path), attributes)
         
-        file(path, options) do |file| 
+        file(target, options) do |file| 
           file << templater.build
+        end
+      end
+      
+      def template_files
+        Dir.glob(template_dir + "/**/*").sort.each do |source|
+          target = Tap::Root.relative_filepath(template_dir, source)
+          yield(source, target)
         end
       end
   

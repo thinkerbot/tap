@@ -1,10 +1,10 @@
-# tap <%= file_name %> {options} ARGS...
+# tap <%= command_name %> {options} ARGS...
 #
 # The default command simply prints the input arguments 
 # and application information, then exits.
 #
 
-env = Tap::Env.instance
+env = Tap::Env.instance.envs[0]
 app = Tap::App.instance
 
 #

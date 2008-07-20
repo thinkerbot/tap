@@ -5,51 +5,49 @@ module Tap
         actions.each {|action| yield(action) }
       end
   
-      def directory(path, options={})
-        path = File.expand_path(path, target_dir)
+      def directory(target, options={})
+        target = File.expand_path(target, target_dir)
         
-        if File.exists?(path)
-          log_relative :exists, path
+        if File.exists?(target)
+          log_relative :exists, target
         else
-          log_relative :create, path
-          file_task.mkdir(path) unless pretend
+          log_relative :create, target
+          file_task.mkdir(target) unless pretend
         end
       end
     
-      def file(path, options={})
-        path = File.expand_path(path, target_dir)
+      def file(target, options={})
+        target = File.expand_path(target, target_dir)
         
         case
-        when !File.exists?(path)
-          log_relative :create, path
+        when !File.exists?(target)
+          log_relative :create, target
           # should check for identical...
-        when force_file_collision?(path)
-          log_relative :force, path
+        when force_file_collision?(target)
+          log_relative :force, target
         else
-          log_relative :skip, path
+          log_relative :skip, target
           return
         end
         
         unless pretend
-          file_task.prepare(path) 
-          File.open(path, "wb") {|file| yield(file) if block_given? }
+          file_task.prepare(target) 
+          File.open(target, "wb") {|file| yield(file) if block_given? }
         end
       end
       
       # Ask the user interactively whether to force collision.
-      def force_file_collision?(destination)
+      def force_file_collision?(target)
         return false if skip
         return true if force
         
-        $stdout.print "overwrite #{destination}? [Ynaiq] "
+        $stdout.print "overwrite #{target}? [Ynaiq] "
         $stdout.flush
         case $stdin.gets
         when /a/i
-          $stdout.puts "forcing #{name}"
-          force = true
+          self.force = true
         when /i/i
-          $stdout.puts "ignoring #{name}"
-          skip = true
+          self.skip = true
         when /q/i
           $stdout.puts "aborting #{name}"
           raise SystemExit

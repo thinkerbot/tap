@@ -1,40 +1,30 @@
 require 'tap/root'
 
 module Tap::Generator::Generators
-  class RootGenerator < Rails::Generator::NamedBase # :nodoc:
-    def initialize(*args)
-      super(*args)   
-      Tap::App.instance.root = File.join(Tap::App.instance[:root], class_path, file_name)
-      @destination_root  = Tap::App.instance[:root]
-  	end
-
-    def manifest
-      record do |m|
-        # directories
-        m.directory "lib"
-        #m.directory "config"
-        m.directory "test"
-
-        # remove these -- they will be created from
-        # a server generator in the future
-        #m.directory "server/config"
-        #m.directory "server/test"
-        #m.directory "server/lib/tasks"
+  
+  # ::generator
+  class RootGenerator < Tap::Generator::Base
     
-        # files
-        template_dir = File.dirname(__FILE__) + "/templates"
-        Dir.glob(template_dir + "/**/*").each do |fname|
-          next if File.directory?(fname)
-          
-          # skip server files for now... later 
-          # the files will simply be removed
-          next if fname =~ /server/
-          next if fname =~ /config/
-          next if fname =~ /process_tap_request/
+    def manifest(m, root, project_name=File.basename(root))
+      r = Tap::Root.new(root)
       
-          fname = Tap::Root.relative_filepath(template_dir, fname)
-          m.template fname, fname
+      m.directory r.root
+      m.directory r['lib']
+      
+      template_files do |source, target|
+        case
+        when File.directory?(source)
+          m.directory r[target]
+        when target == 'gemspec'
+          m.template r[project_name + '.gemspec'], source, :project_name => project_name
+        else
+          m.template r[target], source, :project_name => project_name
         end
+      end
+      
+      m.file(r['tap.yml']) do |file|
+        Tap::App.configurations.format_str(:doc, file)
+        Tap::Env.configurations.format_str(:doc, file)
       end
     end
   end
