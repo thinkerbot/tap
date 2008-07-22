@@ -289,4 +289,27 @@ class ValidationTest < Test::Unit::TestCase
     assert_equal nil, regexp_or_nil.call(nil) 
   end
   
+  #
+  # range test
+  #
+  
+  def test_range_documentation
+    assert_equal Proc, range.class
+    assert_equal 1..10, range.call(1..10)
+    assert_equal 1..10, range.call('1..10')
+    assert_equal 'a'..'z', range.call('a..z')
+    assert_equal(-10...10, range.call('-10...10'))
+    assert_raise(ValidationError) { range.call(nil) }
+    assert_raise(ValidationError) { range.call('1.10') }
+    assert_raise(ValidationError) { range.call('a....z') }
+  end
+
+  #
+  # range_or_nil test
+  #
+  
+  def test_range_or_nil_documentation
+    assert_equal nil, range_or_nil.call("~") 
+    assert_equal nil, range_or_nil.call(nil) 
+  end
 end

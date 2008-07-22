@@ -341,6 +341,47 @@ module Tap
         validate(input, [Regexp, nil])
       end
       
+      # Returns a block that checks the input is a range.
+      # String inputs are split into a beginning and
+      # end if possible, where each part is loaded as
+      # yaml before being used to construct a Range.a
+      #
+      #   range.class               # => Proc
+      #   range.call(1..10)         # => 1..10
+      #   range.call('1..10')       # => 1..10
+      #   range.call('a..z')        # => 'a'..'z'
+      #   range.call('-10...10')    # => -10...10
+      #   range.call(nil)           # => ValidationError
+      #   range.call('1.10')        # => ValidationError
+      #   range.call('a....z')      # => ValidationError
+      #
+      def range(); RANGE; end
+      RANGE = lambda do |input|
+        if input.kind_of?(String) && input =~ /^([^.]+)(\.{2,3})([^.]+)$/
+          input = Range.new(yamlize($1), yamlize($3), $2.length == 3) 
+        end
+        validate(input, [Range])
+      end
+      
+      # Same as range but allows nil:
+      #
+      #   range_or_nil.call('~')    # => nil
+      #   range_or_nil.call(nil)    # => nil
+      def range_or_nil(); RANGE_OR_NIL; end
+      RANGE_OR_NIL = lambda do |input|
+        input = case input
+        when nil, '~' then nil
+        when String
+          if input =~ /^([^.]+)(\.{2,3})([^.]+)$/
+            Range.new(yamlize($1), yamlize($3), $2.length == 3)
+          else
+            input
+          end
+        else input
+        end
+        
+        validate(input, [Range, nil])
+      end
     end
   end
 end
