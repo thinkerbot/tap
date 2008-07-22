@@ -87,7 +87,18 @@ class ValidationTest < Test::Unit::TestCase
     assert_equal 'str', string.call('str') 
     assert_equal "\n", string.call('\n') 
     assert_equal "\n", string.call("\n") 
+    assert_equal "%s", string.call("%s") 
+    assert_raise(ValidationError) { string.call(nil) }
     assert_raise(ValidationError) { string.call(:sym) }
+  end
+  
+  #
+  # string_or_nil test
+  #
+  
+  def test_string_or_nil_documentation
+    assert_equal nil, string_or_nil.call("~") 
+    assert_equal nil, string_or_nil.call(nil) 
   end
 
   #
@@ -98,7 +109,17 @@ class ValidationTest < Test::Unit::TestCase
     assert_equal Proc, symbol.class
     assert_equal :sym, symbol.call(:sym)
     assert_equal :sym, symbol.call(':sym')
+    assert_raise(ValidationError) { symbol.call(nil) }
     assert_raise(ValidationError) { symbol.call('str') }
+  end
+
+  #
+  # symbol_or_nil test
+  #
+  
+  def test_symbol_or_nil_documentation
+    assert_equal nil, symbol_or_nil.call("~") 
+    assert_equal nil, symbol_or_nil.call(nil) 
   end
 
   #
@@ -145,7 +166,17 @@ class ValidationTest < Test::Unit::TestCase
     assert_equal Proc, array.class
     assert_equal [1,2,3], array.call([1,2,3])
     assert_equal [1,2,3], array.call('[1, 2, 3]')
+    assert_raise(ValidationError) { array.call(nil) }
     assert_raise(ValidationError) { array.call('str') }
+  end
+
+  #
+  # array_or_nil test
+  #
+  
+  def test_array_or_nil_documentation
+    assert_equal nil, array_or_nil.call("~") 
+    assert_equal nil, array_or_nil.call(nil) 
   end
 
   #
@@ -156,9 +187,19 @@ class ValidationTest < Test::Unit::TestCase
     assert_equal Proc, hash.class
     assert_equal({'key' => 'value'}, hash.call({'key' => 'value'}))
     assert_equal({'key' => 'value'}, hash.call('key: value'))
+    assert_raise(ValidationError) { hash.call(nil) }
     assert_raise(ValidationError) { hash.call('str') }
   end
 
+  #
+  # hash_or_nil test
+  #
+  
+  def test_hash_or_nil_documentation
+    assert_equal nil, hash_or_nil.call("~") 
+    assert_equal nil, hash_or_nil.call(nil) 
+  end
+  
   #
   # integer test
   #
@@ -168,9 +209,19 @@ class ValidationTest < Test::Unit::TestCase
     assert_equal 1, integer.call(1)
     assert_equal 1, integer.call('1')
     assert_raise(ValidationError) { integer.call(1.1) }
+    assert_raise(ValidationError) { integer.call(nil) }
     assert_raise(ValidationError) { integer.call('str') }
   end
 
+  #
+  # integer_or_nil test
+  #
+  
+  def test_integer_or_nil_documentation
+    assert_equal nil, integer_or_nil.call("~") 
+    assert_equal nil, integer_or_nil.call(nil) 
+  end
+  
   #
   # float test
   #
@@ -179,8 +230,43 @@ class ValidationTest < Test::Unit::TestCase
     assert_equal Proc, float.class
     assert_equal 1.1, float.call(1.1)
     assert_equal 1.1, float.call('1.1')
+    assert_equal 1e6, float.call('1.0e+6')
     assert_raise(ValidationError) { float.call(1) }
+    assert_raise(ValidationError) { float.call(nil) }
     assert_raise(ValidationError) { float.call('str') }
+  end
+  
+  #
+  # float_or_nil test
+  #
+  
+  def test_float_or_nil_documentation
+    assert_equal nil, float_or_nil.call("~") 
+    assert_equal nil, float_or_nil.call(nil) 
+  end
+  
+  #
+  # num test
+  #
+
+  def test_num_documentation
+    assert_equal Proc, num.class
+    assert_equal 1.1, num.call(1.1)
+    assert_equal 1, num.call(1)
+    assert_equal 1e6, num.call(1e6)
+    assert_equal 1.1, num.call('1.1')
+    assert_equal 1e6, num.call('1.0e+6')
+    assert_raise(ValidationError) { num.call(nil) }
+    assert_raise(ValidationError) { num.call('str') }
+  end
+  
+  #
+  # num_or_nil test
+  #
+  
+  def test_num_or_nil_documentation
+    assert_equal nil, num_or_nil.call("~") 
+    assert_equal nil, num_or_nil.call(nil) 
   end
   
   #
@@ -194,4 +280,13 @@ class ValidationTest < Test::Unit::TestCase
     assert_equal(/(?i)regexp/, regexp.call('(?i)regexp'))
   end
 
+  #
+  # regexp_or_nil test
+  #
+  
+  def test_regexp_or_nil_documentation
+    assert_equal nil, regexp_or_nil.call("~") 
+    assert_equal nil, regexp_or_nil.call(nil) 
+  end
+  
 end
