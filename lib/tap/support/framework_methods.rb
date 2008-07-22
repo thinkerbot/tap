@@ -42,10 +42,12 @@ module Tap
       DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= manifest.subject.to_s.strip.empty? ? '' : ' -- ' %><%= manifest.subject %>
 
 <% unless manifest.empty? %>
+<%= '-' * 80 %>
 
-<% manifest.wrap(78, 2, nil).each do |line| %>
+<% manifest.wrap(77, 2, nil).each do |line| %>
   <%= line %>
 <% end %>
+<%= '-' * 80 %>
 <% end %>
 
 <%= opts.to_s %>

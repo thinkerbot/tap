@@ -296,7 +296,7 @@ rake test             # Run tests
        
       cmd.check " run -- sample --help", "Prints the sample task help", %Q{
 Sample -- manifest summary
-
+--------------------------------------------------------------------------------
   command line description line one
   
   line two
@@ -306,7 +306,7 @@ Sample -- manifest summary
   
   a very very very long line three that requires wrapping to display properly.
   a very very very long line three that requires wrapping to display properly.
-
+--------------------------------------------------------------------------------
 usage: tap run -- sample one
 
 configurations:
