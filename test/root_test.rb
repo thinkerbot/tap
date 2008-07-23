@@ -427,17 +427,17 @@ class RootTest < Test::Unit::TestCase
   #
   
   if match_platform?("mswin")
-    @@root_path = File.expand_path(".")
-    while (parent_dir = File.dirname(@root_path)) != @root_path
-      @@root_path = parent_dir
+    root_path = File.expand_path(".")
+    while (parent_dir = File.dirname(root_path)) != root_path
+      root_path = parent_dir
     end
-    @@root_path.chomp!("/")
+    ROOT_PATH = root_path.chomp("/")
   else
-    @@root_path = ""
+    ROOT_PATH = ""
   end
   
   def root_path
-    @@root_path
+    ROOT_PATH
   end
   
   def test_split_doc
