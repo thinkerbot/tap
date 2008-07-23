@@ -56,7 +56,9 @@ module Tap
       #   deversion("path/to/file.txt")               # => ["path/to/file.txt", nil]
       #
       def deversion(path)
-        path =~ /^(.*)-(\d(\.?\d)*)(.*)?/ ? [$1 + $4, $2] : [path, nil]
+        extname = File.extname(path)
+        extname = '' if extname =~ /^\.\d+$/
+        path =~ /^(.*)-(\d(\.?\d)*)#{extname}$/ ? [$1 + extname, $2] : [path, nil]
       end
       
       # A <=> comparison for versions.  compare_versions can take strings, 
@@ -80,8 +82,8 @@ module Tap
       
       private
       
-      # Converts an input argument (typically a string  or an array) 
-      # to  an array of integers.  Splits version string on "."
+      # Converts an input argument (typically a string or an array) 
+      # to an array of integers.  Splits version string on "."
       def to_integer_array(arg)
         arr = case arg
         when Array then arg

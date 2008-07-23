@@ -63,8 +63,8 @@ module Tap
       include Support::Versions
       
       # Returns the filepath of path relative to dir.  Both dir and path are
-      # expanded before the relative filepath is determined.  An error is 
-      # raised if the path is not relative to dir.
+      # expanded before the relative filepath is determined.  Returns nil if 
+      # the path is not relative to dir.
       #
       #   Root.relative_filepath('dir', "dir/path/to/file.txt")  # => "path/to/file.txt"
       #
@@ -72,9 +72,7 @@ module Tap
         expanded_dir = File.expand_path(dir, dir_string)
         expanded_path = File.expand_path(path, dir_string)
   
-        unless expanded_path.index(expanded_dir) == 0
-          raise "\n#{expanded_path}\nis not relative to:\n#{expanded_dir}"
-        end
+        return nil unless expanded_path.index(expanded_dir) == 0
       
         # use dir.length + 1 to remove a leading '/'.   If dir.length + 1 >= expanded.length 
         # as in: relative_filepath('/path', '/path') then the first arg returns nil, and an 
@@ -171,60 +169,217 @@ module Tap
         end
       end
       
-      # Reduces a set of paths to the unique minimum set of basename identifiers
-      # for the paths.  For example:
+      # Minimizes a set of paths to the set of shortest basepaths that unqiuely 
+      # identify the paths.  The path extension and versions are removed from
+      # the basepath if possible.  For example:
       #
-      #   Root.reduce('to/file.txt', 'path/to/file.txt', 'path/to/another/file.txt')
-      #   # => ['to/file.txt', 'another/file.txt']
+      #   Tap::Root.minimize ['path/to/a.rb', 'path/to/b.rb']
+      #   # => ['a', 'b']
       #
-      # Each of the non-reduced paths maps to one of the reduced paths, based
-      # on the end part of the path string.  Paths are expanded before reduction.
-      def reduce(paths)
+      #   Tap::Root.minimize ['path/to/a-0.1.0.rb', 'path/to/b-0.1.0.rb']
+      #   # => ['a', 'b']
+      #
+      #   Tap::Root.minimize ['path/to/file.rb', 'path/to/file.txt']
+      #   # => ['file.rb', 'file.txt']
+      #
+      #   Tap::Root.minimize ['path-0.1/to/file.rb', 'path-0.2/to/file.rb']
+      #   # => ['path-0.1/to/file', 'path-0.2/to/file']
+      #
+      # Minimized paths that carry their extension will always carry
+      # their version as well, but the converse is not true; paths
+      # can be minimized to carry just the version and not the path
+      # extension.
+      #
+      #   Tap::Root.minimize ['path/to/a-0.1.0.rb', 'path/to/a-0.1.0.txt']
+      #   # => ['a-0.1.0.rb', 'a-0.1.0.txt']
+      #
+      #   Tap::Root.minimize ['path/to/a-0.1.0.rb', 'path/to/a-0.2.0.rb']
+      #   # => ['a-0.1.0', 'a-0.2.0']
+      #
+      # If a block is given, each (path, mini-path) pair will be passed
+      # to it after minimization.  Paths are expanded before minimization.
+      def minimize(paths)
         splits = paths.uniq.collect do |path|
-          [File.dirname(path), File.basename(path)]
+          extname = File.extname(path)
+          extname = '' if extname =~ /^\.\d+$/
+          base = File.basename(path.chomp(extname))
+          version = base =~ /(-\d+(\.\d+)*)$/ ? $1 : ''
+          
+          [File.dirname(path), base.chomp(version), extname, version, false]
         end
-        
-        base_paths = []
+
+        mini_paths = []
         while !splits.empty?
-          splits = splits.collect do |(dir, base)|
-            if splits.inject(0) {|count, (d,b)| b == base ? count + 1 : count} == 1
-              base_paths << base
+          index = 0
+          splits = splits.collect do |(dir, base, extname, version, flagged)|
+            index += 1
+            case
+            when !flagged && just_one?(splits, index, base)
+              mini_paths << base
               nil
+            when dir.kind_of?(Array)
+              if dir.empty?
+                dir << File.dirname(base)
+                base = File.basename(base)
+              end
+              
+              case
+              when extname.empty?
+                mini_paths << "#{dir[0]}/#{base}"
+                nil
+                #raise "indistinguishable paths in: [#{paths.join(', ')}]"
+              when version.empty?
+                [dir, "#{base}#{extname}", '', version, false]
+              else
+                [dir, "#{base}#{version}", extname, '', false]
+              end
+            when (shift_base = File.basename(dir)) == dir
+              [[], "#{shift_base}/#{base}", extname, version, false]
             else
-              [File.dirname(dir), "#{File.basename(dir)}/#{base}"]
+              [File.dirname(dir), "#{shift_base}/#{base}", extname, version, false]
             end
           end.compact
         end
         
         if block_given?
           paths.each do |path|
-            base_path = base_paths.find do |base| 
-              reduce_match?(path, base)
+            mini_path = mini_paths.find do |base|
+              minimal_match?(path, base)
             end
             
-            yield(path, base_path)
+            yield(path, mini_path)
           end
-        end 
+        end
         
-        base_paths
+        mini_paths
+      end
+
+      # Returns true if the mini_path matches path.  Matching logic
+      # reverses that of minimize: 
+      # * a match occurs when path ends with mini_path
+      # * if mini_path doesn't specify an extension, then mini_path
+      #   must only match path up to the path extension
+      # * if mini_path doesn't specify a version, then mini_path
+      #   must only match path up to the path basename (minus the
+      #   version and extname)
+      #
+      # For example:
+      #
+      #   Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'file')           # => true
+      #   Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'dir/file')       # => true
+      #   Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'file-0.1.0')     # => true
+      #   Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'file-0.1.0.rb')  # => true
+      #
+      #   Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'file.rb')        # => false
+      #   Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'file-0.2.0')     # => false
+      #   Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'another')        # => false
+      #
+      # In matching, partial basenames are not allowed but partial directories
+      # are allowed.  Hence:
+      #
+      #   Tap::Root.minimal_match?('dir/file-0.1.0.txt', 'file')          # => true
+      #   Tap::Root.minimal_match?('dir/file-0.1.0.txt', 'ile')           # => false
+      #   Tap::Root.minimal_match?('dir/file-0.1.0.txt', 'r/file')        # => true
+      #
+      def minimal_match?(path, mini_path)
+        extname = File.extname(mini_path)
+        extname = '' if extname =~ /^\.\d+$/
+        version = mini_path =~ /(-\d+(\.\d+)*)#{extname}$/ ? $1 : ''
+   
+        match_path = case
+        when !extname.empty?
+          # force full match
+          path
+        when !version.empty?
+          # match up to version
+          path.chomp(File.extname(path))
+        else
+          # match up base
+          path.chomp(File.extname(path)).sub(/(-\d+(\.\d+)*)$/, '')
+        end
+        
+        # key ends with pattern AND basenames of each are equal... 
+        # the last check ensures that a full path segment has 
+        # been specified
+        match_path[-mini_path.length, mini_path.length] == mini_path  && File.basename(match_path) == File.basename(mini_path)
       end
       
-      def reduce_map(map, reverse=false)
+      # Minimizes the keys in a hash.  When reverse is true,
+      # minimal_map re-maps the hash values to the minimized
+      # key.  In reverse mode, redundant values raise an error. 
+      def minimal_map(hash, reverse=false)
         results = {}
         if reverse
-          reduce(map.keys) {|p, rp| results[map[p]] = rp }
+          minimize(hash.keys) do |p, mp|
+            value = hash[p]
+            raise "redundant value in reverse minimal_map: #{value}" if results.has_key?(value)
+            results[value] = mp
+          end
         else
-          reduce(map.keys) {|p, rp| results[rp] = map[p] }
+          minimize(hash.keys) {|p, mp| results[mp] = hash[p] }
         end
         results
       end
       
-      def reduce_match?(path, reduce_path)
-        # key ends with pattern AND basenames of each are equal... 
-        # the last check ensures that a full path segment has 
-        # been specified
-        path[-reduce_path.length, reduce_path.length] == reduce_path  && File.basename(path) == File.basename(reduce_path)
+      # Returns the path segments for the given path, splitting along the path 
+      # divider.  Root paths are always represented by a string, if only an 
+      # empty string.
+      #
+      #   os          divider    example
+      #   windows     '\'        Root.split('C:\path\to\file')  # => ["C:", "path", "to", "file"]
+      #   *nix        '/'        Root.split('/path/to/file')    # => ["", "path", "to", "file"]
+      # 
+      # The path is always expanded relative to the expand_dir; so '.' and '..' are 
+      # resolved.  However, unless expand_path == true, only the segments relative
+      # to the expand_dir are returned.  
+      #
+      # On windows (note that expanding paths allows the use of slashes or backslashes):
+      #
+      #   Dir.pwd                                               # => 'C:/'
+      #   Root.split('path\to\..\.\to\file')                    # => ["C:", "path", "to", "file"]
+      #   Root.split('path/to/.././to/file', false)             # => ["path", "to", "file"]
+      #
+      # On *nix (or more generally systems with '/' roots):
+      #
+      #   Dir.pwd                                               # => '/'
+      #   Root.split('path/to/.././to/file')                    # => ["", "path", "to", "file"]
+      #   Root.split('path/to/.././to/file', false)             # => ["path", "to", "file"]
+      #
+      def split(path, expand_path=true, expand_dir=Dir.pwd)
+        path = if expand_path
+          File.expand_path(path, expand_dir)
+        else
+          # normalize the path by expanding it, then
+          # work back to the relative filepath as needed
+          expanded_dir = File.expand_path(expand_dir)
+          expanded_path = File.expand_path(path, expand_dir)
+          expanded_path.index(expanded_dir) != 0 ? expanded_path : Tap::Root.relative_filepath(expanded_dir, expanded_path)
+        end
+
+        segments = path.scan(/[^\/]+/)
+
+        # add back the root filepath as needed on *nix 
+        segments.unshift "" if path[0] == ?/
+        segments
       end
+      
+      private
+      
+      # utility method for minimize -- determines if there 
+      # is just one of the base in splits, while flagging
+      # all matching entries.
+      def just_one?(splits, index, base) # :nodoc:
+        just_one = true
+        index.upto(splits.length-1) do |i|
+          if splits[i][1] == base
+            splits[i][4] = true
+            just_one = false
+          end
+        end
+        
+        just_one
+      end
+      
     end
   
     include Support::Versions
@@ -368,7 +523,10 @@ module Tap
     #  fp = r.filepath(:in, 'path/to/file.txt')    # => '/root_dir/in/path/to/file.txt'
     #  r.translate(fp, :in, :out)                  # => '/root_dir/out/path/to/file.txt'
     def translate(filepath, input_dir, output_dir)
-      filepath(output_dir, relative_filepath(input_dir, filepath))
+      unless relative_path = relative_filepath(input_dir, filepath)
+        raise "\n#{filepath}\nis not relative to:\n#{input_dir}"
+      end
+      filepath(output_dir, relative_path)
     end
   
     # Lists all files in the aliased dir matching the input patterns.  Patterns 
