@@ -7,6 +7,17 @@ module Tap
     #
     # See the 'Configuration' section in the Tap::Task documentation for
     # more details on how Validation works in practice.
+    #
+    #--
+    # Note the unusual syntax for declaring constants that are blocks
+    # defined by lambda... ex:
+    #
+    #   block = lambda {}
+    #   CONST = block
+    #
+    # This is simply to play well with RDoc, which gets jacked when you 
+    # do it all in one step.
+    #
     module Validation
       
       # Raised when Validation blocks fail.
@@ -126,10 +137,11 @@ module Tap
       #   string.call(:sym)         # => ValidationError
       #
       def string(); STRING; end
-      STRING = lambda do |input|
+      string_validation_block = lambda do |input|
         input = validate(input, [String])
         eval %Q{"#{input}"}
       end
+      STRING = string_validation_block
       
       # Same as string but allows nil.  Note the special
       # behavior of the nil string '~' -- rather than
@@ -140,13 +152,14 @@ module Tap
       #   string_or_nil.call('~')   # => nil
       #   string_or_nil.call(nil)   # => nil
       def string_or_nil(); STRING_OR_NIL; end
-      STRING_OR_NIL = lambda do |input|
+      string_or_nil_validation_block = lambda do |input|
         input = validate(input, [String, nil])
         case input
         when nil, '~' then nil 
         else eval %Q{"#{input}"}
         end
       end
+      STRING_OR_NIL = string_or_nil_validation_block
       
       # Returns a block that checks the input is a symbol.
       # String inputs are loaded as yaml first.
@@ -211,7 +224,7 @@ module Tap
       ARRAY_OR_NIL = yamlize_and_check(Array, nil)
       
       def list(); LIST; end
-      LIST = lambda do |input|
+      list_block = lambda do |input|
         if input.kind_of?(String)
           input = case processed_input = yamlize(input)
           when Array then processed_input
@@ -221,6 +234,7 @@ module Tap
         
         validate(input, [Array])
       end
+      LIST = list_block
 
       # Returns a block that checks the input is a hash.
       # String inputs are loaded as yaml first.
@@ -317,10 +331,11 @@ module Tap
       #   regexp.call('(?i)regexp') # => /(?i)regexp/
       #
       def regexp(); REGEXP; end
-      REGEXP = lambda do |input|
+      regexp_block = lambda do |input|
         input = Regexp.new(input) if input.kind_of?(String)
         validate(input, [Regexp])
       end
+      REGEXP = regexp_block
       
       # Same as regexp but allows nil. Note the special
       # behavior of the nil string '~' -- rather than
@@ -331,7 +346,7 @@ module Tap
       #   regexp_or_nil.call('~')   # => nil
       #   regexp_or_nil.call(nil)   # => nil
       def regexp_or_nil(); REGEXP_OR_NIL; end
-      REGEXP_OR_NIL = lambda do |input|
+      regexp_or_nil_block = lambda do |input|
         input = case input
         when nil, '~' then nil
         when String then Regexp.new(input)
@@ -340,6 +355,7 @@ module Tap
         
         validate(input, [Regexp, nil])
       end
+      REGEXP_OR_NIL = regexp_or_nil_block
       
       # Returns a block that checks the input is a range.
       # String inputs are split into a beginning and
@@ -356,19 +372,20 @@ module Tap
       #   range.call('a....z')      # => ValidationError
       #
       def range(); RANGE; end
-      RANGE = lambda do |input|
+      range_block = lambda do |input|
         if input.kind_of?(String) && input =~ /^([^.]+)(\.{2,3})([^.]+)$/
           input = Range.new(yamlize($1), yamlize($3), $2.length == 3) 
         end
         validate(input, [Range])
       end
+      RANGE = range_block
       
       # Same as range but allows nil:
       #
       #   range_or_nil.call('~')    # => nil
       #   range_or_nil.call(nil)    # => nil
       def range_or_nil(); RANGE_OR_NIL; end
-      RANGE_OR_NIL = lambda do |input|
+      range_or_nil_block = lambda do |input|
         input = case input
         when nil, '~' then nil
         when String
@@ -382,6 +399,8 @@ module Tap
         
         validate(input, [Range, nil])
       end
+      RANGE_OR_NIL = range_or_nil_block
+      
     end
   end
 end
