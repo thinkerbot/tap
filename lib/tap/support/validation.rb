@@ -121,6 +121,8 @@ module Tap
       #   string.call('str')        # => 'str'
       #   string.call('\n')         # => "\n"
       #   string.call("\n")         # => "\n"
+      #   string.call("%s")         # => "%s"
+      #   string.call(nil)          # => ValidationError
       #   string.call(:sym)         # => ValidationError
       #
       def string(); STRING; end
@@ -129,16 +131,41 @@ module Tap
         eval %Q{"#{input}"}
       end
       
+      # Same as string but allows nil.  Note the special
+      # behavior of the nil string '~' -- rather than
+      # being treated as a string, it is processed as nil
+      # to be consistent with the other [class]_or_nil
+      # methods.
+      #
+      #   string_or_nil.call('~')   # => nil
+      #   string_or_nil.call(nil)   # => nil
+      def string_or_nil(); STRING_OR_NIL; end
+      STRING_OR_NIL = lambda do |input|
+        input = validate(input, [String, nil])
+        case input
+        when nil, '~' then nil 
+        else eval %Q{"#{input}"}
+        end
+      end
+      
       # Returns a block that checks the input is a symbol.
       # String inputs are loaded as yaml first.
       #
       #   symbol.class              # => Proc
       #   symbol.call(:sym)         # => :sym
       #   symbol.call(':sym')       # => :sym
+      #   symbol.call(nil)          # => ValidationError
       #   symbol.call('str')        # => ValidationError
       #
       def symbol(); SYMBOL; end
       SYMBOL = yamlize_and_check(Symbol)
+      
+      # Same as symbol but allows nil:
+      #
+      #   symbol_or_nil.call('~')   # => nil
+      #   symbol_or_nil.call(nil)   # => nil
+      def symbol_or_nil(); SYMBOL_OR_NIL; end
+      SYMBOL_OR_NIL = yamlize_and_check(Symbol, nil)
       
       # Returns a block that checks the input is true, false or nil.
       # String inputs are loaded as yaml first.
@@ -170,11 +197,19 @@ module Tap
       #   array.class               # => Proc
       #   array.call([1,2,3])       # => [1,2,3]
       #   array.call('[1, 2, 3]')   # => [1,2,3]
+      #   array.call(nil)           # => ValidationError
       #   array.call('str')         # => ValidationError
       #
       def array(); ARRAY; end
       ARRAY = yamlize_and_check(Array)
-
+      
+      # Same as array but allows nil:
+      #
+      #   array_or_nil.call('~')    # => nil
+      #   array_or_nil.call(nil)    # => nil
+      def array_or_nil(); ARRAY_OR_NIL; end
+      ARRAY_OR_NIL = yamlize_and_check(Array, nil)
+      
       def list(); LIST; end
       LIST = lambda do |input|
         if input.kind_of?(String)
@@ -186,17 +221,25 @@ module Tap
         
         validate(input, [Array])
       end
-      
+
       # Returns a block that checks the input is a hash.
       # String inputs are loaded as yaml first.
       #
       #   hash.class                     # => Proc
       #   hash.call({'key' => 'value'})  # => {'key' => 'value'}
       #   hash.call('key: value')        # => {'key' => 'value'}
+      #   hash.call(nil)                 # => ValidationError
       #   hash.call('str')               # => ValidationError
       #
       def hash(); HASH; end
       HASH = yamlize_and_check(Hash)
+      
+      # Same as hash but allows nil:
+      #
+      #   hash_or_nil.call('~')          # => nil
+      #   hash_or_nil.call(nil)          # => nil
+      def hash_or_nil(); HASH_OR_NIL; end
+      HASH_OR_NIL = yamlize_and_check(Hash, nil)
       
       # Returns a block that checks the input is an integer.
       # String inputs are loaded as yaml first.
@@ -205,10 +248,18 @@ module Tap
       #   integer.call(1)           # => 1
       #   integer.call('1')         # => 1
       #   integer.call(1.1)         # => ValidationError
+      #   integer.call(nil)         # => ValidationError
       #   integer.call('str')       # => ValidationError
       #
       def integer(); INTEGER; end
       INTEGER = yamlize_and_check(Integer)
+      
+      # Same as integer but allows nil:
+      #
+      #   integer_or_nil.call('~')  # => nil
+      #   integer_or_nil.call(nil)  # => nil
+      def integer_or_nil(); INTEGER_OR_NIL; end
+      INTEGER_OR_NIL = yamlize_and_check(Integer, nil)
       
       # Returns a block that checks the input is a float.
       # String inputs are loaded as yaml first.
@@ -216,11 +267,42 @@ module Tap
       #   float.class               # => Proc
       #   float.call(1.1)           # => 1.1
       #   float.call('1.1')         # => 1.1
+      #   float.call('1.0e+6')      # => 1e6
       #   float.call(1)             # => ValidationError
+      #   float.call(nil)           # => ValidationError
       #   float.call('str')         # => ValidationError
       #
       def float(); FLOAT; end
       FLOAT = yamlize_and_check(Float)
+      
+      # Same as float but allows nil:
+      #
+      #   float_or_nil.call('~')    # => nil
+      #   float_or_nil.call(nil)    # => nil
+      def float_or_nil(); FLOAT_OR_NIL; end
+      FLOAT_OR_NIL = yamlize_and_check(Float, nil)
+      
+      # Returns a block that checks the input is a number.
+      # String inputs are loaded as yaml first.
+      #
+      #   num.class               # => Proc
+      #   num.call(1.1)           # => 1.1
+      #   num.call(1)             # => 1
+      #   num.call(1e6)           # => 1e6
+      #   num.call('1.1')         # => 1.1
+      #   num.call('1.0e+6')      # => 1e6
+      #   num.call(nil)           # => ValidationError
+      #   num.call('str')         # => ValidationError
+      #
+      def num(); NUMERIC; end
+      NUMERIC = yamlize_and_check(Numeric)
+      
+      # Same as num but allows nil:
+      #
+      #   num_or_nil.call('~')    # => nil
+      #   num_or_nil.call(nil)    # => nil
+      def num_or_nil(); NUMERIC_OR_NIL; end
+      NUMERIC_OR_NIL = yamlize_and_check(Numeric, nil)
       
       # Returns a block that checks the input is a regexp.
       # String inputs are converted to regexps using
@@ -238,6 +320,67 @@ module Tap
       REGEXP = lambda do |input|
         input = Regexp.new(input) if input.kind_of?(String)
         validate(input, [Regexp])
+      end
+      
+      # Same as regexp but allows nil. Note the special
+      # behavior of the nil string '~' -- rather than
+      # being converted to a regexp, it is processed as 
+      # nil to be consistent with the other [class]_or_nil
+      # methods.
+      #
+      #   regexp_or_nil.call('~')   # => nil
+      #   regexp_or_nil.call(nil)   # => nil
+      def regexp_or_nil(); REGEXP_OR_NIL; end
+      REGEXP_OR_NIL = lambda do |input|
+        input = case input
+        when nil, '~' then nil
+        when String then Regexp.new(input)
+        else input
+        end
+        
+        validate(input, [Regexp, nil])
+      end
+      
+      # Returns a block that checks the input is a range.
+      # String inputs are split into a beginning and
+      # end if possible, where each part is loaded as
+      # yaml before being used to construct a Range.a
+      #
+      #   range.class               # => Proc
+      #   range.call(1..10)         # => 1..10
+      #   range.call('1..10')       # => 1..10
+      #   range.call('a..z')        # => 'a'..'z'
+      #   range.call('-10...10')    # => -10...10
+      #   range.call(nil)           # => ValidationError
+      #   range.call('1.10')        # => ValidationError
+      #   range.call('a....z')      # => ValidationError
+      #
+      def range(); RANGE; end
+      RANGE = lambda do |input|
+        if input.kind_of?(String) && input =~ /^([^.]+)(\.{2,3})([^.]+)$/
+          input = Range.new(yamlize($1), yamlize($3), $2.length == 3) 
+        end
+        validate(input, [Range])
+      end
+      
+      # Same as range but allows nil:
+      #
+      #   range_or_nil.call('~')    # => nil
+      #   range_or_nil.call(nil)    # => nil
+      def range_or_nil(); RANGE_OR_NIL; end
+      RANGE_OR_NIL = lambda do |input|
+        input = case input
+        when nil, '~' then nil
+        when String
+          if input =~ /^([^.]+)(\.{2,3})([^.]+)$/
+            Range.new(yamlize($1), yamlize($3), $2.length == 3)
+          else
+            input
+          end
+        else input
+        end
+        
+        validate(input, [Range, nil])
       end
     end
   end
