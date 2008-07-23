@@ -68,13 +68,18 @@ end
 
 desc 'Generate documentation.'
 Rake::RDocTask.new(:rdoc) do |rdoc|
- # require 'tap/support/tdoc/config_attr'
   spec = gemspec
   
   rdoc.rdoc_dir = 'rdoc'
   rdoc.title    = '<%= project_name %>'
-  rdoc.template = 'tap/support/tdoc/tdoc_html_template' 
-  rdoc.options << '--line-numbers' << '--inline-source' << '--fmt' << 'tdoc'
+  rdoc.options << '--line-numbers' << '--inline-source'
   rdoc.rdoc_files.include( spec.extra_rdoc_files )
   rdoc.rdoc_files.include( spec.files.select {|file| file =~ /^lib.*\.rb$/} )
+  
+  # Using Tdoc to template your Rdoc will result in configurations being
+  # listed with documentation in a subsection following attributes.  Not
+  # necessary, but nice.
+  require 'tap/support/tdoc'
+  rdoc.template = 'tap/support/tdoc/tdoc_html_template' 
+  rdoc.options << '--fmt' << 'tdoc'
 end

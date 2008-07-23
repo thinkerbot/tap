@@ -76,15 +76,17 @@ end
 
 desc 'Generate documentation.'
 Rake::RDocTask.new(:rdoc) do |rdoc|
- # require 'tap/support/tdoc/config_attr'
   spec = gemspec
   
   rdoc.rdoc_dir = 'rdoc'
-  rdoc.title    = 'tap'
-  rdoc.template = 'tap/support/tdoc/tdoc_html_template' 
-  rdoc.options << '--line-numbers' << '--inline-source' << '--fmt' << 'tdoc'
+  rdoc.title    = 'Tap (task application)'
+  rdoc.options << '--line-numbers' << '--inline-source'
   rdoc.rdoc_files.include( spec.extra_rdoc_files )
   rdoc.rdoc_files.include( spec.files.select {|file| file =~ /^lib.*\.rb$/} )
+  
+  require 'tap/support/tdoc'
+  rdoc.template = 'tap/support/tdoc/tdoc_html_template' 
+  rdoc.options << '--fmt' << 'tdoc'
 end
 
 desc "Publish RDoc to RubyForge"

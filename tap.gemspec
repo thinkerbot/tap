@@ -92,7 +92,7 @@ Gem::Specification.new do |s|
     lib/tap/support/rake.rb
     lib/tap/support/run_error.rb
     lib/tap/support/shell_utils.rb
-    lib/tap/support/tdoc/config_attr.rb
+    lib/tap/support/tdoc.rb
     lib/tap/support/tdoc/tdoc_html_generator.rb
     lib/tap/support/tdoc/tdoc_html_template.rb
     lib/tap/support/summary.rb

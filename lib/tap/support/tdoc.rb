@@ -49,7 +49,83 @@ end
 
 module Tap
   module Support
-    class TDoc
+  
+    # TDoc hooks into and extends RDoc to make configuration documentation available as
+    # attributes.  TDoc provides an extension to the standard RDoc HTMLGenerator and template.
+    #
+    # === Usage
+    # To generate task documentation with configuration information, TDoc must be loaded and
+    # the appropriate flags passed to rdoc . Essentially what you want is:
+    #
+    #   % rdoc --fmt tdoc --template tap/support/tdoc/tdoc_html_template [file_names....]
+    #
+    # Unfortunately, there is no way to load or require a file into the rdoc utility directly; the
+    # above code causes an 'Invalid output formatter' error. However, TDoc is easy to utilize
+    # from a Rake::RDocTask:
+    #
+    #   require 'rake'
+    #   require 'rake/rdoctask'
+    #
+    #   desc 'Generate documentation.'
+    #   Rake::RDocTask.new(:rdoc) do |rdoc|
+    #     require 'tap/support/tdoc'
+    #     rdoc.template = 'tap/support/tdoc/tdoc_html_template'
+    #     rdoc.options << '--fmt' << 'tdoc'
+    #
+    #     # specify whatever else you need
+    #     # rdoc.rdoc_files.include(...)
+    #   end
+    #
+    # Now execute the rake task like:
+    #
+    #   % rake rdoc
+    #
+    # === Implementation
+    # RDoc is a beast to utilize in a non-standard way. One way to make RDoc parse unexpected
+    # flags like 'config' or 'config_attr' is to use the '--accessor' option (see 'rdoc --help' or 
+    # the RDoc documentation for more details).
+    #
+    # TDoc hooks into the '--accessor' parsing process to pull out configuration attributes and
+    # format them into their own Configuration section on an RDoc html page. When 'tdoc' is
+    # specified as an rdoc option, TDoc in effect sets accessor flags for all the standard Task
+    # configuration methods, and then extends the RDoc::RubyParser handle these specially.
+    #
+    # If tdoc is not specified as the rdoc format, TDoc does not affect the RDoc output.
+    # Similarly, the configuration attributes will not appear in the output unless you specify a
+    # template that utilizes them.
+    #
+    # === Namespace conflicts
+    # RDoc creates a namespace conflict with other libraries that define RubyToken and RubyLex
+    # in the Object namespace (the prime example being IRB). TDoc checks for such a conflict
+    # and redfines the RDoc versions of RubyToken and RubyLex within the RDoc namespace.  
+    # Essentially:
+    #
+    #   original constant    redefined constant
+    #   RubyToken            RDoc::RubyToken
+    #   RubyLex              RDoc::RubyLex
+    #
+    # The redefinition should not affect the existing (non RDoc) RubyToken and RubyLex constants,
+    # but if you directly use the RDoc versions after loading TDoc, you should be aware that they must
+    # be accessed through the new constants.  Unfortunatley the trick is not seamless.  The RDoc
+    # RubyLex makes a few calls to the RubyLex class method 'debug?'... these will be issued to
+    # the existing (non RDoc) RubyLex method and not the redefined RDoc::RubyLex.debug?
+    #
+    # In addition, because of the RubyLex calls, the RDoc::RubyLex cannot be fully hidden when
+    # TDoc is loaded before the conflicting RubyLex; you cannot load TDoc before loading IRB
+    # without raising warnings.  
+    #
+    # Luckily all these troubles can be avoided very easily by not loading TDoc or RDoc when 
+    # you're in irb.  On the plus side, going against what I just said, you can now access/use 
+    # RDoc within irb by requiring <tt>'tap/support/tdoc'</tt>.
+    #
+    #-- 
+    # Note that tap-0.10.0 heavily refactored TDoc functionality out of the old TDoc and into
+    # Lazydoc, and changed the declaration syntax for configurations.  These changes also
+    # affected the implementation of TDoc.  Mostly the changes are hacks to get the old 
+    # system to work in the new system... as hacky as the old TDoc was, now this TDoc is hacky
+    # AND may have cruft.  Until it breaks completely, I leave it as is... ugly and hard to fathom.
+    #
+    module TDoc
     
       # Encasulates information about the configuration.  Designed to be utilized
       # by the TDocHTMLGenerator as similarly as possible to standard attributes.
@@ -91,8 +167,10 @@ module Tap
         # key:: hence you can comment inline like this.
         #
         def comment(add_default=true)
-          text_comment = text.to_s.sub(/^#--.*/m, '')
-          original_comment.to_s + text_comment + (default && add_default ? " (#{default})" : "")
+          # this would include the trailing comment...
+          # text_comment = text.to_s.sub(/^#--.*/m, '')
+          #original_comment.to_s + text_comment + (default && add_default ? " (#{default})" : "")
+          original_comment.to_s.strip + (default && add_default ? " (<tt>#{default}</tt>)" : "")
         end
       end
       
