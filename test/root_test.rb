@@ -264,32 +264,159 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
-  # Tap::Root.reduce test
+  # Tap::Root.minimize test
   #
   
-  def test_reduce_collects_unique_basenames_for_paths
-    assert_equal [], Tap::Root.reduce([])
-    assert_equal ['file.txt'], Tap::Root.reduce(['file.txt'])
-    assert_equal ['file.txt'], Tap::Root.reduce(['file.txt', 'file.txt'])
-    assert_equal ['file.txt', 'another.txt'], Tap::Root.reduce(['path/to/file.txt','path/to/another.txt'])
-    assert_equal ['some/file.txt', 'another/file.txt'], Tap::Root.reduce(['path/to/some/file.txt','path/to/another/file.txt'])
-    assert_equal ['to/file.txt', 'another/file.txt'], Tap::Root.reduce(['path/to/file.txt','path/to/another/file.txt'])
-    assert_equal ['to', 'file.txt'], Tap::Root.reduce(['path/to','path/to/file.txt'])
-    assert_equal ['file', 'file.txt'], Tap::Root.reduce(['path/to/file','path/to/file.txt'])
+  def test_minimize_documentation
+    assert_equal ['a', 'b'], Tap::Root.minimize(['path/to/a.rb', 'path/to/b.rb'])
+    assert_equal ['a', 'b'], Tap::Root.minimize(['path/to/a-0.1.0.rb', 'path/to/b-0.1.0.rb'])
+    assert_equal ['file.rb', 'file.txt'], Tap::Root.minimize(['path/to/file.rb', 'path/to/file.txt'])
+    assert_equal ['path-0.1/to/file', 'path-0.2/to/file'], Tap::Root.minimize(['path-0.1/to/file.rb', 'path-0.2/to/file.rb'])
+    assert_equal ['a-0.1.0.rb', 'a-0.1.0.txt'], Tap::Root.minimize(['path/to/a-0.1.0.rb', 'path/to/a-0.1.0.txt'])
+    assert_equal ['a-0.1.0', 'a-0.2.0'], Tap::Root.minimize(['path/to/a-0.1.0.rb', 'path/to/a-0.2.0.rb'])
   end
   
-  def test_reduce_speed
+  def test_minimize_collects_unique_basenames_for_paths
+    # some extreme cases
+    assert_equal [], Tap::Root.minimize([])
+    assert_equal ['a'], Tap::Root.minimize(['a.txt'])
+    assert_equal ['a'], Tap::Root.minimize(['a.txt', 'a.txt'])
+    
+    # cases where extname and version is dropped
+    assert_equal ['c', 'C'], Tap::Root.minimize(['a/b/c.txt', 'a/b/C.txt'])  
+    assert_equal ['c', 'C'], Tap::Root.minimize(['a/b/c.txt', 'a/b/C.rb'])  
+    assert_equal ['c', 'C'], Tap::Root.minimize(['a/b/c-0.1.txt', 'a/b/C-0.1.txt'])  
+    assert_equal ['c', 'C'], Tap::Root.minimize(['a/b/c-0.1.txt', 'a/b/C-0.2.txt']) 
+    
+    assert_equal ['b/c', 'B/c'], Tap::Root.minimize(['a/b/c.txt', 'a/B/c.txt'])  
+    assert_equal ['b/c', 'B/c'], Tap::Root.minimize(['a/b/c.txt', 'a/B/c.rb'])  
+    assert_equal ['b/c', 'B/c'], Tap::Root.minimize(['a/b/c-0.1.txt', 'a/B/c-0.1.txt'])  
+    assert_equal ['b/c', 'B/c'], Tap::Root.minimize(['a/b/c-0.1.txt', 'a/B/c-0.2.txt'])
+    
+    assert_equal ['a/b/c', 'A/b/c'], Tap::Root.minimize(['a/b/c.txt', 'A/b/c.txt'])  
+    assert_equal ['a/b/c', 'A/b/c'], Tap::Root.minimize(['a/b/c.txt', 'A/b/c.rb'])  
+    assert_equal ['a/b/c', 'A/b/c'], Tap::Root.minimize(['a/b/c-0.1.txt', 'A/b/c-0.1.txt'])  
+    assert_equal ['a/b/c', 'A/b/c'], Tap::Root.minimize(['a/b/c-0.1.txt', 'A/b/c-0.2.txt'])
+    
+    assert_equal ['b-0.1/c', 'b-0.2/c'], Tap::Root.minimize(['a/b-0.1/c.txt', 'a/b-0.2/c.txt'])  
+    assert_equal ['a/b-0.1/c', 'A/b-0.1/c'], Tap::Root.minimize(['a/b-0.1/c.txt', 'A/b-0.1/c.rb'])  
+    assert_equal ['b-0.1/c', 'b-0.2/c'], Tap::Root.minimize(['a/b-0.1/c-0.1.txt', 'a/b-0.2/c-0.1.txt'])  
+    assert_equal ['a/b-0.1/c', 'A/b-0.1/c'], Tap::Root.minimize(['a/b-0.1/c-0.1.txt', 'A/b-0.1/c-0.2.txt'])
+    
+    # cases where version is kept
+    assert_equal ['c-0.1', 'c-0.2'], Tap::Root.minimize(['a/b/c-0.1.txt', 'a/b/c-0.2.txt'])  
+    assert_equal ['c-0.1', 'c-0.2'], Tap::Root.minimize(['a/b/c-0.1.txt', 'a/b/c-0.2.rb'])  
+
+    # cases where ext is kept
+    assert_equal ['c.txt', 'c.rb'], Tap::Root.minimize(['a/b/c.txt', 'a/b/c.rb'])  
+    assert_equal ['c-0.1.txt', 'c-0.1.rb'], Tap::Root.minimize(['a/b/c-0.1.txt', 'a/b/c-0.1.rb'])
+
+    # a complex case
+    paths = %w{
+      a/b/c.d
+      a/b/c.d
+      a/b/C.d
+      a/b/c.D
+      a/B/c.d
+      A/b/c.d
+      
+      a/b-0.1/c.d
+      a/b-0.2/c.d
+      a/b/c-0.1.d
+      a/b/c-0.2.d
+    }
+    
+    expected = %w{
+      c.d
+      c.D
+      C
+      B/c
+      A/b/c
+      b-0.1/c
+      b-0.2/c
+      c-0.1
+      c-0.2
+    }
+    
+    assert_equal expected.sort, Tap::Root.minimize(paths).sort
+  end
+  
+  def test_minimize_speed
     benchmark_test(30) do |x|  
-      paths = (0..3).collect {|i| 'path/num#{i}/file'}
-      x.report("10k times 3 short paths ") { 10000.times { Tap::Root.reduce(paths) } }
+      paths = (0..100).collect {|i| "path#{i}/to/file"}
+      x.report("100 dir paths ") { Tap::Root.minimize(paths) }
       
-      paths = (0..3).collect {|i| 'path/num#{i}/to/some/long/path/file'}
-      x.report("10k times 3 long paths ") { 10000.times { Tap::Root.reduce(paths) } }
+      paths = (0..1000).collect {|i| "path#{i}/to/file"}
+      x.report("1k dir paths") { Tap::Root.minimize(paths) }
       
-      paths = (0..1000000).collect {|i| 'path/num#{i}/file'}
-      x.report("1M short paths") { Tap::Root.reduce(paths) }
+      paths = (0..100).collect {|i| "path/to/file#{i}"}
+      x.report("100 file paths ") { Tap::Root.minimize(paths) }
+      
+      paths = (0..1000).collect {|i| "path/to/file#{i}"}
+      x.report("1k file paths") { Tap::Root.minimize(paths) }
     end
   end
+  
+  #
+  # minimal_match? test
+  #
+  
+  def test_minimal_match_documentation
+    assert Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'file')
+    assert Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'dir/file')
+    assert Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'file-0.1.0')
+    assert Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'file-0.1.0.rb') 
+  
+    assert !Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'file.rb')
+    assert !Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'file-0.2.0') 
+    assert !Tap::Root.minimal_match?('dir/file-0.1.0.rb', 'another')
+  
+    assert Tap::Root.minimal_match?('dir/file-0.1.0.txt', 'file')
+    assert !Tap::Root.minimal_match?('dir/file-0.1.0.txt', 'ile') 
+    assert Tap::Root.minimal_match?('dir/file-0.1.0.txt', 'r/file')     
+  end
+  
+  def test_minimal_match
+    assert Tap::Root.minimal_match?('a/b/c.d', 'c')
+    assert Tap::Root.minimal_match?('a/b/c.d', 'b/c')
+    assert Tap::Root.minimal_match?('a/b/c.d', 'a/b/c')
+    assert Tap::Root.minimal_match?('a/b/c.d', 'c.d')
+    assert Tap::Root.minimal_match?('a/b/c.d', 'b/c.d')
+    assert Tap::Root.minimal_match?('a/b/c.d', 'a/b/c.d')
+    
+    assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'c')
+    assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'b/c')
+    assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'a/b/c')
+    assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'c-0.1')
+    assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'b/c-0.1')
+    assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'a/b/c-0.1')
+    assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'c-0.1.d')
+    assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'b/c-0.1.d')
+    assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'a/b/c-0.1.d')
+    
+    assert !Tap::Root.minimal_match?('a/b/c.d', 'C')
+    assert !Tap::Root.minimal_match?('a/b/c.d', 'B/c')
+    assert !Tap::Root.minimal_match?('a/b/c.d', 'A/b/c')
+    assert !Tap::Root.minimal_match?('a/b/c.d', 'c.D')
+    assert !Tap::Root.minimal_match?('a/b/c-0.1.d', 'c-0.2')
+    assert !Tap::Root.minimal_match?('a/b/c-0.1.d', 'c.d')
+  end
+  
+  #
+  # minimal_map test
+  #
+  
+  def test_minimal_map_minimizes_keys_in_hash
+    assert_equal({'c.d' => 'one', 'c.e' => 'two'}, Tap::Root.minimal_map({'a/b/c.d' => 'one', 'a/b/c.e' => 'two'}))
+  end
+  
+  def test_minimal_map_in_reverse_mode_maps_values_to_minimized_keys
+    assert_equal({'one' => 'c.d', 'two' => 'c.e'}, Tap::Root.minimal_map({'a/b/c.d' => 'one', 'a/b/c.e' => 'two'}, true))
+  end
+  
+  def test_minimal_map_in_reverse_mode_raises_error_for_redundant_values
+    assert_raise(RuntimeError) { Tap::Root.minimal_map({'a/b/c.d' => 'one', 'a/b/c.e' => 'one'}, true) }
+  end 
   
   #
   # initialize tests

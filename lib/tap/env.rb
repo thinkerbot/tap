@@ -516,7 +516,7 @@ module Tap
     end
     
     def map(name)
-      Tap::Root.reduce_map(manifest(name), false)
+      Tap::Root.minimal_map(manifest(name), false)
     end
     
     def summary(name)
@@ -537,7 +537,7 @@ module Tap
       manifest = manifests[name] ||= {}
       send("iterate_#{name}", "**/*#{pattern}*") do |key, path|
         add_manifest(manifest, key, path)
-        return path if Root.reduce_match?(key, pattern)
+        return path if Root.minimal_match?(key, pattern)
       end unless manifested?(name)
       
       # TODO -- switch order so that known paths are checked first
@@ -552,7 +552,7 @@ module Tap
       # may depend on the pattern being input... does it filter
       # out the matching pattern...
       self.manifest(name).each_pair do |key, path| 
-        return path if Root.reduce_match?(key, pattern)
+        return path if Root.minimal_match?(key, pattern)
       end
       
       nil
