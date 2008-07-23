@@ -358,7 +358,7 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
-  # minimal_match? test
+  # Tap::Root.minimal_match? test
   #
   
   def test_minimal_match_documentation
@@ -403,7 +403,7 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
-  # minimal_map test
+  # Tap::Root.minimal_map test
   #
   
   def test_minimal_map_minimizes_keys_in_hash
@@ -417,6 +417,61 @@ class RootTest < Test::Unit::TestCase
   def test_minimal_map_in_reverse_mode_raises_error_for_redundant_values
     assert_raise(RuntimeError) { Tap::Root.minimal_map({'a/b/c.d' => 'one', 'a/b/c.e' => 'one'}, true) }
   end 
+  
+  #
+  # Tap::Root.split tests
+  #
+  
+  if match_platform?("mswin")
+    @@root_path = File.expand_path(".")
+    while (parent_dir = File.dirname(@root_path)) != @root_path
+      @@root_path = parent_dir
+    end
+    @@root_path.chomp!("/")
+  else
+    @@root_path = ""
+  end
+  
+  def root_path
+    @@root_path
+  end
+  
+  def test_split_doc
+    pwd = Dir.pwd
+    begin
+      if self.class.match_platform?("mswin")
+        Dir.chdir(root_path + "/")
+        assert Dir.pwd =~ /^[A-Z]:\/$/
+        assert_equal [root_path, "path", "to", "file"], Tap::Root.split('path\to\..\.\to\file')
+        assert_equal  ["path", "to", "file"], Tap::Root.split('path/to/.././to/file', false)
+      else
+        Dir.chdir("/")
+        assert_equal '/', Dir.pwd
+        assert_equal ["", "path", "to", "file"], Tap::Root.split('path/to/.././to/file')
+        assert_equal ["path", "to", "file"], Tap::Root.split('path/to/.././to/file', false)
+      end
+    ensure
+      Dir.chdir(pwd)
+    end
+  end
+  
+  def test_split
+    assert_equal [root_path], Tap::Root.split("#{root_path}/")
+    assert_equal [root_path, "path"], Tap::Root.split("#{root_path}/path")
+    assert_equal [root_path, "path", "to", "file.txt"], Tap::Root.split("#{root_path}/path/to/file.txt")
+    assert_equal [root_path, "path", "to", "file.txt"], Tap::Root.split("#{root_path}/path/to/././../../path/to/file.txt")
+    assert_equal [root_path, "path", "path", "path", "file.txt"], Tap::Root.split("#{root_path}/path/path/path/file.txt")
+    
+    assert_equal Tap::Root.split(Dir.pwd), Tap::Root.split("")
+    assert_equal Tap::Root.split("."), Tap::Root.split("")
+
+    assert_equal [], Tap::Root.split("", false)
+    assert_equal [], Tap::Root.split(".", false)
+    assert_equal ["path"], Tap::Root.split("path", false)
+    assert_equal [root_path, "path"], Tap::Root.split("#{root_path}/path", false)
+    assert_equal ["path", "to", "file.txt"], Tap::Root.split("path/to/file.txt", false)
+    assert_equal [root_path, "path", "to", "file.txt"], Tap::Root.split("#{root_path}/path/to/file.txt", false)
+  end
   
   #
   # initialize tests

@@ -39,11 +39,15 @@ class VersionTest < Test::Unit::TestCase
   def test_deversion_returns_filepath_and_version
     assert_equal ["path/to/file.txt", "1.1"], deversion("path/to/file-1.1.txt")
     assert_equal ["path/to/file", "1.1"], deversion("path/to/file-1.1")
+    assert_equal ["path/to/file.txt", "1"], deversion("path/to/file-1.txt")
+    assert_equal ["path/to/file.txt", "12.34.56"], deversion("path/to/file-12.34.56.txt")
+    assert_equal ["path/to-0.1/file.txt", "1.0"], deversion("path/to-0.1/file-1.0.txt")
   end
   
   def test_deversion_returns_nil_for_version_when_no_version_is_specified
     assert_equal ["path/to/file.txt", nil], deversion("path/to/file.txt")
     assert_equal ["path/to/file", nil], deversion("path/to/file")
+    assert_equal ["path/to-0.1/file", nil], deversion("path/to-0.1/file")
   end
   
   #

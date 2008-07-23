@@ -323,6 +323,48 @@ module Tap
         results
       end
       
+      # Returns the path segments for the given path, splitting along the path 
+      # divider.  Root paths are always represented by a string, if only an 
+      # empty string.
+      #
+      #   os          divider    example
+      #   windows     '\'        Root.split('C:\path\to\file')  # => ["C:", "path", "to", "file"]
+      #   *nix        '/'        Root.split('/path/to/file')    # => ["", "path", "to", "file"]
+      # 
+      # The path is always expanded relative to the expand_dir; so '.' and '..' are 
+      # resolved.  However, unless expand_path == true, only the segments relative
+      # to the expand_dir are returned.  
+      #
+      # On windows (note that expanding paths allows the use of slashes or backslashes):
+      #
+      #   Dir.pwd                                               # => 'C:/'
+      #   Root.split('path\to\..\.\to\file')                    # => ["C:", "path", "to", "file"]
+      #   Root.split('path/to/.././to/file', false)             # => ["path", "to", "file"]
+      #
+      # On *nix (or more generally systems with '/' roots):
+      #
+      #   Dir.pwd                                               # => '/'
+      #   Root.split('path/to/.././to/file')                    # => ["", "path", "to", "file"]
+      #   Root.split('path/to/.././to/file', false)             # => ["path", "to", "file"]
+      #
+      def split(path, expand_path=true, expand_dir=Dir.pwd)
+        path = if expand_path
+          File.expand_path(path, expand_dir)
+        else
+          # normalize the path by expanding it, then
+          # work back to the relative filepath as needed
+          expanded_dir = File.expand_path(expand_dir)
+          expanded_path = File.expand_path(path, expand_dir)
+          expanded_path.index(expanded_dir) != 0 ? expanded_path : Tap::Root.relative_filepath(expanded_dir, expanded_path)
+        end
+
+        segments = path.scan(/[^\/]+/)
+
+        # add back the root filepath as needed on *nix 
+        segments.unshift "" if path[0] == ?/
+        segments
+      end
+      
       private
       
       # utility method for minimize -- determines if there 
