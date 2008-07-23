@@ -72,9 +72,13 @@ class RootTest < Test::Unit::TestCase
     assert_equal "file.txt", Tap::Root.relative_filepath('root/dir', "./root/dir/file.txt")
     assert_equal "file.txt", Tap::Root.relative_filepath('root/dir', "root/dir/file.txt")
   end
+  
+  def test_class_relative_filepath_empty_string_if_path_is_dir
+    assert_equal '', Tap::Root.relative_filepath('dir', 'dir')
+  end
     
-  def test_class_relative_filepath_raises_error_if_path_is_not_relative_to_dir
-    assert_raise(RuntimeError) { Tap::Root.relative_filepath('dir', "./root/file.txt") }
+  def test_class_relative_filepath_returns_nil_if_path_is_not_relative_to_dir
+    assert_nil Tap::Root.relative_filepath('dir', "./root/file.txt")
   end
   
   def test_class_relative_filepath_path_root
@@ -852,8 +856,12 @@ class RootTest < Test::Unit::TestCase
     assert_equal "file.txt", r.relative_filepath(path_root + 'folder/subfolder', path_root + "folder/subfolder/file.txt")
   end
   
-  def test_relative_filepath_raises_error_if_path_is_not_relative_to_aliased_dir
-    assert_raise(RuntimeError) { r.relative_filepath(:dir, "./root/file.txt") }
+  def test_relative_filepath_returns_nil_if_path_is_not_relative_to_aliased_dir
+    assert_nil r.relative_filepath(:dir, "./root/file.txt")
+  end
+  
+  def test_relative_filepath_returns_empty_string_if_path_is_aliased_dir
+    assert_equal '', r.relative_filepath(:dir, r[:dir])
   end
   
   #

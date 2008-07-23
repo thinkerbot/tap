@@ -66,9 +66,14 @@ class FileMethodsTest < Test::Unit::TestCase
     assert_equal 'file.txt', method_relative_filepath(:input, File.join(input_root, "folder/.././file.txt") )
   end
   
-  def test_method_relative_filepath_raises_error_unless_filepath_begins_with_method_dir
-    assert_raise(RuntimeError) { method_relative_filepath(:input, File.join('some/path', trs[:input], 'file.txt') ) }
+  def test_method_relative_filepath_returns_nil_unless_filepath_begins_with_method_dir
+    assert_nil method_relative_filepath(:input, File.join('some/path', trs[:input], 'file.txt') )
   end
+  
+  def test_method_relative_filepath_returns_empty_string_if_filepath_is_method_dir
+    assert_equal '', method_relative_filepath(:input, method_dir(:input) )
+  end
+  
   
   #
   # method translate tests

@@ -63,8 +63,8 @@ module Tap
       include Support::Versions
       
       # Returns the filepath of path relative to dir.  Both dir and path are
-      # expanded before the relative filepath is determined.  An error is 
-      # raised if the path is not relative to dir.
+      # expanded before the relative filepath is determined.  Returns nil if 
+      # the path is not relative to dir.
       #
       #   Root.relative_filepath('dir', "dir/path/to/file.txt")  # => "path/to/file.txt"
       #
@@ -72,9 +72,7 @@ module Tap
         expanded_dir = File.expand_path(dir, dir_string)
         expanded_path = File.expand_path(path, dir_string)
   
-        unless expanded_path.index(expanded_dir) == 0
-          raise "\n#{expanded_path}\nis not relative to:\n#{expanded_dir}"
-        end
+        return nil unless expanded_path.index(expanded_dir) == 0
       
         # use dir.length + 1 to remove a leading '/'.   If dir.length + 1 >= expanded.length 
         # as in: relative_filepath('/path', '/path') then the first arg returns nil, and an 
@@ -525,7 +523,10 @@ module Tap
     #  fp = r.filepath(:in, 'path/to/file.txt')    # => '/root_dir/in/path/to/file.txt'
     #  r.translate(fp, :in, :out)                  # => '/root_dir/out/path/to/file.txt'
     def translate(filepath, input_dir, output_dir)
-      filepath(output_dir, relative_filepath(input_dir, filepath))
+      unless relative_path = relative_filepath(input_dir, filepath)
+        raise "\n#{filepath}\nis not relative to:\n#{input_dir}"
+      end
+      filepath(output_dir, relative_path)
     end
   
     # Lists all files in the aliased dir matching the input patterns.  Patterns 
