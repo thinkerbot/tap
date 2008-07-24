@@ -25,7 +25,7 @@ OptionParser.new do |opts|
   end
   
   opts.on('-T', '--manifest', 'Print a list of available tasks') do |v|
-    puts env.summarize(:tasks) {|const| const.document['']['manifest'] }
+    puts env.summarize(:tasks) {|const| const.document[const.name]['manifest'] }
     exit
   end
   

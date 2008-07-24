@@ -1,52 +1,85 @@
-= Tap (Task Application)
+= {Tap (Task Application)}[http://tap.rubyforge.org]
 
-A framework for creating configurable, distributable, and easy-to-use tasks and workflow applications.
-
-See the {website}[http://tap.rubyforge.org] for more information.
+A framework for creating configurable, distributable, tasks and workflows.
 
 == Description
 
-Tap provides a framework to define, configure, and join tasks into workflows. Tap provides a lot of niceties like generators and libraries geared towards testing tasks, generating documentation, as well as task execution and distribution.  Tasks are immediately available from the command line through the 'tap' command.
+Tap tasks are plain-old-ruby classes that are easy to test, subclass, use in 
+scripts, and run from the command line.  Tasks support method-based configurations 
+that map to command line options.  Tap can generate and utilize static config 
+files, join tasks into workflows, as well as dump and reuse results.  Check out the 
+links for tutorials, development, and bug tracking.
 
-Make a task:
+* Website[http://tap.rubyforge.org]
+* Rubyforge[http://rubyforge.org/projects/tap]
+* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/overview]
+* Github[http://github.com/bahuvrihi/tap/tree/master]
 
-  % tap generate task sample/task
+=== Additional Notes:
 
-Run the task setting the 'key' configuration:
+- Task libraries are designed for distribution as gems.
+- Tap and Rake[http://rake.rubyforge.org/] are targeted at different problems, but play 
+  well together. See the {sample_tasks}[http://tap.rubyforge.org/sample_tasks] gem to use 
+  rake tasks in tap.
+- Tap is tested on MRI (the standard Ruby interpreter, versions 1.8.6 and 
+  1.9.0) and JRuby[http://jruby.codehaus.org/].
+
+=== Usage
+
+A sample task illustrates the usage of tap:
+
+  # Sample::manifest a sample task
+  #
+  # Sample simply prints an input using a user-specified configuration.
+  class Sample < Tap::Task
   
-  % tap run -- sample/task --key=value input
-  ctl-i prints information
-  ctl-c interupts execution
-  beginning run...
-    I[10:53:11]        sample/task input was processed with value
+    config :key, 'value'    # a sample config
+
+    def process(input)
+      result = "#{input} was processed with #{key}"
+      log self.name, result
   
-Interact with the task using irb:
+      result
+    end
+  end
+
+Tap pulls documentation out of task classes to generate manifests and help:
+
+  % tap run -T
+    sample    # a sample task
+
+  % tap -- sample --help
+  Sample -- a sample task
+  --------------------------------------------------------------------------------
+    Sample simply prints an input using a user-specified configuration.
+  --------------------------------------------------------------------------------
+  usage: tap run -- sample INPUT
+  
+  configurations:
+          --key KEY                    a sample config
+  
+  options:
+      -h, --help                       Print this help
+          --name NAME                  Specify a name
+          --use FILE                   Loads inputs from file
+
+Tasks are immediately available through tap and in the console:
+
+  % tap -- sample one
+    I[19:44:52]             sample one was processed with value
 
   % tap console
-  irb(main):001:0> t = app.task('sample/task', :key => 'value')
-  irb(main):002:0> t.enq('input')
-  irb(main):003:0> app.run
-    I[10:55:17]        sample/task input was processed with value
-
-Additional Notes:
-
-- Tap can incorporate and run Rake[http://rake.rubyforge.org/] tasks as well as Tap tasks. 
-- Tap task libraries are designed for distribution as gems.  
-- Tap is tested on both MRI (the standard Ruby interpreter, versions 1.8.6 and 1.9.0) and JRuby[http://jruby.codehaus.org/].  
+  >> require 'sample'; s = Sample.new; s.process('input')
+    I[19:48:02]             sample input was processed with value
+  => "input was processed with value"
 
 === Bugs/Known Issues
 
 - Some inconsequential tests on JRuby fail due to bugs in JRuby itself.
 - Several patches are required so that Tap runs properly on MRI 1.9.0.  These   
   will likely resolve themselves as 1.9.0 becomes stable.
-- Some code is still in progress; in general the well-documented code is stable.
-
-== Info 
-
-Copyright (c) 2006-2007, Regents of the University of Colorado.
-Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com], {Biomolecular Structure Program}[http://biomol.uchsc.edu/], {Hansen Lab}[http://hsc-proteomics.uchsc.edu/hansenlab/] 
-Support:: CU Denver School of Medicine Deans Academic Enrichment Fund
-Licence:: MIT-Style
+- Despite the talk of workflows, the Workflow class should still be considered
+  in progress.  Tasks themselves are stable.
 
 == Installation
 
@@ -54,18 +87,10 @@ Tap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
 
   % gem install tap
 
-See the tutorial or check out the {website}[http://tap.rubyforge.org] to get started using Tap programatically.
+== Info 
 
-== Credits
-
-A great deal of inspiration came from other excellent open-source projects including Rake[http://rake.rubyforge.org] and {Ruby on Rails}[http://www.rubyonrails.org].  
-
-Thanks to my advisor {Dr. Kirk Hansen}[http://hsc-proteomics.uchsc.edu/hansenlab/] for his patience in letting me work on this project, and for putting together an awesome lab.
-
-Most of all I would like to <b>thank my family</b> for their never-ending support.
-
-=== Code
-
-Tap uses ActiveSupport for dependencies loading and a variety of other extensions.  Tap uses Rails generators and redistributes the code in the gem, to avoid an additional dependency.
-
+Copyright (c) 2006-2008, Regents of the University of Colorado.
+Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com], {Biomolecular Structure Program}[http://biomol.uchsc.edu/], {Hansen Lab}[http://hsc-proteomics.uchsc.edu/hansenlab/] 
+Support:: CU Denver School of Medicine Deans Academic Enrichment Fund
+Licence:: MIT-Style
 
