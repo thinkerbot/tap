@@ -17,7 +17,7 @@ module Tap
       
       SPLIT_ARGV_REGEXP = /\A-{2}(\+*)\z/
       
-      def split_argv(argv)
+      def split(argv)
         current = []
         current_split = []
         splits = [current_split]
@@ -37,7 +37,7 @@ module Tap
         splits
       end
 
-      def next_arg(argv)
+      def shift(argv)
         index = nil
         argv.each_with_index do |arg, i|
           if arg !~ /\A-/

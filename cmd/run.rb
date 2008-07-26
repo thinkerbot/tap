@@ -7,6 +7,7 @@
 
 env = Tap::Env.instance.envs[0]
 app = Tap::App.instance
+cmdline = Tap::Support::CommandLine
 
 #
 # handle options
@@ -39,15 +40,15 @@ end.parse!(ARGV)
 # handle options for each specified task
 #
 
-rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
+rounds = cmdline.split(ARGV).collect do |argv|
   argv.each do |args|
     ARGV.clear  
     ARGV.concat(args)
    
-    td = Tap::Support::CommandLine.next_arg(ARGV)
-    
-    # warn nil?
-    next if td == nil
+    unless td = cmdline.shift(ARGV)
+      # warn nil?
+      next
+    end
 
     # attempt lookup the task class
     const = env.search(:tasks, td) or raise "unknown task: #{td}"
