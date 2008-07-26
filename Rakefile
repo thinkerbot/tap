@@ -50,27 +50,6 @@ task :print_manifest do
 end
 
 #
-# Test tasks
-#
-
-desc 'Default: Run tests.'
-task :default => :test
-
-desc 'Run tests.'
-Rake::TestTask.new(:test) do |t|
-  t.test_files = if ENV['check']
-    Dir.glob( File.join('test',  "**/*#{ENV['check']}*_check.rb") )
-  else
-    Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
-      filename =~ /test\/check/ || filename =~ /test\/tap\/.*/
-    end
-  end
-  
-  t.verbose = true
-  t.warning = true
-end
-
-#
 # Documentation tasks
 #
 
@@ -101,4 +80,25 @@ task :publish_rdoc => [:rdoc] do
   local_dir = "rdoc"
  
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
+end
+
+#
+# Test tasks
+#
+
+desc 'Default: Run tests.'
+task :default => :test
+
+desc 'Run tests.'
+Rake::TestTask.new(:test) do |t|
+  t.test_files = if ENV['check']
+    Dir.glob( File.join('test',  "**/*#{ENV['check']}*_check.rb") )
+  else
+    Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
+      filename =~ /test\/check/ || filename =~ /test\/tap\/.*/
+    end
+  end
+  
+  t.verbose = true
+  t.warning = true
 end

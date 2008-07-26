@@ -114,6 +114,8 @@ module Tap
         end
         
         def wrap(lines, cols=80, tabsize=2)
+          lines = lines.split(/\r?\n/) unless lines.kind_of?(Array)
+          
           lines.collect do |line|
             line = line.gsub(/\t/, " " * tabsize) unless tabsize == nil
 

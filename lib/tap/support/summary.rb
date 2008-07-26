@@ -6,9 +6,9 @@ module Tap
         @width = 0
       end
       
-      def add(key, env, map)
+      def add(env_key, env, map)
         unless map.empty?
-          @map << [key, env, map]
+          @map << [env_key, env, map]
           map.keys.each {|key| @width = key.length if @width < key.length }
         end
       end

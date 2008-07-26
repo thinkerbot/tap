@@ -49,20 +49,6 @@ task :print_manifest do
 end
 
 #
-# Test tasks
-#
-
-desc 'Default: Run tests.'
-task :default => :test
-
-desc 'Run tests.'
-Rake::TestTask.new(:test) do |t|
-  t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') )
-  t.verbose = true
-  t.warning = true
-end
-
-#
 # Documentation tasks
 #
 
@@ -83,3 +69,18 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.template = 'tap/support/tdoc/tdoc_html_template' 
   rdoc.options << '--fmt' << 'tdoc'
 end
+
+#
+# Test tasks
+#
+
+desc 'Default: Run tests.'
+task :default => :test
+
+desc 'Run tests.'
+Rake::TestTask.new(:test) do |t|
+  t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') )
+  t.verbose = true
+  t.warning = true
+end
+

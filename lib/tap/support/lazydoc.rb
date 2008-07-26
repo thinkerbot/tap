@@ -28,8 +28,8 @@ module Tap
         
         def scan_doc(path, key)
           document = self[path]
-          scan(File.read(path), key) do |const_name, key, comment|
-            document.attributes(const_name)[key] = comment
+          scan(File.read(path), key) do |const_name, attr_key, comment|
+            document.attributes(const_name)[attr_key] = comment
           end
           document
         end
