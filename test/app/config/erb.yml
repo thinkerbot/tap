@@ -1,2 +1,0 @@
-app: <%= app.object_id %>
-filepath: <%= filepath %>

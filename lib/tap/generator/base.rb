@@ -43,13 +43,11 @@ module Tap
       
       attr_accessor :file_task, :template_dir, :target_dir
       
-      def initialize(*args)
-        super
+      def initialize(config={}, name=nil, app=App.instance)
+        super(config, name, app)
 
-        batch.each do |task|
-          task.file_task = Tap::FileTask.new(name)
-          task.template_dir = File.dirname(self.class.source_file) + '/templates'
-        end
+        @file_task = Tap::FileTask.new
+        @template_dir = File.dirname(self.class.source_file) + '/templates'
       end
       
       def process(*argv)

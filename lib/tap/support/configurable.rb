@@ -73,6 +73,11 @@ module Tap
         self
       end
       
+      def initialize_copy(orig)
+        super
+        initialize_config(orig.config)
+      end
+      
       protected
       
       # Initializes config to an InstanceConfiguration specific for self.

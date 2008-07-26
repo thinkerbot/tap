@@ -29,8 +29,8 @@ class WorkflowTest < Test::Unit::TestCase
   
     app.aggregator.clear
     
-    w1 = SimpleSequence.new nil, :factor => 1
-    w2 = w1.initialize_batch_obj nil, :factor => -1
+    w1 = SimpleSequence.new :factor => 1
+    w2 = w1.initialize_batch_obj :factor => -1
   
     w1.enq(0)
     app.run
@@ -63,7 +63,7 @@ class WorkflowTest < Test::Unit::TestCase
      
      assert_equal t1, wf.entry_point
      
-     with_options :debug => true do
+     with_config :debug => true do
        wf.enq(0)
        app.run
      end
@@ -82,7 +82,7 @@ class WorkflowTest < Test::Unit::TestCase
      
      assert_equal({:t1 => t1, :t2 => t2}, wf.entry_point)
      
-     with_options :debug => true do
+     with_config :debug => true do
        wf.enq(0)
        app.run
      end
@@ -109,7 +109,7 @@ class WorkflowTest < Test::Unit::TestCase
    def test_workflow_method_defines_workflow
      w = TestWorkflow.new
      
-     with_options :debug => true do
+     with_config :debug => true do
        w.enq(0)
        app.run
      end

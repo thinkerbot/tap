@@ -194,78 +194,44 @@ module Tap
       
       public
       
-      #
-      # application methods
-      #
-
-      # Applies the input options to the specified app for the duration
-      # of the block.  Unless merge_with_existing is false, the input
-      # options will be merged with the existing options; otherwise
-      # the app options will be configured to just the inputs.
-      #
-      # For convenience, with_options is setup such that options 
-      # {:debug => true, :quiet => true} are implicitly specified.  
-      # Overrides are respected.
-      #
-      #   app = Tap::App.new(:options => {:one => 1, :two => 2})
-      #
-      #   with_options({:one => 'one', :quiet => false}, app) do 
-      #     app.options.marshal_dump     # => {:one => 'one', :two => 2, :debug => true, :quiet => false}
-      #   end
-      #
-      #   app.options.marshal_dump       # => {:one => 1, :two => 2}
-      #
-      def with_options(options={}, app=self.app, merge_with_existing=true, &block)
-        app_config = {:options => options}
-        with_config(app_config, app, merge_with_existing, &block)
+      def default_config
+        {:quiet => true, :debug => true}
       end
       
       # Applies the input configurations to the specified app for the 
-      # duration of the block.  Unless merge_with_existing is false,
-      # the input configurations will be merged with the existing 
-      # configurations; otherwise the app will be configured to 
-      # using the inputs as specified.
+      # duration of the block.  The default_config configruations will
+      # be applied before the inputs; to turn this feature off, set
+      # use_default_config to false.
       #
-      # For convenience, with_config is setup such that options 
-      # {:debug => true, :quiet => true} are implicitly specified.  
-      # Overrides are respected.
+      #   app = Tap::App.new(:directories => {:one => 'one'})
+      #   config = {:directories => {:one => 'ONE'}, :quiet => false}
       #
-      #   app = Tap::App.new(:directories => {:dir => 'dir', :alt => 'alt_dir'})
-      #   tmp_config = {
-      #     :directories => {:alt => 'another', :new => 'new_dir'},
-      #     :options => {:one => 1, :quiet => false}}
-      #
-      #   with_config(tmp_config, app) do 
-      #     app.directories              # => {:dir => 'dir', :alt => 'another', :new => 'new_dir'}
-      #     app.options.marshal_dump     # => {:one => 1, :debug => true, :quiet => false}
+      #   with_config(config, app) do 
+      #     app.directories              # => {:one => 'ONE'}
+      #     app.quiet                    # => false
+      #     app.debug                    # => true
       #   end
       #
-      #   app.directories                # => {:dir => 'dir', :alt => 'alt_dir'}
-      #   app.options.marshal_dump       # => {}
+      #   with_config(config, app, false) do 
+      #     app.directories              # => {:one => 'ONE'}
+      #     app.quiet                    # => false
+      #     app.debug                    # => false
+      #   end
       #
-      def with_config(app_config={}, app=self.app, merge_with_existing=true, default_options={:debug => true, :quiet => true}, &block)
+      #   app.directories                # => {:one => 'one'}
+      #   app.quiet                      # => false
+      #   app.debug                      # => false
+      #
+      def with_config(config={}, app=self.app, use_default_config=true, &block)
         begin
           hold = app.config.to_hash
           
-          app_config[:options] = default_options.merge(app_config[:options] || {})
-          if merge_with_existing
-            hold.each_pair do |key, value|
-              next unless app_config.has_key?(key)
-              value = case value
-              when Hash then value
-              when OpenStruct then value.marshal_dump
-              else next
-              end
-         
-              app_config[key] = value.merge(app_config[key])
-            end
-          end
-          
-          app.reconfigure(app_config)
+          app.send(:initialize_config, use_default_config ? default_config : {}) 
+          app.reconfigure(config)
           
           yield block if block_given?
         ensure
-          app.reconfigure(hold)
+          app.send(:initialize_config, hold)
         end
       end
       

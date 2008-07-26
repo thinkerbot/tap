@@ -236,131 +236,46 @@ class TapMethodsTest < Test::Unit::TestCase
   # TODO -- test length check for assert_audit_equal
   
   #
-  # with options 
-  #
-  
-  def test_with_options_doc
-    app.options.one = 1
-    app.options.two = 2
-    
-    assert_equal({:one => 1, :two => 2}, app.options.marshal_dump)
-    with_options(:one => 'one', :quiet => false) do
-      assert_equal({:one => 'one', :two => 2, :debug => true, :quiet => false}, app.options.marshal_dump)
-    end
-    assert_equal({:one => 1, :two => 2}, app.options.marshal_dump)
-  end
-  
-  def test_with_options_merges_new_and_default_options_with_existing_for_block
-    app.options.one = 1
-    app.options.two = 2
-    
-    assert_equal({:one => 1, :two => 2}, app.options.marshal_dump)
-    with_options(:one => 'one') do
-      assert_equal({:one => 'one', :two => 2, :debug => true, :quiet => true}, app.options.marshal_dump)
-    end
-    assert_equal({:one => 1, :two => 2}, app.options.marshal_dump)
-  end
-  
-  def test_with_options_does_not_merge_if_merge_with_existing_is_false
-    app.options.one = 1
-    app.options.two = 2
-    
-    assert_equal({:one => 1, :two => 2}, app.options.marshal_dump)
-    with_options({:one => 'one'}, app, false) do
-      assert_equal({:one => 'one', :debug => true, :quiet => true}, app.options.marshal_dump)
-    end
-    assert_equal({:one => 1, :two => 2}, app.options.marshal_dump)
-  end
-  
-  #
   # with config 
   #
   
   def test_with_config_doc
-    app = Tap::App.new(:directories => {:dir => 'dir', :alt => 'alt_dir'})
-    tmp_config = {
-      :directories => {:alt => 'another', :new => 'new_dir'},
-      :options => {:one => 1, :quiet => false}}
+    app = Tap::App.new(:directories => {:one => 'one'})
+    config = {:directories => {:one => 'ONE'}, :quiet => false}
   
-    with_config(tmp_config, app) do 
-      assert_equal({:dir => 'dir', :alt => 'another', :new => 'new_dir'}, app.directories)        
-      assert_equal({:one => 1, :debug => true, :quiet => false}, app.options.marshal_dump)
+    with_config(config, app) do 
+      assert_equal({:one => 'ONE'}, app.directories)
+      assert !app.quiet
+      assert app.debug
     end
-    assert_equal({:dir => 'dir', :alt => 'alt_dir'}, app.directories)
-    assert_equal({}, app.options.marshal_dump)
+  
+    with_config(config, app, false) do 
+      assert_equal({:one => 'ONE'}, app.directories)
+      assert !app.quiet
+      assert !app.debug
+    end
+  
+    assert_equal({:one => 'one'}, app.directories)
+    assert !app.quiet
+    assert !app.debug
   end
   
-  # def test_with_config_merges_new_config_with_existing_for_block
-  #   config = {
-  #     :root => File.expand_path("root"),
-  #     :directories => {:dir => 'dir', :alt => 'alt_dir'},
-  #     :options => OpenStruct.new(:one => 1, :two => 2)}
-  #     
-  #   full_config = config.merge(
-  #     :map => {},
-  #     :absolute_paths => {}) 
-  #   modified_config = {
-  #     :root => File.expand_path("root"),
-  #     :directories => {:dir => 'another', :new => 'new_dir', :alt => 'alt_dir'},
-  #     :options => OpenStruct.new(:one => 'one', :two => 2, :debug => true, :quiet => true),
-  #     :absolute_paths => {:abs => File.expand_path('abs')}}
-  #   
-  #   app.reconfigure(full_config)
-  #  
-  #   assert_equal(full_config, app.config.to_hash)
-  #   with_config(
-  #     :directories => {:dir => 'another', :new => 'new_dir'},
-  #     :options => OpenStruct.new(:one => 'one'),
-  #     :absolute_paths => {:abs => 'abs'}
-  #   ) do
-  #     assert_equal(modified_config, app.config)
-  #   end
-  #   assert_equal(full_config, app.config)
-  # end
-  # 
-  # def test_with_config_does_not_merge_if_merge_with_existing_is_false
-  #   config = {
-  #     :root => File.expand_path("root"),
-  #     :directories => {:dir => 'dir', :alt => 'alt_dir'},
-  #     :options => {:one => 1, :two => 2}}
-  #   logger_config ={
-  #       :device => app.logger.logdev.dev,
-  #       :level => app.logger.level,
-  #       :datetime_format => app.logger.datetime_format}
-  #       
-  #   full_config = config.merge(
-  #       :absolute_paths => {},
-  #       :logger => logger_config) 
-  #   modified_config = {
-  #     :root => File.expand_path("root"),
-  #     :directories => {:dir => 'another', :new => 'new_dir'},
-  #     :options => {:one => 'one', :debug => true, :quiet => true},
-  #     :absolute_paths => {:abs => File.expand_path('abs')},
-  #     :logger => logger_config}
-  #   
-  #   app.reconfigure(full_config)
-  #  
-  #   assert_equal(full_config, app.config)
-  #   with_config(
-  #     {:directories => {:dir => 'another', :new => 'new_dir'},
-  #     :options => {:one => 'one'},
-  #     :absolute_paths => {:abs => 'abs'}},
-  #     app,
-  #     false
-  #   ) do
-  #     assert_equal(modified_config, app.config)
-  #   end
-  #   assert_equal(full_config, app.config)
-  # end
-  
   def test_nested_with_config
-    with_config(:options => {:one => 'one'}) do
-      assert_equal 'one', app.options.one
-      with_config(:options => {:one => 'two'}) do
-        assert_equal 'two', app.options.one
+    with_config({:one => 'one', :two => 'two'}) do
+      assert_equal 'one', app.config[:one]
+      assert_equal 'two', app.config[:two]
+      
+      with_config({:one => 'two'}) do
+        assert_equal 'two', app.config[:one]
+        assert_nil app.config[:two]
       end
-      assert_equal 'one', app.options.one
+      
+      assert_equal 'one', app.config[:one]
+      assert_equal 'two', app.config[:two]
     end
+    
+    assert_nil app.config[:one]
+    assert_nil app.config[:two]
   end
 
   #
@@ -368,22 +283,21 @@ class TapMethodsTest < Test::Unit::TestCase
   #
   
   def test_assert_files
-    t = Tap::FileTask.new("task/name") do |task, input_file|
-      output_file = task.filepath(:data, File.basename(input_file))
-      content = "#{File.read(input_file)}content"
-      
-      assert_equal method_filepath(:output, "task/name", File.basename(input_file)), output_file
-      
+    t = Tap::FileTask.new do |task, input_file, output_file|
       task.prepare(output_file)
-      File.open(output_file, "wb") {|f| f << content}
+      File.open(output_file, "wb") {|f| f << "#{File.read(input_file)}content"}
       output_file
     end
   
     was_in_block = false
-    with_config :options => {:debug => true}, :directories => {:data => 'output'} do
+    with_config do
       assert_files do |input_files|
         was_in_block = true
-        input_files.collect {|input_file| t.execute(input_file)}
+        
+        input_files.collect do |input_file|
+          output_file = method_filepath(:output, File.basename(input_file))
+          t.execute(input_file, output_file)
+        end
       end
     end
     

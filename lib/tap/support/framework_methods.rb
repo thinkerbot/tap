@@ -14,6 +14,7 @@ module Tap
             break
           end
         end
+        base.instance_variable_set(:@default_name, base.to_s.underscore)
       end
       
       # When subclassed, the configurations are duplicated and passed to 
@@ -23,6 +24,7 @@ module Tap
         super
         caller.first =~ /^(([A-z]:)?[^:]+):(\d+)/
         child.instance_variable_set(:@source_file, File.expand_path($1))
+        child.instance_variable_set(:@default_name, child.to_s.underscore)
       end
       
       # The source_file for self.  By default the first file
@@ -35,9 +37,7 @@ module Tap
       end
       
       # Returns the default name for the class: to_s.underscore
-      def default_name
-        @default_name ||= to_s.underscore
-      end
+      attr_accessor :default_name
       
       DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= manifest.subject.to_s.strip.empty? ? '' : ' -- ' %><%= manifest.subject %>
 
@@ -53,10 +53,6 @@ module Tap
 <%= opts.to_s %>
 }
 
-      def enq(name=nil, config={}, app=App.instance, argv=[])
-        new(name, config, app).enq(*argv)
-      end
-      
       def help(opts)
         tdoc.resolve(nil, /^\s*def\s+process(\((.*?)\))?/) do |comment, match|
           comment.subject = match[2].to_s.split(',').collect do |arg|
@@ -85,11 +81,11 @@ module Tap
         ).build
       end
       
-      def parse_argv(argv, exit_on_help=true) # => name, config, argv
-        config = {}
+      def parse_argv(argv, app=Tap::App.instance) # => config, name, argv
         opts = OptionParser.new
 
         # Add configurations
+        config = {}
         unless configurations.empty?
           opts.separator ""
           opts.separator "configurations:"
@@ -111,14 +107,16 @@ module Tap
         
         opts.on_tail("-h", "--help", "Print this help") do
           print help(opts)
-          exit if exit_on_help
+          exit
         end
-
+        
+        # Add option for name
         name = nil
         opts.on_tail('--name NAME', /^[^-].*/, 'Specify a name') do |value|
           name = value
         end
-
+        
+        # Add option to add args
         opts.on_tail('--use FILE', /^[^-].*/, 'Loads inputs from file') do |v|
           hash = YAML.load_file(value)
           hash.values.each do |args| 
@@ -128,7 +126,22 @@ module Tap
 
         opts.parse!(argv)
         
-        [name, config, argv]
+        [config, name, argv]
+      end
+      
+      def argv_new(argv, app=Tap::App.instance) # => obj, argv
+        config, name, argv = parse_argv(argv)
+        obj = new({}, name, app)
+        
+        path_configs = app.load_config(app.config_filepath(name))
+        if path_configs.kind_of?(Array)
+          path_configs.each_with_index do |path_config, i|
+            obj.initialize_batch_obj(path_config, "#{name}_#{i}") unless i == 0
+          end
+          path_configs = path_configs[0]
+        end
+        
+        [obj.reconfigure(path_configs).reconfigure(config), argv]
       end
       
       module OptParseComment

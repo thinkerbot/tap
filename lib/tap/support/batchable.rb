@@ -14,9 +14,13 @@ module Tap
         mod.extend Support::BatchableMethods if mod.kind_of?(Class)
       end
       
-      # The object batch. (must be initializd by classes that
-      # include Batchable)
+      # The object batch.
       attr_reader :batch
+      
+      def initialize(batch=[])
+        @batch = batch
+        @batch << self
+      end
     
       # Returns true if the batch size is greater than one 
       # (the one being self).  
@@ -27,13 +31,12 @@ module Tap
       # Returns the index of the self in batch.
       def batch_index
         batch.index(self)
-      end   
+      end
       
       # Initializes a new batch object and adds the object to batch.
-      # The object will be self if batch is empty (ie for the first
-      # call) or a duplicate of self if not.
+      # The object will be a duplicate of self.
       def initialize_batch_obj
-        obj = (batch.empty? ? self : self.dup)
+        obj = self.dup
         batch << obj
         obj
       end

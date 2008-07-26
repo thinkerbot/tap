@@ -93,24 +93,18 @@ module Tap
     attr_reader :task_block
     
     # Creates a new Task with the specified attributes.
-    def initialize(name=nil, config={}, app=App.instance, &task_block)
+    def initialize(config={}, name=nil, app=App.instance, &task_block)
+      super(config, name, app)
       @task_block = (task_block == nil ? default_task_block : task_block)
-      super(name, config, app)
+      initialize_workflow
     end
     
     # Initializes a new batch object, running workflow to set the 
     # instance-specific entry/exit points.  Raises an error if
     # no entry points are defined.
-    def initialize_batch_obj(name=nil, config={})
-      task = super(name, config)
-      
-      task.entry_point = {}
-      task.exit_point = {}
-      task.workflow
-      
-      raise WorkflowError.new("No entry points defined") if task.entry_points.empty?
-      
-      task
+    def initialize_copy(orig)
+      super
+      initialize_workflow
     end
     
     # Returns an array of entry points, determined from entry_point.
@@ -180,6 +174,14 @@ module Tap
     end
     
     protected
+    
+    def initialize_workflow
+      @entry_point = {}
+      @exit_point = {}
+      
+      workflow
+      raise WorkflowError.new("No entry points defined") if entry_points.empty?
+    end
     
     # Hook to set a default task block.  By default, nil.
     def default_task_block

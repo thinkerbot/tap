@@ -44,91 +44,49 @@ class FrameworkTest < Test::Unit::TestCase
   def test_app_is_initialized_to_App_instance_by_default
     assert_equal Tap::App.instance, Sample.new.app
   end
-
-  def test_name_is_initialized_to_class_default_name_unless_specified
-    assert_equal Sample.default_name, Sample.new.name
-    assert_equal "alt", Sample.new("alt").name
-  end
-  
-  class MockApp
-    def initialize(templates)
-      @templates = templates
-    end
-    
-    def config_filepath(name)
-      name
-    end
-    
-    def each_config_template(config_file)
-      (@templates[config_file] || []).each do |config|
-        yield(config)
-      end
-    end
-  end
-
-  def test_batch_tasks_are_initialized_for_each_config_template_in_app
-    app = MockApp.new 'name' => [{:one => 'ONE'}, {:two => 'TWO'}]
-    
-    t = Sample.new "name", {}, app
-    assert_equal 2, t.batch.length
-    
-    assert_equal([
-      {:one => 'ONE', :two => 'two', :three => 'three'},
-      {:one => 'one', :two => 'TWO', :three => 'three'}],
-      t.batch.collect {|task| task.config })
-  end
-  
-  def test_initial_configs_override_file_configs
-    app = MockApp.new 'name' => [{:one => 'ONE'}, {:two => 'TWO'}]
-    
-    t = Sample.new "name", {:one => 1, :three => 'THREE'}, app
-    assert_equal 2, t.batch.length
-    
-    assert_equal([
-      {:one => 1, :two => 'two', :three => 'THREE'},
-      {:one => 1, :two => 'TWO', :three => 'THREE'}],
-      t.batch.collect {|task| task.config })
-  end
   
   #
-  # config_file test
+  # name test
   #
-
-  def test_config_file_is_app_config_filepath_when_config_file_exists
-    t = Sample.new "configured"
-    app_config_filepath = app.config_filepath("configured")
-
-    assert_equal File.join(t.app['config'], "configured.yml"), app_config_filepath
-    assert File.exists?(app_config_filepath)
-    assert_equal app.config_filepath("configured"), t.config_file
+  
+  def test_name_is_returns_class_default_name_unless_specified
+    s = Sample.new
+    assert_equal Sample.default_name, s.name
+    
+    s.name = "alt"
+    assert_equal "alt", s.name
   end
-
-  def test_config_file_is_nil_for_nil_input_names
-    t = Sample.new 
-    assert_equal nil, t.config_file
-
-    t = Sample.new nil
-    assert_equal nil, t.config_file
-  end
-
+  
   #
   # initialize_batch_obj test
   #
 
-  def test_initialize_batch_obj_merges_default_config_and_overrides
-    t = Sample.new "configured", :three => 3
-    assert_equal({
-      :one => Tap::Support::Configuration.new(:one, 'one'), 
-      :two => Tap::Support::Configuration.new(:two, 'two'), 
-      :three => Tap::Support::Configuration.new(:three, 'three')
-    }, t.class.configurations.map)
-    assert_equal({:one => 'one', :two => 'TWO', :three => 3}, t.config)
+  def test_initialize_batch_obj_renames_batch_object_if_specified
+    s = Sample.new
+    s1 = s.initialize_batch_obj({}, 'new_name')
+    assert_equal "new_name", s1.name
+  end
+
+  def test_initialize_batch_obj_reconfigures_batch_obj_with_overrides
+    t = Sample.new :three => 3
+    assert_equal({:one => 'one', :two => 'two', :three => 3}, t.config)
 
     t1 = t.initialize_batch_obj
-    assert_equal({:one => 'one', :two => 'two', :three => 'three'}, t1.config)  
+    assert_equal({:one => 'one', :two => 'two', :three => 3}, t1.config)  
 
-    t2 = t.initialize_batch_obj(nil, {:three => 3})
-    assert_equal({:one => 'one', :two => 'two', :three => 3}, t2.config)
+    t2 = t.initialize_batch_obj(:one => 'ONE')
+    assert_equal({:one => 'ONE', :two => 'two', :three => 3}, t2.config)
+  end
+ 
+  #
+  # to_s test
+  #
+  
+  def test_to_s_returns_name
+    s = Sample.new
+    assert_equal s.name, s.to_s
+    s.name = "alt_name"
+    assert_equal "alt_name", s.to_s
   end
   
 end

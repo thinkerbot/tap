@@ -5,10 +5,6 @@ class BatchableTest < Test::Unit::TestCase
 
   class BatchableClass
     include Tap::Support::Batchable
-    def initialize
-      @batch = []
-      initialize_batch_obj
-    end
   end
   
   attr_accessor :t

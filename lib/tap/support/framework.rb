@@ -21,52 +21,26 @@ module Tap
       # (and hence, to initialize batched objects).
       attr_reader :app
       
-      # The name used to determine config_file, via
-      # app.config_filepath(name).
-      attr_reader :name
+      attr_accessor :name
       
-      # The config file used to load config templates.
-      attr_reader :config_file
-
       # Initializes a new instance and associated batch objects.  Batch
       # objects will be initialized for each configuration template 
       # specified by app.each_config_template(config_file) where 
       # config_file = app.config_filepath(name).  
-      def initialize(name=nil, config={}, app=App.instance)
+      def initialize(config={}, name=nil, app=App.instance)
+        super()
         @app = app
-        @batch = []
-        @config_file = app.config_filepath(name)
-        
-        config = config.inject({}) do |options, (key, value)|
-          options[key.to_sym || key] = value
-          options
-        end unless config.empty?
-
-        app.each_config_template(config_file) do |template|
-          template_config = if template.empty?
-            config
-          else
-            template = template.inject({}) do |options, (key, value)|
-              options[key.to_sym || key] = value
-              options
-            end
-            template.merge(config)
-          end
-          
-          initialize_batch_obj(name, template_config)
-        end
+        @name = name || self.class.default_name
+        initialize_config(config)
       end
-    
+      
       # Creates a new batched object and adds the object to batch. The batched object 
       # will be a duplicate of the current object but with a new name and/or 
       # configurations.
-      def initialize_batch_obj(name=nil, config={})
-        obj = super()
-      
-        obj.name = name.nil? ? self.class.default_name : name
-        obj.initialize_config(config)
-
-        obj
+      def initialize_batch_obj(overrides={}, name=nil)
+        obj = super().reconfigure(overrides)
+        obj.name = name if name
+        obj 
       end
       
       # Logs the inputs to the application logger (via app.log)
@@ -89,10 +63,6 @@ module Tap
         name
       end
       
-      protected
-    
-      attr_writer :name
-
     end
   end
 end

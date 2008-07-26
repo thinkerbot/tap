@@ -54,11 +54,8 @@ rounds = Tap::Support::CommandLine.split_argv(ARGV).collect do |argv|
     task_class = const.constantize or raise "unknown task: #{td}"
     
     # now let the class handle the argv
-    name, config, argv = task_class.parse_argv(ARGV)
-    name = td if name == nil
-    
-    argv.collect! {|str| Tap::Support::CommandLine.parse_yaml(str) }
-    task_class.enq(name, config, app, argv)
+    task, argv = task_class.argv_new(ARGV, app)
+    task.enq *argv.collect! {|str| Tap::Support::CommandLine.parse_yaml(str) }
   end
 
   app.queue.clear

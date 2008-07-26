@@ -1,5 +1,6 @@
 require 'tap/support/run_error'
 require 'tap/support/logger'
+require 'tap/support/templater'
 
 module Tap
   
@@ -46,7 +47,7 @@ module Tap
   # === Running Tasks
   #
   # Task enque commands are passed to app, and tasks access application-wide
-  # resources like the logger and options through App.  
+  # resources like the logger through app.  
   #
   #   t1 = Task.new {|task, input| input += 1 }
   #   t1.enq 0
@@ -239,17 +240,7 @@ module Tap
         @instance ||= App.new
       end
     end
-    
-    # An OpenStruct containing the application options.
-    config :options, {} do |value|
-      case value
-      when OpenStruct then value
-      when Hash then OpenStruct.new(value)
-      when nil then OpenStruct.new()
-      else raise ArgumentError.new("cannot convert to OpenStruct: #{value.class}")
-      end
-    end
-    
+
     # The shared logger
     attr_reader :logger
     
@@ -262,7 +253,12 @@ module Tap
     # A Tap::Support::Aggregator to collect the results of 
     # methods that have no on_complete block
     attr_reader :aggregator
-     
+    
+    config :force, false, &c.switch
+    config :quiet, false, &c.switch
+    config :debug, false, &c.switch
+    config :max_threads, 10, &c.integer
+    
     # The constants defining the possible App states.  
     module State
       READY = 0
@@ -282,10 +278,7 @@ module Tap
       end
     end  
     
-    DEFAULT_MAX_THREADS = 10
-    
     # Creates a new App with the given configuration.  
-    # See configure for configuration options.
     def initialize(config={}, logger=TAP_DEFAULT_LOGGER)
       super()
       
@@ -305,9 +298,9 @@ module Tap
     TAP_DEFAULT_LOGGER.level = Logger::INFO
     TAP_DEFAULT_LOGGER.datetime_format = '%H:%M:%S'
     
-    # True if options.debug or the global variable $DEBUG is true.
+    # True if debug or the global variable $DEBUG is true.
     def debug?
-      options.debug || $DEBUG
+      debug || $DEBUG
     end
     
     #
@@ -321,16 +314,16 @@ module Tap
       
       unless logger.nil?
         logger.extend Support::Logger 
-        logger.level = Logger::DEBUG if $DEBUG
+        logger.level = Logger::DEBUG if debug?
       end
       
       @logger = logger
     end
     
     # Logs the action and message at the input level (default INFO).  
-    # Logging is suppressed if options.quiet
+    # Logging is suppressed if quiet
     def log(action, msg="", level=Logger::INFO)
-      logger.add(level, msg, action.to_s) unless options.quiet
+      logger.add(level, msg, action.to_s) unless quiet
     end
     
     # EXPERIMENTAL
@@ -346,7 +339,7 @@ module Tap
     #
     # BUG: Not thread safe at the moment.
     def flog(action="", msg="", level=Logger::INFO) # :yields: format
-      unless options.quiet
+      unless quiet
         logger.format_add(level, msg, action) do |format| 
           block_given? ? yield(format) : format.chomp("\n")
         end
@@ -383,43 +376,18 @@ module Tap
     #
     # If no config templates can be loaded (as when the filepath does not exist, or  
     # the file is empty), each_config_template passes the block a single empty template.  
-    def each_config_template(filepath) # :yields: template
-      unless block_given?
-        templates = []
-        each_config_template(filepath) {|template| templates << template}
-        return templates
-      end
-    
-      if filepath == nil
-        yield({}) 
-      else
-        templates = if !File.exists?(filepath) || File.directory?(filepath)
-          nil
-        else
-          # create the reference to app for templating
-          app = self
-          input = ERB.new(File.read(filepath)).result(binding)
-          YAML.load(input)
-        end
-        
-        case templates
-        when Array 
-          templates.each do |template|
-            yield(template)
-          end
-        when Hash
-          yield(templates) 
-        else
-          yield({})
-        end 
-      end
+    def load_config(path)
+      return {} if path == nil || !File.exists?(path) || File.directory?(path)
+      
+      input = Support::Templater.new(File.read(path), :app => self, :path => path).build
+      YAML.load(input) || {}
     end
     
     # Returns the configuration filepath for the specified task name,
     # File.join(app['config'], task_name + ".yml"). Returns nil if 
     # task_name==nil.
-    def config_filepath(task_name)
-      task_name == nil ? nil : filepath('config', task_name + ".yml")
+    def config_filepath(name)
+      name == nil ? nil : filepath('config', name + ".yml")
     end
     
     #
@@ -451,8 +419,8 @@ module Tap
     # === The Run Cycle
     # During run, each method is executed sequentially on the current thread unless 
     # m.multithread == true.  In this case run switches into a multithreaded mode and 
-    # launches up to n execution threads (where n is options.max_threads or 
-    # DEFAULT_MAX_THREADS) each of which can run a multithreaded method.  
+    # launches up to max_threads execution threads, each of which can run a multithreaded 
+    # method.  
     #
     # These threads will run methods until a non-multithreaded method reaches the top 
     # of the queue.  At that point, run waits for the multithreaded methods to complete, 
@@ -502,7 +470,6 @@ module Tap
       end
       
       # generate threading variables
-      max_threads = options.max_threads || DEFAULT_MAX_THREADS
       self.thread_queue = max_threads > 0 ? Queue.new : nil
       
       # TODO: log starting run
@@ -758,7 +725,7 @@ module Tap
     attr_accessor :threads
     
     # A Queue containing multithread tasks waiting to be run 
-    # on the execution threads.  Nil if options.max_threads= 0
+    # on the execution threads.  Nil if max_threads == 0
     attr_accessor :thread_queue
     
     private

@@ -126,6 +126,22 @@ class ConfigurableTest < Test::Unit::TestCase
     t.send(:initialize_config, {:two => 2})
     assert_equal({:one => 'ONE', :two => 2}, t.config)
   end
+  
+  #
+  # initialize_copy test
+  #
+  
+  def test_dup_reinitializes_config
+    t1 = Sample.new
+    t2 = t1.dup
+    
+    assert_not_equal t1.config.object_id, t2.config.object_id
+    
+    t1.two = 2
+    t2.two = 'two'
+    assert_equal 2, t1.two
+    assert_equal 'two', t2.two
+  end
 
   #
   # benchmarks

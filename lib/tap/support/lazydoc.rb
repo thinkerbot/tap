@@ -2,7 +2,20 @@ require 'tap/support/comment'
 
 module Tap
   module Support
-
+    
+    #-- 
+    # attributes scan down:
+    #
+    #   # ::key subject
+    #   # comment
+    #   # line
+    #
+    # code comments scan up:
+    #
+    #   # comment
+    #   # lines
+    #   code_comment_line # subject
+    #
     class Lazydoc
       
       # $1:: const_name

@@ -50,9 +50,6 @@ module Tap
     
     autoload(:FileUtils, "fileutils")
     
-    # A block used to infer filepaths. (see FileTask#filepath)
-    attr_reader :inference_block
-    
     # A hash of backup (source, target) pairs, such that the
     # backed-up files are backed_up_files.keys and the actual
     # backup files are backed_up_files.values.  All filepaths
@@ -61,40 +58,37 @@ module Tap
     
     # An array of files added during task execution.  
     attr_reader :added_files
+ 
+    # The backup directory, defaults to the class backup_dir
+    config_attr :backup_dir, 'backup'            # the backup directory
     
-    # The directory name used when infering filepaths.  By
-    # default dirname for an unbatched task is task.name,
-    # or "#{task.name}_#{batch_index}" for a batched task.
-    # (see FileTask#default_dirname)
-    attr_accessor :dirname
+    # A timestamp format used to mark backup files, defaults
+    # to the class backup_timestamp
+    config :timestamp, "%Y%m%d_%H%M%S"           # the backup timestamp format
     
-    # The backup directory, defaults to the class backup_dir 
-    config :backup_dir, :backup
+    # A flag indicating whether or not to rollback changes on
+    # error, defaults to the class rollback_on_error
+    config :rollback_on_error, true, &c.switch   # rollback changes on error
     
-    # A timestamp format used to mark backup files, defaults 
-    # to the class backup_timestamp 
-    config :backup_timestamp, "%Y%m%d_%H%M%S"
-    
-    # A flag indicating whether or not to rollback changes on 
-    # error, defaults to the class rollback_on_error 
-    config :rollback_on_error, true
-    
-    def initialize(*args)
-      super
+    def initialize(config={}, name=nil, app=App.instance, &task_block)
+      super(config, name, app)
       
-      batch.each do |task|
-        task.dirname = task.default_dirname
-        task.backed_up_files = {}
-        task.added_files = []
-        task.inference_block = nil
-      end
+      @backed_up_files = {}
+      @added_files = []
+    end
+    
+    def initialize_copy(orig)
+      super
+      @backed_up_files = {}
+      @added_files = []
     end
     
     # A batch File.open method.  If a block is given, each file in the list will be 
     # opened the open files passed to the block.  Files are automatically closed when 
     # the block returns.  If no block is given, the open files are returned.
     #
-    #   task.open(["one.txt", "two.txt"], "w") do |one, two|
+    #   t = FileTask.new
+    #   t.open(["one.txt", "two.txt"], "w") do |one, two|
     #     one << "one"
     #     two << "two"
     #   end
@@ -106,11 +100,12 @@ module Tap
     # a single argument, it will be translated into an Array, and passed AS AN ARRAY
     # to the block.
     #
-    #   task.open("file.txt", "w") do |array|
+    #   t.open("file.txt", "w") do |array|
     #     array.first << "content"
     #   end
     #
     #   File.read("file.txt")                # => "content"
+    #
     def open(list, mode="rb")
       open_files = []
       begin
@@ -127,8 +122,10 @@ module Tap
     # Returns the basename of path, exchanging the extension 
     # with extname, if provided.
     #
-    #   task.basename('path/to/file.txt')           # => 'file.txt'
-    #   task.basename('path/to/file.txt', '.html')  # => 'file.html'
+    #   t = FileTask.new
+    #   t.basename('path/to/file.txt')           # => 'file.txt'
+    #   t.basename('path/to/file.txt', '.html')  # => 'file.html'
+    #
     def basename(path, extname=nil)
       basename = File.basename(path)
       unless extname == nil
@@ -138,78 +135,49 @@ module Tap
       basename
     end
     
-    # Sets a block to perform path inference.  Raises an error if inference_block 
-    # is already set, unless override = true.    
-    def inference(override=false, &block) # :yields: app[dir], dirname, *paths
-      raise "Inference block for task already set: #{name}" unless inference_block.nil? || override
-      self.inference_block = block
-    end
-    
-    # Infers a path using the inference block, or by using app.filepath if
-    # no inference block is given.  Note the actual inputs to the inference
-    # block are the application directory identified by dir, the dirname
-    # for the task, and the provided paths.
+    # Constructs a filepath using the dir, name, and the specified paths.
     #
     #   t = FileTask.new 
-    #   t.app[:data]                        # => "/data"
-    #   t.dirname                           # => "tap/file_task"
+    #   t.app[:data, true] = "/data" 
+    #   t.name                              # => "tap/file_task"
     #   t.filepath(:data, "result.txt")     # => "/data/tap/file_task/result.txt"
     #
-    #   t.inference do |root, dir, path|
-    #     File.join(root, dir, path.chomp(".txt") + ".yml")
-    #   end
-    #
-    #   t.filepath(:data, "result.txt")     # => "/data/tap/file_task/result.yml"
-    #
     def filepath(dir, *paths) 
-      inference_block ? 
-        inference_block.call(app[dir], dirname, *paths) : 
-        app.filepath(dir, dirname, *paths)
+      app.filepath(dir, name, *paths)
     end
     
-    # Makes a backup filepath relative to backup_dir by translating the input
-    # filepath and inserting a timestamp formatted using backup_timestamp.
-    # The filepath used during translation will be the filepath relative
-    # to dirname (if the input filepath is relative to dirname) or just 
-    # the basename of the filepath.  
+    # Makes a backup filepath relative to backup_dir by using self.name, the 
+    # basename of filepath plus a timestamp. 
     #
-    #   t = FileTask.new("dir/name", :backup_dir => :backup, :backup_timestamp => "%Y%m%d")
-    #   t.dirname                                        # => "dir/name"
-    #   t.app[:backup]                                   # => "/backup"
-    #   Date.today.to_s                                  # => "2007-08-08"
+    #   t = FileTask.new({:timestamp => "%Y%m%d"}, 'name')
+    #   t.app['backup', true] = "/backup"
+    #   time = Time.utc(2008,8,8)
     #
-    #   # uses path relative to dirname, if possible
-    #   t.backup_filepath("dir/name/folder/file.txt")    # => "/backup/folder/file_20070808.txt"
-    #
-    #   # otherwise uses basename
-    #   t.backup_filepath("path/to/folder/file.txt")     # => "/backup/file_20070808.txt"
+    #   t.backup_filepath("path/to/file.txt", time)     # => "/backup/name/file_20080808.txt"
     #   
-    def backup_filepath(filepath)
+    def backup_filepath(filepath, time=Time.now)
       extname = File.extname(filepath)
-      backup_path = File.expand_path("#{filepath.chomp(extname)}_#{Time.now.strftime(backup_timestamp)}#{extname}")
-      
-      split_index = backup_path.index(dirname + "/")
-      backup_path = split_index ? 
-        backup_path[(split_index + dirname.length + 1)..-1] : 
-        File.basename(backup_path)
-
+      backup_path = "#{File.basename(filepath).chomp(extname)}_#{time.strftime(timestamp)}#{extname}"
       filepath(backup_dir, backup_path)
     end
 
-    # Returns true if all of the targets are up to date relative to all of the sources
-    # AND the task config_file, if it exists. Single values or arrays can be provided 
-    # for both targets and sources.  Used to check if any work needs to be done for
-    # a given set of sources and configurations.
+    # Returns true if all of the targets are up to date relative to all of the listed
+    # sources AND date_reference. Single values or arrays can be provided for both 
+    # targets and sources.
     #
+    #---
     # Returns false (ie 'not up to date') if +force?+ is true.
     def uptodate?(targets, sources=[])
-      if app.options.force
+      if app.force
         log_basename(:force, *targets)
         false
       else
         targets = [targets] unless targets.kind_of?(Array)
         sources = [sources] unless sources.kind_of?(Array)
-        sources << config_file unless config_file == nil
+        
+        # should be able to specify this somehow, externally set
+        # sources << config_file unless config_file == nil
+        
         targets.each do |target|
           return false unless FileUtils.uptodate?(target, sources)
         end 
@@ -547,20 +515,7 @@ module Tap
     
     protected
 
-    attr_writer :inference_block, :backed_up_files, :added_files
-  
-    # The default_dirname is based on the name of the task, and the
-    # index of the task in batch (if the task is batched):
-    #
-    #   t = FileTask.new "name"
-    #   t.default_dirname           # => "name"
-    #
-    #   t = FileTask.new "batched"
-    #   t.batch[0].default_dirname  # => "name_0"
-    #   t.batch[1].default_dirname  # => "name_1"
-    def default_dirname
-      batched? ? "#{name}_#{batch_index}" : name
-    end
+    attr_writer :backed_up_files, :added_files
     
     # Clears added_files and backed_up_files so that  
     # a failure will not affect previous executions

@@ -36,14 +36,6 @@ class AppTest < Test::Unit::TestCase
   # helpers
   #
   
-  # def stub_gemspec(name, version)
-  #   spec = Gem::Specification.new
-  #   spec.name = name
-  #   spec.version = version
-  #   spec.loaded_from = "/path/to/gems"
-  #   spec
-  # end
-  
   def current_threads
     threads =  []
     ObjectSpace.garbage_collect
@@ -65,131 +57,131 @@ class AppTest < Test::Unit::TestCase
     end
   end
 
-  def test_app_documentation
-    pwd = app.root
-    assert_equal(pwd, app.root)
-    assert_equal( File.expand_path(pwd +'/config'), app[:config])
-  
-    some_task = Task.new 'some/task'
-    assert_equal( App.instance , some_task.app )
-    assert_equal( File.expand_path(pwd +'/config/some/task.yml') , some_task.config_file)
-    assert_equal( {:key => 'one'}, some_task.config)
-  
-    another_task = Task.new 'another/task'
-    assert_equal( App.instance , another_task.app )
-    assert_equal( File.expand_path(pwd + '/config/another/task.yml') , another_task.config_file)
-    assert_equal( {:key => 'two'}, another_task.config)
-
-    ###
-    t1 = Task.new {|task, input| input += 1 }
-    t1.enq 0
-    t1.enq 10
-  
-    app.run
-    assert_equal [1, 11], app.results(t1)
-  
-    app.aggregator.clear
-  
-    t2= Task.new {|task, input| input += 10 }
-    t1.on_complete {|_result| t2.enq(_result) }
-  
-    t1.enq 0
-    t1.enq 10
-  
-    app.run
-    assert_equal [], app.results(t1)
-    assert_equal [11, 21], app.results(t2)
-  
-    ###
-    t1 = Task.new  {|task, input| input += 1 }
-    t2 = Task.new  {|task, input| input += 10 }
-    assert_equal [t1, t2], Task.batch(t1, t2)
-  
-    t1.enq 0
-    t2.enq 10
-  
-    app.run
-    assert_equal [1, 11], app.results(t1)
-    assert_equal [10, 20], app.results(t2)
-  
-    lock = Mutex.new
-    array = []
-    t1 = Task.new  {|task| lock.synchronize { array << Thread.current.object_id }; sleep 0.1 }
-    t2 = Task.new  {|task| lock.synchronize { array << Thread.current.object_id }; sleep 0.1 }
-  
-    t1.multithread = true
-    t1.enq
-    t2.multithread = true
-    t2.enq
-    
-    app.run
-    assert_equal 2, array.length
-    assert_not_equal array[0], array[1]
-    
-    # array = []
-    # Task::Base.initialize(array, :push)
-    #   
-    # array.enq(1)
-    # array.enq(2)
-    #   
-    # assert array.empty?
-    # app.run
-    # assert_equal [1, 2], array
-    #   
-    # array = []
-    # m = array._method(:push)
-    #    
-    # app.enq(m, 1)
-    # app.mq(array, :push, 2)
-    # 
-    # assert array.empty?
-    # app.run
-    # assert_equal [1, 2], array
-
-    ###
-    t1 = Tap::Task.new('add_one') {|task, input| input += 1 }
-    t2 = Tap::Task.new('add_five') {|task, input| input += 5 }
-
-    t1.on_complete do |_result|
-      _result._current < 3 ? t1.enq(_result) : t2.enq(_result)
-    end
-  
-    t1.enq(0)
-    t1.enq(1)
-    t1.enq(2)
-
-    app.run
-    assert_equal [8,8,8], app.results(t2)
-
-    strio = StringIO.new("")
-    app._results(t2).each do |_result|
-      strio.puts "How #{_result._original} became #{_result._current}:"
-      strio.puts _result._to_s
-      strio.puts
-    end
-
-    assert_equal(
-%Q{How 2 became 8:
-o-[] 2
-o-[add_one] 3
-o-[add_five] 8
-
-How 1 became 8:
-o-[] 1
-o-[add_one] 2
-o-[add_one] 3
-o-[add_five] 8
-
-How 0 became 8:
-o-[] 0
-o-[add_one] 1
-o-[add_one] 2
-o-[add_one] 3
-o-[add_five] 8
-
-}, strio.string)
-
-  end
+#   def test_app_documentation
+#     pwd = app.root
+#     assert_equal(pwd, app.root)
+#     assert_equal( File.expand_path(pwd +'/config'), app[:config])
+#   
+#     some_task = Task.new 'some/task'
+#     assert_equal( App.instance , some_task.app )
+#     assert_equal( File.expand_path(pwd +'/config/some/task.yml') , some_task.config_file)
+#     assert_equal( {:key => 'one'}, some_task.config)
+#   
+#     another_task = Task.new 'another/task'
+#     assert_equal( App.instance , another_task.app )
+#     assert_equal( File.expand_path(pwd + '/config/another/task.yml') , another_task.config_file)
+#     assert_equal( {:key => 'two'}, another_task.config)
+# 
+#     ###
+#     t1 = Task.new {|task, input| input += 1 }
+#     t1.enq 0
+#     t1.enq 10
+#   
+#     app.run
+#     assert_equal [1, 11], app.results(t1)
+#   
+#     app.aggregator.clear
+#   
+#     t2= Task.new {|task, input| input += 10 }
+#     t1.on_complete {|_result| t2.enq(_result) }
+#   
+#     t1.enq 0
+#     t1.enq 10
+#   
+#     app.run
+#     assert_equal [], app.results(t1)
+#     assert_equal [11, 21], app.results(t2)
+#   
+#     ###
+#     t1 = Task.new  {|task, input| input += 1 }
+#     t2 = Task.new  {|task, input| input += 10 }
+#     assert_equal [t1, t2], Task.batch(t1, t2)
+#   
+#     t1.enq 0
+#     t2.enq 10
+#   
+#     app.run
+#     assert_equal [1, 11], app.results(t1)
+#     assert_equal [10, 20], app.results(t2)
+#   
+#     lock = Mutex.new
+#     array = []
+#     t1 = Task.new  {|task| lock.synchronize { array << Thread.current.object_id }; sleep 0.1 }
+#     t2 = Task.new  {|task| lock.synchronize { array << Thread.current.object_id }; sleep 0.1 }
+#   
+#     t1.multithread = true
+#     t1.enq
+#     t2.multithread = true
+#     t2.enq
+#     
+#     app.run
+#     assert_equal 2, array.length
+#     assert_not_equal array[0], array[1]
+#     
+#     # array = []
+#     # Task::Base.initialize(array, :push)
+#     #   
+#     # array.enq(1)
+#     # array.enq(2)
+#     #   
+#     # assert array.empty?
+#     # app.run
+#     # assert_equal [1, 2], array
+#     #   
+#     # array = []
+#     # m = array._method(:push)
+#     #    
+#     # app.enq(m, 1)
+#     # app.mq(array, :push, 2)
+#     # 
+#     # assert array.empty?
+#     # app.run
+#     # assert_equal [1, 2], array
+# 
+#     ###
+#     t1 = Tap::Task.new('add_one') {|task, input| input += 1 }
+#     t2 = Tap::Task.new('add_five') {|task, input| input += 5 }
+# 
+#     t1.on_complete do |_result|
+#       _result._current < 3 ? t1.enq(_result) : t2.enq(_result)
+#     end
+#   
+#     t1.enq(0)
+#     t1.enq(1)
+#     t1.enq(2)
+# 
+#     app.run
+#     assert_equal [8,8,8], app.results(t2)
+# 
+#     strio = StringIO.new("")
+#     app._results(t2).each do |_result|
+#       strio.puts "How #{_result._original} became #{_result._current}:"
+#       strio.puts _result._to_s
+#       strio.puts
+#     end
+# 
+#     assert_equal(
+# %Q{How 2 became 8:
+# o-[] 2
+# o-[add_one] 3
+# o-[add_five] 8
+# 
+# How 1 became 8:
+# o-[] 1
+# o-[add_one] 2
+# o-[add_one] 3
+# o-[add_five] 8
+# 
+# How 0 became 8:
+# o-[] 0
+# o-[add_one] 1
+# o-[add_one] 2
+# o-[add_one] 3
+# o-[add_five] 8
+# 
+# }, strio.string)
+# 
+#   end
   
   #
   #  State test
@@ -209,7 +201,6 @@ o-[add_five] 8
     
     assert_equal Dir.pwd, app.root
     assert_equal({}, app.directories)
-    assert_equal({}, app.options.marshal_dump)
 
     assert_equal(Support::ExecutableQueue, app.queue.class)
     assert app.queue.empty?
@@ -230,71 +221,31 @@ o-[add_five] 8
       :root => File.expand_path(Dir.pwd),
       :directories => {},
       :absolute_paths => {},
-      :options => OpenStruct.new()
+      :force => false,
+      :debug => false,
+      :quiet => false,
+      :max_threads => 10
     }
     assert_equal expected, app.config
     
     # now try with a variety of configurations changed
-    app.options.trace = true
     app[:lib] = 'alt/lib'
     app[:abs, true] = '/absolute/path'
+    app.max_threads = 11
 
     expected = {
       :root => File.expand_path(Dir.pwd),
       :directories => {:lib => 'alt/lib'},
       :absolute_paths => {:abs => File.expand_path('/absolute/path')},
-      :options => OpenStruct.new(:trace => true)
+      :force => false,
+      :debug => false,
+      :quiet => false,
+      :max_threads => 11
     }
 
     assert_equal expected, app.config
   end
   
-  #
-  # reconfigure test
-  #
-  
-  def test_reconfigure_documentation
-    app = Tap::App.new :root => "/root", :directories => {:dir => 'path/to/dir'}
-    app.reconfigure(
-      :root => "./new/root", 
-      :options => {:quiet => true}, 
-      :key => 'value')
-  
-    assert_equal File.expand_path("./new/root"), app.root  
-    assert_equal File.expand_path("./new/root/path/to/dir"), app[:dir]          
-    assert_equal true, app.options.quiet
-    assert_equal 'value', app.config[:key]
-  end
-  
-  def test_reconfigure_root_sets_app_root
-    app = App.new
-    
-    assert_equal Dir.pwd, app.root
-    app.reconfigure :root => './alt/root'
-    assert_equal File.expand_path('./alt/root'), app.root
-  end
-  
-  def test_reconfigure_directories_sets_directories
-    app = App.new
-    assert_equal({}, app.directories)
-    app.reconfigure :directories => {:lib => 'alt/lib'}
-    assert_equal({:lib => 'alt/lib'}, app.directories)
-  end
-  
-  def test_reconfigure_absolute_paths_sets_absolute_paths
-    app = App.new
-    assert_equal({}, app.absolute_paths)
-    app.reconfigure :absolute_paths => {:log => '/path/to/log'}
-    assert_equal({:log => File.expand_path('/path/to/log')}, app.absolute_paths)
-  end
-  
-  def test_reconfigure_options_sets_options
-    app = App.new
-    assert_equal({}, app.options.marshal_dump)
-    app.reconfigure :options => {:trace => true}
-    assert_equal({:trace => true}, app.options.marshal_dump)
-  end
-
   #
   # set logger tests
   #
@@ -313,59 +264,36 @@ o-[add_five] 8
   #
 
   #
-  # each_config_template tests
+  # load_config tests
   #
   
-  def test_each_config_template_documentation
-    simple = method_tempfile
-    File.open(simple, "w") {|f| f <<  "key: value"}
-    assert_equal([{"key" => "value"}], app.each_config_template(simple))
-  
-    erb = method_tempfile
-    File.open(erb, "w") {|f| f <<  "app: <%= app.object_id %>\nfilepath: <%= filepath %>"}
-    assert_equal([{"app" => app.object_id, "filepath" => erb}], app.each_config_template(erb))
-  
-    batched_with_erb = method_tempfile
-    File.open(batched_with_erb, "w") do |f| 
-      f << %Q{ 
-- key: <%= 1 %>
-- key: <%= 1 + 1 %>}
-    end
-    assert_equal([{"key" => 1}, {"key" => 2}], app.each_config_template(batched_with_erb))
-  end
-  
-  def test_each_config_template_retrieves_templates_for_versioned_config_files
-    filepath = app.filepath('config', "version.yml")
-    assert File.exists?(filepath)
-    assert_equal [{"version" => "empty"}], app.each_config_template(filepath)
-    
-    filepath = app.filepath('config', "version-0.1.yml")
-    assert File.exists?(filepath)
-    assert_equal [{"version" => 0.1}], app.each_config_template(filepath)
-  end
-  
-  def test_each_config_template_can_load_an_array_of_templates  
-    filepath = app.filepath('config', "batch.yml")
-    assert File.exists?(filepath)
-    assert_equal [{"key" => "one"}, {"key" => "two"}], app.each_config_template(filepath)
+  def test_load_config_loads_path_as_yaml
+    path = method_tempfile {|file|  file << [{"key" => "one"}, {"key" => "two"}].to_yaml }
+    assert_equal [{"key" => "one"}, {"key" => "two"}], app.load_config(path)
   end
 
-  def test_each_config_template_returns_empty_template_even_if_config_file_does_not_exist
-    filepath = app.filepath('config', "non_existant.yml")
-    assert !File.exists?(filepath)
-    assert_equal [{}], app.each_config_template(filepath)
+  def test_each_config_template_returns_empty_hash_if_config_file_does_not_exist
+    path = method_tempfile
+    assert !File.exists?(path)
+    assert_equal({}, app.load_config(path))
   end
   
-  def test_each_config_template_returns_empty_template_if_config_file_is_empty
-    filepath = app.filepath('config', "empty.yml")
-    assert File.exists?(filepath)
-    assert_equal "", File.read(filepath)
-    assert_equal [{}], app.each_config_template(filepath)
+  def test_each_config_template_returns_empty_hash_if_config_file_is_empty
+    path = method_tempfile {|file| }
+    assert File.exists?(path)
+    assert File.read(path).empty?
+    assert_equal({}, app.load_config(path))
   end
   
   def test_each_config_template_templates_using_erb
-    filepath = app.filepath('config', "erb.yml")
-    assert_equal [{"filepath" => filepath, "app" => app.object_id}], app.each_config_template(filepath)
+    path = method_tempfile do |file|  
+      file << %Q{
+app: <%= app.object_id %>
+path: <%= path %>
+}
+    end
+
+    assert_equal({"path" => path, "app" => app.object_id}, app.load_config(path))
   end
   
   #
@@ -405,7 +333,7 @@ o-[add_five] 8
       was_in_block = true
     end
     
-    with_options :debug => true do
+    with_config :debug => true do
       t.enq
       app.run
     end
@@ -419,7 +347,7 @@ o-[add_five] 8
 
   def test_run_single_task
     t = Task.new(&add_one)
-    with_options :debug => true do
+    with_config :debug => true do
       t.enq 1
       app.run
     end
@@ -430,7 +358,7 @@ o-[add_five] 8
   
   def test_run_single_task_from_a_thread
     t = Task.new(&add_one)
-    with_options :debug => true do
+    with_config :debug => true do
       t.enq 1
       th = Thread.new { app.run }
       th.join
@@ -481,7 +409,7 @@ o-[add_five] 8
       t2.enq
       t1.enq
       
-      with_options :debug => true do
+      with_config :debug => true do
         app.run
       end
       
@@ -521,7 +449,7 @@ o-[add_five] 8
       t2.enq
       t1.enq
       
-      with_options :debug => true do
+      with_config :debug => true do
         app.run
       end
       
@@ -557,16 +485,14 @@ o-[add_five] 8
       t2 = Task.new(&block)
       t3 = Task.new(&block)
       
-      with_options(:max_threads => 2) do
-        [t1,t2,t3].each do |t|
-          t.enq
-          t.multithread = true
-        end
-     
-        with_options :debug => true do
-          app.run
-        end
+      [t1,t2,t3].each do |t|
+        t.enq
+        t.multithread = true
+      end
       
+      with_config(:max_threads => 2, :debug => true) do
+        assert_equal 2, app.max_threads
+        app.run
         assert_equal 2, max_threads
       end
     end
@@ -646,7 +572,7 @@ o-[add_five] 8
       # dequeued into the thread queue.  on stop, the 2
       # executing tasks should finish normally, and NO MORE
       # tasks executed.  The waiting tasks will be requeued.
-      with_options :max_threads => 2, :debug => true  do
+      with_config :max_threads => 2, :debug => true  do
         app.run
       end
       
@@ -685,7 +611,7 @@ o-[add_five] 8
       # dequeued into the thread queue.  on stop, the 2
       # executing tasks should finish normally, and NO MORE
       # tasks executed.  The waiting tasks will be requeued.
-      with_options :max_threads => 2, :debug => true do
+      with_config :max_threads => 2, :debug => true do
         app.run
       end
       
@@ -717,7 +643,7 @@ o-[add_five] 8
       end
       
       task.enq
-      with_options :debug => true do
+      with_config :debug => true do
         begin
           app.run
           flunk "no error was raised"
@@ -744,7 +670,7 @@ o-[add_five] 8
       end
       
       task.enq
-      with_options :debug => true do
+      with_config :debug => true do
         begin
           app.run
           flunk "no error was raised"
@@ -781,7 +707,7 @@ o-[add_five] 8
       # dequeued into the thread queue.  on stop, the 2
       # executing tasks should be terminated, and NO MORE
       # tasks executed.  The waiting tasks will be requeued.
-      with_options :max_threads => 2, :debug => true do
+      with_config :max_threads => 2, :debug => true do
         begin
           app.run
           flunk "no error was raised"
@@ -838,7 +764,7 @@ o-[add_five] 8
       # dequeued into the thread queue.  on stop, the 2
       # executing tasks should be terminated, and NO MORE
       # tasks executed.  The waiting tasks will be requeued.
-      with_options :max_threads => 2, :debug => true do
+      with_config :max_threads => 2, :debug => true do
         begin
           app.run
           flunk "no error was raised"
@@ -890,7 +816,7 @@ o-[add_five] 8
         task.multithread = true
       end
       
-      with_options :max_threads => 2 do
+      with_config :max_threads => 2 do
         app.run
       end
       
@@ -959,7 +885,7 @@ o-[add_five] 8
 #       t2.enq result
 #       t3.enq result
 #     end
-#     with_options :debug => true do
+#     with_config :debug => true do
 #       t1.enq 0
 #       app.run
 #     end
@@ -978,7 +904,7 @@ o-[add_five] 8
     t2 = Task.new(&add_one)
     
     app.sequence(t1,t2)
-    with_options :debug => true do
+    with_config :debug => true do
       t1.enq 0
       app.run
     end
@@ -992,7 +918,7 @@ o-[add_five] 8
     t2 = Task.new(&add_one)
     
     app.sequence(t1,t2)
-    with_options :debug => true do
+    with_config :debug => true do
       t2.enq 1
      app.run
     end
@@ -1012,7 +938,7 @@ o-[add_five] 8
     t3 = Task.new(&add_one)
     
     app.fork(t1, t2, t3)
-    with_options :debug => true do
+    with_config :debug => true do
       t1.enq 0
       app.run
     end
@@ -1032,7 +958,7 @@ o-[add_five] 8
     t3 = Task.new(&add_one)
   
     app.merge(t3, t1, t2)
-    with_options :debug => true do
+    with_config :debug => true do
       t1.enq 0
       t2.enq 10
       app.run
@@ -1051,19 +977,13 @@ o-[add_five] 8
    #
    
    def test_run_batched_task
-     t1 = Task.new('template') do |task, input|
+     t1 = Task.new(:factor => 10) do |task, input|
        runlist << input
        input + task.config[:factor]
      end
-     assert_equal 2, t1.batch.length
-     
-     t1_0 = t1.batch[0]
-     t1_1 = t1.batch[1]
-     
-     assert_equal 10, t1_0.config[:factor]
-     assert_equal 22, t1_1.config[:factor]
-     
-     with_options :debug => true do
+     t2 = t1.initialize_batch_obj(:factor => 22)
+
+     with_config :debug => true do
        t1.enq 0
        app.run
      end
@@ -1072,26 +992,20 @@ o-[add_five] 8
      assert_equal [0,0], runlist
      
      assert_audits_equal([
-       ExpAudit[[nil,0],[t1_0,10]],
-       ExpAudit[[nil,0],[t1_1,22]]
+       ExpAudit[[nil,0],[t1,10]],
+       ExpAudit[[nil,0],[t2,22]]
      ], app._results(*t1.batch))
    end
    
   def test_run_batched_task_with_existing_audit_trails
-    t1 = Task.new('template') do |task, input|
+    t1 = Task.new(:factor => 10) do |task, input|
       runlist << input
       input + task.config[:factor]
     end
-    assert_equal 2, t1.batch.length
-    
-    t1_0 = t1.batch[0]
-    t1_1 = t1.batch[1]
-    
-    assert_equal 10, t1_0.config[:factor]
-    assert_equal 22, t1_1.config[:factor]
-    
+    t2 = t1.initialize_batch_obj(:factor => 22)
+
     a = Support::Audit.new(0, :a)
-    with_options :debug => true do
+    with_config :debug => true do
       t1.enq a
       app.run
     end
@@ -1100,8 +1014,8 @@ o-[add_five] 8
     assert_equal [0,0], runlist
     
     assert_audits_equal([
-      ExpAudit[[:a,0],[t1_0,10]],
-      ExpAudit[[:a,0],[t1_1,22]]
+      ExpAudit[[:a,0],[t1,10]],
+      ExpAudit[[:a,0],[t2,22]]
     ], app._results(t1.batch))
   end
   
@@ -1134,7 +1048,7 @@ o-[add_five] 8
       t1.multithread = true
       t1.enq
   
-      with_options :debug => true do
+      with_config :debug => true do
         app.run
       end
       assert_equal 2, max_threads
@@ -1143,15 +1057,15 @@ o-[add_five] 8
   
   def test_fork_in_batched_task
     t1, t2, t3 = Array.new(3) do
-      t = Task.new(nil, :factor => 10) do |task, input|
+      t = Task.new(:factor => 10) do |task, input|
         runlist << input
         input + task.config[:factor]
       end
-      t.initialize_batch_obj(nil, :factor => 22)
+      t.initialize_batch_obj(:factor => 22)
     end
     
     app.fork(t1, t2, t3)
-    with_options :debug => true do
+    with_config :debug => true do
       t1.enq 0
       app.run
     end
@@ -1190,17 +1104,17 @@ o-[add_five] 8
   
   def test_merge_batched_task
     t1, t2, t3 = Array.new(3) do
-      t = Task.new(nil, :factor => 10) do |task, input|
+      t = Task.new(:factor => 10) do |task, input|
         runlist << input
         input + task.config[:factor]
       end
-      t.initialize_batch_obj(nil, :factor => 22)
+      t.initialize_batch_obj(:factor => 22)
     end
   
     app.merge(t3, t1, t2)
     t1.enq(0)
     t2.enq(2)
-    with_options :debug => true do
+    with_config :debug => true do
       app.run
     end
   
@@ -1254,7 +1168,7 @@ o-[add_five] 8
     # set the results of t2 to reinvoke the workflow
     app.sequence(t2, t1)
     
-    with_options :debug => true do
+    with_config :debug => true do
       t1.enq(0)
       t1.enq(2)
       app.run
@@ -1340,7 +1254,7 @@ o-[add_five] 8
       counter.enq if count < 3
     end
   
-    with_options :debug => true do
+    with_config :debug => true do
       counter.enq
       app.run
     end
@@ -1367,7 +1281,7 @@ o-[add_five] 8
     threaded.enq
     not_threaded.enq
     
-    with_options :debug => true do
+    with_config :debug => true do
       app.run
     end
     
@@ -1389,7 +1303,7 @@ o-[add_five] 8
       input += 1
     end
   
-    with_options :debug => true do
+    with_config :debug => true do
       t1.enq 0
       app.run
     end
@@ -1411,7 +1325,7 @@ o-[add_five] 8
   
     t1.multithread = true
     t2.multithread = true
-    with_options :debug => true do
+    with_config :debug => true do
       t1.enq 0
       app.run
     end
@@ -1444,7 +1358,7 @@ o-[add_five] 8
   def test_unhandled_exception_raises_run_error_on_main_thread_when_debug
     task = Task.new {|t| raise "error"}
      
-    with_options :debug => true do
+    with_config :debug => true do
       begin
         task.enq
         app.run
@@ -1478,7 +1392,7 @@ o-[add_five] 8
     task = Task.new {|t| raise "error"}
     task.multithread = true
     
-    with_options :debug => true do
+    with_config :debug => true do
       begin
         task.enq
         app.run
@@ -1523,7 +1437,7 @@ o-[add_five] 8
         task.enq   
       end
   
-      with_options :debug => true do
+      with_config :debug => true do
         begin
           app.run
           flunk "no error was raised"
@@ -1583,7 +1497,7 @@ o-[add_five] 8
         task.enq   
       end
     
-      with_options :debug => true do
+      with_config :debug => true do
         begin
           app.run
           flunk "no error was raised"

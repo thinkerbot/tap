@@ -39,7 +39,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
     t = ProcessWithNoInput.new
     assert !t.was_in_process
     
-    with_options :debug => true do
+    with_config :debug => true do
       assert_raise(Tap::Support::RunError) do
         t.enq 1
         app.run
@@ -57,7 +57,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
       was_in_block = true
     end
 
-    with_options :debug => true do
+    with_config :debug => true do
       assert_raise(Tap::Support::RunError) do
         t.enq 1
         app.run
@@ -79,7 +79,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
   def test_process_with_one_input
     t = ProcessWithOneInput.new
 
-    with_options :debug => true do
+    with_config :debug => true do
       assert_raise(Tap::Support::RunError) do
         t.enq
         app.run
@@ -102,7 +102,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
       runlist << input
     end
 
-    with_options :debug => true do
+    with_config :debug => true do
       assert_raise(Tap::Support::RunError) do
         t.enq
         app.run
@@ -128,7 +128,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
   def test_process_with_multiple_inputs
     t = ProcessWithMultipleInputs.new
 
-    with_options :debug => true do
+    with_config :debug => true do
       assert_raise(Tap::Support::RunError) do
         t.enq
         app.run
@@ -150,7 +150,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
       runlist << [a,b]
     end
   
-    with_options :debug => true do
+    with_config :debug => true do
       assert_raise(Tap::Support::RunError) do
         t.enq
         app.run
@@ -176,7 +176,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
   def test_process_with_arbitrary_inputs
     t = ProcessWithArbitraryInputs.new
   
-    with_options :debug => true do
+    with_config :debug => true do
       t.enq
       app.run
       assert_equal [[]], t.runlist
@@ -197,7 +197,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
       runlist << args
     end
 
-    with_options :debug => true do
+    with_config :debug => true do
       t.enq
       app.run
       assert_equal [[]], runlist
@@ -222,7 +222,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
   def test_process_with_mixed_arbitrary_inputs
     t = ProcessWithMixedArbitraryInputs.new
     
-    with_options :debug => true do
+    with_config :debug => true do
       assert_raise(Tap::Support::RunError) do
         t.enq
         app.run
@@ -248,7 +248,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
       runlist << [a, b, args]
     end
 
-    with_options :debug => true do
+    with_config :debug => true do
       assert_raise(Tap::Support::RunError) do
         t.enq
         app.run
@@ -281,7 +281,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
   def test_process_with_default_values
     t = ProcessWithDefaultValues.new
     
-    with_options :debug => true do
+    with_config :debug => true do
       t.enq
       app.run
       assert_equal [10], t.runlist

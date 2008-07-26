@@ -190,12 +190,13 @@ module Tap
     #   t1.shared_variable == t2.shared_variable                           # => true
     #   t1.instance_specific_variable == t2.instance_specific_variable     # => false
     #
-    def initialize(name=nil, config={}, app=App.instance, &task_block)
+    def initialize(config={}, name=nil, app=App.instance, &task_block)
+      super(config, name, app)
+      
       @task_block = (task_block == nil ? default_task_block : task_block)
       @multithread = false
       @on_complete_block = nil
       @_method_name = :execute
-      super(name, config, app)
     end
     
     # Enqueues self and self.batch to app with the inputs.  
