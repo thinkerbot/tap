@@ -144,7 +144,7 @@ module Tap
         [obj.reconfigure(path_configs).reconfigure(config), argv]
       end
       
-      def subclass(const_name, configs={}, &block)
+      def subclass(const_name, configs={}, block_method=:process, &block)
         # Generate the nesting module
         current, constants = const_name.to_s.constants_split
         raise ArgumentError, "#{current} is already defined!" if constants.empty?
@@ -154,17 +154,24 @@ module Tap
         
         # Generate the subclass
         subclass = Class.new(self)
-        configs.each_pair do |key, value|
-          subclass.configurations.add(key, value)
+        case configs
+        when Hash
+          subclass.send(:attr_accessor, *configs.keys)
+          configs.each_pair do |key, value|
+            subclass.configurations.add(key, value)
+          end
+        when Array
+          configs.each do |method, key, value, options, config_block| 
+            subclass.send(method, key, value, options, &config_block)
+          end
         end
         
-        subclass.send(:attr_accessor, *configs.keys)
-        subclass.send(:define_method, :process, &block)
+        subclass.send(:define_method, block_method, &block)
         subclass.default_name = const_name
         
         caller.each_with_index do |line, index|
           case line
-          when /\/tap\/declaration.rb/ then next
+          when /\/tap\/declarations.rb/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
             subclass.source_file = File.expand_path($1)
             subclass.tdoc["#{current}::#{subclass_const}", false]['manifest'] = subclass.tdoc.register($3.to_i - 1)
