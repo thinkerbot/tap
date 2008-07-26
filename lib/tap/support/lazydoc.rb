@@ -150,8 +150,8 @@ module Tap
       
       # Returns the attributes for const_name merged to the default
       # document attributes.
-      def [](const_name)
-        default_attributes.merge(attributes(const_name))
+      def [](const_name, merge_defaults=true)
+        merge_defaults ? default_attributes.merge(attributes(const_name)) : attributes(const_name)
       end
       
       # Yields each const_name and attributes to the block; const_names where

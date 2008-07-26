@@ -53,7 +53,7 @@ module Tap
 <%= opts.to_s %>
 }
 
-      def help(opts)
+      def help(opts=nil)
         tdoc.resolve(nil, /^\s*def\s+process(\((.*?)\))?/) do |comment, match|
           comment.subject = match[2].to_s.split(',').collect do |arg|
             arg = arg.strip.upcase
@@ -72,7 +72,7 @@ module Tap
         manifest = tdoc[to_s]['manifest'] || Tap::Support::Comment.new
         args = tdoc[to_s]['args'] || Tap::Support::Comment.new
 
-        opts.banner = "usage: tap run -- #{to_s.underscore} #{args.subject}"
+        opts.banner = "usage: tap run -- #{to_s.underscore} #{args.subject}" if opts
         
         Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, 
           :task_class => self, 
@@ -142,6 +142,38 @@ module Tap
         end
         
         [obj.reconfigure(path_configs).reconfigure(config), argv]
+      end
+      
+      def subclass(const_name, configs={}, &block)
+        # Generate the nesting module
+        current, constants = const_name.to_s.constants_split
+        raise ArgumentError, "#{current} is already defined!" if constants.empty?
+         
+        subclass_const = constants.pop
+        constants.each {|const| current = current.const_set(const, Module.new)}
+        
+        # Generate the subclass
+        subclass = Class.new(self)
+        configs.each_pair do |key, value|
+          subclass.configurations.add(key, value)
+        end
+        
+        subclass.send(:attr_accessor, *configs.keys)
+        subclass.send(:define_method, :process, &block)
+        subclass.default_name = const_name
+        
+        caller.each_with_index do |line, index|
+          case line
+          when /\/tap\/declaration.rb/ then next
+          when /^(([A-z]:)?[^:]+):(\d+)/
+            subclass.source_file = File.expand_path($1)
+            subclass.tdoc["#{current}::#{subclass_const}", false]['manifest'] = subclass.tdoc.register($3.to_i - 1)
+            break
+          end
+        end
+        
+        # Set the subclass constant
+        current.const_set(subclass_const, subclass)
       end
       
       module OptParseComment

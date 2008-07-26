@@ -71,7 +71,7 @@ module Tap
     config :rollback_on_error, true, &c.switch   # rollback changes on error
     
     def initialize(config={}, name=nil, app=App.instance, &task_block)
-      super(config, name, app)
+      super
       
       @backed_up_files = {}
       @added_files = []

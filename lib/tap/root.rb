@@ -247,7 +247,7 @@ module Tap
               minimal_match?(path, base)
             end
             
-            yield(path, mini_path)
+            yield(path, mini_path || path)
           end
         end
         
