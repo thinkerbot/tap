@@ -47,6 +47,12 @@ module Tap
       def document
         require_path ? Support::Lazydoc[require_path] : nil 
       end
+      
+      def ==(another)
+        another.kind_of?(Constant) && 
+        another.name == self.name &&
+        another.require_path == self.require_path
+      end
   
       def constantize
         name.try_constantize do |const_name|

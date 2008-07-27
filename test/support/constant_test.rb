@@ -84,4 +84,23 @@ class ConstantTest < Test::Unit::TestCase
     assert_equal nil, c.document
   end
   
+  # 
+  # == test
+  #
+  
+  def test_constants_are_equal_if_name_and_require_path_are_equal
+    c1 = Constant.new('Sample::Const', '/require/path.rb')
+    c2 = Constant.new('Sample::Const', '/require/path.rb')
+    c3 = Constant.new('Another::Const', '/require/path.rb')
+    c4 = Constant.new('Sample::Const', '/another/path.rb')
+    
+    assert_not_equal c1.object_id, c2.object_id
+    assert_equal c1, c2
+    
+    assert c1 == c2
+    assert c2 == c1
+    assert c1 != c3
+    assert c1 != c4
+  end
+  
 end

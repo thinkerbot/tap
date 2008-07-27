@@ -82,7 +82,7 @@ if signals.include?("INFO")
     puts app.info
   end
   
-  puts "ctl-i prints information"
+  # puts "ctl-i prints information"
 end
 
 # interuption signal
@@ -107,13 +107,13 @@ if signals.include?("INT")
     end
   end
 
-  puts "ctl-c interupts execution"
+  # puts "ctl-c interupts execution"
 end
 
 #
 # enque tasks and run!
 #
-puts "beginning run..."
+# puts "beginning run..."
 rounds.each_with_index do |queue, i|
   app.queue.concat(queue)
   app.run

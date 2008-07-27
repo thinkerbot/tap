@@ -5,10 +5,10 @@ class <%= const.name %>Test < Test::Unit::TestCase
   acts_as_tap_test 
   
   def test_<%= const.basename %>
-    t = <%= const.name %>.new nil, :key => 'value'
+    t = <%= const.name %>.new :key => 'value'
     
-    # specify application options
-    with_options(:quiet => true, :debug => true) do  
+    # specify the application config
+    with_config(:quiet => true, :debug => true) do  
       
       # run the task with some inputs
       t.enq("one")
