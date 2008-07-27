@@ -80,7 +80,10 @@ and generators in gems.  This can be illustrated by installing the
 
   % gem install sample_tasks
   % tap --
-    [TODO -- list sample tasks!]
+    concat      # concatenate files with formatting
+    copy        # copies files
+    grep        # search for lines matching a pattern
+    print_tree  # print a directory tree
 
 === Bugs/Known Issues
 
