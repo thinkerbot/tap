@@ -9,7 +9,7 @@ module Tap
       def add(env_key, env, map)
         unless map.empty?
           @map << [env_key, env, map]
-          map.keys.each {|key| @width = key.length if @width < key.length }
+          map.each {|(key, path)| @width = key.length if @width < key.length }
         end
       end
       
@@ -17,7 +17,7 @@ module Tap
         lines = []
         @map.each do |(env_lookup, env, map)|
           lines <<  "=== #{env_lookup} (#{env.root.root})" if @map.length > 1
-          map.to_a.sort_by {|(key, path)| key }.each do |(key, path)|
+          map.each do |(key, path)|
             desc = block_given? ? (yield(path) || '') : ''
             desc = "  # #{desc}" unless desc.empty?
             lines << ("  %-#{@width}s%s" % [key, desc])

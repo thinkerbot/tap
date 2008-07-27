@@ -515,13 +515,23 @@ module Tap
       manifest
     end
     
-    def map(name)
-      Tap::Root.minimal_map(manifest(name), false)
+    #--
+    # Minimizes the keys in a hash and recollects key-value
+    # pairs as an array of [mini_key, value] pairs.  When 
+    # reverse is true, minimal_map collects [value, mini_key]
+    # pairs.
+    def map(name, reverse=false)
+      hash = manifest(name)
+      results = []
+      Root.minimize(hash.keys.sort) do |p, mp| 
+        results << (reverse ? [hash[p], mp] : [mp, hash[p]])
+      end
+      results
     end
     
     def summary(name)
       summary = Support::Summary.new
-      map(:envs).each_pair do |key, env|
+      map(:envs).each do |(key, env)|
        summary.add(key, env, env.map(name))
       end
       summary

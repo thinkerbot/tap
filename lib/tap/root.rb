@@ -197,61 +197,65 @@ module Tap
       #   # => ['a-0.1.0', 'a-0.2.0']
       #
       # If a block is given, each (path, mini-path) pair will be passed
-      # to it after minimization.  Paths are expanded before minimization.
-      def minimize(paths)
+      # to it after minimization.
+      def minimize(paths) # :yields: path, mini_path
+        unless block_given?
+          mini_paths = []
+          minimize(paths) {|p, mp| mini_paths << mp }
+          return mini_paths  
+        end
+        
         splits = paths.uniq.collect do |path|
           extname = File.extname(path)
           extname = '' if extname =~ /^\.\d+$/
           base = File.basename(path.chomp(extname))
           version = base =~ /(-\d+(\.\d+)*)$/ ? $1 : ''
           
-          [File.dirname(path), base.chomp(version), extname, version, false]
+          [dirname_or_array(path), base.chomp(version), extname, version, false, path]
         end
 
-        mini_paths = []
         while !splits.empty?
           index = 0
-          splits = splits.collect do |(dir, base, extname, version, flagged)|
+          splits = splits.collect do |(dir, base, extname, version, flagged, path)|
             index += 1
             case
             when !flagged && just_one?(splits, index, base)
-              mini_paths << base
+              
+              # found just one
+              yield(path, base)
               nil
             when dir.kind_of?(Array)
+              
+              # no more path segments to use, try to add
+              # back version and extname
               if dir.empty?
                 dir << File.dirname(base)
                 base = File.basename(base)
               end
               
               case
-              when extname.empty?
-                mini_paths << "#{dir[0]}/#{base}"
-                nil
-                #raise "indistinguishable paths in: [#{paths.join(', ')}]"
-              when version.empty?
-                [dir, "#{base}#{extname}", '', version, false]
+              when !version.empty?
+                # add back version (occurs first)
+                [dir, "#{base}#{version}", extname, '', false, path]
+                
+              when !extname.empty?
+                
+                # add back extension (occurs second)
+                [dir, "#{base}#{extname}", '', version, false, path]
               else
-                [dir, "#{base}#{version}", extname, '', false]
+                
+                # nothing more to distinguish... path is minimized (occurs third)
+                yield(path, min_join(dir[0], base))
+                nil
               end
-            when (shift_base = File.basename(dir)) == dir
-              [[], "#{shift_base}/#{base}", extname, version, false]
             else
-              [File.dirname(dir), "#{shift_base}/#{base}", extname, version, false]
+
+              # shift path segment.  dirname_or_array returns an
+              # array if this is the last path segment to shift.
+              [dirname_or_array(dir), min_join(File.basename(dir), base), extname, version, false, path]
             end
           end.compact
         end
-        
-        if block_given?
-          paths.each do |path|
-            mini_path = mini_paths.find do |base|
-              minimal_match?(path, base)
-            end
-            
-            yield(path, mini_path || path)
-          end
-        end
-        
-        mini_paths
       end
 
       # Returns true if the mini_path matches path.  Matching logic
@@ -304,23 +308,6 @@ module Tap
         match_path[-mini_path.length, mini_path.length] == mini_path  && File.basename(match_path) == File.basename(mini_path)
       end
       
-      # Minimizes the keys in a hash.  When reverse is true,
-      # minimal_map re-maps the hash values to the minimized
-      # key.  In reverse mode, redundant values raise an error. 
-      def minimal_map(hash, reverse=false)
-        results = {}
-        if reverse
-          minimize(hash.keys) do |p, mp|
-            value = hash[p]
-            raise "redundant value in reverse minimal_map: #{value}" if results.has_key?(value)
-            results[value] = mp
-          end
-        else
-          minimize(hash.keys) {|p, mp| results[mp] = hash[p] }
-        end
-        results
-      end
-      
       # Returns the path segments for the given path, splitting along the path 
       # divider.  Root paths are always represented by a string, if only an 
       # empty string.
@@ -364,6 +351,30 @@ module Tap
       end
       
       private
+      
+      # utility method for minimize -- joins the
+      # dir and path, preventing results like:
+      #
+      #   "./path"
+      #   "//path"
+      def min_join(dir, path) # :nodoc:
+        case dir
+        when "." then path
+        when "/" then "/#{path}"
+        else "#{dir}/#{path}"
+        end
+      end
+      
+      # utility method for minimize -- returns the 
+      # dirname of path, or an array if the dirname
+      # is effectively empty.
+      def dirname_or_array(path) # :nodoc:
+        dir = File.dirname(path)
+        case dir
+        when path, '.' then []
+        else dir
+        end
+      end
       
       # utility method for minimize -- determines if there 
       # is just one of the base in splits, while flagging

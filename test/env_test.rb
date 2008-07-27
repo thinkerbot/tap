@@ -638,5 +638,17 @@ class EnvTest < Test::Unit::TestCase
     assert_equal [e3, e2, e1, e], envs
   end
   
+  #
+  # Tap::Root.minimal_map test
+  #
+  
+  # def test_minimal_map_minimizes_keys_in_hash
+  #   assert_equal([['c.d', 'one'], ['c.e', 'two']], Tap::Root.minimal_map({'a/b/c.d' => 'one', 'a/b/c.e' => 'two'}))
+  #   assert_equal([['c', 'three'], ['b/c', 'two'], ['a/b/c', 'one']], Tap::Root.minimal_map({'a/b/c' => 'one', 'b/c' => 'two', 'c' => 'three'}))
+  # end
+  # 
+  # def test_minimal_map_in_reverse_mode_maps_values_to_minimized_keys
+  #   assert_equal([['one', 'c.d'], ['two', 'c.e']], Tap::Root.minimal_map({'a/b/c.d' => 'one', 'a/b/c.e' => 'two'}, true))
+  # end
 
 end

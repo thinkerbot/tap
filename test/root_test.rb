@@ -310,7 +310,9 @@ class RootTest < Test::Unit::TestCase
     # cases where version is kept
     assert_equal ['c-0.1', 'c-0.2'], Tap::Root.minimize(['a/b/c-0.1.txt', 'a/b/c-0.2.txt'])  
     assert_equal ['c-0.1', 'c-0.2'], Tap::Root.minimize(['a/b/c-0.1.txt', 'a/b/c-0.2.rb'])  
-
+    assert_equal ['c-0.1', 'c-0.2'], Tap::Root.minimize(['a/b/c-0.1', 'a/b/c-0.2'])  
+    assert_equal ['c-0.1', 'c-0.2'], Tap::Root.minimize(['a/b/c-0.1', 'a/b/c-0.2'])
+    
     # cases where ext is kept
     assert_equal ['c.txt', 'c.rb'], Tap::Root.minimize(['a/b/c.txt', 'a/b/c.rb'])  
     assert_equal ['c-0.1.txt', 'c-0.1.rb'], Tap::Root.minimize(['a/b/c-0.1.txt', 'a/b/c-0.1.rb'])
@@ -343,6 +345,22 @@ class RootTest < Test::Unit::TestCase
     }
     
     assert_equal expected.sort, Tap::Root.minimize(paths).sort
+    
+    # special cases where order is important so that all paths
+    # can be identified.  (if the order were ['b/c', 'c', 'a/b/c'],  
+    # then no linear minimal_match lookup could select c)
+    assert_equal ['c', 'b/c', 'a/b/c'], Tap::Root.minimize(['b/c', 'a/b/c', 'c'])  
+    assert_equal ['c', 'b/c', 'a/b/c'], Tap::Root.minimize(['b/c', 'c', 'a/b/c']) 
+    assert_equal ['c', 'b/c', 'a/b/c'], Tap::Root.minimize(['c', 'a/b/c', 'b/c'])
+    assert_equal ['c', 'b/c', 'a/b/c'], Tap::Root.minimize(['a/b/c', 'c', 'b/c'])  
+     
+    # note in these cases the order of '/b/c' and '/a/b/c' can be reversed
+    # safely, because each minimized paths still can be identified in order
+    # ('a/b/c' and '/b/c'do not conflict)
+    assert_equal [File.expand_path('/c'), File.expand_path('/b/c'), 'a/b/c'], Tap::Root.minimize(['/b/c', '/a/b/c', '/c'].collect {|p| File.expand_path(p)})  
+    assert_equal [File.expand_path('/c'), File.expand_path('/b/c'), 'a/b/c'], Tap::Root.minimize(['/b/c', '/c', '/a/b/c'].collect {|p| File.expand_path(p)}) 
+    assert_equal [File.expand_path('/c'), 'a/b/c', File.expand_path('/b/c')], Tap::Root.minimize(['/c', '/a/b/c', '/b/c'].collect {|p| File.expand_path(p)})
+    assert_equal [File.expand_path('/c'), 'a/b/c', File.expand_path('/b/c')], Tap::Root.minimize(['/a/b/c', '/c', '/b/c'].collect {|p| File.expand_path(p)})  
   end
   
   def test_minimize_speed
@@ -405,22 +423,6 @@ class RootTest < Test::Unit::TestCase
     assert !Tap::Root.minimal_match?('a/b/c-0.1.d', 'c-0.2')
     assert !Tap::Root.minimal_match?('a/b/c-0.1.d', 'c.d')
   end
-  
-  #
-  # Tap::Root.minimal_map test
-  #
-  
-  def test_minimal_map_minimizes_keys_in_hash
-    assert_equal({'c.d' => 'one', 'c.e' => 'two'}, Tap::Root.minimal_map({'a/b/c.d' => 'one', 'a/b/c.e' => 'two'}))
-  end
-  
-  def test_minimal_map_in_reverse_mode_maps_values_to_minimized_keys
-    assert_equal({'one' => 'c.d', 'two' => 'c.e'}, Tap::Root.minimal_map({'a/b/c.d' => 'one', 'a/b/c.e' => 'two'}, true))
-  end
-  
-  def test_minimal_map_in_reverse_mode_raises_error_for_redundant_values
-    assert_raise(RuntimeError) { Tap::Root.minimal_map({'a/b/c.d' => 'one', 'a/b/c.e' => 'one'}, true) }
-  end 
   
   #
   # Tap::Root.split tests
