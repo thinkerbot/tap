@@ -170,7 +170,9 @@ module Tap
           # this would include the trailing comment...
           # text_comment = text.to_s.sub(/^#--.*/m, '')
           #original_comment.to_s + text_comment + (default && add_default ? " (#{default})" : "")
-          original_comment.to_s.strip + (default && add_default ? " (<tt>#{default}</tt>)" : "")
+          comment = original_comment.to_s.strip
+          comment = desc.to_s if comment.empty?
+          comment + (default && add_default ? " (<tt>#{default}</tt>)" : "")
         end
       end
       
