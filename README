@@ -1,13 +1,13 @@
 = {Tap (Task Application)}[http://tap.rubyforge.org]
 
-A framework for creating configurable, distributable, tasks and workflows.
+A framework for creating configurable, distributable tasks and workflows.
 
 == Description
 
-Tap tasks are designed to be easy to configure, test, subclass, use in scripts, 
-and run from the command line.  Tap provides methods to generate and utilize 
-config files, join tasks into workflows, as well as dump and reuse results.  
-Task libraries are readily shared as gems.  Check out the links for tutorials, 
+Tap tasks are designed to be easy to test, subclass, use in scripts, and run 
+from the command line.  Tap provides methods to generate and utilize config 
+files, join tasks into workflows, as well as dump and reuse results.  Task 
+libraries are readily shared as gems.  Check out the links for tutorials, 
 development, and bug tracking.
 
 * Website[http://tap.rubyforge.org]
@@ -27,7 +27,7 @@ development, and bug tracking.
 
 A sample task illustrates the usage of tap:
 
-  # Sample::manifest a sample task
+  # ::manifest a sample task
   #
   # Sample simply prints an input using a user-specified configuration.
   class Sample < Tap::Task
@@ -42,10 +42,12 @@ A sample task illustrates the usage of tap:
     end
   end
 
-Tap pulls documentation out of task classes to generate manifests and help:
+Tap pulls documentation out of task classes to generate manifests:
 
-  % tap run -T
+  % tap --
     sample    # a sample task
+
+And to generate help:
 
   % tap -- sample --help
   Sample -- a sample task
@@ -68,9 +70,17 @@ Tasks are immediately available through tap and in the console:
     I[19:44:52]             sample one was processed with value
 
   % tap console
-  >> require 'sample'; s = Sample.new; s.process('input')
-    I[19:48:02]             sample input was processed with value
-  => "input was processed with value"
+  >> require 'sample'; s = Sample.new; s.process('one')
+    I[19:48:02]             sample one was processed with value
+  => "one was processed with value"
+
+Tap comes with generators (even a generator generator) and can find tasks
+and generators in gems.  This can be illustrated by installing the 
+{sample_tasks}[http://tap.rubyforge.org/sample_tasks] gem:
+
+  % gem install sample_tasks
+  % tap --
+    [TODO -- list sample tasks!]
 
 === Bugs/Known Issues
 

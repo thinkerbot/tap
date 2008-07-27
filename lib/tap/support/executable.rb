@@ -12,10 +12,6 @@ module Tap
       # Stores the on complete block.  Default is Executable.default_on_complete_block.
       attr_reader :on_complete_block
     
-      protected
-      
-      attr_writer :_method_name
-    
       public
 
       def self.initialize(obj, method_name, multithread=false, &on_complete_block)
@@ -83,14 +79,24 @@ module Tap
 end
 
 # Tap extends Object with a convenience method to generate methods
-# that can be enqued by App and incorporated into workflows.  
+# that can be enqued by Tap::App and incorporated into workflows.
+#
+#   array = []
+#   push_to_array = array._method(:push)
+#
+#   task = Tap::Task.new  
+#   task.app.sequence(task, push_to_array)
+#
+#   task.enq(1).enq(2,3)
+#   task.app.run
+#
+#   array   # => [[1],[2,3]]
+#
 class Object
   
-  # Makes a Tap::Support::Executable for the Method returned by
-  # Object#method, setting multithread and the on_complete block 
-  # as specified.  The method will be called on _execute.
-  #
-  # Returns nil if Object#method returns nil.
+  # Initializes a Tap::Support::Executable using the Method returned by
+  # Object#method(method_name), setting multithread and the on_complete 
+  # block as specified.  Returns nil if Object#method returns nil.
   def _method(method_name, multithread=false, &on_complete_block) # :yields:  _result
     return nil unless m = method(method_name)
     Tap::Support::Executable.initialize(m, :call, multithread, &on_complete_block)

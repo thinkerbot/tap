@@ -34,5 +34,22 @@ class ExecutableTest < Test::Unit::TestCase
     assert_raise(RuntimeError) { m.on_complete {} }
     assert_raise(RuntimeError) { m.on_complete }
   end
+  
+  #
+  # Object#_method test
+  #
+  
+  def test__method_doc
+    array = []
+    push_to_array = array._method(:push)
+  
+    task = Tap::Task.new  
+    task.app.sequence(task, push_to_array)
+  
+    task.enq(1).enq(2,3)
+    task.app.run
+  
+    assert_equal [[1],[2,3]], array
+  end
 
 end
