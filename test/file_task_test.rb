@@ -177,7 +177,7 @@ class FileTaskTest < Test::Unit::TestCase
     t = Tap::FileTask.new 
     t.app[:data, true] = "/data" 
     assert_equal "tap/file_task", t.name
-    assert_equal "/data/tap/file_task/result.txt", t.filepath(:data, "result.txt")
+    assert_equal File.expand_path("/data/tap/file_task/result.txt"), t.filepath(:data, "result.txt")
   end
 
   def test_filepath_constructs_path_using_app_filepath_and_name
@@ -196,7 +196,7 @@ class FileTaskTest < Test::Unit::TestCase
     t.app['backup', true] = "/backup"
     time = Time.utc(2008,8,8)
 
-    assert_equal "/backup/name/file_20080808.txt", t.backup_filepath("path/to/file.txt", time)
+    assert_equal File.expand_path("/backup/name/file_20080808.txt"), t.backup_filepath("path/to/file.txt", time)
   end
 
   def test_backup_filepath_constructs_filepath_from_backup_dir_name_and_input_basename

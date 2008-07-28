@@ -357,10 +357,10 @@ class RootTest < Test::Unit::TestCase
     # note in these cases the order of '/b/c' and '/a/b/c' can be reversed
     # safely, because each minimized paths still can be identified in order
     # ('a/b/c' and '/b/c'do not conflict)
-    assert_equal [File.expand_path('/c'), File.expand_path('/b/c'), 'a/b/c'], Tap::Root.minimize(['/b/c', '/a/b/c', '/c'].collect {|p| File.expand_path(p)})  
-    assert_equal [File.expand_path('/c'), File.expand_path('/b/c'), 'a/b/c'], Tap::Root.minimize(['/b/c', '/c', '/a/b/c'].collect {|p| File.expand_path(p)}) 
-    assert_equal [File.expand_path('/c'), 'a/b/c', File.expand_path('/b/c')], Tap::Root.minimize(['/c', '/a/b/c', '/b/c'].collect {|p| File.expand_path(p)})
-    assert_equal [File.expand_path('/c'), 'a/b/c', File.expand_path('/b/c')], Tap::Root.minimize(['/a/b/c', '/c', '/b/c'].collect {|p| File.expand_path(p)})  
+    assert_equal ['/c', '/b/c', 'a/b/c'], Tap::Root.minimize(['/b/c', '/a/b/c', '/c'])  
+    assert_equal ['/c', '/b/c', 'a/b/c'], Tap::Root.minimize(['/b/c', '/c', '/a/b/c']) 
+    assert_equal ['/c', 'a/b/c', '/b/c'], Tap::Root.minimize(['/c', '/a/b/c', '/b/c'])
+    assert_equal ['/c', 'a/b/c', '/b/c'], Tap::Root.minimize(['/a/b/c', '/c', '/b/c'])  
   end
   
   def test_minimize_speed
