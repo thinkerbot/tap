@@ -6,9 +6,6 @@ require 'ostruct'
 require 'thread'
 require 'erb'
 
-autoload(:OptionParser, 'optparse')
-autoload(:PP, "pp")
-
 # Apply version-specific patches
 case RUBY_VERSION
 when /^1.9/

@@ -94,23 +94,6 @@ module Tap
         attributes[:arg_type] || :mandatory
       end
       
-      def arg_type_for_option_parser
-        case arg_type
-        when :optional 
-          "#{long} [#{arg_name}]"
-        when :switch 
-          long(true)
-        when :flag
-          long
-        when :list
-          "#{long} a,b,c"
-        when :mandatory, nil
-          "#{long} #{arg_name}"
-        else
-          raise "unknown arg_type: #{arg_type}"
-        end
-      end
-      
       def long(switch_notation=false, hyphenize=true)
         Configuration.longify(attributes[:long] || name.to_s, switch_notation, hyphenize)
       end

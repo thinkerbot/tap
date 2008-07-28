@@ -1,6 +1,8 @@
 require 'tap/generator/base'
 require 'tap/generator/generate'
+require 'tap/support/command_line'
 
+cmdline = Tap::Support::CommandLine
 env = Tap::Env.instance
 
 if ARGV.empty?
@@ -12,5 +14,5 @@ name = ARGV.shift
 const = env.search(:generators, name) or raise "unknown generator: #{name}"
 
 generator_class = const.constantize
-generator, argv = generator_class.argv_new(ARGV)
+generator, argv = cmdline.instantiate(generator_class, ARGV)
 generator.extend(Tap::Generator::Generate).process(*argv)

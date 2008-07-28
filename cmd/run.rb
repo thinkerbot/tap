@@ -20,19 +20,15 @@ OptionParser.new do |opts|
   
   opts.separator ""
   opts.separator "configurations:"
-        
-  Tap::App.configurations.each do |receiver, key, configuration|
+  
+  Tap::App.configurations.each do |receiver, key, config|
     next if receiver == Tap::Root
     
-    desc = configuration.desc
-    desc.extend(Tap::Support::FrameworkMethods::OptParseComment) if desc.kind_of?(Tap::Support::Comment)
-          
-    configv = [configuration.short, configuration.arg_type_for_option_parser, desc]
-    opts.on(*configv.compact) do |value|
+    opts.on(*cmdline.configv(config)) do |value|
       app.send(configuration.writer, value)
     end
   end
-        
+ 
   opts.separator ""
   opts.separator "options:"
 
@@ -73,8 +69,8 @@ rounds = cmdline.split(ARGV).collect do |argv|
     task_class = const.constantize or raise "unknown task: #{td}"
     
     # now let the class handle the argv
-    task, argv = task_class.argv_new(ARGV, app)
-    task.enq *argv.collect! {|str| Tap::Support::CommandLine.parse_yaml(str) }
+    task, argv = cmdline.instantiate(task_class, ARGV, app)
+    task.enq *argv.collect! {|str| cmdline.parse_yaml(str) }
   end
 
   app.queue.clear
