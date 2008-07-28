@@ -10,16 +10,16 @@ files, join tasks into workflows, as well as dump and reuse results.  Task
 libraries are readily shared as gems.  Check out the links for tutorials, 
 development, and bug tracking.
 
+* {Tutorial}[link:files/doc/Tutorial.html]
 * Website[http://tap.rubyforge.org]
-* Rubyforge[http://rubyforge.org/projects/tap]
 * Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/overview]
 * Github[http://github.com/bahuvrihi/tap/tree/master]
 
 === Additional Notes:
 
 - Tap and Rake[http://rake.rubyforge.org/] are targeted at different problems, 
-  but play well together. See the {rap}[http://tap.rubyforge.org/rap] 
-  gem to use rake tasks in tap, and for a more concise run executable.
+  but play well together. See the {sample_tasks}[http://tap.rubyforge.org/sample_tasks] 
+  gem to use rake tasks in tap.
 - Tap is tested on MRI (the standard Ruby interpreter, versions 1.8.6 and 
   1.9.0) and JRuby[http://jruby.codehaus.org/].
 

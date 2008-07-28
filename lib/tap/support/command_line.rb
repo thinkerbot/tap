@@ -127,16 +127,25 @@ module Tap
         end
         
         # Add option for name
-        name = nil
+        name = framework_class.default_name
         opts.on_tail('--name NAME', /^[^-].*/, 'Specify a name') do |value|
           name = value
         end
         
         # Add option to add args
-        opts.on_tail('--use FILE', /^[^-].*/, 'Loads inputs from file') do |v|
-          hash = YAML.load_file(value)
-          hash.values.each do |args| 
-            ARGV.concat(args)
+        use_args = []
+        opts.on_tail('--use FILE', /^[^-].*/, 'Loads inputs from file') do |value|
+          obj = YAML.load_file(value)
+          case obj
+          when Hash 
+            obj.values.each do |value|
+              # error if value isn't an array
+              use_args.concat(value)
+            end
+          when Array 
+            use_args.concat(obj)
+          else
+            use_args << obj
           end
         end
 
@@ -151,7 +160,7 @@ module Tap
           path_configs = path_configs[0]
         end
         
-        [obj.reconfigure(path_configs).reconfigure(config), argv]
+        [obj.reconfigure(path_configs).reconfigure(config), argv + use_args]
       end
       
       def configv(config)

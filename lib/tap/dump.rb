@@ -15,9 +15,9 @@ module Tap
   #
   class Dump < Tap::FileTask
     
-    config :datetime_format, '%Y-%m-%d %H:%M:%S'
-    config :print_audit, true
-    config :print_date, true
+    config :date_format, '%Y-%m-%d %H:%M:%S'
+    config :audit, true, &c.switch
+    config :date, true, &c.switch
     
     #config :overwrite
     
@@ -41,13 +41,13 @@ module Tap
         _results.each {|_audit| trails << _audit._to_s }
       end
       
-      if print_audit
+      if audit
         io.puts "# audit:"
         trails.each {|trail| io.puts "# #{trail.gsub("\n", "\n# ")}"}
       end
         
-      if print_date
-        io.puts "# date: #{Time.now.strftime(datetime_format)}"
+      if date
+        io.puts "# date: #{Time.now.strftime(date_format)}"
       end
         
       YAML::dump(results, io)
