@@ -217,6 +217,12 @@ examples:
   tap run --help                     Prints this help
   tap run -- task --help             Prints help for task
 
+configurations:
+        --max-threads MAX_THREADS    For multithread execution
+        --debug
+        --force                      Force execution at checkpoints
+        --quiet                      Suppress logging
+
 options:
     -h, --help                       Show this message
     -T, --manifest                   Print a list of available tasks

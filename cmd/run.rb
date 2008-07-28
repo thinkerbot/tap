@@ -19,10 +19,26 @@ dump = false
 OptionParser.new do |opts|
   
   opts.separator ""
+  opts.separator "configurations:"
+        
+  Tap::App.configurations.each do |receiver, key, configuration|
+    next if receiver == Tap::Root
+    
+    desc = configuration.desc
+    desc.extend(Tap::Support::FrameworkMethods::OptParseComment) if desc.kind_of?(Tap::Support::Comment)
+          
+    configv = [configuration.short, configuration.arg_type_for_option_parser, desc]
+    opts.on(*configv.compact) do |value|
+      app.send(configuration.writer, value)
+    end
+  end
+        
+  opts.separator ""
   opts.separator "options:"
 
   opts.on("-h", "--help", "Show this message") do
-    opts.banner = Tap::Support::CommandLine.usage(__FILE__)
+    opts.banner = cmdline.usage(__FILE__)
+    Tap::App.lazydoc.resolve
     puts opts
     exit
   end

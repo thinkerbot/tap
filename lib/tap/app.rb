@@ -239,6 +239,10 @@ module Tap
       def instance
         @instance ||= App.new
       end
+      
+      def lazydoc
+        Support::Lazydoc[__FILE__]
+      end
     end
 
     # The shared logger
@@ -254,11 +258,11 @@ module Tap
     # methods that have no on_complete block
     attr_reader :aggregator
     
-    config :force, false, &c.switch
-    config :quiet, false, &c.switch
-    config :debug, false, &c.switch
-    config :max_threads, 10, &c.integer
-    
+    config :max_threads, 10, &c.integer           # For multithread execution
+    config :debug, false, &c.flag                 
+    config :force, false, &c.flag                 # Force execution at checkpoints
+    config :quiet, false, &c.flag                 # Suppress logging
+
     # The constants defining the possible App states.  
     module State
       READY = 0
