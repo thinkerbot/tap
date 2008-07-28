@@ -5,9 +5,11 @@
 #   tap run -- task --help             Prints help for task
 #
 
-env = Tap::Env.instance.envs[0]
-app = Tap::App.instance
+require 'tap/support/command_line'
 cmdline = Tap::Support::CommandLine
+
+env = Tap::Env.instance.envs[0] || Tap::Env.instance
+app = Tap::App.instance
 
 #
 # handle options
@@ -81,8 +83,6 @@ if signals.include?("INFO")
   Signal.trap("INFO") do
     puts app.info
   end
-  
-  # puts "ctl-i prints information"
 end
 
 # interuption signal
@@ -91,7 +91,7 @@ if signals.include?("INT")
     puts " interrupted!"
     # prompt for decision
     while true
-      print "stop, terminate, or resume? (s/t/r):"
+      print "stop, terminate, exit, or resume? (s/t/e/r):"
       case gets.strip
       when /s(top)?/i 
         app.stop
@@ -99,6 +99,8 @@ if signals.include?("INT")
       when /t(erminate)?/i 
         app.terminate
         break
+      when /e(xit)?/i 
+        exit
       when /r(esume)?/i 
         break
       else
@@ -106,14 +108,12 @@ if signals.include?("INT")
       end
     end
   end
-
-  # puts "ctl-c interupts execution"
 end
 
 #
 # enque tasks and run!
 #
-# puts "beginning run..."
+
 rounds.each_with_index do |queue, i|
   app.queue.concat(queue)
   app.run

@@ -18,8 +18,8 @@ development, and bug tracking.
 === Additional Notes:
 
 - Tap and Rake[http://rake.rubyforge.org/] are targeted at different problems, 
-  but play well together. See the {sample_tasks}[http://tap.rubyforge.org/sample_tasks] 
-  gem to use rake tasks in tap.
+  but play well together. See the {rap}[http://tap.rubyforge.org/rap] 
+  gem to use rake tasks in tap, and for a more concise run executable.
 - Tap is tested on MRI (the standard Ruby interpreter, versions 1.8.6 and 
   1.9.0) and JRuby[http://jruby.codehaus.org/].
 
@@ -44,12 +44,12 @@ A sample task illustrates the usage of tap:
 
 Tap pulls documentation out of task classes to generate manifests:
 
-  % tap --
+  % tap run -T
     sample    # a sample task
 
 And to generate help:
 
-  % tap -- sample --help
+  % tap run -- sample --help
   Sample -- a sample task
   --------------------------------------------------------------------------------
     Sample simply prints an input using a user-specified configuration.
@@ -66,9 +66,12 @@ And to generate help:
 
 Tasks are immediately available through tap and in the console:
 
-  % tap -- sample one
+  % tap run -- sample one
     I[19:44:52]             sample one was processed with value
 
+  % tap run -- sample one --key alt_value
+    I[19:44:52]             sample one was processed with alt_value
+	
   % tap console
   >> require 'sample'; s = Sample.new; s.process('one')
     I[19:48:02]             sample one was processed with value
@@ -79,7 +82,7 @@ and generators in gems.  This can be illustrated by installing the
 {sample_tasks}[http://tap.rubyforge.org/sample_tasks] gem:
 
   % gem install sample_tasks
-  % tap --
+  % tap run -T
     concat      # concatenate files with formatting
     copy        # copies files
     grep        # search for lines matching a pattern
