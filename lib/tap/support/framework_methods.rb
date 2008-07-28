@@ -3,8 +3,10 @@ module Tap
   
     # FrameworkMethods encapsulates class methods related to Framework.
     module FrameworkMethods
-      
-      # ConfigurableMethods initializes base.configurations on extend.
+       
+      # Returns the default name for the class: to_s.underscore
+      attr_accessor :default_name
+           
       def self.extended(base)
         caller.each_with_index do |line, index|
           case line
@@ -14,31 +16,20 @@ module Tap
             break
           end
         end
+        
         base.instance_variable_set(:@default_name, base.to_s.underscore)
       end
       
-      # When subclassed, the configurations are duplicated and passed to 
-      # the child class where they can be extended/modified without affecting
-      # the configurations of the parent class.
       def inherited(child)
-        super
-        caller.first =~ /^(([A-z]:)?[^:]+):(\d+)/
-        child.instance_variable_set(:@source_file, File.expand_path($1))
+        unless child.instance_variable_defined?(:@source_file)
+          caller.first =~ /^(([A-z]:)?[^:]+):(\d+)/
+          child.instance_variable_set(:@source_file, File.expand_path($1)) 
+        end
+        
         child.instance_variable_set(:@default_name, child.to_s.underscore)
+        super
       end
-      
-      # The source_file for self.  By default the first file
-      # to define the class inheriting FrameworkMethods.
-      attr_accessor :source_file
-      
-      # Returns the lazydoc for source_file
-      def lazydoc
-        Lazydoc[source_file]
-      end
-      
-      # Returns the default name for the class: to_s.underscore
-      attr_accessor :default_name
-      
+
       def subclass(const_name, configs={}, block_method=:process, &block)
         # Generate the nesting module
         current, constants = const_name.to_s.constants_split

@@ -50,17 +50,40 @@ module Tap
       # A Tap::Support::ClassConfiguration holding the class configurations.
       attr_reader :configurations
       
+      # The source_file for self.  By default the first file
+      # to define the class inheriting ConfigurableMethods.
+      attr_accessor :source_file
+
       # ConfigurableMethods initializes base.configurations on extend.
       def self.extended(base)
+        caller.each_with_index do |line, index|
+          case line
+          when /\/configurable.rb/ then next
+          when /^(([A-z]:)?[^:]+):(\d+)/
+            base.instance_variable_set(:@source_file, File.expand_path($1))
+            break
+          end
+        end
+        
         base.instance_variable_set(:@configurations, ClassConfiguration.new(base))
       end
-      
+
       # When subclassed, the parent.configurations are duplicated and passed to 
       # the child class where they can be extended/modified without affecting
       # the configurations of the parent class.
       def inherited(child)
-        super
+        unless child.instance_variable_defined?(:@source_file)
+          caller.first =~ /^(([A-z]:)?[^:]+):(\d+)/
+          child.instance_variable_set(:@source_file, File.expand_path($1)) 
+        end
+        
         child.instance_variable_set(:@configurations, ClassConfiguration.new(child, @configurations))
+        super
+      end
+      
+      # Returns the lazydoc for source_file
+      def lazydoc
+        Lazydoc[source_file]
       end
       
       protected

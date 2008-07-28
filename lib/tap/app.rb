@@ -239,10 +239,6 @@ module Tap
       def instance
         @instance ||= App.new
       end
-      
-      def lazydoc
-        Support::Lazydoc[__FILE__]
-      end
     end
 
     # The shared logger
