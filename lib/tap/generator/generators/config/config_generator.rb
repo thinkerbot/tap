@@ -23,7 +23,7 @@ module Tap::Generator::Generators
     config :doc, true, &c.switch  # Generates the config w/wo documentation.
     
     def env
-      Tap::Env.instance.envs[0]
+      Tap::Env.instance
     end
 
     def manifest(m, name, config_name=name)

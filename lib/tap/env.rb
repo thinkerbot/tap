@@ -523,7 +523,7 @@ module Tap
     def map(name, reverse=false)
       hash = manifest(name)
       results = []
-      Root.minimize(hash.keys.sort) do |p, mp| 
+      Root.minimize(hash.keys.sort_by {|p| File.basename(p)}) do |p, mp| 
         results << (reverse ? [hash[p], mp] : [mp, hash[p]])
       end
       results

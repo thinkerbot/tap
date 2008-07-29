@@ -7,17 +7,17 @@ module Tap
       Tap::Task.subclass(name, configs, &block)
     end
     
-    def fasc(name, *configs, &block)
+    def file_tasc(name, *configs, &block)
       configs = configs[0] if configs.length == 1 && configs[0].kind_of?(Hash)
       Tap::FileTask.subclass(name, configs, &block)
     end
     
-    def worc(name, *configs, &block)
+    def worcflow(name, *configs, &block)
       configs = configs[0] if configs.length == 1 && configs[0].kind_of?(Hash)
       Tap::Workflow.subclass(name, configs, &block)
     end
     
-    def cc(key, value=nil, options={}, &block)
+    def config(key, value=nil, options={}, &block)
       caller.each_with_index do |line, index|
         case line
         when /^(([A-z]:)?[^:]+):(\d+)/
@@ -29,7 +29,7 @@ module Tap
       [:config, key, value, options, block]
     end
     
-    def ca(key, value=nil, options={}, &block)
+    def config_attr(key, value=nil, options={}, &block)
       caller.each_with_index do |line, index|
         case line
         when /^(([A-z]:)?[^:]+):(\d+)/

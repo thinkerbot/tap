@@ -57,15 +57,27 @@ module Tap
         subclass.send(:define_method, block_method, &block)
         subclass.default_name = const_name
         
+        const_name = case current
+        when Object then subclass_const
+        else "#{current}::#{subclass_const}"
+        end
+        
         caller.each_with_index do |line, index|
           case line
           when /\/tap\/declarations.rb/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
             subclass.source_file = File.expand_path($1)
-            subclass.lazydoc["#{current}::#{subclass_const}", false]['manifest'] = subclass.lazydoc.register($3.to_i - 1)
+            subclass.lazydoc[const_name, false]['manifest'] = subclass.lazydoc.register($3.to_i - 1)
             break
           end
         end
+        
+        comment = Comment.new
+        comment.subject = case block.arity
+        when -1 then "INPUTS..."
+        else Array.new(block.arity, "INPUT").join(' ')
+        end
+        subclass.lazydoc[const_name, false]['args'] ||= comment
         
         # Set the subclass constant
         current.const_set(subclass_const, subclass)
@@ -149,10 +161,10 @@ module Tap
         [obj.reconfigure(path_configs).reconfigure(config), argv + use_args]
       end
       
-      def lazydoc(resolve=false)
+      def lazydoc(resolve=false, args_method=:process)
         if resolve
           lazydoc = super(false)
-          lazydoc.resolve(nil, /^\s*def\s+process(\((.*?)\))?/) do |comment, match|
+          lazydoc.resolve(nil, /^\s*def\s+#{args_method}(\((.*?)\))?/) do |comment, match|
             comment.subject = match[2].to_s.split(',').collect do |arg|
               arg = arg.strip.upcase
               case arg
@@ -166,7 +178,7 @@ module Tap
           end
         end
         
-        super
+        super(false)
       end
       
       def help

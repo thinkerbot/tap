@@ -37,6 +37,7 @@ Gem::Specification.new do |s|
     bin/tap
     lib/tap/app.rb
     lib/tap/constants.rb
+    lib/tap/declarations.rb
     lib/tap/dump.rb
     lib/tap/env.rb
     lib/tap/file_task.rb
@@ -68,6 +69,7 @@ Gem::Specification.new do |s|
     lib/tap/patches/rake/testtask.rb
     lib/tap/patches/ruby19/backtrace_filter.rb
     lib/tap/patches/ruby19/parsedate.rb
+    lib/tap/rake.rb
     lib/tap/root.rb
     lib/tap/support/aggregator.rb
     lib/tap/support/assignments.rb
@@ -89,7 +91,6 @@ Gem::Specification.new do |s|
     lib/tap/support/instance_configuration.rb
     lib/tap/support/lazydoc.rb
     lib/tap/support/logger.rb
-    lib/tap/support/rake.rb
     lib/tap/support/run_error.rb
     lib/tap/support/shell_utils.rb
     lib/tap/support/tdoc.rb

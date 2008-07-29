@@ -40,7 +40,7 @@ begin
   end
   
   tap = Tap::Env.instance_for(tap_root_dir)
-  tap.unshift(env)
+  env.push(tap)
 
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
@@ -58,7 +58,7 @@ at_exit do
     eval(after) if after != nil
   rescue(Exception)
     puts "Error in after script."
-    tap.handle_error($!)
+    env.handle_error($!)
     exit(1)
   end
 end
@@ -71,7 +71,7 @@ begin
   eval(before) if before != nil
 rescue(Exception)
   puts "Error in before script."
-  tap.handle_error($!)
+  env.handle_error($!)
   exit(1)
 end 
 
@@ -80,7 +80,7 @@ end
 #
 
 begin
-  tap.activate
+  env.activate
 
   command = ARGV.shift
   if aliases && aliases.has_key?(command)
@@ -96,11 +96,11 @@ begin
     puts Tap::Support::CommandLine.usage(__FILE__)
     puts
     puts "available commands:"
-    puts tap.summarize(:commands)
+    puts env.summarize(:commands)
     puts
     puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}" 
   else
-    if path = tap.search(:commands, command)
+    if path = env.search(:commands, command)
       load path # run the command, if it exists
     else
       puts "Unknown command: '#{command}'"
@@ -108,7 +108,7 @@ begin
     end
   end
 rescue
-  tap.handle_error($!)
+  env.handle_error($!)
 end
 
 exit(0)

@@ -3,7 +3,7 @@ require 'tap/generator/generate'
 
 env = Tap::Env.instance
 
-if ARGV.empty?
+if ARGV.empty? || ARGV == ['-T']
   puts env.summarize(:generators) {|const| const.document[const.name]['generator'] }
   exit
 end

@@ -15,9 +15,9 @@ module Tap
     #   block = lambda {}
     #   CONST = block
     #
-    # This is simply to play well with RDoc, which gets jacked when you 
-    # do it all in one step.
-    #
+    # This syntax plays well with RDoc, which otherwise gets jacked 
+    # when you do it all in one step.
+    #++
     module Validation
       
       # Raised when Validation blocks fail.

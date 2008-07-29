@@ -2,10 +2,10 @@
 
 === Basic Usage
 
-Begin by creating a tap root directory structure:
+Install, then begin by creating a tap root directory structure:
 
-  % tap generate root sample_root
-  % cd sample_root
+  % tap generate root root
+  % cd root
   
 Make a task:
 
@@ -35,73 +35,63 @@ Get help for the task:
 Run the task:
 
   % tap run -- sample one
-    I[21:32:28]        sample one was processed with value
+    I[09:45:29]             sample one was processed with value
     
 Run the task, setting the 'key' configuration:
   
-  % tap run -- sample --key alt_value
-    I[21:32:28]        sample one was processed with alt_value
-    
+  % tap run -- sample one --key alt_value
+    I[09:45:53]             sample one was processed with alt_value
+  
 Run multiple tasks, or in this case the same task twice:
 
   % tap run -- sample one -- sample two
-    I[21:50:40]        sample one was processed with value
-    I[21:50:40]        sample two was processed with value
-    
+    I[09:46:11]             sample one was processed with value
+    I[09:46:11]             sample two was processed with value
+
 Same as above, but now dump the results to a file:
 
-  % tap run -- sample one -- sample two --+ dump 'sample_output.yml'
-    I[15:55:26]             sample one was processed with value
-    I[15:55:26]             sample two was processed with value
-    I[15:55:26]               dump data/sample_output.yml
+  % tap run -- sample one -- sample two --+ dump output.yml
+    I[09:46:38]             sample one was processed with value
+    I[09:46:38]             sample two was processed with value
+    I[09:46:38]               dump output.yml
 
 The dump file contents look like this:
 
-  [data/sample_output.yml]
+  [output.yml]
   # audit:
-  # o-[] "one"
-  # o-[sample] "one was processed with value"
-  # 
   # o-[] "two"
   # o-[sample] "two was processed with value"
   # 
-  # date: 2008-07-28 15:55:26
+  # o-[] "one"
+  # o-[sample] "one was processed with value"
+  # 
+  # date: 2008-07-29 09:46:38
   --- 
-  sample (23300910): 
-  - one was processed with value
-  sample (23295820): 
+  sample (9953790): 
   - two was processed with value
+  sample (79910): 
+  - one was processed with value
 
-The comments at the beginning are an audit trace of the run.  In this case two separate tasks were run sequentially, hence you can see each task, the task inputs, and the task results separately.  A YAML hash follows the audit and represents the results of each task keyed like 'task_name (object_id)'.  We'll re-use these results in a minute.
+The comments at the beginning are an audit trace of the run.  In this case two separate tasks were run sequentially, hence you can see each task, the task inputs, and the task results as separate units.  A YAML hash follows the audit with the aggregated task results, keyed by the task name and object id.  Since the results are represented as a hash, the order of the tasks sometimes gets scrambled, as in this case.
 
 === Task Definition
 
-Navigate to and open the 'lib/sample.rb' file.  Inside you can see the class definition.  Let's change it up a bit:
+Navigate to and open the <tt>lib/sample.rb</tt> file.  Inside you can see the class definition.  Let's change it up a bit:
 
   [lib/sample/task.rb]
-  # ::manifest an echo task with configurations
+  # ::manifest a sample task with configurations
   #
-  # As can be seen here, the documentation for a task is declared
-  # in the comments rather than in the code.  As a result, this
-  # text can also be seen in the RDoc (if you wish).
-  #
-  # This refurbished sample task takes multiple inputs and echos
+  # This modified sample task takes multiple inputs and echos
   # them back with a comment.
   #
   class Sample < Tap::Task
-
-    # Extended configuration documentation 
-    # can be put here.  It will appear in
-    # config files and RDoc (if you wish).
+  
     config :comment, 'received'           # a comment to lead the echo
-    
-    # A config with a validation block.
     config :reverse, false, &c.flag       # reverses the comment
   
     def process(*inputs)
-      # note the configs map to methods
       log self.name, (reverse ? comment.reverse : comment)
-      
+
       inputs.each do |input|
         log '', input
       end
@@ -111,17 +101,13 @@ Navigate to and open the 'lib/sample.rb' file.  Inside you can see the class def
 The new configurations and documentation are immediately available:
 
   % tap run -- sample --help
-  Sample -- an echo task with configurations
+  Sample -- a sample task with configurations
   --------------------------------------------------------------------------------
-    As can be seen here, the documentation for a task is declared in the comments
-    rather than in the code.  As a result, this text can also be seen in the RDoc
-    (if you wish).
-
-    This refurbished sample task takes multiple inputs and echos them back with a
+    This modified sample task takes multiple inputs and echos them back with a
     comment.
   --------------------------------------------------------------------------------
   usage: tap run -- sample INPUTS...
-  
+
   configurations:
           --comment COMMENT            a comment to lead the echo
           --reverse                    reverses the comment
@@ -134,47 +120,109 @@ The new configurations and documentation are immediately available:
 And the task is ready to go:
 
   % tap run -- sample one
-    I[16:30:47]             sample received
-    I[16:30:47]                    one
-    
-  % tap run -- sample one two --comment tog --reverse
-    I[16:35:20]             sample got
-    I[16:35:20]                    one
-    I[16:35:20]                    two   
+    I[09:50:06]             sample received
+    I[09:50:06]                    one
   
+  % tap run -- sample one two --comment tog --reverse
+    I[09:50:24]             sample got
+    I[09:50:24]                    one
+    I[09:50:24]                    two
+   
 Now lets use the previous results; they get loaded and added to the end of the inputs:
 
-  % tap run -- sample --use sample_output.yml
-    I[16:40:38]             sample received
-    I[16:40:38]                    one was processed with value
-    I[16:40:38]                    two was processed with value
+  % tap run -- sample --use output.yml
+    I[09:50:44]             sample received
+    I[09:50:44]                    two was processed with value
+    I[09:50:44]                    one was processed with value
+
+=== Task Declaration
+
+Sometimes a condensed task declaration is desirable.  Tap provides a declaration
+syntax a-la rake, made phonetic to prevent conflicts with rake.  Declarations
+can get put in any .rb file under the lib directory, so might as well use
+<tt>lib/tascs.rb</tt>.
+
+  [lib/tascs.rb]
+  include Tap::Declarations
+
+  # Concat::manifest concatenates a trailer to the input
+  tasc('concat', :trailer => ' world') do |str|
+    result = str + trailer
+    log '', result
+    result
+  end
+
+The declaration makes a task class based on the name (ie namespaces are naturally
+supported by names like 'nested/task').  The classes are ready for use in scripts:
+
+  Concat.new.process('hello')       # => 'hello world'
+
+And from the command line:
+
+  % tap run -- concat hello --trailer ' ca'
+    [09:55:21]                    hello ca
+
+  % tap run -T
+  root:
+    concat      # concatenates a trailer to the input
+    sample      # a sample task with configurations
+  tap:
+    dump        # the default dump task
+    rake        # run rake tasks
+
+And if you want to get fancy, you can add configs and documentation as in the
+full task definition:
+
+  [lib/tascs.rb]
+  # Nested::Task::manifest just for illustration
+  #
+  # Extended documentation...
+  #
+  tasc('nested/task', 
+    config(:key, 'value'),         # a config
+    config(:number, 1, &c.num)     # a config validated as a number
+  ) do |input|
+    # ...
+  end
+  
+  % tap run -- nested/task --help
+  Nested::Task -- just for illustration
+  --------------------------------------------------------------------------------
+    Extended documentation...
+  --------------------------------------------------------------------------------
+  usage: tap run -- nested/task 
+
+  configurations:
+          --key KEY                    a config
+          --number NUMBER              a config validated as a number
+
+  options:
+      -h, --help                       Print this help
+          --name NAME                  Specify a name
+          --use FILE                   Loads inputs from file
 
 === Config Files
 
-So say you wanted static configs for this task.  Make a configuration file:
+So say you wanted static configs for a task.  Make a configuration file:
 
   % tap generate config sample
         
-You get documentation in the configuration file by default.  Set the configurations here and they get used by the task:
+Set the configurations here and they get used by the task:
 
   [config/sample.yml]
   ###############################################################################
   # Sample configurations
   ###############################################################################
 
-  # Extended configuration documentation can be put
-  # here.  It will appear in config files and RDoc (if
-  # you wish).
   comment: received
 
-  # A config with a validation block.
   reverse: true
-
+  
 As can be seen here (note reverse was set to true):
 
   % tap run -- sample one
-    I[16:30:47]             sample deviecer
-    I[16:30:47]                    one
+    I[10:24:25]             sample deviecer
+    I[10:24:25]                    one
 
 If you need to batch run the same task with the same inputs, but multiple sets of configurations, simply define an array of configurations in the config file:
   
@@ -184,7 +232,40 @@ If you need to batch run the same task with the same inputs, but multiple sets o
     reverse: true
 
   % tap run -- sample one
-    I[16:51:57]             sample received
-    I[16:51:57]                    one
-    I[16:51:57]           sample_1 got
-    I[16:51:57]                    one
+    I[10:24:55]             sample received
+    I[10:24:55]                    one
+    I[10:24:55]           sample_1 got
+    I[10:24:55]                    one
+
+The --name option sets the config file used:
+
+  % tap run -- sample one --name no_config_file
+    I[10:25:18]     no_config_file received
+    I[10:25:18]                    one
+
+=== Tap Configuration
+
+Tap itself is highly configurable.  Say you think the run syntax is unnecessarily verbose; you can make command aliases to shorten it.  Open the <tt>tap.yml</tt> file in your root directory and set the following:
+
+  [tap.yml]
+  # ... other contents ...
+  alias:
+    --: [run, --]
+    -T: [run, -T]
+
+Now:
+
+  % tap -- concat hello
+    I[10:32:36]                    hello world
+
+  % tap -T
+  root:
+    concat      # concatenates a trailer to the input
+    sample      # a sample task with configurations
+    task        # just for illustration
+  tap:
+    dump        # the default dump task
+    rake        # run rake tasks
+
+Global configurations can go in the <tt>~/.tap.yml</tt> file.  Using configurations, you can specify directory aliases, default options, gems, and even additional environments to load as if they were gems.
+  
