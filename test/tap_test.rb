@@ -29,11 +29,11 @@ help:
   tap command --help                   # prints help for 'command'
 
 available commands:
-  console 
-  destroy 
-  generate
-  run     
-  server  
+  console   
+  destroy   
+  generate  
+  run       
+  server    
 
 version #{Tap::VERSION} -- http://tap.rubyforge.org
 }
@@ -57,11 +57,11 @@ help:
   tap command --help                   # prints help for 'command'
 
 available commands:
-  console 
-  destroy 
-  generate
-  run     
-  server  
+  console   
+  destroy   
+  generate  
+  run       
+  server    
 
 version #{Tap::VERSION} -- http://tap.rubyforge.org
 after line one
@@ -87,11 +87,11 @@ help:
   tap command --help                   # prints help for 'command'
 
 available commands:
-  console 
-  destroy 
-  generate
-  run     
-  server  
+  console   
+  destroy   
+  generate  
+  run       
+  server    
 
 version #{Tap::VERSION} -- http://tap.rubyforge.org
 Error in after script.
@@ -230,17 +230,17 @@ options:
       # manifest
  
       cmd.check " run -T", "Prints manifest", %Q{
-  tap:
-    dump                # the default dump task
-    rake                # run rake tasks
-  test_run:
-    sample              # manifest summary
-    sample_without_doc
-    with_array_config 
-    with_hash_config  
-    with_list_config  
-    with_string_config
-    with_switch_config
+tap:
+  dump                # the default dump task
+  rake                # run rake tasks
+test_run:
+  sample              # manifest summary
+  sample_without_doc
+  with_array_config 
+  with_hash_config  
+  with_list_config  
+  with_string_config
+  with_switch_config
 }
 
       # variations on no task specified 
@@ -385,31 +385,6 @@ options:
       
       cmd.check %Q{ run -- with_string_config --string "\\\\\\n"}, "Run with newline string syntax", 
       /with_string_config \"\\\\n\"/  # "\\n"
-    end
-  end
-  
-  def break_test_run_with_rake
-    script_test(method_root) do |cmd|
-      rake_test_regexp = /running default task/
-      cmd.command_path = %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
-
-      # running rake tasks
-
-      cmd.check " run rake", "Runs default rake task ('default_task')", rake_test_regexp
-      cmd.check " run rake default_task", "Runs default_task", rake_test_regexp
-      cmd.check " run default_task --rake", "Runs default_task", rake_test_regexp
-      cmd.check " run default_task", "Runs default_task using implicit rake", rake_test_regexp
-      cmd.check " run default_task --no-rake", "Treats default_task as a task name", %Q{unknown task: default_task\n}
-
-      # rake with options
-
-      cmd.check " run -- rake -T", "Prints rake tasks", %Q{
-rake default       # Default: Run default_task.
-rake default_task  # Prints 'running default task'.
-}
-
-      cmd.check " run -- rake --help", "Prints rake help", capture_sh("rake --help")
-      cmd.check " run -- rake unknown_task --help", "Prints rake help", capture_sh("rake --help")
     end
   end
   
