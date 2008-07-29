@@ -5,11 +5,9 @@
 #   tap run -- task --help             Prints help for task
 #
 
-require 'tap/support/command_line'
-cmdline = Tap::Support::CommandLine
-
-env = Tap::Env.instance.envs[0] || Tap::Env.instance
+env = Tap::Env.instance
 app = Tap::App.instance
+cmdline = Tap::Support::CommandLine
 
 #
 # handle options
@@ -44,20 +42,16 @@ OptionParser.new do |opts|
     exit
   end
   
-  opts.on('--dump', 'Specifies a default dump task') do |v|
-    dump = v
-  end
-  
 end.parse!(ARGV)
 
 #
 # handle options for each specified task
 #
 
-rounds = cmdline.split(ARGV).collect do |argv|
-  argv.each do |args|
+rounds = cmdline.split(ARGV).collect do |argvs|
+  argvs.each do |argv|
     ARGV.clear  
-    ARGV.concat(args)
+    ARGV.concat(argv)
    
     unless td = cmdline.shift(ARGV)
       # warn nil?
@@ -69,7 +63,7 @@ rounds = cmdline.split(ARGV).collect do |argv|
     task_class = const.constantize or raise "unknown task: #{td}"
     
     # now let the class handle the argv
-    task, argv = cmdline.instantiate(task_class, ARGV, app)
+    task, argv = task_class.instantiate(ARGV, app)
     task.enq *argv.collect! {|str| cmdline.parse_yaml(str) }
   end
 
@@ -130,10 +124,3 @@ rounds.each_with_index do |queue, i|
   app.queue.concat(queue)
   app.run
 end
-
-if dump
-  puts
-  Tap::Dump.new.enq
-  app.run
-end
-

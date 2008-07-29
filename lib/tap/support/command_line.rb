@@ -10,7 +10,7 @@ module Tap
       # Parses the input string as YAML, if the string matches the YAML document 
       # specifier (ie it begins with "---\s*\n").  Otherwise returns the string.
       #
-      #   str = {'key' => 'value'}.to_yaml    # => "--- \nkey: value\n"
+      #   str = {'key' => 'value'}.to_yaml       # => "--- \nkey: value\n"
       #   Tap::Script.parse_yaml(str)            # => {'key' => 'value'}
       #   Tap::Script.parse_yaml("str")          # => "str"
       def parse_yaml(str)
@@ -58,109 +58,6 @@ module Tap
         scanner = StringScanner.new(str)
         scanner.scan(/^#!.*?$/)
         Comment.parse(scanner, false).wrap(cols, 2).strip
-      end
-      
-      DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= manifest.subject.to_s.strip.empty? ? '' : ' -- ' %><%= manifest.subject %>
-
-<% unless manifest.empty? %>
-<%= '-' * 80 %>
-
-<% manifest.wrap(77, 2, nil).each do |line| %>
-  <%= line %>
-<% end %>
-<%= '-' * 80 %>
-<% end %>
-
-<%= opts.to_s %>
-}
-      
-      def instantiate(framework_class, argv, app=Tap::App.instance) # => obj, argv
-        opts = OptionParser.new
-        configurations = framework_class.configurations
-        
-        # Add configurations
-        config = {}
-        unless configurations.empty?
-          opts.separator ""
-          opts.separator "configurations:"
-        end
-        
-        configurations.each do |receiver, key, configuration|
-          opts.on(*configv(configuration)) do |value|
-            config[key] = value
-          end
-        end
-      
-        # Add options on_tail, giving priority to configurations
-        opts.separator ""
-        opts.separator "options:"
-        
-        opts.on_tail("-h", "--help", "Print this help") do
-          lazydoc = framework_class.lazydoc
-          lazydoc.resolve(nil, /^\s*def\s+process(\((.*?)\))?/) do |comment, match|
-            comment.subject = match[2].to_s.split(',').collect do |arg|
-              arg = arg.strip.upcase
-              case arg
-              when /^&/ then nil
-              when /^\*/ then arg[1..-1] + "..."
-              else arg
-              end
-            end.join(', ')
-       
-            lazydoc.default_attributes['args'] ||= comment
-          end
-       
-          Lazydoc.resolve(configurations.code_comments)
-
-          manifest = lazydoc[to_s]['manifest'] || Tap::Support::Comment.new
-          args = lazydoc[to_s]['args'] || Tap::Support::Comment.new
-
-          opts.banner = "usage: tap run -- #{framework_class.to_s.underscore} #{args.subject}" if opts
-        
-          puts Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, 
-            :task_class => framework_class, 
-            :manifest => manifest, 
-            :opts => opts
-          ).build
-          
-          exit
-        end
-        
-        # Add option for name
-        name = framework_class.default_name
-        opts.on_tail('--name NAME', /^[^-].*/, 'Specify a name') do |value|
-          name = value
-        end
-        
-        # Add option to add args
-        use_args = []
-        opts.on_tail('--use FILE', /^[^-].*/, 'Loads inputs from file') do |value|
-          obj = YAML.load_file(value)
-          case obj
-          when Hash 
-            obj.values.each do |value|
-              # error if value isn't an array
-              use_args.concat(value)
-            end
-          when Array 
-            use_args.concat(obj)
-          else
-            use_args << obj
-          end
-        end
-
-        opts.parse!(argv)
-        obj = framework_class.new({}, name, app)
-        
-        path_configs = app.load_config(app.config_filepath(name))
-        if path_configs.kind_of?(Array)
-          path_configs.each_with_index do |path_config, i|
-            obj.initialize_batch_obj(path_config, "#{name}_#{i}") unless i == 0
-          end
-          path_configs = path_configs[0]
-        end
-        
-        [obj.reconfigure(path_configs).reconfigure(config), argv + use_args]
       end
       
       def configv(config)

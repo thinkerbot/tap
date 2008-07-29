@@ -16,11 +16,11 @@ module Tap
       def lines
         lines = []
         @map.each do |(env_lookup, env, map)|
-          lines <<  "=== #{env_lookup} (#{env.root.root})" if @map.length > 1
+          lines <<  "  #{env_lookup}:" if @map.length > 1
           map.each do |(key, path)|
             desc = block_given? ? (yield(path) || '') : ''
             desc = "  # #{desc}" unless desc.empty?
-            lines << ("  %-#{@width}s%s" % [key, desc])
+            lines << ("  #{@map.length > 1 ? '  ' : ''}%-#{@width}s%s" % [key, desc])
           end
         end
         lines

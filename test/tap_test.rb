@@ -226,45 +226,22 @@ configurations:
 options:
     -h, --help                       Show this message
     -T, --manifest                   Print a list of available tasks
-        --dump                       Specifies a default dump task
 }
       # manifest
-      
-      manifest = %Q{
-=== test_run (#{method_root})
-  sample              # manifest summary
-  sample_without_doc
-  with_array_config 
-  with_hash_config  
-  with_list_config  
-  with_string_config
-  with_switch_config
-=== rake tasks
-rake clobber_package  # Remove package products
-rake clobber_rdoc     # Remove rdoc products
-rake default          # Default: Run tests.
-rake gem              # Build the gem file .-0.0.1.gem
-rake package          # Build all the packages
-rake rdoc             # Build the rdoc HTML Files
-rake repackage        # Force a rebuild of the package files
-rake rerdoc           # Force a rebuild of the RDOC files
-rake test             # Run tests
+ 
+      cmd.check " run -T", "Prints manifest", %Q{
+  tap:
+    dump                # the default dump task
+    rake                # run rake tasks
+  test_run:
+    sample              # manifest summary
+    sample_without_doc
+    with_array_config 
+    with_hash_config  
+    with_list_config  
+    with_string_config
+    with_switch_config
 }
-
-      #cmd.check " run -T", "Prints manifest", manifest
-      #cmd.check " run -T -- --no-rake", "Prints manifest", manifest
-      
-      manifest_without_rake = %Q{
-  sample              # manifest summary
-  sample_without_doc
-  with_array_config 
-  with_hash_config  
-  with_list_config  
-  with_string_config
-  with_switch_config
-}
-
-      cmd.check " run -T", "Prints manifest", manifest_without_rake
 
       # variations on no task specified 
 

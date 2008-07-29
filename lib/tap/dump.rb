@@ -1,25 +1,20 @@
 module Tap
-  # ::manifest
-  # A primitive dump task (still in development) to print  
-  # application results to a file or IO.  The results are
-  # printed in a tap-readable format allowing the use of
-  # dumped results as inputs to other tasks.
+  # ::manifest the default dump task
   #
-  # Usually dump is used as the final task in a round of
-  # tasks executed through 'tap run'.
-  # === Usage
-  #   % tap run -- [your tasks] --+ dump filepath
+  # A dump task to print application results to a file or IO.  The results are
+  # printed in a format allowing dumped results to be reloaded and used as
+  # inputs to other tasks.  See Tap::Load for more details.
   #
-  # If no filepath is specified, the results are printed
-  # to stdout.
+  # Often dump is used as the final task in a round of tasks; if no filepath is 
+  # specified, the results are printed to stdout.
+  #  
+  #   % tap run -- [your tasks] --+ dump FILEPATH
   #
   class Dump < Tap::FileTask
     
-    config :date_format, '%Y-%m-%d %H:%M:%S'
-    config :audit, true, &c.switch
-    config :date, true, &c.switch
-    
-    #config :overwrite
+    config :date_format, '%Y-%m-%d %H:%M:%S'   # the date format
+    config :audit, true, &c.switch             # include the audit trails
+    config :date, true, &c.switch              # include a date
     
     def process(target=$stdout)
       case target
@@ -31,6 +26,9 @@ module Tap
       end
     end
     
+    # Dumps the current results in app.aggregator to the io.
+    # The dump will include the result audits and a date,
+    # as specified in config.
     def dump_to(io)
       trails = []
       results = {}

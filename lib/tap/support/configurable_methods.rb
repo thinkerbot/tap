@@ -82,7 +82,8 @@ module Tap
       end
       
       # Returns the lazydoc for source_file
-      def lazydoc
+      def lazydoc(resolve=false)
+        Lazydoc.resolve(configurations.code_comments) if resolve
         Lazydoc[source_file]
       end
       
