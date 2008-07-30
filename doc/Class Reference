@@ -1,0 +1,294 @@
+= Class Reference
+
+Working up from the ground is useful to get a sense for how Tap does what it does.  This reference goes through the modules and classes that build up a task application: Tasks, Apps, and Envs.
+
+== Tasks (Tap::Task, Tap::Workflow)
+
+==== Methods
+
+link:../images/Method.png
+
+Tasks begin with methods, simply a block of code.
+
+==== Tap::Support::Executable
+
+link:../images/Executable.png
+
+Executable extends objects allowing them to be enqued and run by an App.  Executable objects specify a method that gets called upon execution; in essence Executable wraps this method and adds workflow behaviors like auditing and an <tt>on_complete</tt> block.
+
+Tasks are constructed such that <tt>execute</tt> is their executable method.  Task#execute simply provides hooks before and after forwarding control to the <tt>process</tt> method.  Hence <tt>process</tt> is the standard method overridden in subclasses of Task.
+
+==== Tap::Support::Batchable
+
+link:../images/Batchable.png
+
+Tasks can be assembled into batches all enque at the same time, and share the same activity when they complete.  This behavior is very powerful, allowing workflow logic to be defined once but executed under multiple conditions.  Task includes the Batchable module to facilitate batching.
+
+==== Tap::Support::Configurable
+
+link:../images/Configurable.png
+
+Configurable allows the declaration and tracking of class configurations.  Configurable classes have a <tt>configurations</tt> method accessing a ClassConfiguration which holds all declared configs, their default values, and metadata for transforming configurations into command line options (for example).  
+
+Instances of a Configurable class have a <tt>config</tt> method accessing a InstanceConfiguration object.  The instance configuration acts like a forwarding hash; read and write operations for declared configs get forwarded to class methods (undeclared configs are stored directly).  The writer for a config may be defined through a block given to the config declaration.  For instance:
+
+  class ConfigClass
+    include Tap::Support::Configurable
+
+    config :key, 'value' do |input|
+      input.upcase
+    end
+  end
+
+Is basically the same as:
+
+  class RegularClass
+    attr_reader :key
+
+    def key=(input)
+      @key = input.upcase
+    end
+
+    def initialize
+      self.key = 'value'
+    end
+  end
+
+As you can see here:
+
+  c = ConfigClass.new
+  c.key                       # => 'VALUE'
+
+  c.config[:key] = 'new value'
+  c.key                       # => 'NEW VALUE'
+
+  c.key = 'another value'
+  c.config[:key]              # => 'ANOTHER VALUE'
+
+This setup is both fast and convenient.
+
+==== Tap::Support::Lazydoc
+
+link:../images/Lazydoc.png
+
+Ah lazydoc.  Lazydoc fits into the space between live code and code documentation.  Lazydoc can scan a file (code or not) and pull out documentation into the object space where it can be utilized, basically by defining a key-value syntax that is both invalid Ruby and easily hidden in RDoc.  Looks like this:
+
+  # ::key value
+
+Try the former line without the comment and a syntax error results.  In RDoc, the syntax doesn't interfere with any of the standard documentation conventions, and with the use of a start/stopdoc attribute, the line can be fully hidden (an extra space is added to startdoc so the line isn't actually hidden in this docment):
+
+  # :start doc::key value
+
+Lazydoc parses a namespace, the key, the value, and any comment following the value until a non-comment line or an end key.  The results get turned into a Tap::Support::Comment (where the value is the subject and the comment lines are the lines), and stored by file, namespace, and key in Lazydoc.  For example:
+
+  [lazydoc_file.rb]
+  # Name::Space::key value
+  # 
+  # This documentation
+  # gets parsed.
+  #
+
+  # Name::Space::another another value
+  # This gets parsed.
+  # Name::Space::another-
+  # This does not.
+
+  require 'tap'
+
+  lzd = Tap::Support::Lazydoc[__FILE__]
+  lzd.resolve
+
+  lzd['Name::Space']['key'].to_s           # => "This documentation gets parsed."
+  lzd['Name::Space']['another'].subject    # => "another value"
+
+Furthermore, Lazydoc allows living code to register lines that should get documented.  These lines are parsed as values, and the comment lines are parsed up to echo what effectively happens in RDoc.
+
+  [another_lazydoc_file.rb]
+  # documentation
+  # for the method
+  def method
+  end
+
+  require 'tap'
+
+  lzd = Tap::Support::Lazydoc[__FILE__]
+  code_comment = lzd.register(2)
+  lzd.resolve
+  
+  code_comment.subject         # => "def method"
+  code_comment.to_s            # => "documentation for the method"
+
+Tasks register each config that gets declared, and remember the file in which they were originally declared.  Later, the Tap::Env uses this information to facilitate lookup and instantiation of task classes.  
+
+One note: when no namespace is specified for a Lazydoc key, it gets treated as a default for the whole file; in tasks where the class name is echoed in the file name, no namespace is required.  
+
+  [lib/sample/task.rb]
+  # ::manifest sample task description
+  #
+  # This manifest is expected to apply to the Sample::Task class.
+  # If more than one task is defined in this file, or if Sample::Task
+  # is not defined by loading this file, Tap will run into trouble.
+
+The best practice is to include the namespace explicitly.
+
+=== Tap::Task
+
+link:../images/Task.png
+
+Running a task through the tap executable instantiates a task class, configures it, enques it with the inputs, then runs a Tap::App to get the inputs to the <tt>process</tt> method.  Tasks do not have to be used this way, however, they are perfectly capable in free-standing scripts.
+
+Task instances can take a block that acts as a stand-in for process:
+
+  t = Tap::Task.new do |task|
+    1 + 2
+  end
+  t.process                # => 3
+  
+The block can be made to take inputs:
+
+  t = Tap::Task.new do |task, one, two|
+    "#{sum}: #{one + two}"
+  end
+  t.process(1,2)           # => "sum: 3"
+ 
+Tasks can be configured, batched, enqued, and executed to yield audited results:
+
+  t1 = Tap::Task.new(:key => 'one') {|task, input| "#{input}:#{task.config[:key]}"}
+  t2 = t1.initialize_batch_obj(:key => 'two')
+  t3 = t1.initialize_batch_obj(:key => 'three')
+ 
+Notice that the tasks are batched:
+
+  t1.batch                       # => [t1, t2, t3]
+
+Now enque, run, and check out the results.
+
+  app = Tap::App.instance
+  app.enq(t1, 1)
+  app.run
+
+  app.results(t1)                # => ["1:one"]
+  app.results(t2)                # => ["1:two"]
+  app.results(t3)                # => ["1:three"]
+
+All three tasks were executed even though only t1 was enqued, because the tasks are batched.  Also, as a consequence of Task being Executable, the results have associated audit trails:
+
+  audited_result = app._results(t1)[0]
+  audited_result._to_s
+  # => 
+  # o-[] 1
+  # o-[tap/task] "1:one"
+
+Task instances can be joined into workflows.  The workflow model used by Tap is very simple; when a task completes it calls its on_complete block to enque the next task (or tasks) in the workflow.  Arbitrary workflow logic is allowed since there are no restrictions on what the on_complete block does.  Currently Tap supports sequencing, forking, and merging.
+
+  t1 = Tap::Task.new {|task, input| input - 1}
+  t1.name = 'subtract one'
+
+  t2 = Tap::Task.new {|task, input| input * -1}
+  t2.name = 'change sign'
+
+  app.sequence(t1,t2)
+  t1.enq(-7)
+  app.run
+
+  app.results(t1)                # => []
+  app.results(t2)                # => [8]
+
+  audited_result = app._results(t2)[0]
+  audited_result._to_s
+  # => 
+  # o-[] -7
+  # o-['subtract one'] -8
+  # o-['change sign'] 8
+  
+If a task has no on_complete block, App collects the unhandled results (as shown above) so they can be handled somewhere else.  Notice the t1 results were not collected into the aggregator since the t1 on_complete block was set by <tt>app.sequence</tt>.
+	
+=== Tap::Workflow
+
+link:../images/Workflow.png
+
+Workflows are not Tasks but are constructed with the same modules as Task and work very similarly Tasks.  Workflows have a <tt>workflow</tt> method which defines the entry and exit points for the workflow; there can be 1+ entry points and 0+ exit points.  The enque method for a workflow enques all it's entry points, and when the on_complete block is set for a workflow, it is set for all it's exit points.
+
+Like Tasks, Workflows can be configured, enqued, used in (other) workflows, and subclassed.
+
+== Apps
+
+==== Tap::Root
+
+link:../images/Root.png
+
+A Root represents the base of a directory structure. Roots allow you to alias directories and ease working with filepaths,  basically allowing you to develop code in a conceptual directory structure that can be defined later.
+
+Say you had a tap directory that looking like this:
+
+  /path/to/root
+  |- config
+  |   `- sample
+  |       `- task.yml             # a config file for Sample::Task
+  |- lib
+  |   `- sample
+  |       `- task.rb              # the Sample::Task class file
+  |- tap.yml                      # a tap config file
+
+All these files/directories are optional (and there are others that could be added), but for illustration say you instantiated an App to the directory above:
+
+  require 'tap'
+  
+  app = Tap::App.new :root => '/path/to/root_dir'
+  app.root                                      # => '/path/to/root_dir'
+  app['config']                                 # => '/path/to/root_dir/config'
+  app.filepath('config', 'sample/task.yml')     # => '/path/to/root_dir/config/sample/task.yml'
+  
+Then if you wanted to alias the config directory somewhere else:
+
+  # set a new directory relative to root
+  app['config'] = 'alt'
+  app['config']                                 # => '/path/to/root_dir/alt'
+  app.filepath('config', 'sample/task.yml')     # => '/path/to/root_dir/alt/sample/task.yml'
+  
+  # set an absolute path to anywhere
+  app['config', true] = '/path/somewhere/else'
+  app['config']                                 # => '/path/somewhere/else'
+  app.filepath('config', 'sample/task.yml')     # => '/path/somewhere/else/sample/task.yml'
+  
+While very simple, this ability to reference files using directory aliases is useful, powerful, and forms the basis of the Tap execution environment.  All directory aliases and environment configurations can be defined in the 'tap.yml' file.
+
+==== Tap::Support::ExecutableQueue
+
+Apps coordinate the execution of tasks through a queue.  Although referred to here as a 'task queue', the queue is actually just a stack of methods to run and the inputs to the methods.  Any methods from any object can be enqued; tasks do not need to be involved.  
+
+During a run the enqued methods are run sequentially.  When multithreading, multiple methods can be run at once, but normally methods are run one at a time on the same thread.  
+
+==== Tap::Support::Audit
+
+Tap tracks inputs as they are modified by various tasks.  At the end of a run, the individual results can be tracked back to it's original value, through the tasks that modified it.  This auditing can be very useful when workflows diverge (as they often do), adding or subtracting steps depending on the input.
+
+Auditing is largely invisible except in on_complete blocks.  On complete blocks receive the audited results so that this information can be used, as needed, to make decisions.  
+
+  t = Task.new
+  t.on_complete do |_result|      # _result is an Audit instance
+    _result._current              # the current value
+    _result._original             # the original value
+  end
+
+=== Tap::App
+
+link:../images/App.png
+
+Instances of Tap::App coordinate the execution of tasks.  Normally a script will only need and use a single instance (often Tap::App.instance), but there is no reason why multiple instances could not be used.  Apps basically consist of reference to a root directory, and task queue.
+
+== Envs 
+
+==== Tap::Env
+
+link:../images/Env.png
+
+==== Nested Envs
+
+link:../images/Nested-Env.png
+
+==== Run Env
+
+link:../images/Run-Env.png
+
+

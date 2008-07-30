@@ -1,4 +1,4 @@
-= Tap from the Command Line
+= Command Reference
 
 The tap command is the gateway for the execution of sub-commands.  To get help for tap, type:
 
@@ -8,7 +8,7 @@ The tap command sets up the execution environment from 'tap.yml', if it exists, 
 
   % tap [sub-command] --help
 
-== run
+=== tap run
 
 Run configures, enqueues, and executes tasks.  Run has a rich syntax allowing the specification of any number of tasks with configurations and inputs, but simplifies under most circumstances.  Several examples illustrate the key points:
 
@@ -40,7 +40,7 @@ Any number of tasks, configurations, and inputs may be specified in this way.  A
 
   % tap run -- test KEY=value
 
-=== YAML inputs
+==== YAML inputs
 
 Non-string inputs can be provided through run.  If an input begins with "---\n" then it is loaded as YAML into an object before being passed to a task. The syntax can be a lot to type, but is very handy to have around.  The following enques 'sample/task' with a hash input, {'number' => 1}.  
 
@@ -61,7 +61,7 @@ Notice that pressing enter _every other line_ is what actually puts the "\n" int
   More?
   More? number: 1'
 
-== generate/destroy
+=== tap generate/destroy
 
 Generate and destory launch generator scripts, the same as in Rails.  By default Tap provides generators for:
 
@@ -83,7 +83,7 @@ Some examples:
   % tap destroy task sample_task
   % tap destroy root .
 
-== console
+=== tap console
 
 Console opens an irb session with Tap loaded and configured using 'tap.yml'.  Console defines a variable 'app' referencing Tap::App.instance, for easy access.
 

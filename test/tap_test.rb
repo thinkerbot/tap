@@ -10,6 +10,7 @@ class TapTest < Test::Unit::TestCase
     script_test do |cmd|
       cmd.check "ruby -e \"puts 'hello world'\"", "Prints hello world", /hello world/
       cmd.check "ruby -e \"require 'rubygems'\"", "require rubygems", ""
+      cmd.check "ruby -e \"require 'rubygems';require 'yaml';require 'optparse';require 'fileutils'\"", "require rubygems, yaml, optparse, fileutils", ""
     end
   end
   

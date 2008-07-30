@@ -1,29 +1,29 @@
 Gem::Specification.new do |s|
-	s.name = "tap"
+  s.name = "tap"
   s.version = "0.10.0"
-	s.author = "Simon Chiang"
-	s.email = "simon.chiang@uchsc.edu"
+  s.author = "Simon Chiang"
+  s.email = "simon.chiang@uchsc.edu"
   s.homepage = "http://tap.rubyforge.org"
-	s.platform = Gem::Platform::RUBY
-	s.summary = "A framework for creating configurable, distributable tasks and workflows."
-	s.require_path = "lib"
-	s.rubyforge_project = "tap"
-	#s.test_file = "test/tap_test_suite.rb"
-	s.bindir = "bin"
-	s.executables = ["tap"]
+  s.platform = Gem::Platform::RUBY
+  s.summary = "A framework for creating configurable, distributable tasks and workflows."
+  s.require_path = "lib"
+  s.rubyforge_project = "tap"
+  #s.test_file = "test/tap_test_suite.rb"
+  s.bindir = "bin"
+  s.executables = ["tap"]
   s.default_executable = "tap"
-	s.has_rdoc = true
+  s.has_rdoc = true
   s.rdoc_options << '--title' << 'Tap - Task Application' << '--main' << 'README' 
-	s.extra_rdoc_files = %W{
-	  README
-	  MIT-LICENSE
-	  History
-	  doc/Tutorial
-	  doc/Basic\sOverview
-	  doc/Command\sReference}
-	
-	s.files = %W{
-	  README
+  s.extra_rdoc_files = %W{
+    README
+    MIT-LICENSE
+    History
+    doc/Tutorial
+    doc/Class\sReference
+    doc/Command\sReference}
+  
+  s.files = %W{
+    README
     MIT-LICENSE
     History
     cmd/console.rb
@@ -31,7 +31,7 @@ Gem::Specification.new do |s|
     cmd/generate.rb
     cmd/run.rb
     doc/Tutorial
-    doc/Basic\sOverview
+    doc/Class\sReference
     doc/Command\sReference
     Rakefile
     bin/tap
