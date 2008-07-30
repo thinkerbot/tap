@@ -87,7 +87,7 @@ When configurations are set from the command line, the writer method will inevit
 
   vc.array = "string"                          # !> ValidationError
 
-These blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes a config into a flag on the command line.
+Validation blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes a config into a flag on the command line.
 
 ==== Tap::Support::Lazydoc
 
@@ -334,12 +334,31 @@ As shown above, aggregated results may be accessed by task through the <tt>resul
 
 link:../images/Env.png
 
-==== Nested Envs
+Environments are still under construction, but have already become one of the most useful parts of Tap.  Basically a wrapper for a Root, Envs define methods to generate manifests for a type of file-based resource (tasks, generators, etc).  Furthermore they provide methods to uniquely identify the resource by path or, more specifically, minimized base paths.  In this directory structure:
+
+  path
+  `- to
+      |- another
+      |   `- file.rb
+      |- file-0.1.0.rb
+      |- file-0.2.0.rb
+      `- file.rb
+
+The minimal paths that uniquely identify these files are (respectively):
+
+  'another/file'
+  'file-0.1.0'
+  'file-0.2.0'
+  'file.rb'
+
+Envs facilitate mapping the minimal path, which might be provided by the command line, to the actual path, and hence to the resource.  Envs can be nested so that manifests span multiple directories.  Indeed, this is how tap accesses tasks and generators within gems; the gem directories are initialized as Envs and nested within the Env for the working directory.
 
 link:../images/Nested-Env.png
 
+To prevent conflicts between similarly-named resources under two Envs, Env allows selection of Envs, also by minimized paths.  At present this is difficult to illustrate in a code snippit.
+
+--
 ==== Run Env
-
 link:../images/Run-Env.png
-
+++
 
