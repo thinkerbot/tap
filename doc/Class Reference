@@ -157,74 +157,60 @@ The best practice is to include the namespace explicitly.
 
 link:../images/Task.png
 
-Running a task through the tap executable instantiates a task class, configures it, enques it with the inputs, then runs a Tap::App to get the inputs to the <tt>process</tt> method.  Tasks do not have to be used this way, however, they are perfectly capable in free-standing scripts.
+Running a task through the tap executable instantiates a task class, configures it, enques it with the inputs, then runs a Tap::App to get the inputs to the <tt>process</tt> method.  However, tasks do not have to be used this way; they are perfectly capable as objects in free-standing scripts.
 
-Task instances can take a block that acts as a stand-in for process:
+Task instances can take a block that acts as a stand-in for <tt>process</tt>:
 
-  t = Tap::Task.new do |task|
-    1 + 2
-  end
+  t = Tap::Task.new {|task| 1 + 2 }
   t.process                # => 3
-  
-The block can be made to take inputs:
 
-  t = Tap::Task.new do |task, one, two|
-    "#{sum}: #{one + two}"
-  end
-  t.process(1,2)           # => "sum: 3"
+  t = Tap::Task.new {|task, x, y| x + y }
+  t.process(1, 2)          # => 3
  
-Tasks can be configured, batched, enqued, and executed to yield audited results:
+Tasks can be configured:
 
   t1 = Tap::Task.new(:key => 'one') {|task, input| "#{input}:#{task.config[:key]}"}
+  t1.process('str')        # => "str:one"
+  
+And batched:
+
   t2 = t1.initialize_batch_obj(:key => 'two')
   t3 = t1.initialize_batch_obj(:key => 'three')
- 
-Notice that the tasks are batched:
 
-  t1.batch                       # => [t1, t2, t3]
+  t1.batch                 # => [t1, t2, t3]
 
-Now enque, run, and check out the results.
+Batched tasks enque together, and therefore run sequentially with the same inputs:
 
   app = Tap::App.instance
-  app.enq(t1, 1)
+  app.enq(t1, 'str')
+  app.queue.to_a           # => [[t1, ['str']], [t2, ['str']], [t3, ['str']]]
   app.run
 
-  app.results(t1)                # => ["1:one"]
-  app.results(t2)                # => ["1:two"]
-  app.results(t3)                # => ["1:three"]
+  app.results(t1)          # => ["str:one"]
+  app.results(t2)          # => ["str:two"]
+  app.results(t3)          # => ["str:three"]
 
-All three tasks were executed even though only t1 was enqued, because the tasks are batched.  Also, as a consequence of Task being Executable, the results have associated audit trails:
+Also, as a consequence of Task being Executable, the results have associated audit trails.  In the audit trail, the tasks are identified by name (by default the name the underscored class name):
 
-  audited_result = app._results(t1)[0]
-  audited_result._to_s
+  t1.name = 'task one'
+  t2.name = 'task two'
+  t3.name = 'task three'
+  
+  app._results(t1,t2,t3).collect do |_result|
+    _result.to_s
+  end.join("---\n")
   # => 
   # o-[] 1
-  # o-[tap/task] "1:one"
-
-Task instances can be joined into workflows.  The workflow model used by Tap is very simple; when a task completes it calls its on_complete block to enque the next task (or tasks) in the workflow.  Arbitrary workflow logic is allowed since there are no restrictions on what the on_complete block does.  Currently Tap supports sequencing, forking, and merging.
-
-  t1 = Tap::Task.new {|task, input| input - 1}
-  t1.name = 'subtract one'
-
-  t2 = Tap::Task.new {|task, input| input * -1}
-  t2.name = 'change sign'
-
-  app.sequence(t1,t2)
-  t1.enq(-7)
-  app.run
-
-  app.results(t1)                # => []
-  app.results(t2)                # => [8]
-
-  audited_result = app._results(t2)[0]
-  audited_result._to_s
-  # => 
-  # o-[] -7
-  # o-['subtract one'] -8
-  # o-['change sign'] 8
+  # o-[task one] "str:one"
+  # ---
+  # o-[] 1
+  # o-[task two] "str:two"
+  # ---
+  # o-[] 1
+  # o-[task three] "str:three"
   
-If a task has no on_complete block, App collects the unhandled results (as shown above) so they can be handled somewhere else.  Notice the t1 results were not collected into the aggregator since the t1 on_complete block was set by <tt>app.sequence</tt>.
-	
+Task instances can be joined into workflows.  The workflow model used by Tap is very simple; when a task completes it calls its on_complete block to enque the next task (or tasks) in the workflow.  Arbitrary workflow logic is allowed since there are no restrictions on what the on_complete block does.  If a task has no on_complete block, App collects the unhandled results (as shown above) so they can be handled somewhere else.  See below for more details.
+
 === Tap::Workflow
 
 link:../images/Workflow.png
@@ -285,17 +271,63 @@ When a task completes, it executes it's on_complete block to handle the results,
 
 link:../images/App.png
 
-Instances of Tap::App coordinate the execution of tasks.  Apps are basically a subclass of Root with an ExecutableQueue and Aggregator.  Normally a script will only need and use a single instance (often Tap::App.instance), but there is no reason why multiple instances could not be used.
+Instances of Tap::App coordinate the execution of tasks.  Apps are basically a subclass of Root with an ExecutableQueue and Aggregator.  Task initialization requires an App, which is by default Tap::App.instance.  Tasks use their app for logging, checks, and to enque themselves.  Normally a script will only need and use a single instance (often Tap::App.instance), but there is no reason why multiple instances could not be used.  
 
-  /path/to/root
-  |- config
-  |   `- sample
-  |       `- task.yml             # a config file for Sample::Task
-  |- lib
-  |   `- sample
-  |       `- task.rb              # the Sample::Task class file
-  |- tap.yml                      # a tap config file
+  log = StringIO.new
+  app = Tap::App.instance
+  app.logger = Logger.new(log)
+  
+  t = Tap::Task.new
+  t.log 'action', 'to app'
+  log.string                 # =>  "  I[15:21:23]             action  to app\n"
+  
+  t.enq(1)
+  t.enq(2,3)
+  app.queue.to_a             # => [[t, [1]], [t, [2,3]]
+  
+Apps also coordinate the creation of standard workflow patterns like sequence, fork, and merge.  These methods set on_complete blocks for the input tasks.
 
+  # for convenience...
+  def task(name, &block)
+    Tap::Task.new({}, name, &block)
+  end
+  
+  t1 = task('t1') {|t| 'hellO'}
+  t2 = task('t2') {|t, input| input + ' woRld' }
+  t3 = task('t3') {|t, input| input.downcase }
+  t4 = task('t4') {|t, input| input.upcase }
+  t5 = task('t5') {|t, input| input + "!" }
+  
+  # sequence t1, t2
+  app.sequence(t1, t2)
+  
+  # fork t2 results to t3 and t4
+  app.fork(t2, t3, t4)
+  
+  # unsynchronized merge of t3 and t4 into t5
+  app.merge(t5, t3, t4)
+  
+  app.enq(t1)
+  app.run
+  
+  app.results(t5)       # => ["hello world!", "HELLO WORLD!"]
+
+As shown above, aggregated results may be accessed by task through the <tt>results</tt> method. To access the audited results, use <tt>_results</tt>:
+
+  app._results(t5).collect do |_result|
+    _result.to_s
+  end.join("---\n")
+  # =>
+  # o-[t1] "hellO"
+  # o-[t2] "hellO woRld"
+  # o-[t3] "hello world"
+  # o-[t5] "hello world!"
+  # ----
+  # o-[t1] "hellO"
+  # o-[t2] "hellO woRld"
+  # o-[t4] "HELLO WORLD"
+  # o-[t5] "HELLO WORLD!"
+  
 == Envs 
 
 ==== Tap::Env

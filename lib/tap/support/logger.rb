@@ -26,19 +26,27 @@ module Tap
     # example, or log files in multiple locations.
     #++
     module Logger
-      Format = "  %s[%s] %18s %s\n"
+      DEFAULT_FORMAT = "  %s[%s] %18s %s\n"
+      DEFAULT_TIMESTAMP = "%H:%M:%S"
       
       def self.extended(base)
         # On OS X (and maybe other systems), $stdout is not sync-ed.  
         # Set sync to true so that writes are immediately flushed
         # to the console.
-        base.logdev.dev.sync = true if base.logdev.dev == $stdout
+        if base.logdev.respond_to?(:dev) && base.logdev.dev == $stdout
+          base.logdev.dev.sync = true
+        end
+        
+        if base.datetime_format == nil
+          base.datetime_format = DEFAULT_TIMESTAMP
+        end
+        
+        unless base.instance_variable_defined?(:@format)
+          base.instance_variable_set(:@format, DEFAULT_FORMAT)
+        end
       end
       
-      attr_writer :format
-      def format
-        (@format ||= nil) || Format
-      end
+      attr_accessor :format
       
       # Provides direct access to the log device
       def logdev
