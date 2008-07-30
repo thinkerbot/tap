@@ -28,9 +28,9 @@ Tasks can be assembled into batches all enque at the same time, and share the sa
 
 link:../images/Configurable.png
 
-Configurable allows the declaration and tracking of class configurations.  Configurable classes have a <tt>configurations</tt> method accessing a ClassConfiguration which holds all declared configs, their default values, and metadata for transforming configurations into command line options (for example).  
+Configurable allows the declaration and tracking of class configurations.  Configurable classes have a <tt>configurations</tt> method accessing a {ClassConfiguration}[link:classes/Tap/Support/ClassConfiguration.html] which holds all declared configs, their default values, and metadata for transforming configurations into command line options (for example).  
 
-Instances of a Configurable class have a <tt>config</tt> method accessing a InstanceConfiguration object.  The instance configuration acts like a forwarding hash; read and write operations for declared configs get forwarded to class methods (undeclared configs are stored directly).  The writer for a config may be defined through a block given to the config declaration.  For instance:
+Instances of a Configurable class have a <tt>config</tt> method accessing a {InstanceConfiguration}[link:classes/Tap/Support/InstanceConfiguration.html] object.  The instance configuration acts like a forwarding hash; read and write operations for declared configs get forwarded to class methods (undeclared configs are stored directly).  The writer for a config may be defined through a block given to the config declaration.  For instance:
 
   class ConfigClass
     include Tap::Support::Configurable
@@ -65,7 +65,29 @@ As you can see here:
   c.key = 'another value'
   c.config[:key]              # => 'ANOTHER VALUE'
 
-This setup is both fast and convenient.
+This setup is both fast and convenient.  
+
+When configurations are set from the command line, the writer method will inevitably receive a string, whereas configurations set within code can receive any type of object.  The {Validation}[link:classes/Tap/Support/Validation.html] module provides standard blocks for validating and transforming inputs, accessible through the <tt>c</tt> method (ex: <tt>c.integer</tt> or <tt>c.regexp</tt>).  These blocks (generally) load string inputs as YAML and validate that the result is the correct class; non-string inputs are simply validated.
+
+  class ValidatingClass
+    include Tap::Support::Configurable
+
+    config :int, 1, &c.integer                 # assures the input is an integer
+    config :int_or_nil, 1, &c.integer_or_nil   # integer or nil only
+    config :array, [], &c.array                # you get the idea
+  end
+
+  vc = ValidatingClass.new
+
+  vc.array = [:a, :b, :c]
+  vc.array                                     # => [:a, :b, :c]
+
+  vc.array = "[1, 2, 3]"
+  vc.array                                     # => [1, 2, 3]
+
+  vc.array = "string"                          # !> ValidationError
+
+These blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes a config into a flag on the command line.
 
 ==== Tap::Support::Lazydoc
 
@@ -217,9 +239,53 @@ Like Tasks, Workflows can be configured, enqued, used in (other) workflows, and 
 
 link:../images/Root.png
 
-A Root represents the base of a directory structure. Roots allow you to alias directories and ease working with filepaths,  basically allowing you to develop code in a conceptual directory structure that can be defined later.
+A Root represents the base of a directory structure. Roots allow you to alias directories and ease working with filepaths, basically allowing you to develop code in a conceptual directory structure that can be defined later.
 
-Say you had a tap directory that looking like this:
+  root = Tap::Root.new '/path/to/root'
+  root.root                                      # => '/path/to/root'
+  root['config']                                 # => '/path/to/root/config'
+  root.filepath('config', 'sample.yml')          # => '/path/to/root/config/sampl.yml'
+
+While simple, this ability to reference files using aliases is useful, powerful, and forms the basis of the Tap execution environment.
+
+==== Tap::Support::ExecutableQueue
+
+link:../images/ExecutableQueue.png
+
+Apps coordinate the execution of tasks through a queue.  The queue is just a stack of Executable objects, basically methods, and the inputs to those methods; during a run the enqued methods are sequentially executed with the inputs.  
+
+Normally the methods execute one after the other on the main thread, however the methods can be set to multithread.  In this case all sequential, multithreadable methods are executed on their own thread (up to a configurable maximum number of threads).  A non-multithreadable method blocks until all these threads finish, and then the sequential, single thread execution resumes.  
+
+For instance with non-multithreadable executables [a,b,c] and multithread executables [m1, m2, m3], a queue of [a, m1, m2, m3, b, c] executes like:
+
+  a... done
+  (m1, m2, m3)... done
+  b... done
+  c... done
+
+==== Tap::Support::Audit
+
+Tap tracks inputs as they are modified by various tasks, again through Executable.  At the end of a run, any individual result can be tracked back to it's original value with references to the source of each change in the value (ie the task or Executable).  This auditing can be very useful when workflows diverge, as they often do, by adding or subtracting steps as dictated by the results.
+
+Auditing is largely invisible except in on_complete blocks.  On complete blocks receive the audited results so that this information can be used, as needed, to make decisions.  
+
+	  t = Task.new
+	  t.on_complete do |_result|      # _result is an Audit instance
+	    _result._current              # the current value
+	    _result._original             # the original value
+	  end
+
+To help indicate when a result is actually a result and when it is an audit, Tap uses a convention whereby a leading underscore signals auditing is involved.
+
+==== Tap::Support::Aggregator
+
+When a task completes, it executes it's on_complete block to handle the results, perhaps passing them on to other tasks.  Aggregators collect results when no on_complete block is specified.  Results are collected per-task into an array; a single task executed many times will have it's results aggregated into this single array.
+
+=== Tap::App
+
+link:../images/App.png
+
+Instances of Tap::App coordinate the execution of tasks.  Apps are basically a subclass of Root with an ExecutableQueue and Aggregator.  Normally a script will only need and use a single instance (often Tap::App.instance), but there is no reason why multiple instances could not be used.
 
   /path/to/root
   |- config
@@ -229,53 +295,6 @@ Say you had a tap directory that looking like this:
   |   `- sample
   |       `- task.rb              # the Sample::Task class file
   |- tap.yml                      # a tap config file
-
-All these files/directories are optional (and there are others that could be added), but for illustration say you instantiated an App to the directory above:
-
-  require 'tap'
-  
-  app = Tap::App.new :root => '/path/to/root_dir'
-  app.root                                      # => '/path/to/root_dir'
-  app['config']                                 # => '/path/to/root_dir/config'
-  app.filepath('config', 'sample/task.yml')     # => '/path/to/root_dir/config/sample/task.yml'
-  
-Then if you wanted to alias the config directory somewhere else:
-
-  # set a new directory relative to root
-  app['config'] = 'alt'
-  app['config']                                 # => '/path/to/root_dir/alt'
-  app.filepath('config', 'sample/task.yml')     # => '/path/to/root_dir/alt/sample/task.yml'
-  
-  # set an absolute path to anywhere
-  app['config', true] = '/path/somewhere/else'
-  app['config']                                 # => '/path/somewhere/else'
-  app.filepath('config', 'sample/task.yml')     # => '/path/somewhere/else/sample/task.yml'
-  
-While very simple, this ability to reference files using directory aliases is useful, powerful, and forms the basis of the Tap execution environment.  All directory aliases and environment configurations can be defined in the 'tap.yml' file.
-
-==== Tap::Support::ExecutableQueue
-
-Apps coordinate the execution of tasks through a queue.  Although referred to here as a 'task queue', the queue is actually just a stack of methods to run and the inputs to the methods.  Any methods from any object can be enqued; tasks do not need to be involved.  
-
-During a run the enqued methods are run sequentially.  When multithreading, multiple methods can be run at once, but normally methods are run one at a time on the same thread.  
-
-==== Tap::Support::Audit
-
-Tap tracks inputs as they are modified by various tasks.  At the end of a run, the individual results can be tracked back to it's original value, through the tasks that modified it.  This auditing can be very useful when workflows diverge (as they often do), adding or subtracting steps depending on the input.
-
-Auditing is largely invisible except in on_complete blocks.  On complete blocks receive the audited results so that this information can be used, as needed, to make decisions.  
-
-  t = Task.new
-  t.on_complete do |_result|      # _result is an Audit instance
-    _result._current              # the current value
-    _result._original             # the original value
-  end
-
-=== Tap::App
-
-link:../images/App.png
-
-Instances of Tap::App coordinate the execution of tasks.  Normally a script will only need and use a single instance (often Tap::App.instance), but there is no reason why multiple instances could not be used.  Apps basically consist of reference to a root directory, and task queue.
 
 == Envs 
 

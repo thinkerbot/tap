@@ -10,7 +10,7 @@ files, join tasks into workflows, as well as dump and reuse results.  Task
 libraries are readily shared as gems.  Check out the links for tutorials, 
 development, and bug tracking.
 
-* {Tutorial}[link:files/doc/Tutorial.html]
+* {Tutorial}[link:files/doc/Tutorial.html], {Class}[link:files/doc/Class%20Reference.html] and {Command}[link:files/doc/Command%20Reference.html] Reference
 * Website[http://tap.rubyforge.org]
 * Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/overview]
 * Github[http://github.com/bahuvrihi/tap/tree/master]
@@ -111,5 +111,5 @@ Tap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
 Copyright (c) 2006-2008, Regents of the University of Colorado.
 Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com], {Biomolecular Structure Program}[http://biomol.uchsc.edu/], {Hansen Lab}[http://hsc-proteomics.uchsc.edu/hansenlab/] 
 Support:: CU Denver School of Medicine Deans Academic Enrichment Fund
-Licence:: MIT-Style
+Licence:: {MIT-Style}[link:files/MIT-LICENSE.html]
 
