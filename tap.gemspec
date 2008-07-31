@@ -82,7 +82,6 @@ Gem::Specification.new do |s|
     lib/tap/support/constant.rb
     lib/tap/support/constants.rb
     lib/tap/support/declarations.rb
-    lib/tap/support/dependencies.rb
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
     lib/tap/support/framework.rb

@@ -138,17 +138,15 @@ Now lets use the previous results; they get loaded and added to the end of the i
 === Task Declaration
 
 Sometimes a condensed task declaration is desirable.  Tap provides a declaration
-syntax a-la rake, made phonetic to prevent conflicts with rake.  Declarations
+syntax a-la rake, added to Tap to prevent conflicts with rake.  Declarations
 can get put in any .rb file under the lib directory, so might as well use
-<tt>lib/tascs.rb</tt>.
+<tt>lib/tasks.rb</tt>.
 
-  [lib/tascs.rb]
-  include Tap::Declarations
-
+  [lib/tasks.rb]
   # Concat::manifest concatenates a trailer to the input
-  tasc('concat', :trailer => ' world') do |str|
+  Tap.task('concat', :trailer => ' world') do |t, str|
     result = str + trailer
-    log '', result
+    t.log '', result
     result
   end
 
@@ -173,15 +171,15 @@ And from the command line:
 And if you want to get fancy, you can add configs and documentation as in the
 full task definition:
 
-  [lib/tascs.rb]
+  [lib/tasks.rb]
   # Nested::Task::manifest just for illustration
   #
   # Extended documentation...
   #
-  tasc('nested/task', 
+  Tap.task('nested/task', 
     config(:key, 'value'),         # a config
     config(:number, 1, &c.num)     # a config validated as a number
-  ) do |input|
+  ) do |t, input|
     # ...
   end
   

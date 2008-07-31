@@ -287,16 +287,11 @@ Instances of Tap::App coordinate the execution of tasks.  Apps are basically a s
   
 Apps also coordinate the creation of standard workflow patterns like sequence, fork, and merge.  These methods set on_complete blocks for the input tasks.
 
-  # for convenience...
-  def task(name, &block)
-    Tap::Task.new({}, name, &block)
-  end
-  
-  t1 = task('t1') {|t| 'hellO'}
-  t2 = task('t2') {|t, input| input + ' woRld' }
-  t3 = task('t3') {|t, input| input.downcase }
-  t4 = task('t4') {|t, input| input.upcase }
-  t5 = task('t5') {|t, input| input + "!" }
+  t1 = Tap.task('t1') {|t| 'hellO'}
+  t2 = Tap.task('t2') {|t, input| input + ' woRld' }
+  t3 = Tap.task('t3') {|t, input| input.downcase }
+  t4 = Tap.task('t4') {|t, input| input.upcase }
+  t5 = Tap.task('t5') {|t, input| input + "!" }
   
   # sequence t1, t2
   app.sequence(t1, t2)
