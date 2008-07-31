@@ -1,6 +1,7 @@
 require 'tap/support/run_error'
 require 'tap/support/logger'
-require 'tap/support/templater'
+require 'tap/support/aggregator'
+require 'tap/support/executable_queue'
 
 module Tap
   

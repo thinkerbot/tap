@@ -37,8 +37,6 @@ Gem::Specification.new do |s|
     bin/tap
     lib/tap/app.rb
     lib/tap/constants.rb
-    lib/tap/declarations.rb
-    lib/tap/dump.rb
     lib/tap/env.rb
     lib/tap/file_task.rb
     lib/tap/generator/base.rb
@@ -69,7 +67,6 @@ Gem::Specification.new do |s|
     lib/tap/patches/rake/testtask.rb
     lib/tap/patches/ruby19/backtrace_filter.rb
     lib/tap/patches/ruby19/parsedate.rb
-    lib/tap/rake.rb
     lib/tap/root.rb
     lib/tap/support/aggregator.rb
     lib/tap/support/assignments.rb
@@ -83,6 +80,8 @@ Gem::Specification.new do |s|
     lib/tap/support/configurable_methods.rb
     lib/tap/support/configuration.rb
     lib/tap/support/constant.rb
+    lib/tap/support/constants.rb
+    lib/tap/support/declarations.rb
     lib/tap/support/dependencies.rb
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
@@ -101,6 +100,8 @@ Gem::Specification.new do |s|
     lib/tap/support/validation.rb
     lib/tap/support/versions.rb
     lib/tap/task.rb
+    lib/tap/tasks/dump.rb
+    lib/tap/tasks/rake.rb
     lib/tap/test/env_vars.rb
     lib/tap/test/file_methods.rb
     lib/tap/test/script_methods.rb

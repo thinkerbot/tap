@@ -1,3 +1,5 @@
+require 'tap/support/batchable'
+require 'tap/support/executable'
 require 'tap/support/framework_methods'
 
 module Tap

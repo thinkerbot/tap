@@ -1,3 +1,5 @@
+require 'tap/support/framework'
+
 module Tap
   # = Overview
   #

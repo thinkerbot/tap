@@ -4,7 +4,6 @@ require 'tap/support/configuration'
 
 module Tap
   module Support
-    autoload(:TDoc, 'tap/support/tdoc')
     autoload(:Templater, 'tap/support/templater')
 
     # ClassConfiguration tracks and handles the class configurations defined in a Tap::Task

@@ -1,3 +1,5 @@
+require 'tap/support/audit'
+
 module Tap
   module Support
     # Executable wraps methods to make them executable by App.

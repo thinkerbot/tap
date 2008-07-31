@@ -1,3 +1,8 @@
+require 'tap/support/constants'
+class String # :nodoc:
+  include Tap::Support::Constants
+end
+
 module Tap
   module Support
     class Constant

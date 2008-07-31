@@ -18,22 +18,16 @@ end
 $:.unshift File.expand_path(File.dirname(__FILE__))
 
 require 'tap/constants'
-class String # :nodoc:
-  include Tap::Constants
-end
 
+# require in order...
 require 'tap/env'
-require 'tap/support/aggregator'
-require 'tap/support/audit'
-require 'tap/support/batchable'
-require 'tap/support/executable'
-require 'tap/support/executable_queue'
-require 'tap/support/framework'
 require 'tap/app'
 require 'tap/task'
 require 'tap/file_task'
 require 'tap/workflow'
-require 'tap/dump'
+
+require 'tap/support/declarations'
+Tap.extend Tap::Support::Declarations
 
 # Apply platform-specific patches
 # case RUBY_PLATFORM
