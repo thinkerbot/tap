@@ -1,4 +1,8 @@
 module Tap::Generator::Generators
+  
+  # :startdoc::generator a generator task and test
+  #
+  # Generates a new Tap::Generator::Base.
   class GeneratorGenerator < Tap::Generator::Base
 
     def manifest(m, const_name)

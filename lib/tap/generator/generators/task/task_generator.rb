@@ -1,9 +1,8 @@
 module Tap::Generator::Generators
   
-  # ::generator generates a Tap::Task
+  # :startdoc::generator a task and test
   #
-  # Generates a new Task and test files.  Pass the task name, 
-  # either CamelCased or under_scored.
+  # Generates a new Tap::Task and an associated test file.
   class TaskGenerator < Tap::Generator::Base
     
     config :test, true, &c.switch  # Generates the task without test files.

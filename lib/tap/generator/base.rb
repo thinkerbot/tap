@@ -5,7 +5,32 @@ module Tap
     class Base < Tap::Task
       class << self
         def lazydoc(resolve=false, args_method=:manifest)
-          super
+          if resolve
+            lazydoc = super(false)
+            lazydoc.resolve(nil, /^\s*def\s+#{args_method}(\((.*?)\))?/) do |comment, match|
+              args = match[2].to_s.split(',').collect do |arg|
+                arg = arg.strip.upcase
+                case arg
+                when /^&/ then nil
+                when /^\*/ then arg[1..-1] + "..."
+                else arg
+                end
+              end
+              args.shift
+              
+              comment.subject = args.join(', ')
+              lazydoc.default_attributes['args'] ||= comment
+            end
+          end
+
+          super(false)
+        end
+        
+        def help
+          Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, 
+            :task_class => self, 
+            :manifest => lazydoc(true)[to_s]['generator'] || Tap::Support::Comment.new
+          ).build
         end
       end
       

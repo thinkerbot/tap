@@ -1,26 +1,12 @@
 module Tap::Generator::Generators
   
-  # ::generator
+  # :startdoc::generator a config file for a task
   # 
-  # Generates a new config file for a Task.  The configurations, defaults, 
-  # and documentation is determined from the task.rb file.  Pass the task 
-  # name, either CamelCased or under_scored.
-  # 
-  # Versioned config files can be generated as well.  Specify a version by 
-  # appending the version to the task name.
-  # 
-  #   # generates the config file 'config/sample_task'  
-  #   # for SampleTask from 'lib/sample_task.rb'
-  #   % tap generate config sample_task
-  # 
-  # ::generator-   
-  #   # now with a version, the output config 
-  #   # file is 'config/sample_task-0.1.yml'
-  #   % tap generate config sample_task-0.1
-  #       
+  # Generates a new config file for a task.  The configurations, defaults, 
+  # and documentation is determined from the task source file.
   class ConfigGenerator < Tap::Generator::Base
     
-    config :doc, true, &c.switch  # Generates the config w/wo documentation.
+    config :doc, true, &c.switch  # include documentation in the config
     
     def env
       Tap::Env.instance

@@ -1,16 +1,15 @@
 module Tap::Generator::Generators
   
-  # ::generator
+  # :startdoc::generator a new tap command
   #
-  # Generates a new Tap command under the cmd directory. Pass 
-  # the command name, either CamelCased or under_scored.  The  
+  # Generates a new tap command under the cmd directory. The  
   # new command can be run from the command line using:
   # 
-  #   % tap <command name>
+  #   % tap <command>
+  #
   class CommandGenerator < Tap::Generator::Base
     
     def manifest(m, command_name)
-
       m.directory app['cmd']
       
       template_files do |source, target|

@@ -2,9 +2,24 @@ require 'tap/root'
 
 module Tap::Generator::Generators
   
-  # ::generator
+  # :startdoc::generator a basic tap directory structure
+  #
+  # Generates a tap root directory structure:
+  #
+  #   root
+  #   |- MIT-LICENSE
+  #   |- README
+  #   |- Rakefile
+  #   |- lib
+  #   |- root.gemspec
+  #   |- tap.yml
+  #   `- test
+  #       |- tap_test_helper.rb
+  #       `- tap_test_suite.rb
+  #
   class RootGenerator < Tap::Generator::Base
     
+    # ::args ROOT, PROJECT_NAME=basename(ROOT)
     def manifest(m, root, project_name=File.basename(root))
       project_name = 'project' if project_name == '.'
       r = Tap::Root.new(root)

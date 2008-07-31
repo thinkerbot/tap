@@ -52,6 +52,8 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/file_task/templates/result.yml
     lib/tap/generator/generators/file_task/templates/task.erb
     lib/tap/generator/generators/file_task/templates/test.erb
+    lib/tap/generator/generators/generator/generator_generator.rb
+    lib/tap/generator/generators/generator/templates/task.erb
     lib/tap/generator/generators/root/root_generator.rb
     lib/tap/generator/generators/root/templates/Rakefile
     lib/tap/generator/generators/root/templates/MIT-LICENSE

@@ -1,6 +1,6 @@
 module Tap
   module Tasks
-    # ::manifest the default dump task
+    # :startdoc::manifest the default dump task
     #
     # A dump task to print application results to a file or IO.  The results are
     # printed in a format allowing dumped results to be reloaded and used as

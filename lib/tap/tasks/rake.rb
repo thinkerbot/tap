@@ -2,7 +2,7 @@ require 'rake'
 
 module Tap
   module Tasks
-    # ::manifest run rake tasks
+    # :startdoc::manifest run rake tasks
     # 
     # Simply enques the specified rake task(s) for execution.  Useful when a
     # rake task needs to be executed within a workflow.  For example these

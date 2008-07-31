@@ -1,4 +1,4 @@
-<% redirect do |target| %># ::generator <replace with manifest summary>
+<% redirect do |target| %># <%= const.name %>::generator <replace with manifest summary>
 # <replace with command line description>
 
 # <%= const.const_name %> Documentation
@@ -6,6 +6,22 @@ class <%= const.const_name %> < Tap::Generator::Base
 
   config :key, 'value'           # a sample config
   
+  # The generator will receive the inputs on the command line, and
+  # m, a Manifest object that records the actions of this method.
   def manifest(m, input)
+
+    # make a directory
+    # m.directory path
+
+    # make a file
+    # m.file path do |file|
+    #   file << contents
+    # end
+
+    # template a file in the templates directory using ERB.
+    # The (key, value) pairs will be available in the 
+    # template as local variables.
+    # m.template path, "template_path.erb", :key => 'value'
+
   end
 end <% module_nest(const.nesting, '  ') { target } end %>
