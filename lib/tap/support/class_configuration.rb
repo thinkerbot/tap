@@ -6,11 +6,8 @@ module Tap
   module Support
     autoload(:Templater, 'tap/support/templater')
 
-    # ClassConfiguration tracks and handles the class configurations defined in a Tap::Task
-    # (or more generally any class that includes with Tap::Support::Configurable).
-    #
-    # See Tap::Support::Configurable for more details.
-    # 
+    # ClassConfiguration tracks and handles the class configurations defined in a 
+    # Configurable class.
     class ClassConfiguration
       include Enumerable
       
@@ -90,6 +87,7 @@ module Tap
         map.values
       end
       
+      # True if map is empty.
       def empty?
         map.empty?
       end
@@ -118,6 +116,13 @@ module Tap
         InstanceConfiguration.new(self, receiver)
       end
       
+      # Returns a hash of the (key, config.default) values in self.
+      def to_hash
+        hash = {}
+        each_pair {|key, config| hash[key] = config.default }
+        hash
+      end
+      
       def code_comments
         code_comments = []
         values.each do |config| 
@@ -133,16 +138,15 @@ module Tap
       NODOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/nodoc.erb"
 
       # Formats the configurations using the specified template.  Two default
-      # templates are defined, :doc and :nodoc.  These map to the contents of
-      # DOC_TEMPLATE_PATH and NODOC_TEMPLATE_PATH and correspond to the 
-      # documented and undocumented config generator templates.
+      # templates are defined, <tt>:doc</tt> and <tt>:nodoc</tt>.  These map 
+      # to the contents of DOC_TEMPLATE_PATH and NODOC_TEMPLATE_PATH and 
+      # correspond to the documented and undocumented config generator templates.
       #
       # == Custom Templates
       #
-      # format_str initializes a Tap::Support::Templater which formats each 
-      # [receiver, configurations] pair in turn, and puts the output to the 
-      # target using '<<'.   The templater is assigned the following 
-      # attributes for use in formatting:
+      # format_str initializes a Templater which formats each [receiver, configurations] 
+      # pair in turn, and puts the output to the target using <tt><<</tt>.   The 
+      # templater is assigned the following attributes for use in formatting:
       #
       # receiver:: The receiver
       # class_doc:: The TDoc for the receiver, from Tap::Support::TDoc[receiver]

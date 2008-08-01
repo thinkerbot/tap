@@ -1,3 +1,5 @@
+require 'ostruct'
+
 module Tap
   module Support
     
@@ -15,6 +17,41 @@ module Tap
     #   t.build                 # => "key: another"
     #
     # Templater includes the Templater::Utils utility methods.
+    #
+    # ==== redirection
+    #
+    # Templater hooks into the ERB templating mechanism by providing itself 
+    # as the ERB output target (_erbout).  ERB concatenates each line of an 
+    # ERB template to _erbout, as can be seen when you look at the src code 
+    # evaluated by ERB:
+    #
+    #   e = ERB.new("<%= 1 + 2 %>")
+    #   e.src                   # => "_erbout = ''; _erbout.concat(( 1 + 2 ).to_s); _erbout"
+    #
+    # By setting itself as _erbout, instances of Templater can redirect the 
+    # output to a temporary target which can then be used in string 
+    # transformations.  For example, redirection allows indentation of 
+    # nested content:
+    #
+    #   template = %Q{
+    #   # Un-nested content
+    #   <% redirect do |target| %>
+    #   # Nested content
+    #   <% module_nest("Nesting::Module") { target } %>
+    #   <% end %>
+    #   }
+    #
+    #   t = Templater.new(template)
+    #   t.build
+    #   # => %Q{
+    #   # # Un-nested content
+    #   # module Nesting
+    #   #   module Module
+    #   #     # Nested content
+    #   #     
+    #   #   end
+    #   # end}
+    #
     class Templater < OpenStruct
       
       # Utility methods for Templater; mostly string manipulations
@@ -101,15 +138,23 @@ module Tap
         super(attributes)
       end
       
+      # Returns self (not the underlying erbout storage that actually receives 
+      # the output lines).  In the ERB context, this method directs erb outputs
+      # to Templater#concat and into the redirect mechanism.
       def _erbout
         self
       end
       
+      # Sets the underlying erbout storage to input.
       def _erbout=(input)
         @_erbout = input
       end
       
-      def redirect
+      # Redirects output of erb to the redirected_erbout string
+      # for the duration of the block.  When redirect completes,
+      # the redirected_erbout is concatenated to the main
+      # erbout storage.
+      def redirect # :yields: redirected_erbout
         current = @_erbout
         @_erbout = ""
         result = yield(@_erbout)
@@ -117,6 +162,7 @@ module Tap
         concat(result)
       end
       
+      # Concatenates the specified input to the underlying erbout storage.
       def concat(input)
         @_erbout << input
       end

@@ -225,6 +225,22 @@ class ClassConfigurationTest < Test::Unit::TestCase
     assert_equal [[:one, Configuration.new(:one)],[:two, Configuration.new(:two)],[:three, Configuration.new(:three)]], results
   end
   
+  # 
+  # to_hash test
+  #
+  
+  def test_to_hash_returns_hash_of_key_default_values
+    c.add(:one, 1)
+    c.add(:two, 2)
+    assert_equal({:one => 1, :two => 2}, c.to_hash)
+    
+    another = ClassConfiguration.new Another, c
+    another.add(:two, 2.2)
+    another.add(:three, 3)
+    
+    assert_equal({:one => 1, :two => 2.2, :three => 3}, another.to_hash)
+  end
+  
   #
   # instance_config test
   #

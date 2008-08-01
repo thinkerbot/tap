@@ -22,14 +22,13 @@ module Tap
     #   config[:key] = 'another'
     #   sample.key                  # => 'another'
     #
-    # Non-config keys are simply stored as in a Hash:
+    # Non-config keys are simply stored:
     #
     #   config[:not_a_key] = 'value'
     #   config[:not_a_key]          # => 'value'
     #
+    #   config.store                # => {:not_a_key => 'value'}
     #   config.to_hash              # => {:key => 'another', :not_a_key => 'value'}
-    #
-    # See Tap::Support::Configurable for more details.
     #
     class InstanceConfiguration
       

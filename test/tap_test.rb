@@ -9,8 +9,10 @@ class TapTest < Test::Unit::TestCase
   def test_baseline_ruby_times
     script_test do |cmd|
       cmd.check "ruby -e \"puts 'hello world'\"", "Prints hello world", /hello world/
-      cmd.check "ruby -e \"require 'rubygems'\"", "require rubygems", ""
-      cmd.check "ruby -e \"require 'rubygems';require 'yaml';require 'optparse';require 'fileutils'\"", "require rubygems, yaml, optparse, fileutils", ""
+      
+      ['rubygems', 'yaml', 'optparse', 'fileutils', 'strscan'].each do |file|
+        cmd.check "ruby -e \"require '#{file}'\"", "require #{file}", ""
+      end
     end
   end
   

@@ -47,6 +47,7 @@ class InstanceConfigurationTest < Test::Unit::TestCase
     config[:not_a_key] = 'value'
     assert_equal 'value', config[:not_a_key]
 
+    assert_equal({:not_a_key => 'value'}, config.store)
     assert_equal({:key => 'another', :not_a_key => 'value'}, config.to_hash)
   end
   

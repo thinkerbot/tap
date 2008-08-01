@@ -2,20 +2,24 @@ require 'tap/support/audit'
 
 module Tap
   module Support
-    # Executable wraps methods to make them executable by App.
+    # Executable wraps methods to make them executable by App.  Methods are 
+    # wrapped by extending the object that receives them; the easiest way
+    # to make an object executable is to use Object#_method.
     module Executable
       
       # The method called when an Executable is executed via _execute
       attr_reader :_method_name
     
-      # Indicates whether or not to call in multithread mode.  Default false.
+      # Indicates whether or not to execute in multithread mode.
       attr_accessor :multithread
 
-      # Stores the on complete block.  Default is Executable.default_on_complete_block.
+      # Stores the on complete block.
       attr_reader :on_complete_block
     
       public
-
+      
+      # Extends obj with Executable and sets up all required variables.  The
+      # specified method will be called on _execute.
       def self.initialize(obj, method_name, multithread=false, &on_complete_block)
         obj.extend Executable
         obj.instance_variable_set(:@_method_name, method_name)
@@ -24,8 +28,9 @@ module Tap
         obj
       end
     
-      # Sets a block to receive the results of _call.  Raises an error 
-      # if on_complete_block is already set, unless override = true.
+      # Sets a block to receive the results of _execute.  Raises an error 
+      # if an on_complete block is already set.  Override an existing
+      # on_complete block by specifying override = true.
       #
       # Note the block recieves an audited result and not
       # the result itself (see Audit for more information).
@@ -80,7 +85,7 @@ module Tap
   end
 end
 
-# Tap extends Object with a convenience method to generate methods
+# Tap extends Object with <tt>_method</tt> to generate executable methods
 # that can be enqued by Tap::App and incorporated into workflows.
 #
 #   array = []

@@ -30,6 +30,28 @@ module Tap
       
       protected
       
+      # Redefines the specified method(s) as batched methods.  The existing method
+      # is renamed as <tt>unbatched_method</tt> and <tt>method</tt> redefined to 
+      # call <tt>unbatched_method</tt> on each object in the batch.
+      #
+      #   def process(*args)
+      #     ...
+      #   end
+      #   batch_function(:process)
+      #
+      # Is equivalent to:
+      #
+      #   def unbatched_process(*args)
+      #     ...
+      #   end
+      #
+      #   def process(*args)
+      #     batch.each do |t|
+      #      t.unbatched_process(*args)
+      #     end
+      #     self
+      #   end
+      #   
       def batch_function(*methods)
         methods.each do |method_name|
           unbatched_method = "unbatched_#{method_name}"

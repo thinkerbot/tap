@@ -4,9 +4,12 @@ module Tap
   module Support
 
     # Batchable encapsulates the methods used to support batching
-    # of tasks. See the 'Batches' section in the Tap::Task 
-    # documentation for more details on how Batchable works in 
-    # practice.
+    # of tasks. Classes including Batchable should call <tt>super</tt>
+    # during initialization to initialize batch, or they should 
+    # initialize batch themselves.
+    #
+    # See the 'Batches' section in the Tap::Task documentation for 
+    # details on how Batchable works in practice.
     module Batchable
     
       def self.included(mod)

@@ -31,14 +31,14 @@ module Tap
     # == Overview
     #
     # Audit provides a way to track the values (inputs and results) passed
-    # among tasks.  Audits allow you to track inputs as they make their
-    # way through a workflow, and have a great deal of importance for 
-    # debugging and record keeping. 
+    # among tasks or, more generally, any Executable method.  Audits allow 
+    # you to track inputs as they make their way through a workflow, and 
+    # have great utility in debugging and record keeping. 
     #
     # During execution, the group of inputs for a task are used to initialize 
     # an Audit.  These inputs mark the begining of an audit trail; every 
-    # task that processes them (including the first) records it's result in 
-    # the trail with the task as the 'source' of the result.
+    # task that processes them (including the first) adds to the trail by 
+    # recording it's result using itself as the 'source' of the result.
     #
     # Since Audits are meant to be fairly general structures, they can take 
     # any object as a source, so for illustration lets use some symbols:
@@ -50,7 +50,7 @@ module Tap
     #   a._record(:A, 2)
     #   a._record(:B, 3)
     #
-    # Now you can pull up the trails of sources and values, as well as 
+    # Now you can pull up the source and value trails, as well as 
     # information like the current and original values:
     #
     #   a._source_trail      # => [nil, :A, :B]
@@ -62,8 +62,9 @@ module Tap
     #   a._current           # => 3
     #   a._current_source    # => :B
     #
-    # Merges are supported by using an array of the merging trails as the 
-    # source, and an array of the merging values as the initial value.  
+    # Merges are supported by using an array of the merging trails (internally
+    # an AuditMerge) as the source, and an array of the merging values as the 
+    # initial value.  
     #
     #   b = Audit.new(10, nil)
     #   b._record(:C, 11)
@@ -84,7 +85,7 @@ module Tap
     # Audit supports forks by duplicating the source and value trails.  Forks
     # can be developed independently.  Importantly, Audits are forked during 
     # a merge; notice the additional record in +a+ doesn't change the source 
-    # trail for +c+ 
+    # trail for +c+:
     #
     #   a1 = a._fork
     #
@@ -120,9 +121,8 @@ module Tap
     #
     #--
     # TODO:
-    # Create an AuditMerge class to mark merges (don't use arrays).  Track nesting level
-    # of ams; see if you can hook this into _to_s process to make extraction/presentation
-    # of audits more managable.
+    # Track nesting level of ams; see if you can hook this into the _to_s process to make 
+    # extraction/presentation of audits more managable.
     #
     # Create a FirstLastArray to minimize the audit data collected.  Allow different audit
     # modes:
@@ -177,7 +177,11 @@ module Tap
         end
       end
       
-      attr_reader :_sources, :_values
+      # An array of the sources in self
+      attr_reader :_sources
+      
+      # An array of the values in self
+      attr_reader :_values
       
       # An arbitrary constant used to identify when no inputs have been
       # provided to Audit.new.  (nil itself cannot be used as nil is a 
@@ -378,7 +382,7 @@ module Tap
       
       protected  
 
-      attr_writer :_sources, :_values
+      attr_writer :_sources, :_values # :nodoc:
 
       private
       

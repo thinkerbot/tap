@@ -3,8 +3,8 @@ require 'tap/support/configurable_methods'
 module Tap
   module Support
     
-    # Configurable facilitates the definition and use of configurations by objects.  
-    # Configurable allows the specification of configs within the class definition.
+    # Configurable allows the specification of instance configurations within the class 
+    # definition.
     #
     #   class ConfigurableClass
     #     include Configurable
@@ -14,7 +14,7 @@ module Tap
     #     config :three, 'three'
     #
     #     def initialize(overrides={})
-    #       configure overrides
+    #       initialize_config(overrides)
     #     end
     #   end
     #
@@ -22,8 +22,8 @@ module Tap
     #   c.config.class         # => InstanceConfiguration
     #   c.config               # => {:one => 'one', :two => 'two', :three => 'three'}
     #
-    # Configurable extends the including class with Tap::Support::ConfigurableMethods.  As
-    # such, configurations are given accessors that read and write to config:
+    # The <tt>config</tt> object acts as a kind of forwarding hash; declared configurations
+    # map to accessors while undeclared configurations are stored internally:
     #
     #   c.config[:one] = 'ONE'
     #   c.one                  # => 'ONE'
@@ -31,28 +31,37 @@ module Tap
     #   c.one = 1           
     #   c.config               # => {:one => 1, :two => 'two', :three => 'three'}
     #
-    # A validation/transform block can be provided to modify configurations as
-    # they are set. The Tap::Support::Validation module provides a number of 
-    # common validation and transform blocks, which can be accessed through the   
-    # class method 'c':
+    #   c.config[:undeclared] = 'value'
+    #   c.config.store         # => {:undeclared => 'value'}
+    #
+    # The writer method for a configuration can be modified by providing a block to config.  
+    # The Validation module provides a number of common validation and string-transform 
+    # blocks which can be accessed through the class method 'c':
     #
     #   class ValidatingClass < ConfigurableClass
     #     config(:one, 'one') {|v| v.upcase }
-    #     config :two, 'two', &c.check(String)
+    #     config :two, 2, &c.integer
     #   end
     #
     #   v = ValidatingClass.new
-    #   v.config              # => {:one => 'ONE', :two => 'two', :three => 'three'}
-    #   v.one = 'aNothER'             
-    #   v.one                 # => 'ANOTHER'
-    #   v.two = 2             # !> ValidationError
+    #   v.config               # => {:one => 'ONE', :two => 2, :three => 'three'}
     #
-    # As can be seen, configurations are inherited from the parent and can be
+    #   v.one = 'aNothER'             
+    #   v.one                  # => 'ANOTHER'
+    #
+    #   v.two = -2
+    #   v.two                  # => -2
+    #   v.two = "3"
+    #   v.two                  # => 3
+    #   v.two = nil            # !> ValidationError
+    #   v.two = 'str'          # !> ValidationError
+    #
+    # As shown above, configurations are inherited from the parent and can be
     # overridden in subclasses.
     #
     module Configurable
       
-      # Extends including classes with Support::ConfigurableMethods
+      # Extends including classes with ConfigurableMethods
       def self.included(mod)
         mod.extend Support::ConfigurableMethods if mod.kind_of?(Class)
       end
@@ -73,6 +82,9 @@ module Tap
         self
       end
       
+      # Reinitializes config with a copy of orig.config (this assures
+      # that duplicates have their own copy of configurations, 
+      # separate from the original object).
       def initialize_copy(orig)
         super
         initialize_config(orig.config)

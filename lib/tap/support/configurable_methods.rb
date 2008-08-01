@@ -14,14 +14,15 @@ module Tap
     #     config :one, 'one'
     #   end
     #
-    #   ConfigurableClass.configurations.default   # => {:one => 'one'}
+    #   ConfigurableClass.configurations.to_hash   # => {:one => 'one'}
+    #
     #   c = ConfigurableClass.new
     #   c.respond_to?('one')                       # => true
     #   c.respond_to?('one=')                      # => true
     # 
     # If a block is given, the block will be used to create the writer method
-    # for the config.  Used in this manner, config defines a :config_key= method 
-    # wherein @config_key will be set to the return value of the block.
+    # for the config.  Used in this manner, config defines a <tt>config_key=</tt> method 
+    # wherein <tt>@config_key</tt> will be set to the return value of the block.
     #
     #   class AnotherConfigurableClass
     #     extend ConfigurableMethods
@@ -44,17 +45,16 @@ module Tap
     #   ac.one = 'value'
     #   ac.one               # => 'eulav'
     #
-    # ConfigurableMethods can extend any class to provide class-specific configurations.
     module ConfigurableMethods
       
-      # A Tap::Support::ClassConfiguration holding the class configurations.
+      # A ClassConfiguration holding the class configurations.
       attr_reader :configurations
       
       # The source_file for self.  By default the first file
       # to define the class inheriting ConfigurableMethods.
       attr_accessor :source_file
 
-      # ConfigurableMethods initializes base.configurations on extend.
+      # Sets the source_file for base and initializes base.configurations.
       def self.extended(base)
         caller.each_with_index do |line, index|
           case line
@@ -90,9 +90,9 @@ module Tap
       protected
       
       # Declares a class configuration and generates the associated accessors. 
-      # If a block is given, the :key= method will set @key to the return of
-      # the block.  Configurations are inherited, and can be overridden in 
-      # subclasses. 
+      # If a block is given, the <tt>key=</tt> method will set <tt>@key</tt> 
+      # to the return of the block, which executes in class-context.  
+      # Configurations are inherited, and can be overridden in subclasses. 
       #
       #   class SampleClass
       #     extend ConfigurableMethods
@@ -101,9 +101,11 @@ module Tap
       #     config(:upcase, 'value') {|input| input.upcase } 
       #   end
       #
+      #   # An equivalent class to illustrate class-context
       #   class EquivalentClass
       #     attr_accessor :str
       #     attr_reader :upcase
+      #
       #     UPCASE_BLOCK = lambda {|input| input.upcase }
       #
       #     def upcase=(input)
@@ -111,11 +113,6 @@ module Tap
       #     end
       #   end
       #
-      # Regarding accessors, SampleClass is equivalent to EquivalentClass.  
-      # The default values recorded by SampleClass are used in configuring
-      # instances of SampleClass, see Tap::Support::Configurable for more
-      # details.
-      # 
       def config(key, value=nil, options={}, &block)
         if block_given?
           # add arg_type implied by block, if necessary
@@ -132,8 +129,9 @@ module Tap
       end
       
       # Declares a class configuration and generates the associated accessors. 
-      # If a block is given, the :key= method will perform the block.  
-      # Configurations are inherited, and can be overridden in subclasses. 
+      # If a block is given, the <tt>key=</tt> method will perform the block with
+      # instance-context.  Configurations are inherited, and can be overridden 
+      # in subclasses. 
       #
       #   class SampleClass
       #     include Tap::Support::Configurable
@@ -146,8 +144,7 @@ module Tap
       #     config_attr(:upcase, 'value') {|input| @upcase = input.upcase } 
       #   end
       #
-      #   # Regarding accesssors (and accessors only), 
-      #   # this is the same class
+      #   # An equivalent class to illustrate instance-context
       #   class EquivalentClass
       #     attr_accessor :str
       #     attr_reader :upcase
@@ -157,9 +154,9 @@ module Tap
       #     end
       #   end
       #
-      # Once declared, configurations may be set through config.  The config
-      # object is an InstanceConfiguration which forward get/set operations
-      # to the configuration reader and writer.  For example:
+      # Instances of a Configurable class may set configurations through config.
+      # The config object is an InstanceConfiguration which forwards read/write 
+      # operations to the configuration accessors.  For example:
       #
       #   s = SampleClass.new
       #   s.config.class            # => Tap::Support::InstanceConfiguration
@@ -172,8 +169,8 @@ module Tap
       #   s.config[:str] = 'two' 
       #   s.str                     # => 'two'
       # 
-      # Alternative reader and writer methods may be specified as an option,
-      # in which case config_attr assumes the methods are declared elsewhere
+      # Alternative reader and writer methods may be specified as an option;
+      # in this case config_attr assumes the methods are declared elsewhere
       # and will not define the associated accessors.  
       # 
       #   class AlternativeClass
@@ -208,10 +205,8 @@ module Tap
       # reader/writer options. Specifying true is the same as using the 
       # default.  Specifying false or nil prevents config_attr from 
       # defining accessors, but the configuration still expects to use 
-      # the default reader/writer methods (ie key and key=) which must
-      # be defined elsewhere.
-      #
-      # See Tap::Support::Configurable for more details.
+      # the default reader/writer methods (ie <tt>key</tt> and <tt>key=</tt>) 
+      # which must be defined elsewhere.
       def config_attr(key, value=nil, options={}, &block)
         
         # add arg_type implied by block, if necessary

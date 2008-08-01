@@ -22,21 +22,20 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
     config_attr(:one, 'one') {|value| @one = value.reverse }
   end
 
-  # def test_documentation
-  #   assert_equal({:one => Configuration.new('one')}, ConfigurableClass.configurations.map)
-  #   
-  #   c = ConfigurableClass.new
-  #   assert c.respond_to?('one')
-  #   assert c.respond_to?('one=')
-  # 
-  #   ac = AnotherConfigurableClass.new
-  #   ac.one = 'value'
-  #   
-  # 
-  #   ac = YetAnotherConfigurableClass.new
-  #   ac.one = 'value'
-  #   assert_equal 'eulav', ac.one
-  # end
+  def test_documentation
+    assert_equal({:one => 'one'}, ConfigurableClass.configurations.to_hash)
+    
+    c = ConfigurableClass.new
+    assert c.respond_to?('one')
+    assert c.respond_to?('one=')
+  
+    ac = AnotherConfigurableClass.new
+    ac.one = 'value'
+    
+    ac = YetAnotherConfigurableClass.new
+    ac.one = 'value'
+    assert_equal 'eulav', ac.one
+  end
   
   #
   # extend test

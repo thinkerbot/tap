@@ -39,13 +39,13 @@ class ConfigurableTest < Test::Unit::TestCase
     config :three, 'three'
 
     def initialize(overrides={})
-      initialize_config overrides
+      initialize_config(overrides)
     end
   end
   
   class ValidatingClass < ConfigurableClass
     config(:one, 'one') {|v| v.upcase }
-    config :two, 'two', &c.check(String)
+    config :two, 2, &c.integer
   end
   
   def test_documentation
@@ -58,12 +58,21 @@ class ConfigurableTest < Test::Unit::TestCase
   
     c.one = 1           
     assert_equal({:one => 1, :two => 'two', :three => 'three'}, c.config)
+    
+    c.config[:undeclared] = 'value'
+    assert_equal({:undeclared => 'value'}, c.config.store)
   
     v = ValidatingClass.new
-    assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, v.config)
+    assert_equal({:one => 'ONE', :two => 2, :three => 'three'}, v.config)
     v.one = 'aNothER'             
     assert_equal 'ANOTHER', v.one
-    assert_raise(Tap::Support::Validation::ValidationError) { v.two = 2 }
+
+    v.two = -2
+    assert_equal -2, v.two
+    v.two = "3"
+    assert_equal 3, v.two
+    assert_raise(Tap::Support::Validation::ValidationError) { v.two = nil }
+    assert_raise(Tap::Support::Validation::ValidationError) { v.two = 'str' }
   end
   
   #

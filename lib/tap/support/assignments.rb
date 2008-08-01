@@ -7,8 +7,8 @@ module Tap
     #
     # Assignments tracks the order in which keys are declared, and the
     # order in which values are assigned to a key.  This behavior is
-    # used by Tap to track the order in which configurations are 
-    # assigned to a class; the order, in turn, is used in the formation
+    # used by ClassConfiguration to track the order in which configurations  
+    # are assigned to a class; the order, in turn, is used in the formation
     # of config files, command line documentation, etc.
     #
     # === Example

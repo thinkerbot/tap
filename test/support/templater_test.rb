@@ -11,6 +11,27 @@ class TemplaterTest < Test::Unit::TestCase
   
     t.value = "another"
     assert_equal "key: another", t.build
+    
+    e = ERB.new("<%= 1 + 2 %>")
+    assert_equal("_erbout = ''; _erbout.concat(( 1 + 2 ).to_s); _erbout", e.src)
+    
+    template = %Q{
+# Un-nested content
+<% redirect do |target| %>
+# Nested content
+<% module_nest("Nesting::Module") { target } %>
+<% end %>
+}
+    t = Templater.new(template)
+    expected = %Q{
+# Un-nested content
+module Nesting
+  module Module
+    # Nested content
+    
+  end
+end}   
+    assert_equal(expected, t.build)
   end
   
   #
