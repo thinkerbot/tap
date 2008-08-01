@@ -5,6 +5,18 @@ class ValidationTest < Test::Unit::TestCase
   include Tap::Support::Validation
   
   #
+  # documentation test
+  #
+  
+  def test_documentation
+    integer = Tap::Support::Validation.integer
+    assert_equal(Proc, integer.class)
+    assert_equal 1, integer.call(1)
+    assert_equal 1, integer.call('1')
+    assert_raise(ValidationError) { integer.call(nil) }
+  end
+  
+  #
   # validate test
   #
   

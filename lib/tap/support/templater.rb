@@ -18,7 +18,7 @@ module Tap
     #
     # Templater includes the Templater::Utils utility methods.
     #
-    # ==== redirection
+    # === ERB Redirection
     #
     # Templater hooks into the ERB templating mechanism by providing itself 
     # as the ERB output target (_erbout).  ERB concatenates each line of an 

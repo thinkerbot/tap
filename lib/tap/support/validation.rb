@@ -1,12 +1,16 @@
 module Tap
   module Support
     
-    # Validation generates blocks for common validations/processing of 
-    # configurations set through Configurable.  These blocks can be passed
-    # to the config declarations using an ampersand (&).
+    # Validation generates blocks for common validations and transformations of 
+    # configurations set through Configurable.  In general these blocks allow
+    # configurations to be set to objects of a particular class, or to a string
+    # that can be loaded as YAML into such an object.
     #
-    # See the 'Configuration' section in the Tap::Task documentation for
-    # more details on how Validation works in practice.
+    #   integer = Validation.integer
+    #   integer.class             # => Proc
+    #   integer.call(1)           # => 1
+    #   integer.call('1')         # => 1
+    #   integer.call(nil)         # => ValidationError
     #
     #--
     # Note the unusual syntax for declaring constants that are blocks
