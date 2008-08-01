@@ -10,6 +10,96 @@ class LazydocTest < Test::Unit::TestCase
   def setup
     @doc = Lazydoc.new
   end
+  
+  #
+  # documentation test
+  #
+  
+  def test_documentation
+    str = %Q{
+# Const::Name::key subject for key
+# comment for key
+# parsed until a non-comment line
+
+# Const::Name::another subject for another
+# comment for another
+# parsed to an end key
+# Const::Name::another-
+#
+# ignored comment
+}
+  
+    lazydoc = Lazydoc.new
+    lazydoc.resolve(str)
+  
+    expected = {'Const::Name' => {
+     'key' =>     ['subject for key', 'comment for key parsed until a non-comment line'],
+     'another' => ['subject for another', 'comment for another parsed to an end key']
+    }}
+    assert_equal(expected, lazydoc.to_hash {|comment| [comment.subject, comment.to_s] })
+    
+    str = %Q{
+# :::-
+# Const::Name::not_parsed
+# :::+
+
+# Const::Name::parsed subject
+}
+  
+    lazydoc = Lazydoc.new
+    lazydoc.resolve(str)
+    assert_equal({'Const::Name' => {'parsed' => 'subject'}}, lazydoc.to_hash {|comment| comment.subject })
+  
+    ##########
+    
+    str = %Q{
+# comment lines for
+# the method
+def method
+end
+
+# as in RDoc, the comment can be
+# separated from the method
+
+def another_method
+end
+}
+  
+    lazydoc = Lazydoc.new
+    lazydoc.register(3)
+    lazydoc.register(9)
+    lazydoc.resolve(str)
+  
+    expected = [
+    ['def method', 'comment lines for the method'],
+    ['def another_method', 'as in RDoc, the comment can be separated from the method']]
+    assert_equal(expected, lazydoc.code_comments.collect {|comment| [comment.subject, comment.to_s] } )
+  end
+  
+  def test_startdoc_syntax
+    str = %Q{
+# :start doc::Const::Name::one hidden in RDoc
+# * This line is visible in RDoc.
+# :start doc::Const::Name::one-
+# 
+#-- 
+# Const::Name::two
+# You can hide attribute comments like this.
+# Const::Name::two-
+#++
+#
+# * This line is also visible in RDoc.
+}
+
+    lazydoc = Lazydoc.new
+    lazydoc.resolve(str)
+
+    expected = {'Const::Name' => {
+     'one' => ['hidden in RDoc', '* This line is visible in RDoc.'],
+     'two' => ['', 'You can hide attribute comments like this.']
+    }}
+    assert_equal(expected, lazydoc.to_hash {|comment| [comment.subject, comment.to_s] })
+  end
 
   #
   # ATTRIBUTE_REGEXP test
@@ -42,6 +132,31 @@ class LazydocTest < Test::Unit::TestCase
   #
   # scan test
   #
+  
+  def test_scan_documentation
+    str = %Q{
+Const::Name::key value
+::alt alt_value
+
+Ignored::Attribute::not_matched value
+:::-
+Also::Ignored::key value
+:::+
+Another::key another value
+}
+  
+    results = []
+    Lazydoc.scan(str, 'key|alt') do |const_name, key, value|
+      results << [const_name, key, value]
+    end
+  
+    expected = [
+    ['Const::Name', 'key', 'value'], 
+    ['', 'alt', 'alt_value'], 
+    ['Another', 'key', 'another value']]
+    
+    assert_equal expected, results
+  end
 
   def test_scan_only_finds_the_specified_key
     results = []
@@ -116,6 +231,31 @@ class LazydocTest < Test::Unit::TestCase
   #
   # parse test
   #
+  
+  def test_parse_documentation
+    str = %Q{
+# Const::Name::key subject for key
+# comment for key
+
+# :::-
+# Ignored::key value
+# :::+
+
+# Ignored text before attribute ::another subject for another
+# comment for another
+}
+  
+    results = []
+    Lazydoc.parse(str) do |const_name, key, comment|
+      results << [const_name, key, comment.subject, comment.to_s]
+    end
+  
+    expected = [
+    ['Const::Name', 'key', 'subject for key', 'comment for key'], 
+    ['', 'another', 'subject for another', 'comment for another']]
+    
+    assert_equal expected, results
+  end
 
   def test_parse
     results = []
