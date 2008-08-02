@@ -23,6 +23,7 @@ module Tap
       # (and hence, to initialize batched objects).
       attr_reader :app
       
+      # The name of self.
       attr_accessor :name
       
       # Initializes a new instance and associated batch objects.  Batch

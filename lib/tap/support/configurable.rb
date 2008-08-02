@@ -3,8 +3,7 @@ require 'tap/support/configurable_methods'
 module Tap
   module Support
     
-    # Configurable allows the specification of instance configurations within the class 
-    # definition.
+    # Configurable enables the specification of configurations within a class definition.
     #
     #   class ConfigurableClass
     #     include Configurable
@@ -57,7 +56,7 @@ module Tap
     #   v.two = 'str'          # !> ValidationError
     #
     # As shown above, configurations are inherited from the parent and can be
-    # overridden in subclasses.
+    # overridden in subclasses.  See ConfigurableMethods for more details.
     #
     module Configurable
       

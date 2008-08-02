@@ -1,66 +1,32 @@
+require 'logger'
 require 'tap/support/run_error'
-require 'tap/support/logger'
 require 'tap/support/aggregator'
 require 'tap/support/executable_queue'
 
 module Tap
   
-  # = Overview
-  #
   # App coordinates the setup and running of tasks, and provides an interface 
   # to the application directory structure.  App is convenient for use within 
-  # scripts, and provides the basis for the 'tap' command line application.  
-  #
-  # === Task Setup
-  #
-  # All tasks have an App (by default App.instance) which helps initialize the 
-  # task by loading configuration templates from the config directory.  Say
-  # we had the following configuration files:
-  # 
-  #   [/path/to/app/config/some/task.yml]
-  #   key: one
-  #
-  #   [/path/to/app/config/another/task.yml]
-  #   key: two
-  #
-  # Tasks initialized with the names 'some/task' and 'another/task' will 
-  # be cofigured by App like this:
-  #
-  #   app = App.instance
-  #   app.root                           # => '/path/to/app'
-  #   app[:config]                       # => '/path/to/app/config'
-  # 
-  #   some_task = Task.new 'some/task'
-  #   some_task.app                      # => App.instance
-  #   some_task.config_file              # => '/path/to/app/config/some/task.yml'
-  #   some_task.config                   # => {:key => 'one'}
-  #
-  #   another_task = Task.new 'another/task'
-  #   another_task.app                   # => App.instance
-  #   another_task.config_file           # => '/path/to/app/config/another/task.yml'
-  #   another_task.config                # => {:key => 'two'}
-  #
-  # If app[:config] referenced a different directory then the tasks would be 
-  # initialized from files relative to that location.  
-  #
-  # (see Tap::Root for more details) 
+  # scripts and with Env provides the basis for the 'tap' command line 
+  # application.  
   #
   # === Running Tasks
   #
-  # Task enque commands are passed to app, and tasks access application-wide
-  # resources like the logger through app.  
+  # All tasks have an App (by default App.instance) through which tasks access
+  # access application-wide resources like the logger.  Additionally, task
+  # enque command are forwarded to App#enq:
   #
   #   t1 = Task.new {|task, input| input += 1 }
-  #   t1.enq 0
-  #   t1.enq 10
+  #   t1.enq(0)
+  #   app.enq(t1, 1)
   #
   #   app.run
-  #   app.results(t1)                # => [1, 11]
+  #   app.results(t1)                # => [1, 2]
   #
-  # When a task completes, app collects its results into a data structure that 
-  # allows access to them as shown above.  This behavior can be modified by 
-  # setting an on_complete block for the task; on_complete blocks can be used 
-  # to pass results among tasks, allowing the construction of workflows.
+  # When a task completes, the results will either be passed to the task
+  # on_complete block (if set) or be collected into an Aggregator, through
+  # which results may be accessed per-task, as shown above.  Task on_complete
+  # blocks typically enque other tasks, allowing the construction of workflows:
   #
   #   # clear the previous results
   #   app.aggregator.clear
@@ -78,41 +44,28 @@ module Tap
   # Here t1 has no results because the on_complete block passed them to t2 in 
   # a simple sequence.
   #
-  # === Running Methods
+  # App keeps running as long as it finds methods in the queue, or until it is stopped 
+  # or terminated.
   #
-  # Running a task really consists of calling a method.  For tasks, the method is
-  # basically the block you provide to Task.new, although execution is mediated by 
-  # Tap::Task#execute and Tap::Task#process so that the block receives the task
-  # as a standard input.  In subclasses, the method corresponds to the subclass
-  # 'process' method.  
+  # ==== Batching
   #
-  #   # the block is called to add one to the input
-  #   Task.new  {|task, input| input += 1 }
-  #
-  #   # same thing, but now in a subclass
-  #   class AddOne < Tap::Task
-  #     def process(input) input += 1 end
-  #   end
-  #
-  # When tasks are enqued, their executable method is pushed onto the queue along
-  # with the inputs for the method. Tasks can be batched such that the executable 
-  # methods of several tasks are enqued at the same time, allowing you to feed the
-  # same inputs to multiple methods at once.
+  # Tasks can be batched, allowing the same input to be enqued to multiple 
+  # tasks at once.
   #
   #   t1 = Task.new  {|task, input| input += 1 }
   #   t2 = Task.new  {|task, input| input += 10 }
   #   Task.batch(t1, t2)             # => [t1, t2]
   #
   #   t1.enq 0
-  #   t2.enq 10
   #
   #   app.run
-  #   app.results(t1)                # => [1, 11]
-  #   app.results(t2)                # => [10, 20]
+  #   app.results(t1)                # => [1]
+  #   app.results(t2)                # => [10]
   #
-  # App also supports multithreading; multithreaded methods execute cosynchronously, 
-  # each on their own thread (of course, you need to take care to make each method
-  # thread safe).
+  # ==== Multithreading
+  #
+  # App supports multithreading; multithreaded tasks execute cosynchronously, 
+  # each on their own thread.  
   #
   #   lock = Mutex.new
   #   array = []
@@ -128,31 +81,16 @@ module Tap
   #   array.length                   # => 2
   #   array[0] == array[1]           # => false
   #
-  # Since App is geared towards methods, methods from non-task objects can get 
-  # hooked into a workflow as needed.  
-  #---
-  # TODO REVISIT
+  # Naturally, it is up to you to make sure each task is thread safe.
   #
-  # The preferred way to do so is to make the
-  # non-task objects behave like tasks using Task::Base#initialize.  The objects
-  # can now be enqued, incorporated into workflows, and batched.
+  # ==== Executables
   #
-  #   array = []
-  #   Task::Base.initialize(array, :push)
+  # App can use any Executable object in place of a task. One way to initialize 
+  # an Executable for a method is to use the Object#_method defined by Tap.  The 
+  # result can be enqued and incorporated into workflows, but they cannot be 
+  # batched.
   #
-  #   array.enq(1)
-  #   array.enq(2)
-  #
-  #   array.empty?                   # => true
-  #   app.run
-  #   array                          # => [1, 2]
-  #
-  # Lastly, if you can't or don't want to turn your object into a task, 
-  #++
-  # Tap defines 
-  # Object#_method to generate executable objects that can be enqued and 
-  # incorporated into workflows, although they cannot be batched.  The mq 
-  # (method enq) method generates and enques the method in one step.
+  # The mq (method enq) method generates and enques the method in one step.
   #
   #   array = []
   #   m = array._method(:push)
@@ -164,15 +102,10 @@ module Tap
   #   app.run
   #   array                          # => [1, 2]
   #
-  # App keeps  running as long as it finds methods in the queue, or until it is stopped 
-  # or terminated.  
-  #
-  # (see Tap::Support::Executable, Tap::Task, and Tap::Task::Base for more details)
-  #
   # === Auditing
   # 
-  # All results generated by methods are audited to track how a given input 
-  # evolves during a workflow.   
+  # All results generated by executable methods are audited to track how a given  
+  # input evolves during a workflow.   
   #
   # To illustrate auditing, consider a workflow that uses the 'add_one' method 
   # to add one to an input until the result is 3, then adds five more with the 
@@ -280,7 +213,7 @@ module Tap
     end  
     
     # Creates a new App with the given configuration.  
-    def initialize(config={}, logger=TAP_DEFAULT_LOGGER)
+    def initialize(config={}, logger=DEFAULT_LOGGER)
       super()
       
       @state = State::READY
@@ -295,9 +228,11 @@ module Tap
       self.logger = logger
     end
     
-    TAP_DEFAULT_LOGGER = Logger.new(STDOUT)
-    TAP_DEFAULT_LOGGER.level = Logger::INFO
-    TAP_DEFAULT_LOGGER.datetime_format = '%H:%M:%S'
+    DEFAULT_LOGGER = Logger.new(STDOUT)
+    DEFAULT_LOGGER.level = Logger::INFO
+    DEFAULT_LOGGER.formatter = lambda do |severity, time, progname, msg|
+      "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
+    end
     
     # True if debug or the global variable $DEBUG is true.
     def debug?
@@ -308,13 +243,10 @@ module Tap
     # Logging methods
     #
     
-    # Sets the current logger.  The logger is extended with Support::Logger to provide 
-    # additional logging capabilities.  The logger level is set to Logger::DEBUG if 
+    # Sets the current logger. The logger level is set to Logger::DEBUG if 
     # the global variable $DEBUG is true.
     def logger=(logger)
-      
       unless logger.nil?
-        logger.extend Support::Logger 
         logger.level = Logger::DEBUG if debug?
       end
       
@@ -325,26 +257,6 @@ module Tap
     # Logging is suppressed if quiet
     def log(action, msg="", level=Logger::INFO)
       logger.add(level, msg, action.to_s) unless quiet
-    end
-    
-    # EXPERIMENTAL
-    #
-    # Formatted log.  Works like log, but passes the current log format to the
-    # block and uses whatever format the block returns.  The format recieves 
-    # the following arguments like so:
-    #
-    #  format % [severity, timestamp, (action || '--'), msg]
-    #
-    # By default, if you don't specify a block, flog just chomps a newline off
-    # the format, so your log will be inline.
-    #
-    # BUG: Not thread safe at the moment.
-    def flog(action="", msg="", level=Logger::INFO) # :yields: format
-      unless quiet
-        logger.format_add(level, msg, action) do |format| 
-          block_given? ? yield(format) : format.chomp("\n")
-        end
-      end
     end
     
     # Iteratively passes the block the configuration templates for the specified file.
@@ -530,7 +442,7 @@ module Tap
         # termination. 
         clear_thread_queue
         errors =  [$!] + clear_threads(false)
-        errors.delete_if {|error|  error.kind_of?(TerminateError) }
+        errors.delete_if {|error| error.kind_of?(TerminateError) }
         
         # handle the errors accordingly
         case

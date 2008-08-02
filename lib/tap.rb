@@ -1,7 +1,6 @@
 require 'rubygems'
 
 require 'yaml'                   # expensive to load
-require 'logger'
 require 'thread'
 require 'erb'
 

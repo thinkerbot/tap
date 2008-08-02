@@ -90,7 +90,6 @@ Gem::Specification.new do |s|
     lib/tap/support/framework_methods.rb
     lib/tap/support/instance_configuration.rb
     lib/tap/support/lazydoc.rb
-    lib/tap/support/logger.rb
     lib/tap/support/run_error.rb
     lib/tap/support/shell_utils.rb
     lib/tap/support/tdoc.rb

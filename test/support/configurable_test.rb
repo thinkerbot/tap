@@ -68,7 +68,7 @@ class ConfigurableTest < Test::Unit::TestCase
     assert_equal 'ANOTHER', v.one
 
     v.two = -2
-    assert_equal -2, v.two
+    assert_equal(-2, v.two)
     v.two = "3"
     assert_equal 3, v.two
     assert_raise(Tap::Support::Validation::ValidationError) { v.two = nil }

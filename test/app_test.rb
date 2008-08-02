@@ -250,19 +250,18 @@ class AppTest < Test::Unit::TestCase
   # set logger tests
   #
   
-  def test_set_logger_extends_logger_with_support_logger
-    output = StringIO.new('')
-    logger = Logger.new(output)
-    assert !logger.respond_to?(:section_break)
+  def test_set_logger_sets_logger_level_to_debug_if_debug_is_true
+    logger = Logger.new($stdout)
+    logger.level = Logger::INFO
+    assert_equal Logger::INFO, logger.level
+    
+    app.debug = true
+    assert app.debug?
     
     app.logger = logger
-    assert logger.respond_to?(:section_break)
+    assert_equal Logger::DEBUG, logger.level
   end
   
-  # 
-  # TODO -- Add logging tests
-  #
-
   #
   # load_config tests
   #
@@ -1342,6 +1341,7 @@ path: <%= path %>
   def set_stringio_logger
     output = StringIO.new('')
     app.logger = Logger.new(output)
+    app.logger.formatter = Tap::App::DEFAULT_LOGGER.formatter
     output.string
   end
   
