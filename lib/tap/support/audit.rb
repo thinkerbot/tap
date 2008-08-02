@@ -28,8 +28,6 @@ module Tap
       end
     end
 
-    # == Overview
-    #
     # Audit provides a way to track the values (inputs and results) passed
     # among tasks or, more generally, any Executable method.  Audits allow 
     # you to track inputs as they make their way through a workflow, and 

@@ -2,7 +2,7 @@
 
 === Basic Usage
 
-Install, then begin by creating a tap root directory structure:
+Begin by creating a tap root directory structure:
 
   % tap generate root root
   % cd root
@@ -138,9 +138,9 @@ Now lets use the previous results; they get loaded and added to the end of the i
 === Task Declaration
 
 Sometimes a condensed task declaration is desirable.  Tap provides a declaration
-syntax a-la rake, added to Tap to prevent conflicts with rake.  Declarations
-can get put in any .rb file under the lib directory, so might as well use
-<tt>lib/tasks.rb</tt>.
+syntax a-la rake, accessible through the Tap module to prevent conflicts with rake.  
+Declarations can get put in any .rb file under the lib directory, so might as well 
+use <tt>lib/tasks.rb</tt>.
 
   [lib/tasks.rb]
   # Concat::manifest concatenates a trailer to the input
@@ -151,7 +151,8 @@ can get put in any .rb file under the lib directory, so might as well use
   end
 
 The declaration makes a task class based on the name (ie namespaces are naturally
-supported by names like 'nested/task').  The classes are ready for use in scripts:
+supported by names like <tt>'nested/task'</tt>).  The classes are ready for use in 
+scripts:
 
   Concat.new.process('hello')       # => 'hello world'
 
@@ -168,7 +169,7 @@ And from the command line:
     dump        # the default dump task
     rake        # run rake tasks
 
-And if you want to get fancy, you can add configs and documentation as in the
+If you want to get fancy, you can add configs and documentation as in the
 full task definition:
 
   [lib/tasks.rb]
@@ -222,7 +223,8 @@ As can be seen here (note reverse was set to true):
     I[10:24:25]             sample deviecer
     I[10:24:25]                    one
 
-If you need to batch run the same task with the same inputs, but multiple sets of configurations, simply define an array of configurations in the config file:
+If you need to run a task with multiple sets of configurations, simply define an 
+array of configurations in the config file:
   
   [config/sample.yml]
   - comment: received
@@ -243,7 +245,9 @@ The --name option sets the config file used:
 
 === Tap Configuration
 
-Tap itself is highly configurable.  Say you think the run syntax is unnecessarily verbose; you can make command aliases to shorten it.  Open the <tt>tap.yml</tt> file in your root directory and set the following:
+Tap itself is highly configurable.  Say you think the run syntax is unnecessarily 
+verbose; you can make command aliases to shorten it.  Open the <tt>tap.yml</tt> 
+file in your root directory and set the following:
 
   [tap.yml]
   # ... other contents ...
@@ -265,5 +269,7 @@ Now:
     dump        # the default dump task
     rake        # run rake tasks
 
-Global configurations can go in the <tt>~/.tap.yml</tt> file.  Using configurations, you can specify directory aliases, default options, gems, and even additional environments to load as if they were gems.
+Global configurations can go in the <tt>~/.tap.yml</tt> file.  Using configurations,
+you can specify directory aliases, options, gems, and even additional paths to load 
+as if they were gems.
   

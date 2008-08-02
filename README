@@ -50,7 +50,7 @@ Tap pulls documentation out of task classes to generate manifests:
       dump        # the default dump task
       rake        # run rake tasks  
 
-And to generate help:
+And help:
 
   % tap run -- sample --help
   Sample -- a sample task

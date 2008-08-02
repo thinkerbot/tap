@@ -3,6 +3,8 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 class ConfigurableMethodsTest < Test::Unit::TestCase
   include Tap::Support 
   
+  acts_as_file_test
+  
   #
   # documentation test
   #
@@ -81,6 +83,42 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   def test_inherited_configurations_can_be_overridden
     assert_equal({:one => Configuration.new(:one, 'one')}, IncludeBase.configurations.map)
     assert_equal({:one => Configuration.new(:one, 'ONE')}, OverrideSubclass.configurations.map)
+  end
+  
+  #
+  # load_config tests
+  #
+
+  class LoadConfigClass
+    extend Tap::Support::ConfigurableMethods
+  end
+
+  def test_load_config_loads_path_as_yaml
+    path = method_tempfile {|file|  file << [{"key" => "one"}, {"key" => "two"}].to_yaml }
+    assert_equal [{"key" => "one"}, {"key" => "two"}], LoadConfigClass.load_config(path)
+  end
+
+  def test_each_config_template_returns_empty_hash_if_config_file_does_not_exist
+    path = method_tempfile
+    assert !File.exists?(path)
+    assert_equal({}, LoadConfigClass.load_config(path))
+  end
+
+  def test_each_config_template_returns_empty_hash_if_config_file_is_empty
+    path = method_tempfile {|file| }
+    assert File.exists?(path)
+    assert File.read(path).empty?
+    assert_equal({}, LoadConfigClass.load_config(path))
+  end
+
+  def test_each_config_template_templates_using_erb
+    path = method_tempfile do |file|  
+      file << %Q{
+path: <%= path %>
+}
+    end
+
+    assert_equal({"path" => path}, LoadConfigClass.load_config(path))
   end
   
   #

@@ -224,7 +224,7 @@ examples:
 
 configurations:
         --max-threads MAX_THREADS    For multithread execution
-        --debug
+        --debug                      Flag debugging
         --force                      Force execution at checkpoints
         --quiet                      Suppress logging
 

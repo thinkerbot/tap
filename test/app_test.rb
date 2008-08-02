@@ -57,131 +57,118 @@ class AppTest < Test::Unit::TestCase
     end
   end
 
-#   def test_app_documentation
-#     pwd = app.root
-#     assert_equal(pwd, app.root)
-#     assert_equal( File.expand_path(pwd +'/config'), app[:config])
-#   
-#     some_task = Task.new 'some/task'
-#     assert_equal( App.instance , some_task.app )
-#     assert_equal( File.expand_path(pwd +'/config/some/task.yml') , some_task.config_file)
-#     assert_equal( {:key => 'one'}, some_task.config)
-#   
-#     another_task = Task.new 'another/task'
-#     assert_equal( App.instance , another_task.app )
-#     assert_equal( File.expand_path(pwd + '/config/another/task.yml') , another_task.config_file)
-#     assert_equal( {:key => 'two'}, another_task.config)
-# 
-#     ###
-#     t1 = Task.new {|task, input| input += 1 }
-#     t1.enq 0
-#     t1.enq 10
-#   
-#     app.run
-#     assert_equal [1, 11], app.results(t1)
-#   
-#     app.aggregator.clear
-#   
-#     t2= Task.new {|task, input| input += 10 }
-#     t1.on_complete {|_result| t2.enq(_result) }
-#   
-#     t1.enq 0
-#     t1.enq 10
-#   
-#     app.run
-#     assert_equal [], app.results(t1)
-#     assert_equal [11, 21], app.results(t2)
-#   
-#     ###
-#     t1 = Task.new  {|task, input| input += 1 }
-#     t2 = Task.new  {|task, input| input += 10 }
-#     assert_equal [t1, t2], Task.batch(t1, t2)
-#   
-#     t1.enq 0
-#     t2.enq 10
-#   
-#     app.run
-#     assert_equal [1, 11], app.results(t1)
-#     assert_equal [10, 20], app.results(t2)
-#   
-#     lock = Mutex.new
-#     array = []
-#     t1 = Task.new  {|task| lock.synchronize { array << Thread.current.object_id }; sleep 0.1 }
-#     t2 = Task.new  {|task| lock.synchronize { array << Thread.current.object_id }; sleep 0.1 }
-#   
-#     t1.multithread = true
-#     t1.enq
-#     t2.multithread = true
-#     t2.enq
-#     
-#     app.run
-#     assert_equal 2, array.length
-#     assert_not_equal array[0], array[1]
-#     
-#     # array = []
-#     # Task::Base.initialize(array, :push)
-#     #   
-#     # array.enq(1)
-#     # array.enq(2)
-#     #   
-#     # assert array.empty?
-#     # app.run
-#     # assert_equal [1, 2], array
-#     #   
-#     # array = []
-#     # m = array._method(:push)
-#     #    
-#     # app.enq(m, 1)
-#     # app.mq(array, :push, 2)
-#     # 
-#     # assert array.empty?
-#     # app.run
-#     # assert_equal [1, 2], array
-# 
-#     ###
-#     t1 = Tap::Task.new('add_one') {|task, input| input += 1 }
-#     t2 = Tap::Task.new('add_five') {|task, input| input += 5 }
-# 
-#     t1.on_complete do |_result|
-#       _result._current < 3 ? t1.enq(_result) : t2.enq(_result)
-#     end
-#   
-#     t1.enq(0)
-#     t1.enq(1)
-#     t1.enq(2)
-# 
-#     app.run
-#     assert_equal [8,8,8], app.results(t2)
-# 
-#     strio = StringIO.new("")
-#     app._results(t2).each do |_result|
-#       strio.puts "How #{_result._original} became #{_result._current}:"
-#       strio.puts _result._to_s
-#       strio.puts
-#     end
-# 
-#     assert_equal(
-# %Q{How 2 became 8:
-# o-[] 2
-# o-[add_one] 3
-# o-[add_five] 8
-# 
-# How 1 became 8:
-# o-[] 1
-# o-[add_one] 2
-# o-[add_one] 3
-# o-[add_five] 8
-# 
-# How 0 became 8:
-# o-[] 0
-# o-[add_one] 1
-# o-[add_one] 2
-# o-[add_one] 3
-# o-[add_five] 8
-# 
-# }, strio.string)
-# 
-#   end
+  def test_app_documentation
+    t1 = Task.new {|task, input| input += 1 }
+    t1.enq(0)
+    app.enq(t1, 1)
+  
+    app.run
+    assert_equal [1, 2], app.results(t1)
+    
+    ########
+    
+    app.aggregator.clear
+  
+    t2 = Task.new {|task, input| input += 10 }
+    t1.on_complete {|_result| t2.enq(_result) }
+  
+    t1.enq 0
+    t1.enq 10
+  
+    app.run
+    assert_equal [], app.results(t1)
+    assert_equal [11, 21], app.results(t2)
+    
+    ########
+  
+    t1 = Task.new  {|task, input| input += 1 }
+    t2 = Task.new  {|task, input| input += 10 }
+    assert_equal [t1, t2], Task.batch(t1, t2)
+  
+    t1.enq 0
+  
+    app.run
+    assert_equal [1], app.results(t1)
+    assert_equal [10], app.results(t2)
+    
+    ########
+    
+    lock = Mutex.new
+    array = []
+    t1 = Task.new  {|task| lock.synchronize { array << Thread.current.object_id }; sleep 0.1 }
+    t2 = Task.new  {|task| lock.synchronize { array << Thread.current.object_id }; sleep 0.1 }
+    
+    t1.multithread = true
+    t1.enq
+    t2.multithread = true
+    t2.enq
+  
+    app.run
+    assert_equal 2, array.length
+    assert_equal false, array[0] == array[1]
+    
+    ########
+  
+    array = []
+    m = array._method(:push)
+     
+    app.enq(m, 1)
+    app.mq(array, :push, 2)
+  
+    assert array.empty?
+    app.run
+    assert_equal [1, 2], array
+    
+    ########
+  
+    t1 = Tap::Task.new {|task, input| input += 1 }
+    t1.name = "add_one"
+  
+    t2 = Tap::Task.new {|task, input| input += 5 }
+    t2.name = "add_five"
+  
+    t1.on_complete do |_result|
+      # _result is the audit; use the _current method
+      # to get the current value in the audit trail
+  
+      _result._current < 3 ? t1.enq(_result) : t2.enq(_result)
+    end
+    
+    t1.enq(0)
+    t1.enq(1)
+    t1.enq(2)
+  
+    app.run
+    assert_equal [8,8,8], app.results(t2)
+
+    str = StringIO.new("")
+    app._results(t2).each do |_result|
+      str.puts "How #{_result._original} became #{_result._current}:"
+      str.puts _result._to_s
+      str.puts
+    end
+  
+    expected = %Q{
+How 2 became 8:
+o-[] 2
+o-[add_one] 3
+o-[add_five] 8
+
+How 1 became 8:
+o-[] 1
+o-[add_one] 2
+o-[add_one] 3
+o-[add_five] 8
+
+How 0 became 8:
+o-[] 0
+o-[add_one] 1
+o-[add_one] 2
+o-[add_one] 3
+o-[add_five] 8
+}
+    assert_equal expected.strip, str.string.strip
+  end
   
   #
   #  State test
@@ -260,39 +247,6 @@ class AppTest < Test::Unit::TestCase
     
     app.logger = logger
     assert_equal Logger::DEBUG, logger.level
-  end
-  
-  #
-  # load_config tests
-  #
-  
-  def test_load_config_loads_path_as_yaml
-    path = method_tempfile {|file|  file << [{"key" => "one"}, {"key" => "two"}].to_yaml }
-    assert_equal [{"key" => "one"}, {"key" => "two"}], app.load_config(path)
-  end
-
-  def test_each_config_template_returns_empty_hash_if_config_file_does_not_exist
-    path = method_tempfile
-    assert !File.exists?(path)
-    assert_equal({}, app.load_config(path))
-  end
-  
-  def test_each_config_template_returns_empty_hash_if_config_file_is_empty
-    path = method_tempfile {|file| }
-    assert File.exists?(path)
-    assert File.read(path).empty?
-    assert_equal({}, app.load_config(path))
-  end
-  
-  def test_each_config_template_templates_using_erb
-    path = method_tempfile do |file|  
-      file << %Q{
-app: <%= app.object_id %>
-path: <%= path %>
-}
-    end
-
-    assert_equal({"path" => path, "app" => app.object_id}, app.load_config(path))
   end
   
   #

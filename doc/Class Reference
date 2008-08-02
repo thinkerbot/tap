@@ -22,15 +22,15 @@ Tasks are constructed such that <tt>execute</tt> is their executable method.  Ta
 
 link:../images/Batchable.png
 
-Tasks can be assembled into batches all enque at the same time, and share the same activity when they complete.  This behavior is very powerful, allowing workflow logic to be defined once but executed under multiple conditions.  Task includes the Batchable module to facilitate batching.
+Tasks can be assembled into batches that all enque at the same time and share the same <tt>on_complete</tt> block.  This behavior is very powerful, allowing workflow logic to be defined once but executed under multiple conditions.  Task includes the Batchable module to facilitate batching.
 
 ==== Tap::Support::Configurable
 
 link:../images/Configurable.png
 
-Configurable allows the declaration and tracking of class configurations.  Configurable classes have a <tt>configurations</tt> method accessing a {ClassConfiguration}[link:classes/Tap/Support/ClassConfiguration.html] which holds all declared configs, their default values, and metadata for transforming configurations into command line options (for example).  
+Configurable allows declaration of class configurations.  Configurable classes have a <tt>configurations</tt> method accessing a {ClassConfiguration}[link:classes/Tap/Support/ClassConfiguration.html] which holds all declared configs, their default values, and metadata for transforming configurations into command line options (for example).  
 
-Instances of a Configurable class have a <tt>config</tt> method accessing a {InstanceConfiguration}[link:classes/Tap/Support/InstanceConfiguration.html] object.  The instance configuration acts like a forwarding hash; read and write operations for declared configs get forwarded to class methods (undeclared configs are stored directly).  The writer for a config may be defined through a block given to the config declaration.  For instance:
+Instances of a Configurable class have a <tt>config</tt> method accessing a {InstanceConfiguration}[link:classes/Tap/Support/InstanceConfiguration.html] object.  The instance configuration acts like a forwarding hash; read and write operations for declared configs get forwarded to class methods while undeclared configs are stored directly.  The writer for a config may be defined through a block provided during config declaration.  For instance:
 
   class ConfigClass
     include Tap::Support::Configurable
@@ -67,6 +67,8 @@ As you can see here:
 
 This setup is both fast and convenient.  
 
+==== Tap::Support::Validation
+
 When configurations are set from the command line, the writer method will inevitably receive a string, whereas configurations set within code can receive any type of object.  The {Validation}[link:classes/Tap/Support/Validation.html] module provides standard blocks for validating and transforming inputs, accessible through the <tt>c</tt> method (ex: <tt>c.integer</tt> or <tt>c.regexp</tt>).  These blocks (generally) load string inputs as YAML and validate that the result is the correct class; non-string inputs are simply validated.
 
   class ValidatingClass
@@ -93,15 +95,15 @@ Validation blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes 
 
 link:../images/Lazydoc.png
 
-Ah lazydoc.  Lazydoc fits into the space between live code and code documentation.  Lazydoc can scan a file (code or not) and pull out documentation into the object space where it can be utilized, basically by defining a key-value syntax that is both invalid Ruby and easily hidden in RDoc.  Looks like this:
+Ah lazydoc.  Lazydoc fits into the space between live code and code documentation.  Lazydoc can scan a file (code or not) and pull out documentation into the object space where it can be utilized.  Lazydoc uses a key-value syntax that is both invalid Ruby and easily hidden in RDoc.  Looks like this:
 
   # ::key value
 
-Try the former line without the comment and a syntax error results.  In RDoc, the syntax doesn't interfere with any of the standard documentation conventions, and with the use of a start/stopdoc attribute, the line can be fully hidden (an extra space is added to startdoc so the line isn't actually hidden in this docment):
+Try the former line without the comment and a syntax error results.  In RDoc, the syntax doesn't interfere with any of the standard documentation conventions and can be hidden with the use of a <tt>:startdoc:</tt> attribute (an extra space is added to <tt>:startdoc:</tt> so the line isn't actually hidden in this document):
 
   # :start doc::key value
 
-Lazydoc parses a namespace, the key, the value, and any comment following the value until a non-comment line or an end key.  The results get turned into a Tap::Support::Comment (where the value is the subject and the comment lines are the lines), and stored by file, namespace, and key in Lazydoc.  For example:
+Lazydoc parses a constant name, the key, the value, and any comment following the value until a non-comment line or an end key.  For example:
 
   [lazydoc_file.rb]
   # Name::Space::key value
@@ -113,17 +115,18 @@ Lazydoc parses a namespace, the key, the value, and any comment following the va
   # Name::Space::another another value
   # This gets parsed.
   # Name::Space::another-
+  #
   # This does not.
 
   require 'tap'
 
-  lzd = Tap::Support::Lazydoc[__FILE__]
-  lzd.resolve
+  lazydoc = Tap::Support::Lazydoc[__FILE__]
+  lazydoc.resolve
 
-  lzd['Name::Space']['key'].to_s           # => "This documentation gets parsed."
-  lzd['Name::Space']['another'].subject    # => "another value"
+  lazydoc['Name::Space']['key'].to_s           # => "This documentation gets parsed."
+  lazydoc['Name::Space']['another'].subject    # => "another value"
 
-Furthermore, Lazydoc allows living code to register lines that should get documented.  These lines are parsed as values, and the comment lines are parsed up to echo what effectively happens in RDoc.
+Furthermore, Lazydoc allows living code to register lines that should get documented.  These lines are parsed to echo what happens in RDoc.
 
   [another_lazydoc_file.rb]
   # documentation
@@ -133,16 +136,16 @@ Furthermore, Lazydoc allows living code to register lines that should get docume
 
   require 'tap'
 
-  lzd = Tap::Support::Lazydoc[__FILE__]
-  code_comment = lzd.register(2)
-  lzd.resolve
+  lazydoc = Tap::Support::Lazydoc[__FILE__]
+  code_comment = lazydoc.register(2)
+  lazydoc.resolve
   
   code_comment.subject         # => "def method"
   code_comment.to_s            # => "documentation for the method"
 
-Tasks register each config that gets declared, and remember the file in which they were originally declared.  Later, the Tap::Env uses this information to facilitate lookup and instantiation of task classes.  
+Tap uses Lazydoc to indicate when a file contains a Task (<tt>::manifest</tt>) or a generator (<tt>::generator</tt>), and for config documentation.  Tap::Env uses this information to facilitate lookup and instantiation of task classes.  
 
-One note: when no namespace is specified for a Lazydoc key, it gets treated as a default for the whole file; in tasks where the class name is echoed in the file name, no namespace is required.  
+One note: when no constant name is specified for a Lazydoc key, it gets treated as a default for the whole file. 
 
   [lib/sample/task.rb]
   # ::manifest sample task description
@@ -151,13 +154,13 @@ One note: when no namespace is specified for a Lazydoc key, it gets treated as a
   # If more than one task is defined in this file, or if Sample::Task
   # is not defined by loading this file, Tap will run into trouble.
 
-The best practice is to include the namespace explicitly.
+However, the best practice is to include the namespace explicitly.
 
 === Tap::Task
 
 link:../images/Task.png
 
-Running a task through the tap executable instantiates a task class, configures it, enques it with the inputs, then runs a Tap::App to get the inputs to the <tt>process</tt> method.  However, tasks do not have to be used this way; they are perfectly capable as objects in free-standing scripts.
+Running a task through the tap executable instantiates a task class, configures it, enques it, and runs a Tap::App to get the inputs to the <tt>process</tt> method.  Tasks do not have to be used this way; they are perfectly capable as objects in free-standing scripts.
 
 Task instances can take a block that acts as a stand-in for <tt>process</tt>:
 
@@ -190,7 +193,7 @@ Batched tasks enque together, and therefore run sequentially with the same input
   app.results(t2)          # => ["str:two"]
   app.results(t3)          # => ["str:three"]
 
-Also, as a consequence of Task being Executable, the results have associated audit trails.  In the audit trail, the tasks are identified by name (by default the name the underscored class name):
+Also, as a consequence of Task being Executable, the results have audit trails.  In the audit trail, the tasks are identified by name (by default the name the underscored class name):
 
   t1.name = 'task one'
   t2.name = 'task two'
@@ -209,15 +212,15 @@ Also, as a consequence of Task being Executable, the results have associated aud
   # o-[] 1
   # o-[task three] "str:three"
   
-Task instances can be joined into workflows.  The workflow model used by Tap is very simple; when a task completes it calls its on_complete block to enque the next task (or tasks) in the workflow.  Arbitrary workflow logic is allowed since there are no restrictions on what the on_complete block does.  If a task has no on_complete block, App collects the unhandled results (as shown above) so they can be handled somewhere else.  See below for more details.
+Task instances can be joined into workflows.  The workflow model used by Tap is very simple; when a task completes it calls its <tt>on_complete</tt> block to enque the next task (or tasks) in the workflow.  Arbitrary workflow logic is allowed since there are no restrictions on what the <tt>on_complete</tt> block does.  If a task has no <tt>on_complete</tt> block, App collects the unhandled results (as shown above) so they can be handled somewhere else.  See below for more details.
 
 === Tap::Workflow
 
 link:../images/Workflow.png
 
-Workflows are not Tasks but are constructed with the same modules as Task and work very similarly Tasks.  Workflows have a <tt>workflow</tt> method which defines the entry and exit points for the workflow; there can be 1+ entry points and 0+ exit points.  The enque method for a workflow enques all it's entry points, and when the on_complete block is set for a workflow, it is set for all it's exit points.
+Workflows are not Tasks but are constructed with the same modules as Task and work very similarly Tasks.  Workflows have a <tt>workflow</tt> method which defines the entry and exit points for the workflow; there can be 1+ entry points and 0+ exit points.  The enque method for a workflow enques all it's entry points, and when the <tt>on_complete</tt> block is set for a workflow, it is set for all exit points.
 
-Like Tasks, Workflows can be configured, enqued, used in (other) workflows, and subclassed.
+Like Tasks, Workflows can be configured, enqued, used in workflows, and subclassed.
 
 == Apps
 
@@ -225,7 +228,7 @@ Like Tasks, Workflows can be configured, enqued, used in (other) workflows, and 
 
 link:../images/Root.png
 
-A Root represents the base of a directory structure. Roots allow you to alias directories and ease working with filepaths, basically allowing you to develop code in a conceptual directory structure that can be defined later.
+A Root represents the base of a directory structure. Roots allow you to alias directories and ease working with filepaths, basically allowing you to develop code for a conceptual directory structure that can be defined later.
 
   root = Tap::Root.new '/path/to/root'
   root.root                                      # => '/path/to/root'
@@ -242,7 +245,7 @@ Apps coordinate the execution of tasks through a queue.  The queue is just a sta
 
 Normally the methods execute one after the other on the main thread, however the methods can be set to multithread.  In this case all sequential, multithreadable methods are executed on their own thread (up to a configurable maximum number of threads).  A non-multithreadable method blocks until all these threads finish, and then the sequential, single thread execution resumes.  
 
-For instance with non-multithreadable executables [a,b,c] and multithread executables [m1, m2, m3], a queue of [a, m1, m2, m3, b, c] executes like:
+For instance, assuming non-multithreadable executables [a,b,c] and multithread executables [m1, m2, m3], a queue of [a, m1, m2, m3, b, c] executes like:
 
   a... done
   (m1, m2, m3)... done
@@ -251,21 +254,21 @@ For instance with non-multithreadable executables [a,b,c] and multithread execut
 
 ==== Tap::Support::Audit
 
-Tap tracks inputs as they are modified by various tasks, again through Executable.  At the end of a run, any individual result can be tracked back to it's original value with references to the source of each change in the value (ie the task or Executable).  This auditing can be very useful when workflows diverge, as they often do, by adding or subtracting steps as dictated by the results.
+Tap tracks inputs as they are modified by various tasks, again through Executable.  At the end of a run, any individual result can be tracked back to it's original value with references to the source of each change in the value (ie the task or Executable).  This auditing can be very useful when workflows diverge, as they often do.
 
-Auditing is largely invisible except in on_complete blocks.  On complete blocks receive the audited results so that this information can be used, as needed, to make decisions.  
+Auditing is largely invisible except in <tt>on_complete</tt> blocks.  <tt>on_complete</tt> blocks receive the audited results so that this information can be used, as needed, to make decisions.  
 
-	  t = Task.new
-	  t.on_complete do |_result|      # _result is an Audit instance
-	    _result._current              # the current value
-	    _result._original             # the original value
-	  end
+    t = Task.new
+    t.on_complete do |_result|      # _result is an Audit instance
+      _result._current              # the current value
+      _result._original             # the original value
+    end
 
 To help indicate when a result is actually a result and when it is an audit, Tap uses a convention whereby a leading underscore signals auditing is involved.
 
 ==== Tap::Support::Aggregator
 
-When a task completes, it executes it's on_complete block to handle the results, perhaps passing them on to other tasks.  Aggregators collect results when no on_complete block is specified.  Results are collected per-task into an array; a single task executed many times will have it's results aggregated into this single array.
+When a task completes, it executes it's <tt>on_complete</tt> block to handle the results, perhaps passing them on to other tasks.  Aggregators collect results when no <tt>on_complete</tt> block is specified.  Results are collected per-task into an array; a single task executed many times will have it's results aggregated into this single array.
 
 === Tap::App
 
@@ -285,7 +288,7 @@ Instances of Tap::App coordinate the execution of tasks.  Apps are basically a s
   t.enq(2,3)
   app.queue.to_a             # => [[t, [1]], [t, [2,3]]
   
-Apps also coordinate the creation of standard workflow patterns like sequence, fork, and merge.  These methods set on_complete blocks for the input tasks.
+Apps also coordinate the creation of standard workflow patterns like sequence, fork, and merge.  These methods set <tt>on_complete</tt> blocks for the input tasks.
 
   t1 = Tap.task('t1') {|t| 'hellO'}
   t2 = Tap.task('t2') {|t, input| input + ' woRld' }
@@ -329,7 +332,7 @@ As shown above, aggregated results may be accessed by task through the <tt>resul
 
 link:../images/Env.png
 
-Environments are still under construction, but have already become one of the most useful parts of Tap.  Basically a wrapper for a Root, Envs define methods to generate manifests for a type of file-based resource (tasks, generators, etc).  Furthermore they provide methods to uniquely identify the resource by path or, more specifically, minimized base paths.  In this directory structure:
+Environments are still under construction.  Basically a wrapper for a Root, Envs define methods to generate manifests for a type of file-based resource (tasks, generators, etc).  Furthermore they provide methods to uniquely identify the resource by path or, more specifically, minimized base paths.  In this directory structure:
 
   path
   `- to

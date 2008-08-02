@@ -4,6 +4,7 @@ require 'tap/support/lazydoc'
 
 module Tap
   module Support
+    autoload(:Templater, 'tap/support/templater')
     
     # ConfigurableMethods encapsulates class methods used to declare class configurations. 
     # When configurations are declared using the config method, ConfigurableMethods 
@@ -85,6 +86,17 @@ module Tap
       def lazydoc(resolve=false)
         Lazydoc.resolve(configurations.code_comments) if resolve
         Lazydoc[source_file]
+      end
+      
+      # Templates and loads the contents of path as YAML.  Returns an
+      # empty hash if the path is empty, does not exist, or is not a
+      # file.
+      def load_config(path, locals={})
+        return {} if path == nil || !File.exists?(path) || File.directory?(path)
+
+        templater = Support::Templater.new(File.read(path), locals)
+        templater.path = path
+        YAML.load(templater.build) || {}
       end
       
       protected

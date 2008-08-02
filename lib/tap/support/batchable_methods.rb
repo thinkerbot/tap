@@ -34,24 +34,49 @@ module Tap
       # is renamed as <tt>unbatched_method</tt> and <tt>method</tt> redefined to 
       # call <tt>unbatched_method</tt> on each object in the batch.
       #
-      #   def process(*args)
+      #   def process(one, two)
       #     ...
       #   end
       #   batch_function(:process)
       #
       # Is equivalent to:
       #
-      #   def unbatched_process(*args)
+      #   def unbatched_process(one, two)
       #     ...
       #   end
       #
-      #   def process(*args)
+      #   def process(one, two)
       #     batch.each do |t|
-      #      t.unbatched_process(*args)
+      #      t.unbatched_process(one, two)
       #     end
       #     self
       #   end
-      #   
+      #
+      # The batched method will accept/pass as many arguments as are defined for
+      # the unbatched method.  Splats are supported, and blocks are supported too 
+      # by passing a block to batch_function:
+      #
+      #   def process(arg, *args, &block)
+      #     ...
+      #   end
+      #   batch_function(:process) {}
+      #
+      # Is equivalent to:
+      #
+      #   def unbatched_process(arg, *args, &block)
+      #     ...
+      #   end
+      #
+      #   def process(*args, &block)
+      #     batch.each do |t|
+      #      t.unbatched_process(*args, &block)
+      #     end
+      #     self
+      #   end
+      #
+      # Obviously there are limitations to batch_function, most notably batching
+      # functions with default values.  In these cases, batch functionality
+      # must be implemented manually.
       def batch_function(*methods)
         methods.each do |method_name|
           unbatched_method = "unbatched_#{method_name}"

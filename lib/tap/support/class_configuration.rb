@@ -4,8 +4,7 @@ require 'tap/support/configuration'
 
 module Tap
   module Support
-    autoload(:Templater, 'tap/support/templater')
-
+    
     # ClassConfiguration tracks and handles the class configurations defined in a 
     # Configurable class.
     class ClassConfiguration

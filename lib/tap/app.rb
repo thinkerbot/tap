@@ -7,7 +7,7 @@ module Tap
   
   # App coordinates the setup and running of tasks, and provides an interface 
   # to the application directory structure.  App is convenient for use within 
-  # scripts and with Env provides the basis for the 'tap' command line 
+  # scripts and, with Env, provides the basis for the 'tap' command line 
   # application.  
   #
   # === Running Tasks
@@ -24,9 +24,10 @@ module Tap
   #   app.results(t1)                # => [1, 2]
   #
   # When a task completes, the results will either be passed to the task
-  # on_complete block (if set) or be collected into an Aggregator, through
-  # which results may be accessed per-task, as shown above.  Task on_complete
-  # blocks typically enque other tasks, allowing the construction of workflows:
+  # <tt>on_complete</tt> block (if set) or be collected into an Aggregator;
+  # aggregated results may be accessed per-task, as shown above.  Task 
+  # <tt>on_complete</tt> blocks typically enque other tasks, allowing the
+  # construction of workflows:
   #
   #   # clear the previous results
   #   app.aggregator.clear
@@ -43,9 +44,6 @@ module Tap
   #
   # Here t1 has no results because the on_complete block passed them to t2 in 
   # a simple sequence.
-  #
-  # App keeps running as long as it finds methods in the queue, or until it is stopped 
-  # or terminated.
   #
   # ==== Batching
   #
@@ -111,8 +109,11 @@ module Tap
   # to add one to an input until the result is 3, then adds five more with the 
   # 'add_five' method.  The final result should always be 8.  
   #
-  #   t1 = Tap::Task.new('add_one') {|task, input| input += 1 }
-  #   t2 = Tap::Task.new('add_five') {|task, input| input += 5 }
+  #   t1 = Tap::Task.new {|task, input| input += 1 }
+  #   t1.name = "add_one"
+  #
+  #   t2 = Tap::Task.new {|task, input| input += 5 }
+  #   t2.name = "add_five"
   #
   #   t1.on_complete do |_result|
   #     # _result is the audit; use the _current method
@@ -185,11 +186,11 @@ module Tap
     attr_reader :state
     
     # A Tap::Support::Aggregator to collect the results of 
-    # methods that have no on_complete block
+    # methods that have no <tt>on_complete</tt> block
     attr_reader :aggregator
     
     config :max_threads, 10, &c.integer           # For multithread execution
-    config :debug, false, &c.flag                 
+    config :debug, false, &c.flag                 # Flag debugging
     config :force, false, &c.flag                 # Force execution at checkpoints
     config :quiet, false, &c.flag                 # Suppress logging
 
@@ -239,12 +240,8 @@ module Tap
       debug || $DEBUG
     end
     
-    #
-    # Logging methods
-    #
-    
-    # Sets the current logger. The logger level is set to Logger::DEBUG if 
-    # the global variable $DEBUG is true.
+    # Sets the current logger. The logger level is set to Logger::DEBUG if
+    # debug? is true.
     def logger=(logger)
       unless logger.nil?
         logger.level = Logger::DEBUG if debug?
@@ -254,51 +251,14 @@ module Tap
     end
     
     # Logs the action and message at the input level (default INFO).  
-    # Logging is suppressed if quiet
+    # Logging is suppressed if quiet is true.
     def log(action, msg="", level=Logger::INFO)
       logger.add(level, msg, action.to_s) unless quiet
     end
     
-    # Iteratively passes the block the configuration templates for the specified file.
-    # Ultimately these templates specify configurations for tasks, as well batched tasks,
-    # linked to to self.  If no block is specified, each_config_template collects the
-    # templates and returns them as an array.
-    #
-    # To make templates, the contents of the file are processed using ERB, then loaded 
-    # as YAML. ERB for the config files is evaluated in a binding that contains  
-    # references to self (app) and the input filepath.
-    #
-    #   # [simple.yml] 
-    #   #  key: value
-    #
-    #   app.each_config_template("simple.yml")  # => [{"key" => "value"}]
-    #
-    #   # [erb.yml] 
-    #   #  app: <%= app.object_id %>
-    #   #  filepath: <%= filepath %>
-    #
-    #   app.each_config_template("erb.yml")  # => [{"app" => app.object_id, "filepath" => "erb.yml"}]
-    #
-    # Batched tasks can be specified by providing an array of hashes.  
-    #
-    #   # [batched_with_erb.yml] 
-    #   #  - key: <%= 1 %>
-    #   #  - key: <%= 1 + 1 %>
-    #
-    #   app.each_config_template("batched_with_erb.yml")  # => [{"key" => 1}, {"key" => 2}]
-    #
-    # If no config templates can be loaded (as when the filepath does not exist, or  
-    # the file is empty), each_config_template passes the block a single empty template.  
-    def load_config(path)
-      return {} if path == nil || !File.exists?(path) || File.directory?(path)
-      
-      input = Support::Templater.new(File.read(path), :app => self, :path => path).build
-      YAML.load(input) || {}
-    end
-    
     # Returns the configuration filepath for the specified task name,
     # File.join(app['config'], task_name + ".yml"). Returns nil if 
-    # task_name==nil.
+    # task_name is nil.
     def config_filepath(name)
       name == nil ? nil : filepath('config', name + ".yml")
     end
@@ -325,41 +285,45 @@ module Tap
       end
     end
 
-    # Runs the methods in the queue in which they were enqued. Run exists when there
-    # are no more enqued methods.  Run returns self.  An app can only run on one thread 
-    # at a time.  If run is called when self is already running, run returns immediately.
+    # Sequentially executes the methods (ie Executable objects) in queue; run 
+    # continues until the queue is empty and then returns self.  An app can 
+    # only run on one thread at a time.  If run is called when already running, 
+    # run returns immediately.
     #
     # === The Run Cycle
-    # During run, each method is executed sequentially on the current thread unless 
-    # m.multithread == true.  In this case run switches into a multithreaded mode and 
-    # launches up to max_threads execution threads, each of which can run a multithreaded 
-    # method.  
+    # Run can execute methods in sequential or multithreaded mode.  In sequential 
+    # mode, run executes enqued methods in order and on the current thread.  Run 
+    # continues until it reaches a method marked with multithread = true, at which 
+    # point run switches into multithreading mode.
     #
-    # These threads will run methods until a non-multithreaded method reaches the top 
-    # of the queue.  At that point, run waits for the multithreaded methods to complete, 
-    # and then switches back into the sequential mode.  Run never executes multithreaded 
-    # and non-multithreaded methods at the same time.
+    # When multithreading, run shifts methods off of the queue and executes each 
+    # on their own thread (launching up to max_threads threads at one time). 
+    # Multithread execution continues until run reaches a non-multithread method,
+    # at which point run blocks, waits for the threads to complete, and switches 
+    # back into sequential mode.
     #
-    # Run checks the state of self before executing a method.  If the state is changed
-    # to State::STOP, then no more methods will be executed (but currently running methods
-    # will continute to completion).  If the state is changed to State::TERMINATE then
-    # no more methods will be executed and currently running methods will be discontinued
-    # as described below.
+    # Run never executes multithreaded and non-multithreaded methods at the same 
+    # time.
     #
-    # When a series of multithreaded methods are stopped or terminated mid-execution,
-    # several methods may be waiting for a free execution thread.  These are requeued.
+    # ==== Checks
+    # Run checks the state of self before executing a method.  If the state is 
+    # changed to State::STOP, then no more methods will be executed; currently 
+    # running methods will continute to completion.  If the state is changed to 
+    # State::TERMINATE then no more methods will be executed and currently running 
+    # methods will be discontinued as described below.
     #
-    # === Error Handling and Termination
-    # When unhandled errors arise during run, run enters a termination (rescue) 
-    # routine.  During termination a TerminationError is raised in each executing 
-    # method so that the method exits or begins executing its internal error handling 
-    # code (perhaps performing rollbacks).
+    # ==== Error Handling and Termination
+    # When unhandled errors arise during run, run enters a termination routine.  
+    # During termination a TerminationError is raised in each executing method so 
+    # that the method exits or begins executing its internal error handling code 
+    # (perhaps performing rollbacks).
     #
-    # The TerminationError is ONLY raised when the method calls Task::Base#check_terminate
-    # This method is available to all Task::Base objects, but obviously is NOT available
-    # to Executable methods generated by _method.  These methods need to check the state
-    # of app themselves; otherwise they will continue on to completion even when app
-    # is in State::TERMINATE.
+    # The TerminationError can ONLY be raised by the method itself, usually via a
+    # call to Tap::Support::Framework#check_terminate.  <tt>check_terminate</tt>
+    # is available to all Framework objects (ex Task and Workflow), but not to 
+    # Executable methods generated by _method.  These methods need to check the 
+    # state of app themselves; otherwise they will continue on to completion even 
+    # when app is in State::TERMINATE.
     #
     #   # this task will loop until app.terminate
     #   Task.new {|task|  while(true) task.check_terminate end }
@@ -369,11 +333,12 @@ module Tap
     #
     # Additional errors that arise during termination are collected and packaged 
     # with the orignal error into a RunError.  By default all errors are logged
-    # and run exits.  If debug? == true, then the RunError will be raised for further 
-    # handling.
+    # and run exits.  If debug? is true, then the RunError will be raised for 
+    # further handling.
     #
-    # Note: the method that caused the original unhandled error is no longer executing 
-    # when termination begins and thus will not recieve a TerminationError.  
+    # Note: the method that caused the original unhandled error is no longer 
+    # executing when termination begins and thus will not recieve a 
+    # TerminationError.  
     def run
       synchronize do
         return self unless self.ready.state == State::READY
