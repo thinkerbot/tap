@@ -6,8 +6,8 @@ module Tap
   module Support
     
     # Framework encapsulates the basic framework functionality (batching,
-    # configuration, documentation, logging, etc) used by Task and Workflow.  
-    # Note that Framework does NOT encapsulate the functionality needed to
+    # configuration, documentation, etc) used by Task and Workflow. Note 
+    # that Framework does NOT encapsulate the functionality needed to
     # make a class useful in workflows, such as enq and on_complete.
     module Framework
       include Batchable

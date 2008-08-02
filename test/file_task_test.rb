@@ -46,40 +46,40 @@ class FileTaskTest < Test::Unit::TestCase
   end
   
 
-  #   #
-  #   # doc tests
-  #   #
-  #   
-  #   def test_documentation
-  #     file_one = method_filepath(:output, "file.txt")
-  #     file_two = method_filepath(:output, "path/to/file.txt")
-  #     dir = method_filepath(:output, "some/dir")
-  #     FileUtils.mkdir_p( method_filepath(:output) )
-  #     
-  #     File.open(file_one, "w") {|f| f << "original content"}
-  #     t = Tap::FileTask.new do |task|
-  #       task.mkdir(dir)                      
-  #       task.prepare([file_one, file_two]) 
-  #       
-  #       File.open(file_one, "w") {|f| f << "new content"}
-  #       FileUtils.touch(file_two)
-  #   
-  #       raise "error!"
-  #     end
-  #   
-  #     begin
-  #       assert !File.exists?(dir)        
-  #       assert !File.exists?(file_two)        
-  #       t.execute
-  #       flunk "no error raised"
-  #     rescue
-  #       assert_equal "error!", $!.message
-  #       assert !File.exists?(dir)        
-  #       assert !File.exists?(file_two) 
-  #       assert_equal "original content", File.read(file_one)  
-  #     end
-  #   end
-  # 
+  #
+  # doc tests
+  #
+  
+  def test_documentation
+    file_one = method_filepath(:output, "file.txt")
+    file_two = method_filepath(:output, "path/to/file.txt")
+    dir = method_filepath(:output, "some/dir")
+    FileUtils.mkdir_p( method_filepath(:output) )
+    
+    File.open(file_one, "w") {|f| f << "original content"}
+    t = Tap::FileTask.new do |task|
+      task.mkdir(dir)                      
+      task.prepare([file_one, file_two]) 
+      
+      File.open(file_one, "w") {|f| f << "new content"}
+      FileUtils.touch(file_two)
+  
+      raise "error!"
+    end
+  
+    begin
+      assert !File.exists?(dir)        
+      assert !File.exists?(file_two)        
+      t.execute
+      flunk "no error raised"
+    rescue
+      assert_equal "error!", $!.message
+      assert !File.exists?(dir)        
+      assert !File.exists?(file_two) 
+      assert_equal "original content", File.read(file_one)  
+    end
+  end
+
 
   #
   # open tests
@@ -978,50 +978,6 @@ class FileTaskTest < Test::Unit::TestCase
     assert !t.backed_up_files.empty?
   end
 
-  # def test_execute_removes_backed_up_files_if_cleanup_after_execute_is_true
-  #   was_in_execute = false
-  #   existing_file, backup_file, non_existant_dir, non_existant_file = setup_execute_test do
-  #     was_in_execute = true
-  #     touch_file(existing_file, "new content")
-  #   end
-  # 
-  #     t.cleanup_after_execute = true
-  #     t.execute(nil)
-  # 
-  #   # check the backup file was removed and that
-  #   # there was no restore (no error was raised)
-  #   assert was_in_execute
-  #   assert File.exists?(existing_file)
-  #   assert_equal "new content", File.read(existing_file)
-  #   assert !File.exists?(backup_file)
-  #   assert !File.exists?(File.dirname(backup_file))
-  #   assert !t.added_files.empty?
-  #   assert !t.added_files.include?(backup_file)
-  #   assert t.backed_up_files.empty?
-  # end
-
-  # def test_execute_restores_backups_on_error_even_if_cleanup_after_execute_is_true
-  #   was_in_execute = false
-  #   existing_file, backup_file, non_existant_dir, non_existant_file = setup_execute_test do
-  #     was_in_execute = true
-  #     touch_file(existing_file, "new content")
-  #     raise "error"
-  #   end
-  # 
-  #     t.cleanup_after_execute = true
-  #     assert_raise(RuntimeError) { t.execute(nil) }
-  # 
-  #   # check the existing file was restored and
-  #   # backup file was removed
-  #   assert was_in_execute
-  #   assert File.exists?(existing_file)
-  #   assert_equal "original content", File.read(existing_file)
-  #   assert !File.exists?(backup_file)
-  #   assert !File.exists?(File.dirname(backup_file))
-  #   assert t.added_files.empty?
-  #   assert t.backed_up_files.empty?
-  # end
-
   def test_execute_does_not_rollback_results_from_prior_successful_executions
     existing_file = method_filepath(:output, "path/to/existing/file.txt")
     non_existant_dir = method_filepath(:output, "path/to/non/existing")
@@ -1131,28 +1087,5 @@ class FileTaskTest < Test::Unit::TestCase
     end
     assert !File.exists?(method_filepath(:output, 'backup'))
   end
-
-  # def test_execute_cleanup_after_execute_with_multiple_files
-  #   was_in_execute = false
-  #   existing_files, non_existant_files = setup_multiple_file_execute_test do
-  #     was_in_execute = true
-  #     (existing_files + non_existant_files) .each do |file|
-  #       touch_file file, "new content"
-  #     end
-  #   end
-  # 
-  #   assert !File.exists?(method_filepath(:output, 'backup'))
-  # 
-  #   t.cleanup_after_execute = true
-  #   t.execute(nil)
-  # 
-  #   # check existing files were restored, made files and backups removed.
-  #   assert was_in_execute
-  #   (existing_files + non_existant_files).each do |file|
-  #     assert File.exists?(file)
-  #     assert_equal "new content", File.read(file)
-  #   end
-  #   assert !File.exists?(method_filepath(:output, 'backup'))
-  # end
-
+  
 end

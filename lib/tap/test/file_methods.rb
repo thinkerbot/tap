@@ -7,6 +7,8 @@ module Test # :nodoc:
   module Unit # :nodoc:
     class TestCase
       class << self
+        
+        # Access the test root structure (a Tap::Root)
         attr_accessor :trs
         
         # Causes a TestCase to act as a file test, by instantiating a class Tap::Root 
@@ -54,8 +56,7 @@ end
 module Tap
   module Test  
     
-    # == Overview
-    #
+
     # FileMethods sets up a TestCase with methods for accessing and utilizing
     # test-specific files and directories.  Each class that acts_as_file_test
     # is set up with a Tap::Root structure (trs) that mediates the creation of 
@@ -134,6 +135,10 @@ module Tap
     #   % rake test keep_outputs=true
     #   % tap run test keep_failures=true
     #
+    #
+    # === Class Methods
+    # 
+    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] for documentation of the class methods added by FileMethods.
     module FileMethods
       include Tap::Test::EnvVars
   

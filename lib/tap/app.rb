@@ -79,7 +79,11 @@ module Tap
   #   array.length                   # => 2
   #   array[0] == array[1]           # => false
   #
-  # Naturally, it is up to you to make sure each task is thread safe.
+  # Naturally, it is up to you to make sure each task is thread safe.  Note 
+  # that for the most part Tap::App is NOT thread safe; only run and 
+  # run-related methods (ready, stop, terminate, info) are synchronized.
+  # Methods enq and results act on thread-safe objects ExecutableQueue and 
+  # Aggregator, and should be ok to use from multiple threads.
   #
   # ==== Executables
   #

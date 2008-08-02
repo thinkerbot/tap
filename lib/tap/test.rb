@@ -25,9 +25,9 @@ end
 
 module Tap
   
-  # Modules facilitating testing.  Tap::Test::TapMethods are specific to
-  # Tap, but the other modules Tap::Test::SubsetMethods and 
-  # Tap::Test::FileMethods are more general in their utility.
+  # Modules facilitating testing.  TapMethods are specific to
+  # Tap, but SubsetMethods and FileMethods are more general in 
+  # their utility.
   module Test
   end
 end

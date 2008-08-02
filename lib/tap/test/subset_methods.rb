@@ -244,7 +244,7 @@ module Tap
     #
     # === Class Methods
     # 
-    # See Test::Unit::TestCase for documentation of the class methods added by SubsetMethods
+    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] for documentation of the class methods added by SubsetMethods
     module SubsetMethods
       include Tap::Test::EnvVars
   

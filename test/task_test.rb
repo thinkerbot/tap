@@ -10,6 +10,18 @@ class ValidatingTask < Tap::Task
   config :string, 'str', &c.check(String)
   config :integer, 1, &c.yaml(Integer)
 end 
+class SubclassTask < Tap::Task
+  attr_accessor :array
+  def initialize(*args)
+    @array = []
+    super
+  end
+
+  def initialize_copy(orig)
+    @array = orig.array.dup
+    super
+  end
+end
 
 class TaskTest < Test::Unit::TestCase
   include Tap
@@ -24,70 +36,50 @@ class TaskTest < Test::Unit::TestCase
     app.root = trs.root
   end
   
-  # def test_documentation
-  #   t = ConfiguredTask.new
-  #   assert_equal("configured_task", t.name)
-  #   assert_equal({:one => 'one', :two => 'two'}, t.config)           
-  # 
-  #   ###
-  #   # [/path/to/app/config/example.yml]
-  #   # one: ONE
-  # 
-  #   t = ConfiguredTask.new "example", :three => 'three'
-  #   assert_equal("example", t.name)
-  #   assert_equal(File.join(app[:config], "example.yml"), t.config_file)
-  #   assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, t.config)
-  # 
-  #   t = ValidatingTask.new
-  #   assert_raise(Support::Validation::ValidationError) { t.string = 1 }
-  #   assert_raise(Support::Validation::ValidationError) { t.integer = 1.1 }
-  # 
-  #   t.integer = "1"
-  #   assert_equal 1, t.integer
-  #   
-  #   ####
-  #   # [/path/to/app/config/batch.yml]
-  #   # - one: ONE
-  #   # - one: ANOTHER ONE
-  # 
-  #   t = ConfiguredTask.new "batch"
-  #   assert_equal(2, t.batch.size)
-  #   t1, t2 = t.batch
-  # 
-  #   assert_equal("batch", t1.name)           
-  #   assert_equal({:one => 'ONE', :two => 'two'}, t1.config)            
-  # 
-  #   assert_equal("batch", t2.name)              
-  #   assert_equal({:one => 'ANOTHER ONE', :two => 'two'}, t2.config)
-  #   
-  #   ###
-  #   runlist = []
-  #   t1 = Task.new {|task, input| runlist << input}
-  #   assert_equal [t1], t1.batch
-  # 
-  #   t2 = t1.initialize_batch_obj            
-  #   assert_equal [t1, t2], t1.batch
-  #   assert_equal [t1, t2], t2.batch      
-  #   
-  #   t1.enq 1
-  #   t2.enq 2
-  #   t1.app.run
-  #   
-  #   assert_equal [1,1,2,2], runlist
-  # end
+  def test_documentation
+    t = ConfiguredTask.new
+    assert_equal("configured_task", t.name)
+    assert_equal({:one => 'one', :two => 'two'}, t.config)           
+  
+    t = ValidatingTask.new
+    assert_raise(Support::Validation::ValidationError) { t.string = 1 }
+    assert_raise(Support::Validation::ValidationError) { t.integer = 1.1 }
+  
+    t.integer = "1"
+    assert_equal 1, t.integer
+    
+    t = ConfiguredTask.new({:one => 'ONE', :three => 'three'}, "example")
+    assert_equal "example", t.name
+    assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, t.config)
+    
+    ###
+    app = Tap::App.instance
+    t1 = Tap::Task.new(:key => 'one') do |task, input| 
+      input + task.config[:key]
+    end
+    assert_equal [t1], t1.batch
+  
+    t2 = t1.initialize_batch_obj(:key => 'two')
+    assert_equal [t1, t2], t1.batch
+    assert_equal [t1, t2], t2.batch
+    
+    t1.enq 't1_by_'
+    t2.enq 't2_by_'
+    app.run
+  
+    assert_equal ["t1_by_one", "t2_by_one"], app.results(t1)
+    assert_equal ["t1_by_two", "t2_by_two"], app.results(t2)
+    
+    ###
+    t1 = SubclassTask.new
+    t2 = t1.initialize_batch_obj
+    assert_equal true, t1.array == t2.array
+    assert_equal false, t1.array.object_id == t2.array.object_id
+  end
   
   #
   # initialization tests
   #
-
-
-  # def test_initialize_documenation
-  #   t1 = SubclassTask.new
-  #   t2 = t1.initialize_batch_obj
-  #   
-  #   assert t1.shared_variable == t2.shared_variable
-  #   assert t1.instance_specific_variable != t2.instance_specific_variable
-  # end
   
   def test_default_initialization
     assert_equal App.instance, t.app

@@ -49,7 +49,7 @@ module Tap
       
       protected
       
-      attr_accessor :hash
+      attr_accessor :hash # :nodoc:
     end
   end
 end

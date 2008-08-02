@@ -1,12 +1,10 @@
 require 'tap/support/shell_utils'
+autoload(:FileUtils, "fileutils")
 
 module Tap
   
-  # == Overview
-  #
   # FileTask provides methods for creating/modifying files such that you can
-  # rollback changes if an error occurs.  In addition, FileTask provides a 
-  # method to infer filepaths within the standard Tap directory structure.  
+  # rollback changes if an error occurs.
   #
   # === Creating Files/Rolling Back Changes
   #
@@ -47,8 +45,6 @@ module Tap
   #
   class FileTask < Task
     include Tap::Support::ShellUtils
-    
-    autoload(:FileUtils, "fileutils")
     
     # A hash of backup (source, target) pairs, such that the
     # backed-up files are backed_up_files.keys and the actual

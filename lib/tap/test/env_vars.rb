@@ -1,7 +1,7 @@
 module Tap
   module Test
     
-    # Provides a method for case-insensitive access to the ENV variables
+    # Provides for case-insensitive access to the ENV variables
     module EnvVars
       
       # Access to the case-insensitive ENV variables.  Raises an error
@@ -20,7 +20,7 @@ module Tap
         end
       end
       
-      # Returns true if the env_var(var) is set and matches /^true%/i
+      # Returns true if the env_var(var) is set and matches /^true$/i
       def env_true?(var)
         env(var) && env(var) =~ /^true$/i
       end

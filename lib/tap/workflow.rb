@@ -1,11 +1,7 @@
 module Tap
   
-  # == Overview
-  #
-  # App can build workflows directly, using methods like sequence, merge, and
-  # multithread, but these workflows are hard to abstract and resuse.  Workflow
-  # is a specialized type of Task allows the encapsulation and reuse of workflow 
-  # logic.  See Tap::Task for the shared documentation.
+  # Workflow is a specialized type of Task allowing the encapsulation and reuse of  
+  # workflow logic.  Workflows are still under construction.
   #
   # === Workflow Definition
   #

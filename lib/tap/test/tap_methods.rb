@@ -62,6 +62,10 @@ module Tap
     # Tap-specific testing methods to help with testing Tasks, such as the
     # checking of audits and test-specific modification of application 
     # configuration.
+    #
+    # === Class Methods
+    # 
+    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] for documentation of the class methods added by TapMethods.
     module TapMethods
       
       # Returns the test-method-specific application.
