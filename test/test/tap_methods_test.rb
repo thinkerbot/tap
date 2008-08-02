@@ -240,23 +240,13 @@ class TapMethodsTest < Test::Unit::TestCase
   #
   
   def test_with_config_doc
-    app = Tap::App.new(:directories => {:one => 'one'})
-    config = {:directories => {:one => 'ONE'}, :quiet => false}
-  
-    with_config(config, app) do 
-      assert_equal({:one => 'ONE'}, app.directories)
-      assert !app.quiet
-      assert app.debug
-    end
-  
-    with_config(config, app, false) do 
-      assert_equal({:one => 'ONE'}, app.directories)
+    app = Tap::App.new(:quiet => true, :debug => false)
+    with_config({:quiet => false}, app) do 
       assert !app.quiet
       assert !app.debug
     end
   
-    assert_equal({:one => 'one'}, app.directories)
-    assert !app.quiet
+    assert app.quiet
     assert !app.debug
   end
   
@@ -267,7 +257,7 @@ class TapMethodsTest < Test::Unit::TestCase
       
       with_config({:one => 'two'}) do
         assert_equal 'two', app.config[:one]
-        assert_nil app.config[:two]
+        assert_equal 'two', app.config[:two]
       end
       
       assert_equal 'one', app.config[:one]

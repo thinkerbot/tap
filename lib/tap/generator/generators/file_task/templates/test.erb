@@ -5,28 +5,28 @@ class <%= const.name %>Test < Test::Unit::TestCase
   acts_as_tap_test 
   
   def test_<%= const.basename %>
-	  # Use assert_files to test file transform tasks.  The block  
-	  # recieves the method/input files and compares the results 
-	  # to the method/expected files.
+    # Use assert_files to test file transform tasks.  The block  
+    # recieves the method/input files and compares the results 
+    # to the method/expected files.
   
-	  # Generated files are often placed in method/output, as it
-	  # is cleaned up by default.  To keep output files, set the 
-	  # KEEP_OUTPUTS variable:
-	  #   % rake test keep_outputs=true
+    # Generated files are often placed in method/output, as it
+    # is cleaned up by default.  To keep output files, set the 
+    # KEEP_OUTPUTS variable:
+    #   % rake test keep_outputs=true
   
-	  t = SampleFile.new 
-	  assert_files do |input_files|
-	    input_files.each do |source|
-	      target = method_filepath(:output, 'result.yml') 
-	      t.enq(source, target)
-	    end
+    t = SampleFile.new 
+    assert_files do |input_files|
+      input_files.each do |source|
+        target = method_filepath(:output, 'result.yml') 
+        t.enq(source, target)
+      end
     
-	    with_config do 
-	      app.run
-	    end
+      with_config do 
+        app.run
+      end
     
-	    app.results(t)
-	  end
+      app.results(t)
+    end
   end
   
 end

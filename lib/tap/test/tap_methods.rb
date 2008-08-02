@@ -78,10 +78,7 @@ module Tap
       # Also makes sure Tap::App.instance returns the test method app.
       def setup
         super
-        @app = Tap::App.new(
-          :root => method_root, 
-          :directories => trs.directories,
-          :absolute_paths => trs.absolute_paths)
+        @app = Tap::App.new(app_config)
         Tap::App.instance = @app
       end
       
@@ -198,39 +195,31 @@ module Tap
       
       public
       
-      def default_config
-        {:quiet => true, :debug => true}
+      # The configurations used to initialize self.app
+      def app_config
+        { :root => method_root, 
+          :directories => trs.directories,
+          :absolute_paths => trs.absolute_paths,
+          :quiet => true, 
+          :debug => true}
       end
       
-      # Applies the input configurations to the specified app for the 
-      # duration of the block.  The default_config configruations will
-      # be applied before the inputs; to turn this feature off, set
-      # use_default_config to false.
+      # Reconfigures app with the input configurations for the 
+      # duration of the block.
       #
-      #   app = Tap::App.new(:directories => {:one => 'one'})
-      #   config = {:directories => {:one => 'ONE'}, :quiet => false}
-      #
-      #   with_config(config, app) do 
-      #     app.directories              # => {:one => 'ONE'}
-      #     app.quiet                    # => false
-      #     app.debug                    # => true
-      #   end
-      #
-      #   with_config(config, app, false) do 
-      #     app.directories              # => {:one => 'ONE'}
+      #   app = Tap::App.new(:quiet => true, :debug => false)
+      #   with_config({:quiet => false}, app) do 
       #     app.quiet                    # => false
       #     app.debug                    # => false
       #   end
       #
-      #   app.directories                # => {:one => 'one'}
-      #   app.quiet                      # => false
+      #   app.quiet                      # => true
       #   app.debug                      # => false
       #
-      def with_config(config={}, app=self.app, use_default_config=true, &block)
+      def with_config(config={}, app=self.app, &block)
         begin
           hold = app.config.to_hash
           
-          app.send(:initialize_config, use_default_config ? default_config : {}) 
           app.reconfigure(config)
           
           yield block if block_given?

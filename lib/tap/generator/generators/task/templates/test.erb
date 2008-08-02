@@ -6,18 +6,14 @@ class <%= const.name %>Test < Test::Unit::TestCase
   
   def test_<%= const.basename %>
     t = <%= const.name %>.new :key => 'value'
-    
-    # specify the application config
-    with_config(:quiet => true, :debug => true) do  
-      
-      # run the task with some inputs
-      t.enq("one")
-      app.run
-      
-      # check the configuration and outputs
-      assert_equal({:key  => 'value'}, t.config)
-      assert_audit_equal ExpAudit[[nil, "one"], [t, "one was processed with value"]], app._results(t).first
 
-    end
+    # run the task with some inputs
+    t.enq("one")
+    app.run
+    
+    # check the configuration and outputs
+    assert_equal({:key  => 'value'}, t.config)
+    assert_audit_equal ExpAudit[[nil, "one"], [t, "one was processed with value"]], app._results(t).first
+
   end
 end

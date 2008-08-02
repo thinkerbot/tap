@@ -9,6 +9,12 @@ class AppTest < Test::Unit::TestCase
   
   acts_as_tap_test
   
+  def app_config
+    { :root => method_root, 
+      :directories => trs.directories,
+      :absolute_paths => trs.absolute_paths}
+  end
+  
   def setup
     super
     app.root = trs.root

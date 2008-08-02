@@ -2,7 +2,7 @@ Gem::Specification.new do |s|
   s.name = "tap"
   s.version = "0.10.0"
   s.author = "Simon Chiang"
-  s.email = "simon.chiang@uchsc.edu"
+  s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
   s.platform = Gem::Platform::RUBY
   s.summary = "A framework for creating configurable, distributable tasks and workflows."

@@ -9,25 +9,25 @@
 class <%= const.const_name %> < Tap::FileTask
 
   # <config file documentation>
-	config :letters, ['a','e','i','o','u'], &c.array  # a list of letters to count
+  config :letters, ['a','e','i','o','u'], &c.array  # a list of letters to count
 
-	def process(source, target)
+  def process(source, target)
 
-	  # prepare ensures the parent directory for target
-	  # exists and, if necessary, backs up the existing
-	  # target file (which is restored on error)
-	  prepare(target) 
+    # prepare ensures the parent directory for target
+    # exists and, if necessary, backs up the existing
+    # target file (which is restored on error)
+    prepare(target) 
 
-	  # now perform the task...
-	  str = File.read(source)
-	  letter_count = letters.collect do |letter|
-	    str.count(letter)
-	  end
+    # now perform the task...
+    str = File.read(source)
+    letter_count = letters.collect do |letter|
+      str.count(letter)
+    end
 
-	  File.open(target, "wb") do |file|
-	    file << letter_count.to_yaml
-	  end
+    File.open(target, "wb") do |file|
+      file << letter_count.to_yaml
+    end
 
-	  target
-	end
+    target
+  end
 end <% module_nest(const.nesting, '  ') { target } end %>
