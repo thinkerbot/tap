@@ -3,8 +3,8 @@ require 'tap/support/command_line'
 module Tap
   module Support
   
-    # FrameworkMethods encapsulates class methods related to Framework.
-    module FrameworkMethods
+    # FrameworkClass encapsulates class methods related to Framework.
+    module FrameworkClass
        
       # Returns the default name for the class: to_s.underscore
       attr_accessor :default_name

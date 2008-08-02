@@ -1,6 +1,6 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 
-class ConfigurableMethodsTest < Test::Unit::TestCase
+class ConfigurableClassTest < Test::Unit::TestCase
   include Tap::Support 
   
   acts_as_file_test
@@ -10,17 +10,17 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   #
 
   class ConfigurableClass
-    extend Tap::Support::ConfigurableMethods
+    extend Tap::Support::ConfigurableClass
     config :one, 'one'
   end
 
   class AnotherConfigurableClass
-    extend Tap::Support::ConfigurableMethods
+    extend Tap::Support::ConfigurableClass
     config(:one, 'one') {|value| value.upcase }
   end
 
   class YetAnotherConfigurableClass
-    extend Tap::Support::ConfigurableMethods
+    extend Tap::Support::ConfigurableClass
     config_attr(:one, 'one') {|value| @one = value.reverse }
   end
 
@@ -44,7 +44,7 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   #
   
   class IncludeClass
-    extend Tap::Support::ConfigurableMethods
+    extend Tap::Support::ConfigurableClass
   end
   
   def test_extend_initializes_class_configurations
@@ -57,7 +57,7 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   #
   
   class IncludeBase
-    extend Tap::Support::ConfigurableMethods
+    extend Tap::Support::ConfigurableClass
     config :one, 'one'
   end
   
@@ -90,7 +90,7 @@ class ConfigurableMethodsTest < Test::Unit::TestCase
   #
 
   class LoadConfigClass
-    extend Tap::Support::ConfigurableMethods
+    extend Tap::Support::ConfigurableClass
   end
 
   def test_load_config_loads_path_as_yaml
@@ -126,7 +126,7 @@ path: <%= path %>
   #
 
   class SampleClass
-    extend Tap::Support::ConfigurableMethods
+    extend Tap::Support::ConfigurableClass
     
     def initialize
       @zero = @one = @two = @three = nil
@@ -260,7 +260,7 @@ path: <%= path %>
   #
   
   class ContextCheck
-    extend Tap::Support::ConfigurableMethods
+    include Tap::Support::Configurable
     
     class << self
       def context

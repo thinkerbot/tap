@@ -1,4 +1,4 @@
-require 'tap/support/batchable_methods'
+require 'tap/support/batchable_class'
 
 module Tap
   module Support
@@ -13,7 +13,7 @@ module Tap
     module Batchable
     
       def self.included(mod)
-        mod.extend Support::BatchableMethods if mod.kind_of?(Class)
+        mod.extend Support::BatchableClass if mod.kind_of?(Class)
       end
       
       # The object batch.

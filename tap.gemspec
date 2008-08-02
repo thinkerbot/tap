@@ -74,12 +74,12 @@ Gem::Specification.new do |s|
     lib/tap/support/assignments.rb
     lib/tap/support/audit.rb
     lib/tap/support/batchable.rb
-    lib/tap/support/batchable_methods.rb
+    lib/tap/support/batchable_class.rb
     lib/tap/support/class_configuration.rb
     lib/tap/support/command_line.rb
     lib/tap/support/comment.rb
     lib/tap/support/configurable.rb
-    lib/tap/support/configurable_methods.rb
+    lib/tap/support/configurable_class.rb
     lib/tap/support/configuration.rb
     lib/tap/support/constant.rb
     lib/tap/support/constants.rb
@@ -87,7 +87,7 @@ Gem::Specification.new do |s|
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
     lib/tap/support/framework.rb
-    lib/tap/support/framework_methods.rb
+    lib/tap/support/framework_class.rb
     lib/tap/support/instance_configuration.rb
     lib/tap/support/lazydoc.rb
     lib/tap/support/run_error.rb

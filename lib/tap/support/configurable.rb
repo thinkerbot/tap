@@ -1,11 +1,11 @@
-require 'tap/support/configurable_methods'
+require 'tap/support/configurable_class'
 
 module Tap
   module Support
     
     # Configurable enables the specification of configurations within a class definition.
     #
-    #   class ConfigurableClass
+    #   class ConfigClass
     #     include Configurable
     # 
     #     config :one, 'one'
@@ -17,7 +17,7 @@ module Tap
     #     end
     #   end
     #
-    #   c = ConfigurableClass.new
+    #   c = ConfigClass.new
     #   c.config.class         # => InstanceConfiguration
     #   c.config               # => {:one => 'one', :two => 'two', :three => 'three'}
     #
@@ -37,32 +37,32 @@ module Tap
     # The Validation module provides a number of common validation and string-transform 
     # blocks which can be accessed through the class method 'c':
     #
-    #   class ValidatingClass < ConfigurableClass
+    #   class SubClass < ConfigClass
     #     config(:one, 'one') {|v| v.upcase }
     #     config :two, 2, &c.integer
     #   end
     #
-    #   v = ValidatingClass.new
-    #   v.config               # => {:one => 'ONE', :two => 2, :three => 'three'}
+    #   s = SubClass.new
+    #   s.config               # => {:one => 'ONE', :two => 2, :three => 'three'}
     #
-    #   v.one = 'aNothER'             
-    #   v.one                  # => 'ANOTHER'
+    #   s.one = 'aNothER'             
+    #   s.one                  # => 'ANOTHER'
     #
-    #   v.two = -2
-    #   v.two                  # => -2
-    #   v.two = "3"
-    #   v.two                  # => 3
-    #   v.two = nil            # !> ValidationError
-    #   v.two = 'str'          # !> ValidationError
+    #   s.two = -2
+    #   s.two                  # => -2
+    #   s.two = "3"
+    #   s.two                  # => 3
+    #   s.two = nil            # !> ValidationError
+    #   s.two = 'str'          # !> ValidationError
     #
     # As shown above, configurations are inherited from the parent and can be
-    # overridden in subclasses.  See ConfigurableMethods for more details.
+    # overridden in subclasses.  See ConfigurableClass for more details.
     #
     module Configurable
       
-      # Extends including classes with ConfigurableMethods
+      # Extends including classes with ConfigurableClass
       def self.included(mod)
-        mod.extend Support::ConfigurableMethods if mod.kind_of?(Class)
+        mod.extend Support::ConfigurableClass if mod.kind_of?(Class)
       end
       
       # The instance configurations for self

@@ -3,14 +3,14 @@ require 'tap/support/batchable'
 
 class BatchableTest < Test::Unit::TestCase
 
-  class BatchableClass
+  class BatchClass
     include Tap::Support::Batchable
   end
   
   attr_accessor :t
   
   def setup
-    @t = BatchableClass.new
+    @t = BatchClass.new
   end
 
   #

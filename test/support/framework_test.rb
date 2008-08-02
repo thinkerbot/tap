@@ -17,9 +17,9 @@ class FrameworkTest < Test::Unit::TestCase
   #
 
   def test_include_extends_class_with_related_methods
-    assert Sample.kind_of?(Tap::Support::BatchableMethods)
-    assert Sample.kind_of?(Tap::Support::ConfigurableMethods)
-    assert Sample.kind_of?(Tap::Support::FrameworkMethods)
+    assert Sample.kind_of?(Tap::Support::BatchableClass)
+    assert Sample.kind_of?(Tap::Support::ConfigurableClass)
+    assert Sample.kind_of?(Tap::Support::FrameworkClass)
   end
   
   #

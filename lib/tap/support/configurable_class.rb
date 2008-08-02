@@ -6,12 +6,12 @@ module Tap
   module Support
     autoload(:Templater, 'tap/support/templater')
     
-    # ConfigurableMethods encapsulates class methods used to declare class configurations. 
-    # When configurations are declared using the config method, ConfigurableMethods 
+    # ConfigurableClass encapsulates class methods used to declare class configurations. 
+    # When configurations are declared using the config method, ConfigurableClass 
     # generates accessors in the class, much like attr_accessor.  
     #
     #   class ConfigurableClass
-    #     extend ConfigurableMethods
+    #     extend ConfigurableClass
     #     config :one, 'one'
     #   end
     #
@@ -26,7 +26,7 @@ module Tap
     # wherein <tt>@config_key</tt> will be set to the return value of the block.
     #
     #   class AnotherConfigurableClass
-    #     extend ConfigurableMethods
+    #     extend ConfigurableClass
     #     config(:one, 'one') {|value| value.upcase }
     #   end
     #
@@ -38,7 +38,7 @@ module Tap
     # config_attr method which defines the writer method using the block directly.
     #
     #   class YetAnotherConfigurableClass
-    #     extend ConfigurableMethods
+    #     extend ConfigurableClass
     #     config_attr(:one, 'one') {|value| @one = value.reverse }
     #   end
     #
@@ -46,13 +46,13 @@ module Tap
     #   ac.one = 'value'
     #   ac.one               # => 'eulav'
     #
-    module ConfigurableMethods
+    module ConfigurableClass
       
       # A ClassConfiguration holding the class configurations.
       attr_reader :configurations
       
       # The source_file for self.  By default the first file
-      # to define the class inheriting ConfigurableMethods.
+      # to define the class inheriting ConfigurableClass.
       attr_accessor :source_file
 
       # Sets the source_file for base and initializes base.configurations.
@@ -107,7 +107,7 @@ module Tap
       # Configurations are inherited, and can be overridden in subclasses. 
       #
       #   class SampleClass
-      #     extend ConfigurableMethods
+      #     include Tap::Support::Configurable
       #
       #     config :str, 'value'
       #     config(:upcase, 'value') {|input| input.upcase } 

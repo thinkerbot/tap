@@ -1,8 +1,8 @@
 module Tap
   module Support
     
-    # BatchableMethods encapsulates class methods related to Batchable.
-    module BatchableMethods
+    # BatchableClass encapsulates class methods related to Batchable.
+    module BatchableClass
       
       # Merges the batches for the specified objects.  All objects 
       # sharing the individual object batches will be affected, even 

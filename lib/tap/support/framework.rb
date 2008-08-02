@@ -1,6 +1,6 @@
 require 'tap/support/batchable'
 require 'tap/support/executable'
-require 'tap/support/framework_methods'
+require 'tap/support/framework_class'
 
 module Tap
   module Support
@@ -14,9 +14,9 @@ module Tap
       include Configurable
     
       def self.included(mod)
-        mod.extend Support::BatchableMethods
-        mod.extend Support::ConfigurableMethods
-        mod.extend Support::FrameworkMethods
+        mod.extend Support::BatchableClass
+        mod.extend Support::ConfigurableClass
+        mod.extend Support::FrameworkClass
       end
     
       # The application used to load config_file templates 
