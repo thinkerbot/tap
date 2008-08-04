@@ -44,8 +44,8 @@ module Tap
     
       class << self
       
-        # Overrides parse_argv to do nothing so that all
-        # all args get passed forward to rake.
+        # Overrides Tap::Support::FrameworkClass#instantiate to do  
+        # nothing so that all args get passed forward to rake.
         def instantiate(argv, app=Tap::App.instance) # => instance, argv
           if argv.include?('--help')
             puts help
@@ -55,12 +55,14 @@ module Tap
         end
       end
     
+      #--
       # def on_complete(override=false, &block)
       #   @rake_tasks.each do |task|
       #     task.on_complete(override, &block)
       #   end
       # end
-    
+      #++
+      
       def enq(*argv)
         rake = ::Rake.application
         unless rake.kind_of?(Application)
