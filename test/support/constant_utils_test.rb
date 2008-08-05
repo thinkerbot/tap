@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper.rb') 
-require 'tap/support/constants'
+require 'tap/support/constant_utils'
 
 # used in tests
 module ConstantNest
@@ -10,7 +10,7 @@ end
 class ConstantsTest < Test::Unit::TestCase
 
   def test_string_includes_constants
-    assert String.ancestors.include?(Tap::Support::Constants)
+    assert String.ancestors.include?(Tap::Support::ConstantUtils)
   end
   
   #

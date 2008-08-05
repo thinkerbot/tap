@@ -1,5 +1,5 @@
-require File.join(File.dirname(__FILE__), 'tap_test_helper.rb') 
-require 'tap/dump'
+require File.join(File.dirname(__FILE__), '../tap_test_helper.rb') 
+require 'tap/tasks/dump'
 
 class DumpTest < Test::Unit::TestCase
   acts_as_tap_test 

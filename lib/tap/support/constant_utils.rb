@@ -1,8 +1,8 @@
 module Tap
   module Support
     
-    # Constants provides methods for transforming strings into constants.
-    # Several methods are directly taken from, or based heavily on the
+    # ConstantUtils provides methods for transforming strings into constants.
+    # Several methods are directly taken from or based heavily on the
     # ActiveSupport {Inflections}[http://api.rubyonrails.org/classes/ActiveSupport/CoreExtensions/String/Inflections.html]
     # module and should not cause conflicts if ActiveSupport is loaded
     # alongside Tap.
@@ -26,7 +26,7 @@ module Tap
     #   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
     #   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     #
-    module Constants
+    module ConstantUtils
       
       # camelize converts self to UpperCamelCase. If the argument to 
       # camelize is set to :lower then camelize produces lowerCamelCase.

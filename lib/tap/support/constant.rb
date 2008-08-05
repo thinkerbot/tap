@@ -1,6 +1,6 @@
-require 'tap/support/constants'
+require 'tap/support/constant_utils'
 class String # :nodoc:
-  include Tap::Support::Constants
+  include Tap::Support::ConstantUtils
 end
 
 module Tap
