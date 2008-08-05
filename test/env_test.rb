@@ -231,11 +231,292 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
+  # unshift test
+  #
+  
+  def test_unshift_unshifts_env_onto_envs_removing_duplicates
+    e1 = Tap::Env.new
+    e2 = Tap::Env.new
+    
+    assert e.envs.empty?
+    
+    e.unshift(e1)
+    assert_equal [e1], e.envs
+    
+    e.unshift(e2)
+    assert_equal [e2, e1], e.envs
+    
+    e.unshift(e1)
+    assert_equal [e1, e2], e.envs
+  end
+  
+  def test_self_cannot_be_unshift_onto_self
+    assert e.envs.empty?
+    e.unshift(e)
+    assert e.envs.empty?
+  end
+  
+  #
+  # push test
+  #
+  
+  def test_push_pushes_env_onto_envs_removing_duplicates
+    e1 = Tap::Env.new
+    e2 = Tap::Env.new
+    
+    assert e.envs.empty?
+    
+    e.push(e1)
+    assert_equal [e1], e.envs
+    
+    e.push(e2)
+    assert_equal [e1, e2], e.envs
+    
+    e.push(e1)
+    assert_equal [e2, e1], e.envs
+  end
+  
+  def test_self_cannot_be_pushed_onto_self
+    assert e.envs.empty?
+    e.push(e)
+    assert e.envs.empty?
+  end
+  
+  #
+  # each test
+  #
+  
+  def test_each_yields_each_env_in_order
+    a = Tap::Env.new
+    b = Tap::Env.new
+    c = Tap::Env.new
+    d = Tap::Env.new
+
+    a.push b
+    b.push c
+    a.push d
+    
+    envs = []
+    a.each {|env| envs << env}
+    
+    assert_equal [a, b, c, d], envs
+  end
+  
+  def test_each_only_yields_first_occurence_of_an_env
+    a = Tap::Env.new
+    b = Tap::Env.new
+    c = Tap::Env.new
+    d = Tap::Env.new
+
+    a.push b
+    b.push c
+    a.push d
+    c.push b
+    
+    envs = []
+    a.each {|env| envs << env}
+    
+    assert_equal [a, b, c, d], envs
+  end
+  
+  #
+  # reverse_each test 
+  #
+  
+  def test_reverse_each_yields_each_env_in_reverse_order
+    a = Tap::Env.new
+    b = Tap::Env.new
+    c = Tap::Env.new
+    d = Tap::Env.new
+
+    a.push b
+    b.push c
+    a.push d
+    
+    envs = []
+    a.reverse_each {|env| envs << env}
+    
+    assert_equal [d, c, b, a], envs
+  end
+  
+  def test_reverse_each_only_yields_first_occurence_of_an_env
+    a = Tap::Env.new
+    b = Tap::Env.new
+    c = Tap::Env.new
+    d = Tap::Env.new
+
+    a.push b
+    b.push c
+    a.push d
+    c.push b
+    
+    envs = []
+    a.reverse_each {|env| envs << env}
+    
+    assert_equal [d, c, b, a], envs
+  end
+  
+  #
+  # count test
+  #
+  
+  def test_count_returns_total_number_of_unique_nested_envs
+    e1 = Tap::Env.new
+    e2 = Tap::Env.new
+    e3 = Tap::Env.new
+    
+    e.push e1
+    e1.push e2
+    e2.push e3
+
+    assert_equal 4, e.count
+    assert_equal 1, e3.count
+    
+    e3.push e1
+    assert_equal 3, e3.count
+  end
+  
+  #
   # load_path_targets test
   #
   
   def test_load_path_targets_is_LOAD_PATH
     assert_equal [$LOAD_PATH], e.load_path_targets
+  end
+  
+  #
+  # reconfigure test
+  #
+  
+  def test_reconfigure_reconfigures_root_before_reconfiguring_self
+    assert_not_equal 'alt', root['lib']
+    e.reconfigure({:load_paths => ['lib'], :directories => {'lib' => 'alt'}})
+    
+    assert_not_equal 'alt', root['lib']
+    assert_equal [root['alt']], e.load_paths
+  end
+  
+  def test_reconfigure_symbolizes_keys
+    e.reconfigure({'load_paths' => ['lib'], 'directories' => {'lib' => 'alt'}})
+    assert_equal [root['alt']], e.load_paths
+  end
+
+  def test_unused_configs_are_yielded_to_block
+    was_in_block = false
+    e.reconfigure(:another => :value) do |other_configs|
+      was_in_block = true
+      assert_equal({:another => :value}, other_configs)
+    end
+    
+    assert was_in_block
+  end
+  
+  def test_reconfigure_raises_error_when_active
+    e.activate
+    assert_raise(RuntimeError) { e.reconfigure }
+  end
+  
+  def test_reconfigure_yields_to_block_even_if_no_other_configs_are_present
+    was_in_block = false
+    e.reconfigure({}) do |other_configs|
+      was_in_block = true
+      assert_equal({}, other_configs)
+    end
+    
+    assert was_in_block
+  end
+  
+  def test_configure_logs_unused_configs_if_no_block_is_given
+    e.logger = MockLogger.new
+    e.reconfigure(:unused => :value)
+    
+    assert_equal [[Logger::DEBUG, "ignoring non-env configs: unused", "warn"]], e.logger
+  end
+  
+  def test_reconfigure_recursively_loads_env_paths
+    config_file1 = method_tempfile
+    config_file2 = method_tempfile
+    config_file3 = method_tempfile
+    
+    File.open(config_file1, "w") do |file| 
+      file << {:env_paths => config_file2}.to_yaml
+    end
+  
+    File.open(config_file2, "w") do |file| 
+      file << {:env_paths => config_file3}.to_yaml
+    end
+    
+    File.open(config_file3, "w") do |file| 
+    end
+    
+    e.reconfigure({:env_paths => config_file1})
+    
+    assert_equal [Tap::Env.instances[config_file1]], e.envs
+    assert_equal [Tap::Env.instances[config_file2]], e.envs[0].envs
+    assert_equal [Tap::Env.instances[config_file3]], e.envs[0].envs[0].envs
+  end
+  
+  def test_recursive_loading_does_not_infinitely_loop
+    config_file1 = method_tempfile
+    config_file2 = method_tempfile
+    
+    File.open(config_file1, "w") do |file| 
+      file << {:env_paths => config_file2}.to_yaml
+    end
+  
+    File.open(config_file2, "w") do |file| 
+      file << {:env_paths => config_file1}.to_yaml
+    end
+    
+    assert_nothing_raised { e.reconfigure({:env_paths => config_file1}) }
+    
+    assert_equal [Tap::Env.instances[config_file1]], e.envs
+    assert_equal [Tap::Env.instances[config_file2]], e.envs[0].envs
+    assert_equal [Tap::Env.instances[config_file1]], e.envs[0].envs[0].envs
+  end
+  
+  #
+  # env_path test 
+  #
+  
+  def test_env_path_returns_the_Env_instances_path_for_self
+    Tap::Env.instances['/path'] = e
+    assert_equal '/path', e.env_path
+  end
+  
+  def test_env_path_returns_nil_if_self_is_not_in_Env_instances
+    assert_equal({}, Tap::Env.instances)
+    assert_nil e.env_path
+  end
+  
+  #
+  # env_paths test
+  #
+  
+  def test_set_env_paths_instantiates_and_sets_envs
+    assert_equal [], e.envs
+    e.env_paths = ["path/to/file.yml", "path/to/dir"]
+    
+    e1 = Tap::Env.instances[File.expand_path("path/to/file.yml")]
+    e2 = Tap::Env.instances[File.expand_path( "path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}")]
+    
+    assert_equal [e1, e2], e.envs
+  end
+  
+  def test_set_env_paths_expands_and_sets_env_paths
+    assert_equal [], e.env_paths
+    e.env_paths = ["path/to/file.yml", "path/to/dir"]
+    assert_equal [File.expand_path("path/to/file.yml"), File.expand_path( "path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}")], e.env_paths
+  end
+  
+  def test_duplicate_envs_and_env_paths_are_filtered
+    e.env_paths = ["path/to/dir/tap.yml", "path/to/dir"]
+
+    path = File.expand_path( "path/to/dir/tap.yml" )
+    e1 = Tap::Env.instances[path]
+    
+    assert_equal [path], e.env_paths
+    assert_equal [e1], e.envs
   end
   
   #
@@ -413,15 +694,15 @@ class EnvTest < Test::Unit::TestCase
   def test_recursive_activate_and_dectivate
     e1 = Tap::Env.new
     e1.load_paths = ["/path/to/e1"]
-    e.envs << e1
+    e.push e1
     
     e2 = Tap::Env.new
     e2.load_paths = ["/path/to/e2"]
-    e1.envs << e2
+    e1.push e2
     
     e3 = Tap::Env.new
     e3.load_paths = ["/path/to/e3"]
-    e.envs << e3
+    e.push e3
     
     e.load_paths = ["/path/to/e"]
     $LOAD_PATH.clear
@@ -443,12 +724,12 @@ class EnvTest < Test::Unit::TestCase
   def test_recursive_activate_and_dectivate_does_not_infinitely_loop
     e1 = Tap::Env.new
     e1.load_paths = ["/path/to/e1"]
-    e.envs << e1
+    e.push e1
     
     e2 = Tap::Env.new
     e2.load_paths = ["/path/to/e2"]
-    e1.envs << e2
-    e2.envs << e
+    e1.push e2
+    e2.push e
     
     e.load_paths = ["/path/to/e"]
     $LOAD_PATH.clear
@@ -464,178 +745,121 @@ class EnvTest < Test::Unit::TestCase
     assert !e2.active?
     assert_equal [], $LOAD_PATH
   end
-
-  #
-  # env_path test 
-  #
-  
-  def test_env_path_returns_the_Env_instances_path_for_self
-    Tap::Env.instances['/path'] = e
-    assert_equal '/path', e.env_path
-  end
-  
-  def test_env_path_returns_nil_if_self_is_not_in_Env_instances
-    assert_equal({}, Tap::Env.instances)
-    assert_nil e.env_path
-  end
   
   #
-  # env_paths test
+  # manifest test
   #
   
-  def test_set_env_paths_instantiates_and_sets_envs
-    assert_equal [], e.envs
-    e.env_paths = ["path/to/file.yml", "path/to/dir"]
+  class MEnv < Tap::Env
     
-    e1 = Tap::Env.instances[File.expand_path("path/to/file.yml")]
-    e2 = Tap::Env.instances[File.expand_path( "path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}")]
+    attr_accessor :items
+    attr_reader :iterated_items
     
-    assert_equal [e1, e2], e.envs
+    def iterate_items(start_index=0)
+      @iterated_items ||= []
+      items.each do |(k,v)|
+        if start_index > 0
+          start_index -= 1
+          next
+        end
+        
+        @iterated_items << k
+        yield(k,v)
+      end
+    end
   end
   
-  def test_set_env_paths_expands_and_sets_env_paths
-    assert_equal [], e.env_paths
-    e.env_paths = ["path/to/file.yml", "path/to/dir"]
-    assert_equal [File.expand_path("path/to/file.yml"), File.expand_path( "path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}")], e.env_paths
-  end
-  
-  def test_duplicate_envs_and_env_paths_are_filtered
-    e.env_paths = ["path/to/dir/tap.yml", "path/to/dir"]
-
-    path = File.expand_path( "path/to/dir/tap.yml" )
-    e1 = Tap::Env.instances[path]
+  def test_manifest_collects_iterated_items_by_key
+    m = MEnv.new
+    m.items = [["one", 1],["two", 2],["three", 3]]
     
-    assert_equal [path], e.env_paths
-    assert_equal [e1], e.envs
+    assert_equal({'one' => 1, "two" => 2, "three" => 3}, m.manifest(:items))
   end
   
-  #
-  # reconfigure test
-  #
-  
-  def test_reconfigure_reconfigures_root_before_reconfiguring_self
-    assert_not_equal 'alt', root['lib']
-    e.reconfigure({:load_paths => ['lib'], :directories => {'lib' => 'alt'}})
+  def test_manifest_yields_each_pair_to_block_in_order
+    m = MEnv.new
+    m.items = [["one", 1],["two", 2],["three", 3]]
     
-    assert_not_equal 'alt', root['lib']
-    assert_equal [root['alt']], e.load_paths
-  end
-  
-  def test_reconfigure_symbolizes_keys
-    e.reconfigure({'load_paths' => ['lib'], 'directories' => {'lib' => 'alt'}})
-    assert_equal [root['alt']], e.load_paths
-  end
-
-  def test_unused_configs_are_yielded_to_block
-    was_in_block = false
-    e.reconfigure(:another => :value) do |other_configs|
-      was_in_block = true
-      assert_equal({:another => :value}, other_configs)
+    recollected = []
+    m.manifest(:items) do |key, value|
+      recollected << [key, value]
     end
     
-    assert was_in_block
+    assert_equal m.items, recollected
   end
   
-  def test_reconfigure_raises_error_when_active
-    e.activate
-    assert_raise(RuntimeError) { e.reconfigure }
-  end
-  
-  def test_reconfigure_yields_to_block_even_if_no_other_configs_are_present
-    was_in_block = false
-    e.reconfigure({}) do |other_configs|
-      was_in_block = true
-      assert_equal({}, other_configs)
+  def test_manifest_yields_each_pair_to_block_in_order_even_for_incomplete_manifest
+    m = MEnv.new
+    m.items = [["one", 1],["two", 2],["three", 3]]
+    
+    recollected = []
+    m.manifest(:items) do |key, value|
+      recollected << [key, value]
+      break
     end
     
-    assert was_in_block
-  end
-  
-  def test_configure_logs_unused_configs_if_no_block_is_given
-    e.logger = MockLogger.new
-    e.reconfigure(:unused => :value)
+    assert_equal [["one", 1]], recollected
+    assert !m.manifests[:items].frozen?
     
-    assert_equal [[Logger::DEBUG, "ignoring non-env configs: unused", "warn"]], e.logger
-  end
-  
-  def test_reconfigure_recursively_loads_env_paths
-    config_file1 = method_tempfile
-    config_file2 = method_tempfile
-    config_file3 = method_tempfile
-    
-    File.open(config_file1, "w") do |file| 
-      file << {:env_paths => config_file2}.to_yaml
-    end
-  
-    File.open(config_file2, "w") do |file| 
-      file << {:env_paths => config_file3}.to_yaml
+    recollected = []
+    m.manifest(:items) do |key, value|
+      recollected << [key, value]
     end
     
-    File.open(config_file3, "w") do |file| 
-    end
-    
-    e.reconfigure({:env_paths => config_file1})
-    
-    assert_equal [Tap::Env.instances[config_file1]], e.envs
-    assert_equal [Tap::Env.instances[config_file2]], e.envs[0].envs
-    assert_equal [Tap::Env.instances[config_file3]], e.envs[0].envs[0].envs
+    assert_equal m.items, recollected
+    assert m.manifests[:items].frozen?
   end
   
-  def test_recursive_loading_does_not_infinitely_loop
-    config_file1 = method_tempfile
-    config_file2 = method_tempfile
+  def test_manifest_yields_manifest_hash_or_break_value
+    m = MEnv.new
+    m.items = [["one", 1],["two", 2],["three", 3]]
     
-    File.open(config_file1, "w") do |file| 
-      file << {:env_paths => config_file2}.to_yaml
+    result = m.manifest(:items) {|key, value|}
+    assert_equal m.manifests[:items], result
+    
+    m.manifests[:items] = nil
+    
+    result = m.manifest(:items)
+    assert_equal m.manifests[:items], result
+    
+    result = m.manifest(:items) do |key, value|
+      break(nil)
     end
-  
-    File.open(config_file2, "w") do |file| 
-      file << {:env_paths => config_file1}.to_yaml
-    end
     
-    assert_nothing_raised { e.reconfigure({:env_paths => config_file1}) }
-    
-    assert_equal [Tap::Env.instances[config_file1]], e.envs
-    assert_equal [Tap::Env.instances[config_file2]], e.envs[0].envs
-    assert_equal [Tap::Env.instances[config_file1]], e.envs[0].envs[0].envs
+    assert_nil result
   end
   
-  #
-  # each test
-  #
-  
-  def test_each_yields_each_env_in_order
-    e1 = Tap::Env.new
-    e2 = Tap::Env.new
-    e3 = Tap::Env.new
-
-    e.envs << e1
-    e.envs << e3
-    e1.envs << e2
+  def test_manifest_does_not_raise_an_error_for_duplicate_items
+    m = MEnv.new
+    m.items = [["one", 1],["two", 2],["one", 1]]
     
-    envs = []
-    e.each {|env| envs << env}
-    
-    assert_equal [e, e1, e2, e3], envs
+    assert_nothing_raised { m.manifest(:items) }
   end
   
-  #
-  # reverse_each test 
-  #
+  def test_manifest_raises_an_error_if_the_same_key_points_to_multiple_values
+    m = MEnv.new
+    m.items = [["one", 1],["two", 2],["one", 3]]
+    
+    assert_raise(Tap::Env::ManifestConflict) { m.manifest(:items) }
+  end
   
-  def test_reverse_each_yields_each_env_in_reverse_order
-    e1 = Tap::Env.new
-    e2 = Tap::Env.new
-    e3 = Tap::Env.new
-
-    e.envs << e1
-    e.envs << e3
-    e1.envs << e2
+  def test_manifest_is_frozen_after_manifest
+    m = MEnv.new
+    m.items = [["one", 1],["two", 2],["three", 3]]
     
-    envs = []
-    e.reverse_each {|env| envs << env}
+    assert m.manifest(:items).frozen?
+  end
+  
+  def test_manifest_does_not_iterate_once_manifest_is_frozen
+    m = MEnv.new
+    m.items = [["one", 1],["two", 2],["three", 3]]
+    m.manifest(:items)
     
-    assert_equal [e3, e2, e1, e], envs
+    assert_equal ["one", "two", "three"], m.iterated_items
+    
+    m.items = [["four", 4]]
+    m.manifest(:items)
+    assert_equal ["one", "two", "three"], m.iterated_items
   end
   
   #

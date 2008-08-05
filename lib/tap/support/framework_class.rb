@@ -136,9 +136,9 @@ module Tap
           obj = YAML.load_file(value)
           case obj
           when Hash 
-            obj.values.each do |value|
+            obj.values.each do |array|
               # error if value isn't an array
-              use_args.concat(value)
+              use_args.concat(array)
             end
           when Array 
             use_args.concat(obj)

@@ -156,14 +156,19 @@ module Tap
       end
       
       #--
+      # To manifest simply requires an iterate_<name> method which
+      # yields each (key, path) pair for the manifested object in
+      # a predictable order. 
+      #
+      #--
       # Alternate implementation would create the manifest for each individual
       # env, then merge the manifests.  On the plus side, each env would then
       # carry it's own slice of the manifest without having to recalculate.
       # On the down side, the merging would have to occur in some separate
       # method that cannot be defined here.
-      def manifest(name, paths_key, extname=".rb", &block)
-        return manifest(name, paths_key, extname) do |manifest_path, path| 
-          path.chomp(extname) 
+      def manifest(name, paths_key, pattern, &block)
+        return manifest(name, paths_key, pattern) do |manifest_path, path| 
+          path.chomp(File.extname(path)) 
         end unless block_given?
         
         manifest_keys = "keys_for_#{name}_manifest".to_sym
@@ -171,15 +176,16 @@ module Tap
         define_method(manifest_keys, &block)
         protected manifest_keys
         
-        # tasks => {key => path}
-        # iterate_tasks(pattern=nil) :yields: key, path
-        # tasks_keys
-        
         module_eval %Q{
-          def iterate_#{name}(pattern='**/*#{extname}')
+          def iterate_#{name}(start_index=0)
             self.#{paths_key}.each do |manifest_path|
-              root.glob(manifest_path, pattern).each do |path|
+              root.glob(manifest_path, "#{pattern}").each do |path|
                 next if File.directory?(path)
+                
+                if start_index > 0
+                  start_index -= 1
+                  next
+                end
                 
                 keys = self.#{manifest_keys}(manifest_path, path)
                 case keys
@@ -207,16 +213,6 @@ module Tap
     
     # Gets or sets the logger for self
     attr_accessor :logger
-    
-    # An array of nested Envs, by default comprised of the
-    # env_path + gem environments (in that order).  These
-    # nested Envs are activated/deactivated with self.
-    #
-    # Manual modification of envs is allowed, with the caveat 
-    # that any reconfiguration of env_paths or gems will result
-    # in a reset of envs to the default env_path + gem 
-    # environments.
-    attr_reader :envs
     
     # A hash of the calculated manifests.
     attr_reader :manifests
@@ -264,8 +260,7 @@ module Tap
     # Designate paths for discovering generators.  
     path_config :generator_paths, ["lib"]
     
-
-    manifest(:tasks, :load_paths) do |load_path, path|
+    manifest(:tasks, :load_paths, "**/*.rb") do |load_path, path|
       document = Support::Lazydoc.scan_doc(path, 'manifest')
       document.const_names.inject({}) do |tasks, const_name|
         if const_name.empty?
@@ -278,9 +273,9 @@ module Tap
       end
     end
     
-    manifest(:commands, :command_paths) 
+    manifest(:commands, :command_paths, "**/*.rb") 
     
-    manifest(:generators, :generator_paths, '_generator.rb') do |load_path, path|
+    manifest(:generators, :generator_paths, '**/*_generator.rb') do |load_path, path|
       dirname = File.dirname(path)
       next unless "#{File.basename(dirname)}_generator.rb" == File.basename(path)
       
@@ -309,6 +304,64 @@ module Tap
       @env_paths = []
       
       initialize_config(config)
+    end
+    
+    # Sets envs removing duplicates and instances of self.
+    def envs=(envs)
+      @envs = envs.uniq.delete_if {|e| e == self }
+      @envs.freeze
+      @flat_envs = nil
+    end
+    
+    # An array of nested Envs, by default comprised of the
+    # env_path + gem environments (in that order).  These
+    # nested Envs are activated/deactivated with self.
+    #
+    # Manual modification of envs is allowed, with the caveat 
+    # that any reconfiguration of env_paths or gems will result
+    # in a reset of envs to the default env_path + gem 
+    # environments.
+    def envs(flat=false)
+      if flat 
+        @flat_envs ||= self.flatten_envs.freeze
+      else 
+        @envs
+      end
+    end
+    
+    # Unshifts env onto envs, removing duplicates.  
+    # Self cannot be unshifted onto self.
+    def unshift(env)
+      unless env == self
+        self.envs = envs.dup.unshift(env)
+      end
+      envs
+    end
+    
+    # Pushes env onto envs, removing duplicates.  
+    # Self cannot be pushed onto self.
+    def push(env)
+      unless env == self
+        envs = self.envs.dup
+        envs.delete(env)
+        self.envs = envs.push(env)
+      end
+      envs
+    end
+    
+    # Passes each nested env to the block in order, starting with self.
+    def each
+      envs(true).each {|e| yield(e) }
+    end
+    
+    # Passes each nested env to the block in reverse order, ending with self.
+    def reverse_each
+      envs(true).reverse_each {|e| yield(e) }
+    end
+    
+    # Returns the total number of unique envs nested in self (including self).
+    def count
+      envs(true).length
     end
     
     # Returns a list of arrays that receive load_paths on activate,
@@ -457,114 +510,31 @@ module Tap
       @active
     end
     
-    def unshift(env)
-      self.envs = envs.unshift(env)
-    end
-    
-    def push(env)
-      self.envs = envs.push(env)
-    end
-    
-    # Passes each nested env to the block in order, starting with self.
-    def each
-      yield(self)
-      visited = [self]
-      
-      envs.each do |env|
-        next if visited.include?(env)
-        
-        env.each do |e|
-          next if visited.include?(e)
-          yield(e)
-          visited << e
-        end
-      end
-    end
-    
-    # Passes each nested env to the block in reverse order, ending with self.
-    def reverse_each
-      visited = []
-      envs.reverse_each do |env|
-        next if visited.include?(env)
-        
-        env.reverse_each do |e|
-          next if visited.include?(e)
-          yield(e)
-          visited << e
-        end
-      end
-      yield(self)
-    end
-    
-    def count
-      count = 0
-      each {|e| count += 1 }
-      count
-    end
-    
-    def manifested?(name)
-      @manifested.include?(name)
-    end
-    
+    # Cycles through all items yielded by the iterate_<name> method and
+    # adds each to the manifests[name] hash.  Freezes the hash when complete.
+    # Simply returns the manifests[name] hash if frozen.
     def manifest(name)
       manifest = manifests[name] ||= {}
-      return manifest if manifested?(name)
       
-      send("iterate_#{name}") {|key, path| add_manifest(manifest, key, path) }
-      @manifested << name
+      manifest.each do |key, path| 
+        yield(key, path)
+      end if block_given?
+      
+      unless manifest.frozen?
+        send("iterate_#{name}", manifest.length) do |key, path| 
+          add_manifest_entry(manifest, key, path)
+          yield(key, path) if block_given?
+        end
+        manifest.freeze
+      end
+      
       manifest
     end
     
-    #--
-    # Minimizes the keys in a hash and recollects key-value
-    # pairs as an array of [mini_key, value] pairs.  When 
-    # reverse is true, minimal_map collects [value, mini_key]
-    # pairs.
-    def map(name, reverse=false)
-      hash = manifest(name)
-      results = []
-      Root.minimize(hash.keys.sort_by {|p| File.basename(p)}) do |p, mp| 
-        results << (reverse ? [hash[p], mp] : [mp, hash[p]])
-      end
-      results
-    end
-    
-    def summary(name)
-      summary = Support::Summary.new
-      map(:envs).each do |(key, env)|
-       summary.add(key, env, env.map(name))
-      end
-      summary
-    end
-    
-    def summarize(name, &block)
-      lines = summary(name).lines(&block)
-      lines << "=== no #{name} found" if lines.empty?
-      lines.join("\n")
-    end
-    
     def find(name, pattern)
-      manifest = manifests[name] ||= {}
-      send("iterate_#{name}", "**/*#{pattern}*") do |key, path|
-        add_manifest(manifest, key, path)
-        return path if Root.minimal_match?(key, pattern)
-      end unless manifested?(name)
-      
-      # TODO -- switch order so that known paths are checked first
-      # then iterate, then mark as manifested if necessary.
-      
-      # conceivably, there could be a mis-ordered match in this
-      # process since the pattern filters which paths get searched
-      # first?  Only an issue if you start short cutting the pattern,
-      # I think.
-      
-      # does this need to be run when the first search fails?
-      # may depend on the pattern being input... does it filter
-      # out the matching pattern...
-      self.manifest(name).each_pair do |key, path| 
+      manifest(name) do |key, path|
         return path if Root.minimal_match?(key, pattern)
       end
-      
       nil
     end
     
@@ -587,14 +557,42 @@ module Tap
       
       nil
     end
+    
+    #--
+    # Minimizes the keys in a hash and recollects key-value
+    # pairs as an array of [mini_key, value] pairs.  When 
+    # reverse is true, minimal_map collects [value, mini_key]
+    # pairs.
+    def map(name, reverse=false)
+      manifest = self.manifest(name)
+      results = []
+      Root.minimize(manifest.keys.sort_by {|path| File.basename(path)}) do |path, mini_path| 
+        results << (reverse ? [manifest[path], mini_path] : [mini_path, manifest[path]])
+      end
+      results
+    end
+    
+    def summary(name)
+      summary = Support::Summary.new
+      map(:envs).each do |(key, env)|
+       summary.add(key, env, env.map(name))
+      end
+      summary
+    end
+    
+    def summarize(name, &block)
+      lines = summary(name).lines(&block)
+      lines << "=== no #{name} found" if lines.empty?
+      lines.join("\n")
+    end
 
     def inspect(brief=false)
       brief ? "#<#{self.class}:#{object_id} root='#{root.root}'>" : super()
     end
 
-    #
+    #--
     # Under construction
-    #
+    #++
     
     def handle_error(err)
       case
@@ -608,27 +606,29 @@ module Tap
     
     protected
     
-    def iterate_envs(pattern=nil)
+    def iterate_envs(start_index=0)
       each do |env|
+        if start_index > 0
+          start_index -= 1
+          next
+        end
+        
         yield(env.root.root, env)
       end
     end    
     
-    def add_manifest(manifest, key, path)
-      raise 'ManifestConflict' if manifest.has_key?(key) && manifest[key] != path
+    # Checks that the manifest does not already assign key a conflicting path,
+    # then adds the (key, path) pair to manifest.
+    def add_manifest_entry(manifest, key, path)
+      if manifest.has_key?(key) && manifest[key] != path
+        raise ManifestConflict, "multiple paths for key '#{key}': ['#{manifest[key]}', '#{path}']"
+      end
+      
       manifest[key] = path
     end
     
     def check_configurable
       raise "path configurations are disabled when active" if active?
-    end
-    
-    def check_consistency
-      envs == envs.uniq.delete_if {|e| e == self }
-    end
-    
-    def envs=(envs)
-      @envs = envs.uniq.delete_if {|e| e == self }
     end
     
     def reset_envs
@@ -637,6 +637,21 @@ module Tap
       end + gems.collect do |spec|
         Env.instance_for(spec.full_gem_path)
       end
+    end
+    
+    def flatten_envs(target=[])
+      unless target.include?(self)
+        target << self
+        envs.each do |env|
+          env.flatten_envs(target)
+        end
+      end
+      
+      target
+    end
+    
+    # Raised when multiple paths are assigned to the same manifest key.
+    class ManifestConflict < StandardError
     end
 
     class ConfigError < StandardError
