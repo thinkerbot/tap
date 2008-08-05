@@ -110,6 +110,5 @@ Gem::Specification.new do |s|
     lib/tap/test.rb
     lib/tap/workflow.rb
     lib/tap.rb
-    vendor/blank_slate.rb
     }
 end

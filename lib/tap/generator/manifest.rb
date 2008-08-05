@@ -1,8 +1,6 @@
-require File.dirname(__FILE__) + "/../../../vendor/blank_slate"
-
 module Tap
   module Generator
-    class Manifest < BlankSlate
+    class Manifest
       def initialize(actions)
         @actions = actions
       end
