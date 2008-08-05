@@ -14,17 +14,14 @@ class <%= const.name %>Test < Test::Unit::TestCase
     # KEEP_OUTPUTS variable:
     #   % rake test keep_outputs=true
   
-    t = SampleFile.new 
+    t = <%= const.name %>.new 
     assert_files do |input_files|
       input_files.each do |source|
         target = method_filepath(:output, 'result.yml') 
         t.enq(source, target)
       end
     
-      with_config do 
-        app.run
-      end
-    
+      app.run
       app.results(t)
     end
   end
