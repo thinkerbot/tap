@@ -176,9 +176,11 @@ module Tap
 
             lazydoc.default_attributes['args'] ||= comment
           end
+          
+          super(true)
+        else       
+          super(false)
         end
-        
-        super(false)
       end
       
       def help
