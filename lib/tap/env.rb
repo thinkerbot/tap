@@ -317,22 +317,16 @@ module Tap
     # env_path + gem environments (in that order).  These
     # nested Envs are activated/deactivated with self.
     #
-    # Manual modification of envs is allowed, with the caveat 
-    # that any reconfiguration of env_paths or gems will result
-    # in a reset of envs to the default env_path + gem 
-    # environments.
+    # Returns a flattened array of the unique nested envs
+    # when flat == true.
     def envs(flat=false)
-      if flat 
-        @flat_envs ||= self.flatten_envs.freeze
-      else 
-        @envs
-      end
+      flat ? (@flat_envs ||= self.flatten_envs.freeze) : @envs
     end
     
     # Unshifts env onto envs, removing duplicates.  
     # Self cannot be unshifted onto self.
     def unshift(env)
-      unless env == self
+      unless env == self || envs[0] == env
         self.envs = envs.dup.unshift(env)
       end
       envs
@@ -341,9 +335,8 @@ module Tap
     # Pushes env onto envs, removing duplicates.  
     # Self cannot be pushed onto self.
     def push(env)
-      unless env == self
-        envs = self.envs.dup
-        envs.delete(env)
+      unless env == self || envs[-1] == env
+        envs = self.envs.reject {|e| e == env }
         self.envs = envs.push(env)
       end
       envs
