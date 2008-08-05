@@ -82,6 +82,21 @@ task :publish_rdoc => [:rdoc] do
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
 end
 
+desc "Publish Website to RubyForge"
+task :publish_website do
+  require 'yaml'
+  
+  config = YAML.load(File.read(File.expand_path("~/.rubyforge/user-config.yml")))
+  host = "#{config["username"]}@rubyforge.org"
+  
+  rsync_args = "-v -c -r"
+  remote_dir = "/var/www/gforge-projects/tap"
+  local_dir = "pkg/website"
+ 
+  sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
+end
+
+
 #
 # Test tasks
 #

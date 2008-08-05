@@ -6,13 +6,13 @@ Working up from the ground is useful to get a sense for how Tap does what it doe
 
 ==== Methods
 
-link:../images/Method.png
+http://tap.rubyforge.org/images/Method.png
 
 Tasks begin with methods, simply a block of code.
 
 ==== Tap::Support::Executable
 
-link:../images/Executable.png
+http://tap.rubyforge.org/images/Executable.png
 
 Executable extends objects allowing them to be enqued and run by an App.  Executable objects specify a method that gets called upon execution; in essence Executable wraps this method and adds workflow behaviors like auditing and an <tt>on_complete</tt> block.
 
@@ -20,13 +20,13 @@ Tasks are constructed such that <tt>execute</tt> is their executable method.  Ta
 
 ==== Tap::Support::Batchable
 
-link:../images/Batchable.png
+http://tap.rubyforge.org/images/Batchable.png
 
 Tasks can be assembled into batches that all enque at the same time and share the same <tt>on_complete</tt> block.  This behavior is very powerful, allowing workflow logic to be defined once but executed under multiple conditions.  Task includes the Batchable module to facilitate batching.
 
 ==== Tap::Support::Configurable
 
-link:../images/Configurable.png
+http://tap.rubyforge.org/images/Configurable.png
 
 Configurable allows declaration of class configurations.  Configurable classes have a <tt>configurations</tt> method accessing a {ClassConfiguration}[link:classes/Tap/Support/ClassConfiguration.html] which holds all declared configs, their default values, and metadata for transforming configurations into command line options (for example).  
 
@@ -93,7 +93,7 @@ Validation blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes 
 
 ==== Tap::Support::Lazydoc
 
-link:../images/Lazydoc.png
+http://tap.rubyforge.org/images/Lazydoc.png
 
 Ah lazydoc.  Lazydoc fits into the space between live code and code documentation.  Lazydoc can scan a file (code or not) and pull out documentation into the object space where it can be utilized.  Lazydoc uses a key-value syntax that is both invalid Ruby and easily hidden in RDoc.  Looks like this:
 
@@ -158,7 +158,7 @@ However, the best practice is to include the namespace explicitly.
 
 === Tap::Task
 
-link:../images/Task.png
+http://tap.rubyforge.org/images/Task.png
 
 Running a task through the tap executable instantiates a task class, configures it, enques it, and runs a Tap::App to get the inputs to the <tt>process</tt> method.  Tasks do not have to be used this way; they are perfectly capable as objects in free-standing scripts.
 
@@ -216,7 +216,7 @@ Task instances can be joined into workflows.  The workflow model used by Tap is 
 
 === Tap::Workflow
 
-link:../images/Workflow.png
+http://tap.rubyforge.org/images/Workflow.png
 
 Workflows are not Tasks but are constructed with the same modules as Task and work very similarly Tasks.  Workflows have a <tt>workflow</tt> method which defines the entry and exit points for the workflow; there can be 1+ entry points and 0+ exit points.  The enque method for a workflow enques all it's entry points, and when the <tt>on_complete</tt> block is set for a workflow, it is set for all exit points.
 
@@ -226,7 +226,7 @@ Like Tasks, Workflows can be configured, enqued, used in workflows, and subclass
 
 ==== Tap::Root
 
-link:../images/Root.png
+http://tap.rubyforge.org/images/Root.png
 
 A Root represents the base of a directory structure. Roots allow you to alias directories and ease working with filepaths, basically allowing you to develop code for a conceptual directory structure that can be defined later.
 
@@ -239,7 +239,7 @@ While simple, this ability to reference files using aliases is useful, powerful,
 
 ==== Tap::Support::ExecutableQueue
 
-link:../images/ExecutableQueue.png
+http://tap.rubyforge.org/images/ExecutableQueue.png
 
 Apps coordinate the execution of tasks through a queue.  The queue is just a stack of Executable objects, basically methods, and the inputs to those methods; during a run the enqued methods are sequentially executed with the inputs.  
 
@@ -272,7 +272,7 @@ When a task completes, it executes it's <tt>on_complete</tt> block to handle the
 
 === Tap::App
 
-link:../images/App.png
+http://tap.rubyforge.org/images/App.png
 
 Instances of Tap::App coordinate the execution of tasks.  Apps are basically a subclass of Root with an ExecutableQueue and Aggregator.  Task initialization requires an App, which is by default Tap::App.instance.  Tasks use their app for logging, checks, and to enque themselves.  Normally a script will only need and use a single instance (often Tap::App.instance), but there is no reason why multiple instances could not be used.  
 
@@ -330,7 +330,7 @@ As shown above, aggregated results may be accessed by task through the <tt>resul
 
 ==== Tap::Env
 
-link:../images/Env.png
+http://tap.rubyforge.org/images/Env.png
 
 Environments are still under construction.  Basically a wrapper for a Root, Envs define methods to generate manifests for a type of file-based resource (tasks, generators, etc).  Furthermore they provide methods to uniquely identify the resource by path or, more specifically, minimized base paths.  In this directory structure:
 
@@ -351,12 +351,12 @@ The minimal paths that uniquely identify these files are (respectively):
 
 Envs facilitate mapping the minimal path, which might be provided by the command line, to the actual path, and hence to the resource.  Envs can be nested so that manifests span multiple directories.  Indeed, this is how tap accesses tasks and generators within gems; the gem directories are initialized as Envs and nested within the Env for the working directory.
 
-link:../images/Nested-Env.png
+http://tap.rubyforge.org/images/Nested-Env.png
 
 To prevent conflicts between similarly-named resources under two Envs, Env allows selection of Envs, also by minimized paths.  At present this is difficult to illustrate in a code snippit.
 
 --
 ==== Run Env
-link:../images/Run-Env.png
+http://tap.rubyforge.org/images/Run-Env.png
 ++
 

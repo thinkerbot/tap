@@ -1,3 +1,9 @@
+== 0.10.0 / 2008-08-08
+
+Major revision.  Reworked configurations and the execution
+environment.  Added Lazydoc documentation.  Backwards incompatible.
+Development is now on GitHub. 
+
 == 0.9.1 / 2008-04-26 revision 253
 
 Relatively minor update, but with one important refactoring that
