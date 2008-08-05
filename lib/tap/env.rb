@@ -606,7 +606,9 @@ module Tap
     
     protected
     
-    def iterate_envs(start_index=0)
+    # Iterates over each nested env, yielding the root path and env.
+    # This is the manifest method for envs.
+    def iterate_envs(start_index=0) # :yields: root_path, env
       each do |env|
         if start_index > 0
           start_index -= 1
@@ -627,10 +629,13 @@ module Tap
       manifest[key] = path
     end
     
+    # Raises an error if self is already active (and hence, configurations
+    # should not be modified)
     def check_configurable
       raise "path configurations are disabled when active" if active?
     end
     
+    # Resets envs using the current env_paths and gems.
     def reset_envs
       self.envs = env_paths.collect do |path| 
         Env.instance_for(path)
@@ -639,6 +644,9 @@ module Tap
       end
     end
     
+    # Recursively iterates through envs collecting all envs into
+    # the target.  The result is a unique array of all nested 
+    # envs, in order, beginning with self.
     def flatten_envs(target=[])
       unless target.include?(self)
         target << self
@@ -653,7 +661,8 @@ module Tap
     # Raised when multiple paths are assigned to the same manifest key.
     class ManifestConflict < StandardError
     end
-
+    
+    # Raised when there is a Env-level configuration error.
     class ConfigError < StandardError
       attr_reader :original_error, :env_path
       
