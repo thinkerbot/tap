@@ -202,7 +202,7 @@ full task definition:
 
 So say you wanted static configs for a task.  Make a configuration file:
 
-  % tap generate config sample
+  % tap generate config goodnight
         
 Set the configurations here and they get used by the task:
 
