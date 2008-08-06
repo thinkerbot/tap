@@ -13,13 +13,11 @@ Gem::Specification.new do |s|
   s.add_dependency("tap", "~> <%= Tap::VERSION %>")
   s.extra_rdoc_files = %W{
     README
-    MIT-LICENSE
   }
   
   # list the files you want to include here. you can
   # check this manifest using 'rake :print_manifest'
   s.files = %W{
-    tap.yml
     tapfile.rb
     test/tap_test_helper.rb
     test/tap_test_suite.rb

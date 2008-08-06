@@ -168,19 +168,18 @@ And from the command line:
       rake        # run rake tasks
 
 
-If you want to get fancy, you can put declarations directly in a module and add 
+If you want to get fancy, you can put declarations in the Tap module and add 
 configs as in the full task definition:
 
   [tapfile.rb]
   # ...
-  module Nested
-    extend Tap::Support::Declarations
+  module Tap
 
     # Nested::Task::manifest just for illustration
     #
     # Extended documentation...
     #
-    task('task', 
+    task('nested/task', 
       config(:key, 'value'),         # a config
       config(:number, 1, &c.num)     # a config validated as a number
     ) do |task, input|
@@ -250,7 +249,6 @@ verbose; you can make command aliases to shorten it.  Open the <tt>tap.yml</tt>
 file in your root directory and set the following:
 
   [tap.yml]
-  # ... other contents ...
   alias:
     --: [run, --]
     -T: [run, -T]

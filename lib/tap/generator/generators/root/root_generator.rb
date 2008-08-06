@@ -25,7 +25,7 @@ module Tap::Generator::Generators
       r = Tap::Root.new(root)
       
       m.directory r.root
-      m.directory r['lib']
+      #m.directory r['lib']
       
       template_files do |source, target|
         case
@@ -40,16 +40,16 @@ module Tap::Generator::Generators
         end
       end
       
-      m.file(r['tap.yml']) do |file|
-        Tap::App.configurations.format_str(:doc, file) do |templater|
-          next unless templater.receiver == Tap::Root
+      #m.file(r['tap.yml']) do |file|
+      #  Tap::App.configurations.format_str(:doc, file) do |templater|
+      #    next unless templater.receiver == Tap::Root
           
-          templater.configurations.each do |(key, config)| 
-            config.default = nil if key.to_s == 'root'
-          end
-        end
-        Tap::Env.configurations.format_str(:doc, file)
-      end
+      #    templater.configurations.each do |(key, config)| 
+      #      config.default = nil if key.to_s == 'root'
+      #    end
+      #  end
+      #  Tap::Env.configurations.format_str(:doc, file)
+      #end
     end
   end
 end

@@ -1,7 +1,7 @@
-# Hello::manifest Your basic hello world task.
-# Prints the input with a configurable greeting.
+# Goodnight::manifest your basic goodnight moon task
+# Prints the input with a configurable message.
 
-# Tap.task('hello', :greeting => 'hello') do |task, name|
-#   task.log task.greeting, name
-#   "#{task.greeting} #{name}"
-# end
+Tap.task('goodnight', :message => 'goodnight') do |task, name|
+   task.log task.message, name
+   "#{task.message} #{name}"
+end
