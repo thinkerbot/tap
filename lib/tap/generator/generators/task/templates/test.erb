@@ -5,14 +5,17 @@ class <%= const.name %>Test < Test::Unit::TestCase
   acts_as_tap_test 
   
   def test_<%= const.basename %>
-    t = <%= const.name %>.new :key => 'value'
-
-    # run the task with some inputs
-    t.enq("one")
+    task = <%= const.name %>.new :message => "goodnight"
+    
+    # a simple test
+    assert_equal({:message  => 'goodnight'}, task.config)
+    assert_equal "goodnight moon", task.process("moon")
+    
+    # a more complex test
+    task.enq("moon")
     app.run
     
-    # check the configuration and outputs
-    assert_equal({:key  => 'value'}, t.config)
-    assert_audit_equal ExpAudit[[nil, "one"], [t, "one was processed with value"]], app._results(t).first
+    assert_equal ["goodnight moon"], app.results(task)
+    assert_audit_equal ExpAudit[[nil, "moon"], [task, "goodnight moon"]], app._results(task)[0]
   end
 end

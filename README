@@ -26,18 +26,16 @@ development, and bug tracking.
 
 A sample task illustrates the usage of tap:
 
-  # ::manifest a sample task
+  # Goodnight::manifest your basic goodnight moon task
   #
-  # Sample simply prints an input using a user-specified configuration.
-  class Sample < Tap::Task
-  
-    config :key, 'value'    # a sample config
+  # Says goodnight with a configurable message.
+  class Goodnight < Tap::Task
 
-    def process(input)
-      result = "#{input} was processed with #{key}"
-      log self.name, result
-  
-      result
+    config :message, 'goodnight'           # a goodnight message
+
+    def process(name)
+      log(message, name)
+      "#{message} #{name}"
     end
   end
 
@@ -45,36 +43,38 @@ Tap pulls documentation out of task classes to generate manifests:
 
   % tap run -T
     sample:
-      sample      # a sample task
+      goodnight   # your basic goodnight moon task
     tap:
       dump        # the default dump task
       rake        # run rake tasks  
 
 And help:
 
-  % tap run -- sample --help
-  Sample -- a sample task
+  % tap run -- goodnight --help
+  Goodnight -- your basic goodnight moon task
   --------------------------------------------------------------------------------
-    Sample simply prints an input using a user-specified configuration.
+    Says goodnight with a configurable message.
   --------------------------------------------------------------------------------
-  usage: tap run -- sample INPUT
-  
+  usage: tap run -- goodnight NAME
+
   configurations:
-          --key KEY                    a sample config
-  
+          --message MESSAGE            a goodnight message
+
   options:
       -h, --help                       Print this help
           --name NAME                  Specify a name
           --use FILE                   Loads inputs from file
 
+
 Tasks are immediately available through tap:
 
-  % tap run -- sample one
-    I[19:44:52]             sample one was processed with value
+  % tap run -- goodnight moon
+    I[00:09:55]          goodnight moon
+  
 
-  % tap run -- sample one --key alt_value
-    I[19:44:52]             sample one was processed with alt_value
-
+  % tap run -- goodnight moon --message hello
+    I[00:10:01]              hello moon
+  
 Tap comes with generators (even a generator generator) and allows distribution of
 task libraries as gems.  This can be illustrated by installing the 
 {sample_tasks}[http://tap.rubyforge.org/sample_tasks] gem:
@@ -82,7 +82,7 @@ task libraries as gems.  This can be illustrated by installing the
   % gem install sample_tasks
   % tap run -T
   sample:
-    sample      # a sample task
+    goodnight   # your basic goodnight moon task
   sample_tasks:
     concat      # concatenate files with formatting
     copy        # copies files

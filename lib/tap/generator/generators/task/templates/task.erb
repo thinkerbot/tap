@@ -5,13 +5,10 @@
 class <%= const.const_name %> < Tap::Task
 
   # <config file documentation>
-  config :key, 'value'           # a sample config
+  config :message, 'goodnight'           # a sample config
   
-  def process(input)
-    # use log to record information
-    result = "#{input} was processed with #{key}"
-    log self.name, result
-  
-    result
+  def process(name)
+    log message, name
+    "#{message} #{name}"
   end
 end <% module_nest(const.nesting, '  ') { target } end %>

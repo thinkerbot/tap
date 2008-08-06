@@ -398,15 +398,15 @@ options:
     script_test do |cmd|
       cmd.command_path = %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
 
-      cmd.check " generate task sample/task", "Generates a task" do |result|
-        assert File.exists?(method_filepath(:output, 'lib/sample/task.rb'))
-        assert File.exists?(method_filepath(:output, 'test/sample/task_test.rb'))
+      cmd.check " generate task goodnight", "Generates a task" do |result|
+        assert File.exists?(method_filepath(:output, 'lib/goodnight.rb'))
+        assert File.exists?(method_filepath(:output, 'test/goodnight_test.rb'))
       end
 
-      cmd.check " run -- sample/task --key=value input", "Run the task", /sample\/task input was processed with value/
+      cmd.check " run -- goodnight moon --message hello", "Run the task", /hello moon/
 
       # cmd.check " console", "Console Interaction"
-      cmd.check " destroy task sample/task", "Destroys a task" do |result|
+      cmd.check " destroy task goodnight", "Destroys a task" do |result|
         assert_equal [], method_glob(:output, "**/*.rb")
       end
     end

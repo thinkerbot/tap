@@ -64,7 +64,7 @@ module Tap
         
         caller.each_with_index do |line, index|
           case line
-          when /\/tap\/declarations.rb/ then next
+          when /\/tap\/support\/declarations.rb/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
             subclass.source_file = File.expand_path($1)
             subclass.lazydoc[const_name, false]['manifest'] = subclass.lazydoc.register($3.to_i - 1)
