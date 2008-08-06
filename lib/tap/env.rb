@@ -164,7 +164,7 @@ module Tap
                 paths << [manifest_path, path]
               end
             end
-            paths
+            paths.sort_by {|mp, p| File.basename(p)}
           end
         }
 
@@ -559,7 +559,7 @@ module Tap
     # Iterates over each nested env, yielding the root path and env.
     # This is the manifest method for envs.
     def manifest_glob_envs
-      collect {|env| [env.root.root, env]}
+      collect {|env| [env.root.root, env] }.sort_by {|root, env| File.basename(root) }
     end
     
     def manifest_map(context, path)

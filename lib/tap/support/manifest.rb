@@ -65,7 +65,7 @@ module Tap
       def mini_map
         return [] if entries.empty?
         
-        keys, values = entries.sort_by {|(key, path)| File.basename(key) }.transpose
+        keys, values = entries.transpose
         [Root.minimize(keys), values].transpose
       end
       
