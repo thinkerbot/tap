@@ -170,8 +170,9 @@ module Tap
         # the resulting comments in the corresponding lazydoc.
         # Returns the lazydoc.
         def scan_doc(source_file, key)
-          lazydoc = self[source_file]
+          lazydoc = nil
           scan(File.read(source_file), key) do |const_name, attr_key, comment|
+            lazydoc = self[source_file] unless lazydoc
             lazydoc.attributes(const_name)[attr_key] = comment
           end
           lazydoc

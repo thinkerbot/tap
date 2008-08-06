@@ -78,7 +78,7 @@ The comments at the beginning are an audit trace of the run.  In this case two s
 
 Navigate to and open the <tt>lib/sample.rb</tt> file.  Inside you can see the class definition.  Let's change it up a bit:
 
-  [lib/sample/task.rb]
+  [lib/sample.rb]
   # ::manifest a sample task with configurations
   #
   # This modified sample task takes multiple inputs and echos
@@ -145,7 +145,7 @@ use <tt>lib/tasks.rb</tt>.
   [lib/tasks.rb]
   # Concat::manifest concatenates a trailer to the input
   Tap.task('concat', :trailer => ' world') do |t, str|
-    result = str + trailer
+    result = str + t.trailer
     t.log '', result
     result
   end

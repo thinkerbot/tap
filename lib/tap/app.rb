@@ -264,7 +264,7 @@ module Tap
     # File.join(app['config'], task_name + ".yml"). Returns nil if 
     # task_name is nil.
     def config_filepath(name)
-      name == nil ? nil : filepath('config', name + ".yml")
+      name == nil ? nil : filepath('config', "#{name}.yml")
     end
     
     #

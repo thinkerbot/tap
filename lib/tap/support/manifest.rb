@@ -25,7 +25,7 @@ module Tap
         @map_method = Manifest.map_method(name)
         @map_method = DEFAULT_MAP_METHOD if !source.respond_to?(@map_method)
         
-        @paths = source.send(Manifest.glob_method(name))
+        @paths = source.send(Manifest.glob_method(name)).uniq
         @path_index = 0
       end
       

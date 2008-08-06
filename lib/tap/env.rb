@@ -234,7 +234,8 @@ module Tap
     path_config :generator_paths, ["lib"]
     
     manifest(:tasks, :load_paths, "**/*.rb") do |load_path, path|
-      document = Support::Lazydoc.scan_doc(path, 'manifest')
+      next unless document = Support::Lazydoc.scan_doc(path, 'manifest')
+      
       document.const_names.collect do |const_name|
         if const_name.empty?
           key = root.relative_filepath(load_path, path).chomp('.rb')
@@ -251,7 +252,7 @@ module Tap
       dirname = File.dirname(path)
       next unless "#{File.basename(dirname)}_generator.rb" == File.basename(path)
       
-      document = Support::Lazydoc.scan_doc(path, 'generator')
+      next unless document = Support::Lazydoc.scan_doc(path, 'generator')
       document.const_names.collect do |const_name|
         if const_name.empty?
           key = root.relative_filepath(load_path, dirname)
@@ -563,6 +564,24 @@ module Tap
     
     def manifest_map(context, path)
       [[context, path]]
+    end
+    
+    alias default_manifest_glob_tasks manifest_glob_tasks
+    
+    def manifest_glob_tasks
+      paths = default_manifest_glob_tasks
+      
+      # very odd behaviors --
+      # * OS X is case-insensitive, apparently.  Tapfile.rb and tapfile.rb are the same.
+      # * require 'tapfile' does not work
+      # * require 'tapfile.rb' works
+      # * load 'tapfile' works
+      #
+      root.glob(:root, "tapfile.rb").each do |path|
+        next if File.directory?(path)
+        paths.unshift [root.root, path]
+      end
+      paths
     end
     
     # Raises an error if self is already active (and hence, configurations
