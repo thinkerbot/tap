@@ -11,7 +11,7 @@ Make a task:
 
   % tap generate task goodnight
 
-Test the task using rake:
+Test the task:
  
   % rake test 
   
@@ -75,7 +75,7 @@ The comments at the beginning are an audit trace of the run.  In this case two s
 
 === Task Definition
 
-Navigate to and open the <tt>lib/goodnight.rb</tt> file.  Inside you can see the class definition.  Let's change it up a bit:
+Navigate to and open the <tt>lib/goodnight.rb</tt> file.  Inside you can see the class definition.  Notice configurations are mapped to methods, and the task documentation is located in the comments.  Let's change it up a bit:
 
   [lib/goodnight.rb]
   # Goodnight::manifest Your basic goodnight moon task.
@@ -135,13 +135,14 @@ Now lets use the previous results; they get loaded and added to the end of the i
 
 Sometimes a condensed task declaration is desirable.  Tap provides a declaration
 syntax a-la rake, accessible through the Tap module to prevent conflicts with rake.  
-Declarations can get put in any .rb file under the lib directory, or in 
+Declarations can get put in any <tt>.rb</tt> file under the lib directory, or in 
 <tt>tapfile.rb</tt>.
 
   [tapfile.rb]
   # Hello::manifest Your basic hello world task.
   # Prints the input with a configurable greeting.
-  Tap.task('hello', {:greeting => 'hello'}) do |task, name|
+  
+  Tap.task('hello', :greeting => 'hello') do |task, name|
     task.log task.greeting, name
     "#{task.greeting} #{name}"
   end
@@ -167,19 +168,24 @@ And from the command line:
       rake        # run rake tasks
 
 
-If you want to get fancy, you can add configs and documentation as in the
-full task definition:
+If you want to get fancy, you can put declarations directly in a module and add 
+configs as in the full task definition:
 
   [tapfile.rb]
-  # Nested::Task::manifest just for illustration
-  #
-  # Extended documentation...
-  #
-  Tap.task('nested/task', 
-    config(:key, 'value'),         # a config
-    config(:number, 1, &c.num)     # a config validated as a number
-  ) do |t, input|
-    # ...
+  # ...
+  module Nested
+    extend Tap::Support::Declarations
+
+    # Nested::Task::manifest just for illustration
+    #
+    # Extended documentation...
+    #
+    task('task', 
+      config(:key, 'value'),         # a config
+      config(:number, 1, &c.num)     # a config validated as a number
+    ) do |task, input|
+      # ...
+    end
   end
   
   % tap run -- nested/task --help

@@ -24,7 +24,7 @@ development, and bug tracking.
 
 === Usage
 
-A sample task illustrates the usage of tap:
+A simple task illustrates the usage of tap:
 
   # Goodnight::manifest your basic goodnight moon task
   #
@@ -66,7 +66,7 @@ And help:
           --use FILE                   Loads inputs from file
 
 
-Tasks are immediately available through tap:
+Tasks are immediately available to run:
 
   % tap run -- goodnight moon
     I[00:09:55]          goodnight moon
