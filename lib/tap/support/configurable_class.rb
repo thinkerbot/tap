@@ -88,15 +88,12 @@ module Tap
         Lazydoc[source_file]
       end
       
-      # Templates and loads the contents of path as YAML.  Returns an
-      # empty hash if the path is empty, does not exist, or is not a
-      # file.
-      def load_config(path, locals={})
+      # Loads the contents of path as YAML.  Returns an empty hash if the path 
+      # is empty, does not exist, or is not a file.
+      def load_config(path)
         return {} if path == nil || !File.exists?(path) || File.directory?(path)
 
-        templater = Support::Templater.new(File.read(path), locals)
-        templater.path = path
-        YAML.load(templater.build) || {}
+        YAML.load_file(path) || {}
       end
       
       protected

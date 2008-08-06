@@ -2,7 +2,6 @@ require 'rubygems'
 
 require 'yaml'                   # expensive to load
 require 'thread'
-require 'erb'
 
 # Apply version-specific patches
 case RUBY_VERSION

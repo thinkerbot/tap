@@ -109,16 +109,14 @@ class ConfigurableClassTest < Test::Unit::TestCase
     assert File.exists?(path)
     assert File.read(path).empty?
     assert_equal({}, LoadConfigClass.load_config(path))
-  end
-
-  def test_each_config_template_templates_using_erb
-    path = method_tempfile do |file|  
-      file << %Q{
-path: <%= path %>
-}
-    end
-
-    assert_equal({"path" => path}, LoadConfigClass.load_config(path))
+    
+    File.open(path, "wb") {|file| file << nil.to_yaml }
+    assert_equal(nil, YAML.load_file(path))
+    assert_equal({}, LoadConfigClass.load_config(path))
+    
+    File.open(path, "wb") {|file| file << false.to_yaml }
+    assert_equal(false, YAML.load_file(path))
+    assert_equal({}, LoadConfigClass.load_config(path))
   end
   
   #

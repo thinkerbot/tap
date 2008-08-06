@@ -39,64 +39,6 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
-  # reload test
-  #
-  
-  # def test_reload_returns_unloaded_constants
-  #   Dependencies.clear
-  #   Dependencies.load_paths << method_root
-  # 
-  #   assert_equal [], e.reload
-  #   assert File.exists?( File.join(method_root, 'env_test_class.rb') )
-  #   
-  #   assert !Object.const_defined?("EnvTestClass")
-  #   klass = EnvTestClass
-  #     
-  #   assert Object.const_defined?("EnvTestClass")
-  #   assert_equal [:EnvTestClass], e.reload.collect {|c| c.to_sym }
-  #   assert !Object.const_defined?("EnvTestClass")
-  # end
-  
-  #
-  # Env#read_config test 
-  #
-  
-  def test_read_config_templates_then_loads_config
-    config_file = method_tempfile
-    
-    File.open(config_file, "wb") {|f| f << "sum: <%= 1 + 2 %>" }
-    assert_equal({'sum' => 3}, Tap::Env.read_config(config_file))
-  end
-  
-  def test_read_config_returns_empty_hash_for_non_existant_nil_and_false_files
-    config_file = method_tempfile
-    
-    assert !File.exists?(config_file)
-    assert_equal({}, Tap::Env.read_config(config_file))
-    
-    FileUtils.touch(config_file)
-    assert_equal({}, Tap::Env.read_config(config_file))
-    
-    File.open(config_file, "wb") {|f| f << nil.to_yaml }
-    assert_equal(nil, YAML.load_file(config_file))
-    assert_equal({}, Tap::Env.read_config(config_file))
-    
-    File.open(config_file, "wb") {|f| f << false.to_yaml }
-    assert_equal(false, YAML.load_file(config_file))
-    assert_equal({}, Tap::Env.read_config(config_file))
-  end
-  
-  def test_read_config_raises_error_for_non_hash_result
-    config_file = method_tempfile
-    
-    File.open(config_file, "wb") {|f| f << [].to_yaml }
-    assert_raise(RuntimeError) { Tap::Env.read_config(config_file) }
-    
-    File.open(config_file, "wb") {|f| f << "just a string" }
-    assert_raise(RuntimeError) { Tap::Env.read_config(config_file) }
-  end
-  
-  #
   # Env#full_gem_path test
   #
   

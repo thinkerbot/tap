@@ -22,7 +22,7 @@ begin
   aliases = nil
 
   app = Tap::App.instance
-  env = Tap::Env.instantiate(app, Tap::Env.read_config(Tap::Env::GLOBAL_CONFIG_FILE), app.logger) do |unhandled_configs|
+  env = Tap::Env.instantiate(app, Tap::Env.load_config(Tap::Env::GLOBAL_CONFIG_FILE), app.logger) do |unhandled_configs|
     before = unhandled_configs.delete(:before)
     after = unhandled_configs.delete(:after)
     

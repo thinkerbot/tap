@@ -150,7 +150,7 @@ module Tap
         opts.parse!(argv)
         obj = new({}, name, app)
 
-        path_configs = load_config(app.config_filepath(name), :app => app)
+        path_configs = load_config(app.config_filepath(name))
         if path_configs.kind_of?(Array)
           path_configs.each_with_index do |path_config, i|
             obj.initialize_batch_obj(path_config, "#{name}_#{i}") unless i == 0

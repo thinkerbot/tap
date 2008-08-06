@@ -43,7 +43,7 @@ module Tap
       #   #  File.expand_path("./path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}") => e2 }
       #
       # The Env is initialized using configurations read from the env config file using
-      # read_config, and a Root initialized to the config file directory. An instance 
+      # load_config, and a Root initialized to the config file directory. An instance 
       # will be initialized regardless of whether the config file or directory exists.
       def instantiate(path_or_root, default_config={}, logger=nil)
         path = path_or_root.kind_of?(Root) ? path_or_root.root : path_or_root
@@ -51,7 +51,7 @@ module Tap
         
         begin
           root = path_or_root.kind_of?(Root) ? path_or_root : Root.new(File.dirname(path))
-          config = default_config.merge(read_config(path))
+          config = default_config.merge(load_config(path))
           
           # note the assignment of env to instances MUST occur before
           # reconfigure to prevent infinite looping
@@ -73,24 +73,6 @@ module Tap
       def instance_for(path)
         path = pathify(path)
         instances.has_key?(path) ? instances[path] : instantiate(path)
-      end
-      
-      # Templates the input filepath using ERB then loads it as YAML.  
-      # Returns an empty hash if the file doesn't exist, or loads to
-      # nil or false (as for an empty file).  Raises an error if the
-      # filepath doesn't load to a hash.
-      def read_config(filepath)
-        return {} if !File.exists?(filepath) || File.directory?(filepath)
-
-        input = ERB.new(File.read(filepath)).result
-        config = YAML.load(input)
-
-        case config
-        when Hash then config
-        when nil, false then {}
-        else
-          raise "expected hash from config file: #{filepath}"
-        end
       end
 
       # Returns the gemspec for the specified gem.  A gem version 

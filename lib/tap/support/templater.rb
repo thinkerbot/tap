@@ -1,4 +1,5 @@
 require 'ostruct'
+require 'erb'
 
 module Tap
   module Support
