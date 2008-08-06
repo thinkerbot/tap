@@ -62,11 +62,19 @@ module Tap
         entries << entry
       end
       
+      def keys
+        entries.collect {|(key, value)| key }
+      end
+      
+      def values
+        entries.collect {|(key, value)| value }
+      end
+      
       def mini_map
         return [] if entries.empty?
         
         hash = {}
-        Root.minimize(entries.collect {|(path, value)| path }) do |path, mini_path|
+        Root.minimize(keys) do |path, mini_path|
           hash[path] = mini_path
         end
         

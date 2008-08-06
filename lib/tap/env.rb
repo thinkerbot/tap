@@ -513,7 +513,7 @@ module Tap
         env_pattern = $1
         pattern = $2
         find(:envs, env_pattern) or raise(ArgumentError, "could not find env: #{env_pattern}")
-      else self
+      else manifest(:envs).values
       end
       
       envs.each do |env|

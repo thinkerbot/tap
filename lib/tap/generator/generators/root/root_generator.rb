@@ -33,6 +33,8 @@ module Tap::Generator::Generators
           m.directory r[target]
         when target == 'gemspec'
           m.template r[project_name + '.gemspec'], source, :project_name => project_name
+        when target == 'tapfile'
+          m.template r['tapfile.rb'], source, :project_name => project_name
         else
           m.template r[target], source, :project_name => project_name
         end
