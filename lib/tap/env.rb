@@ -1,6 +1,7 @@
 require 'tap/root'
 require 'tap/support/constant'
 require 'tap/support/summary'
+require 'tap/support/manifest'
 
 module Tap
 
@@ -156,7 +157,7 @@ module Tap
       end
       
       #--
-      # To manifest simply requires an iterate_<name> method which
+      # To manifest simply requires an glob_<name> method which
       # yields each (key, path) pair for the manifested object in
       # a predictable order. 
       #
@@ -167,38 +168,28 @@ module Tap
       # On the down side, the merging would have to occur in some separate
       # method that cannot be defined here.
       def manifest(name, paths_key, pattern, &block)
-        return manifest(name, paths_key, pattern) do |manifest_path, path| 
-          path.chomp(File.extname(path)) 
+        return manifest(name, paths_key, pattern) do |context, path|
+           [[path.chomp(File.extname(path)), path]]
         end unless block_given?
         
-        manifest_keys = "keys_for_#{name}_manifest".to_sym
-        
-        define_method(manifest_keys, &block)
-        protected manifest_keys
-        
+        glob_method = Support::Manifest.glob_method(name)
         module_eval %Q{
-          def iterate_#{name}(start_index=0)
+          def #{glob_method}
+            paths = []
             self.#{paths_key}.each do |manifest_path|
               root.glob(manifest_path, "#{pattern}").each do |path|
                 next if File.directory?(path)
-                
-                if start_index > 0
-                  start_index -= 1
-                  next
-                end
-                
-                keys = self.#{manifest_keys}(manifest_path, path)
-                case keys
-                when Array then keys.each {|key| yield(key, path) }
-                when Hash then keys.each_pair {|key, value| yield(key, value) }
-                when nil then next
-                else yield(keys, path)
-                end
+                paths << [manifest_path, path]
               end
             end
+            paths
           end
         }
 
+        map_method = Support::Manifest.map_method(name)
+        define_method(map_method, &block)
+        
+        protected glob_method, map_method
       end
     end
     
@@ -214,7 +205,7 @@ module Tap
     # Gets or sets the logger for self
     attr_accessor :logger
     
-    # A hash of the calculated manifests.
+    # A hash of the manifests for self.
     attr_reader :manifests
     
     # Specify gems to load as nested Envs.  Gems may be specified 
@@ -262,14 +253,13 @@ module Tap
     
     manifest(:tasks, :load_paths, "**/*.rb") do |load_path, path|
       document = Support::Lazydoc.scan_doc(path, 'manifest')
-      document.const_names.inject({}) do |tasks, const_name|
+      document.const_names.collect do |const_name|
         if const_name.empty?
           key = root.relative_filepath(load_path, path).chomp('.rb')
-          tasks[key] = Support::Constant.new(key.camelize, path)
+          [key, Support::Constant.new(key.camelize, path)]
         else
-          tasks[const_name.underscore] = Support::Constant.new(const_name, path)
+          [const_name.underscore, Support::Constant.new(const_name, path)]
         end
-        tasks
       end
     end
     
@@ -280,14 +270,13 @@ module Tap
       next unless "#{File.basename(dirname)}_generator.rb" == File.basename(path)
       
       document = Support::Lazydoc.scan_doc(path, 'generator')
-      document.const_names.inject({}) do |generators, const_name|
+      document.const_names.collect do |const_name|
         if const_name.empty?
           key = root.relative_filepath(load_path, dirname)
-          generators[key] = Support::Constant.new((key + '_generator').camelize, path)
+          [key, Support::Constant.new((key + '_generator').camelize, path)]
         else
-          generators[const_name.underscore] = Support::Constant.new(const_name, path)
+          [const_name.underscore, Support::Constant.new(const_name, path)]
         end
-        generators
       end
     end
     
@@ -506,21 +495,20 @@ module Tap
     # Cycles through all items yielded by the iterate_<name> method and
     # adds each to the manifests[name] hash.  Freezes the hash when complete.
     # Simply returns the manifests[name] hash if frozen.
-    def manifest(name)
-      manifest = manifests[name] ||= {}
-      
-      manifest.each do |key, path| 
-        yield(key, path)
+    def manifest(name) 
+      manifest = manifests[name] ||= Support::Manifest.new(name, self)
+
+      manifest.entries.each do |key, path| 
+        yield(key, path) 
       end if block_given?
-      
-      unless manifest.frozen?
-        send("iterate_#{name}", manifest.length) do |key, path| 
-          add_manifest_entry(manifest, key, path)
-          yield(key, path) if block_given?
-        end
-        manifest.freeze
-      end
-      
+            
+      manifest.each_path do |context, path|
+        next unless keys = send(manifest.map_method, context, path)
+        
+        keys.each {|entry| manifest.store(entry) }
+        keys.each {|key, value| yield(key, value) } if block_given?
+      end unless manifest.complete?
+
       manifest
     end
     
@@ -551,24 +539,10 @@ module Tap
       nil
     end
     
-    #--
-    # Minimizes the keys in a hash and recollects key-value
-    # pairs as an array of [mini_key, value] pairs.  When 
-    # reverse is true, minimal_map collects [value, mini_key]
-    # pairs.
-    def map(name, reverse=false)
-      manifest = self.manifest(name)
-      results = []
-      Root.minimize(manifest.keys.sort_by {|path| File.basename(path)}) do |path, mini_path| 
-        results << (reverse ? [manifest[path], mini_path] : [mini_path, manifest[path]])
-      end
-      results
-    end
-    
     def summary(name)
       summary = Support::Summary.new
-      map(:envs).each do |(key, env)|
-       summary.add(key, env, env.map(name))
+      manifest(:envs).mini_map.each do |(key, env)|
+       summary.add(key, env, env.manifest(name).mini_map)
       end
       summary
     end
@@ -601,25 +575,12 @@ module Tap
     
     # Iterates over each nested env, yielding the root path and env.
     # This is the manifest method for envs.
-    def iterate_envs(start_index=0) # :yields: root_path, env
-      each do |env|
-        if start_index > 0
-          start_index -= 1
-          next
-        end
-        
-        yield(env.root.root, env)
-      end
-    end    
+    def manifest_glob_envs
+      collect {|env| [env.root.root, env]}
+    end
     
-    # Checks that the manifest does not already assign key a conflicting path,
-    # then adds the (key, path) pair to manifest.
-    def add_manifest_entry(manifest, key, path)
-      if manifest.has_key?(key) && manifest[key] != path
-        raise ManifestConflict, "multiple paths for key '#{key}': ['#{manifest[key]}', '#{path}']"
-      end
-      
-      manifest[key] = path
+    def manifest_map(context, path)
+      [[context, path]]
     end
     
     # Raises an error if self is already active (and hence, configurations
@@ -650,11 +611,7 @@ module Tap
       
       target
     end
-    
-    # Raised when multiple paths are assigned to the same manifest key.
-    class ManifestConflict < StandardError
-    end
-    
+
     # Raised when there is a Env-level configuration error.
     class ConfigError < StandardError
       attr_reader :original_error, :env_path

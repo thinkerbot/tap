@@ -751,117 +751,87 @@ class EnvTest < Test::Unit::TestCase
   #
   
   class MEnv < Tap::Env
-    
-    attr_accessor :items
-    attr_reader :iterated_items
-    
-    def iterate_items(start_index=0)
-      @iterated_items ||= []
-      items.each do |(k,v)|
-        if start_index > 0
-          start_index -= 1
-          next
-        end
-        
-        @iterated_items << k
-        yield(k,v)
-      end
-    end
+    attr_accessor :manifest_glob_items
   end
-  
-  def test_manifest_collects_iterated_items_by_key
+
+  def test_manifest_collects_items
     m = MEnv.new
-    m.items = [["one", 1],["two", 2],["three", 3]]
-    
-    assert_equal({'one' => 1, "two" => 2, "three" => 3}, m.manifest(:items))
+    m.manifest_glob_items = [["one", 1],["two", 2],["three", 3]]
+    assert_equal([["one", 1],["two", 2],["three", 3]], m.manifest(:items).entries)
   end
-  
+
+  def test_manifest_is_complete_after_manifest
+    m = MEnv.new
+    m.manifest_glob_items = [["one", 1],["two", 2],["three", 3]]
+
+    assert m.manifest(:items).complete?
+  end
+
   def test_manifest_yields_each_pair_to_block_in_order
     m = MEnv.new
-    m.items = [["one", 1],["two", 2],["three", 3]]
-    
+    m.manifest_glob_items = [["one", 1],["two", 2],["three", 3]]
+
     recollected = []
     m.manifest(:items) do |key, value|
       recollected << [key, value]
     end
-    
-    assert_equal m.items, recollected
+
+    assert_equal m.manifest_glob_items, recollected
   end
-  
+
   def test_manifest_yields_each_pair_to_block_in_order_even_for_incomplete_manifest
     m = MEnv.new
-    m.items = [["one", 1],["two", 2],["three", 3]]
-    
+    m.manifest_glob_items = [["one", 1],["two", 2],["three", 3]]
+
     recollected = []
     m.manifest(:items) do |key, value|
       recollected << [key, value]
       break
     end
-    
+
     assert_equal [["one", 1]], recollected
-    assert !m.manifests[:items].frozen?
-    
+    assert !m.manifests[:items].complete?
+
     recollected = []
     m.manifest(:items) do |key, value|
       recollected << [key, value]
     end
-    
-    assert_equal m.items, recollected
-    assert m.manifests[:items].frozen?
+
+    assert_equal m.manifest_glob_items, recollected
+    assert m.manifests[:items].complete?
   end
-  
-  def test_manifest_yields_manifest_hash_or_break_value
+
+  def test_manifest_yields_manifest_or_break_value
     m = MEnv.new
-    m.items = [["one", 1],["two", 2],["three", 3]]
-    
+    m.manifest_glob_items = [["one", 1],["two", 2],["three", 3]]
+
     result = m.manifest(:items) {|key, value|}
     assert_equal m.manifests[:items], result
-    
+
     m.manifests[:items] = nil
-    
+
     result = m.manifest(:items)
     assert_equal m.manifests[:items], result
-    
+
     result = m.manifest(:items) do |key, value|
       break(nil)
     end
-    
+
     assert_nil result
   end
-  
+
   def test_manifest_does_not_raise_an_error_for_duplicate_items
     m = MEnv.new
-    m.items = [["one", 1],["two", 2],["one", 1]]
-    
+    m.manifest_glob_items = [["one", 1],["two", 2],["one", 1]]
     assert_nothing_raised { m.manifest(:items) }
   end
-  
+
   def test_manifest_raises_an_error_if_the_same_key_points_to_multiple_values
     m = MEnv.new
-    m.items = [["one", 1],["two", 2],["one", 3]]
-    
-    assert_raise(Tap::Env::ManifestConflict) { m.manifest(:items) }
+    m.manifest_glob_items = [["one", 1],["two", 2],["one", 3]]
+    assert_raise(Tap::Support::Manifest::ManifestConflict) { m.manifest(:items) }
   end
-  
-  def test_manifest_is_frozen_after_manifest
-    m = MEnv.new
-    m.items = [["one", 1],["two", 2],["three", 3]]
-    
-    assert m.manifest(:items).frozen?
-  end
-  
-  def test_manifest_does_not_iterate_once_manifest_is_frozen
-    m = MEnv.new
-    m.items = [["one", 1],["two", 2],["three", 3]]
-    m.manifest(:items)
-    
-    assert_equal ["one", "two", "three"], m.iterated_items
-    
-    m.items = [["four", 4]]
-    m.manifest(:items)
-    assert_equal ["one", "two", "three"], m.iterated_items
-  end
-  
+
   #
   # Tap::Root.minimal_map test
   #
