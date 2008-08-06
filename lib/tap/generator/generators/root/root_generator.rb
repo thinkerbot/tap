@@ -25,7 +25,7 @@ module Tap::Generator::Generators
       r = Tap::Root.new(root)
       
       m.directory r.root
-      #m.directory r['lib']
+      m.directory r['lib']
       
       template_files do |source, target|
         case

@@ -56,11 +56,11 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/generator/templates/task.erb
     lib/tap/generator/generators/root/root_generator.rb
     lib/tap/generator/generators/root/templates/Rakefile
-    lib/tap/generator/generators/root/templates/MIT-LICENSE
-    lib/tap/generator/generators/root/templates/README
+    lib/tap/generator/generators/root/templates/tapfile
     lib/tap/generator/generators/root/templates/gemspec
     lib/tap/generator/generators/root/templates/test/tap_test_helper.rb
     lib/tap/generator/generators/root/templates/test/tap_test_suite.rb
+    lib/tap/generator/generators/root/templates/test/tapfile_test.rb
     lib/tap/generator/generators/task/task_generator.rb
     lib/tap/generator/generators/task/templates/task.erb
     lib/tap/generator/generators/task/templates/test.erb

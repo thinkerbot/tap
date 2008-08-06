@@ -2,8 +2,7 @@ require File.dirname(__FILE__) + '/tap_test_helper.rb'
 require File.dirname(__FILE__) + '/../tapfile.rb'
 
 class TapfileTest < Test::Unit::TestCase
-  Tap::App.instance.quiet = true
-  Tap::App.instance.debug = true
+  acts_as_tap_test
   
   def test_goodnight
     task = Goodnight.new :message => "goodnight"
