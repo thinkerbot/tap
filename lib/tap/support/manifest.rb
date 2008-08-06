@@ -65,8 +65,12 @@ module Tap
       def mini_map
         return [] if entries.empty?
         
-        keys, values = entries.transpose
-        [Root.minimize(keys), values].transpose
+        hash = {}
+        Root.minimize(entries.collect {|(path, value)| path }) do |path, mini_path|
+          hash[path] = mini_path
+        end
+        
+        entries.collect {|path, value| [hash[path], value] }
       end
       
       # Raised when multiple paths are assigned to the same manifest key.

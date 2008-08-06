@@ -101,10 +101,10 @@ module Tap
           Gem.source_index.latest_specs :
           Gem.source_index.gems.collect {|(name, spec)| spec }
         
-        index.collect do |spec|
-          config_file = File.join(spec.full_gem_path, DEFAULT_CONFIG_FILE)
-          File.exists?(config_file) ? spec : nil
-        end.compact.sort
+        index.select do |spec|
+          File.exists?(File.join(spec.full_gem_path, DEFAULT_CONFIG_FILE)) ||
+          File.exists?(File.join(spec.full_gem_path, DEFAULT_TASK_FILE))
+        end.sort
       end
       
       protected
@@ -180,6 +180,9 @@ module Tap
     
     # The default config file path
     DEFAULT_CONFIG_FILE = "tap.yml"
+    
+    # The default task file path
+    DEFAULT_TASK_FILE = "tapfile.rb"
     
     # The Root directory structure for self.
     attr_reader :root
@@ -539,6 +542,10 @@ module Tap
     def inspect(brief=false)
       brief ? "#<#{self.class}:#{object_id} root='#{root.root}'>" : super()
     end
+    
+    def to_s
+      inspect(true)
+    end
 
     #--
     # Under construction
@@ -577,7 +584,7 @@ module Tap
       # * require 'tapfile.rb' works
       # * load 'tapfile' works
       #
-      root.glob(:root, "tapfile.rb").each do |path|
+      root.glob(:root, DEFAULT_TASK_FILE).each do |path|
         next if File.directory?(path)
         paths.unshift [root.root, path]
       end

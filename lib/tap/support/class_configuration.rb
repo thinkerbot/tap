@@ -169,16 +169,20 @@ module Tap
         else template
         end
         
-        templater = Templater.new(template)  
+        templater = Templater.new(template)
         assignments.each_pair do |receiver, keys|
           next if keys.empty?
           
           # set the template attributes
           templater.receiver = receiver
           templater.configurations = keys.collect do |key|
-            [key, map[key]]
-          end
+            # duplicate config so that any changes to it
+            # during templation will not propogate back
+            # into self
+            [key, map[key].dup]
+          end.compact
           
+          yield(templater) if block_given?
           target << templater.build
         end
         
