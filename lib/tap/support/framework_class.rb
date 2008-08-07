@@ -32,7 +32,7 @@ module Tap
         super
       end
 
-      def subclass(const_name, configs={}, block_method=:process, &block)
+      def subclass(const_name, configs={}, options={}, &block)
         # Generate the nesting module
         current, constants = const_name.to_s.constants_split
         raise ArgumentError, "#{current} is already defined!" if constants.empty?
@@ -42,6 +42,8 @@ module Tap
         
         # Generate the subclass
         subclass = Class.new(self)
+        configs = configs[0] if configs.kind_of?(Array) && configs.length == 1 && configs[0].kind_of?(Hash)
+        
         case configs
         when Hash
           subclass.send(:attr_accessor, *configs.keys)
@@ -49,19 +51,16 @@ module Tap
             subclass.configurations.add(key, value)
           end
         when Array
-          configs.each do |method, key, value, options, config_block| 
-            subclass.send(method, key, value, options, &config_block)
+          configs.each do |method, key, value, opts, config_block| 
+            subclass.send(method, key, value, opts, &config_block)
           end
         end
         
+        block_method = options[:block_method] || :process
         subclass.send(:define_method, block_method, &block)
         subclass.default_name = const_name
-        
-        const_name = case current
-        when Object then subclass_const
-        else "#{current}::#{subclass_const}"
-        end
-        
+
+        const_name = current == Object ? subclass_const : "#{current}::#{subclass_const}"
         caller.each_with_index do |line, index|
           case line
           when /\/tap\/support\/declarations.rb/ then next
@@ -72,10 +71,16 @@ module Tap
           end
         end
         
+        arity = options[:arity] || block.arity
         comment = Comment.new
-        comment.subject = case block.arity
-        when -1 then "INPUTS..."
-        else Array.new(block.arity, "INPUT").join(' ')
+        comment.subject = case
+        when arity > 0
+          Array.new(arity, "INPUT").join(' ')
+        when arity < 0
+          array = Array.new(-1 * arity - 1, "INPUT")
+          array << "INPUTS..."
+          array.join(' ')
+        else ""
         end
         subclass.lazydoc[const_name, false]['args'] ||= comment
         

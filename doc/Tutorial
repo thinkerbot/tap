@@ -2,14 +2,19 @@
 
 === Basic Usage
 
-Begin by creating a tap root directory structure:
+Begin by creating a tap directory structure:
 
-  % tap generate root root
-  % cd root
+  % tap generate root sample
+  % cd sample
   
-Make a task:
+Comes with a task:
 
-  % tap generate task goodnight
+  % tap run -T
+  sample:
+    goodnight   # your basic goodnight moon task
+  tap:
+    dump        # the default dump task
+    rake        # run rake tasks
 
 Test the task:
  
@@ -18,14 +23,14 @@ Test the task:
 Get help for the task:
 
   % tap run -- goodnight --help
-  Goodnight -- <replace with manifest summary>
+  Goodnight -- your basic goodnight moon task
   --------------------------------------------------------------------------------
-    <replace with command line description>
+    Prints the input with a configurable message.
   --------------------------------------------------------------------------------
-  usage: tap run -- goodnight NAME
+  usage: tap run -- goodnight INPUT
 
   configurations:
-          --message MESSAGE            a sample config
+          --message MESSAGE
 
   options:
       -h, --help                       Print this help
@@ -37,7 +42,7 @@ Run the task:
   % tap run -- goodnight moon
     I[23:22:19]          goodnight moon
     
-Run the task, setting the 'key' configuration:
+Run the task, setting the 'message' configuration:
   
   % tap run -- goodnight moon --message hello
     I[23:22:46]              hello moon
@@ -71,21 +76,56 @@ The dump file contents look like this:
   goodnight (2780180): 
   - goodnight moon
 
-The comments at the beginning are an audit trace of the run.  In this case two separate tasks were run sequentially, hence you can see each task, the task inputs, and the task results as separate units.  A YAML hash follows the audit with the aggregated task results, keyed by the task name and object id.  Since the results are represented as a hash, the order of the tasks sometimes gets scrambled, as in this case.
+The comments at the beginning are an audit trace of the run.  In this case two 
+separate tasks were run sequentially, hence you can see each task, the task inputs, 
+and the task results as separate units.  A YAML hash follows the audit with the 
+aggregated task results, keyed by the task name and object id.  Since the results 
+are represented as a hash, the order of the tasks sometimes gets scrambled, as in 
+this case.
+
+=== Task Declaration
+
+Tap provides a declaration syntax a-la rake, accessible through the Tap module to 
+prevent conflicts with rake.  Declarations can get put in any <tt>.rb</tt> file 
+under the lib directory or in <tt>tapfile.rb</tt>.
+
+  [tapfile.rb]
+  # Goodnight::manifest your basic goodnight moon task
+  # Prints the input with a configurable message.
+
+  Tap.task('goodnight', :message => 'goodnight') do |task, name|
+     task.log task.message, name
+     "#{task.message} #{name}"
+  end
+
+The declaration makes a task class based on the name (ie namespaces are naturally
+supported by names like <tt>'nested/task'</tt>).  The classes are ready for use in 
+scripts:
+
+  require 'tapfile'
+  Goodnight.new.process('moon')       # => 'goodnight moon'
+
+And from the command line, as above.
 
 === Task Definition
 
-Navigate to and open the <tt>lib/goodnight.rb</tt> file.  Inside you can see the class definition.  Notice configurations are mapped to methods, and the task documentation is located in the comments.  Let's change it up a bit:
+Sometimes you need more than a block to define a task.  Generate a task:
 
-  [lib/goodnight.rb]
-  # Goodnight::manifest Your basic goodnight moon task.
+  % tap generate task hello
+
+Navigate to and open the <tt>lib/hello.rb</tt> file.  Inside you can see the class 
+definition.  Notice configurations are mapped to methods, and the task documentation 
+is located in the comments.  Let's change it up a bit:
+
+  [lib/hello.rb]
+  # Hello::manifest your basic hello world task
   #
-  # Prints goodnight to a number of things with a configurable, 
+  # Prints hello to a number of things with a configurable, 
   # reversible message.
   #
-  class Goodnight < Tap::Task
+  class Hello < Tap::Task
 
-    config :message, 'goodnight'           # a goodnight message
+    config :message, 'hello'               # a greeting
     config :reverse, false, &c.flag        # reverses the message
 
     def process(*names)
@@ -98,16 +138,15 @@ Navigate to and open the <tt>lib/goodnight.rb</tt> file.  Inside you can see the
 
 The new configurations and documentation are immediately available:
 
-  % tap run -- goodnight --help
-  Goodnight -- Your basic goodnight moon task.
+  % tap run -- hello --help
+  Hello -- your basic hello world task
   --------------------------------------------------------------------------------
-    Prints goodnight to a number of things with a configurable, reversible
-    message.
+    Prints hello to a number of things with a configurable, reversible message.
   --------------------------------------------------------------------------------
-  usage: tap run -- goodnight NAMES...
+  usage: tap run -- hello NAMES...
 
   configurations:
-          --message MESSAGE            a goodnight message
+          --message MESSAGE            a greeting
           --reverse                    reverses the message
 
   options:
@@ -117,92 +156,20 @@ The new configurations and documentation are immediately available:
 
 And the task is ready to go:
 
-  % tap run -- goodnight moon lamp 'little toy boat'
-    I[23:29:26]          goodnight moon
-    I[23:29:26]          goodnight lamp
-    I[23:29:26]          goodnight little toy boat
+  % tap run -- hello moon lamp 'little toy boat'
+    I[23:29:26]              hello moon
+    I[23:29:26]              hello lamp
+    I[23:29:26]              hello little toy boat
 
-  % tap run -- goodnight mittens --reverse
-    I[23:29:53]          thgindoog mittens
-  
+  % tap run -- hello mittens --reverse
+    I[23:29:53]              olleh mittens
+
 Now lets use the previous results; they get loaded and added to the end of the inputs:
 
-  % tap run -- goodnight --use output.yml
-    I[23:31:32]          goodnight goodnight opus
-    I[23:31:32]          goodnight goodnight moon
+  % tap run -- hello --use output.yml
+    I[23:31:32]              hello goodnight moon
+    I[23:31:32]              hello goodnight opus
   
-=== Task Declaration
-
-Sometimes a condensed task declaration is desirable.  Tap provides a declaration
-syntax a-la rake, accessible through the Tap module to prevent conflicts with rake.  
-Declarations can get put in any <tt>.rb</tt> file under the lib directory, or in 
-<tt>tapfile.rb</tt>.
-
-  [tapfile.rb]
-  # Hello::manifest Your basic hello world task.
-  # Prints the input with a configurable greeting.
-  
-  Tap.task('hello', :greeting => 'hello') do |task, name|
-    task.log task.greeting, name
-    "#{task.greeting} #{name}"
-  end
-
-The declaration makes a task class based on the name (ie namespaces are naturally
-supported by names like <tt>'nested/task'</tt>).  The classes are ready for use in 
-scripts:
-
-  require 'tapfile'
-  Hello.new.process('world')       # => 'hello world'
-
-And from the command line:
-
-  % tap run -- hello world --greeting bonjour
-    I[23:36:47]            bonjour world
-
-  % tap run -T
-    root:
-      goodnight   # Your basic goodnight moon task.
-      hello       # Your basic hello world task.
-    tap:
-      dump        # the default dump task
-      rake        # run rake tasks
-
-
-If you want to get fancy, you can put declarations in the Tap module and add 
-configs as in the full task definition:
-
-  [tapfile.rb]
-  # ...
-  module Tap
-
-    # Nested::Task::manifest just for illustration
-    #
-    # Extended documentation...
-    #
-    task('nested/task', 
-      config(:key, 'value'),         # a config
-      config(:number, 1, &c.num)     # a config validated as a number
-    ) do |task, input|
-      # ...
-    end
-  end
-  
-  % tap run -- nested/task --help
-  Nested::Task -- just for illustration
-  --------------------------------------------------------------------------------
-    Extended documentation...
-  --------------------------------------------------------------------------------
-  usage: tap run -- nested/task 
-
-  configurations:
-          --key KEY                    a config
-          --number NUMBER              a config validated as a number
-
-  options:
-      -h, --help                       Print this help
-          --name NAME                  Specify a name
-          --use FILE                   Loads inputs from file
-
 === Config Files
 
 So say you wanted static configs for a task.  Make a configuration file:
@@ -213,29 +180,28 @@ Set the configurations here and they get used by the task:
 
   [config/goodnight.yml]
   ###############################################################################
-  # Goodnight configurations
+  # Goodnight configuration
   ###############################################################################
 
-  message: goodnight
-
-  reverse: true
+  message: good evening
   
 As can be seen here (note reverse was set to true):
 
   % tap run -- goodnight moon
-    I[23:40:39]          thgindoog moon
+    I[23:40:39]       good evening moon
 
 If you need to run a task with multiple sets of configurations, simply define an 
 array of configurations in the config file:
   
   [config/goodnight.yml]
+  - message: good afternoon
+  - message: good evening
   - message: goodnight
-  - message: sleep well
-    reverse: true
 
   % tap run -- goodnight moon
+    I[23:42:46]     good afternoon moon
+    I[23:42:46]       good evening moon
     I[23:42:46]          goodnight moon
-    I[23:42:46]         llew peels moon
 
 The --name option sets the config file used:
 
@@ -259,10 +225,9 @@ Now:
     I[23:43:59]              hello world
 
   % tap -T
-  root:
-    concat      # concatenates a trailer to the input
-    sample      # a sample task with configurations
-    task        # just for illustration
+  sample:
+    goodnight   # your basic goodnight moon task
+    hello       # your basic hello world task
   tap:
     dump        # the default dump task
     rake        # run rake tasks

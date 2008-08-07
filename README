@@ -75,8 +75,8 @@ Tasks are immediately available to run:
   % tap run -- goodnight moon --message hello
     I[00:10:01]              hello moon
   
-Tap comes with generators (even a generator generator) and allows distribution of
-task libraries as gems.  This can be illustrated by installing the 
+Tap comes with generators and allows distribution of task libraries as gems.  
+This can be illustrated by installing the 
 {sample_tasks}[http://tap.rubyforge.org/sample_tasks] gem:
 
   % gem install sample_tasks

@@ -7,15 +7,15 @@ module Tap::Generator::Generators
   # Generates a tap root directory structure:
   #
   #   root
-  #   |- MIT-LICENSE
-  #   |- README
   #   |- Rakefile
   #   |- lib
-  #   |- root.gemspec
+  #   |- sample.gemspec
   #   |- tap.yml
+  #   |- tapfile.rb
   #   `- test
   #       |- tap_test_helper.rb
-  #       `- tap_test_suite.rb
+  #       |- tap_test_suite.rb
+  #       `- tapfile_test.rb
   #
   class RootGenerator < Tap::Generator::Base
     
@@ -40,16 +40,16 @@ module Tap::Generator::Generators
         end
       end
       
-      #m.file(r['tap.yml']) do |file|
-      #  Tap::App.configurations.format_str(:doc, file) do |templater|
-      #    next unless templater.receiver == Tap::Root
+      m.file(r['tap.yml']) do |file|
+       Tap::App.configurations.format_str(:doc, file) do |templater|
+         next unless templater.receiver == Tap::Root
           
-      #    templater.configurations.each do |(key, config)| 
-      #      config.default = nil if key.to_s == 'root'
-      #    end
-      #  end
-      #  Tap::Env.configurations.format_str(:doc, file)
-      #end
+         templater.configurations.each do |(key, config)| 
+           config.default = nil if key.to_s == 'root'
+         end
+       end
+       Tap::Env.configurations.format_str(:doc, file)
+      end
     end
   end
 end

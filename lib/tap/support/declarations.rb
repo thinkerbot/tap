@@ -17,31 +17,31 @@ module Tap
         set_declaration_base(base)
       end
 
-      def tasc(name, *configs, &block)
-        configs = configs[0] if configs.length == 1 && configs[0].kind_of?(Hash)
-        Tap::Task.subclass(nest(name), configs, &block)
+      def tasc(name, configs={}, options={}, &block)
+        Tap::Task.subclass(nest(name), configs, options, &block)
       end
 
-      def task(name, *configs, &block)
-        tasc(name, *configs, &task_block(block)).new
+      def task(name, configs={}, options={}, &block)
+        options[:arity] = arity(block)
+        tasc(name, configs, options, &task_block(block)).new
       end
 
-      def file_tasc(name, *configs, &block)
-        configs = configs[0] if configs.length == 1 && configs[0].kind_of?(Hash)
-        Tap::FileTask.subclass(nest(name), configs, &block)
+      def file_tasc(name, configs={}, options={}, &block)
+        Tap::FileTask.subclass(nest(name), configs, options, &block)
       end
 
-      def file_task(name, *configs, &block)
-        file_tasc(name, *configs, &task_block(block)).new
+      def file_task(name, configs={}, options={}, &block)
+        options[:arity] = arity(block)
+        file_tasc(nest(name), configs, options, &task_block(block)).new
       end
 
-      def worcflow(name, *configs, &block)
-        configs = configs[0] if configs.length == 1 && configs[0].kind_of?(Hash)
-        Tap::Workflow.subclass(nest(name), configs, &block)
+      def worcflow(name, configs={}, options={}, &block)
+        Tap::Workflow.subclass(nest(name), configs, options, &block)
       end
 
-      def workflow(name, *configs, &block)
-        worcflow(name, *configs, &task_block(block)).new
+      def workflow(name, configs={}, options={}, &block)
+        options[:arity] = arity(block)
+        worcflow(name, configs, options, &task_block(block)).new
       end
 
       protected
@@ -80,6 +80,17 @@ module Tap
         # use self if self is a Module or Class, 
         # or self.class if self is an instance.
         File.join((self.kind_of?(Module) ? self : self.class).instance_variable_get(:@tap_declaration_base), name.to_s)
+      end
+      
+      def arity(block)
+        arity = block.arity
+        
+        case
+        when arity > 0 then arity -= 1
+        when arity < 0 then arity += 1
+        end
+        
+        arity
       end
 
       def task_block(block)
