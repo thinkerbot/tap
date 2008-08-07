@@ -1,3 +1,5 @@
+autoload(:PP, 'pp')
+      
 module Tap
   module Support 
     
@@ -138,8 +140,6 @@ module Tap
     #         `-----`-----`-o-[j] j5
     #
     class Audit
-      autoload(:PP, 'pp')
-      
       class << self
 
         # Creates a new Audit by merging the input audits. The value of the new 

@@ -6,11 +6,11 @@ class <%= const.name %>Test < Test::Unit::TestCase
   
   def test_<%= const.basename %>
     # Use assert_files to test file transform tasks.  The block  
-    # recieves the method/input files and compares the results 
-    # to the method/expected files.
+    # recieves the method input files and compares the results 
+    # to the method expected files.
   
-    # Generated files are often placed in method/output, as it
-    # is cleaned up by default.  To keep output files, set the 
+    # Generated files are often placed in method output, as it
+    # is cleaned up each test.  To keep output files, set the 
     # KEEP_OUTPUTS variable:
     #   % rake test keep_outputs=true
   

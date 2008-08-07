@@ -134,7 +134,6 @@ after line two
         assert File.exists?(method_filepath(:output, 'test/tap_test_helper.rb'))
         assert File.exists?(method_filepath(:output, 'test/tap_test_suite.rb'))
         assert File.exists?(method_filepath(:output, 'test/tapfile_test.rb'))
-        assert File.exists?(method_filepath(:output, 'tap.yml'))
         assert File.exists?(method_filepath(:output, 'Rakefile'))
         assert File.exists?(method_filepath(:output, 'tapfile.rb'))
       end
