@@ -27,7 +27,6 @@ development, and bug tracking.
 A simple task illustrates the usage of tap:
 
   # Goodnight::manifest your basic goodnight moon task
-  #
   # Says goodnight with a configurable message.
   class Goodnight < Tap::Task
 
