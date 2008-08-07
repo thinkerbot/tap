@@ -45,32 +45,35 @@ Any number of tasks, configurations, and inputs may be specified in this way.
 Tap can find and run tasks from multiple environments, for instance from multiple gems.  Tap provides a compact way to specify which task to run in the event of a name conflict.  The actual process involves minimizing the path to the environment and the relative path to the task file, but from the command line all of the details are hidden:
 
   % tap run -T
-	root:
-		sample/task      # some sample task
-		another/task     # another task
-  sample_gem:
-	  sample/task      # a conflicting sample task
+  one:
+    sample/task      # some sample task
+    another/task     # another task
+  two:
+    sample/task      # a conflicting sample task
 
-In this situation:
+In this situation, these commands run the 'one' sample/task:
 
-  === runs the 'root' sample/task
   % tap run -- sample/task
-  % tap run -- root:sample/task
+  % tap run -- one:sample/task
 
-  === runs the 'sample_gem' sample/task
-  % tap run -- sample_gem::sample/task
+While this runs the 'two' sample/task:
 
-Additionally, base-fragments of the minimized paths can be specified (if laziness strikes); they will be resolved in order from top to bottom within the specified environment:
+  % tap run -- two::sample/task
 
-  === runs the 'root' sample/task
+Additionally, base-fragments of the minimized paths can be specified (if laziness strikes); they will be resolved in order from top to bottom within the specified environment.
+
+Runs the 'one' sample/task:
+
   % tap run -- task
 
-  === runs the 'sample_gem' sample/task
-  % tap run -- sample_gem::task
+Runs the 'two' sample/task:
 
-  === the full relative path must be specified for another/task
+  % tap run -- two::task
+
+The full minimized path must be specified for another/task:
+
   % tap run -- another/task
-  % tap run -- root:another/task
+  % tap run -- one:another/task
 
 ==== Rounds
 
@@ -133,9 +136,9 @@ Generate and destory launch generator scripts, similar to those in Rails.  By de
 {file_task}[link:classes/Tap/Generator/Generators/FileTaskGenerator.html]:: a Tap::FileTask and test
 {config}[link:classes/Tap/Generator/Generators/ConfigGenerator.html]:: a yaml config file for the specified task 
 {command}[link:classes/Tap/Generator/Generators/CommandGenerator.html]:: a new command
-{generator}[link:classes/Tap/Generator/GeneratorseneratorGenerator.html]:: a new generator
 
 --
+{generator}[link:classes/Tap/Generator/GeneratorseneratorGenerator.html]:: a new generator
 {workflow}[link:classes/Tap/Generator/Generators/Workflow/WorkflowGenerator.html]:: a Tap::Workflow and test
 ++
 

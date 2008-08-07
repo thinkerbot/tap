@@ -185,7 +185,7 @@ Set the configurations here and they get used by the task:
 
   message: good evening
   
-As can be seen here (note reverse was set to true):
+As can be seen here:
 
   % tap run -- goodnight moon
     I[23:40:39]       good evening moon
