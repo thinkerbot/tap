@@ -1,76 +1,91 @@
 module Tap
   module Support
-    class Manifest 
+    class Manifest
       
       class << self
-        def glob_method(name)
-          "manifest_glob_#{name}".to_sym
-        end
-        
-        def map_method(name)
-          "manifest_map_#{name}".to_sym
+        def initailize_from(env)
+          raise NotImplementedError
         end
       end
       
-      DEFAULT_MAP_METHOD = :manifest_map
- 
       attr_reader :entries
-      attr_reader :map_method
-      attr_reader :paths
-      attr_reader :path_index
+      attr_reader :search_paths
+      attr_reader :search_path_index
       
-      def initialize(name, source)
+      def initialize(search_paths)
         @entries = []
-
-        @map_method = Manifest.map_method(name)
-        @map_method = DEFAULT_MAP_METHOD if !source.respond_to?(@map_method)
-        
-        @paths = source.send(Manifest.glob_method(name)).uniq
-        @path_index = 0
+        @search_paths = search_paths
+        @search_path_index = 0
       end
       
-      def complete?
-        @path_index == paths.length
-      end
-      
-      def each_path
-        return(false) if complete?
-
-        n_to_skip = @path_index
-        paths.each do |context, path|
-          if n_to_skip > 0
-            n_to_skip -= 1
-            next
-          end
-          
-          @path_index += 1
-          yield(context, path)
-        end
-        
-        true
-      end
-      
-      # Checks that the manifest does not already assign key a conflicting path,
-      # then adds the (key, path) pair to manifest.
-      def store(entry)
-        existing_key, existing_path = entries.find {|(key, path)| key == entry[0] } 
-        
-        if existing_key && existing_path != entry[1]
-          raise ManifestConflict, "multiple paths for key '#{existing_key}': ['#{existing_path}', '#{entry[1]}']"
-        end
-      
-        entries << entry
-      end
-      
+      # Returns an array of the entries keys.
       def keys
         entries.collect {|(key, value)| key }
       end
       
+      # Returns an array of the entries values.
       def values
         entries.collect {|(key, value)| value }
       end
       
-      def mini_map
+      # True if all search paths have been checked for entries
+      # (ie search_path_index == search_paths.length).
+      def complete?
+        @search_path_index == search_paths.length
+      end
+      
+      # Abstract method which should yield each (key, value) pair
+      # for a given search path.  Raises a NotImplementedError
+      # if left not implemented.
+      def each_for(search_path) # :yields: key, value
+        raise NotImplementedError
+      end
+      
+      # Checks that entries does not already assign key a conflicting path,
+      # then adds the (key, path) pair to entries.  Returns the new entry.
+      def store(key, value)
+        existing_key, existing_value = entries.find {|(k, v)| key == k } 
+        
+        if existing_key && existing_path != value
+          raise ManifestConflict.new( conflict_argv(key, value, existing_value) )
+        end
+        
+        new_entry = [key, value]
+        entries << new_entry
+        new_entry
+      end
+      
+      def each
+        entries.each do |key, path| 
+          yield(key, path) 
+        end
+        
+        unless complete?
+          n_to_skip = @search_path_index
+          search_paths.each do |search_path|
+            # advance to the current search path
+            if n_to_skip > 0
+              n_to_skip -= 1
+              next
+            end
+            @search_path_index += 1
+            
+            # collect new entries and yield afterwards to ensure
+            # that all entries for the search_path get stored
+            new_entries = []
+            each_for(search_path) {|key, value| new_entries << store(key, value) }
+            new_entries.each {|(key, value)| yield(key, value) }
+          end
+        end
+      end
+      
+      def build
+        return false if complete?
+        each {|k, v|}
+        true
+      end
+      
+      def minimize
         return [] if entries.empty?
         
         hash = {}
@@ -81,8 +96,22 @@ module Tap
         entries.collect {|path, value| [hash[path], value] }
       end
       
+      protected
+      
+      def conflict_argv(key, value, existing_value)
+         [key, value, existing_value]
+      end
+
       # Raised when multiple paths are assigned to the same manifest key.
       class ManifestConflict < StandardError
+        attr_reader :key, :value, :existing
+        
+        def initialize(key, value, existing)
+          @key = key
+          @value = value
+          @existing = existing
+          super("attempted to store '%s': %s\nbut already was\n%s" % [key, value, existing])
+        end
       end
     end
   end
