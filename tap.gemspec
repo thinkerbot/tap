@@ -33,7 +33,6 @@ Gem::Specification.new do |s|
     doc/Tutorial
     doc/Class\sReference
     doc/Command\sReference
-    Rakefile
     bin/tap
     lib/tap/app.rb
     lib/tap/constants.rb
