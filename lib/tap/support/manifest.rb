@@ -41,13 +41,18 @@ module Tap
         raise NotImplementedError
       end
       
-      # Checks that entries does not already assign key a conflicting path,
-      # then adds the (key, path) pair to entries.  Returns the new entry.
+      # Adds the (key, value) pair to entries and returns the new entry.
+      # Checks that entries does not already assign key a conflicting value;
+      # raises an error if this is the case, or returns the existing entry.
       def store(key, value)
-        existing_key, existing_value = entries.find {|(k, v)| key == k } 
+        existing = entries.find {|(k, v)| key == k } 
         
-        if existing_key && existing_path != value
-          raise ManifestConflict.new( conflict_argv(key, value, existing_value) )
+        if existing
+          if existing[1] != value
+            raise ManifestConflict.new( *conflict_argv(key, value, existing[1]) )
+          else
+            return existing
+          end
         end
         
         new_entry = [key, value]
@@ -55,6 +60,9 @@ module Tap
         new_entry
       end
       
+      # Iterates over each entry in self, dynamically identifying entries from
+      # search_paths if necessary.
+      #
       def each
         entries.each do |key, path| 
           yield(key, path) 
@@ -79,10 +87,11 @@ module Tap
         end
       end
       
+      # Builds the manifest, identifying all entries from search_paths.
+      # Returns self.
       def build
-        return false if complete?
-        each {|k, v|}
-        true
+        each {|k, v|} unless complete?
+        self
       end
       
       def minimize
