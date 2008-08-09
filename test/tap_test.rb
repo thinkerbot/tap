@@ -37,6 +37,7 @@ help:
 available commands:
   console   
   destroy   
+  env       
   generate  
   run       
   server    
@@ -65,6 +66,7 @@ help:
 available commands:
   console   
   destroy   
+  env       
   generate  
   run       
   server    
@@ -95,6 +97,7 @@ help:
 available commands:
   console   
   destroy   
+  env       
   generate  
   run       
   server    

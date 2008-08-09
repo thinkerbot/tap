@@ -41,23 +41,56 @@ class ManifestTest < Test::Unit::TestCase
   end
   
   #
-  # complete? test
+  # reset test
   #
   
-  def test_complete_is_true_if_search_path_index_equals_search_paths_length
-    assert_equal m.search_path_index, m.search_paths.length
-    assert m.complete?
+  def test_reset_clears_entries_and_resets_search_path_index_to_zero
+    m = ManifestSubclass.new([[:one, [1]],[:two, [2]],[:three, [3]]])
+    m.build
     
-    m.search_paths << "path"
-    assert !m.complete?
+    assert !m.entries.empty?
+    assert_not_equal 0, m.search_path_index
+    
+    m.reset
+    
+    assert m.entries.empty?
+    assert_equal 0, m.search_path_index
   end
   
   #
-  # each_for test
+  # build test
   #
   
-  def test_each_for_raises_not_implemented_error_if_left_not_implemented
-    assert_raise(NotImplementedError) { m.each_for("") }
+  def test_build_returns_self
+    assert_equal m, m.build
+  end
+  
+  def test_identifies_all_entries_from_search_paths
+    m = ManifestSubclass.new([[:one, [1]],[:two, [2]],[:three, [3]]])
+    assert m.entries.empty?
+
+    m.build
+    assert_equal [["one_0", 1],["two_0", 2],["three_0", 3]], m.entries
+  end
+  
+  #
+  # built? test
+  #
+  
+  def test_built_is_true_if_search_path_index_equals_search_paths_length
+    assert_equal m.search_path_index, m.search_paths.length
+    assert m.built?
+    
+    m.search_paths << "path"
+    assert !m.built?
+  end
+  
+  #
+  # entries_for test
+  #
+  
+  def test_entries_for_raises_not_implemented_error_if_left_not_implemented
+    assert_raise(NotImplementedError) { m.entries_for("") }
   end
   
   #
@@ -122,14 +155,16 @@ class ManifestTest < Test::Unit::TestCase
       super(keys)
     end
     
-    def each_for(search_path)
+    def entries_for(search_path)
+      entries = []
       path_map[search_path].each_with_index do |value, index|
-        yield("#{search_path}_#{index}", value)
+        entries << ["#{search_path}_#{index}", value]
       end
+      entries
     end
   end
   
-  def test_each_discovers_entries_for_each_search_path_using_each_for
+  def test_each_discovers_entries_for_each_search_path_using_entries_for
     m = ManifestSubclass.new([[:one, [1]],[:two, [2]],[:three, [3]]])
     assert m.entries.empty?
     
@@ -175,18 +210,14 @@ class ManifestTest < Test::Unit::TestCase
   end
   
   #
-  # build test
+  # minimize test
   #
   
-  def test_build_returns_self
-    assert_equal m, m.build
-  end
-  
-  def test_identifies_all_entries_from_search_paths
-    m = ManifestSubclass.new([[:one, [1]],[:two, [2]],[:three, [3]]])
-    assert m.entries.empty?
-
-    m.build
-    assert_equal [["one_0", 1],["two_0", 2],["three_0", 3]], m.entries
+  def test_minimize_returns_an_array_of_mini_key_value_pairs
+    m.entries << ["path/to/file.txt", 1]
+    m.entries << ["path/to/another/file.txt", 2]
+    m.entries << ["path/to/another.txt", 3]
+    
+    assert_equal [['to/file', 1],['another/file', 2],['another', 3]], m.minimize
   end
 end

@@ -1,15 +1,17 @@
+require 'tap/root'
+
 module Tap
   module Support
     class Manifest
       
-      class << self
-        def initailize_from(env)
-          raise NotImplementedError
-        end
-      end
-      
+      # An array of (key, value) entries in self.
       attr_reader :entries
+      
+      # An array of search_paths to identify entries.
       attr_reader :search_paths
+      
+      # The index of the search_path that will be searched
+      # next when building the manifest.
       attr_reader :search_path_index
       
       def initialize(search_paths)
@@ -28,16 +30,29 @@ module Tap
         entries.collect {|(key, value)| value }
       end
       
+      # Clears entries and sets the search_path_index to zero.
+      def reset
+        @entries.clear
+        @search_path_index = 0
+      end
+      
+      # Builds the manifest, identifying all entries from search_paths.
+      # Returns self.
+      def build
+        each {|k, v|} unless built?
+        self
+      end
+      
       # True if all search paths have been checked for entries
       # (ie search_path_index == search_paths.length).
-      def complete?
+      def built?
         @search_path_index == search_paths.length
       end
       
-      # Abstract method which should yield each (key, value) pair
+      # Abstract method which should return each (key, value) entry
       # for a given search path.  Raises a NotImplementedError
       # if left not implemented.
-      def each_for(search_path) # :yields: key, value
+      def entries_for(search_path)
         raise NotImplementedError
       end
       
@@ -49,7 +64,7 @@ module Tap
         
         if existing
           if existing[1] != value
-            raise ManifestConflict.new( *conflict_argv(key, value, existing[1]) )
+            raise ManifestConflict.new(key, value, existing[1])
           else
             return existing
           end
@@ -60,15 +75,15 @@ module Tap
         new_entry
       end
       
-      # Iterates over each entry in self, dynamically identifying entries from
-      # search_paths if necessary.
-      #
+      # Iterates over each (key, value) entry in self, dynamically identifying entries 
+      # from search_paths if necessary.  New entries are identifed using the each_for
+      # method.
       def each
         entries.each do |key, path| 
           yield(key, path) 
         end
         
-        unless complete?
+        unless built?
           n_to_skip = @search_path_index
           search_paths.each do |search_path|
             # advance to the current search path
@@ -80,25 +95,20 @@ module Tap
             
             # collect new entries and yield afterwards to ensure
             # that all entries for the search_path get stored
-            new_entries = []
-            each_for(search_path) {|key, value| new_entries << store(key, value) }
+            new_entries = entries_for(*search_path)
+            next if new_entries == nil
+            
+            new_entries.each {|(key, value)| store(key, value) }
             new_entries.each {|(key, value)| yield(key, value) }
           end
         end
       end
       
-      # Builds the manifest, identifying all entries from search_paths.
-      # Returns self.
-      def build
-        each {|k, v|} unless complete?
-        self
-      end
-      
+      # Returns an array of (mini_key, value) pairs, matching
+      # entries by index.
       def minimize
-        return [] if entries.empty?
-        
         hash = {}
-        Root.minimize(keys) do |path, mini_path|
+        Tap::Root.minimize(keys) do |path, mini_path|
           hash[path] = mini_path
         end
         
@@ -106,10 +116,6 @@ module Tap
       end
       
       protected
-      
-      def conflict_argv(key, value, existing_value)
-         [key, value, existing_value]
-      end
 
       # Raised when multiple paths are assigned to the same manifest key.
       class ManifestConflict < StandardError
