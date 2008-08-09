@@ -37,8 +37,8 @@ help:
 available commands:
   console   
   destroy   
-  env       
   generate  
+  manifest  
   run       
   server    
 
@@ -66,8 +66,8 @@ help:
 available commands:
   console   
   destroy   
-  env       
   generate  
+  manifest  
   run       
   server    
 
@@ -97,8 +97,8 @@ help:
 available commands:
   console   
   destroy   
-  env       
   generate  
+  manifest  
   run       
   server    
 

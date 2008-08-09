@@ -3,21 +3,31 @@ require 'tap'
 
 module Tap
   module Support
+    class RakeManifest < Support::Manifest
+      def initialize(env)
+        @env = env
+        rake = ::Rake.application
+        super(rake.have_rakefile(env.root.root) ? [rake.instance_variable_get(:@rakefile)] : [])
+      end
+    end
+    
     module Rake
+
       def self.extended(base)
         Tap::Env.instance_for(Dir.pwd).activate unless Tap::Env.instance
         base.env = Tap::Env.instance
-        base.env_map = Tap::Env.instance.manifest(:envs).mini_map
       end
       
-      attr_accessor :env, :env_map
+      attr_accessor :env
       
       def collect_tasks
         ARGV.collect! do |arg|
           next(arg) unless arg =~ /^:([a-z_\d]+)(:.*)$/
-          next(arg) unless path_pattern = env.find(:envs, $1)
+          env_pattern = $1
           
-          mini_path, env = env_map.find {|key, value| value == path_pattern }
+          next(arg) unless entry = env.find(:envs, env_pattern, false)
+          
+          mini_path, env = entry
           root_path = env.root.root
           
           if have_rakefile(root_path)
@@ -34,7 +44,7 @@ module Tap
             $rakefile = current_global_rakefile
             @rakefile = nil
           else
-            fail "No Rakefile found for '#{path_pattern}' (looking for: #{@rakefiles.join(', ')})"
+            fail "No Rakefile found for '#{env_pattern}' (looking for: #{@rakefiles.join(', ')})"
           end
           
           mini_path + $2
@@ -70,3 +80,5 @@ end
 end
 
 Rake.application.extend Tap::Support::Rake
+Tap::Env.manifests[:rakefiles] = Tap::Support::RakeManifest
+

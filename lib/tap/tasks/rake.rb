@@ -1,4 +1,5 @@
 require 'rake'
+require 'tap/support/rake'
 
 module Tap
   module Tasks

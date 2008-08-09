@@ -3,12 +3,13 @@ require 'tap/root'
 module Tap
   module Support
     class Manifest
-      
       class << self
         def normalize(key)
           key.to_s.downcase.gsub(/\s/, "_").delete(":")
         end
       end
+      
+      include Enumerable
       
       # An array of (key, value) entries in self.
       attr_reader :entries
@@ -36,6 +37,11 @@ module Tap
         entries.collect {|(key, value)| value }
       end
       
+      # True if entries are empty.
+      def empty?
+        entries.empty?
+      end
+      
       # Clears entries and sets the search_path_index to zero.
       def reset
         @entries.clear
@@ -59,7 +65,7 @@ module Tap
       # for a given search path.  Raises a NotImplementedError
       # if left not implemented.
       def entries_for(search_path)
-        raise NotImplementedError
+        [[search_path, search_path]]
       end
       
       # Adds the (key, value) pair to entries and returns the new entry.

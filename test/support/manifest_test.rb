@@ -126,8 +126,8 @@ class ManifestTest < Test::Unit::TestCase
   # entries_for test
   #
   
-  def test_entries_for_raises_not_implemented_error_if_left_not_implemented
-    assert_raise(NotImplementedError) { m.entries_for("") }
+  def test_entries_for_returns_array_with_search_path_as_key_and_value
+    assert_equal [["path", "path"]], m.entries_for("path")
   end
   
   #

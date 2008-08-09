@@ -80,7 +80,7 @@ module Tap
       
       def manifest(name, pattern, default_paths=[], &block) # :yields: search_path
         manifest_class = Class.new(Support::Manifest)
-        manifest_class.send(:define_method, :entries_for, &block)
+        manifest_class.send(:define_method, :entries_for, &block) if block_given?
         manifest_class.send(:attr_reader, :env)
         manifest_class.send(:define_method, :initialize) do |env|
           @env = env
@@ -105,7 +105,7 @@ module Tap
       # method that cannot be defined here.
       def path_manifest(name, paths_key, pattern, default_paths=[], &block) # :yields: search_path_root, search_path
         manifest_class = Class.new(Support::Manifest)
-        manifest_class.send(:define_method, :entries_for, &block)
+        manifest_class.send(:define_method, :entries_for, &block) if block_given?
         manifest_class.send(:attr_reader, :env)
         manifest_class.send(:define_method, :initialize) do |env|
           @env = env
@@ -282,7 +282,7 @@ module Tap
     end
     
     path_manifest(:commands, :command_paths, "**/*.rb") do |command_path, path|
-      File.file?(path) ? [[path.chomp(File.extname(path)), path]] : nil
+      File.file?(path) ? [[path, path]] : nil
     end
     
     path_manifest(:generators, :generator_paths, '**/*_generator.rb') do |generator_path, path|
@@ -540,9 +540,9 @@ module Tap
     # Returns the first value in the specified manifest where the key
     # mini-matches the input pattern.  See Tap::Root.minimal_match? 
     # for details on mini-matching.
-    def find(name, pattern)
+    def find(name, pattern, value_only=true)
       manifest(name) do |key, value|
-        return value if Root.minimal_match?(key, pattern)
+        return(value_only ? value : [key, value]) if Root.minimal_match?(key, pattern)
       end
       nil
     end
@@ -552,7 +552,7 @@ module Tap
     # env to search.
     #
     # The :envs manifest cannot be searched; use find instead.
-    def search(name, pattern)
+    def search(name, pattern, value_only=true)
       if name == :envs
         raise ArgumentError, "cannot search the :envs manifest; use find instead" 
       end
@@ -566,7 +566,7 @@ module Tap
       end
       
       envs.each do |env|
-        if result = env.find(name, pattern)
+        if result = env.find(name, pattern, value_only)
           return result
         end
       end if envs
