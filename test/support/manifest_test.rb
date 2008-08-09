@@ -5,10 +5,47 @@ require 'tap/support/manifest'
 class ManifestTest < Test::Unit::TestCase
   include Tap::Support
   
+  class ManifestSubclass < Manifest
+    attr_accessor :path_map
+    
+    def initialize(entries)
+      @path_map = {}
+      keys = entries.collect do |key, value|
+        @path_map[key] = value
+        key
+      end
+      super(keys)
+    end
+    
+    def entries_for(search_path)
+      entries = []
+      path_map[search_path].each_with_index do |value, index|
+        entries << ["#{search_path}_#{index}", value]
+      end
+      entries
+    end
+  end
+  
   attr_reader :m
   
   def setup
     @m = Manifest.new([])
+  end
+  
+  #
+  # Manifest#normalize test
+  #
+  
+  def test_normalize_replaces_whitespace_with_underscores
+    assert_equal "a____b", Manifest.normalize("a \t\n\rb")
+  end
+  
+  def test_normalize_deletes_colons
+    assert_equal "ab", Manifest.normalize("a:b")
+  end
+  
+  def test_normalize_stringifies
+    assert_equal "ab", Manifest.normalize(:ab)
   end
   
   #
@@ -100,31 +137,39 @@ class ManifestTest < Test::Unit::TestCase
   def test_store_adds_key_value_pair_to_entries_as_an_array
     assert m.entries.empty?
     
+    m.store('key', 'value')
+    assert_equal [['key', 'value']], m.entries
+  end
+  
+  def test_store_normalizes_key_using_Manifest_normalize
+    m.store('C:/K ey', 'value')
     m.store(:key, 'value')
-    assert_equal [[:key, 'value']], m.entries
+
+    assert_equal [['c/k_ey', 'value'], ['key', 'value']], m.entries
   end
   
   def test_store_raises_error_if_key_is_already_in_entries_with_a_different_value
-    m.entries << [:key, 'value']
-    assert_raise(Manifest::ManifestConflict) { m.store(:key, 'another') }
+    m.entries << ['key', 'value']
+    assert_raise(Manifest::ManifestConflict) { m.store('key', 'another') }
+    assert_raise(Manifest::ManifestConflict) { m.store('KeY', 'another') }
   end
   
   def test_store_does_nothing_if_key_is_already_assigned_to_value_in_entries
-    m.entries << [:one, 1]
-    m.entries << [:two, 2]
-    m.entries << [:three, 3]
-    assert_nothing_raised { m.store(:two, 2) }
-    assert_equal [[:one, 1],[:two, 2],[:three, 3]], m.entries
+    m.entries << ['one', 1]
+    m.entries << ['two', 2]
+    m.entries << ['three', 3]
+    assert_nothing_raised { m.store('two', 2) }
+    assert_equal [['one', 1],['two', 2],['three', 3]], m.entries
   end
   
   def test_store_returns_existing_entry
-    m.entries << [:one, 1]
-    entry = m.store(:one, 1)
+    m.entries << ['one', 1]
+    entry = m.store('one', 1)
     assert_equal m.entries[0].object_id, entry.object_id
   end
   
   def test_store_returns_new_entry
-    entry = m.store(:one, 1)
+    entry = m.store('one', 1)
     assert_equal m.entries[0].object_id, entry.object_id
   end
   
@@ -142,28 +187,7 @@ class ManifestTest < Test::Unit::TestCase
     
     assert_equal [[:one, 1],[:two, 2],[:three, 3]], results
   end
-  
-  class ManifestSubclass < Manifest
-    attr_accessor :path_map
-    
-    def initialize(entries)
-      @path_map = {}
-      keys = entries.collect do |key, value|
-        @path_map[key] = value
-        key
-      end
-      super(keys)
-    end
-    
-    def entries_for(search_path)
-      entries = []
-      path_map[search_path].each_with_index do |value, index|
-        entries << ["#{search_path}_#{index}", value]
-      end
-      entries
-    end
-  end
-  
+
   def test_each_discovers_entries_for_each_search_path_using_entries_for
     m = ManifestSubclass.new([[:one, [1]],[:two, [2]],[:three, [3]]])
     assert m.entries.empty?

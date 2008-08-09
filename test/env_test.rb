@@ -776,17 +776,17 @@ class EnvTest < Test::Unit::TestCase
   
   def test_manifest_builds_manifest
     m = ItemsManifest.new(e)
-    m.search_path_map = {"one" => [[:one, 1]], "two" => [[:two, 2]]}
+    m.search_path_map = {"one" => [['one', 1]], "two" => [['two', 2]]}
     e.manifests[:items] = m
 
     e.manifest(:items)
     assert m.built?
-    assert_equal([[:one, 1], [:two, 2]], m.entries)
+    assert_equal([['one', 1], ['two', 2]], m.entries)
   end
 
   def test_manifest_yields_each_pair_to_block_if_given
     m = ItemsManifest.new(e)
-    m.search_path_map = {"one" => [[:one, 1]], "two" => [[:two, 2]], "three" => [[:three, 3]]}
+    m.search_path_map = {"one" => [['one', 1]], "two" => [['two', 2]], "three" => [['three', 3]]}
     e.manifests[:items] = m
 
     recollected = []
@@ -795,7 +795,7 @@ class EnvTest < Test::Unit::TestCase
       break
     end
   
-    assert_equal [[:one, 1]], recollected
+    assert_equal [['one', 1]], recollected
     assert !m.built?
   
     recollected = []
@@ -803,13 +803,13 @@ class EnvTest < Test::Unit::TestCase
       recollected << [key, value]
     end
   
-    assert_equal [[:one, 1], [:two, 2], [:three, 3]], recollected
+    assert_equal [['one', 1], ['two', 2], ['three', 3]], recollected
     assert m.built?
   end
 
   def test_manifest_yields_manifest_or_break_value
     m = ItemsManifest.new(e)
-    m.search_path_map = {"one" => [[:one, 1]]}
+    m.search_path_map = {"one" => [['one', 1]]}
     e.manifests[:items] = m
     
     result = e.manifest(:items) do |key, value|

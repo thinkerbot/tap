@@ -4,6 +4,12 @@ module Tap
   module Support
     class Manifest
       
+      class << self
+        def normalize(key)
+          key.to_s.downcase.gsub(/\s/, "_").delete(":")
+        end
+      end
+      
       # An array of (key, value) entries in self.
       attr_reader :entries
       
@@ -59,7 +65,10 @@ module Tap
       # Adds the (key, value) pair to entries and returns the new entry.
       # Checks that entries does not already assign key a conflicting value;
       # raises an error if this is the case, or returns the existing entry.
+      #
+      # Keys are normalized using Manifest.normalize before storing.
       def store(key, value)
+        key = Manifest.normalize(key)
         existing = entries.find {|(k, v)| key == k } 
         
         if existing
