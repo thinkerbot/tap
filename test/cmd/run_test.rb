@@ -5,34 +5,11 @@ class RunTest < Test::Unit::TestCase
   acts_as_script_test :directories => {:output => 'output'}
   
   TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/tap")
-  
+
   def default_command_path
     %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
   end
-  
-  def test_run_help
-    script_test do |cmd|
-      cmd.check "Prints help for run", %Q{
-% #{cmd} run --help
-tap run {options} -- {task options} task INPUTS...
 
-examples:
-  tap run --help                     Prints this help
-  tap run -- task --help             Prints help for task
-
-configurations:
-        --max-threads MAX_THREADS    For multithread execution
-        --debug                      Flag debugging
-        --force                      Force execution at checkpoints
-        --quiet                      Suppress logging
-
-options:
-    -h, --help                       Show this message
-    -T, --manifest                   Print a list of available tasks
-}
-   end
- end
- 
  def test_run_manifest
    script_test do |cmd|
       cmd.check "Prints manifest", %Q{
@@ -59,6 +36,25 @@ test_run_manifest_with_tapfile_and_tasks:
   
   def test_run_help
     script_test do |cmd|
+      cmd.check "Prints help for run", %Q{
+% #{cmd} run --help
+tap run {options} -- {task options} task INPUTS...
+
+examples:
+  tap run --help                     Prints this help
+  tap run -- task --help             Prints help for task
+
+configurations:
+        --max-threads MAX_THREADS    For multithread execution
+        --debug                      Flag debugging
+        --force                      Force execution at checkpoints
+        --quiet                      Suppress logging
+
+options:
+    -h, --help                       Show this message
+    -T, --manifest                   Print a list of available tasks
+}
+      
       cmd.check "Prints the sample task help", %Q{
 % #{cmd} run -- sample --help
 Sample -- manifest summary

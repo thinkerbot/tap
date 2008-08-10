@@ -13,17 +13,12 @@ class TapTest < Test::Unit::TestCase
   def test_baseline_ruby_times
     script_test do |cmd|
       cmd.command_path = nil
-      
-      cmd.check "Check time", "% "
-      cmd.match "Prints hello world", 
-      "% ruby -e \"puts 'hello world'\"", 
-      /hello world/
-      
+
+      cmd.time "hello world", "ruby -e \"puts 'hello world'\""
       ['rubygems', 'yaml', 'optparse', 'fileutils', 'strscan', 'erb', 'thread'].each do |file|
-        cmd.check "require #{file}", "% ruby -e \"require '#{file}'\"\n"
+        cmd.time file, "ruby -e \"require '#{file}'\""
       end
-      
-      cmd.check "rake", "% ruby -e \"require 'rubygems';require 'rake'\"\n"
+      cmd.time "rake", "ruby -e \"require 'rubygems';require 'rake'\""
     end
   end
   

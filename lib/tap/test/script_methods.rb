@@ -1,7 +1,7 @@
 require 'test/unit'
 require 'tap/test/file_methods'
 require 'tap/test/subset_methods'
-#require 'tap/support/shell_utils'
+require 'tap/test/script_methods/script_test'
 
 module Test # :nodoc:
   module Unit # :nodoc:
@@ -25,74 +25,8 @@ end
 
 module Tap
   module Test
-  
     module ScriptMethods
-      class CommandTest
-        include Tap::Support::ShellUtils
-         
-        attr_accessor :command_path
-        attr_reader :commands
-        
-        def initialize(command_path=nil)
-          @command_path = command_path
-          @commands = []
-        end
-        
-        def to_s
-          command_path
-        end
-        
-        def check(msg, command, &validation)
-          each_section(command, msg) do |section, message|
-            section =~ /(.*?)\n(.*)?/m
-            commands << [$1 || section, message, $2, validation]
-          end
-        end
-        
-        def match(msg, command, expected=nil, &validation)
-          each_section(command, msg) do |section, message|
-            commands << [section, message, expected, validation]
-          end
-        end
-        
-        def each_section(command, msg)
-          sections = command.split(/^%/).delete_if {|section| section.strip.empty? }
-          index = sections.length > 1
-          
-          sections.each_with_index do |section, i|
-            yield(section, index ? "#{msg} (#{i})" : msg)
-          end
-        end
-        
-        def run(stepwise=false)
-
-          commands.each do |cmd, msg, expected, validation|
-            start = Time.now
-            result = capture_sh(cmd) {|ok, status, tempfile_path| }
-            elapsed = Time.now - start
             
-            yield(expected, result, %Q{#{msg}\n% #{cmd}}) if expected
-            validation.call(result) if validation
-
-            if stepwise || (expected == nil && validation == nil)
-              print %Q{
-------------------------------------
-%s
-> %s
-%s
-Time Elapsed: %.3fs} % [msg, cmd, result, elapsed]
-
-              if stepwise
-                print "\nContinue? (y/n): "
-                break if gets.strip =~ /^no?$/i
-              end
-            else            
-              puts "%.3fs : %s" % [elapsed, msg]
-            end
-          end
-        end
-      end
-      
       def assert_output_equal(a, b, msg)
         a = a[1..-1] if a[0] == ?\n
         if a == b
@@ -144,14 +78,14 @@ Time Elapsed: %.3fs} % [msg, cmd, result, elapsed]
       
       def script_test(test_dir=method_root)
         subset_test("SCRIPT", "s") do
-          test = CommandTest.new(default_command_path)
-          yield(test)
+          cmd = ScriptTest.new(default_command_path)
+          yield(cmd)
           
           Tap::Root.indir(test_dir, true) do
             with_argv do
               puts "\n# == #{method_name}"
 
-              test.run(env('stepwise')) do |expected, result, msg|
+              cmd.run(env('stepwise')) do |expected, result, msg|
                 case expected
                 when String
                   assert_output_equal(expected, result, msg)

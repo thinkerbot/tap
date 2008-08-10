@@ -48,7 +48,7 @@ end
 # Collect remaining args as 
 env = Tap::Env.instance
 envs = if ARGV.empty?
-  env.manifest(:envs).minimize
+  env.manifest(:envs, true).minimize
 else
   ARGV.collect do |name| 
     entry = env.find(:envs, name, false)
@@ -70,7 +70,7 @@ envs.each do |(env_name, env)|
   manifest_keys = (Tap::Env.manifests.keys + env.manifests.keys).uniq 
   manifest_keys.each do |name|
     next if name == :envs
-    manifest = env.manifest(name)
+    manifest = env.manifest(name, true)
     next if manifest.empty?
     
     puts "  %-10s %s" % [name, collect_map(env, manifest).join("\n    ")]
