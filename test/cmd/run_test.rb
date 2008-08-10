@@ -12,7 +12,8 @@ class RunTest < Test::Unit::TestCase
   
   def test_run_help
     script_test do |cmd|
-      cmd.check " run --help", "Prints help for run", %Q{
+      cmd.check "Prints help for run", %Q{
+% #{cmd} run --help
 tap run {options} -- {task options} task INPUTS...
 
 examples:
@@ -34,7 +35,8 @@ options:
  
  def test_run_manifest
    script_test do |cmd|
-      cmd.check " run -T", "Prints manifest", %Q{
+      cmd.check "Prints manifest", %Q{
+% #{cmd} run -T 
   dump        # the default dump task
   rake        # run rake tasks
 }
@@ -43,7 +45,8 @@ options:
   
  def test_run_manifest_with_tapfile_and_tasks
    script_test do |cmd|
-      cmd.check " run -T", "Prints manifest", %Q{
+      cmd.check "Prints manifest", %Q{
+% #{cmd} run -T
 tap:
   dump        # the default dump task
   rake        # run rake tasks
@@ -56,8 +59,8 @@ test_run_manifest_with_tapfile_and_tasks:
   
   def test_run_help
     script_test do |cmd|
-
-      cmd.check " run -- sample --help", "Prints the sample task help", %Q{
+      cmd.check "Prints the sample task help", %Q{
+% #{cmd} run -- sample --help
 Sample -- manifest summary
 --------------------------------------------------------------------------------
   command line description line one
@@ -79,9 +82,7 @@ options:
     -h, --help                       Print this help
         --name NAME                  Specify a name
         --use FILE                   Loads inputs from file
-}
-
-      cmd.check " run -- sample_without_doc --help", "Prints the sample task help", %Q{
+% #{cmd} run -- sample_without_doc --help
 SampleWithoutDoc
 
 usage: tap run -- sample_without_doc INPUT
@@ -95,7 +96,8 @@ options:
         --use FILE                   Loads inputs from file
 }
 
-      cmd.check " run -- tapfile/declaration --help", "Prints help for task declaration", %Q{
+      cmd.check "Prints help for task declarations", %Q{
+% #{cmd} run -- tapfile/declaration --help
 Tapfile::Declaration -- declaration summary
 --------------------------------------------------------------------------------
   extended declaration documentation
@@ -109,9 +111,7 @@ options:
     -h, --help                       Print this help
         --name NAME                  Specify a name
         --use FILE                   Loads inputs from file
-}
-
-      cmd.check " run -- tapfile/mixed_input --help", "Prints help for declaration with mixed inputs", %Q{
+% #{cmd} run -- tapfile/mixed_input --help
 Tapfile::MixedInput -- mixed input summary
 --------------------------------------------------------------------------------
   extended mixed input documentation
@@ -127,113 +127,115 @@ options:
         --use FILE                   Loads inputs from file
 }
 
-      cmd.check " run -- unknown --help", "help for unknown task",  %Q{unknown task: unknown\n}
+      cmd.check "help for unknown task",  %Q{
+% #{cmd} run -- unknown --help
+unknown task: unknown
+}
     end
   end
   
   def test_run
     script_test(method_root) do |cmd|
       # variations on no task specified 
+  
+      cmd.check "Prints no task specified", %Q{
+% #{cmd} run
+no task specified
+% #{cmd} run --
+no task specified
+% #{cmd} run -- --help
+no task specified
+% #{cmd} run -- --+ --++
+no task specified
+}
 
-      no_task_specified = %Q{no task specified\n}
+      cmd.check "Prints unknown task", %Q{
+% #{cmd} run unknown
+unknown task: unknown
+}
 
-      cmd.check " run", "Prints no task specified", no_task_specified
-      cmd.check " run -- ", "Prints no task specified", no_task_specified
-      cmd.check " run -- --opt", "Prints no task specified", no_task_specified
-      cmd.check " run -- --help", "Prints no task specified", no_task_specified
-      cmd.check " run -- --+ --++", "Prints no task specified", no_task_specified
-
-      cmd.check " run unknown", "Prints unknown task", %Q{unknown task: unknown\n}
-      
       # run variations
-      
-      cmd.check " run sample one", "Runs the sample task successfully", 
-      /I\[\d\d:\d\d:\d\d\]             sample one was processed with value/
-      
-      cmd.check " run -- sample one --key alt", "Runs the sample task with config", 
-      /I\[\d\d:\d\d:\d\d\]             sample one was processed with alt/
-      
-      cmd.check " run -- sample one --key=alt", "Runs the sample task with alt config syntax", 
-      /I\[\d\d:\d\d:\d\d\]             sample one was processed with alt/
-      
-      # cmd.check " run sample-0.1 one", "Runs the versioned sample task"
-      # /I\[\d\d:\d\d:\d\d\]             sample one was processed with sample 0.1 value/
 
-      cmd.check " run sample", "Runs the sample task causing an argument error", 
+      cmd.match "Runs the sample task successfully", 
+      "% #{cmd} run sample one",
+      /I\[\d\d:\d\d:\d\d\]             sample one was processed with value/
+
+      cmd.match "Runs the sample task with config", 
+      "% #{cmd} run -- sample one --key alt",
+      /I\[\d\d:\d\d:\d\d\]             sample one was processed with alt/
+
+      cmd.match "Runs the sample task with alt config syntax",
+      "% #{cmd} run -- sample one --key=alt",
+      /I\[\d\d:\d\d:\d\d\]             sample one was processed with alt/
+
+      cmd.match "Runs the sample task causing an argument error",
+      "% #{cmd} run sample",
       /ArgumentError wrong number of arguments \(0 for 1\)/
 
-      cmd.check " run sample one two", "Runs the sample task causing an argument error" ,
+      cmd.match "Runs the sample task causing an argument error",
+      "% #{cmd} run sample one two",
       /ArgumentError wrong number of arguments \(2 for 1\)/
-      
-      # cmd.check " run --debug sample", "Runs the sample task debugging"
-      # cmd.check " run -- sample --debug", "Runs the sample task debugging" 
-      # cmd.check " run -- sample -d-", "Runs the sample full debugging" 
-      # cmd.check " -d- run -- sample --debug", "Runs the sample full debugging" 
-      #
-      # 
-      # # should be it's own thing (test_cmd not test_run) ...
-      # cmd.check " info", "Runs a command successfully"
-      
+
       # config variations
-      
+
       # array
-      cmd.check " run -- with_switch_config --switch", "Run with switch syntax", 
+      cmd.match "Run with switch syntax", 
+      "% #{cmd} run -- with_switch_config --switch", 
       /with_switch_config true/
-      
-      cmd.check " run -- with_switch_config --no-switch", "Run with switch syntax", 
+
+      cmd.match  "Run with switch syntax", 
+      "% #{cmd} run -- with_switch_config --no-switch",
       /with_switch_config false/
-      
-      cmd.check " run -- with_switch_config --help -d-", "Prints the array config help",
+
+      cmd.match "Prints the array config help",
+      "% #{cmd} run -- with_switch_config --help", 
       /--\[no-\]switch                a switch config/
-      
+
       # list
-      cmd.check " run -- with_list_config --list 1,2.2,str", "Run with list syntax", 
+      cmd.match "Run with list syntax", %Q{
+% #{cmd} run -- with_list_config --list 1,2.2,str
+% #{cmd} run -- with_list_config --list=1,2.2,str
+% #{cmd} run -- with_list_config --list \"[1, 2.2, 'str']\"}, 
       /with_list_config \[1, 2.2, "str"\]/
-      
-      cmd.check " run -- with_list_config --list=1,2.2,str", "Run with list syntax", 
-      /with_list_config \[1, 2.2, "str"\]/
-      
-      cmd.check " run -- with_list_config --list \"[1, 2.2, 'str']\"", "Run with list syntax", 
-      /with_list_config \[1, 2.2, "str"\]/
-      
-      cmd.check " run -- with_list_config --list \"[1, 2.2, 'str']\"", "Run with list syntax", 
-      /with_list_config \[1, 2.2, "str"\]/
-      
-      cmd.check " run -- with_list_config --help", "Prints the list config help",
+
+      cmd.match "Prints the list config help",
+      "% #{cmd} run -- with_list_config --help", 
       /--list a,b,c                 a list config/
-      
+
       # array
-      cmd.check " run -- with_array_config --array \"[1, 2.2, 'str']\"", "Run with array syntax", 
+      cmd.match "Run with array syntax",
+      "% #{cmd} run -- with_array_config --array \"[1, 2.2, 'str']\"", 
       /with_array_config \[1, 2.2, "str"\]/
-      
-      cmd.check " run -- with_array_config --help", "Prints the array config help",
+
+      cmd.match "Prints the array config help",
+      "% #{cmd} run -- with_array_config --help", 
       /--array '\[a, b, c\]'          an array config/
-      
+
       # hash
-      cmd.check " run -- with_hash_config --hc \"{one: 1, two: 2}\"", "Run with hash syntax", 
+      cmd.match "Run with hash syntax",
+      "% #{cmd} run -- with_hash_config --hc \"{one: 1, two: 2}\"", 
       /with_hash_config (\{"one"=>1, "two"=>2\}|\{"two"=>2, "one"=>1\})/
-      
-      cmd.check " run -- with_hash_config --help", "Prints the hash config help",
+
+      cmd.match "Prints the hash config help",
+      "% #{cmd} run -- with_hash_config --help", 
       /--hc '\{one: 1, two: 2\}'      a hash config/
-      
+
       # string
-      cmd.check " run -- with_string_config --string \"\"", "Run with empty string syntax", 
+      cmd.match "Run with empty string syntax",
+      "% #{cmd} run -- with_string_config --string \"\"", 
       /with_string_config \"\"/
-      
-      cmd.check %Q{ run -- with_string_config --string '\\n'}, "Run with newline string syntax", 
+
+      cmd.match "Run with newline string syntax", %Q{
+% #{cmd} run -- with_string_config --string '\\n'
+% #{cmd} run -- with_string_config --string "\\n"
+% #{cmd} run -- with_string_config --string "\\\\n"},
       /with_string_config \"\\n\"/    # "\n"
-      
-      cmd.check %Q{ run -- with_string_config --string '\\\\n'}, "Run with newline string syntax", 
+
+      cmd.match "Run with escaped newline string syntax", %Q{
+% #{cmd} run -- with_string_config --string '\\\\n'
+% #{cmd} run -- with_string_config --string "\\\\\\n"}, 
       /with_string_config \"\\\\n\"/  # "\\n"
-      
-      cmd.check %Q{ run -- with_string_config --string "\\n"}, "Run with newline string syntax", 
-      /with_string_config \"\\n\"/    # "\n"
-      
-      cmd.check %Q{ run -- with_string_config --string "\\\\n"}, "Run with newline string syntax", 
-      /with_string_config \"\\n\"/    # "\n"
-      
-      cmd.check %Q{ run -- with_string_config --string "\\\\\\n"}, "Run with newline string syntax", 
-      /with_string_config \"\\\\n\"/  # "\\n"
+
     end
   end
 end

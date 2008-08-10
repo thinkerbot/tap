@@ -14,14 +14,16 @@ class TapTest < Test::Unit::TestCase
     script_test do |cmd|
       cmd.command_path = nil
       
-      cmd.check "", "Check time", ""
-      cmd.check "ruby -e \"puts 'hello world'\"", "Prints hello world", /hello world/
+      cmd.check "Check time", "% "
+      cmd.match "Prints hello world", 
+      "% ruby -e \"puts 'hello world'\"", 
+      /hello world/
       
       ['rubygems', 'yaml', 'optparse', 'fileutils', 'strscan', 'erb', 'thread'].each do |file|
-        cmd.check "ruby -e \"require '#{file}'\"", "require #{file}", ""
+        cmd.check "require #{file}", "% ruby -e \"require '#{file}'\"\n"
       end
       
-      cmd.check "ruby -e \"require 'rubygems';require 'rake'\"", "rake", ""
+      cmd.check "rake", "% ruby -e \"require 'rubygems';require 'rake'\"\n"
     end
   end
   
@@ -49,7 +51,8 @@ version #{Tap::VERSION} -- http://tap.rubyforge.org
   
   def test_tap
     script_test do |cmd|
-cmd.check " --help", "Prints help for the executable", %Q{
+      cmd.check "Prints help for the executable", %Q{
+% #{cmd} --help
 #{TAP_HELP}
 }
     end
@@ -57,7 +60,8 @@ cmd.check " --help", "Prints help for the executable", %Q{
   
   def test_tap_with_before_and_after_script
     script_test do |cmd|
-      cmd.check " --help", "Prints help with scripts", %Q{
+      cmd.check "Prints help with scripts", %Q{
+% #{cmd} --help
 before line one
 before line two
 #{TAP_HELP}
@@ -69,7 +73,8 @@ after line two
 
   def test_tap_with_syntax_error_in_after
    script_test do |cmd|
-     cmd.check " --help", "Syntax error in after script", %Q{
+     cmd.check "Syntax error in after script", %Q{
+% #{cmd} --help
 before line one
 before line two
 #{TAP_HELP}
@@ -84,7 +89,8 @@ puts "after line one" puts "after line two"
 
   def test_tap_with_syntax_error_in_before
     script_test do |cmd|
-      cmd.check " --help", "Syntax error in before script", %Q{
+      cmd.check "Syntax error in before script", %Q{
+% #{cmd} --help
 Error in before script.
 (eval):1: compile error
 (eval):1: syntax error, unexpected tIDENTIFIER, expecting $end

@@ -12,7 +12,8 @@ class GeneratorTest < Test::Unit::TestCase
   
   def test_generators
     script_test(method_dir(:output)) do |cmd|
-      cmd.check " generate root .", "Generates a root directory" do |result|
+      cmd.check "Generates a root directory", 
+      "% #{cmd} generate root ." do |result|
         assert File.exists?(method_filepath(:output, 'lib'))
         assert File.exists?(method_filepath(:output, 'test'))
         assert File.exists?(method_filepath(:output, 'test/tap_test_helper.rb'))
@@ -23,17 +24,20 @@ class GeneratorTest < Test::Unit::TestCase
       end
       
       # cmd.check " generate task", "Prints task generator doc"
-      cmd.check " generate task sample", "Generates a sample task" do |result|
+      cmd.check "Generates a sample task",
+      "% #{cmd} generate task sample" do |result|
         assert File.exists?(method_filepath(:output, 'lib/sample.rb'))
         assert File.exists?(method_filepath(:output, 'test/sample_test.rb'))
       end
       
-      cmd.check " generate task another --no-test", "Generates a task without a test" do |result|
+      cmd.check  "Generates a task without a test",
+      "% #{cmd} generate task another --no-test" do |result|
         assert File.exists?(method_filepath(:output, 'lib/another.rb'))
         assert !File.exists?(method_filepath(:output, 'test/another_test.rb'))
       end
       
-      cmd.check " generate task nested/sample", "Generates a nested task" do |result|
+      cmd.check "Generates a nested task",
+      "% #{cmd} generate task nested/sample" do |result|
         assert File.exists?(method_filepath(:output, 'lib/nested/sample.rb'))
         assert File.exists?(method_filepath(:output, 'test/nested/sample_test.rb'))
       end
@@ -53,11 +57,13 @@ class GeneratorTest < Test::Unit::TestCase
       # cmd.check " generate config unknown", "Prints unknown task", %Q{unknown task: unknown\n}
       
       # cmd.check " generate command", "Prints command generator doc" 
-      cmd.check " generate command info", "Generates the info command" do |result|
+      cmd.check "Generates the info command",
+      "% #{cmd} generate command info" do |result|
         assert File.exists?(method_filepath(:output, 'cmd/info.rb'))
       end
       
-      cmd.check " destroy command info", "Destroys the info command" do |result|
+      cmd.check "Destroys the info command",
+      "% #{cmd} destroy command info" do |result|
         assert !File.exists?(method_filepath(:output, 'cmd/info.rb'))
       end
       
@@ -73,21 +79,25 @@ class GeneratorTest < Test::Unit::TestCase
       #   assert !File.exists?(method_filepath(:output, 'config/sample-0.1.yml'))
       # end
 
-      cmd.check " destroy task nested/sample", "Destroys nested/sample task" do |result|
+      cmd.check "Destroys nested/sample task",
+      "% #{cmd} destroy task nested/sample" do |result|
         assert !File.exists?(method_filepath(:output, 'lib/nested/sample.rb'))
         assert !File.exists?(method_filepath(:output, 'test/nested/sample_test.rb'))
       end
       
-      cmd.check " destroy task another", "Destroys another task" do |result|
+      cmd.check "Destroys another task",
+      "% #{cmd} destroy task another" do |result|
         assert !File.exists?(method_filepath(:output, 'lib/another.rb'))
       end
       
-      cmd.check " destroy task sample", "Destroys sample task" do |result|
+      cmd.check "Destroys sample task",
+      "% #{cmd} destroy task sample" do |result|
         assert !File.exists?(method_filepath(:output, 'lib/sample.rb'))
         assert !File.exists?(method_filepath(:output, 'test/sample_test.rb'))
       end
       
-      cmd.check " destroy root .", "Destroys the root directory" do |result|
+      cmd.check "Destroys the root directory",
+      "% #{cmd} destroy root ." do |result|
         assert !File.exists?(method_dir(:output))
       end
     end

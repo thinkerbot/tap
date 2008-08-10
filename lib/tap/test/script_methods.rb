@@ -38,15 +38,34 @@ module Tap
           @commands = []
         end
         
-        def check(argstr, msg=nil, expected=nil, &validation)
-          commands << ["#{command_path}#{argstr}", msg, expected, validation]
+        def to_s
+          command_path
         end
         
-        def check_cmd(cmd, msg=nil, expected=nil, &validation)
-          commands << [cmd, msg, expected, validation]
+        def check(msg, command, &validation)
+          each_section(command, msg) do |section, message|
+            section =~ /(.*?)\n(.*)?/m
+            commands << [$1 || section, message, $2, validation]
+          end
+        end
+        
+        def match(msg, command, expected=nil, &validation)
+          each_section(command, msg) do |section, message|
+            commands << [section, message, expected, validation]
+          end
+        end
+        
+        def each_section(command, msg)
+          sections = command.split(/^%/).delete_if {|section| section.strip.empty? }
+          index = sections.length > 1
+          
+          sections.each_with_index do |section, i|
+            yield(section, index ? "#{msg} (#{i})" : msg)
+          end
         end
         
         def run(stepwise=false)
+
           commands.each do |cmd, msg, expected, validation|
             start = Time.now
             result = capture_sh(cmd) {|ok, status, tempfile_path| }
