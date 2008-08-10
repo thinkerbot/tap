@@ -22,8 +22,9 @@ module Tap
       
       def collect_tasks
         ARGV.collect! do |arg|
-          next(arg) unless arg =~ /^:([a-z_\d]+)(:.*)$/
+          next(arg) unless arg =~ /^:([a-z_\d]+):(.*)$/
           env_pattern = $1
+          rake_task = $2
           
           next(arg) unless entry = env.find(:envs, env_pattern, false)
           
@@ -36,18 +37,22 @@ module Tap
             current_global_rakefile = $rakefile
             $rakefile = @rakefile
             
-            if @rakefile != ''
-              namespaces = Tap::Root.split(mini_path, false).delete_if {|segment| segment.empty? }
-              eval nest_namespace(%Q{load "#{File.join(root_path, @rakefile)}"}, namespaces)
+            namespaces = Tap::Root.split(mini_path, false).delete_if do |segment| 
+              segment.empty?
             end
+            
+            #if @rakefile != ''
+            eval nest_namespace(%Q{load "#{File.join(root_path, @rakefile)}"}, namespaces.dup)
+            #end
             
             $rakefile = current_global_rakefile
             @rakefile = nil
+            
+            namespaces << rake_task
+            namespaces.join(":")
           else
             fail "No Rakefile found for '#{env_pattern}' (looking for: #{@rakefiles.join(', ')})"
           end
-          
-          mini_path + $2
         end
         
         super
@@ -61,7 +66,7 @@ module Tap
       protected
       
       NAMESPACE_STR = %Q{
-namespace(:%s) do
+namespace(:'%s') do
   %s
 end
 }.strip
