@@ -1,13 +1,21 @@
-class MethodCheck
+# Checks the behavior of methods.  
+#
+# App enque and execute methods assuming that methods will 
+# raise an error if they get the wrong number of arguments.  
+#
+# Also checks to see how the speed of a method call (.) 
+# compares to a call to method.call
+
+require 'test/unit'
+require 'benchmark'
+
+class MethodCheckClass
   def no_inputs() nil end
   def one_input(a) a end
   def two_inputs(a,b) [a,b] end
   def arb_inputs(*args) args end
   def mixed_inputs(a, b, *args) [a,b] + args end
 end
-
-require 'test/unit'
-require 'benchmark'
 
 class Executable
   attr_reader :source, :method_name
@@ -28,20 +36,13 @@ module Extension
   attr_reader :batch
 end
 
-# Checks the behavior of methods.  
-#
-# App enque and execute methods assuming that methods will 
-# raise an error if they get the wrong number of arguments.  
-#
-# Also checks to see how the speed of a method call (.) 
-# compares to a call to method.call
-class MethodCheckTest < Test::Unit::TestCase
+class MethodsCheck < Test::Unit::TestCase
   include Benchmark
   
   attr_accessor :m
   
   def setup
-    @m = MethodCheck.new
+    @m = MethodCheckClass.new
   end
   
   def test_argument_errors
@@ -84,23 +85,21 @@ class MethodCheckTest < Test::Unit::TestCase
   
   def test_call_speeds_are_the_same_for_calls
     meth = m.method(:no_inputs)
+    num = 1000*1000
     
+    puts
+    puts "all test execute #{num} times"
+    puts "  * tests execute #{num/10} times"
     bm(20) do |x|
-      x.report("method speed") { (1000*1000).times { m.method(:no_inputs) }}
-     # x.report("method + extend") { (1000*1000).times { m.method(:no_inputs).extend Extension }}
-      x.report("exc init") { (1000*1000).times { Executable.new(m, :no_inputs) }}
-      x.report("block init") { (1000*1000).times { ObjectWithBlock.new {} }}
-      x.report("[no]block init") { (1000*1000).times { ObjectWithBlock.new }}
+      x.report("method speed") { num.times { m.method(:no_inputs) }}
+      x.report("* method + extend") { (num/10).times { m.method(:no_inputs).extend Extension }}
+      x.report("exc init") { num.times { Executable.new(m, :no_inputs) }}
+      x.report("* block init") { (num/10).times { ObjectWithBlock.new {} }}
+      x.report("[no]block init") { num.times { ObjectWithBlock.new }}
       
-      0.upto(2) do |n|
-        x.report("m.method #{n}") { (1000*1000).times { m.no_inputs } }
-      end
-      0.upto(2) do |n|
-        x.report("m.call #{n}") { (1000*1000).times { meth.call } }
-      end
-      0.upto(2) do |n|
-        x.report("m.send #{n}") { (1000*1000).times { m.send(:no_inputs) } }
-      end
+      x.report("m.method") { num.times { m.no_inputs } }
+      x.report("m.call") { num.times { meth.call } }
+      x.report("m.send") { num.times { m.send(:no_inputs) } }
     end
   end
 end

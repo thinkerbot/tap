@@ -22,9 +22,7 @@ module Tap
       attr_reader :search_path_index
       
       def initialize(search_paths)
-        @entries = []
-        @search_paths = search_paths
-        @search_path_index = 0
+        self.search_paths = search_paths
       end
       
       # Returns an array of the entries keys.
@@ -40,6 +38,12 @@ module Tap
       # True if entries are empty.
       def empty?
         entries.empty?
+      end
+      
+      def search_paths=(search_paths)
+        @entries = []
+        @search_paths = search_paths
+        @search_path_index = 0
       end
       
       # Clears entries and sets the search_path_index to zero.

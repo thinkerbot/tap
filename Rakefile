@@ -106,12 +106,8 @@ task :default => :test
 
 desc 'Run tests.'
 Rake::TestTask.new(:test) do |t|
-  t.test_files = if ENV['check']
-    Dir.glob( File.join('test',  "**/*#{ENV['check']}*_check.rb") )
-  else
-    Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
-      filename =~ /test\/check/ || filename =~ /test\/tap\/.*/
-    end
+  t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
+    filename =~ /test\/check/ || filename =~ /test\/cmd\/.*\//
   end
   
   t.verbose = true

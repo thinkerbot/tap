@@ -1,6 +1,10 @@
+# checks the behavior of define_method, establishing
+# that the define_method block executes in instance
+# context.
+
 require 'test/unit'
 
-class ClassConfigurationTest < Test::Unit::TestCase
+class DefineMethodCheck < Test::Unit::TestCase
   class A
     class << self
       def define_class_defined_method
@@ -13,7 +17,7 @@ class ClassConfigurationTest < Test::Unit::TestCase
     define_class_defined_method
   end
 
-  def test_self_in_define_method
+  def test_define_method_block_has_instance_contenxt
     a = A.new
     
     assert a.respond_to?(:class_defined_method)

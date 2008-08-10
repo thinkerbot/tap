@@ -774,53 +774,16 @@ class EnvTest < Test::Unit::TestCase
     assert_raise(RuntimeError) { e.manifest(:items) }
   end
   
-  def test_manifest_builds_manifest
+  def test_manifest_builds_manifest_if_specified
     m = ItemsManifest.new(e)
     m.search_path_map = {"one" => [['one', 1]], "two" => [['two', 2]]}
     e.manifests[:items] = m
 
-    e.manifest(:items)
+    e.manifest(:items, true)
     assert m.built?
     assert_equal([['one', 1], ['two', 2]], m.entries)
   end
-
-  def test_manifest_yields_each_pair_to_block_if_given
-    m = ItemsManifest.new(e)
-    m.search_path_map = {"one" => [['one', 1]], "two" => [['two', 2]], "three" => [['three', 3]]}
-    e.manifests[:items] = m
-
-    recollected = []
-    e.manifest(:items) do |key, value|
-      recollected << [key, value]
-      break
-    end
   
-    assert_equal [['one', 1]], recollected
-    assert !m.built?
-  
-    recollected = []
-    e.manifest(:items) do |key, value|
-      recollected << [key, value]
-    end
-  
-    assert_equal [['one', 1], ['two', 2], ['three', 3]], recollected
-    assert m.built?
-  end
-
-  def test_manifest_yields_manifest_or_break_value
-    m = ItemsManifest.new(e)
-    m.search_path_map = {"one" => [['one', 1]]}
-    e.manifests[:items] = m
-    
-    result = e.manifest(:items) do |key, value|
-      break(nil)
-    end
-    assert_nil result
-    
-    result = e.manifest(:items) {|key, value| }
-    assert_equal m, result
-  end
-
   #
   # find test
   #

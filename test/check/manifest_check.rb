@@ -1,11 +1,14 @@
+# various benchmarks for scanning files, attempting
+# to establish the quickest method of generating
+# a manifest.
+
 require 'test/unit'
 require 'benchmark'
 require 'strscan'
 require 'rubygems'
 
-class ManifestTest < Test::Unit::TestCase
+class ManifestCheck < Test::Unit::TestCase
   include Benchmark
-  
   
   GLOB = File.dirname(__FILE__) + "/../../**/*.rb"
   FILES = Dir.glob( GLOB )[0...100]
@@ -26,7 +29,17 @@ class ManifestTest < Test::Unit::TestCase
         100.times do
           FILES.each do |path| 
             s = StringScanner.new File.read(path)
-            s.scan(/:task:/)
+            s.skip_until(/test/)
+          end
+        end
+      end
+      
+      x.report("100x scan fully") do
+        100.times do
+          FILES.each_with_index do |path, i| 
+            s = StringScanner.new File.read(path)
+            while s.skip_until(/test/)
+            end
           end
         end
       end
@@ -42,7 +55,7 @@ class ManifestTest < Test::Unit::TestCase
         s = StringScanner.new ""
         gem_files.each do |path| 
           s.string = File.read(path)
-          s.scan(/:task:/)
+          s.scan(/::key/)
         end
       end
     end

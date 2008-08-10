@@ -40,6 +40,9 @@ begin
   end
   
   tap = Tap::Env.instance_for(tap_root_dir)
+  tap.manifest(:tasks).search_paths = tap.root.glob(:lib, "tap/tasks/*").collect do |path|
+    [tap.root[:lib], path]
+  end
   env.push(tap)
 
 rescue(Tap::Env::ConfigError)

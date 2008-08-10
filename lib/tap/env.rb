@@ -520,7 +520,7 @@ module Tap
     # in self.class.manifests will be instatiated with self to make
     # the manifest.  Raises an error if no manifest could be found
     # or instantiated.
-    def manifest(name) 
+    def manifest(name, build=false) 
       manifest = manifests[name] ||= case 
       when manifests_class = self.class.manifests[name]
         manifests_class.new(self)
@@ -528,12 +528,7 @@ module Tap
         raise "unknown manifest: #{name}"
       end
       
-      if block_given?
-        manifest.each {|key, path| yield(key, path) }
-      else
-        manifest.build
-      end 
-            
+      manifest.build if build  
       manifest
     end
     
@@ -541,7 +536,7 @@ module Tap
     # mini-matches the input pattern.  See Tap::Root.minimal_match? 
     # for details on mini-matching.
     def find(name, pattern, value_only=true)
-      manifest(name) do |key, value|
+      manifest(name).each do |key, value|
         return(value_only ? value : [key, value]) if Root.minimal_match?(key, pattern)
       end
       nil
@@ -576,8 +571,8 @@ module Tap
     
     def summary(name)
       summary = Support::Summary.new
-      manifest(:envs).minimize.each do |(key, env)|
-       summary.add(key, env, env.manifest(name).minimize)
+      manifest(:envs, true).minimize.each do |(key, env)|
+       summary.add(key, env, env.manifest(name, true).minimize)
       end
       summary
     end
