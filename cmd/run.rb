@@ -23,7 +23,7 @@ OptionParser.new do |opts|
     next if receiver == Tap::Root
     
     opts.on(*cmdline.configv(config)) do |value|
-      app.send(configuration.writer, value)
+      app.send(config.writer, value)
     end
   end
  
