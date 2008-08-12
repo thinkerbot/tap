@@ -19,7 +19,8 @@ Gem::Specification.new do |s|
   # list the files you want to include here. you can
   # check this manifest using 'rake :print_manifest'
   s.files = %W{
-    tapfile.rb
+<%= config_file ? "    tap.yml\n" : '' %>
+<%= tapfile ? "    tapfile.rb\n" : '' %>
     test/tap_test_helper.rb
     test/tap_test_suite.rb
     test/tapfile_test.rb
