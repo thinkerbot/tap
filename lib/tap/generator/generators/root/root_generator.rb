@@ -24,9 +24,9 @@ module Tap::Generator::Generators
     config :tapfile, true, &c.switch        # create a tapfile
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
-    def manifest(m, root, project_name=File.basename(root))
-      project_name = 'project' if project_name == '.'
+    def manifest(m, root, project_name=nil)
       r = Tap::Root.new(root)
+      project_name = File.basename(r.root) if project_name == nil
       
       m.directory r.root
       m.directory r['lib']
