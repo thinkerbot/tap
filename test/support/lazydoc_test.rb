@@ -43,6 +43,8 @@ class LazydocTest < Test::Unit::TestCase
 # Const::Name::not_parsed
 # :::+
 
+Const::Name::not_parsed
+
 # Const::Name::parsed subject
 }
   
@@ -135,14 +137,14 @@ end
   
   def test_scan_documentation
     str = %Q{
-Const::Name::key value
-::alt alt_value
+# Const::Name::key value
+# ::alt alt_value
 
-Ignored::Attribute::not_matched value
-:::-
-Also::Ignored::key value
-:::+
-Another::key another value
+# Ignored::Attribute::not_matched value
+# :::-
+# Also::Ignored::key value
+# :::+
+# Another::key another value
 }
   
     results = []

@@ -10,8 +10,7 @@ module Tap
     #
     # Constant attributes are designated the same as constants in Ruby, but with
     # an extra 'key' constant that must consist of only lowercase letters and/or
-    # underscores.  This format assures that attributes are sytactically invalid
-    # outside of comments.
+    # underscores.  Attributes are only parsed from comment lines.
     #
     # When Lazydoc finds an attribute it parses a Comment value where the subject
     # is the remainder of the line, and comment lines are parsed down until a
@@ -48,6 +47,8 @@ module Tap
     #   # :::-
     #   # Const::Name::not_parsed
     #   # :::+
+    #
+    #   Const::Name::not_parsed
     #
     #   # Const::Name::parsed subject
     #   }
@@ -128,9 +129,9 @@ module Tap
       # $4:: end flag
       #
       ATTRIBUTE_REGEXP = /(::|([A-Z][A-z]*::)+)([a-z_]+)(-?)/
-      
-      # A regexp matching constants.
-      CONSTANT_REGEXP = /(::|([A-Z][A-z]*::)+)/
+
+      # A regexp matching constants from the ATTRIBUTE_REGEXP leader
+      CONSTANT_REGEXP = /([A-Z][A-z]*(::[A-Z][A-z]*)*)$/
       
       class << self
         
@@ -185,14 +186,14 @@ module Tap
         # and <tt>:+</tt>.
         #
         #   str = %Q{
-        #   Const::Name::key value
-        #   ::alt alt_value
+        #   # Const::Name::key value
+        #   # ::alt alt_value
         #
-        #   Ignored::Attribute::not_matched value
-        #   :::-
-        #   Also::Ignored::key value
-        #   :::+
-        #   Another::key another value
+        #   # Ignored::Attribute::not_matched value
+        #   # :::-
+        #   # Also::Ignored::key value
+        #   # :::+
+        #   # Another::key another value
         #   }
         #
         #   results = []
@@ -214,16 +215,16 @@ module Tap
           else raise TypeError, "can't convert #{str.class} into StringScanner or String"
           end
    
-          regexp = /(#{key})([ \r\t-].*$|$)/
+          regexp = /#(.*?)::(:-|#{key})/
           while !scanner.eos?
-            break if scanner.skip_until(CONSTANT_REGEXP) == nil
-            const_name = scanner[1]
-            
-            case
-            when scanner.scan(regexp)
-              yield(const_name.chomp('::'), scanner[1], scanner[2].strip)
-            when scanner.scan(/:-/)
-              scanner.skip_until(/:\+/)
+            break if scanner.skip_until(regexp) == nil
+
+            if scanner[2] == ":-"
+              scanner.skip_until(/:::\+/)
+            else
+              key = scanner[2]
+              const_name = scanner[1] =~ CONSTANT_REGEXP ? $1 : ""
+              yield(const_name, key, scanner.matched.strip) if scanner.scan(/[ \r\t-](.*)$|$/)
             end
           end
         
