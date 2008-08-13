@@ -166,20 +166,8 @@ module Tap
       end
       
       def lazydoc(resolve=true)
-        super(false).register_pattern(/^\s*def\s+process(\((.*?)\))?/) do |lazydoc, comment, match|
-          comment.subject = match[2].to_s.split(',').collect do |arg|
-            arg = arg.strip.upcase
-            case arg
-            when /^&/ then nil
-            when /^\*/ then arg[1..-1] + "..."
-            else arg
-            end
-          end.join(', ')
-          
-          lazydoc.default_attributes['args'] ||= comment
-          true
-        end
-        
+        lazydoc = super(false)
+        lazydoc.register_method_pattern('args', :process) unless lazydoc.resolved?
         super
       end
 

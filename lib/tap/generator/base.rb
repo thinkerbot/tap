@@ -5,20 +5,8 @@ module Tap
     class Base < Tap::Task
       class << self
         def lazydoc(resolve=true)
-          super(false).register_pattern(/^\s*def\s+manifest(\((.*?)\))?/) do |lazydoc, comment, match|
-            comment.subject = match[2].to_s.split(',').collect do |arg|
-              arg = arg.strip.upcase
-              case arg
-              when /^&/ then nil
-              when /^\*/ then arg[1..-1] + "..."
-              else arg
-              end
-            end.join(', ')
-
-            lazydoc.default_attributes['args'] ||= comment
-            true
-          end
-
+          lazydoc = super(false)
+          lazydoc.register_method_pattern('args', :manifest, 1..-1) unless lazydoc.resolved?
           super
         end
       end

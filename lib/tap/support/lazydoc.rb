@@ -303,7 +303,7 @@ module Tap
       def initialize(source_file=nil)
         self.source_file = source_file
         @code_comments = []
-        @patterns = []
+        @patterns = {}
         @const_attrs = {}
         @resolved = false
       end
@@ -370,8 +370,23 @@ module Tap
         comment
       end
       
-      def register_pattern(regexp, &block) # :yields: comment, match
-        patterns.unshift [regexp, block]
+      def register_pattern(key, regexp, &block) # :yields: comment, match
+        patterns[key] = [regexp, block]
+      end
+      
+      def register_method_pattern(key, method, range=0..-1)
+        register_pattern(key, /^\s*def\s+#{method}(\((.*?)\))?/) do |comment, match|
+          args = match[2].to_s.split(',').collect do |arg|
+            arg = arg.strip.upcase
+            case arg
+            when /^&/ then nil
+            when /^\*/ then arg[1..-1] + "..."
+            else arg
+            end
+          end
+          
+          comment.subject = args[range].join(', ')
+        end
       end
       
       # Returns true if the code_comments for source_file are frozen.
@@ -395,12 +410,15 @@ module Tap
         
         lines = str.split(/\r?\n/)
         
-        patterns.each do |(regexp, block)|
+        patterns.each_pair do |key, (regexp, block)|
+          next if default_attributes.has_key?(key)
+          
           lines.each_with_index do |line, line_number|
             next unless line =~ regexp
             
             comment = register(line_number)
-            break if block.call(self, comment, $~)
+            default_attributes[key] = comment
+            break if block.call(comment, $~)
           end
         end unless patterns.empty?
           
