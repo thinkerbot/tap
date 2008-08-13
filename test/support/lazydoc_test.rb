@@ -17,14 +17,14 @@ class LazydocTest < Test::Unit::TestCase
   
   def test_documentation
     str = %Q{
-# Const::Name::key subject for key
+# Const::Name ::key subject for key
 # comment for key
 # parsed until a non-comment line
 
-# Const::Name::another subject for another
+# Const::Name ::another subject for another
 # comment for another
 # parsed to an end key
-# Const::Name::another-
+# Const::Name ::another-
 #
 # ignored comment
 }
@@ -40,12 +40,10 @@ class LazydocTest < Test::Unit::TestCase
     
     str = %Q{
 # :::-
-# Const::Name::not_parsed
+# Const::Name ::not_parsed
 # :::+
 
-Const::Name::not_parsed
-
-# Const::Name::parsed subject
+# Const::Name ::parsed subject
 }
   
     lazydoc = Lazydoc.new
@@ -80,14 +78,14 @@ end
   
   def test_startdoc_syntax
     str = %Q{
-# :start doc::Const::Name::one hidden in RDoc
+# :start doc::Const::Name ::one hidden in RDoc
 # * This line is visible in RDoc.
-# :start doc::Const::Name::one-
+# :start doc::Const::Name ::one-
 # 
 #-- 
-# Const::Name::two
+# Const::Name ::two
 # You can hide attribute comments like this.
-# Const::Name::two-
+# Const::Name ::two-
 #++
 #
 # * This line is also visible in RDoc.
@@ -110,19 +108,19 @@ end
   def test_ATTRIBUTE_REGEXP
     r = Lazydoc::ATTRIBUTE_REGEXP
 
-    assert r =~ "::key"
+    assert r =~ " ::key"
     assert_equal("::", $1)
     assert_equal("key", $3)
 
-    assert r =~ ":startdoc::key"
+    assert r =~ ":startdoc: ::key"
     assert_equal("::", $1)
     assert_equal("key", $3)
 
-    assert r =~ "Name::Space::key"
+    assert r =~ "Name::Space ::key"
     assert_equal("Name::Space::", $1)
     assert_equal("key", $3)
 
-    assert r =~ ":startdoc:Name::Space::key"
+    assert r =~ ":startdoc:Name::Space ::key"
     assert_equal("Name::Space::", $1)
     assert_equal("key", $3)
 
@@ -137,14 +135,14 @@ end
   
   def test_scan_documentation
     str = %Q{
-# Const::Name::key value
+# Const::Name ::key value
 # ::alt alt_value
 
-# Ignored::Attribute::not_matched value
+# Ignored::Attribute ::not_matched value
 # :::-
-# Also::Ignored::key value
+# Also::Ignored ::key value
 # :::+
-# Another::key another value
+# Another ::key another value
 }
   
     results = []
@@ -163,11 +161,11 @@ end
   def test_scan_only_finds_the_specified_key
     results = []
     Lazydoc.scan(%Q{
-# Name::Space::key1 value1
-# Name::Space::key value2
-# Name::Space::key value3
+# Name::Space ::key1 value1
+# Name::Space ::key value2
+# Name::Space ::key value3
 # ::key
-# Name::Space::key1 value4
+# Name::Space ::key1 value4
 }, "key") do |namespace, key, value|
      results << [namespace, key, value]
    end
@@ -182,11 +180,11 @@ end
   def test_scan_skips_areas_flagged_as_off
     results = []
     Lazydoc.scan(%Q{
-# Name::Space::key value1
-# Name::Space:::-
-# Name::Space::key value2
-# Name::Space:::+
-# Name::Space::key value3
+# Name::Space ::key value1
+# :::-
+# Name::Space ::key value2
+# :::+
+# Name::Space ::key value3
 }, "key") do |namespace, key, value|
      results << [namespace, key, value]
    end
@@ -199,7 +197,7 @@ end
   
   def test_scan_speed
     benchmark_test(25) do |x|
-      str = %Q{              key value} * 100
+      str = %Q{             key value} * 100
       n = 1000
       x.report("#{n}x #{str.length} chars") do 
         n.times do 
@@ -207,14 +205,14 @@ end
         end
       end
       
-      str = %Q{Name::Space::key  value} * 100
+      str = %Q{Name::Space ::key  value} * 100
       x.report("same but matching") do 
         n.times do 
           Lazydoc.scan(str,  'key') {|*args|}
         end
       end
       
-      str = %Q{           ::key  value} * 100
+      str = %Q{          ::key  value} * 100
       x.report("just ::key syntax") do 
         n.times do 
           Lazydoc.scan(str,  'key') {|*args|}
@@ -236,11 +234,11 @@ end
   
   def test_parse_documentation
     str = %Q{
-# Const::Name::key subject for key
+# Const::Name ::key subject for key
 # comment for key
 
 # :::-
-# Ignored::key value
+# Ignored ::key value
 # :::+
 
 # Ignored text before attribute ::another subject for another
@@ -265,7 +263,7 @@ end
 ignored
 # leader
 
-# Name::Space::key value
+# Name::Space ::key value
 # comment spanning
 # multiple lines
 #   with indented
@@ -293,14 +291,14 @@ ignored
   def test_parse_with_various_declaration_syntaxes
     results = []
     Lazydoc.parse(%Q{
-# Name::Space::key value1
-# :startdoc:Name::Space::key value2
-# :startdoc: Name::Space::key value3
+# Name::Space ::key value1
+# :startdoc:Name::Space ::key value2
+# :startdoc: Name::Space ::key value3
 # ::key value4
-# :startdoc::key value5
+# :startdoc: ::key value5
 # :startdoc: ::key value6
 blah blah # ::key value7
-# Name::Space::novalue
+# Name::Space ::novalue
 # ::novalue
 }) do |namespace, key, comment|
      results << [namespace, key, comment.subject]
@@ -342,6 +340,7 @@ blah blah # ::key value7
   def test_parse_ignores
     results = []
     Lazydoc.parse(%Q{
+# Skipped::key
 # Skipped::Key
 # skipped::Key
 # :skipped:
@@ -611,7 +610,7 @@ line three match
 
   def test_resolve_reads_const_attrs_from_str
     doc.resolve %Q{
-# Name::Space::key subject line
+# Name::Space ::key subject line
 # attribute comment
 }
 
@@ -627,7 +626,7 @@ line three match
 # comment one
 subject line one
 
-# Name::Space::key subject line
+# Name::Space ::key subject line
 # attribute comment 
 }
     tempfile.close

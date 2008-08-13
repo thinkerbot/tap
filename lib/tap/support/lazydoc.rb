@@ -128,8 +128,8 @@ module Tap
       # $3:: key
       # $4:: end flag
       #
-      ATTRIBUTE_REGEXP = /(::|([A-Z][A-z]*::)+)([a-z_]+)(-?)/
-
+      ATTRIBUTE_REGEXP = /(.*)::([a-z_]+)(-?)/
+      
       # A regexp matching constants from the ATTRIBUTE_REGEXP leader
       CONSTANT_REGEXP = /([A-Z][A-z]*(::[A-Z][A-z]*)*)$/
       
@@ -214,8 +214,8 @@ module Tap
           when String then StringScanner.new(str)
           else raise TypeError, "can't convert #{str.class} into StringScanner or String"
           end
-   
-          regexp = /#(.*?)::(:-|#{key})/
+
+          regexp = /^(.*?)\s+::(:-|#{key})/
           while !scanner.eos?
             break if scanner.skip_until(regexp) == nil
 
@@ -268,9 +268,9 @@ module Tap
           
           scan(scanner, '[a-z_]+') do |const_name, key, value|
             comment = Comment.parse(scanner, false) do |line|
-              if line =~ /::/ && line =~ ATTRIBUTE_REGEXP
+              if line =~ ATTRIBUTE_REGEXP
                 # rewind to capture the next attribute unless an end is specified.
-                scanner.unscan unless !$4.empty? && $1.chomp("::") == const_name && $3 == key
+                scanner.unscan unless !$3.empty? && $2 == key && $1.strip =~ /#{const_name}$/ 
                 true
               else false
               end
