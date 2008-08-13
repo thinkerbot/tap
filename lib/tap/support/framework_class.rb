@@ -8,7 +8,7 @@ module Tap
        
       # Returns the default name for the class: to_s.underscore
       attr_accessor :default_name
-           
+      
       def self.extended(base)
         caller.each_with_index do |line, index|
           case line
@@ -88,7 +88,8 @@ module Tap
         current.const_set(subclass_const, subclass)
       end
       
-      DEFAULT_HELP_TEMPLATE = %Q{<%= task_class %><%= manifest.subject.to_s.strip.empty? ? '' : ' -- ' %><%= manifest.subject %>
+      DEFAULT_HELP_TEMPLATE = %Q{<% manifest = task_class.manifest %>
+<%= task_class %><%= manifest.subject.to_s.strip.empty? ? '' : ' -- ' %><%= manifest.subject %>
 
 <% unless manifest.empty? %>
 <%= '-' * 80 %>
@@ -122,8 +123,6 @@ module Tap
         opts.separator "options:"
 
         opts.on_tail("-h", "--help", "Print this help") do
-          args = lazydoc(true)[to_s]['args'] || Tap::Support::Comment.new
-
           opts.banner = "#{help}usage: tap run -- #{to_s.underscore} #{args.subject}"
           puts opts
           exit
@@ -166,33 +165,26 @@ module Tap
         [obj.reconfigure(path_configs).reconfigure(config), argv + use_args]
       end
       
-      def lazydoc(resolve=false, args_method=:process)
-        if resolve
-          lazydoc = super(false)
-          lazydoc.resolve(nil, /^\s*def\s+#{args_method}(\((.*?)\))?/) do |comment, match|
-            comment.subject = match[2].to_s.split(',').collect do |arg|
-              arg = arg.strip.upcase
-              case arg
-              when /^&/ then nil
-              when /^\*/ then arg[1..-1] + "..."
-              else arg
-              end
-            end.join(', ')
-
-            lazydoc.default_attributes['args'] ||= comment
-          end
+      def lazydoc(resolve=true)
+        super(false).register_pattern(/^\s*def\s+process(\((.*?)\))?/) do |lazydoc, comment, match|
+          comment.subject = match[2].to_s.split(',').collect do |arg|
+            arg = arg.strip.upcase
+            case arg
+            when /^&/ then nil
+            when /^\*/ then arg[1..-1] + "..."
+            else arg
+            end
+          end.join(', ')
           
-          super(true)
-        else       
-          super(false)
+          lazydoc.default_attributes['args'] ||= comment
+          true
         end
+        
+        super
       end
-      
+
       def help
-        Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, 
-          :task_class => self, 
-          :manifest => lazydoc(true)[to_s]['manifest'] || Tap::Support::Comment.new
-        ).build
+        Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
       end
     end
   end

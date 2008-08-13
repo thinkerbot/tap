@@ -17,6 +17,8 @@ module Tap
         mod.extend Support::BatchableClass
         mod.extend Support::ConfigurableClass
         mod.extend Support::FrameworkClass
+        mod.lazy_attr :manifest
+        mod.lazy_attr :args
       end
     
       # The application used to load config_file templates 

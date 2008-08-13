@@ -1,6 +1,6 @@
 require 'tap/support/class_configuration'
 require 'tap/support/validation'
-require 'tap/support/lazydoc'
+require 'tap/support/lazy_attributes'
 
 module Tap
   module Support
@@ -47,13 +47,10 @@ module Tap
     #   ac.one               # => 'eulav'
     #
     module ConfigurableClass
+      include Tap::Support::LazyAttributes
       
       # A ClassConfiguration holding the class configurations.
       attr_reader :configurations
-      
-      # The source_file for self.  By default the first file
-      # to define the class inheriting ConfigurableClass.
-      attr_accessor :source_file
 
       # Sets the source_file for base and initializes base.configurations.
       def self.extended(base)
@@ -82,10 +79,9 @@ module Tap
         super
       end
       
-      # Returns the lazydoc for source_file
-      def lazydoc(resolve=false)
-        Lazydoc.resolve(configurations.code_comments) if resolve
-        Lazydoc[source_file]
+      def lazydoc(resolve=true)
+        Lazydoc.resolve_comments(configurations.code_comments) if resolve
+        super
       end
       
       # Loads the contents of path as YAML.  Returns an empty hash if the path 

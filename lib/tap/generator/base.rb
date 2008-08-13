@@ -4,38 +4,29 @@ module Tap
   module Generator 
     class Base < Tap::Task
       class << self
-        def lazydoc(resolve=false, args_method=:manifest)
-          if resolve
-            lazydoc = super(false)
-            lazydoc.resolve(nil, /^\s*def\s+#{args_method}(\((.*?)\))?/) do |comment, match|
-              args = match[2].to_s.split(',').collect do |arg|
-                arg = arg.strip.upcase
-                case arg
-                when /^&/ then nil
-                when /^\*/ then arg[1..-1] + "..."
-                else arg
-                end
+        def lazydoc(resolve=true)
+          super(false).register_pattern(/^\s*def\s+manifest(\((.*?)\))?/) do |lazydoc, comment, match|
+            comment.subject = match[2].to_s.split(',').collect do |arg|
+              arg = arg.strip.upcase
+              case arg
+              when /^&/ then nil
+              when /^\*/ then arg[1..-1] + "..."
+              else arg
               end
-              args.shift
-              
-              comment.subject = args.join(', ')
-              lazydoc.default_attributes['args'] ||= comment
-            end
+            end.join(', ')
+
+            lazydoc.default_attributes['args'] ||= comment
+            true
           end
 
-          super(false)
-        end
-        
-        def help
-          Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, 
-            :task_class => self, 
-            :manifest => lazydoc(true)[to_s]['generator'] || Tap::Support::Comment.new
-          ).build
+          super
         end
       end
       
       Constant = Tap::Support::Constant
-
+      
+      lazy_attr :manifest, :generator
+      
       config :pretend, false, &c.flag         # Run but rollback any changes.
       config :force, false, &c.flag           # Overwrite files that already exist.
       config :skip, false, &c.flag            # Skip files that already exist.

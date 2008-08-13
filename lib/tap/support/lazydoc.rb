@@ -160,7 +160,7 @@ module Tap
         end
         
         # Resolves all lazydocs which include the specified code comments.
-        def resolve(code_comments)
+        def resolve_comments(code_comments)
           registry.each do |doc|
             next if (code_comments & doc.code_comments).empty?
             doc.resolve
@@ -297,10 +297,13 @@ module Tap
       # attributes resolved or to-be-resolved for self.  Attributes
       # are hashes of (key, comment) pairs.
       attr_reader :const_attrs
-
+      
+      attr_reader :patterns
+      
       def initialize(source_file=nil)
         self.source_file = source_file
         @code_comments = []
+        @patterns = []
         @const_attrs = {}
         @resolved = false
       end
@@ -367,6 +370,10 @@ module Tap
         comment
       end
       
+      def register_pattern(regexp, &block) # :yields: comment, match
+        patterns.unshift [regexp, block]
+      end
+      
       # Returns true if the code_comments for source_file are frozen.
       def resolved?
         @resolved
@@ -374,7 +381,7 @@ module Tap
       
       attr_writer :resolved
       
-      def resolve(str=nil, comment_regexp=nil) # :yields: comment, match
+      def resolve(str=nil)
         return(false) if resolved?
         
         if str == nil 
@@ -387,11 +394,15 @@ module Tap
         end
         
         lines = str.split(/\r?\n/)
-        lines.each_with_index do |line, line_number|
-          next unless line =~ comment_regexp
-          comment = register(line_number)
-          yield(comment, $~) if block_given?
-        end unless comment_regexp == nil
+        
+        patterns.each do |(regexp, block)|
+          lines.each_with_index do |line, line_number|
+            next unless line =~ regexp
+            
+            comment = register(line_number)
+            break if block.call(self, comment, $~)
+          end
+        end unless patterns.empty?
           
         code_comments.collect! do |comment|
           line_number = comment.line_number
