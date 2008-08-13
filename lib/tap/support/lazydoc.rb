@@ -128,10 +128,10 @@ module Tap
       # $3:: key
       # $4:: end flag
       #
-      ATTRIBUTE_REGEXP = /(.*)::([a-z_]+)(-?)/
-      
+      ATTRIBUTE_REGEXP = /([A-Z][A-z]*(::[A-Z][A-z]*)*)?::([a-z_]+)(-?)/
+    
       # A regexp matching constants from the ATTRIBUTE_REGEXP leader
-      CONSTANT_REGEXP = /([A-Z][A-z]*(::[A-Z][A-z]*)*)$/
+      CONSTANT_REGEXP = /#.*?([A-Z][A-z]*(::[A-Z][A-z]*)*)?$/
       
       class << self
         
@@ -188,12 +188,14 @@ module Tap
         #   str = %Q{
         #   # Const::Name::key value
         #   # ::alt alt_value
-        #
+        #   #
         #   # Ignored::Attribute::not_matched value
         #   # :::-
         #   # Also::Ignored::key value
         #   # :::+
         #   # Another::key another value
+        #
+        #   Ignored::key value
         #   }
         #
         #   results = []
@@ -215,16 +217,16 @@ module Tap
           else raise TypeError, "can't convert #{str.class} into StringScanner or String"
           end
 
-          regexp = /^(.*?)\s+::(:-|#{key})/
+          regexp = /^(.*?)::(:-|#{key})/
           while !scanner.eos?
             break if scanner.skip_until(regexp) == nil
 
             if scanner[2] == ":-"
               scanner.skip_until(/:::\+/)
             else
+              next unless scanner[1] =~ CONSTANT_REGEXP
               key = scanner[2]
-              const_name = scanner[1] =~ CONSTANT_REGEXP ? $1 : ""
-              yield(const_name, key, scanner.matched.strip) if scanner.scan(/[ \r\t-](.*)$|$/)
+              yield($1.to_s, key, scanner.matched.strip) if scanner.scan(/[ \r\t].*$|$/)
             end
           end
         
@@ -270,7 +272,7 @@ module Tap
             comment = Comment.parse(scanner, false) do |line|
               if line =~ ATTRIBUTE_REGEXP
                 # rewind to capture the next attribute unless an end is specified.
-                scanner.unscan unless !$3.empty? && $2 == key && $1.strip =~ /#{const_name}$/ 
+                scanner.unscan unless $4 == '-' && $3 == key && $1.to_s == const_name
                 true
               else false
               end
