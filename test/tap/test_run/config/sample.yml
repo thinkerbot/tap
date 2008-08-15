@@ -1,6 +1,0 @@
-# Sample configuration
-
-# use config to set task configurations
-# configs have accessors by default
-# a sample config ('value')
-key: value

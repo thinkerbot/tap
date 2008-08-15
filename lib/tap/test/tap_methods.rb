@@ -173,8 +173,6 @@ module Tap
         assert_audit_records_equal(expected, actual, nesting)
       end
       
-      private
-      
       def assert_audit_records_equal(expected, actual, nesting=[])
         assert_equal ExpAudit, expected.class
         assert_equal expected.length, actual.length, "unequal number of records"
@@ -192,9 +190,7 @@ module Tap
           end
         end
       end
-      
-      public
-      
+
       # The configurations used to initialize self.app
       def app_config
         { :root => method_root, 

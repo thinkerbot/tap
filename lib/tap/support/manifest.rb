@@ -1,88 +1,151 @@
+require 'tap/root'
+
 module Tap
   module Support
-    class Manifest 
-      
+    class Manifest
       class << self
-        def glob_method(name)
-          "manifest_glob_#{name}".to_sym
-        end
-        
-        def map_method(name)
-          "manifest_map_#{name}".to_sym
+        def normalize(key)
+          key.to_s.downcase.gsub(/\s/, "_").delete(":")
         end
       end
       
-      DEFAULT_MAP_METHOD = :manifest_map
- 
+      include Enumerable
+      
+      # An array of (key, value) entries in self.
       attr_reader :entries
-      attr_reader :map_method
-      attr_reader :paths
-      attr_reader :path_index
       
-      def initialize(name, source)
-        @entries = []
-
-        @map_method = Manifest.map_method(name)
-        @map_method = DEFAULT_MAP_METHOD if !source.respond_to?(@map_method)
-        
-        @paths = source.send(Manifest.glob_method(name)).uniq
-        @path_index = 0
+      # An array of search_paths to identify entries.
+      attr_reader :search_paths
+      
+      # The index of the search_path that will be searched
+      # next when building the manifest.
+      attr_reader :search_path_index
+      
+      def initialize(search_paths)
+        self.search_paths = search_paths
       end
       
-      def complete?
-        @path_index == paths.length
-      end
-      
-      def each_path
-        return(false) if complete?
-
-        n_to_skip = @path_index
-        paths.each do |context, path|
-          if n_to_skip > 0
-            n_to_skip -= 1
-            next
-          end
-          
-          @path_index += 1
-          yield(context, path)
-        end
-        
-        true
-      end
-      
-      # Checks that the manifest does not already assign key a conflicting path,
-      # then adds the (key, path) pair to manifest.
-      def store(entry)
-        existing_key, existing_path = entries.find {|(key, path)| key == entry[0] } 
-        
-        if existing_key && existing_path != entry[1]
-          raise ManifestConflict, "multiple paths for key '#{existing_key}': ['#{existing_path}', '#{entry[1]}']"
-        end
-      
-        entries << entry
-      end
-      
+      # Returns an array of the entries keys.
       def keys
         entries.collect {|(key, value)| key }
       end
       
+      # Returns an array of the entries values.
       def values
         entries.collect {|(key, value)| value }
       end
       
-      def mini_map
-        return [] if entries.empty?
+      # True if entries are empty.
+      def empty?
+        entries.empty?
+      end
+      
+      def search_paths=(search_paths)
+        @entries = []
+        @search_paths = search_paths
+        @search_path_index = 0
+      end
+      
+      # Clears entries and sets the search_path_index to zero.
+      def reset
+        @entries.clear
+        @search_path_index = 0
+      end
+      
+      # Builds the manifest, identifying all entries from search_paths.
+      # Returns self.
+      def build
+        each {|k, v|} unless built?
+        self
+      end
+      
+      # True if all search paths have been checked for entries
+      # (ie search_path_index == search_paths.length).
+      def built?
+        @search_path_index == search_paths.length
+      end
+      
+      # Abstract method which should return each (key, value) entry
+      # for a given search path.  Raises a NotImplementedError
+      # if left not implemented.
+      def entries_for(search_path)
+        [[search_path, search_path]]
+      end
+      
+      # Adds the (key, value) pair to entries and returns the new entry.
+      # Checks that entries does not already assign key a conflicting value;
+      # raises an error if this is the case, or returns the existing entry.
+      #
+      # Keys are normalized using Manifest.normalize before storing.
+      def store(key, value)
+        key = Manifest.normalize(key)
+        existing = entries.find {|(k, v)| key == k } 
         
+        if existing
+          if existing[1] != value
+            raise ManifestConflict.new(key, value, existing[1])
+          else
+            return existing
+          end
+        end
+        
+        new_entry = [key, value]
+        entries << new_entry
+        new_entry
+      end
+      
+      # Iterates over each (key, value) entry in self, dynamically identifying entries 
+      # from search_paths if necessary.  New entries are identifed using the each_for
+      # method.
+      def each
+        entries.each do |key, path| 
+          yield(key, path) 
+        end
+        
+        unless built?
+          n_to_skip = @search_path_index
+          search_paths.each do |search_path|
+            # advance to the current search path
+            if n_to_skip > 0
+              n_to_skip -= 1
+              next
+            end
+            @search_path_index += 1
+            
+            # collect new entries and yield afterwards to ensure
+            # that all entries for the search_path get stored
+            new_entries = entries_for(*search_path)
+            next if new_entries == nil
+            
+            new_entries.each {|(key, value)| store(key, value) }
+            new_entries.each {|(key, value)| yield(key, value) }
+          end
+        end
+      end
+      
+      # Returns an array of (mini_key, value) pairs, matching
+      # entries by index.
+      def minimize
         hash = {}
-        Root.minimize(keys) do |path, mini_path|
+        Tap::Root.minimize(keys) do |path, mini_path|
           hash[path] = mini_path
         end
         
         entries.collect {|path, value| [hash[path], value] }
       end
       
+      protected
+
       # Raised when multiple paths are assigned to the same manifest key.
       class ManifestConflict < StandardError
+        attr_reader :key, :value, :existing
+        
+        def initialize(key, value, existing)
+          @key = key
+          @value = value
+          @existing = existing
+          super("attempted to store '%s': %s\nbut already was\n%s" % [key, value, existing])
+        end
       end
     end
   end

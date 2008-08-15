@@ -1,6 +1,7 @@
 # this checks to see that you can unset and reset 
 # constants and retain the functionality of the
 # constant.
+require 'test/unit'
 
 module TestMod
   CONST = 1
@@ -8,7 +9,7 @@ module TestMod
   module_function
   
   def function
-    puts "in function"
+    "in function"
   end
 end
 
@@ -17,7 +18,10 @@ class Object
   const_set(:NewName, old_ruby_token )
 end
 
-puts NewName::CONST
-puts NewName.function
+class ConstantsCheck < Test::Unit::TestCase
 
-puts "done"
+  def test_constant_redefinition
+    assert_equal 1, NewName::CONST
+    assert_equal "in function", NewName.function
+  end
+end

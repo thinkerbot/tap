@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "0.10.0"
+  s.version = "0.10.1"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -29,6 +29,7 @@ Gem::Specification.new do |s|
     cmd/console.rb
     cmd/destroy.rb
     cmd/generate.rb
+    cmd/manifest.rb
     cmd/run.rb
     doc/Tutorial
     doc/Class\sReference
@@ -88,6 +89,7 @@ Gem::Specification.new do |s|
     lib/tap/support/instance_configuration.rb
     lib/tap/support/lazydoc.rb
     lib/tap/support/manifest.rb
+    lib/tap/support/rake.rb
     lib/tap/support/run_error.rb
     lib/tap/support/shell_utils.rb
     lib/tap/support/tdoc.rb
@@ -103,6 +105,7 @@ Gem::Specification.new do |s|
     lib/tap/test/env_vars.rb
     lib/tap/test/file_methods.rb
     lib/tap/test/script_methods.rb
+    lib/tap/test/script_methods/script_test.rb
     lib/tap/test/subset_methods.rb
     lib/tap/test/tap_methods.rb
     lib/tap/test.rb
