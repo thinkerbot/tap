@@ -551,20 +551,6 @@ module Tap
     def to_s
       inspect(true)
     end
-
-    #--
-    # Under construction
-    #++
-    
-    def handle_error(err)
-      case
-      when $DEBUG
-        puts err.message
-        puts
-        puts err.backtrace
-      else puts err.message
-      end
-    end
     
     protected
     

@@ -29,6 +29,16 @@ module Tap
     config :after, nil
     config :aliases, {}, &c.hash_or_nil
     
+    def handle_error(err)
+      case
+      when $DEBUG
+        puts err.message
+        puts
+        puts err.backtrace
+      else puts err.message
+      end
+    end
+    
     def run(argv=ARGV)
       command = argv.shift.to_s
       

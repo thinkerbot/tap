@@ -18,7 +18,7 @@ class TapTest < Test::Unit::TestCase
       ['rubygems', 'yaml', 'optparse', 'fileutils', 'strscan', 'erb', 'thread'].each do |file|
         cmd.time file, "ruby -e \"require '#{file}'\""
       end
-      cmd.time "rake", "ruby -e \"require 'rubygems';require 'rake'\""
+      cmd.time "rake", "ruby -rubygems -e \"require 'rubygems';require 'rake'\""
     end
   end
   

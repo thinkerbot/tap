@@ -35,7 +35,7 @@ module Tap
       # can be specified in the name, like 'gem >= 1.2'.  The gem 
       # will be activated using +gem+ if necessary.
       def gemspec(gem_name)
-        return gem_name if gem_name.kind_of?(::Gem::Specification)
+        return gem_name if gem_name.kind_of?(Gem::Specification)
         
         # figure the version of the gem, by default >= 0.0.0
         gem_name.to_s =~ /^([^<=>]*)(.*)$/
@@ -46,13 +46,13 @@ module Tap
         
         # load the gem and get the spec
         gem(name, version)
-        ::Gem.loaded_specs[name]
+        Gem.loaded_specs[name]
       end
       
       def select_gems(latest=true)
         index = latest ?
-          ::Gem.source_index.latest_specs :
-          ::Gem.source_index.gems.collect {|(name, spec)| spec }
+          Gem.source_index.latest_specs :
+          Gem.source_index.gems.collect {|(name, spec)| spec }
         
         index.select do |spec|
           yield(spec)
