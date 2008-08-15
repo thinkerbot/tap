@@ -1,12 +1,6 @@
 require 'tap/support/manifest'
 require 'tap/support/constant'
 require 'tap/support/summary'
-
-# this can be autoloaded, with a tweak or two to
-# completely avoid loading RubyGems.  Interesting
-# to ponder creating manifests with the gem paths
-# pre-set... in this case, no rubygems and way
-# faster load time.
 require 'tap/support/gems'
 
 module Tap
@@ -189,7 +183,7 @@ module Tap
     @@manifests = {:envs => Manifest}
 
     # The global config file path
-    GLOBAL_CONFIG_FILE = File.join(Gem.user_home, ".tap.yml")
+    GLOBAL_CONFIG_FILE = File.join(Support::Gems.user_home, ".tap.yml")
     
     # The default config file path
     DEFAULT_CONFIG_FILE = "tap.yml"

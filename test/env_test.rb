@@ -134,12 +134,12 @@ class EnvTest < Test::Unit::TestCase
   def test_new_manifest_class_prepends_resolved_default_paths_to_search_paths
     manifest_class = Tap::Env.manifest(:key, ".", [:one, "two.txt"]) {|p| }
     
-    e.root[:one, true] = "/resolved/path/to/one.txt"
+    e.root[:one, true] = File.expand_path("/resolved/path/to/one.txt")
     assert_equal [e.root.root], e.root.glob(:root, ".")
     
     m = manifest_class.new(e)
     expected = [
-      "/resolved/path/to/one.txt", 
+      File.expand_path("/resolved/path/to/one.txt"), 
       e.root.filepath(:root, "two.txt"), 
       e.root.root
     ].sort_by {|p| File.basename(p) }
