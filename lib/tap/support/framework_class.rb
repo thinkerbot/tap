@@ -66,7 +66,8 @@ module Tap
           when /\/tap\/support\/declarations.rb/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
             subclass.source_file = File.expand_path($1)
-            subclass.lazydoc[const_name, false]['manifest'] = subclass.lazydoc.register($3.to_i - 1)
+            lzd = subclass.lazydoc(false)
+            lzd[const_name, false]['manifest'] = lzd.register($3.to_i - 1)            
             break
           end
         end
@@ -82,7 +83,7 @@ module Tap
           array.join(' ')
         else ""
         end
-        subclass.lazydoc[const_name, false]['args'] ||= comment
+        subclass.lazydoc(false)[const_name, false]['args'] ||= comment
         
         # Set the subclass constant
         current.const_set(subclass_const, subclass)

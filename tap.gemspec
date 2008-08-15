@@ -38,6 +38,7 @@ Gem::Specification.new do |s|
     lib/tap/app.rb
     lib/tap/constants.rb
     lib/tap/env.rb
+    lib/tap/exe.rb
     lib/tap/file_task.rb
     lib/tap/generator/base.rb
     lib/tap/generator/destroy.rb
@@ -86,10 +87,12 @@ Gem::Specification.new do |s|
     lib/tap/support/executable_queue.rb
     lib/tap/support/framework.rb
     lib/tap/support/framework_class.rb
+    lib/tap/support/gems/rake.rb
+    lib/tap/support/gems.rb
     lib/tap/support/instance_configuration.rb
+    lib/tap/support/lazy_attributes.rb
     lib/tap/support/lazydoc.rb
     lib/tap/support/manifest.rb
-    lib/tap/support/rake.rb
     lib/tap/support/run_error.rb
     lib/tap/support/shell_utils.rb
     lib/tap/support/tdoc.rb
