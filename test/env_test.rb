@@ -12,10 +12,10 @@ class EnvTest < Test::Unit::TestCase
     super
     
     @current_instance = Tap::Env.instance
-    @current_instances = Tap::Env.instances.dup
+    @current_instances = Tap::Env.instances
     @current_manifests = Tap::Env.manifests.dup
-    Tap::Env.instances = {}
-    Tap::Env.instance = nil
+    Tap::Env.send(:class_variable_set, :@@instance, nil)
+    Tap::Env.send(:class_variable_set, :@@instances, {})
     
     @current_load_paths = $LOAD_PATH.dup
     $LOAD_PATH.clear
@@ -27,9 +27,10 @@ class EnvTest < Test::Unit::TestCase
   def teardown
     super
     
-    Tap::Env.instance = @current_instance
-    Tap::Env.instances = @current_instances
-    Tap::Env.manifests = @current_manifests
+    Tap::Env.send(:class_variable_set, :@@instance,  @current_instance)
+    Tap::Env.send(:class_variable_set, :@@instances, @current_instances)
+    Tap::Env.send(:class_variable_set, :@@manifests, @current_manifests)
+
     $LOAD_PATH.clear
     $LOAD_PATH.concat(@current_load_paths)
   end
@@ -364,14 +365,6 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
-  # load_path_targets test
-  #
-  
-  def test_load_path_targets_is_LOAD_PATH
-    assert_equal [$LOAD_PATH], e.load_path_targets
-  end
-  
-  #
   # reconfigure test
   #
   
@@ -536,9 +529,7 @@ class EnvTest < Test::Unit::TestCase
     assert count > 0
   end
   
-  def test_activate_unshifts_load_paths_to_load_path_targets
-    assert_equal [$LOAD_PATH], e.load_path_targets
-    
+  def test_activate_unshifts_load_paths_to_LOAD_PATH
     e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
     $LOAD_PATH.clear
   
@@ -547,9 +538,7 @@ class EnvTest < Test::Unit::TestCase
     assert_equal [root["/path/to/lib"], root["/path/to/another/lib"]], $LOAD_PATH
   end
   
-  def test_activate_prioritizes_load_paths_in_load_path_targets
-    assert_equal [$LOAD_PATH], e.load_path_targets
-    
+  def test_activate_prioritizes_load_paths_in_LOAD_PATH
     e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
     $LOAD_PATH.clear
     $LOAD_PATH.concat ["post", root["/path/to/another/lib"], root["/path/to/lib"]]
@@ -608,9 +597,7 @@ class EnvTest < Test::Unit::TestCase
     assert count > 0
   end
   
-  def test_deactivate_removes_load_paths_from_load_path_targets
-    assert_equal [$LOAD_PATH], e.load_path_targets
-    
+  def test_deactivate_removes_load_paths_from_LOAD_PATH
     e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
     e.activate
     
@@ -624,7 +611,7 @@ class EnvTest < Test::Unit::TestCase
     assert_equal ["pre", "post"], $LOAD_PATH
   end
   
-  def test_deactivate_does_not_remove_load_path_targets_unless_deactivated
+  def test_deactivate_does_not_remove_load_paths_unless_deactivated
     Tap::Env.send(:class_variable_set, :@@instance, Tap::Env.new)
     
     e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
