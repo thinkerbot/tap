@@ -45,7 +45,7 @@ task :print_manifest do
   
   # sort and output the results
   files.values.sort_by {|exists, file| file }.each do |entry| 
-    puts "%-5s : %s" % entry
+    puts "%-5s %s" % entry
   end
 end
 
