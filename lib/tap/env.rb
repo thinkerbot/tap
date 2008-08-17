@@ -555,6 +555,15 @@ module Tap
       nil
     end
     
+    def constantize(name, *patterns)
+      patterns.collect do |pattern| 
+        case const = search(name, pattern)
+        when Support::Constant then const.constantize
+        else raise "could not constantize: #{pattern} (#{name})" 
+        end
+      end
+    end
+    
     def summary(name)
       summary = Support::Summary.new
       manifest(:envs, true).minimize.each do |(key, env)|
