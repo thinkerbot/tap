@@ -81,30 +81,23 @@ module Tap
     
     class << self
       def declare_task(name, klass=Tap::Task, &block)
-        initialize_method = "initialize_#{name}".to_sym
-        
-        define_method(initialize_method) do |name|
-          existing = config[name]
+        define_method(name) do |*args|
+          raise ArgumentError, "wrong number of arguments (#{args.length} for 1)" if args.length > 1
+          
+          instance_name = args[0] || name
+          existing = config[instance_name]
           
           case existing
           when Support::InstanceConfiguration
             existing.receiver
           when Hash, nil
-            instance = task(name, klass, &block)
-            config[name] = instance.config
+            instance = task(instance_name, klass, &block)
+            config[instance_name] = instance.config
             instance
           else 
             raise "could not map configuration to a task: #{existing}"
           end
         end
-        
-        protected(initialize_method)
-        
-        module_eval %Q{
-          def #{name}(name=:#{name})
-            #{initialize_method}(name)
-          end
-        }
       end
     end
 
