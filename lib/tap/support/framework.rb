@@ -36,7 +36,14 @@ module Tap
         super()
         @app = app
         @name = name || self.class.default_name
-        initialize_config(config)
+        
+        case config
+        when InstanceConfiguration 
+          @config = config
+          config.bind(self)
+        else 
+          initialize_config(config)
+        end
       end
       
       # Creates a new batched object and adds the object to batch. The batched object 

@@ -87,7 +87,7 @@ module Tap
       # Loads the contents of path as YAML.  Returns an empty hash if the path 
       # is empty, does not exist, or is not a file.
       def load_config(path)
-        return {} if path == nil || !File.exists?(path) || File.directory?(path)
+        return {} if path == nil || !File.file?(path)
 
         YAML.load_file(path) || {}
       end

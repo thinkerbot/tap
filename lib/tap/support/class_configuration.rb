@@ -111,8 +111,8 @@ module Tap
       
       # Initializes and returns a new InstanceConfiguration set to self 
       # and bound to the receiver, if specified.
-      def instance_config(receiver=nil)
-        InstanceConfiguration.new(self, receiver)
+      def instance_config(receiver=nil, store={})
+        InstanceConfiguration.new(self, receiver, store)
       end
       
       # Returns a hash of the (key, config.default) values in self.

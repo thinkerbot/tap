@@ -41,9 +41,9 @@ module Tap
       # The ClassConfiguration specifying config keys
       attr_reader :class_config
       
-      def initialize(class_config, receiver=nil)
+      def initialize(class_config, receiver=nil, store={})
         @receiver = receiver
-        @store = {}
+        @store = store
         @class_config = class_config
       end
       
@@ -126,7 +126,7 @@ module Tap
       
       # Equal if the to_hash values of self and another are equal.
       def ==(another)
-        to_hash == another.to_hash
+        another.respond_to?(:to_hash) && to_hash == another.to_hash
       end
       
       # Returns self as a hash. 

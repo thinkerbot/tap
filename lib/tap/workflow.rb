@@ -78,6 +78,35 @@ module Tap
   #
   class Workflow 
     include Support::Framework
+    
+    class << self
+      def declare_task(name, klass=Tap::Task, &block)
+        initialize_method = "initialize_#{name}".to_sym
+        
+        define_method(initialize_method) do |name|
+          existing = config[name]
+          
+          case existing
+          when Support::InstanceConfiguration
+            existing.receiver
+          when Hash, nil
+            instance = task(name, klass, &block)
+            config[name] = instance.config
+            instance
+          else 
+            raise "could not map configuration to a task: #{existing}"
+          end
+        end
+        
+        protected(initialize_method)
+        
+        module_eval %Q{
+          def #{name}(name=:#{name})
+            #{initialize_method}(name)
+          end
+        }
+      end
+    end
 
     # The entry point for self.
     attr_accessor :entry_point
@@ -167,6 +196,10 @@ module Tap
     # the name of the workflow if input == nil.
     def name(input=nil)
       input == nil ? @name : File.join(@name, input)
+    end
+    
+    def task(name, klass=Tap::Task, &block)
+      klass.new(config[name] || {}, name, &block)
     end
     
     protected
