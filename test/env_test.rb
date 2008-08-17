@@ -345,6 +345,75 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
+  # recursive_each test
+  #
+  
+  def test_recursive_each_documentation
+    e0, e1, e2, e3, e4 = ('a'..'e').collect {|name| Tap::Env.new(:name => name) }
+  
+    e0.push(e1).push(e2)
+    e1.push(e3).push(e4)
+  
+    lines = []
+    e0.recursive_each(0) do |env, nesting_depth|
+      lines << "\n#{'..' * nesting_depth}#{env.config[:name]} (#{nesting_depth})"
+      nesting_depth + 1
+    end
+
+    expected =  %Q{
+a (0)
+..b (1)
+....d (2)
+....e (2)
+..c (1)}
+    assert_equal expected, lines.join
+  end
+  
+  def test_recursive_each_passes_block_results_to_children
+    a = Tap::Env.new
+    b = Tap::Env.new
+    c = Tap::Env.new
+    d = Tap::Env.new
+    
+    a.push(b).push(c)
+    c.push(d)
+    
+    results = []
+    a.recursive_each(0) {|env, n| results << [env, n]; n+1}
+    
+    assert_equal [[a,0], [b,1], [c,1], [d,2]], results
+  end
+  
+  def test_recursive_each_treats_nil_returns_as_an_empty_array
+    a = Tap::Env.new
+    b = Tap::Env.new
+    
+    a.push(b)
+    
+    results = []
+    a.recursive_each {|env, *args| results << [env, args]; nil}
+    
+    assert_equal [[a, []], [b, []]], results
+  end
+  
+  def test_recursive_each_only_yields_first_occurence_of_an_env
+    a = Tap::Env.new
+    b = Tap::Env.new
+    c = Tap::Env.new
+    d = Tap::Env.new
+
+    a.push b
+    b.push c
+    a.push d
+    c.push b
+    
+    envs = []
+    a.recursive_each {|env| envs << env; []}
+    
+    assert_equal [a, b, c, d], envs
+  end
+  
+  #
   # count test
   #
   

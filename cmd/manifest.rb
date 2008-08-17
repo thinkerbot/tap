@@ -47,7 +47,7 @@ end
 
 # Collect remaining args as 
 env = Tap::Env.instance
-envs = if ARGV.empty?
+envs_manifest = if ARGV.empty?
   env.manifest(:envs, true).minimize
 else
   ARGV.collect do |name| 
@@ -58,21 +58,37 @@ else
 end
 
 width = 10
-envs.each {|(env_name, env)| width = env_name.length if width < env_name.length}
+envs_manifest.each {|(env_name, e)| width = env_name.length if width < env_name.length}
 width += 2
 
-envs.each do |(env_name, env)|
+env.each do |current|
+  env_name, current = envs_manifest.find {|(env_name, e)| e == current }
+  next if env_name == nil
+  
   puts '-' * 80 unless options[:envs_only]
-  puts "%-#{width}s (%s)" % [env_name + ':', env.root.root]
+  puts "%-#{width}s (%s)" % [env_name + ':', current.root.root]
   
   next if options[:envs_only]
   
-  manifest_keys = (Tap::Env.manifests.keys + env.manifests.keys).uniq 
+  manifest_keys = (Tap::Env.manifests.keys + current.manifests.keys).uniq 
   manifest_keys.each do |name|
     next if name == :envs
-    manifest = env.manifest(name, true)
+    manifest = current.manifest(name, true)
     next if manifest.empty?
     
-    puts "  %-10s %s" % [name, collect_map(env, manifest).join("\n    ")]
+    puts "  %-10s %s" % [name, collect_map(current, manifest).join("\n    ")]
   end
+end
+
+if ARGV.empty?
+  puts '-' * 80
+  puts
+  env.recursive_each(0, nil) do |current, nesting_depth, last_env|
+    env_name, current = envs_manifest.find {|(env_name, e)| e == current }
+
+    leader = nesting_depth == 0 ? "" : '|   ' * (nesting_depth - 1) + (last_env == current ? "`- " : "|- ")
+    puts("#{leader}#{env_name}")
+    [nesting_depth + 1, current.envs[-1]]
+  end
+  puts
 end
