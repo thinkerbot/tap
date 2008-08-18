@@ -89,4 +89,10 @@ class FrameworkTest < Test::Unit::TestCase
     assert_equal "alt_name", s.to_s
   end
   
+  def test_to_s_stringifies_name
+    s = Sample.new({}, :name)
+    assert_equal :name, s.name
+    assert_equal 'name', s.to_s
+  end
+  
 end

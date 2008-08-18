@@ -80,7 +80,7 @@ module Tap
     include Support::Framework
     
     class << self
-      def declare_task(name, klass=Tap::Task, &block)
+      def declare(name, klass=Tap::Task, &block)
         define_method(name) do |*args|
           raise ArgumentError, "wrong number of arguments (#{args.length} for 1)" if args.length > 1
           
@@ -89,13 +89,19 @@ module Tap
           
           case existing
           when Support::InstanceConfiguration
-            existing.receiver
+            instance = existing.receiver
+            unless instance.class == klass && instance.task_block == block
+              raise ArgumentError, "a task by the input name is already declared: #{name}"
+            end
+            instance
+            
           when Hash, nil
             instance = task(instance_name, klass, &block)
             config[instance_name] = instance.config
             instance
+            
           else 
-            raise "could not map configuration to a task: #{existing}"
+            raise ArgumentError, "could not instantiate #{klass} using configurations for '#{name}': #{existing}"
           end
         end
       end
@@ -195,6 +201,16 @@ module Tap
       klass.new(config[name] || {}, name, &block)
     end
     
+    def declared_tasks
+      declared_tasks = []
+      config.each_pair do |key, config|
+        if config.kind_of?(Support::InstanceConfiguration)
+          declared_tasks << config.receiver
+        end
+      end
+      declared_tasks
+    end
+    
     protected
     
     def initialize_workflow
@@ -203,6 +219,13 @@ module Tap
       
       workflow
       raise WorkflowError.new("No entry points defined") if entry_points.empty?
+    end
+    
+    def initialize_config(overrides={})
+      super
+      # extend config to forward re-assignment of
+      # Support::InstanceConfiguration configurations
+      # to a clear-merge or reconfigure
     end
     
     # Hook to set a default task block.  By default, nil.

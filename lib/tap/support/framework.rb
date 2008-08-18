@@ -26,6 +26,9 @@ module Tap
       attr_reader :app
       
       # The name of self.
+      #--
+      # Currently names may be any object.  Audit makes use of name
+      # via to_s, as does app when figuring configuration filepaths. 
       attr_accessor :name
       
       # Initializes a new instance and associated batch objects.  Batch
@@ -72,7 +75,7 @@ module Tap
       
       # Returns self.name
       def to_s
-        name
+        name.to_s
       end
       
     end
