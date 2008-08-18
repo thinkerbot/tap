@@ -3,9 +3,43 @@ require 'rake/testtask'
 require 'rake/rdoctask'
 require 'rake/gempackagetask'
 
-$:.unshift "./lib"
+$:.unshift File.expand_path("#{File.dirname(__FILE__)}/lib")
 require 'tap/constants'
 require 'tap/patches/rake/testtask.rb'
+
+desc "Compiles tap into a single rb script"
+task :compile do
+  # interesting proposal -- much, much quicker loading on 
+  # windows where reading files is apparently quite slow.
+  #
+  # Notes:
+  # - Task files should not be included since they may contain
+  #   manifest information that implicitly uses the path name.
+  # - Autoloaded files should not be included either (and in 
+  #   some cases maybe a require should be turned into an 
+  #   autoload?)
+  #
+  @@sources = {}
+  def require(file)
+    result = super
+    
+    tap_file = "#{File.dirname(__FILE__)}/lib/#{file}.rb"
+    return result unless File.exists?(tap_file)
+    
+    content = File.read(tap_file)
+    content.gsub!(/^require\s+['"](.*)['"]$/) do |match|
+      @@sources.has_key?($1) ? @@sources[$1] : match
+    end
+    @@sources[file] = content
+    
+    result
+  end
+  
+  require 'tap'
+  File.open("taq.rb", "w") do |target|
+    target << @@sources['tap'].gsub(/\r?\n^\s*\#.*$/, "")
+  end
+end
 
 #
 # Gem specification
