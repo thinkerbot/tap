@@ -112,7 +112,7 @@ module Tap
     # Creates a new Task with the specified attributes.
     def initialize(config={}, name=nil, app=App.instance, &task_block)
       super(config, name, app)
-      @task_block = task_block
+      @task_block = (task_block == nil ? default_task_block : task_block)
       initialize_workflow
     end
     
@@ -188,6 +188,13 @@ module Tap
     # should be overridden to provide the workflow definition.
     def workflow
       task_block.call(self) if task_block
+    end
+    
+    protected
+    
+    # Hook to set a default task block.  By default, nil.
+    def default_task_block
+      nil
     end
   end
 end
