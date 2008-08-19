@@ -16,8 +16,7 @@ module Tap
       # Tracks the assignment of the config keys to receivers
       attr_reader :assignments
       
-      # A map of config keys and instance methods used to set a 
-      # config (ie the reader and writer for a config)
+      # A map of (key, config) pairs.
       attr_reader :map
 
       def initialize(receiver, parent=nil)
@@ -122,6 +121,7 @@ module Tap
         hash
       end
       
+      # An array of config descriptions that are Comment objects.
       def code_comments
         code_comments = []
         values.each do |config| 

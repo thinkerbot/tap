@@ -53,8 +53,8 @@ module Tap
         @name = name
         self.default = default
         
-        self.reader = options.delete(:reader) || name
-        self.writer = options.delete(:writer) || "#{name}="
+        self.reader = options.has_key?(:reader) ? options.delete(:reader) : name
+        self.writer = options.has_key?(:writer) ? options.delete(:writer) : "#{name}="
         @attributes = options
       end
 
@@ -76,14 +76,16 @@ module Tap
         duplicate && duplicable ? @default.dup : @default
       end
       
-      # Sets the reader for self.  The reader is symbolized.
+      # Sets the reader for self.  The reader is symbolized,
+      # but may also be set to nil.
       def reader=(value)
-        @reader = value.to_sym
+        @reader = value == nil ? value : value.to_sym
       end
       
-      # Sets the writer for self.  The writer is symbolized.
+      # Sets the writer for self.  The writer is symbolized,
+      # but may also be set to nil.
       def writer=(value)
-        @writer = value.to_sym
+        @writer = value == nil ? value : value.to_sym
       end
       
       def arg_name

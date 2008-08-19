@@ -54,7 +54,7 @@ module Tap
         raise ArgumentError.new("receiver cannot be nil") if receiver == nil
         
         class_config.each_pair do |key, config|
-          receiver.send(config.writer, store.delete(key))
+          receiver.send(config.writer, store.delete(key)) if config.writer
         end
         @receiver = receiver
         
@@ -70,7 +70,7 @@ module Tap
       # are stored in store.  Returns the unbound receiver.
       def unbind
         class_config.each_pair do |key, config|
-          store[key] = receiver.send(config.reader)
+          store[key] = receiver.send(config.reader) if config.reader
         end
         r = receiver
         @receiver = nil
@@ -92,7 +92,7 @@ module Tap
       def []=(key, value)
         case 
         when bound? && config = class_config.map[key.to_sym]
-          receiver.send(config.writer, value)
+          config.writer ? receiver.send(config.writer, value) : store[key] = value
         else store[key] = value
         end
       end
@@ -103,7 +103,7 @@ module Tap
       def [](key)
         case 
         when bound? && config = class_config.map[key.to_sym]
-          receiver.send(config.reader)
+          config.reader ? receiver.send(config.reader) : store[key]
         else store[key]
         end
       end
@@ -116,7 +116,7 @@ module Tap
       # Calls block once for each key-value pair stored in self.
       def each_pair # :yields: key, value
         class_config.each_pair do |key, config|
-          yield(key, receiver.send(config.reader))
+          yield(key, receiver.send(config.reader)) if config.reader
         end if bound?
         
         store.each_pair do |key, value|

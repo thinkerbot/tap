@@ -82,6 +82,20 @@ class InstanceConfigurationTest < Test::Unit::TestCase
     assert_equal({:not_a_config => 1}, c.store)
   end
   
+  def test_bind_does_not_set_configs_without_a_writer
+    cc[:key].writer = nil
+    c[:key] = 1
+    c[:not_a_config] = 1
+    
+    assert_nil r.key
+    assert_equal({:key => 1, :not_a_config => 1}, c.store)
+    
+    c.bind(r)
+    
+    assert_nil r.key
+    assert_equal({:key => 1, :not_a_config => 1}, c.store)
+  end
+  
   def test_bind_raises_error_for_nil_receiver
     assert_raise(ArgumentError) { c.bind(nil) }
   end
@@ -124,6 +138,19 @@ class InstanceConfigurationTest < Test::Unit::TestCase
     
     assert_equal 1, r.key
     assert_equal({:key => 1}, c.store)
+  end
+  
+  def test_unbind_does_not_set_configs_without_a_reader
+    cc[:key].reader = nil
+    c.bind(r)
+
+    r.key = 1
+    assert_equal({}, c.store)
+    
+    c.unbind
+    
+    assert_equal 1, r.key
+    assert_equal({}, c.store)
   end
    
   #
@@ -177,6 +204,15 @@ class InstanceConfigurationTest < Test::Unit::TestCase
     assert_equal "value", c[:unmapped]
   end
   
+  def test_get_returns_stored_value_if_config_has_no_reader
+    cc[:key].reader = nil
+    c.bind(r)
+    
+    assert_equal nil, c.store[:unmapped]
+    c[:unmapped] = "value"
+    assert_equal "value", c.store[:unmapped]
+  end
+  
   #
   # set test
   #
@@ -197,6 +233,15 @@ class InstanceConfigurationTest < Test::Unit::TestCase
   end
   
   def test_set_stores_value_in_store_if_bound_and_key_is_not_mapped
+    c.bind(r)
+
+    assert_equal nil, c.store[:unmapped]
+    c[:unmapped] = "value"
+    assert_equal "value", c.store[:unmapped]
+  end
+  
+  def test_set_stores_value_in_store_if_config_has_no_writer
+    cc[:key].writer = nil
     c.bind(r)
 
     assert_equal nil, c.store[:unmapped]
@@ -240,6 +285,24 @@ class InstanceConfigurationTest < Test::Unit::TestCase
     c.bind(r)
     
     r.key = 'VALUE'
+    results = {}
+    c.each_pair {|key, value| results[key] = value }
+    assert_equal({:key => 'VALUE', :another => 'value'}, results)
+  end
+  
+  def test_each_pair_pulls_value_from_store_when_config_has_no_reader
+    cc[:key].reader = nil
+    
+    c[:key] = 'value'
+    c[:another] = 'value'
+    
+    results = {}
+    c.each_pair {|key, value| results[key] = value }
+    assert_equal({:key => 'value', :another => 'value'}, results)
+    
+    c.bind(r)
+    
+    c.store[:key] = 'VALUE'
     results = {}
     c.each_pair {|key, value| results[key] = value }
     assert_equal({:key => 'VALUE', :another => 'value'}, results)
