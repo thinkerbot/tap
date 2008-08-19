@@ -80,12 +80,22 @@ module Tap
     include Support::Framework
     
     class << self
-      def declare(name, klass=Tap::Task, &block)
+      protected
+      
+      def define(name, klass=Tap::Task, &block)
+        instance_var = "@#{name}".to_sym
+        
         define_method(name) do |*args|
           raise ArgumentError, "wrong number of arguments (#{args.length} for 1)" if args.length > 1
           
           instance_name = args[0] || name
-          task(instance_name, klass, &block)
+          instance_variable_set(instance_var, {}) unless instance_variable_defined?(instance_var)
+          instance_variable_get(instance_var)[instance_name] ||= task(instance_name, klass, &block)
+        end
+        
+        define_method("#{name}=") do |input|
+          input = {name => input} unless input.kind_of?(Hash)
+          instance_variable_set(instance_var, input)
         end
       end
     end
@@ -102,7 +112,7 @@ module Tap
     # Creates a new Task with the specified attributes.
     def initialize(config={}, name=nil, app=App.instance, &task_block)
       super(config, name, app)
-      @task_block = (task_block == nil ? default_task_block : task_block)
+      @task_block = task_block
       initialize_workflow
     end
     
@@ -114,25 +124,31 @@ module Tap
       initialize_workflow
     end
     
+    def initialize_workflow
+      @entry_point = {}
+      @exit_point = {}
+      workflow
+    end
+    
     # Returns an array of entry points, determined from entry_point.
     def entry_points
-      case entry_point
-      when Hash then entry_point.values
-      when Support::Executable then [entry_point]
-      when Array then entry_point
-      else
-        raise "unable to determine entry points from entry_point (should be Hash, Array, or Executable): #{entry_point}"
+      case @entry_point
+      when Hash then @entry_point.values
+      when Support::Executable then [@entry_point]
+      when Array then @entry_point
+      when nil then []
+      else raise "unable to determine entry points from entry_point: #{@entry_point}"
       end
     end
     
     # Returns an array of exit points, determined from exit_point.
     def exit_points
-      case exit_point
-      when Hash then exit_point.values
-      when Support::Executable then [exit_point]
-      when Array then exit_point
-      else
-        raise "unable to determine exit points from exit_point (should be Hash, Array, or Executable): #{exit_point}"
+      case @exit_point
+      when Hash then @exit_point.values
+      when Support::Executable then [@exit_point]
+      when Array then @exit_point
+      when nil then []
+      else raise "unable to determine exit points from exit_point: #{@exit_point}"
       end
     end
     
@@ -160,25 +176,6 @@ module Tap
     end
     
     batch_function(:on_complete) {}
-
-    # The workflow definition method.  By default workflow
-    # simply calls the task_block.  In subclasses, workflow
-    # should be overridden to provide the workflow definition.
-    def workflow
-      raise WorkflowError.new("No workflow definition provided.") unless task_block
-      task_block.call(self) 
-    end
-
-    class WorkflowError < Exception # :nodoc:
-    end
-    
-    # Returns the name of the workflow joined to the input.  This
-    # can be convenient when naming internal tasks, as they can 
-    # be grouped based on the name of the workflow.  Returns
-    # the name of the workflow if input == nil.
-    def name(input=nil)
-      input == nil ? @name : File.join(@name, input)
-    end
     
     def task(name, klass=Tap::Task, &block)
       configs = config[name] || {}
@@ -186,19 +183,11 @@ module Tap
       klass.new(configs, name, &block)
     end
     
-    protected
-    
-    def initialize_workflow
-      @entry_point = {}
-      @exit_point = {}
-      
-      workflow
-      raise WorkflowError.new("No entry points defined") if entry_points.empty?
-    end
-    
-    # Hook to set a default task block.  By default, nil.
-    def default_task_block
-      nil
+    # The workflow definition method.  By default workflow
+    # simply calls the task_block.  In subclasses, workflow
+    # should be overridden to provide the workflow definition.
+    def workflow
+      task_block.call(self) if task_block
     end
   end
 end

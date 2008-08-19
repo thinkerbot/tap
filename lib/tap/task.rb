@@ -163,7 +163,7 @@ module Tap
     def initialize(config={}, name=nil, app=App.instance, &task_block)
       super(config, name, app)
       
-      @task_block = (task_block == nil ? default_task_block : task_block)
+      @task_block = task_block
       @multithread = false
       @on_complete_block = nil
       @_method_name = :execute
@@ -238,11 +238,6 @@ module Tap
     end
     
     protected
-    
-    # Hook to set a default task block.  By default, nil.
-    def default_task_block
-      nil
-    end
     
     # Hook to execute code before inputs are processed.
     def before_execute() end
