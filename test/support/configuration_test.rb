@@ -91,6 +91,7 @@ class ConfigurationTest < Test::Unit::TestCase
     assert_equal :name, c.reader
     assert_equal :name=, c.writer
     assert_equal :mandatory, c.arg_type
+    assert_equal({}, c.attributes)
     
     c = Configuration.new('name', 'default', {:arg_type => :optional, :reader => :alt, :writer => :alt=})
     assert_equal 'name', c.name
@@ -98,6 +99,13 @@ class ConfigurationTest < Test::Unit::TestCase
     assert_equal :alt, c.reader
     assert_equal :alt=, c.writer
     assert_equal :optional, c.arg_type
+    assert_equal({:arg_type => :optional}, c.attributes)
+  end
+  
+  def test_reader_and_writer_may_be_set_to_nil_during_initialize
+    c = Configuration.new('name', 'default', {:reader => nil, :writer => nil})
+    assert_equal nil, c.reader
+    assert_equal nil, c.writer
   end
   
   #
@@ -178,6 +186,11 @@ class ConfigurationTest < Test::Unit::TestCase
     assert_equal :reader, c.reader
   end
   
+  def test_reader_may_be_set_to_nil
+    c.reader = nil
+    assert_equal nil, c.reader
+  end
+  
   #
   # writer= test
   #
@@ -186,6 +199,11 @@ class ConfigurationTest < Test::Unit::TestCase
     c.writer = 'writer='
     assert_equal :writer=, c.writer
   end  
+  
+  def test_writer_may_be_set_to_nil
+    c.writer = nil
+    assert_equal nil, c.writer
+  end
   
   #
   # == test

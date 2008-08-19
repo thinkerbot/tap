@@ -16,8 +16,7 @@ module Tap
       # Tracks the assignment of the config keys to receivers
       attr_reader :assignments
       
-      # A map of config keys and instance methods used to set a 
-      # config (ie the reader and writer for a config)
+      # A map of (key, config) pairs.
       attr_reader :map
 
       def initialize(receiver, parent=nil)
@@ -122,6 +121,7 @@ module Tap
         hash
       end
       
+      # An array of config descriptions that are Comment objects.
       def code_comments
         code_comments = []
         values.each do |config| 
@@ -148,7 +148,6 @@ module Tap
       # templater is assigned the following attributes for use in formatting:
       #
       # receiver:: The receiver
-      # class_doc:: The TDoc for the receiver, from Tap::Support::TDoc[receiver]
       # configurations:: An array of configurations and associated comments
       # 
       # In the template these can be accessed as any ERB locals, for example:

@@ -209,9 +209,10 @@ module Tap
       # Idiosyncratically, true, false, and nil may also be provided as 
       # reader/writer options. Specifying true is the same as using the 
       # default.  Specifying false or nil prevents config_attr from 
-      # defining accessors, but the configuration still expects to use 
-      # the default reader/writer methods (ie <tt>key</tt> and <tt>key=</tt>) 
-      # which must be defined elsewhere.
+      # defining accessors; false sets the configuration to use 
+      # the default reader/writer methods (ie <tt>key</tt> and <tt>key=</tt>,
+      # which must be defined elsewhere) while nil prevents read/write
+      # mapping of the config to a method.
       def config_attr(key, value=nil, options={}, &block)
         
         # add arg_type implied by block, if necessary
@@ -227,7 +228,7 @@ module Tap
         # define the public writer method
         case
         when options.has_key?(:writer) && options[:writer] != true
-          raise ArgumentError.new("block may not be specified with writer") if block_given?
+          raise(ArgumentError, "a block may not be specified with writer option") if block_given?
         when block_given? 
           define_method("#{key}=", &block)
           public "#{key}="
@@ -236,17 +237,17 @@ module Tap
           public "#{key}="
         end
 
-        # remove any true, false, nil reader/writer declarations...
+        # remove any true, false reader/writer declarations...
         # implicitly reverting the option to the default reader
         # and writer methods
         [:reader, :writer].each do |option|
           case options[option]
-          when true, false, nil then options.delete(option)
+          when true, false then options.delete(option)
           end
         end
         
-        # register with TDoc so that all extra documentation can be extracted
-        caller.each_with_index do |line, index|
+        # register with Lazydoc so that all extra documentation can be extracted
+        caller.each do |line|
           case line
           when /in .config.$/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/

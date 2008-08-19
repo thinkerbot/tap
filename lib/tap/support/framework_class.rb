@@ -10,7 +10,7 @@ module Tap
       attr_accessor :default_name
       
       def self.extended(base)
-        caller.each_with_index do |line, index|
+        caller.each do |line|
           case line
           when /\/framework.rb/ then next
           when /^(([A-z]:)?[^:]+):(\d+)/
