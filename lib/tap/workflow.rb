@@ -85,24 +85,7 @@ module Tap
           raise ArgumentError, "wrong number of arguments (#{args.length} for 1)" if args.length > 1
           
           instance_name = args[0] || name
-          existing = config[instance_name]
-          
-          case existing
-          when Support::InstanceConfiguration
-            instance = existing.receiver
-            unless instance.class == klass && instance.task_block == block
-              raise ArgumentError, "a task by the input name is already declared: #{name}"
-            end
-            instance
-            
-          when Hash, nil
-            instance = task(instance_name, klass, &block)
-            config[instance_name] = instance.config
-            instance
-            
-          else 
-            raise ArgumentError, "could not instantiate #{klass} using configurations for '#{name}': #{existing}"
-          end
+          task(instance_name, klass, &block)
         end
       end
     end
@@ -198,17 +181,9 @@ module Tap
     end
     
     def task(name, klass=Tap::Task, &block)
-      klass.new(config[name] || {}, name, &block)
-    end
-    
-    def declared_tasks
-      declared_tasks = []
-      config.each_pair do |key, config|
-        if config.kind_of?(Support::InstanceConfiguration)
-          declared_tasks << config.receiver
-        end
-      end
-      declared_tasks
+      configs = config[name] || {}
+      raise ArgumentError, "config '#{name}' is not a hash" unless configs.kind_of?(Hash)
+      klass.new(configs, name, &block)
     end
     
     protected
@@ -219,13 +194,6 @@ module Tap
       
       workflow
       raise WorkflowError.new("No entry points defined") if entry_points.empty?
-    end
-    
-    def initialize_config(overrides={})
-      super
-      # extend config to forward re-assignment of
-      # Support::InstanceConfiguration configurations
-      # to a clear-merge or reconfigure
     end
     
     # Hook to set a default task block.  By default, nil.

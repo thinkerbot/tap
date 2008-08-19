@@ -42,7 +42,12 @@ class WorkflowTest < Test::Unit::TestCase
   #
   
   class Declare < Tap::Workflow
+    BLOCK = lambda {}
+    
     declare :tap_task
+    declare :task_with_block, &BLOCK
+    declare :file_task, Tap::FileTask
+    
     def workflow
       self.entry_point = Tap::Task.new
     end
@@ -54,15 +59,15 @@ class WorkflowTest < Test::Unit::TestCase
     assert_equal Tap::Task, w.tap_task.class
   end
   
-  def test_declare_task_returns_the_same_named_task_across_multiple_calls
+  def test_declare_task_returns_the_new_task_each_calls
     w = Declare.new
     t1 = w.tap_task
-    assert_equal t1.object_id, w.tap_task.object_id
+    assert_not_equal t1.object_id, w.tap_task.object_id
     
     t2 = w.tap_task('alt')
-    assert_equal t2.object_id, w.tap_task('alt').object_id
+    assert_not_equal t2.object_id, w.tap_task('alt').object_id
   end
-  
+
   def test_declared_tasks_are_named_with_input_or_method_name_by_default
     w = Declare.new
     assert_equal :tap_task, w.tap_task.name
@@ -77,13 +82,6 @@ class WorkflowTest < Test::Unit::TestCase
     assert_equal({:key => 'another'}, w.tap_task('alt').config)
   end
   
-  def test_configurations_for_declared_task_may_be_set_through_config
-    w = Declare.new
-    assert_equal({}, w.tap_task.config)
-    w.config[:tap_task][:key] = 'value'
-    assert_equal({:key => 'value'}, w.tap_task.config)
-  end
-  
   def test_initialization_of_a_task_using_non_hash_or_nil_configs_raises_error
     w = Declare.new :int => 2, :str => 'str', :hash => {}, :nil => nil
     
@@ -94,45 +92,40 @@ class WorkflowTest < Test::Unit::TestCase
     assert_raise(ArgumentError) { w.tap_task(:str) }
   end
   
-  class Declare2 < Tap::Workflow
-    BLOCK = lambda do |task, input|
-    end
-    
-    declare :tap_task
-    declare :task_with_block, &BLOCK
-    declare :file_task, Tap::FileTask
-    
-    def workflow
-      self.entry_point = Tap::Task.new
-    end
-  end
-  
   def test_initialization_initializes_class_using_block
-    w = Declare2.new
-    assert_equal Tap::Task, w.tap_task.class
-    assert_equal nil, w.tap_task.task_block
+    w = Declare.new
     
-    assert_equal Tap::Task, w.task_with_block.class
-    assert_equal Declare2::BLOCK, w.task_with_block.task_block
+    t = w.tap_task
+    assert_equal Tap::Task, t.class
+    assert_equal nil, t.task_block
     
-    assert_equal Tap::FileTask, w.file_task.class
-    assert_equal nil, w.file_task.task_block
+    t = w.task_with_block
+    assert_equal Tap::Task, t.class
+    assert_equal Declare::BLOCK, t.task_block
+    
+    t = w.file_task
+    assert_equal Tap::FileTask, t.class
+    assert_equal nil, t.task_block
   end
   
-  def test_initialization_of_different_declarations_using_the_same_name_raise_an_error
-    w = Declare2.new
+  def test_initialization_of_different_declarations_using_the_same_name_does_not_raise_an_error
+    w = Declare.new
     w.tap_task(:name)
     
     assert_nothing_raised { w.tap_task(:name) }
-    assert_raise(ArgumentError) { w.task_with_block(:name) }
-    assert_raise(ArgumentError) { w.file_task(:name) }
+    assert_nothing_raised { w.task_with_block(:name) }
+    assert_nothing_raised { w.file_task(:name) }
   end
   
-  # TODO -- build in support for reconfiguration,
-  # and resetting a full config.  ex:
-  #
-  # w.reconfigure(:tap_task => {})
-  # w.config[:tap_task] = {}
+  def test_configurations_for_declared_task_may_not_be_set_through_config
+    w = Declare.new
+    w.config[:tap_task] = {:key => 'value'}
+    t = w.tap_task
+    
+    assert_equal({:key => 'value'}, t.config)
+    w.config[:tap_task][:key] = 'VALUE'
+    assert_equal({:key => 'value'}, t.config)
+  end
 
   #
   # initialization test
@@ -213,28 +206,6 @@ class WorkflowTest < Test::Unit::TestCase
     end
     assert_audit_equal(ExpAudit[[nil,0],[t1,1]], app._results(t1).first) 
     assert_audit_equal(ExpAudit[[nil,0],[t2,1],[t3,2]], app._results(t3).first) 
-  end
-
-  #
-  # declared_tasks test
-  #
-  
-  class DeclaredTasks < Tap::Workflow
-    declare :tap_task
-    declare :file_task, Tap::FileTask
-    
-    def workflow
-      self.entry_point = Tap::Task.new
-    end
-  end
-  
-  def test_declared_tasks_returns_all_instantiated_declared_tasks
-    w = DeclaredTasks.new
-    t1 = w.tap_task
-    t2 = w.tap_task(:a)
-    t3 = w.file_task(:b)
-    
-    assert_equal [t1, t2, t3].sort_by {|t| t.object_id }, w.declared_tasks.sort_by {|t| t.object_id }
   end
 end
 

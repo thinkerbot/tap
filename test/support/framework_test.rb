@@ -45,6 +45,16 @@ class FrameworkTest < Test::Unit::TestCase
     assert_equal Tap::App.instance, Sample.new.app
   end
   
+  def test_instance_configs_are_bound_to_self
+    ic = Sample.configurations.instance_config
+    assert !ic.bound?
+    
+    s = Sample.new(ic)
+    assert ic.bound?
+    assert_equal s, ic.receiver
+    assert_equal ic, s.config
+  end
+  
   #
   # name test
   #
