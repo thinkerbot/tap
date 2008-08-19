@@ -5,9 +5,6 @@ require 'thread'
 case RUBY_VERSION
 when /^1.9/
   $: << File.expand_path(File.dirname(__FILE__) + "/tap/patches/ruby19")
-  
-  # suppresses TDoc warnings
-  $DEBUG_RDOC ||= nil 
 end
 
 $:.unshift File.expand_path(File.dirname(__FILE__))

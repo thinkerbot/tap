@@ -168,9 +168,7 @@ module Tap
     class Manifest < Support::Manifest
       def initialize(env)
         super([])
-        @entries = env.collect do |env| 
-          [env.root.root, env]
-        end
+        @entries = env.collect {|e| [e.root.root, e] }
       end
     end
     

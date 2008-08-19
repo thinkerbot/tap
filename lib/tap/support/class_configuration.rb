@@ -148,7 +148,6 @@ module Tap
       # templater is assigned the following attributes for use in formatting:
       #
       # receiver:: The receiver
-      # class_doc:: The TDoc for the receiver, from Tap::Support::TDoc[receiver]
       # configurations:: An array of configurations and associated comments
       # 
       # In the template these can be accessed as any ERB locals, for example:

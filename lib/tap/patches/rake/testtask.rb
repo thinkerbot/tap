@@ -47,6 +47,8 @@ module Rake # :nodoc:
     
     # Loads in the patched rake_test_loader to avoid the ARGV 
     # modification error, which arises within TDoc.
+    #--
+    # May be out of date...
     def rake_loader # :nodoc:
       File.expand_path(File.join(File.dirname(__FILE__), 'rake_test_loader.rb'))
     end
