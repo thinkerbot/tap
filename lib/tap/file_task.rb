@@ -115,20 +115,45 @@ module Tap
       end
     end
     
+    # Returns the path, exchanging the extension with extname.  
+    # A false or nil extname removes the extension, while true 
+    # preserves the existing extension (and effectively does
+    # nothing).
+    #
+    #   t = FileTask.new
+    #   t.basepath('path/to/file.txt')           # => 'path/to/file'
+    #   t.basepath('path/to/file.txt', '.html')  # => 'path/to/file.html'
+    #
+    #   t.basepath('path/to/file.txt', false)    # => 'path/to/file'
+    #   t.basepath('path/to/file.txt', true)     # => 'path/to/file.txt'
+    #
+    # Compare to basename.
+    def basepath(path, extname=false)
+      case extname
+      when false, nil 
+        path.chomp(File.extname(path))
+      when true
+        path
+      else
+        extname = extname[1, extname.length-1] if extname[0] == ?.
+        "#{path.chomp(File.extname(path))}.#{extname}"
+      end
+    end
+    
     # Returns the basename of path, exchanging the extension 
-    # with extname, if provided.
+    # with extname.  A false or nil extname removes the
+    # extension, while true preserves the existing extension.
     #
     #   t = FileTask.new
     #   t.basename('path/to/file.txt')           # => 'file.txt'
     #   t.basename('path/to/file.txt', '.html')  # => 'file.html'
     #
-    def basename(path, extname=nil)
-      basename = File.basename(path)
-      unless extname == nil
-        extname = $1 if extname =~ /^\.?(.*)/
-        basename = "#{basename.chomp(File.extname(basename))}.#{extname}"
-      end
-      basename
+    #   t.basename('path/to/file.txt', false)    # => 'file'
+    #   t.basename('path/to/file.txt', true)     # => 'file.txt'
+    #
+    # Compare to basepath.
+    def basename(path, extname=true)
+      basepath(File.basename(path), extname)
     end
     
     # Constructs a filepath using the dir, name, and the specified paths.

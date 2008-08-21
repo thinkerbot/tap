@@ -159,6 +159,32 @@ class FileTaskTest < Test::Unit::TestCase
       file.close
     end
   end
+  
+  #
+  # basepath test
+  #
+  
+  def test_basepath_doc
+    assert_equal 'path/to/file', t.basepath('path/to/file.txt')
+    assert_equal 'path/to/file.html', t.basepath('path/to/file.txt', '.html')
+    
+    assert_equal 'path/to/file',  t.basepath('path/to/file.txt', false)
+    assert_equal 'path/to/file.txt',  t.basepath('path/to/file.txt', true)
+  end
+  
+  def test_basepath_with_false_or_nil_extname_chomps_extname
+    assert_equal 'path/to/file',  t.basepath('path/to/file.txt', false)
+    assert_equal 'path/to/file',  t.basepath('path/to/file.txt', nil)
+  end
+  
+  def test_basepath_with_true_extname_does_nothing
+    assert_equal 'path/to/file.txt',  t.basepath('path/to/file.txt', true)
+  end
+  
+  def test_basepath_can_exchange_extname_in_dot_or_no_dot_format
+    assert_equal 'path/to/file.html',  t.basepath('path/to/file.txt', ".html")
+    assert_equal 'path/to/file.html',  t.basepath('path/to/file.txt', "html")
+  end
 
   #
   # basename test
@@ -167,6 +193,9 @@ class FileTaskTest < Test::Unit::TestCase
   def test_basename_doc
     assert_equal 'file.txt', t.basename('path/to/file.txt')
     assert_equal 'file.html', t.basename('path/to/file.txt', '.html')
+    
+    assert_equal 'file',  t.basename('path/to/file.txt', false)
+    assert_equal 'file.txt',  t.basename('path/to/file.txt', true)
   end
 
   #

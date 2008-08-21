@@ -8,7 +8,6 @@ Gem::Specification.new do |s|
   s.summary = "A framework for creating configurable, distributable tasks and workflows."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  #s.test_file = "test/tap_test_suite.rb"
   s.bindir = "bin"
   s.executables = ["tap"]
   s.default_executable = "tap"
