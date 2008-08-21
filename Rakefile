@@ -61,7 +61,10 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.title    = 'Tap (task application)'
   rdoc.options << '--line-numbers' << '--inline-source'
   rdoc.rdoc_files.include( spec.extra_rdoc_files )
-  rdoc.rdoc_files.include( spec.files.select {|file| file =~ /^lib.*\.rb$/} )
+  
+  files = spec.files.select {|file| file =~ /^lib.*\.rb$/}
+  files.delete_if {|file| file =~ /generators\/.*\/templates/ }
+  rdoc.rdoc_files.include( files )
   
   require 'tap/support/tdoc'
   rdoc.template = 'tap/support/tdoc/tdoc_html_template' 
