@@ -1,10 +1,9 @@
-require File.join(File.dirname(__FILE__), '../tap_test_helper.rb') 
+require 'test/unit'
 require 'tap/test/subset_methods'
 
 class SubsetMethodsTest < Test::Unit::TestCase
   include Tap::Test::SubsetMethods
-  include Benchmark
-  
+
   def setup
     @env_hold = {}
     ENV.each_pair do |key, value|
@@ -112,60 +111,60 @@ class SubsetMethodsTest < Test::Unit::TestCase
 
   def test_match_regexp_returns_true_if_ENV_all_true
     ENV['ALL'] = "true"
-    assert_equal true, match_regexp?('type', "str", "default")
+    assert_equal true, match_regexp?('type', "str")
   end
 
   def test_match_regexp_returns_default_unless_ENV_type_is_set
-    assert_equal "default", match_regexp?('type', "str", "default")
+    assert_equal false, match_regexp?('type', "str", false)
   end
 end
 
-class SkippedTest < Test::Unit::TestCase
-  include Tap::Test::SubsetMethods
-  
-  if !conditions.empty?
-    raise "conditions were NOT empty in subclass"
-  end
-  
-  condition(:unsatisfied) do 
-    false
-  end
-  
-  unless satisfied?(:unsatisfied)
-    skip_test
-  end
-  
-  def test_method
-    flunk "test WAS run"
-  end
-end
+# class SkippedTest < Test::Unit::TestCase
+#   include Tap::Test::SubsetMethods
+#   
+#   if !conditions.empty?
+#     raise "conditions were NOT empty in subclass"
+#   end
+#   
+#   condition(:unsatisfied) do 
+#     false
+#   end
+#   
+#   unless satisfied?(:unsatisfied)
+#     skip_test
+#   end
+#   
+#   def test_method
+#     flunk "test WAS run"
+#   end
+# end
 
-class SkippedSubTest < SkippedTest
-  if conditions.empty?
-    raise "conditions WERE empty in subclass"
-  end
-  
-  condition(:unsatisfied) do 
-    true
-  end
-
-  def test_method
-    assert true
-  end
-end
-
-class NonSkippedTest < Test::Unit::TestCase
-  include Tap::Test::SubsetMethods
-  
-  condition(:unsatisfied) do 
-    true    
-  end
-  
-  unless satisfied?(:unsatisfied)
-    skip_test
-  end
-  
-  def test_method
-    assert true
-  end
-end
+# class SkippedSubTest < SkippedTest
+#   if conditions.empty?
+#     raise "conditions WERE empty in subclass"
+#   end
+#   
+#   condition(:unsatisfied) do 
+#     true
+#   end
+# 
+#   def test_method
+#     assert true
+#   end
+# end
+# 
+# class NonSkippedTest < Test::Unit::TestCase
+#   include Tap::Test::SubsetMethods
+#   
+#   condition(:unsatisfied) do 
+#     true    
+#   end
+#   
+#   unless satisfied?(:unsatisfied)
+#     skip_test
+#   end
+#   
+#   def test_method
+#     assert true
+#   end
+# end

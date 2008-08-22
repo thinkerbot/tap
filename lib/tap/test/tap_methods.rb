@@ -1,34 +1,5 @@
-require 'test/unit'
 require 'tap/test/file_methods'
 require 'tap/test/subset_methods'
-
-module Test # :nodoc:
-  module Unit # :nodoc:
-    class TestCase
-      class << self
-        # Causes a unit test to act as a tap test -- resulting in the following:
-        # - setup using acts_as_file_test
-        # - inclusion of Tap::Test::SubsetMethods
-        # - inclusion of Tap::Test::InstanceMethods 
-        #
-        # Note:  Unless otherwise specified, <tt>acts_as_tap_test</tt> infers a root directory
-        # based on the calling file. Be sure to specify the root directory explicitly 
-        # if you call acts_as_file_test from a file that is NOT meant to be test file.
-        def acts_as_tap_test(options={})
-          options = options.inject({:root => file_test_root}) do |hash, (key, value)|
-            hash[key.to_sym || key] = value
-            hash
-          end
-          acts_as_file_test(options)
-          
-          include Tap::Test::SubsetMethods
-          include Tap::Test::TapMethods
-        end
-        
-      end
-    end
-  end
-end
 
 module Tap
   module Test

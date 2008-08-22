@@ -22,7 +22,7 @@ module Tap
       
       # Returns true if the env_var(var) is set and matches /^true$/i
       def env_true?(var)
-        env(var) && env(var) =~ /^true$/i
+        (env(var) && env(var) =~ /^true$/i) ? true : false
       end
     end
   end

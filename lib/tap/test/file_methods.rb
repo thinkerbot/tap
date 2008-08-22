@@ -1,58 +1,7 @@
 require 'tap/root'
 require 'tap/test/env_vars'
-require 'test/unit'
 require 'fileutils'
-
-module Test # :nodoc:
-  module Unit # :nodoc:
-    class TestCase
-      class << self
-        
-        # Access the test root structure (a Tap::Root)
-        attr_accessor :trs
-        
-        # Causes a TestCase to act as a file test, by instantiating a class Tap::Root 
-        # (trs), and including FileMethods.  The root and directories used to 
-        # instantiate trs can be specified as options.  By default file_test_root
-        # and the directories {:input => 'input', :output => 'output', :expected => 'expected'} 
-        # will be used.
-        #
-        # Note: file_test_root determines a root directory <em>based on the calling file</em>.  
-        # Be sure to specify the root directory explicitly if you call acts_as_file_test
-        # from a file that is NOT meant to be test file.
-        def acts_as_file_test(options={})
-          options = {
-            :root => file_test_root,
-            :directories => {:input => 'input', :output => 'output', :expected => 'expected'}
-          }.merge(options)
-
-          directories = options[:directories]
-          self.trs = Tap::Root.new(options[:root], directories)
-      
-          include Tap::Test::FileMethods
-        end
-    
-        # Infers the test root directory from the calling file.  Ex:
-        #   'some_class.rb' => 'some_class'
-        #   'some_class_test.rb' => 'some_class'
-        def file_test_root
-          # the calling file is not the direct caller of +method_root+... this method is 
-          # only accessed from within another method call, hence the target caller is caller[1] 
-          # rather than caller[0].
-      
-          # caller[1] is considered the calling file (which should be the test case)
-          # note that the output of calller.first is like:
-          #   ./path/to/file.rb:10
-          #   ./path/to/file.rb:10:in 'method'
-          calling_file = caller[1].gsub(/:\d+(:in .*)?$/, "")
-          calling_file.chomp!("#{File.extname(calling_file)}") 
-          calling_file.chomp("_test") 
-        end
-      end
-    end
-  end
-end
-
+require 'tap/test/file_methods_class'
 module Tap
   module Test  
     
@@ -141,7 +90,11 @@ module Tap
     # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] for documentation of the class methods added by FileMethods.
     module FileMethods
       include Tap::Test::EnvVars
-  
+      
+      def self.included(base)
+        base.extend FileMethodsClass
+      end
+      
       # Convenience accessor for the test root structure
       def trs
         self.class.trs
