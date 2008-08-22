@@ -150,3 +150,20 @@ Rake::TestTask.new(:test) do |t|
   t.verbose = true
   t.warning = true
 end
+
+desc "Run specs."
+begin
+  require 'spec/rake/spectask'
+  Spec::Rake::SpecTask.new('spec') do |t|
+    t.libs = ['lib']
+    t.verbose = true
+    t.warning = true
+    t.spec_files = Dir.glob( File.join('specs', ENV['pattern'] || '**/*_spec.rb') )
+  end
+rescue(LoadError)
+  message = $!.message
+  task :spec do
+    puts "Specs cannot be run (is rspec installed?):"
+    puts message
+  end
+end

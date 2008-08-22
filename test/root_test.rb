@@ -155,10 +155,27 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
-  # Tap::Root indir test
+  # Tap::Root chdir test
   #
   
-  def test_indir_executes_block_in_the_specified_directory
+  def test_chdir_chdirs_to_dir_if_no_block_is_given
+    test_dir = root_dir
+    pwd = File.expand_path(Dir.pwd)
+    
+    assert_not_equal pwd, test_dir
+    assert File.directory?(test_dir)
+    
+    begin
+      Tap::Root.chdir(test_dir)
+      assert_equal test_dir, File.expand_path(Dir.pwd)
+    ensure
+      Dir.chdir(pwd)
+    end
+    
+    assert_equal pwd, File.expand_path(Dir.pwd)
+  end
+  
+  def test_chdir_executes_block_in_the_specified_directory
     test_dir = root_dir
     pwd = File.expand_path(Dir.pwd)
     
@@ -167,7 +184,7 @@ class RootTest < Test::Unit::TestCase
     
     was_in_block = false
     begin
-      res = Tap::Root.indir(test_dir) do 
+      res = Tap::Root.chdir(test_dir) do 
         was_in_block = true
         assert_equal test_dir, File.expand_path(Dir.pwd)
         "result"
@@ -181,7 +198,7 @@ class RootTest < Test::Unit::TestCase
     assert was_in_block
   end
   
-  def test_indir_raises_error_for_non_dir_inputs
+  def test_chdir_raises_error_for_non_dir_inputs
     test_dir = root_dir + '/non/existant/dir'
     filepath = root_dir + '/file.txt'
     pwd = File.expand_path(Dir.pwd)
@@ -190,8 +207,8 @@ class RootTest < Test::Unit::TestCase
     assert File.exists?(filepath) 
     assert File.file?(filepath)
     begin
-      assert_raise(RuntimeError) { Tap::Root.indir(filepath) {} }
-      assert_raise(RuntimeError) { Tap::Root.indir(filepath) {} }
+      assert_raise(RuntimeError) { Tap::Root.chdir(filepath) {} }
+      assert_raise(RuntimeError) { Tap::Root.chdir(filepath) {} }
     ensure
       Dir.chdir(pwd)
     end
@@ -199,7 +216,7 @@ class RootTest < Test::Unit::TestCase
     assert_equal pwd, File.expand_path(Dir.pwd)
   end
   
-  def test_indir_creates_directory_if_specified
+  def test_chdir_creates_directory_if_specified
     test_dir = root_dir + '/non/existant/dir'
     pwd = File.expand_path(Dir.pwd)
     
@@ -208,7 +225,7 @@ class RootTest < Test::Unit::TestCase
 
     was_in_block = false
     begin
-      Tap::Root.indir(test_dir, true) do 
+      Tap::Root.chdir(test_dir, true) do 
         was_in_block = true
         assert_equal test_dir, File.expand_path(Dir.pwd)
         assert File.exists?(test_dir)

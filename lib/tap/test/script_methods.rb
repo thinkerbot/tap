@@ -1,32 +1,14 @@
-require 'test/unit'
-require 'tap/test/file_methods'
 require 'tap/test/subset_methods'
 require 'tap/test/script_methods/script_test'
-
-module Test # :nodoc:
-  module Unit # :nodoc:
-    class TestCase
-      class << self
-
-        def acts_as_script_test(options={})
-          options = options.inject({:root => file_test_root}) do |hash, (key, value)|
-            hash[key.to_sym || key] = value
-            hash
-          end
-          acts_as_file_test(options)
-          include Tap::Test::SubsetMethods
-          include Tap::Test::ScriptMethods
-        end
-        
-      end
-    end
-  end
-end
 
 module Tap
   module Test
     module ScriptMethods
-            
+      
+      def self.included(base)
+        base.send(:include, Tap::Test::SubsetMethods)  
+      end
+      
       def assert_output_equal(a, b, msg)
         a = a[1..-1] if a[0] == ?\n
         if a == b
@@ -81,7 +63,7 @@ module Tap
           cmd = ScriptTest.new(default_command_path)
           yield(cmd)
           
-          Tap::Root.indir(test_dir, true) do
+          Tap::Root.chdir(test_dir, true) do
             with_argv do
               puts "\n# == #{method_name}"
 
