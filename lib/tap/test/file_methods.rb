@@ -296,8 +296,8 @@ module Tap
       #       |- one.txt
       #       `- two.txt
       #   
-      # The input and expected files (all references in this case) can be translated 
-      # to the reference filepaths like so:
+      # The input and expected files (all references in this case) can be dereferenced 
+      # to the 'ref' filepaths like so:
       #
       #   assert_files :reference_dir => method_dir(:ref) do |input_files|
       #     input_files # => ['method_root/ref/one.txt', 'method_root/ref/two.txt']
@@ -309,8 +309,9 @@ module Tap
       #     end
       #   end
       #
-      # Traslation occurs relative to the input_dir/expected_dir configurations; a
-      # reference_dir must be specified for translation to occur.
+      # Dereferencing occurs relative to the input_dir/expected_dir configurations; a
+      # reference_dir must be specified for dereferencing to occur (see dereference
+      # for more details).
       #
       #--
       # TODO:
@@ -399,12 +400,27 @@ module Tap
           :reference_extname => '.ref'
         }
       end
-
-      def dereference(path, input_dir, output_dir, reference_extname)
+      
+      # Dereferences the specified path by translating it from the source_dir to the
+      # reference_dir, minus the reference_extname.  If no file exists for the direct
+      # translation, dereference will glob the reference dir for any file with the 
+      # correct basename; if a single match is found, the match is considered the 
+      # dereferenced file.  Otherwise, an ArgumentError is raised.
+      def dereference(path, source_dir, reference_dir, reference_extname)
         return path unless File.extname(path) == reference_extname
-
-        reference_path = trs.translate(path, input_dir, output_dir).chomp(reference_extname)
-        raise "no reference found for: #{path}" unless File.exists?(reference_path)
+       
+        relative_path = Tap::Root.relative_filepath(source_dir, path).chomp(reference_extname)
+        reference_path = File.join(reference_dir, relative_path)
+       
+        unless File.exists?(reference_path)
+          matching_paths = Dir.glob(File.join(reference_dir, "**", File.basename(relative_path)))
+          reference_path = case matching_paths.length
+          when 0 then raise ArgumentError, "no reference found for: #{path}"
+          when 1 then matching_paths[0]
+          else raise ArgumentError, "multiple references found for: #{path} [#{matching_paths.join(', ')}]"
+          end
+        end
+       
         reference_path
       end
       

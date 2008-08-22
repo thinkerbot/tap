@@ -560,7 +560,7 @@ module Tap
     end
     
     # chdirs to the specified directory using Root.chdir.
-    def chdir(dir, mkdir=false)
+    def chdir(dir, mkdir=false, &block)
       Root.chdir(self[dir], mkdir, &block)
     end
     
