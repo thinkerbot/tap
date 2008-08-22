@@ -109,10 +109,10 @@ module Tap
         end.flatten.uniq
       end
       
-      # Executes the block in the specified directory.  Makes the directory, if
-      # necessary when mkdir is specified.  Otherwise, indir raises an error 
-      # for non-existant directories, as well as non-directory inputs.
-      def indir(dir, mkdir=false)
+      # Like Dir.chdir but makes the directory, if necessary, when 
+      # mkdir is specified. chdir raises an error for non-existant 
+      # directories, as well as non-directory inputs.
+      def chdir(dir, mkdir=false, &block)
         unless File.directory?(dir)
           if !File.exists?(dir) && mkdir
             FileUtils.mkdir_p(dir)
@@ -120,14 +120,8 @@ module Tap
             raise "not a directory: #{dir}"
           end
         end
-
-        pwd = Dir.pwd
-        begin
-          Dir.chdir(dir)
-          yield
-        ensure
-          Dir.chdir(pwd)
-        end
+        
+        Dir.chdir(dir, &block)
       end
       
       # The path root type indicating windows, *nix, or some unknown
@@ -555,9 +549,9 @@ module Tap
       Root.vglob(filepath(dir, filename), *vpatterns)
     end
     
-    # Executes the provided block in the specified directory using Root.indir.
-    def indir(dir, mkdir=false)
-      Root.indir(self[dir], mkdir) { yield }
+    # chdirs to the specified directory using Root.chdir.
+    def chdir(dir, mkdir=false)
+      Root.chdir(self[dir], mkdir, &block)
     end
     
     private

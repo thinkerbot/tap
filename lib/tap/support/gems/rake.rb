@@ -59,9 +59,9 @@ module Tap
           super
         end
       
-        def have_rakefile(indir=nil)
-          return super() if indir == nil
-          Tap::Root.indir(indir) { super() }
+        def have_rakefile(dir=nil)
+          return super() if dir == nil
+          Tap::Root.chdir(dir) { super() }
         end
 
         protected

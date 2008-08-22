@@ -81,7 +81,7 @@ module Tap
           cmd = ScriptTest.new(default_command_path)
           yield(cmd)
           
-          Tap::Root.indir(test_dir, true) do
+          Tap::Root.chdir(test_dir, true) do
             with_argv do
               puts "\n# == #{method_name}"
 
