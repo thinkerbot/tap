@@ -261,6 +261,26 @@ class FileMethodsTest < Test::Unit::TestCase
 
     assert was_in_block
   end
+  
+  def test_assert_files_translates_reference_files_to_reference_dir
+    setup_file :input, "one.txt.ref", ""
+    setup_file :input, "two.txt.ref", ""
+    setup_file :ref, "one.txt", "file one"
+    setup_file :ref, "two.txt", "file two"
+    setup_file :expected, "one.txt", "processed file one"
+    setup_file :expected, "two.txt", "processed file two"
+    
+    assert_files :reference_dir => method_dir(:ref) do |input_files|
+      input_files.collect do |input_file|
+        target = method_filepath(:output, File.basename(input_file))
+        File.open(target, "w") do |file|
+          file << "processed "
+          file << File.read(input_file)
+        end
+        target
+      end
+    end
+  end
 end
 
 class FileTestTestWithOptions < Test::Unit::TestCase

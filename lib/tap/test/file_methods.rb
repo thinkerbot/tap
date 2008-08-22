@@ -272,17 +272,20 @@ module Tap
       # not specified in the options and no files were found in method_dir(:expected).  
       # This tries to prevent silent false-positive results when you forget to put 
       # expected files in their place.
+      #
+      #--
+      # TODO:
+      # * add debugging information to indicate, for instance,  
+      #   when dereferencing is going on.
       def assert_files(options={}) # :yields: input_files
         make_test_directories
         
-        options = {
-          :input_files => nil,
-          :expected_files => nil,
+        options = DEFAULT_ASSERT_FILES_OPTIONS.merge(options)
+        input_dir = (options[:input_dir] ||= method_dir(:input))
+        expected_dir = (options[:expected_dir] ||= method_dir(:expected))
+        reference_dir = options[:reference_dir]
+        reference_extname = options[:reference_extname]
 
-          :include_input_directories => false,
-          :include_expected_directories => false
-        }.merge(options)
-        
         # Get the input and expected files in this manner:
         # - look for manually specified files
         # - glob for files if none were specified
@@ -290,7 +293,10 @@ module Tap
         # - remove directories unless specified not to do so
         input_files, expected_files = [:input, :expected].collect do |key|
           files = options["#{key}_files".to_sym]
-          files = method_glob(key) if files.nil?
+          if files.nil?
+            pattern = File.join(options["#{key}_dir".to_sym], "**/*")
+            files = Dir.glob(pattern)
+          end
           files = [files].flatten.collect {|file| File.expand_path(file) }.sort
 
           unless options["include_#{key}_directories".to_sym]
@@ -304,7 +310,12 @@ module Tap
         if expected_files.empty? && options[:expected_files] == nil
           flunk "No expected files specified."
         end
-  
+        
+        # dereference input files
+        input_files.collect! do |input_file|
+          dereference(input_file, input_dir, reference_dir, reference_extname)
+        end if reference_dir
+
         # get output files from the block, expand and sort
         output_files = [yield(input_files)].flatten.collect do |output_file| 
           output_file = File.expand_path(output_file)
@@ -312,10 +323,16 @@ module Tap
         
         # check that the expected and output filepaths are the same
         translated_expected_files = expected_files.collect do |expected_file|
-          method_translate(expected_file, :expected, :output)
+          translated_file = method_translate(expected_file, :expected, :output)
+          reference_dir ? translated_file.chomp(reference_extname) : translated_file
         end
         assert_equal translated_expected_files, output_files, "Missing, extra, or unexpected output files"
-
+        
+        # dereference expected files
+        expected_files.collect! do |expected_file|
+          dereference(expected_file, expected_dir, reference_dir, reference_extname)
+        end if reference_dir
+        
         # check that the expected and output file contents are equal
         errors = []
         each_pair(expected_files, output_files) do |expected_file, output_file|
@@ -325,7 +342,29 @@ module Tap
         end
         flunk "File compare failed:\n" + errors.join("\n") unless errors.empty?
       end
+      
+      # The default assert_files options
+      DEFAULT_ASSERT_FILES_OPTIONS = {
+        :input_files => nil,
+        :expected_files => nil,
+        
+        :input_dir => nil,
+        :expected_dir => nil,
+        :reference_dir => nil,
+        :reference_extname => '.ref',
+        
+        :include_input_directories => false,
+        :include_expected_directories => false
+      }
 
+      def dereference(path, input_dir, output_dir, reference_extname)
+        return path unless File.extname(path) == reference_extname
+
+        reference_path = trs.translate(path, input_dir, output_dir).chomp(reference_extname)
+        raise "no reference found for: #{path}" unless File.exists?(reference_path)
+        reference_path
+      end
+      
     end
   end
 end
