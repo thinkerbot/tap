@@ -1,7 +1,8 @@
 require 'tap/root'
 require 'tap/test/env_vars'
-require 'fileutils'
 require 'tap/test/file_methods_class'
+require 'fileutils'
+
 module Tap
   module Test  
     

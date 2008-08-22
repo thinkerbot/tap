@@ -1,11 +1,14 @@
-require 'tap/test/file_methods'
 require 'tap/test/subset_methods'
 require 'tap/test/script_methods/script_test'
 
 module Tap
   module Test
     module ScriptMethods
-            
+      
+      def self.included(base)
+        base.send(:include, Tap::Test::SubsetMethods)  
+      end
+      
       def assert_output_equal(a, b, msg)
         a = a[1..-1] if a[0] == ?\n
         if a == b

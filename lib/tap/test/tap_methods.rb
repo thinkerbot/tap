@@ -1,6 +1,3 @@
-require 'tap/test/file_methods'
-require 'tap/test/subset_methods'
-
 module Tap
   module Test
 

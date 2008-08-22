@@ -2,9 +2,12 @@ require File.join(File.dirname(__FILE__), '../tap_test_helper.rb')
 require 'tap/test/file_methods'
 
 class FileMethodsTest < Test::Unit::TestCase
-  include Tap::Test::SubsetMethods
-  acts_as_file_test
+  include Tap::Test::FileMethods
   
+  self.trs = Tap::Root.new(
+    __FILE__.chomp("_test.rb"), 
+    {:input => 'input', :output => 'output', :expected => 'expected'})
+
   def test_method_name_returns_test_method_name1
     assert_equal "test_method_name_returns_test_method_name1", method_name_str  
   end
@@ -14,7 +17,7 @@ class FileMethodsTest < Test::Unit::TestCase
   end
   
   def test_make_test_directories 
-    root = File.expand_path(File.join(File.dirname(__FILE__), "file_methods"))
+    root = File.expand_path( __FILE__.chomp("_test.rb") )
     begin
       assert_equal root, trs[:root]
       assert_equal({
@@ -26,7 +29,7 @@ class FileMethodsTest < Test::Unit::TestCase
         assert !File.exists?(File.join(root, "test_make_test_directories", dir.to_s)), dir
       end
       
-      make_test_directories # alias for make_test_directories
+      make_test_directories
    
       trs.directories.values.each do |dir|
         assert File.exists?(File.join(root, "test_make_test_directories", dir.to_s)), dir

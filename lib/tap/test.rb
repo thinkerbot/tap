@@ -1,6 +1,4 @@
 require 'test/unit'
-require 'pp'
-require 'tap/test/tap_methods'
 
 module Test # :nodoc:
   module Unit # :nodoc:
@@ -92,7 +90,6 @@ module Test # :nodoc:
         end
 
         def acts_as_script_test(options={})
-          include Tap::Test::SubsetMethods
           include Tap::Test::FileMethods
           include Tap::Test::ScriptMethods
           
@@ -109,7 +106,9 @@ module Tap
   # Tap, but SubsetMethods and FileMethods are more general in 
   # their utility.
   module Test
-    autoload(:SubsetMethods, 'tap')
+    autoload(:SubsetMethods, 'tap/test/subset_methods')
+    autoload(:FileMethods, 'tap/test/file_methods')
+    autoload(:TapMethods, 'tap/test/tap_methods')
   end
 end
 
