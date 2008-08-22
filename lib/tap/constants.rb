@@ -1,7 +1,7 @@
 module Tap
   MAJOR = 0
   MINOR = 10
-  TINY = 1
+  TINY = 2
   
   VERSION="#{MAJOR}.#{MINOR}.#{TINY}" 
   WEBSITE="http://tap.rubyforge.org"
