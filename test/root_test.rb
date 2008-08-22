@@ -91,6 +91,18 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
+  # Tap::Root translate test
+  #
+  
+  def test_translate_documentation
+    assert_equal  '/another/path/to/file.txt', Tap::Root.translate("/path/to/file.txt", "/path", "/another/path")
+  end
+
+  def test_translate_raises_error_if_path_is_not_relative_to_source_dir
+    assert_raise(ArgumentError) { Tap::Root.translate("/path/to/file.txt", "/not_path", "/another/path") }
+  end
+
+  #
   # Tap::Root glob test
   #
   
@@ -901,7 +913,7 @@ class RootTest < Test::Unit::TestCase
   end
   
   def test_translate_raises_error_if_path_is_not_relative_to_aliased_input_dir
-    assert_raise(RuntimeError) { r.translate("./root/dir/file.txt", :not_dir, :another) }
+    assert_raise(ArgumentError) { r.translate("./root/dir/file.txt", :not_dir, :another) }
   end
   
   #

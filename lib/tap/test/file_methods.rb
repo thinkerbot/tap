@@ -251,16 +251,22 @@ module Tap
         end
       end
       
-      # assert_files runs a file-based test that feeds all files in method_dir(:input) 
+      # assert_files runs a file-based test that feeds all files from input_dir
       # to the block, then compares the resulting files (which should be relative to 
-      # method_dir(:output)) with all the files in method_dir(:expected).  Note that
-      # since only the files returned by the block are used in the comparison,
-      # additional files in the output directory are effectively ignored.
+      # output_dir) with all the files in expected_dir.  Only the files returned by 
+      # the block are used in the comparison; additional files in the output directory 
+      # are effectively ignored.
       #
       # A variety of options can be specified to adjust the behavior:
       # 
-      #   :input_files                    specify the input files to pass to the block
-      #   :expected_files                 specify the expected files used in comparison
+      #   :input_dir                      specify the directory to glob for input files
+      #                                     (default method_dir(:input))
+      #   :output_dir                     specify the output directory
+      #                                     (default method_dir(:output))
+      #   :expected_dir                   specify the directory to glob for expected files
+      #                                     (default method_dir(:expected))
+      #   :input_files                    directly specify the input files to pass to the block
+      #   :expected_files                 directly specify the expected files used for comparison
       #   :include_input_directories      specifies directories to be included in the 
       #                                     input_files array (by default dirs are excluded)
       #   :include_expected_directories   specifies directories to be included in the
@@ -273,6 +279,39 @@ module Tap
       # This tries to prevent silent false-positive results when you forget to put 
       # expected files in their place.
       #
+      # === File References
+      # Sometimes the same files will get used across multiple tests.  To prevent
+      # duplication, and allow separate management of test files, file references
+      # can be provided in place of test files.  For instance, with a test
+      # directory like:
+      #
+      #   method_root
+      #   |- expected
+      #   |   |- one.txt.ref
+      #   |   `- two.txt.ref
+      #   |- input
+      #   |   |- one.txt.ref
+      #   |   `- two.txt.ref
+      #   `- ref
+      #       |- one.txt
+      #       `- two.txt
+      #   
+      # The input and expected files (all references in this case) can be translated 
+      # to the reference filepaths like so:
+      #
+      #   assert_files :reference_dir => method_dir(:ref) do |input_files|
+      #     input_files # => ['method_root/ref/one.txt', 'method_root/ref/two.txt']
+      #
+      #     input_files.collect do |input_file|
+      #       output_file = method_filepath(:output, File.basename(input_file)
+      #       FileUtils.cp(input_file, output_file)
+      #       output_file
+      #     end
+      #   end
+      #
+      # Traslation occurs relative to the input_dir/expected_dir configurations; a
+      # reference_dir must be specified for translation to occur.
+      #
       #--
       # TODO:
       # * add debugging information to indicate, for instance,  
@@ -280,9 +319,10 @@ module Tap
       def assert_files(options={}) # :yields: input_files
         make_test_directories
         
-        options = DEFAULT_ASSERT_FILES_OPTIONS.merge(options)
-        input_dir = (options[:input_dir] ||= method_dir(:input))
-        expected_dir = (options[:expected_dir] ||= method_dir(:expected))
+        options = default_assert_files_options.merge(options)
+        input_dir = options[:input_dir]
+        output_dir = options[:output_dir] 
+        expected_dir = options[:expected_dir] 
         reference_dir = options[:reference_dir]
         reference_extname = options[:reference_extname]
 
@@ -323,7 +363,7 @@ module Tap
         
         # check that the expected and output filepaths are the same
         translated_expected_files = expected_files.collect do |expected_file|
-          translated_file = method_translate(expected_file, :expected, :output)
+          translated_file = Tap::Root.translate(expected_file, expected_dir, output_dir)
           reference_dir ? translated_file.chomp(reference_extname) : translated_file
         end
         assert_equal translated_expected_files, output_files, "Missing, extra, or unexpected output files"
@@ -344,18 +384,21 @@ module Tap
       end
       
       # The default assert_files options
-      DEFAULT_ASSERT_FILES_OPTIONS = {
-        :input_files => nil,
-        :expected_files => nil,
-        
-        :input_dir => nil,
-        :expected_dir => nil,
-        :reference_dir => nil,
-        :reference_extname => '.ref',
-        
-        :include_input_directories => false,
-        :include_expected_directories => false
-      }
+      def default_assert_files_options
+        {
+          :input_dir => method_dir(:input),
+          :output_dir => method_dir(:output),
+          :expected_dir => method_dir(:expected),
+          
+          :input_files => nil,
+          :expected_files => nil,
+          :include_input_directories => false,
+          :include_expected_directories => false,
+          
+          :reference_dir => nil,
+          :reference_extname => '.ref'
+        }
+      end
 
       def dereference(path, input_dir, output_dir, reference_extname)
         return path unless File.extname(path) == reference_extname

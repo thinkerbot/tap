@@ -79,6 +79,19 @@ module Tap
         # empty string is returned
         expanded_path[( expanded_dir.chomp("/").length + 1)..-1] || ""
       end
+      
+      # Generates a target filepath translated from the source_dir to 
+      # the target_dir. Raises an error if the filepath is not relative 
+      # to the source_dir.    
+      #
+      #    Root.translate("/path/to/file.txt", "/path", "/another/path")  # => '/another/path/to/file.txt'
+      #
+      def translate(path, source_dir, target_dir)
+        unless relative_path = relative_filepath(source_dir, path)
+          raise ArgumentError, "\n#{path}\nis not relative to:\n#{source_dir}"
+        end
+        File.join(target_dir, relative_path)
+      end
     
       # Lists all unique paths matching the input glob patterns.  
       def glob(*patterns)
@@ -521,17 +534,14 @@ module Tap
       Root.relative_filepath(self[dir], filepath)
     end
   
-    # Generates a target filepath translated from the aliased input dir to 
-    # the aliased output dir. Raises an error if the filepath is not relative 
-    # to the aliased input dir.
+    # Generates a target filepath translated from the aliased source_dir to 
+    # the aliased target_dir. Raises an error if the filepath is not relative 
+    # to the aliased source_dir.
     # 
     #  fp = r.filepath(:in, 'path/to/file.txt')    # => '/root_dir/in/path/to/file.txt'
     #  r.translate(fp, :in, :out)                  # => '/root_dir/out/path/to/file.txt'
-    def translate(filepath, input_dir, output_dir)
-      unless relative_path = relative_filepath(input_dir, filepath)
-        raise "\n#{filepath}\nis not relative to:\n#{input_dir}"
-      end
-      filepath(output_dir, relative_path)
+    def translate(filepath, source_dir, target_dir)
+      Root.translate(filepath, self[source_dir], self[target_dir])
     end
   
     # Lists all files in the aliased dir matching the input patterns.  Patterns 
