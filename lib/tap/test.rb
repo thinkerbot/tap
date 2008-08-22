@@ -39,7 +39,7 @@ module Test # :nodoc:
 
           # experimental -- perhaps use this so that a test can be skipped
           # for multiple reasons?
-          @skip_messages << msg unless msg.nil?
+          @skip_messages << msg
         end
 
         alias :original_suite :suite
@@ -49,7 +49,8 @@ module Test # :nodoc:
           if run_test_suite
             original_suite
           else
-            puts "Skipping #{name}: #{@skip_messages.join(', ')}" unless @skip_messages.empty?
+            skip_message = @skip_messages.compact.join(', ')
+            puts "Skipping #{name}#{skip_message.empty? ? '' : ': ' + skip_message}"
             Test::Unit::TestSuite.new(name)
           end
         end
