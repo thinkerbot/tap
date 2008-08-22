@@ -20,17 +20,17 @@ module Test # :nodoc:
     #See the TestTutorial for more information.
     class TestCase
       class << self
-
+        
+        def inherited(child)
+          child.instance_variable_set(:@skip_messages, [])
+          child.instance_variable_set(:@run_test_suite, true)
+        end
+        
         #
         # Methods for skipping a test suite
         #
         
         attr_accessor :run_test_suite
-
-        # Returns run_test_suite, or true if run_test_suite is not set.
-        def run_test_suite?
-          run_test_suite.nil? ? true : run_test_suite
-        end
 
         # Causes a test suite to be skipped.  If a message is given, it will
         # print and notify the user the test suite has been skipped.
@@ -46,7 +46,7 @@ module Test # :nodoc:
 
         # Modifies the default suite method to include/exclude tests based on platform.
         def suite # :nodoc:
-          if run_test_suite?
+          if run_test_suite
             original_suite
           else
             puts "Skipping #{name}: #{@skip_messages.join(', ')}" unless @skip_messages.empty?
