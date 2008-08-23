@@ -23,10 +23,7 @@ describe Tap::Spec::FileMethods do
         root = File.expand_path(__FILE__.chomp("_spec.rb"))
         
         check root.should == trs[:root]
-        check trs.directories.should == {
-          :input => 'input', 
-          :output => 'output', 
-          :expected => 'expected'}
+        check trs.directories.should == {:input => 'input', :output => 'output', :expected => 'expected'}
 
         trs.directories.values.each do |dir|
           dir_path = File.join(root, "should_make_trs_directories", dir.to_s)
