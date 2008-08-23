@@ -6,6 +6,7 @@ module Tap
     module ScriptMethods
       
       def self.included(base)
+        super
         base.send(:include, Tap::Test::SubsetMethods)  
       end
       

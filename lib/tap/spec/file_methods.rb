@@ -6,6 +6,7 @@ module Tap
   module Spec
     module FileMethods
       def self.included(base)
+        super
         base.send(:include, Tap::Spec::Adapter)
         base.send(:include, Tap::Test::FileMethods)
         base.extend Tap::Spec::FileMethodsClass

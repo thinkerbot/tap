@@ -87,6 +87,7 @@ module Tap
       include Tap::Test::EnvVars
       
       def self.included(base)
+        super
         base.extend SubsetMethodsClass
       end
   
