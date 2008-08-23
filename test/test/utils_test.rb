@@ -49,7 +49,88 @@ class UtilsTest < Test::Unit::TestCase
   def test_reference_map_raises_error_if_no_reference_files_match_path
     assert_raise(ArgumentError) { reference_map(method_path('input'), method_path('ref')) }
   end
-
+  
+  #
+  # dereference test
+  #
+  
+  def test_dereference_replaces_source_files_with_reference_files_in_block
+    assert_equal "", File.read(method_path('input/one.txt.ref'))
+    assert_equal "", File.read(method_path('input/two.txt.ref'))
+    assert_equal "", File.read(method_path('input/path.ref'))
+    assert !File.exists?(method_path('input/one.txt'))
+    assert !File.exists?(method_path('input/two.txt'))
+    assert !File.exists?(method_path('input/path'))
+    
+    was_in_block = false
+    dereference(method_path('input'), method_path('ref')) do
+      assert !File.exists?(method_path('input/one.txt.ref'))
+      assert !File.exists?(method_path('input/two.txt.ref'))
+      assert !File.exists?(method_path('input/path.ref'))
+      
+      assert_equal "one", File.read(method_path('input/one.txt'))
+      assert_equal "two", File.read(method_path('input/two.txt'))
+      assert_equal "path/to/one", File.read(method_path('input/path/to/one.txt'))
+      assert_equal "path/to/two", File.read(method_path('input/path/to/two.txt'))
+      
+      was_in_block = true
+    end
+    
+    assert_equal "", File.read(method_path('input/one.txt.ref'))
+    assert_equal "", File.read(method_path('input/two.txt.ref'))
+    assert_equal "", File.read(method_path('input/path.ref'))
+    assert !File.exists?(method_path('input/one.txt'))
+    assert !File.exists?(method_path('input/two.txt'))
+    assert !File.exists?(method_path('input/path'))
+    
+    assert was_in_block
+  end
+  
+  class DereferenceTestError < StandardError
+  end
+  
+  def test_dereference_resets_original_files_even_with_error_in_block
+    assert_equal "", File.read(method_path('input/one.txt.ref'))
+    assert_equal "", File.read(method_path('input/path.ref'))
+    assert !File.exists?(method_path('input/one.txt'))
+    assert !File.exists?(method_path('input/path'))
+    
+    assert_raise(DereferenceTestError) do 
+      dereference(method_path('input'), method_path('ref')) do
+        raise DereferenceTestError
+      end
+    end
+    
+    assert_equal "", File.read(method_path('input/one.txt.ref'))
+    assert_equal "", File.read(method_path('input/path.ref'))
+    assert !File.exists?(method_path('input/one.txt'))
+    assert !File.exists?(method_path('input/path'))
+  end
+  
+  def test_dereference_does_nothing_if_reference_dir_is_nil
+    assert_equal "", File.read(method_path('input/one.txt.ref'))
+    assert_equal "", File.read(method_path('input/path.ref'))
+    assert !File.exists?(method_path('input/one.txt'))
+    assert !File.exists?(method_path('input/path'))
+    
+    was_in_block = false
+    dereference(method_path('input'), nil) do
+      assert_equal "", File.read(method_path('input/one.txt.ref'))
+      assert_equal "", File.read(method_path('input/path.ref'))
+      assert !File.exists?(method_path('input/one.txt'))
+      assert !File.exists?(method_path('input/path'))
+      
+      was_in_block = true
+    end
+    
+    assert_equal "", File.read(method_path('input/one.txt.ref'))
+    assert_equal "", File.read(method_path('input/path.ref'))
+    assert !File.exists?(method_path('input/one.txt'))
+    assert !File.exists?(method_path('input/path'))
+    
+    assert was_in_block
+  end
+  
 end
 
 

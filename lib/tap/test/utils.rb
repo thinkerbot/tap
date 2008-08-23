@@ -70,13 +70,13 @@ module Tap
               FileUtils.cp_r(source, target)
               mapped_paths << target
             end
-          end
+          end unless reference_dir == nil
           
           yield
           
         ensure
           mapped_paths.each do |path|
-            FileUtils.rm_r(path)
+            FileUtils.rm_r(path) if File.exists?(path)
             FileUtils.touch(path + extname)
           end
         end
