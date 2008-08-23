@@ -13,7 +13,7 @@ module Tap
         caller.each do |line|
           case line
           when /\/framework.rb/ then next
-          when /^(([A-z]:)?[^:]+):(\d+)/
+          when Lazydoc::CALLER_REGEXP
             base.instance_variable_set(:@source_file, File.expand_path($1))
             break
           end
@@ -24,7 +24,7 @@ module Tap
       
       def inherited(child)
         unless child.instance_variable_defined?(:@source_file)
-          caller.first =~ /^(([A-z]:)?[^:]+):(\d+)/
+          caller.first =~ Lazydoc::CALLER_REGEXP
           child.instance_variable_set(:@source_file, File.expand_path($1)) 
         end
         
@@ -64,7 +64,7 @@ module Tap
         caller.each_with_index do |line, index|
           case line
           when /\/tap\/support\/declarations.rb/ then next
-          when /^(([A-z]:)?[^:]+):(\d+)/
+          when Lazydoc::CALLER_REGEXP
             subclass.source_file = File.expand_path($1)
             lzd = subclass.lazydoc(false)
             lzd[const_name, false]['manifest'] = lzd.register($3.to_i - 1)            

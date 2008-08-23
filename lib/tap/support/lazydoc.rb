@@ -122,7 +122,7 @@ module Tap
     #
     class Lazydoc
       
-      # A regexp matching an attribute start or end.  For the match:
+      # A regexp matching an attribute start or end.  After a match:
       #
       # $1:: const_name
       # $3:: key
@@ -132,6 +132,15 @@ module Tap
     
       # A regexp matching constants from the ATTRIBUTE_REGEXP leader
       CONSTANT_REGEXP = /#.*?([A-Z][A-z]*(::[A-Z][A-z]*)*)?$/
+      
+      # A regexp matching a caller line, to extract the calling file
+      # and line number.  After a match:
+      #
+      # $1:: file
+      # $3:: line number (as a string, obviously)
+      #
+      # Note that line numbers in caller start at 1, not 0.
+      CALLER_REGEXP = /^(([A-z]:)?[^:]+):(\d+)/
       
       class << self
         

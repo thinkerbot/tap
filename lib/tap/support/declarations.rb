@@ -49,7 +49,7 @@ module Tap
       def config(key, value=nil, options={}, &block)
         caller.each do |line|
           case line
-          when /^(([A-z]:)?[^:]+):(\d+)/
+          when Lazydoc::CALLER_REGEXP
             options[:desc] = Support::Lazydoc.register($1, $3.to_i - 1)
             break
           end
@@ -61,7 +61,7 @@ module Tap
       def config_attr(key, value=nil, options={}, &block)
         caller.each do |line|
           case line
-          when /^(([A-z]:)?[^:]+):(\d+)/
+          when Lazydoc::CALLER_REGEXP
             options[:desc] = Support::Lazydoc.register($1, $3.to_i - 1)
             break
           end

@@ -11,7 +11,14 @@ module Tap
       #
       #   check 1.should == 1
       #
-      def check(*args)
+      def check(return_value)
+        caller[0] =~ /^(([A-z]:)?[^:]+):(\d+)/
+        
+        check_file = SCRIPT_LINES__[$1]
+        violated("could not validate check: #{$1} (#{$3})") unless check_file 
+        
+        line = check_file[$3.to_i - 1]
+        violated("check used without should/should_not statement: #{line} (#{caller[0]})") unless line =~ /\.should(_not)?[^\w]/
       end
       
       # Maps flunk to violated.

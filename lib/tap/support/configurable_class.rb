@@ -57,7 +57,7 @@ module Tap
         caller.each_with_index do |line, index|
           case line
           when /\/configurable.rb/ then next
-          when /^(([A-z]:)?[^:]+):(\d+)/
+          when Lazydoc::CALLER_REGEXP
             base.instance_variable_set(:@source_file, File.expand_path($1))
             break
           end
@@ -71,7 +71,7 @@ module Tap
       # the configurations of the parent class.
       def inherited(child)
         unless child.instance_variable_defined?(:@source_file)
-          caller.first =~ /^(([A-z]:)?[^:]+):(\d+)/
+          caller.first =~ Lazydoc::CALLER_REGEXP
           child.instance_variable_set(:@source_file, File.expand_path($1)) 
         end
         
@@ -250,7 +250,7 @@ module Tap
         caller.each do |line|
           case line
           when /in .config.$/ then next
-          when /^(([A-z]:)?[^:]+):(\d+)/
+          when Lazydoc::CALLER_REGEXP
             options[:desc] = Lazydoc.register($1, $3.to_i - 1)
             break
           end

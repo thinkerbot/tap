@@ -1,6 +1,6 @@
 require 'tap/spec/file_methods'
 
-describe "Tap::Spec::FileMethods" do
+describe Tap::Spec::FileMethods do
   include Tap::Spec::FileMethods
   
   self.trs = Tap::Root.new(

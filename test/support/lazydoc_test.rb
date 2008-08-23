@@ -1,6 +1,22 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/support/lazydoc'
 
+# used in testing CALLER_REGEXP below
+module CallerRegexpTestModule
+  module_function
+  def call(method, regexp)
+    send("caller_test_#{method}", regexp)
+  end
+  def caller_test_pass(regexp)
+    caller[0] =~ regexp
+    $~
+  end
+  def caller_test_fail(regexp)
+    "unmatching" =~ regexp
+    $~
+  end
+end
+
 class LazydocTest < Test::Unit::TestCase
   include Tap::Support
   include Tap::Test::SubsetMethods
@@ -173,6 +189,21 @@ end
     assert_equal nil, $1
     
     assert r !~ "Name::Space"
+  end
+  
+  #
+  # CALLER_REGEXP test
+  #
+
+  def test_CALLER_REGEXP
+    r = Lazydoc::CALLER_REGEXP
+    
+    result = CallerRegexpTestModule.call(:pass, r)
+    assert_equal MatchData, result.class
+    assert_equal __FILE__, result[1]
+    assert_equal 8, result[3].to_i
+    
+    assert_nil CallerRegexpTestModule.call(:fail, r)
   end
   
   #
