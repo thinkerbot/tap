@@ -1,7 +1,6 @@
-require 'tap/root'
+require 'tap/test/utils'
 require 'tap/test/env_vars'
 require 'tap/test/file_methods_class'
-require 'fileutils'
 
 module Tap
   module Test  
@@ -117,7 +116,7 @@ module Tap
         super
         @method_tempfiles = []
         clear_method_dir(:output)
-        try_remove_dir(method_root)
+        Utils.try_remove_dir(method_root)
       end
     
       # Teardown deletes the the output directories unless flagged otherwise.  Note 
@@ -136,8 +135,8 @@ module Tap
           end
         end
         
-        try_remove_dir(method_root)
-        try_remove_dir(trs.root)
+        Utils.try_remove_dir(method_root)
+        Utils.try_remove_dir(trs.root)
       end 
       
       # Returns method_name as a string (Ruby 1.9 symbolizes method_name)
@@ -195,18 +194,6 @@ module Tap
         dir_path = method_dir(dir, method_name_str)
         FileUtils.rm_r(dir_path) if File.exists?(dir_path)
       end
-      
-      # Attempts to remove the specified directory.  The root 
-      # will not be removed if the directory does not exist, or
-      # is not empty.  
-      def try_remove_dir(dir)
-        # Remove the directory if possible
-        begin
-          FileUtils.rmdir(dir) if File.exists?(dir) && Dir.glob(File.join(dir, "*")).empty?
-        rescue
-          # rescue cases where there is a hidden file, for example .svn
-        end
-      end
     
       # Generates a temporary filepath formatted like "output_dir\filename.pid.n.ext" where n 
       # is a counter that will be incremented from until a non-existant filepath is achieved.
@@ -229,26 +216,6 @@ module Tap
           File.open(filepath, "w", &block)
         end
         filepath
-      end
-      
-      # Yields to the input block for each pair of entries in the input 
-      # arrays.  An error is raised if the input arrays do not have equal 
-      # numbers of entries.
-      def each_pair(a, b, &block) # :yields: entry_a, entry_b,
-        each_pair_with_index(a,b) do |entry_a, entry_b, index|
-          yield(entry_a, entry_b)
-        end
-      end
-      
-      # Same as each_pair but yields the index of the entries as well.
-      def each_pair_with_index(a, b, &block) # :yields: entry_a, entry_b, index
-        a = [a] unless a.kind_of?(Array)
-        b = [b] unless b.kind_of?(Array)
-      
-        raise ArgumentError, "The input arrays must have an equal number of entries." unless a.length == b.length
-        0.upto(a.length-1) do |index|
-          yield(a[index], b[index], index)
-        end
       end
       
       # assert_files runs a file-based test that feeds all files from input_dir
@@ -323,65 +290,58 @@ module Tap
         options = default_assert_files_options.merge(options)
         input_dir = options[:input_dir]
         output_dir = options[:output_dir] 
-        expected_dir = options[:expected_dir] 
+        expected_dir = options[:expected_dir]
+        
         reference_dir = options[:reference_dir]
         reference_extname = options[:reference_extname]
+        
+        Utils.dereference([input_dir, output_dir], reference_dir, reference_extname) do
 
-        # Get the input and expected files in this manner:
-        # - look for manually specified files
-        # - glob for files if none were specified
-        # - expand paths and sort
-        # - remove directories unless specified not to do so
-        input_files, expected_files = [:input, :expected].collect do |key|
-          files = options["#{key}_files".to_sym]
-          if files.nil?
-            pattern = File.join(options["#{key}_dir".to_sym], "**/*")
-            files = Dir.glob(pattern)
-          end
-          files = [files].flatten.collect {|file| File.expand_path(file) }.sort
+          # Get the input and expected files in this manner:
+          # - look for manually specified files
+          # - glob for files if none were specified
+          # - expand paths and sort
+          # - remove directories unless specified not to do so
+          input_files, expected_files = [:input, :expected].collect do |key|
+            files = options["#{key}_files".to_sym]
+            if files.nil?
+              pattern = File.join(options["#{key}_dir".to_sym], "**/*")
+              files = Dir.glob(pattern)
+            end
+            files = [files].flatten.collect {|file| File.expand_path(file) }.sort
 
-          unless options["include_#{key}_directories".to_sym]
-            files.delete_if {|file| File.directory?(file)} 
-          end
+            unless options["include_#{key}_directories".to_sym]
+              files.delete_if {|file| File.directory?(file)} 
+            end
           
-          files
-        end
-        
-        # check at least one expected file was found
-        if expected_files.empty? && options[:expected_files] == nil
-          flunk "No expected files specified."
-        end
-        
-        # dereference input files
-        input_files.collect! do |input_file|
-          dereference(input_file, input_dir, reference_dir, reference_extname)
-        end if reference_dir
-
-        # get output files from the block, expand and sort
-        output_files = [yield(input_files)].flatten.collect do |output_file| 
-          output_file = File.expand_path(output_file)
-        end.sort
-        
-        # check that the expected and output filepaths are the same
-        translated_expected_files = expected_files.collect do |expected_file|
-          translated_file = Tap::Root.translate(expected_file, expected_dir, output_dir)
-          reference_dir ? translated_file.chomp(reference_extname) : translated_file
-        end
-        assert_equal translated_expected_files, output_files, "Missing, extra, or unexpected output files"
-        
-        # dereference expected files
-        expected_files.collect! do |expected_file|
-          dereference(expected_file, expected_dir, reference_dir, reference_extname)
-        end if reference_dir
-        
-        # check that the expected and output file contents are equal
-        errors = []
-        each_pair(expected_files, output_files) do |expected_file, output_file|
-          unless (File.directory?(expected_file) && File.directory?(output_file)) || FileUtils.cmp(expected_file, output_file)
-            errors << "<#{expected_file}> not equal to\n<#{output_file}>"
+            files
           end
+        
+          # check at least one expected file was found
+          if expected_files.empty? && options[:expected_files] == nil
+            flunk "No expected files specified."
+          end
+        
+          # get output files from the block, expand and sort
+          output_files = [yield(input_files)].flatten.collect do |output_file| 
+            File.expand_path(output_file)
+          end.sort
+        
+          # check that the expected and output filepaths are the same
+          translated_expected_files = expected_files.collect do |expected_file|
+            Tap::Root.translate(expected_file, expected_dir, output_dir)
+          end
+          assert_equal translated_expected_files, output_files, "Missing, extra, or unexpected output files"
+        
+          # check that the expected and output file contents are equal
+          errors = []
+          Utils.each_pair(expected_files, output_files) do |expected_file, output_file|
+            unless (File.directory?(expected_file) && File.directory?(output_file)) || FileUtils.cmp(expected_file, output_file)
+              errors << "<#{expected_file}> not equal to\n<#{output_file}>"
+            end
+          end
+          flunk "File compare failed:\n" + errors.join("\n") unless errors.empty?
         end
-        flunk "File compare failed:\n" + errors.join("\n") unless errors.empty?
       end
       
       # The default assert_files options
@@ -399,29 +359,6 @@ module Tap
           :reference_dir => nil,
           :reference_extname => '.ref'
         }
-      end
-      
-      # Dereferences the specified path by translating it from the source_dir to the
-      # reference_dir, minus the reference_extname.  If no file exists for the direct
-      # translation, dereference will glob the reference dir for any file with the 
-      # correct basename; if a single match is found, the match is considered the 
-      # dereferenced file.  Otherwise, an ArgumentError is raised.
-      def dereference(path, source_dir, reference_dir, reference_extname)
-        return path unless File.extname(path) == reference_extname
-       
-        relative_path = Tap::Root.relative_filepath(source_dir, path).chomp(reference_extname)
-        reference_path = File.join(reference_dir, relative_path)
-       
-        unless File.exists?(reference_path)
-          matching_paths = Dir.glob(File.join(reference_dir, "**", File.basename(relative_path)))
-          reference_path = case matching_paths.length
-          when 0 then raise ArgumentError, "no reference found for: #{path}"
-          when 1 then matching_paths[0]
-          else raise ArgumentError, "multiple references found for: #{path} [#{matching_paths.join(', ')}]"
-          end
-        end
-       
-        reference_path
       end
       
     end

@@ -94,7 +94,7 @@ class RootTest < Test::Unit::TestCase
   # Tap::Root translate test
   #
   
-  def test_translate_documentation
+  def test_class_translate_documentation
     assert_equal  '/another/path/to/file.txt', Tap::Root.translate("/path/to/file.txt", "/path", "/another/path")
   end
 

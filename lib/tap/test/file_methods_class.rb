@@ -1,9 +1,23 @@
 module Tap
   module Test
     module FileMethodsClass
-
+      
+      def self.extended(base)
+        base.instance_variable_set(:@reference_map, [])  
+      end
+      
+      def inherited(child)
+        child.instance_variable_set(:@reference_map, [])  
+      end
+      
       # Access the test root structure (a Tap::Root)
       attr_accessor :trs
+      
+      attr_accessor :reference_map
+      
+      def dereference(source_dir, reference_dir, reference_extname='.ref')
+        reference_map << [source_dir, reference_dir, reference_extname]
+      end
       
       # Infers the test root directory from the calling file.  Ex:
       #   'some_class.rb' => 'some_class'
