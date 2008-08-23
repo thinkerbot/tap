@@ -14,6 +14,8 @@ module Tap
       # Check will validate that the line calling check contains a 
       # should/should_not statement; the check fails if it does not.
       def check(return_value)
+        return false unless SCRIPT_LINES__
+        
         caller[0] =~ /^(([A-z]:)?[^:]+):(\d+)/
 
         check_file = SCRIPT_LINES__[$1]
