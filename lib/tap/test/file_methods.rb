@@ -296,7 +296,7 @@ module Tap
         reference_dir = options[:reference_dir]
         reference_extname = options[:reference_extname]
         
-        Utils.dereference([input_dir, output_dir], reference_dir, reference_extname) do
+        Utils.dereference([input_dir, expected_dir], reference_dir, reference_extname) do
 
           # Get the input and expected files in this manner:
           # - look for manually specified files

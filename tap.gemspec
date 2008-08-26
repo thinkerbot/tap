@@ -80,6 +80,7 @@ Gem::Specification.new do |s|
     lib/tap/support/batchable_class.rb
     lib/tap/support/class_configuration.rb
     lib/tap/support/command_line.rb
+    lib/tap/support/command_line/parser.rb
     lib/tap/support/comment.rb
     lib/tap/support/configurable.rb
     lib/tap/support/configurable_class.rb
