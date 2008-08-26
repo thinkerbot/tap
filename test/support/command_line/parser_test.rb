@@ -173,136 +173,141 @@ class ParserTest < Test::Unit::TestCase
   end
   
   #
+  # argvs tests
+  #
+  
+  def test_argvs_split_args_along_all_invalid_lines
+    [ "--", "--+", "--++", "--+1", 
+      "--:", "--1:2",
+      "--1[2]", "--[]"
+    ].each do |split|
+      parser = Parser.new ["a", "-b", "--c", split, "d", "-e", "--f", split, "x", "-y", "--z"]
+      assert_equal [
+        ["a", "-b", "--c"], 
+        ["d", "-e", "--f"],
+        ["x", "-y", "--z"]
+      ], parser.argvs
+    end
+  end
+  
+  def test_argvs_includes_short_and_long_options
+    parser = Parser.new ["a", "-b", "--c", "--", "d", "-e", "--f", "--", "x", "-y", "--z"]
+    assert_equal [
+      ["a", "-b", "--c"], 
+      ["d", "-e", "--f"],
+      ["x", "-y", "--z"]
+    ], parser.argvs
+  end
+  
+  def test_argvs_removes_empty_args
+    parser = Parser.new ["a","--", "--", "b", "--", "--opt", "--", "c"]
+    assert_equal [["a"], ["b"], ["--opt"], ["c"]], parser.argvs
+  end
+  
+  #
   # rounds tests
   #
   
-  def test_parser_splits_task_declarations_into_rounds_using_plus_syntax
+  def test_parser_assigns_tasks_to_rounds_using_plus_syntax
     parser = Parser.new ["--", "a", "--", "b", "--", "c"]
-    assert_equal [
-      [["a"], ["b"], ["c"]]
-    ], parser.rounds
+    assert_equal [[0,1,2]], parser.rounds
     
     parser = Parser.new ["--", "a", "--+", "b", "--++", "c"]
-    assert_equal [
-      [["a"]],
-      [["b"]],
-      [["c"]]
-    ], parser.rounds
+    assert_equal [[0],[1],[2]], parser.rounds
   end
   
-  def test_parser_splits_task_declarations_into_rounds_using_plus_number_syntax
+  def test_parser_assigns_tasks_to_rounds_using_plus_number_syntax
     parser = Parser.new ["--+0", "a", "--+0", "b", "--+0", "c"]
-    assert_equal [
-      [["a"], ["b"], ["c"]]
-    ], parser.rounds
+    assert_equal [[0,1,2]], parser.rounds
     
     parser = Parser.new ["--+0", "a", "--+1", "b", "--+2", "c"]
-    assert_equal [
-      [["a"]],
-      [["b"]],
-      [["c"]]
-    ], parser.rounds
+    assert_equal [[0],[1],[2]], parser.rounds
   end
   
   def test_parser_rounds_are_order_independent
     parser = Parser.new ["--+", "b", "--++", "c", "--", "a"]
-    assert_equal [
-      [["a"]],
-      [["b"]],
-      [["c"]]
-    ], parser.rounds
+    assert_equal [[2],[0],[1]], parser.rounds
   end
     
   def test_first_round_is_assumed_if_left_unstated
     parser = Parser.new ["a"]
-    assert_equal [
-      [["a"]],
-    ], parser.rounds
+    assert_equal [[0]], parser.rounds
     
     parser = Parser.new ["a", "--", "b"]
-    assert_equal [
-      [["a"], ["b"]],
-    ], parser.rounds
+    assert_equal [[0, 1]], parser.rounds
   end
   
   def test_empty_rounds_are_removed
     parser = Parser.new [ "--++", "a", "--+++", "b", "--+++++", "c"]
-    assert_equal [
-      [["a"]],
-      [["b"]],
-      [["c"]]
-    ], parser.rounds
+    assert_equal [[0],[1],[2]], parser.rounds
   end
   
-  def test_parsed_round_includes_short_and_long_options
-    parser = Parser.new ["a", "-b", "--c", "--", "d", "-e", "--f", "--+", "x", "-y", "--z"]
-    assert_equal [
-      [["a", "-b", "--c"], ["d", "-e", "--f"]],
-      [["x", "-y", "--z"]]
-    ], parser.rounds
-  end
+  # def test_rounds_do_not_include_
+  #   parser = Parser.new [ "--++", "a", "--+++", "b", "--+++++", "c"]
+  #   assert_equal [[0],[1],[2]], parser.rounds
+  # end
   
   #
   # sequence test
   #
-  
+
   def test_sequences_are_parsed
     parser = Parser.new ["--1:2", "--3:4:5"]
     assert_equal [[1,2], [3,4,5]], parser.sequences
   end
-  
+
   def test_sequence_uses_the_last_count_if_no_lead_index_is_specified
     parser = Parser.new ["a", "--", "b", "--:100", "c", "--:200"]
     assert_equal [[1, 100], [2, 200]], parser.sequences
   end
-  
+
   def test_sequence_uses_the_next_count_if_no_end_index_is_specified
     parser = Parser.new ["a", "--100:", "b", "--200:", "c"]
     assert_equal [[100, 1], [200, 2]], parser.sequences
   end
-  
+
   def test_sequence_use_with_no_lead_or_end_index
     parser = Parser.new ["a", "--:", "b", "--:", "c"]
     assert_equal [[0,1], [1,2]], parser.sequences
   end
-  
+
   #
   # fork test
   #
-  
+
   def test_forks_are_parsed
     parser = Parser.new ["--1[2]", "--3[4,5]"]
     assert_equal [[1,[2]], [3,[4,5]]], parser.forks
   end
-  
+
   def test_fork_uses_the_last_count_if_no_lead_index_is_specified
     parser = Parser.new ["a", "--", "b", "--[100]", "c", "--[200,300]"]
     assert_equal [[1, [100]], [2, [200,300]]], parser.forks
   end
-  
+
   #
   # merge test
   #
-  
+
   def test_merges_are_parsed
     parser = Parser.new ["--1{2}", "--3{4,5}"]
     assert_equal [[1,[2]], [3,[4,5]]], parser.merges
   end
-  
+
   def test_merge_uses_the_last_count_if_no_lead_index_is_specified
     parser = Parser.new ["a", "--", "b", "--{100}", "c", "--{200,300}"]
     assert_equal [[1, [100]], [2, [200,300]]], parser.merges
   end
-  
+
   #
   # sync_merge test
   #
-  
+
   def test_sync_merges_are_parsed
     parser = Parser.new ["--1(2)", "--3(4,5)"]
     assert_equal [[1,[2]], [3,[4,5]]], parser.sync_merges
   end
-  
+
   def test_sync_merge_uses_the_last_count_if_no_lead_index_is_specified
     parser = Parser.new ["a", "--", "b", "--(100)", "c", "--(200,300)"]
     assert_equal [[1, [100]], [2, [200,300]]], parser.sync_merges

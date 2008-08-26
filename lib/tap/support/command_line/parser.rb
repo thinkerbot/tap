@@ -35,17 +35,6 @@ module Tap
           def parse_yaml(str)
             str =~ /\A---\s*\n/ ? YAML.load(str) : str
           end
-
-          def shift_arg(argv)
-            index = nil
-            argv.each_with_index do |arg, i|
-              if arg !~ /\A-/
-                index = i 
-                break
-              end
-            end
-            index == nil ? nil : argv.delete_at(index)
-          end
         end
         
         ROUND = /\A--(\+(\d+)|\+*)\z/
@@ -55,6 +44,7 @@ module Tap
         SYNC_MERGE = bracket_regexp("(", ")")
         INVALID =  /\A--(\z|[^A-Za-z])/
         
+        attr_reader :argvs
         attr_reader :rounds
         attr_reader :sequences
         attr_reader :forks
@@ -69,7 +59,7 @@ module Tap
           
           current = []
           current_round = []
-          count = 0
+          @argvs = []
           @rounds = [current_round]
           
           argv.each do |arg|
@@ -80,28 +70,32 @@ module Tap
             
             # for peformance split to match
             # most arguments just once.
-            current_round << current unless current.empty?
-            current = []
+            unless current.empty?
+              current_round << @argvs.length
+              @argvs << current
+              current = []
+            end
 
             case arg
             when ROUND
               current_round = (@rounds[$2 ? $2.to_i : $1.length] ||= [])
             when SEQUENCE
-              @sequences << Parser.parse_sequence($1, count)
+              @sequences << Parser.parse_sequence($1, @argvs.length-1)
             when FORK
-              @forks << Parser.parse_bracket($1, $2, count)
+              @forks << Parser.parse_bracket($1, $2, @argvs.length-1)
             when MERGE
-              @merges << Parser.parse_bracket($1, $2, count)
+              @merges << Parser.parse_bracket($1, $2, @argvs.length-1)
             when SYNC_MERGE
-              @sync_merges << Parser.parse_bracket($1, $2, count)
+              @sync_merges << Parser.parse_bracket($1, $2, @argvs.length-1)
             else 
               raise ArgumentError, "invalid argument: #{arg}"
             end
-            
-            count += 1
           end
           
-          current_round << current unless current.empty?
+          unless current.empty?
+            current_round << @argvs.length
+            @argvs << current
+          end
           @rounds.delete_if {|round| round.nil? || round.empty? }
         end
         

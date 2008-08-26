@@ -69,55 +69,57 @@ module Tap
     
     def parse(argv=ARGV)
       parser = Parser.new(argv)
-      targets = parser.targets
+      
+      # attempt lookup and instantiate the task class
+      task_declarations = parser.argvs.collect do |argv|
+        pattern = argv.shift
 
-      tasks = []
-      rounds = parser.rounds.collect do |round|
-        round.each do |argv|
-          unless td = Parser.shift_arg(argv)
-            # warn nil?
-            next
-          end
-
-          # attempt lookup the task class
-          const = search(:tasks, td) or raise ArgumentError, "unknown task: #{td}"
-          task_class = const.constantize or raise ArgumentError, "unknown task: #{td}"
-
-          # now let the class handle the argv
-          task, args = task_class.instantiate(argv, app)
-          
-          if !targets.include?(tasks.length)
-            task.enq(*args) 
-          elsif !args.empty?
-            raise ArgumentError, "workflow target receives argv: [#{argv.unshift(td).join(', ')}]" 
-          end
-          
-          tasks << task
+        const = search(:tasks, pattern) or raise ArgumentError, "unknown task: #{pattern}"
+        task_class = const.constantize or raise ArgumentError, "unknown task: #{pattern}"
+        task_class.instantiate(argv, app)
+      end
+      
+      # remove tasks used by the workflow
+      tasks = parser.targets.collect do |index|
+        task, args = task_declarations[index]
+        
+        unless args.empty?
+          raise ArgumentError, "workflow target receives args: #{task} [#{args.join(', ')}]" 
+        end
+        
+        tasks[index] = nil
+        task
+      end
+      
+      # build the workflow
+      parser.sequences.each do |sequence|
+        app.sequence(*sequence.collect {|s| tasks[s] })
+      end
+      
+      parser.forks.each do |source, targets|
+        app.fork(tasks[source], *targets.collect {|t| tasks[t] })
+      end
+      
+      parser.merges.each do |target, sources|
+        app.merge(tasks[target], *sources.collect {|s| tasks[s] })
+      end
+      
+      parser.sync_merges.each do |target, sources|
+        app.sync_merge(tasks[target], *sources.collect {|s| tasks[s] })
+      end
+      
+      # build queues
+      queues = parser.rounds.collect do |round|
+        round.each do |index|
+          task, args = task_declarations[index]
+          task.enq(*args) if task
         end
         
         app.queue.clear
       end
-      rounds.delete_if {|round| round.empty? }
+      queues.delete_if {|queue| queue.empty? }
       
-      # build the workflow
-      
-      parser.sequences.each do |sequence|
-        app.sequence(*sequence.collect {|s| tasks[s]})
-      end
-      
-      parser.forks.each do |source, targets|
-        app.fork(tasks[source], *targets.collect {|t| tasks[t]})
-      end
-      
-      parser.merges.each do |target, sources|
-        app.merge(tasks[target], *sources.collect {|s| tasks[s]})
-      end
-      
-      parser.sync_merges.each do |target, sources|
-        app.sync_merge(tasks[target], *sources.collect {|s| tasks[s]})
-      end
-      
-      rounds
+      queues
     end
   end
 end

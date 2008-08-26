@@ -48,10 +48,10 @@ end.parse!(ARGV)
 # handle options for each specified task
 #
 
-rounds = env.parse(ARGV)
+queues = env.parse(ARGV)
 ARGV.clear
 
-if rounds.empty?
+if queues.empty?
   puts "no task specified"
   exit
 end
@@ -99,7 +99,7 @@ end
 # enque tasks and run!
 #
 
-rounds.each_with_index do |queue, i|
+queues.each_with_index do |queue, i|
   app.queue.concat(queue)
   app.run
 end

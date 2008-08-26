@@ -139,8 +139,6 @@ unknown task: unknown
 no task specified
 % #{cmd} run --
 no task specified
-% #{cmd} run -- --help
-no task specified
 % #{cmd} run -- --+ --++
 no task specified
 }
@@ -148,6 +146,11 @@ no task specified
       cmd.check "Prints unknown task", %Q{
 % #{cmd} run unknown
 unknown task: unknown
+}
+
+      cmd.check "Prints unknown task", %Q{
+% #{cmd} run -- --help
+unknown task: --help
 }
 
       # run variations
