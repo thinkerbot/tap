@@ -162,8 +162,10 @@ module Tap
           end
           path_configs = path_configs[0]
         end
+        
+        argv = (argv + use_args).collect {|str| str =~ /\A---\s*\n/ ? YAML.load(str) : str }
 
-        [obj.reconfigure(path_configs).reconfigure(config), argv + use_args]
+        [obj.reconfigure(path_configs).reconfigure(config), argv]
       end
       
       def lazydoc(resolve=true)

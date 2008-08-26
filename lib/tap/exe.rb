@@ -1,5 +1,8 @@
+require 'tap/support/command_line/parser'
+
 module Tap
   class Exe < Env
+    Parser = Support::CommandLine::Parser
     
     class << self
       def instantiate
@@ -29,6 +32,10 @@ module Tap
     config :after, nil
     config :aliases, {}, &c.hash_or_nil
     
+    def app
+      root
+    end
+    
     def handle_error(err)
       case
       when $DEBUG
@@ -39,7 +46,7 @@ module Tap
       end
     end
     
-    def run(argv=ARGV)
+    def launch(argv=ARGV)
       command = argv.shift.to_s
       
       if aliases && aliases.has_key?(command)
@@ -58,6 +65,59 @@ module Tap
           puts "Type 'tap help' for usage information."
         end
       end
+    end
+    
+    def parse(argv=ARGV)
+      parser = Parser.new(argv)
+      targets = parser.targets
+
+      tasks = []
+      rounds = parser.rounds.collect do |round|
+        round.each do |argv|
+          unless td = Parser.shift_arg(argv)
+            # warn nil?
+            next
+          end
+
+          # attempt lookup the task class
+          const = search(:tasks, td) or raise ArgumentError, "unknown task: #{td}"
+          task_class = const.constantize or raise ArgumentError, "unknown task: #{td}"
+
+          # now let the class handle the argv
+          task, args = task_class.instantiate(argv, app)
+          
+          if !targets.include?(tasks.length)
+            task.enq(*args) 
+          elsif !args.empty?
+            raise ArgumentError, "workflow target receives argv: [#{argv.unshift(td).join(', ')}]" 
+          end
+          
+          tasks << task
+        end
+        
+        app.queue.clear
+      end
+      rounds.delete_if {|round| round.empty? }
+      
+      # build the workflow
+      
+      parser.sequences.each do |sequence|
+        app.sequence(*sequence.collect {|s| tasks[s]})
+      end
+      
+      parser.forks.each do |source, targets|
+        app.fork(tasks[source], *targets.collect {|t| tasks[t]})
+      end
+      
+      parser.merges.each do |target, sources|
+        app.merge(tasks[target], *sources.collect {|s| tasks[s]})
+      end
+      
+      parser.sync_merges.each do |target, sources|
+        app.sync_merge(tasks[target], *sources.collect {|s| tasks[s]})
+      end
+      
+      rounds
     end
   end
 end

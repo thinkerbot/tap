@@ -7,7 +7,6 @@
 
 env = Tap::Env.instance
 app = Tap::App.instance
-cmdline = Tap::Support::CommandLine
 
 #
 # handle options
@@ -15,6 +14,7 @@ cmdline = Tap::Support::CommandLine
 
 dump = false
 OptionParser.new do |opts|
+  cmdline = Tap::Support::CommandLine
   
   opts.separator ""
   opts.separator "configurations:"
@@ -48,30 +48,9 @@ end.parse!(ARGV)
 # handle options for each specified task
 #
 
-require 'tap/support/command_line/parser'
-parser = Tap::Support::CommandLine::Parser.new(ARGV)
+rounds = env.parse(ARGV)
 ARGV.clear
 
-rounds = parser.rounds.collect do |round|
-  round.each do |argv|
-    unless td = cmdline.shift(argv)
-      # warn nil?
-      next
-    end
-
-    # attempt lookup the task class
-    const = env.search(:tasks, td) or raise "unknown task: #{td}"
-    task_class = const.constantize or raise "unknown task: #{td}"
-  
-    # now let the class handle the argv
-    task, argv = task_class.instantiate(argv, app)
-    task.enq *argv.collect! {|str| cmdline.parse_yaml(str) }
-  end
-  
-  app.queue.clear
-end
-
-rounds.delete_if {|round| round.empty? }
 if rounds.empty?
   puts "no task specified"
   exit

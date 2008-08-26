@@ -25,6 +25,27 @@ module Tap
 
              [lead.empty? ? count : lead.to_i, bracket]
           end
+          
+          # Parses the input string as YAML, if the string matches the YAML document 
+          # specifier (ie it begins with "---\s*\n").  Otherwise returns the string.
+          #
+          #   str = {'key' => 'value'}.to_yaml       # => "--- \nkey: value\n"
+          #   Tap::Script.parse_yaml(str)            # => {'key' => 'value'}
+          #   Tap::Script.parse_yaml("str")          # => "str"
+          def parse_yaml(str)
+            str =~ /\A---\s*\n/ ? YAML.load(str) : str
+          end
+
+          def shift_arg(argv)
+            index = nil
+            argv.each_with_index do |arg, i|
+              if arg !~ /\A-/
+                index = i 
+                break
+              end
+            end
+            index == nil ? nil : argv.delete_at(index)
+          end
         end
         
         ROUND = /\A--(\+(\d+)|\+*)\z/
@@ -83,6 +104,17 @@ module Tap
           current_round << current unless current.empty?
           @rounds.delete_if {|round| round.nil? || round.empty? }
         end
+        
+        def targets
+          targets = []
+          sequences.each {|sequence| targets.concat(sequence[1..-1]) }
+          forks.each {|fork| targets.concat(fork[1]) }
+          targets.concat merges.collect {|target, sources| target }
+          targets.concat sync_merges.collect {|target, sources| target }
+          
+          targets.uniq.sort
+        end
+        
       end
     end
   end
