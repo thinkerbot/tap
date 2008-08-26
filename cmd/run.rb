@@ -48,12 +48,13 @@ end.parse!(ARGV)
 # handle options for each specified task
 #
 
-rounds = cmdline.split(ARGV).collect do |argvs|
-  argvs.each do |argv|
-    ARGV.clear  
-    ARGV.concat(argv)
-   
-    unless td = cmdline.shift(ARGV)
+require 'tap/support/command_line/parser'
+parser = Tap::Support::CommandLine::Parser.new(ARGV)
+ARGV.clear
+
+rounds = parser.rounds.collect do |round|
+  round.each do |argv|
+    unless td = cmdline.shift(argv)
       # warn nil?
       next
     end
@@ -61,15 +62,14 @@ rounds = cmdline.split(ARGV).collect do |argvs|
     # attempt lookup the task class
     const = env.search(:tasks, td) or raise "unknown task: #{td}"
     task_class = const.constantize or raise "unknown task: #{td}"
-    
+  
     # now let the class handle the argv
-    task, argv = task_class.instantiate(ARGV, app)
+    task, argv = task_class.instantiate(argv, app)
     task.enq *argv.collect! {|str| cmdline.parse_yaml(str) }
   end
-
+  
   app.queue.clear
 end
-ARGV.clear
 
 rounds.delete_if {|round| round.empty? }
 if rounds.empty?

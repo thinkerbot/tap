@@ -5,36 +5,6 @@ class CommandLineTest < Test::Unit::TestCase
   include Tap::Support::CommandLine
   
   #
-  # split test
-  #
-  
-  def test_split
-    argv = ["a", "-b", "--c", "--", "d", "-e", "--f"]
-    assert_equal([
-      [["a", "-b", "--c"], ["d", "-e", "--f"]]
-    ], split(argv))
-    
-    argv.unshift("--")
-    argv.push("--")
-    assert_equal([
-      [["a", "-b", "--c"], ["d", "-e", "--f"]]
-    ], split(argv))
-    
-    argv.concat ["--++", "x", "-y", "--z"]
-    assert_equal([
-      [["a", "-b", "--c"], ["d", "-e", "--f"]], 
-      [["x", "-y", "--z"]]
-    ], split(argv))
-    
-    argv.concat ["--+", "m", "-n", "--o"]
-    assert_equal([
-      [["a", "-b", "--c"], ["d", "-e", "--f"]], 
-      [["m", "-n", "--o"]], 
-      [["x", "-y", "--z"]]
-    ], split(argv))
-  end
-  
-  #
   # parse_yaml tests
   #
   
