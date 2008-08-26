@@ -1,6 +1,11 @@
 module Tap
   module Spec
     
+    def self.included(base)
+      super
+      base.send(:include, Tap::Spec::Adapter)
+    end
+    
     # Causes a TestCase to act as a file test, by instantiating a class Tap::Root 
     # (trs), and including FileMethods.  The root and directories used to 
     # instantiate trs can be specified as options.  By default file_test_root

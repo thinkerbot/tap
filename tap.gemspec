@@ -68,6 +68,11 @@ Gem::Specification.new do |s|
     lib/tap/patches/ruby19/backtrace_filter.rb
     lib/tap/patches/ruby19/parsedate.rb
     lib/tap/root.rb
+    lib/tap/spec.rb
+    lib/tap/spec/adapter.rb
+    lib/tap/spec/file_methods.rb
+    lib/tap/spec/file_methods_class.rb
+    lib/tap/spec/subset_methods.rb
     lib/tap/support/aggregator.rb
     lib/tap/support/assignments.rb
     lib/tap/support/audit.rb
@@ -112,6 +117,7 @@ Gem::Specification.new do |s|
     lib/tap/test/subset_methods.rb
     lib/tap/test/subset_methods_class.rb
     lib/tap/test/tap_methods.rb
+    lib/tap/test/utils.rb
     lib/tap/test.rb
     lib/tap/workflow.rb
     lib/tap.rb
