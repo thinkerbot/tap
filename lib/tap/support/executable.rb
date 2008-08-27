@@ -15,7 +15,10 @@ module Tap
 
       # Stores the on complete block.
       attr_reader :on_complete_block
-    
+      
+      # An array of [dependency, args] pairs, resolved before _execute.
+      attr_reader :dependencies
+      
       public
       
       # Extends obj with Executable and sets up all required variables.  The
@@ -25,6 +28,7 @@ module Tap
         obj.instance_variable_set(:@_method_name, method_name)
         obj.instance_variable_set(:@multithread, multithread)
         obj.instance_variable_set(:@on_complete_block, on_complete_block)
+        obj.instance_variable_set(:@dependencies, [])
         obj
       end
     
@@ -40,6 +44,25 @@ module Tap
         end
         @on_complete_block = block
       end
+      
+      # Adds the dependency to self, making self dependent on the dependency.
+      # The dependency will be called with the input arguments during 
+      # resolve_dependencies.
+      def depends_on(dependency, *args)
+        unless dependency.respond_to?(:resolve)
+          raise ArgumentError, "dependency does not respond to resolve: #{dependency}"
+        end
+        (dependencies << [dependency, args]).uniq!
+        self
+      end
+      
+      # Resolves dependencies by calling dependency.resolve with
+      # the dependency arguments.
+      def resolve_dependencies
+        dependencies.each do |dependency, args|
+          dependency.resolve(args)
+        end
+      end
 
       # Auditing method call.  Executes _method_name for self, but audits 
       # the result. Sends the audited result to the on_complete_block if set.
@@ -51,7 +74,11 @@ module Tap
       #             a new audit using the input
       # multiple inputs:: merges the inputs into a new Audit.
       #
+      # Dependencies are resolved using resolve_dependencies before
+      # _method_name is executed.
       def _execute(*inputs)
+        resolve_dependencies
+        
         audit = case inputs.length
         when 0 then Audit.new
         when 1 
