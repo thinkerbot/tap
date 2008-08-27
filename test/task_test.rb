@@ -111,6 +111,83 @@ class TaskTest < Test::Unit::TestCase
     assert_equal "task_test/name_class", NameClass.default_name
     assert_equal "task_test/name_class/nested_class", NameClass::NestedClass.default_name
   end
+  
+  #
+  # Task.instance test
+  #
+  
+  def test_instance_returns_class_level_instance_extended_by_Dependency
+    i = Task.instance
+    assert_equal Task, i.class
+    assert i.kind_of?(Support::Dependency)
+    assert_equal i, Task.instance 
+  end
+  
+  #
+  # Task.dependencies test
+  #
+  
+  def test_dependencies_are_empty_by_default
+    assert_equal [], Task.dependencies
+  end
+
+  #
+  # Task.depends_on test
+  #
+  
+  class DependencyClass < Tap::Task
+  end
+  
+  class DependentClass < Tap::Task
+    depends_on DependencyClass
+    depends_on DependencyClass, 1,2,3
+  end
+  
+  def test_depends_on_adds_dependency_class_with_args_to_dependencies
+    assert_equal [
+      [DependencyClass, []], 
+      [DependencyClass, [1,2,3]]
+    ], DependentClass.dependencies
+  end
+  
+  def test_depends_on_raises_error_if_dependency_class_does_not_respond_to_instance
+    assert_raise(ArgumentError) { DependentClass.send(:depends_on, Object) }
+    assert_raise(ArgumentError) { DependentClass.send(:depends_on, Object.new) }
+  end
+  
+  class DependentDupClass < Tap::Task
+    depends_on DependencyClass
+    depends_on DependencyClass, 1,2,3
+    
+    depends_on DependencyClass
+    depends_on DependencyClass, 1,2,3
+  end
+  
+  def test_depends_on_removes_duplicates
+    assert_equal [
+      [DependencyClass, []], 
+      [DependencyClass, [1,2,3]]
+    ], DependentDupClass.dependencies
+  end
+  
+  class DependentParentClass < Tap::Task
+    depends_on DependencyClass
+  end
+  
+  class DependentSubClass < DependentParentClass
+    depends_on DependencyClass, 1,2,3
+  end
+  
+  def test_dependencies_are_inherited_down_but_not_up
+    assert_equal [
+      [DependencyClass, []]
+    ], DependentParentClass.dependencies
+    
+    assert_equal [
+      [DependencyClass, []], 
+      [DependencyClass, [1,2,3]]
+    ], DependentSubClass.dependencies
+  end
 
   #
   # initialization tests
@@ -175,7 +252,17 @@ class TaskTest < Test::Unit::TestCase
     s = Sample.new
     assert_equal Sample.default_name, s.name
   end
-
+  
+  def test_dependencies_are_set_to_instances_of_class_dependencies_and_args
+    assert_equal [], t.dependencies
+    
+    d = DependentClass.new
+    assert_equal [
+      [DependencyClass.instance, []],
+      [DependencyClass.instance, [1,2,3]]
+    ], d.dependencies
+  end
+  
   #
   # initialize_batch_obj test
   #
@@ -352,6 +439,39 @@ class TaskTest < Test::Unit::TestCase
     t = Task.new({}, :name)
     assert_equal :name, t.name
     assert_equal 'name', t.to_s
+  end
+  
+  #
+  # dependency resolution test
+  #
+  
+  class DependencyResolutionClass < Tap::Task
+    attr_reader :resolution_arguments
+    
+    def initialize
+      @resolution_arguments = []
+    end
+    
+    def process(*inputs)
+      @resolution_arguments << inputs
+    end
+  end
+  
+  class DependentResolutionClass < Tap::Task
+    depends_on DependencyResolutionClass
+    depends_on DependencyResolutionClass, 1,2,3
+  end
+  
+  def test_dependencies_are_resolved_only_once_per_argument_set
+    d = DependentResolutionClass.new
+    dependency = DependencyResolutionClass.instance
+    
+    assert_equal [], dependency.resolution_arguments
+    d._execute 
+    assert_equal [[], [1,2,3]], dependency.resolution_arguments
+    
+    d._execute 
+    assert_equal [[], [1,2,3]], dependency.resolution_arguments
   end
 
 end

@@ -41,7 +41,9 @@ class ExecutableTest < Test::Unit::TestCase
   #
   
   class Dependency
-    def resolve
+    attr_reader :resolve_arguments
+    def resolve(args)
+      (@resolve_arguments ||= []) << args
     end
   end
   
@@ -74,6 +76,20 @@ class ExecutableTest < Test::Unit::TestCase
   
   def test_depends_on_returns_self
     assert_equal m, m.depends_on(Dependency.new)
+  end
+  
+  #
+  # resolve_dependencies test
+  #
+  
+  def test_resolve_dependencies_calls_resolve_with_args_for_each_dependency
+    d = Dependency.new
+
+    m.depends_on d
+    m.depends_on d, 1,2,3
+    
+    m.resolve_dependencies
+    assert_equal [[], [1,2,3]], d.resolve_arguments
   end
   
   #

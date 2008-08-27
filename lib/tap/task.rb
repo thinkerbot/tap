@@ -1,6 +1,7 @@
 require 'tap/support/batchable'
 require 'tap/support/executable'
 require 'tap/support/command_line'
+require 'tap/support/dependency'
 
 module Tap
 
@@ -165,6 +166,9 @@ module Tap
       # Returns the default name for the class: to_s.underscore
       attr_accessor :default_name
 
+      # Returns class dependencies
+      attr_reader :dependencies
+      
       def inherited(child)
         unless child.instance_variable_defined?(:@source_file)
           caller.first =~ Support::Lazydoc::CALLER_REGEXP
@@ -172,7 +176,12 @@ module Tap
         end
 
         child.instance_variable_set(:@default_name, child.to_s.underscore)
+        child.instance_variable_set(:@dependencies, dependencies.dup)
         super
+      end
+      
+      def instance
+        @instance ||= new.extend(Support::Dependency)
       end
 
       def subclass(const_name, configs={}, options={}, &block)
@@ -319,10 +328,21 @@ module Tap
       def help
         Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
       end
+      
+      protected
+      
+      def depends_on(dependency_class, *args)
+        unless dependency_class.respond_to?(:instance)
+          raise ArgumentError, "dependency_class does not respond to instance: #{dependency_class}"
+        end
+        (dependencies << [dependency_class, args]).uniq!
+        self
+      end
     end
     
     instance_variable_set(:@source_file, __FILE__)
     instance_variable_set(:@default_name, 'tap/task')
+    instance_variable_set(:@dependencies, [])
     lazy_attr :manifest
     lazy_attr :args
     
@@ -361,6 +381,10 @@ module Tap
         config.bind(self)
       else 
         initialize_config(config)
+      end
+      
+      self.class.dependencies.each do |task_class, args|
+        depends_on(task_class.instance, *args)
       end
     end
     
