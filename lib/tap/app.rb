@@ -492,7 +492,7 @@ module Tap
     # An Executable may provided instead of a task.
     def enq(task, *inputs)
       case task
-      when Tap::Task, Tap::Workflow
+      when Tap::Task
         raise "not assigned to enqueing app: #{task}" unless task.app == self
         task.enq(*inputs)
       when Support::Executable

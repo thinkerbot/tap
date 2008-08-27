@@ -76,9 +76,7 @@ module Tap
   #   app.run
   #   app.results(w1.exit_points, w2.exit_points))    # => [8, -8]
   #
-  class Workflow 
-    include Support::Framework
-    
+  class Workflow < Task  
     class << self
       protected
       
@@ -105,14 +103,10 @@ module Tap
     
     # The exit point for self.
     attr_accessor :exit_point
-    
-    # The task block provided during initialization.  
-    attr_reader :task_block
-    
+
     # Creates a new Task with the specified attributes.
     def initialize(config={}, name=nil, app=App.instance, &task_block)
-      super(config, name, app)
-      @task_block = (task_block == nil ? default_task_block : task_block)
+      super
       initialize_workflow
     end
     
@@ -157,26 +151,22 @@ module Tap
     # the number of inputs required by all the entry points;
     # if the entry points have different input requirements, they
     # have to be enqued separately.
-    def enq(*inputs)
+    def unbatched_enq(*inputs)
       entry_points.each do |task|
         app.enq(task, *inputs)
       end
     end
-    
-    batch_function :enq
-    
+  
     # Sets the on_complete_block for all exit points for self and 
     # self.batch. Use unbatched_on_complete to set the on_complete_block
     # for just self.exit_points.
-    def on_complete(override=false, &block)
+    def unbatched_on_complete(override=false, &block)
       exit_points.each do |task|
         task.on_complete(override, &block)
       end
       self
     end
-    
-    batch_function(:on_complete) {}
-    
+   
     def task(name, klass=Tap::Task, &block)
       configs = config[name] || {}
       raise ArgumentError, "config '#{name}' is not a hash" unless configs.kind_of?(Hash)
@@ -190,11 +180,8 @@ module Tap
       task_block.call(self) if task_block
     end
     
-    protected
-    
-    # Hook to set a default task block.  By default, nil.
-    def default_task_block
-      nil
+    def process(*inputs)
+      enq(*inputs)
     end
   end
 end
