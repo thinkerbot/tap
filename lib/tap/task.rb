@@ -207,11 +207,12 @@ module Tap
             subclass.send(method, key, value, opts, &config_block)
           end
         end
-
+        
         block_method = options[:block_method] || :process
-        subclass.send(:define_method, block_method, &block)
+        subclass.send(:define_method, block_method, &block) if block_given?
         subclass.default_name = const_name
-
+        
+        # register documentation
         const_name = current == Object ? subclass_const : "#{current}::#{subclass_const}"
         caller.each_with_index do |line, index|
           case line
@@ -223,19 +224,26 @@ module Tap
             break
           end
         end
-
-        arity = options[:arity] || block.arity
-        comment = Support::Comment.new
-        comment.subject = case
-        when arity > 0
-          Array.new(arity, "INPUT").join(' ')
-        when arity < 0
-          array = Array.new(-1 * arity - 1, "INPUT")
-          array << "INPUTS..."
-          array.join(' ')
-        else ""
+        
+        if options[:arity] || block_given?
+          arity = options[:arity] || block.arity
+          comment = Support::Comment.new
+          comment.subject = case
+          when arity > 0
+            Array.new(arity, "INPUT").join(' ')
+          when arity < 0
+            array = Array.new(-1 * arity - 1, "INPUT")
+            array << "INPUTS..."
+            array.join(' ')
+          else ""
+          end
+          subclass.lazydoc(false)[const_name, false]['args'] ||= comment
         end
-        subclass.lazydoc(false)[const_name, false]['args'] ||= comment
+        
+        dependencies = options[:dependencies] || []
+        dependencies.each do |dependency|
+          subclass.depends_on(*dependency)
+        end
 
         # Set the subclass constant
         current.const_set(subclass_const, subclass)
@@ -328,8 +336,6 @@ module Tap
       def help
         Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
       end
-      
-      protected
       
       def depends_on(dependency_class, *args)
         unless dependency_class.respond_to?(:instance)

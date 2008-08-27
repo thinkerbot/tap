@@ -16,31 +16,31 @@ module Tap
       def self.extended(base)
         set_declaration_base(base)
       end
-
+      
       def tasc(name, configs={}, options={}, &block)
-        Tap::Task.subclass(nest(name), configs, options, &block)
+        declare(Tap::Task, name, configs, options, &block)
       end
 
       def task(name, configs={}, options={}, &block)
-        options[:arity] = arity(block)
+        options[:arity] = arity(block) if block_given?
         tasc(name, configs, options, &task_block(block)).new
       end
 
       def file_tasc(name, configs={}, options={}, &block)
-        Tap::FileTask.subclass(nest(name), configs, options, &block)
+        declare(Tap::FileTask, name, configs, options, &block)
       end
 
       def file_task(name, configs={}, options={}, &block)
-        options[:arity] = arity(block)
+        options[:arity] = arity(block) if block_given?
         file_tasc(nest(name), configs, options, &task_block(block)).new
       end
 
       def worcflow(name, configs={}, options={}, &block)
-        Tap::Workflow.subclass(nest(name), configs, options, &block)
+        declare(Tap::Workflow, name, configs, options, &block)
       end
 
       def workflow(name, configs={}, options={}, &block)
-        options[:arity] = arity(block)
+        options[:arity] = arity(block) if block_given?
         worcflow(name, configs, options, &task_block(block)).new
       end
 
@@ -75,6 +75,22 @@ module Tap
       end
 
       private
+      
+      def declare(klass, name, configs, options, &block)
+        name, dependencies = case name
+        when Hash then name.to_a[0]
+        else name
+        end
+        
+        dependencies = case dependencies
+        when Array then dependencies
+        when nil then []
+        else [dependencies]
+        end
+        (options[:dependencies] ||= []).concat(dependencies)
+        
+        klass.subclass(nest(name), configs, options, &block)
+      end
 
       def nest(name)
         # use self if self is a Module or Class, 
@@ -94,6 +110,8 @@ module Tap
       end
 
       def task_block(block)
+        return nil if block == nil
+        
         lambda do |*inputs|
           inputs.unshift(self)
 
