@@ -66,6 +66,14 @@ module Tap
         end
         self
       end
+      
+      def reset_dependencies
+        if dependencies.frozen?
+          @dependencies = dependencies.collect do |_dependency|
+            [_dependency._current_source, _dependency._original]
+          end
+        end
+      end
 
       # Auditing method call.  Executes _method_name for self, but audits 
       # the result. Sends the audited result to the on_complete_block if set.

@@ -184,7 +184,7 @@ module Tap
       end
       
       # Generates or updates the specified subclass of self.
-      def subclass(const_name, configs={}, dependencies=[], options={}, &block)
+      def subclass(const_name, configs={}, dependencies=[], &block)
         #
         # Lookup or create the subclass constant. 
         #
@@ -263,8 +263,8 @@ module Tap
           end
         end
         
-        if options[:arity] || block_given?
-          arity = options[:arity] || block.arity
+        if block_given?
+          arity = block.arity
           comment = Support::Comment.new
           comment.subject = case
           when arity > 0
@@ -278,7 +278,7 @@ module Tap
           subclass.lazydoc(false)[const_name, false]['args'] ||= comment
         end
         
-        subclass.default_name = const_name
+        subclass.default_name = const_name.underscore
         subclass
       end
 

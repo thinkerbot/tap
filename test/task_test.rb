@@ -350,14 +350,14 @@ class TaskTest < Test::Unit::TestCase
   
   ### default_name ###
   
-  def test_default_name_is_set_to_the_constant_name
+  def test_default_name_is_set_to_name
     subclass = Task.subclass('task_test/subclass/ten')
-    assert_equal "TaskTest::Subclass::Ten", subclass.default_name
+    assert_equal "task_test/subclass/ten", subclass.default_name
   end
   
   def test_default_name_ignores_Object_if_specified
     subclass = Task.subclass('object/task_test/subclass/eleven')
-    assert_equal "TaskTest::Subclass::Eleven", subclass.default_name
+    assert_equal "task_test/subclass/eleven", subclass.default_name
   end
   
   

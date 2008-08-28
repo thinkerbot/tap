@@ -151,6 +151,27 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   #
+  # reset_dependencies
+  #
+  
+  def test_reset_dependencies_allows_dependencies_to_be_re_invoked
+    d = Dependency.new
+  
+    m.depends_on d
+    m.depends_on d, 1,2,3
+    
+    m.resolve_dependencies
+    assert_equal [[], [1,2,3]], d.resolve_arguments
+    
+    m.resolve_dependencies
+    assert_equal [[], [1,2,3]], d.resolve_arguments
+    
+    m.reset_dependencies
+    m.resolve_dependencies
+    assert_equal [[], [1,2,3],[], [1,2,3]], d.resolve_arguments
+  end
+  
+  #
   # Object#_method test
   #
   
