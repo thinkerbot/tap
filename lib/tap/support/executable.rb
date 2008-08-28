@@ -48,20 +48,23 @@ module Tap
       # Adds the dependency to self, making self dependent on the dependency.
       # The dependency will be called with the input arguments during 
       # resolve_dependencies.
-      def depends_on(dependency, *args)
-        unless dependency.respond_to?(:resolve)
-          raise ArgumentError, "dependency does not respond to resolve: #{dependency}"
-        end
-        (dependencies << [dependency, args]).uniq!
+      def depends_on(dependency, *inputs)
+        raise ArgumentError, "not an Executable: #{dependency}" unless dependency.kind_of?(Executable)
+        raise ArgumentError, "cannot depend on self" if dependency == self
+        dependencies << [dependency, inputs]
         self
       end
       
       # Resolves dependencies by calling dependency.resolve with
       # the dependency arguments.
       def resolve_dependencies
-        dependencies.each do |dependency, args|
-          dependency.resolve(args)
+        unless dependencies.frozen?
+          dependencies.uniq!
+          dependencies.collect! do |dependency, inputs|
+            dependency._execute(*inputs)
+          end.freeze
         end
+        self
       end
 
       # Auditing method call.  Executes _method_name for self, but audits 

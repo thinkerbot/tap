@@ -1,7 +1,6 @@
 require 'tap/support/batchable'
 require 'tap/support/executable'
 require 'tap/support/command_line'
-require 'tap/support/dependency'
 
 module Tap
 
@@ -181,7 +180,7 @@ module Tap
       end
       
       def instance
-        @instance ||= new.extend(Support::Dependency)
+        @instance ||= new
       end
 
       def subclass(const_name, configs={}, options={}, &block)

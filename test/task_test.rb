@@ -116,10 +116,9 @@ class TaskTest < Test::Unit::TestCase
   # Task.instance test
   #
   
-  def test_instance_returns_class_level_instance_extended_by_Dependency
+  def test_instance_returns_class_level_instance
     i = Task.instance
     assert_equal Task, i.class
-    assert i.kind_of?(Support::Dependency)
     assert_equal i, Task.instance 
   end
   
@@ -449,6 +448,7 @@ class TaskTest < Test::Unit::TestCase
     attr_reader :resolution_arguments
     
     def initialize
+      super()
       @resolution_arguments = []
     end
     
