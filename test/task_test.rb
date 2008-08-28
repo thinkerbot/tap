@@ -189,6 +189,179 @@ class TaskTest < Test::Unit::TestCase
   end
 
   #
+  # Task.dependency test
+  #
+  
+  class DependenyDeclaration < Tap::Task
+    dependency :dep, DependencyClass, 1,2,3
+  end
+  
+  def test_dependency_makes_a_reader_for_the_results_of_the_dependency
+    d = DependenyDeclaration.new
+    assert d.respond_to?(:dep)
+    
+    d.resolve_dependencies
+    assert_equal [1,2,3], d.dependencies[0]._current
+    
+    assert_equal [1,2,3], d.dep
+  end
+  
+  def test_dependency_reader_resolves_dependencies_if_needed
+    d = DependenyDeclaration.new
+    assert_equal [1,2,3], d.dep
+  end
+
+  #
+  # Task.subclass test
+  #
+  
+  module Subclass
+  end
+
+  ### constants  ###
+  
+  def test_subclass_generates_subclass_of_Task_by_name
+    assert !Subclass.const_defined?(:One)
+    subclass = Task.subclass('task_test/subclass/one')
+    assert_equal Subclass::One, subclass
+    assert_equal Task, subclass.superclass
+  end
+  
+  def test_subclasses_can_generate_subclasses
+    assert !Subclass.const_defined?(:TwoA)
+    subclass_a = Task.subclass('task_test/subclass/two_a')
+    subclass_b = subclass_a.subclass('task_test/subclass/two_b')
+    
+    assert_equal Subclass::TwoA, subclass_a
+    assert_equal Subclass::TwoB, subclass_b
+    assert_equal subclass_a, subclass_b.superclass
+  end
+  
+  def test_subclass_generates_modules_as_needed
+    assert !Subclass.const_defined?(:Nested)
+    subclass = Task.subclass('task_test/subclass/nested/one')
+    assert_equal Subclass::Nested::One, subclass
+  end
+  
+  def test_subclass_generates_subclass_in_Object
+    assert !Subclass.const_defined?(:Three)
+    subclass = Task.subclass('object/task_test/subclass/three')
+    assert_equal Subclass::Three, subclass
+  end
+  
+  class ExistingSubclass < Tap::Task
+  end
+  
+  def test_subclass_returns_existing_subclass
+    assert_equal ExistingSubclass, Task.subclass('task_test/existing_subclass')
+  end
+  
+  class NotASubclass
+  end
+  
+  def test_subclass_raises_error_if_specified_class_is_not_a_subclass_of_task
+    assert_raise(ArgumentError) { Task.subclass('task_test/not_a_subclass') }
+  end
+  
+  ### configurations ###
+  
+  def test_subclass_defines_subclass_with_specified_configurations
+    subclass = Task.subclass('task_test/subclass/four', :key => 'value')
+    assert_equal({:key => 'value'}, subclass.configurations.to_hash)
+    
+    s = subclass.new
+    assert_equal 'value', s.key
+  end
+  
+  def test_subclass_adds_or_overrides_specified_configurations_to_subclass
+    subclass = Task.subclass('task_test/subclass/five', :key => 'value')
+    assert_equal({:key => 'value'}, subclass.configurations.to_hash)
+    
+    subclass = Task.subclass('task_test/subclass/five', :another => 'value')
+    assert_equal({:key => 'value', :another => 'value'}, subclass.configurations.to_hash)
+    
+    subclass = Task.subclass('task_test/subclass/five', :key => 'alt')
+    assert_equal({:key => 'alt', :another => 'value'}, subclass.configurations.to_hash)
+  end
+  
+  def test_configurations_may_be_specified_as_an_array_of_config_declarations
+    config_block = lambda {|input| "value is #{input}" }
+    config_attr_block = lambda {|input| @two = "attr value is #{input}" }
+    
+    subclass = Task.subclass('task_test/subclass/six', [
+      [:config, :one, 'value', {}, config_block],
+      [:config_attr, :two, 'value', {}, config_attr_block]])
+    assert_equal({:one => 'value', :two => 'value'}, subclass.configurations.to_hash)
+    
+    s = subclass.new
+    assert_equal 'value is value', s.one
+    s.one = 'alt'
+    assert_equal 'value is alt', s.one
+    
+    assert_equal 'attr value is value', s.two
+    s.two = 'alt'
+    assert_equal 'attr value is alt', s.two
+  end
+  
+  ### dependencies ###
+  
+  def test_subclass_defines_or_adds_dependencies_to_subclass
+    subclass = Task.subclass('task_test/subclass/seven', {}, [[:one, Tap::Task]])
+    assert_equal([[Tap::Task, []]], subclass.dependencies)
+    
+    subclass = Task.subclass('task_test/subclass/seven', {}, [[:two, Tap::Task, 1,2,3]])
+    assert_equal([[Tap::Task, []],[Tap::Task, [1,2,3]]], subclass.dependencies)
+    
+    s = subclass.new
+    assert s.respond_to?(:one)
+    assert s.respond_to?(:two)
+  end
+  
+  def test_subclass_assumes_Task_subclass_dependencies_take_no_arguments_and_use_instance_basename
+    subclass = Task.subclass('task_test/subclass/eight', {}, [Tap::Task, Tap::FileTask])
+    assert_equal([[Tap::Task, []],[Tap::FileTask, []]], subclass.dependencies)
+    
+    s = subclass.new
+    assert s.respond_to?(:task)
+    assert s.respond_to?(:file_task)
+  end
+  
+  ### process ###
+  
+  def test_block_redefines_process_if_given
+    was_in_block = false
+    subclass = Task.subclass('task_test/subclass/nine') do
+      was_in_block = true
+    end
+    
+    assert !was_in_block
+    subclass.new.process
+    assert was_in_block
+    
+    was_in_redefined_block = false
+    subclass = Task.subclass('task_test/subclass/nine') do
+      was_in_redefined_block = true
+    end
+    
+    assert !was_in_redefined_block
+    subclass.new.process
+    assert was_in_redefined_block
+  end
+  
+  ### default_name ###
+  
+  def test_default_name_is_set_to_the_constant_name
+    subclass = Task.subclass('task_test/subclass/ten')
+    assert_equal "TaskTest::Subclass::Ten", subclass.default_name
+  end
+  
+  def test_default_name_ignores_Object_if_specified
+    subclass = Task.subclass('object/task_test/subclass/eleven')
+    assert_equal "TaskTest::Subclass::Eleven", subclass.default_name
+  end
+  
+  
+  #
   # initialization tests
   #
   

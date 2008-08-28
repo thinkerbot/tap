@@ -79,17 +79,17 @@ module Tap
       def declare(klass, name, configs, options, &block)
         name, dependencies = case name
         when Hash then name.to_a[0]
-        else name
+        else [name, []]
         end
         
-        dependencies = case dependencies
-        when Array then dependencies
-        when nil then []
-        else [dependencies]
-        end
-        (options[:dependencies] ||= []).concat(dependencies)
+        dependencies = [dependencies] unless dependencies.kind_of?(Array)
         
-        klass.subclass(nest(name), configs, options, &block)
+        # Special case where configs is like [{:key => 'value'}]
+        #if configs.kind_of?(Array) && configs.length == 1 && configs[0].kind_of?(Hash)
+        #  configs = configs[0]
+        #end
+        
+        klass.subclass(nest(name), configs, dependencies, options, &block)
       end
 
       def nest(name)

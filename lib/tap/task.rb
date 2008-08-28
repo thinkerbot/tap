@@ -182,36 +182,75 @@ module Tap
       def instance
         @instance ||= new
       end
-
-      def subclass(const_name, configs={}, options={}, &block)
-        # Generate the nesting module
+      
+      # Generates or updates the specified subclass of self.
+      def subclass(const_name, configs={}, dependencies=[], options={}, &block)
+        #
+        # Lookup or create the subclass constant. 
+        #
+        
         current, constants = const_name.to_s.constants_split
-        raise ArgumentError, "#{current} is already defined!" if constants.empty?
+        subclass = if constants.empty?
+          # The constant exists; validate the constant is a subclass of self.
+          unless current.kind_of?(Class) && current.ancestors.include?(self)
+            raise ArgumentError, "#{current} is already defined and is not a subclass of #{self}!"
+          end
+          current
+        else
+          # Generate the nesting module
+          subclass_const = constants.pop
+          constants.each {|const| current = current.const_set(const, Module.new)}
 
-        subclass_const = constants.pop
-        constants.each {|const| current = current.const_set(const, Module.new)}
-
-        # Generate the subclass
-        subclass = Class.new(self)
-        configs = configs[0] if configs.kind_of?(Array) && configs.length == 1 && configs[0].kind_of?(Hash)
-
+          # Create and set the subclass constant
+          current.const_set(subclass_const, Class.new(self))
+        end
+        
+        #
+        # Add or define configurations 
+        #
+        
         case configs
         when Hash
+          # hash configs are simply added as default configurations
           subclass.send(:attr_accessor, *configs.keys)
           configs.each_pair do |key, value|
             subclass.configurations.add(key, value)
           end
         when Array
+          # array configs define configuration methods
           configs.each do |method, key, value, opts, config_block| 
             subclass.send(method, key, value, opts, &config_block)
           end
+        else 
+          raise ArgumentError, "cannot handle configs: #{configs}"
         end
         
-        block_method = options[:block_method] || :process
-        subclass.send(:define_method, block_method, &block) if block_given?
-        subclass.default_name = const_name
+        #
+        # Add or define dependencies
+        #
         
+        dependencies.each do |dependency|
+          case 
+          when dependency.kind_of?(Array)
+            subclass.dependency(*dependency)
+          when dependency.kind_of?(Class) && dependency.ancestors.include?(Task)
+            subclass.dependency(File.basename(dependency.instance.name), dependency)
+          else raise ArgumentError, "cannot handle dependency: #{dependency}"
+          end
+        end if dependencies
+        
+        #
+        # Add or define process 
+        # 
+        
+        if block_given?
+          subclass.send(:define_method, :process, &block)
+        end
+        
+        #
         # register documentation
+        #
+        
         const_name = current == Object ? subclass_const : "#{current}::#{subclass_const}"
         caller.each_with_index do |line, index|
           case line
@@ -239,13 +278,8 @@ module Tap
           subclass.lazydoc(false)[const_name, false]['args'] ||= comment
         end
         
-        dependencies = options[:dependencies] || []
-        dependencies.each do |dependency|
-          subclass.depends_on(*dependency)
-        end
-
-        # Set the subclass constant
-        current.const_set(subclass_const, subclass)
+        subclass.default_name = const_name
+        subclass
       end
 
       def instantiate(argv, app=Tap::App.instance) # => instance, argv
@@ -342,6 +376,20 @@ module Tap
         end
         (dependencies << [dependency_class, args]).uniq!
         self
+      end
+      
+      protected
+      
+      def dependency(name, dependency_class, *args)
+        depends_on(dependency_class, *args)
+        
+        instance_variable = "@#{name}".to_sym
+        define_method(name) do
+          unless instance_variable_defined?(instance_variable)
+            instance_variable_set(instance_variable, dependency_result(dependency_class.instance, args))
+          end
+          instance_variable_get(instance_variable)
+        end
       end
     end
     
@@ -507,6 +555,18 @@ module Tap
     # By default on_execute_error simply re-raises the unhandled error.
     def on_execute_error(err)
       raise err
+    end
+    
+    private
+    
+    # Finds the result for the specified dependency.
+    def dependency_result(dependency, args)
+      resolve_dependencies
+      _result = dependencies.find do |_dependency|
+        _dependency._current_source == dependency && _dependency._original == args
+      end
+      
+      _result == nil ? _result : _result._current
     end
   end
 end

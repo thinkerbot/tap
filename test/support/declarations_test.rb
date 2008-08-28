@@ -33,7 +33,7 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_subclass_sets_dependencies_using_initial_hash_if_given
-    klass = tasc(:subclass4 => [Tap::Task, [Tap::FileTask, 1,2,3]])
+    klass = tasc(:subclass4 => [Tap::Task, [:file_task, Tap::FileTask, 1,2,3]])
     assert_equal [
       [Tap::Task, []], 
       [Tap::FileTask, [1,2,3]]
@@ -44,8 +44,6 @@ class DeclarationsTest < Test::Unit::TestCase
       [Tap::Task, []]
     ], klass.dependencies
   end
-  
-  
   
   #
   # tasc nesting
