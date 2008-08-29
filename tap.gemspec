@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "0.10.2"
+  s.version = "0.10.3"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -90,8 +90,6 @@ Gem::Specification.new do |s|
     lib/tap/support/declarations.rb
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
-    lib/tap/support/framework.rb
-    lib/tap/support/framework_class.rb
     lib/tap/support/gems/rake.rb
     lib/tap/support/gems.rb
     lib/tap/support/instance_configuration.rb
