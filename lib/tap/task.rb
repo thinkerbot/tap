@@ -184,7 +184,7 @@ module Tap
       end
       
       # Generates or updates the specified subclass of self.
-      def subclass(const_name, configs={}, dependencies=[], &block)
+      def subclass(const_name, configs={}, dependencies=[], options={}, &block)
         #
         # Lookup or create the subclass constant. 
         #
@@ -206,46 +206,15 @@ module Tap
         end
         
         #
-        # Add or define configurations 
+        # Define the subclass
         #
         
-        case configs
-        when Hash
-          # hash configs are simply added as default configurations
-          subclass.send(:attr_accessor, *configs.keys)
-          configs.each_pair do |key, value|
-            subclass.configurations.add(key, value)
-          end
-        when Array
-          # array configs define configuration methods
-          configs.each do |method, key, value, opts, config_block| 
-            subclass.send(method, key, value, opts, &config_block)
-          end
-        else 
-          raise ArgumentError, "cannot handle configs: #{configs}"
-        end
-        
+        subclass.define_configurations(configs)
+        subclass.define_dependencies(dependencies)
+        subclass.define_process(block) if block_given?
+  
         #
-        # Add or define dependencies
-        #
-        
-        dependencies.each do |dependency|
-          unless dependency.kind_of?(Class) && dependency.ancestors.include?(Task)
-            raise ArgumentError, "cannot handle dependency: #{dependency}"
-          end
-          subclass.depends_on(dependency)
-        end if dependencies
-        
-        #
-        # Add or define process 
-        # 
-        
-        if block_given?
-          subclass.send(:define_method, :process, &block)
-        end
-        
-        #
-        # register documentation
+        # Register documentation
         #
         
         const_name = current == Object ? subclass_const : "#{current}::#{subclass_const}"
@@ -259,26 +228,24 @@ module Tap
             break
           end
         end
-        
-        if block_given?
-          arity = block.arity
-          comment = Support::Comment.new
-          comment.subject = case
-          when arity > 0
-            Array.new(arity, "INPUT").join(' ')
-          when arity < 0
-            array = Array.new(-1 * arity - 1, "INPUT")
-            array << "INPUTS..."
-            array.join(' ')
-          else ""
-          end
-          subclass.lazydoc(false)[const_name, false]['args'] ||= comment
+
+        arity = options[:arity] || (block_given? ? block.arity : -1)
+        comment = Support::Comment.new
+        comment.subject = case
+        when arity > 0
+          Array.new(arity, "INPUT").join(' ')
+        when arity < 0
+          array = Array.new(-1 * arity - 1, "INPUT")
+          array << "INPUTS..."
+          array.join(' ')
+        else ""
         end
-        
+        subclass.lazydoc(false)[const_name, false]['args'] ||= comment
+
         subclass.default_name = const_name.underscore
         subclass
       end
-
+      
       def instantiate(argv, app=Tap::App.instance) # => instance, argv
         opts = OptionParser.new
 
@@ -387,6 +354,51 @@ module Tap
           end
           instance_variable_get(instance_variable)
         end
+      end
+      
+      def define(name, klass=Tap::Task, &block)
+        instance_var = "@#{name}".to_sym
+        
+        define_method(name) do |*args|
+          raise ArgumentError, "wrong number of arguments (#{args.length} for 1)" if args.length > 1
+          
+          instance_name = args[0] || name
+          instance_variable_set(instance_var, {}) unless instance_variable_defined?(instance_var)
+          instance_variable_get(instance_var)[instance_name] ||= config_task(instance_name, klass, &block)
+        end
+        
+        define_method("#{name}=") do |input|
+          input = {name => input} unless input.kind_of?(Hash)
+          instance_variable_set(instance_var, input)
+        end
+      end
+      
+      def define_configurations(configs)
+        case configs
+        when Hash
+          # hash configs are simply added as default configurations
+          send(:attr_accessor, *configs.keys)
+          configs.each_pair do |key, value|
+            configurations.add(key, value)
+          end
+        when Array
+          # array configs define configuration methods
+          configs.each do |method, key, value, opts, config_block| 
+            send(method, key, value, opts, &config_block)
+          end
+        else 
+          raise ArgumentError, "cannot define configurations from: #{configs}"
+        end
+      end
+      
+      def define_dependencies(dependencies)
+        dependencies.each do |name, dependency_class, *args|
+          dependency(name, dependency_class, *args)
+        end if dependencies
+      end
+      
+      def define_process(block)
+        send(:define_method, :process, &block)
       end
     end
     
@@ -555,6 +567,12 @@ module Tap
     end
     
     private
+    
+    def config_task(name, klass=Tap::Task, &block)
+      configs = config[name] || {}
+      raise ArgumentError, "config '#{name}' is not a hash" unless configs.kind_of?(Hash)
+      klass.new(configs, name, &block)
+    end
     
     # Finds the result for the specified dependency.
     def dependency_result(dependency, args=[])

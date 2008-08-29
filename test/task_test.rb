@@ -306,11 +306,15 @@ class TaskTest < Test::Unit::TestCase
   ### dependencies ###
   
   def test_subclass_defines_or_adds_dependencies_to_subclass
-    subclass = Task.subclass('task_test/subclass/seven', {}, [Tap::Task])
+    subclass = Task.subclass('task_test/subclass/seven', {}, [[:one, Tap::Task]])
     assert_equal([[Tap::Task, []]], subclass.dependencies)
     
-    subclass = Task.subclass('task_test/subclass/seven', {}, [Tap::FileTask])
-    assert_equal([[Tap::Task, []],[Tap::FileTask, []]], subclass.dependencies)
+    subclass = Task.subclass('task_test/subclass/seven', {}, [[:two, Tap::Task, 1,2,3]])
+    assert_equal([[Tap::Task, []],[Tap::Task, [1,2,3]]], subclass.dependencies)
+    
+    s = subclass.new
+    assert s.respond_to?(:one)
+    assert s.respond_to?(:two)
   end
   
   ### process ###
@@ -347,6 +351,120 @@ class TaskTest < Test::Unit::TestCase
     assert_equal "task_test/subclass/eleven", subclass.default_name
   end
   
+  #
+  # Task.define test
+  #
+  
+  class Define < Tap::Task
+    BLOCK = lambda {}
+    
+    define :tap_task
+    define :task_with_block, &BLOCK
+    define :file_task, Tap::FileTask
+  end
+  
+  # getter
+  
+  def test_define_task_makes_task_initializer
+    t = Define.new
+    assert t.respond_to?(:tap_task)
+    assert_equal Tap::Task, t.tap_task.class
+  end
+  
+  def test_define_task_returns_the_same_named_task_across_multiple_calls
+    t = Define.new
+    t1 = t.tap_task
+    assert_equal t1.object_id, t.tap_task.object_id
+    
+    t2 = t.tap_task('alt')
+    assert_equal t2.object_id, t.tap_task('alt').object_id
+  end
+  
+  def test_define_task_sets_task_in_instance_variable_by_name
+    t = Define.new
+    t1 = t.tap_task
+    t2 = t.tap_task('alt')
+    assert_equal({:tap_task => t1, 'alt' => t2}, t.instance_variable_get(:@tap_task))
+  end
+
+  def test_defined_tasks_are_named_with_input_or_method_name_by_default
+    t = Define.new
+    assert_equal :tap_task, t.tap_task.name
+    assert_equal 'alt', t.tap_task('alt').name
+  end
+  
+  def test_defined_tasks_utilize_configurations_by_the_same_name
+    t = Define.new(:tap_task => {:key => 'value'})
+    assert_equal({:key => 'value'}, t.tap_task.config)
+    
+    t.config['alt'] = {:key => 'another'}
+    assert_equal({:key => 'another'}, t.tap_task('alt').config)
+  end
+  
+  def test_initialization_of_a_task_using_non_hash_or_nil_configs_raises_error
+    t = Define.new :int => 2, :str => 'str', :hash => {}, :nil => nil
+    
+    assert_nothing_raised { t.tap_task(:hash) }
+    assert_nothing_raised { t.tap_task(:nil) }
+    assert_nothing_raised { t.tap_task(:non_existant) }
+    assert_raise(ArgumentError) { t.tap_task(:int) }
+    assert_raise(ArgumentError) { t.tap_task(:str) }
+  end
+  
+  def test_initialization_initializes_class_using_block
+    t = Define.new
+    
+    t1 = t.tap_task
+    assert_equal Tap::Task, t1.class
+    assert_equal nil, t1.task_block
+    
+    t2 = t.task_with_block
+    assert_equal Tap::Task, t2.class
+    assert_equal Define::BLOCK, t2.task_block
+    
+    t3 = t.file_task
+    assert_equal Tap::FileTask, t3.class
+    assert_equal nil, t3.task_block
+  end
+  
+  def test_initialization_of_different_declarations_using_the_same_name_does_not_raise_an_error
+    t = Define.new
+    t.tap_task(:name)
+    
+    assert_nothing_raised { t.tap_task(:name) }
+    assert_nothing_raised { t.task_with_block(:name) }
+    assert_nothing_raised { t.file_task(:name) }
+  end
+  
+  def test_configurations_for_defined_task_may_not_be_set_through_config
+    t = Define.new
+    t.config[:tap_task] = {:key => 'value'}
+    t1 = t.tap_task
+    
+    assert_equal({:key => 'value'}, t1.config)
+    t.config[:tap_task][:key] = 'VALUE'
+    assert_equal({:key => 'value'}, t1.config)
+  end
+  
+  # setter
+  
+  def test_define_task_makes_task_setter
+    t = Define.new
+    assert t.respond_to?(:tap_task=)
+  end
+  
+  def test_define_task_setter_sets_instance_variable_if_hash
+    t = Define.new
+    t.tap_task = {:key => 'value'}
+    assert_equal({:key => 'value'}, t.instance_variable_get(:@tap_task))
+  end
+  
+  def test_define_task_setter_sets_input_by_name_in_instane_variable_if_input_is_not_a_hash
+    t = Define.new
+    t.tap_task = 'value'
+    assert_equal({:tap_task => 'value'}, t.instance_variable_get(:@tap_task))
+    assert_equal 'value', t.tap_task
+  end
   
   #
   # initialization tests

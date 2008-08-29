@@ -76,27 +76,7 @@ module Tap
   #   app.run
   #   app.results(w1.exit_points, w2.exit_points))    # => [8, -8]
   #
-  class Workflow < Task  
-    class << self
-      protected
-      
-      def define(name, klass=Tap::Task, &block)
-        instance_var = "@#{name}".to_sym
-        
-        define_method(name) do |*args|
-          raise ArgumentError, "wrong number of arguments (#{args.length} for 1)" if args.length > 1
-          
-          instance_name = args[0] || name
-          instance_variable_set(instance_var, {}) unless instance_variable_defined?(instance_var)
-          instance_variable_get(instance_var)[instance_name] ||= task(instance_name, klass, &block)
-        end
-        
-        define_method("#{name}=") do |input|
-          input = {name => input} unless input.kind_of?(Hash)
-          instance_variable_set(instance_var, input)
-        end
-      end
-    end
+  class Workflow < Task
 
     # The entry point for self.
     attr_accessor :entry_point
@@ -167,12 +147,6 @@ module Tap
       self
     end
    
-    def task(name, klass=Tap::Task, &block)
-      configs = config[name] || {}
-      raise ArgumentError, "config '#{name}' is not a hash" unless configs.kind_of?(Hash)
-      klass.new(configs, name, &block)
-    end
-    
     # The workflow definition method.  By default workflow
     # simply calls the task_block.  In subclasses, workflow
     # should be overridden to provide the workflow definition.

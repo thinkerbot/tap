@@ -22,23 +22,17 @@ module Tap
       end
 
       def task(name, configs={}, &block)
-        subclass = declare(Tap::Task, name, configs)
-        mod = Module.new
-        mod.module_eval %Q{
-          ACTION = ObjectSpace._id2ref(#{block.object_id})
-          def process(*args)
-            results = super
-            case ACTION.arity
-            when 1 then ACTION.call(self)
-            else ACTION.call(self, args)
-            end
-            results
-          end
-        }
-        subclass.send(:include, mod)
-        subclass.instance
+         mod_declare(Tap::Task, name, configs, &block)
       end
 
+      def file_tasc(name, configs={}, &block)
+        declare(Tap::FileTask, name, configs, &block)
+      end
+
+      def file_task(name, configs={}, &block)
+         mod_declare(Tap::FileTask, name, configs, &block)
+      end
+      
       protected
 
       def config(key, value=nil, options={}, &block)
@@ -65,7 +59,18 @@ module Tap
 
       private
       
-      def declare(klass, declaration, configs={}, &block)
+      def arity(block)
+        arity = block.arity
+        
+        case
+        when arity > 0 then arity -= 1
+        when arity < 0 then arity += 1
+        end
+        
+        arity
+      end
+      
+      def declare(klass, declaration, configs={}, options={}, &block)
         # Extract name and dependencies from declaration
         name, dependencies = case declaration
         when Hash then declaration.to_a[0]
@@ -79,9 +84,14 @@ module Tap
         unless dependencies.empty?
           dependencies.collect! do |dependency|
             case dependency
-            when String, Symbol
-              declare(Tap::Task, dependency)
-            else dependency
+            when Array then dependency
+            when String, Symbol then [dependency, declare(Tap::Task, dependency)]
+            else 
+              if dependency.kind_of?(Class) && dependency.ancestors.include?(Tap::Task)
+                [File.basename(dependency.default_name), dependency]
+              else
+                raise ArgumentError, "malformed dependency declaration: #{dependency}"
+              end
             end
           end
         end
@@ -90,8 +100,33 @@ module Tap
         base = (self.kind_of?(Module) ? self : self.class).instance_variable_get(:@tap_declaration_base)
         name = File.join(base, name.to_s)
         
-        klass.subclass(name, configs, dependencies, &block)
+        klass.subclass(name, configs, dependencies, options, &block)
       end
+      
+      def mod_declare(klass, declaration, configs={}, &block)
+        options = {}
+        options[:arity] = arity(block) if block_given?
+
+        subclass = declare(klass, declaration, configs, options)
+        
+        if block_given?
+          mod = Module.new
+          mod.module_eval %Q{
+            ACTION = ObjectSpace._id2ref(#{block.object_id})
+            def process(*args)
+              results = super
+              case ACTION.arity
+              when 1 then ACTION.call(self)
+              else ACTION.call(self, args)
+              end
+              results
+            end
+          }
+          subclass.send(:include, mod)
+        end
+        subclass.instance
+      end
+
     end
   end
 end
