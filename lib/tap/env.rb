@@ -273,8 +273,7 @@ module Tap
       @envs = []
       @active = false
       @manifests = {}
-      @manifested = []
-      
+
       # initialize these for reset_env
       @gems = []
       @env_paths = []
@@ -551,6 +550,13 @@ module Tap
       end if envs
       
       nil
+    end
+    
+    def reset(name, &block)
+      each do |env|
+        env.manifests[name].each(&block)
+        env.manifests[name] = nil
+      end
     end
     
     def constantize(name, *patterns)

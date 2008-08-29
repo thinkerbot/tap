@@ -1,0 +1,41 @@
+<html>
+<head>
+	<title>Tap::Manifest</title>
+</head>
+<body>
+	<h1><a href="<%= Tap::WEBSITE %>">Tap (<ins>T</ins>ask <ins>Ap</ins>plication) <%= Tap::VERSION %> </a></h1>
+
+<% server.manifest(:envs, true).minimize.each do |(env_key, env)|
+	 cgi_manifest = env.manifest(:cgis, true).minimize
+	 task_manifest = env.manifest(:tasks, true).minimize 
+	 next if cgi_manifest.empty? && task_manifest.empty? %>
+	<h2><%= env_key %></h2>
+
+	<% unless cgi_manifest.empty? %>
+	<ul>
+		<% cgi_manifest.each do |(cgi_key, path)| 
+			lazydoc = Tap::Support::Lazydoc[path] 
+			lazydoc.resolve
+			summary = lazydoc.default_attributes['summary']
+			%>	
+		<li><a href="<%= cgi_key %>"><%= cgi_key %></a>: <%= summary %></li>
+		<% end %>
+	</ul>
+	<% end %>
+
+	<% unless task_manifest.empty? %>
+	<ul>
+		<% task_manifest.each do |(task_key, const)| 
+			lazydoc = Tap::Support::Lazydoc[const.require_path] 
+			lazydoc.resolve
+			summary = lazydoc[const.name]['manifest'].subject
+			%>	
+		<li><a href="run?task=<%= task_key %>"><%= const.name %></a> <%= summary %></li>
+		<% end %>
+	</ul>
+	<% end %>
+<% end %>
+
+	<a href="index?refresh=true">Refresh</a>
+</body>
+</html>

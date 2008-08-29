@@ -1,14 +1,37 @@
-# TODO -- fix --help so that true server help is displayed
+# tap server {options}
+#
+# Initializes a tap server.
 
-# change to the server dir so that script/server launches as normal
-# (otherwise Mongrel can raise errors because it can't find a log file)
-Dir.chdir Tap::App.instance[:server]
 
-server_script = "script/server"
-unless File.exists?(server_script)
-  puts "server script does not exist: #{Tap::App.instance.filepath(:server, server_script)}"
-  puts "no tap server available?"
-  exit
-end
+require 'tap'
+require 'tap/support/gems/rack'
 
-load server_script
+env = Tap::Env.instance
+
+#
+# handle options
+#
+options = {:Port => 9292}
+OptionParser.new do |opts|
+  
+  opts.separator ""
+  opts.separator "options:"
+
+  opts.on("-h", "--help", "Show this message") do
+    opts.banner = Tap::Support::TDoc.usage(__FILE__)
+    puts opts
+    exit
+  end
+  
+  opts.on("-p", "--port PORT", Integer, "Specifies the port (default #{options[:Port]})") do |value|
+    options[:Port] = value
+  end
+  
+end.parse!(ARGV)
+
+#
+# cgi dir and public dir can be set in tap.yml
+#
+
+env.extend Tap::Support::Gems::Rack
+Rack::Handler::WEBrick.run(env, options)
