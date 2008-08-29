@@ -68,8 +68,10 @@ module Tap
     end
     
     def parse(argv=ARGV)
-      parser = Parser.new(argv)
-      
+      build(Parser.new(argv))
+    end
+    
+    def build(parser)
       # attempt lookup and instantiate the task class
       task_declarations = parser.argvs.collect do |argv|
         pattern = argv.shift

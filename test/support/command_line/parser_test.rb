@@ -1,7 +1,7 @@
 require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/support/command_line/parser'
 
-class ParserTest < Test::Unit::TestCase
+class Tap::Support::CommandLine::ParserTest < Test::Unit::TestCase
   include Tap::Support::CommandLine
 
   #

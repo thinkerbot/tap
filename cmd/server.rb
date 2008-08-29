@@ -2,7 +2,6 @@
 #
 # Initializes a tap server.
 
-
 require 'tap'
 require 'tap/support/gems/rack'
 
@@ -11,7 +10,7 @@ env = Tap::Env.instance
 #
 # handle options
 #
-options = {:Port => 9292}
+options = {:Port => 8080}
 OptionParser.new do |opts|
   
   opts.separator ""
