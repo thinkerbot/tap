@@ -1,6 +1,8 @@
+require 'tap/support/parsers/base'
+
 module Tap
   module Support
-    module Server
+    module Parsers
       
       # rounds syntax
       # 0[task]=dump&0[config][key]=value&0[input][]=a&0[input][]=b
@@ -9,7 +11,7 @@ module Tap
       # round[0]=1,2,3
       # ....
       
-      class Parser
+      class Server < Base
         
         class << self
           def parse_argv(hash)
@@ -45,42 +47,26 @@ module Tap
             argv
           end
           
-          #--
-          # Expects: 1,2,3
-          def parse_sequence(values)
+          def parse_pairs(values)
             [*values].collect do |value|
               value.split(',').collect {|i| i.to_i }
-            end
-          end
-          
-          def parse_pairs(values)
-            parse_sequence(values).collect do |split|
+            end.collect do |split|
               [split.shift, split]
             end
           end
         end
         
-        attr_reader :argvs
-        attr_reader :rounds
-        attr_reader :sequences
-        attr_reader :forks
-        attr_reader :merges
-        attr_reader :sync_merges
-        
         INDEX = /\A\d+\z/
-        SEQUENCE = "sequence"
-
+        
         def initialize(argh)
           @argvs = []
           
           argh.each_pair do |key, value|
             case key
             when INDEX
-              argvs[key.to_i] = Parser.parse_argv(value)
-            when SEQUENCE
-              @sequences = Parser.parse_sequence(value)
+              argvs[key.to_i] = Server.parse_argv(value)
             else
-              instance_variable_set("@#{key}s", Parser.parse_pairs(value))
+              instance_variable_set("@#{key}s", Server.parse_pairs(value))
             end 
           end
           
@@ -89,16 +75,6 @@ module Tap
           @forks ||= []
           @merges ||= []
           @sync_merges ||= []
-        end
-        
-        def targets
-          targets = []
-          sequences.each {|sequence| targets.concat(sequence[1..-1]) }
-          forks.each {|fork| targets.concat(fork[1]) }
-          targets.concat merges.collect {|target, sources| target }
-          targets.concat sync_merges.collect {|target, sources| target }
-          
-          targets.uniq.sort
         end
       end
     end

@@ -1,7 +1,9 @@
+require 'tap/support/parsers/base'
+
 module Tap
   module Support
-    module CommandLine
-      class Parser
+    module Parsers
+      class CommandLine < Base
         class << self
           def parse_sequence(str, count=0)
              seq = []
@@ -10,14 +12,14 @@ module Tap
                seq << n.to_i unless n.empty?
              end
              seq << count + 1 if str[-1] == ?:
-             seq
+             [seq.shift, seq]
           end
           
-          def bracket_regexp(l, r)
+          def pairs_regexp(l, r)
             /\A--(\d*)#{Regexp.escape(l)}([\d,]*)#{Regexp.escape(r)}\z/
           end
           
-          def parse_bracket(lead, str, count=0)
+          def parse_pairs(lead, str, count=0)
              bracket = []
              str.split(/,+/).each do |n| 
                bracket << n.to_i unless n.empty?
@@ -25,31 +27,14 @@ module Tap
 
              [lead.empty? ? count : lead.to_i, bracket]
           end
-          
-          # Parses the input string as YAML, if the string matches the YAML document 
-          # specifier (ie it begins with "---\s*\n").  Otherwise returns the string.
-          #
-          #   str = {'key' => 'value'}.to_yaml       # => "--- \nkey: value\n"
-          #   Tap::Script.parse_yaml(str)            # => {'key' => 'value'}
-          #   Tap::Script.parse_yaml("str")          # => "str"
-          def parse_yaml(str)
-            str =~ /\A---\s*\n/ ? YAML.load(str) : str
-          end
         end
         
         ROUND = /\A--(\+(\d+)|\+*)\z/
         SEQUENCE = /\A--(\d*(:\d*)+)\z/
-        FORK = bracket_regexp("[", "]")
-        MERGE = bracket_regexp("{", "}")
-        SYNC_MERGE = bracket_regexp("(", ")")
+        FORK = pairs_regexp("[", "]")
+        MERGE = pairs_regexp("{", "}")
+        SYNC_MERGE = pairs_regexp("(", ")")
         INVALID =  /\A--(\z|[^A-Za-z])/
-        
-        attr_reader :argvs
-        attr_reader :rounds
-        attr_reader :sequences
-        attr_reader :forks
-        attr_reader :merges
-        attr_reader :sync_merges
         
         def initialize(argv)
           @sequences = []
@@ -80,13 +65,13 @@ module Tap
             when ROUND
               current_round = (@rounds[$2 ? $2.to_i : $1.length] ||= [])
             when SEQUENCE
-              @sequences << Parser.parse_sequence($1, @argvs.length-1)
+              @sequences << CommandLine.parse_sequence($1, @argvs.length-1)
             when FORK
-              @forks << Parser.parse_bracket($1, $2, @argvs.length-1)
+              @forks << CommandLine.parse_pairs($1, $2, @argvs.length-1)
             when MERGE
-              @merges << Parser.parse_bracket($1, $2, @argvs.length-1)
+              @merges << CommandLine.parse_pairs($1, $2, @argvs.length-1)
             when SYNC_MERGE
-              @sync_merges << Parser.parse_bracket($1, $2, @argvs.length-1)
+              @sync_merges << CommandLine.parse_pairs($1, $2, @argvs.length-1)
             else 
               raise ArgumentError, "invalid argument: #{arg}"
             end
@@ -97,16 +82,6 @@ module Tap
             @argvs << current
           end
           @rounds.delete_if {|round| round.nil? || round.empty? }
-        end
-        
-        def targets
-          targets = []
-          sequences.each {|sequence| targets.concat(sequence[1..-1]) }
-          forks.each {|fork| targets.concat(fork[1]) }
-          targets.concat merges.collect {|target, sources| target }
-          targets.concat sync_merges.collect {|target, sources| target }
-          
-          targets.uniq.sort
         end
         
       end

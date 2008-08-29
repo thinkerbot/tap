@@ -47,8 +47,9 @@ end.parse!(ARGV)
 #
 # handle options for each specified task
 #
+require 'tap/support/parsers/command_line'
 
-queues = env.parse(ARGV)
+queues = Tap::Support::Parsers::CommandLine.new(ARGV).build(env, app)
 ARGV.clear
 
 if queues.empty?

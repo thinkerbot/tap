@@ -25,11 +25,13 @@ Gem::Specification.new do |s|
     README
     MIT-LICENSE
     History
+    cgi/run.rb
     cmd/console.rb
     cmd/destroy.rb
     cmd/generate.rb
     cmd/manifest.rb
     cmd/run.rb
+    cmd/server.rb
     doc/Tutorial
     doc/Class\sReference
     doc/Command\sReference
@@ -80,7 +82,6 @@ Gem::Specification.new do |s|
     lib/tap/support/batchable_class.rb
     lib/tap/support/class_configuration.rb
     lib/tap/support/command_line.rb
-    lib/tap/support/command_line/parser.rb
     lib/tap/support/comment.rb
     lib/tap/support/configurable.rb
     lib/tap/support/configurable_class.rb
@@ -91,11 +92,15 @@ Gem::Specification.new do |s|
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
     lib/tap/support/gems/rake.rb
+    lib/tap/support/gems/rack.rb
     lib/tap/support/gems.rb
     lib/tap/support/instance_configuration.rb
     lib/tap/support/lazy_attributes.rb
     lib/tap/support/lazydoc.rb
     lib/tap/support/manifest.rb
+    lib/tap/support/parsers/base.rb
+    lib/tap/support/parsers/command_line.rb
+    lib/tap/support/parsers/server.rb
     lib/tap/support/run_error.rb
     lib/tap/support/shell_utils.rb
     lib/tap/support/tdoc.rb
@@ -120,5 +125,8 @@ Gem::Specification.new do |s|
     lib/tap/test.rb
     lib/tap/workflow.rb
     lib/tap.rb
+    template/404.erb
+    template/index.erb
+    vendor/url_encoded_pair_parser.rb
     }
 end

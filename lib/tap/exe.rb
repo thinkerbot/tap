@@ -1,9 +1,6 @@
-require 'tap/support/command_line/parser'
-
 module Tap
   class Exe < Env
-    Parser = Support::CommandLine::Parser
-    
+
     class << self
       def instantiate
         app = Tap::App.instance
@@ -65,63 +62,6 @@ module Tap
           puts "Type 'tap help' for usage information."
         end
       end
-    end
-    
-    def parse(argv=ARGV)
-      build(Parser.new(argv))
-    end
-    
-    def build(parser)
-      # attempt lookup and instantiate the task class
-      task_declarations = parser.argvs.collect do |argv|
-        pattern = argv.shift
-
-        const = search(:tasks, pattern) or raise ArgumentError, "unknown task: #{pattern}"
-        task_class = const.constantize or raise ArgumentError, "unknown task: #{pattern}"
-        task_class.instantiate(argv, app)
-      end
-      
-      # remove tasks used by the workflow
-      tasks = parser.targets.collect do |index|
-        task, args = task_declarations[index]
-        
-        unless args.empty?
-          raise ArgumentError, "workflow target receives args: #{task} [#{args.join(', ')}]" 
-        end
-        
-        tasks[index] = nil
-        task
-      end
-      
-      # build the workflow
-      parser.sequences.each do |sequence|
-        app.sequence(*sequence.collect {|s| tasks[s] })
-      end
-      
-      parser.forks.each do |source, targets|
-        app.fork(tasks[source], *targets.collect {|t| tasks[t] })
-      end
-      
-      parser.merges.each do |target, sources|
-        app.merge(tasks[target], *sources.collect {|s| tasks[s] })
-      end
-      
-      parser.sync_merges.each do |target, sources|
-        app.sync_merge(tasks[target], *sources.collect {|s| tasks[s] })
-      end
-      
-      # build queues
-      queues = parser.rounds.collect do |round|
-        round.each do |index|
-          task, args = task_declarations[index]
-          task.enq(*args) if task
-        end
-        
-        app.queue.clear
-      end
-      queues.delete_if {|queue| queue.empty? }
-      
-      queues
     end
   end
 end
