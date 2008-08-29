@@ -306,24 +306,11 @@ class TaskTest < Test::Unit::TestCase
   ### dependencies ###
   
   def test_subclass_defines_or_adds_dependencies_to_subclass
-    subclass = Task.subclass('task_test/subclass/seven', {}, [[:one, Tap::Task]])
+    subclass = Task.subclass('task_test/subclass/seven', {}, [Tap::Task])
     assert_equal([[Tap::Task, []]], subclass.dependencies)
     
-    subclass = Task.subclass('task_test/subclass/seven', {}, [[:two, Tap::Task, 1,2,3]])
-    assert_equal([[Tap::Task, []],[Tap::Task, [1,2,3]]], subclass.dependencies)
-    
-    s = subclass.new
-    assert s.respond_to?(:one)
-    assert s.respond_to?(:two)
-  end
-  
-  def test_subclass_assumes_Task_subclass_dependencies_take_no_arguments_and_use_instance_basename
-    subclass = Task.subclass('task_test/subclass/eight', {}, [Tap::Task, Tap::FileTask])
+    subclass = Task.subclass('task_test/subclass/seven', {}, [Tap::FileTask])
     assert_equal([[Tap::Task, []],[Tap::FileTask, []]], subclass.dependencies)
-    
-    s = subclass.new
-    assert s.respond_to?(:task)
-    assert s.respond_to?(:file_task)
   end
   
   ### process ###

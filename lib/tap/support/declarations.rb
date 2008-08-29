@@ -1,6 +1,3 @@
-require 'tap/tasks/rake'
-require 'tap/env'
-
 module Tap
   module Support
     module Declarations
@@ -25,33 +22,39 @@ module Tap
       end
 
       def task(name, configs={}, &block)
-        subclass = declare(Tap::Tasks::Rake, name, configs)
-        subclass.actions << block
+        subclass = declare(Tap::Task, name, configs)
+        mod = Module.new
+        mod.module_eval %Q{
+          ACTION = ObjectSpace._id2ref(#{block.object_id})
+          def process(*args)
+            results = super
+            case ACTION.arity
+            when 1 then ACTION.call(self)
+            else ACTION.call(self, args)
+            end
+            results
+          end
+        }
+        subclass.send(:include, mod)
         subclass.instance
       end
 
       protected
 
       def config(key, value=nil, options={}, &block)
-        caller.each do |line|
-          case line
-          when Lazydoc::CALLER_REGEXP
-            options[:desc] = Support::Lazydoc.register($1, $3.to_i - 1)
-            break
-          end
-        end if options[:desc] == nil
+        if options[:desc] == nil
+          caller[0] =~ Lazydoc::CALLER_REGEXP
+          options[:desc] = Support::Lazydoc.register($1, $3.to_i - 1)
+        end 
 
         [:config, key, value, options, block]
       end
 
       def config_attr(key, value=nil, options={}, &block)
-        caller.each do |line|
-          case line
-          when Lazydoc::CALLER_REGEXP
-            options[:desc] = Support::Lazydoc.register($1, $3.to_i - 1)
-            break
-          end
-        end if options[:desc] == nil
+        if options[:desc] == nil
+          caller[0] =~ Lazydoc::CALLER_REGEXP
+          options[:desc] = Support::Lazydoc.register($1, $3.to_i - 1)
+        end
 
         [:config_attr, key, value, options, block]
       end
@@ -62,7 +65,7 @@ module Tap
 
       private
       
-      def declare(klass, declaration, configs, &block)
+      def declare(klass, declaration, configs={}, &block)
         # Extract name and dependencies from declaration
         name, dependencies = case declaration
         when Hash then declaration.to_a[0]
@@ -71,6 +74,16 @@ module Tap
         
         unless dependencies.kind_of?(Array)
           dependencies = [dependencies]
+        end
+        
+        unless dependencies.empty?
+          dependencies.collect! do |dependency|
+            case dependency
+            when String, Symbol
+              declare(Tap::Task, dependency)
+            else dependency
+            end
+          end
         end
         
         # Nest the constant name

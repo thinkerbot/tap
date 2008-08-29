@@ -230,13 +230,10 @@ module Tap
         #
         
         dependencies.each do |dependency|
-          case 
-          when dependency.kind_of?(Array)
-            subclass.dependency(*dependency)
-          when dependency.kind_of?(Class) && dependency.ancestors.include?(Task)
-            subclass.dependency(File.basename(dependency.instance.name), dependency)
-          else raise ArgumentError, "cannot handle dependency: #{dependency}"
+          unless dependency.kind_of?(Class) && dependency.ancestors.include?(Task)
+            raise ArgumentError, "cannot handle dependency: #{dependency}"
           end
+          subclass.depends_on(dependency)
         end if dependencies
         
         #
@@ -560,7 +557,7 @@ module Tap
     private
     
     # Finds the result for the specified dependency.
-    def dependency_result(dependency, args)
+    def dependency_result(dependency, args=[])
       resolve_dependencies
       _result = dependencies.find do |_dependency|
         _dependency._current_source == dependency && _dependency._original == args

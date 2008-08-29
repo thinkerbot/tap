@@ -45,11 +45,17 @@ class DeclarationsTest < Test::Unit::TestCase
       [Tap::Task, []], 
       [Tap::FileTask, []]
     ], klass.dependencies
-
-    klass = tasc(:declaration6 => [[:task, Tap::Task], [:file_task, Tap::FileTask, 1,2,3]])
+  end
+  
+  def test_string_and_sym_dependencies_are_resolved_into_tasks_using_declare
+    klass = tasc(:declaration6 => :task)
     assert_equal [
-      [Tap::Task, []], 
-      [Tap::FileTask, [1,2,3]]
+      [DeclarationsTest::Task, []]
+    ], klass.dependencies
+    
+    klass = tasc(:task => :declaration6)
+    assert_equal [
+      [DeclarationsTest::Declaration6, []]
     ], klass.dependencies
   end
   
@@ -78,11 +84,11 @@ class DeclarationsTest < Test::Unit::TestCase
   # task declaration
   #
   
-  def test_task_generates_subclass_of_Rake_by_name
+  def test_task_generates_subclass_of_Task_by_name
     assert !DeclarationsTest.const_defined?(:Rake1)
     task(:rake1)
     assert DeclarationsTest.const_defined?(:Rake1)
-    assert_equal Tap::Tasks::Rake, Rake1.superclass
+    assert_equal Tap::Task, Rake1.superclass
   end
   
   def test_task_returns_instance_of_Rake_subclass
@@ -90,15 +96,20 @@ class DeclarationsTest < Test::Unit::TestCase
     assert_equal Rake2.instance, result 
   end
   
-  def test_task_adds_block_to_subclass_actions
-    block_one = lambda {}
-    block_two = lambda {}
+  def test_task_chains_block_to_subclass_actions
+    results = []
+    block_one = lambda { results << 1 }
+    block_two = lambda { results << 2 }
     
-    task(:rake3, &block_one)
-    assert_equal [block_one], Rake3.actions 
+    t = task(:rake3, &block_one)
+    t.process
+    assert_equal [1], results
     
-    task(:rake3, &block_two)
-    assert_equal [block_one, block_two], Rake3.actions 
+    results.clear
+    
+    t = task(:rake3, &block_two)
+    t.process
+    assert_equal [1,2], results
   end
   
 end
