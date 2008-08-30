@@ -51,8 +51,9 @@ module Tap
             [*values].collect do |value|
               value.split(',').collect {|i| i.to_i }
             end.collect do |split|
+              next if split.empty?
               [split.shift, split]
-            end
+            end.compact
           end
         end
         

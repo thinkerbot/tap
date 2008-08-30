@@ -116,8 +116,9 @@ module Tap
             def process(*args)
               results = super
               case ACTION.arity
+              when 0 then ACTION.call
               when 1 then ACTION.call(self)
-              else ACTION.call(self, args)
+              else ACTION.call(self, *args)
               end
               results
             end
