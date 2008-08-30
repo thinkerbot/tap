@@ -1,60 +1,24 @@
-<!--
-identifier:: task lookup
-tasc:: task class
-config:: a hash of configurations...
-inputs:: an array of inputs
-index:: the task definition index
-
-For unobtrusive javascript:
-- show all active elements, hide javascript-specific elements
-- on initialize show/hide using javascript
--->
-<%
-require 'tap/tasks/dump'
-identifier = "task"
-tasc = Tap::Tasks::Dump
-config = {}
-inputs = []
-index = 0
-%>
-
-<html>
-<head>
-<link rel="stylesheet" type="text/css" href="/stylesheets/run.css" />
-<script src="/javascripts/run.js"></script>
-<script type="text/javascript">
-window.onload = function(){ Run.initialize(); };
-</script>
-</head>
-<body>
-
 <div class="task" id="task_<%= index %>">
-  <!-- declaration -->
   <input class="selector" type="checkbox" name="<%= index %>[selected]" value="<%= index %>">
   <input class="identifier" type="text" name="<%= index %>[task]" value="<%= identifier %>">
   <%= tasc.to_s %>
-	<input class="name" type="text" name="<%= index %>[name]" value="<%= tasc.default_name %>">
-	
-	<!-- documentation -->
-	<pre id="documentation_<%= index %>" class="documentation"><%= tasc.manifest.wrap %></pre>
-	
-	<!-- configuration and inputs -->
-	<textarea name="<%= index %>[config]">
-	<!-- TODO: merge config with class configurations -->
-	<%= tasc.configurations.format_str(:nodoc) %>
-	</textarea>
-	<textarea name="<%= index %>[inputs]">
-	<%= inputs.to_yaml %>
-	</textarea>
-	
-	<!-- controls -->
+  <input class="name" type="text" name="<%= index %>[name]" value="<%= tasc.default_name %>">
+
+  <!-- documentation -->
+  <pre id="documentation_<%= index %>" class="documentation"><%= tasc.manifest.wrap %></pre>
+
+  <!-- configuration -->
+  <!-- TODO: merge config with class configurations -->
+  <textarea class="config" name="<%= index %>[config]"><%= tasc.configurations.format_str(:nodoc) %></textarea>
+
+  <!-- inputs -->
+  <textarea class="inputs" name="<%= index %>[inputs]"><%= inputs.to_yaml %></textarea>
+
+  <!-- controls -->
   <ul class="controls" id="controls_<%= index %>">
-  <li class="edit"><a href="">Edit</a></li>
   <li class="reset"><a href="">Reset</a></li>
-  <li class="help"><a href="">Help</a></li>
   <li class="preview"><a href="">Preview</a></li>
+  <li class="edit"><a href="">Edit</a></li>
+	<li class="help"><a href="">Help</a></li>
   </ul>
 </div>
-
-</body>
-</html>

@@ -89,7 +89,7 @@ module Tap
           begin
             ENV.clear
             env.each_pair {|key, value| ENV[key] = value if value.kind_of?(String)}
-
+             
             yield
           ensure
             ENV.clear
@@ -119,6 +119,11 @@ module Tap
               template(DEFAULT_ERROR_TEMPLATE, env, :error => $!)
             end
           end
+        end
+        
+        def cgi_template(name, attributes={})
+          path = root.filepath(:template, "#{name}.erb")
+          Templater.new( File.read(path), attributes).build
         end
 
         def template(template, env, attributes={})

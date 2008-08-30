@@ -1,0 +1,47 @@
+<html>
+<head>
+<!-- <link rel="stylesheet" type="text/css" href="/stylesheets/run.css" /> -->
+<script src="/javascripts/prototype.js"></script>
+<script src="/javascripts/run.js"></script>
+</head>
+<body>
+  <div class="workflow_declaration">
+    <textarea class="workflow" name="workflow">
+    <%= workflow.to_yaml %>
+    </textarea>
+
+    <ul class="env_manifest">
+<% server.manifest(:envs, true).minimize.each do |(env_key, env)| %>
+<% task_manifest = env.manifest(:tasks, true).minimize %>
+<% next if task_manifest.empty? %>
+      <li class="env_manifest_item"><%= env_key %>
+      <ul class="task_manifest">
+<% task_manifest.each do |(task_key, const)| %>
+        <li class="task_manifest_item"><%= const.name %></li>
+<% end %>
+      </ul>
+      </li>
+<% end %>
+    </ul>
+
+    <ul class="workflow_actions">
+<% workflow_actions.each do |action| %>
+      <li class="workflow_action"><%= action %></li>
+<% end %>
+    </ul>
+
+    <ul class="actions">
+      <li class="add"><a href="javascript: Run.add();" >Add</a></li>
+      <li class="remove"><a href="javascript: Run.remove();">Remove</a></li>
+    </ul>
+  </div>
+  
+  <div class="tasks">
+<% tasks.each do |task_attributes| %>
+<%= server.cgi_template('run/task', task_attributes) %>
+<% end %>
+  
+  </div>
+  </form>
+</body>
+</html>

@@ -1,4 +1,9 @@
 var Run = {
-	initialize: function() {
+	add: function() {
+		alert('add')
+  },
+
+	remove: function() {
+		alert('remove')
   },
 };
