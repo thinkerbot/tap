@@ -54,15 +54,16 @@ class ExecutableTest < Test::Unit::TestCase
     end
   end
   
-  def test_depends_on_adds_dependency_and_args_to_dependencies
-    d1 = Dependency.new
-    d2 = Dependency.new
-    
-    m.depends_on d1
-    m.depends_on d2, 1,2,3
-    
-    assert_equal [[d1, []], [d2, [1,2,3]]], m.dependencies
-  end
+  # def test_depends_on_adds_dependency_and_args_to_dependencies
+  #   d1 = Dependency.new
+  #   d2 = Dependency.new
+  #   
+  #   m.depends_on d1
+  #   m.depends_on d2, 1,2,3
+  #   
+  #   assert_equal [[d1, []], [d2, [1,2,3]]], Support::Executable.instance_variable_get(:@registry)
+  #   assert_equal [0, 1], m.dependencies
+  # end
   
   def test_depends_on_raises_error_for_non_Executable_dependencies
     assert_raise(ArgumentError) { m.depends_on nil }
@@ -73,9 +74,21 @@ class ExecutableTest < Test::Unit::TestCase
     assert_raise(ArgumentError) { m.depends_on m }
   end
   
-  def test_depends_on_returns_self
-    assert_equal m, m.depends_on(Dependency.new)
+  def test_depends_on_removes_duplicate_dependencies
+    d = Dependency.new
+  
+    m.depends_on d
+    m.depends_on d, 1,2,3
+    
+    m.depends_on d
+    m.depends_on d, 1,2,3
+    
+    assert_equal 2, m.dependencies.length
   end
+  
+  # def test_depends_on_returns_index_of_dependency
+  #   assert_equal m, m.depends_on(Dependency.new)
+  # end
   
   #
   # resolve_dependencies test
@@ -100,54 +113,20 @@ class ExecutableTest < Test::Unit::TestCase
     m.resolve_dependencies
     
     assert_equal 2, m.dependencies.length
-    results = m.dependencies.collect do |result|
-      assert_equal Support::Audit, result.class
-      result._current
-    end
-    
-    assert_equal ["", "1,2,3"], results
+    assert_equal ["", "1,2,3"], m.dependencies.collect {|index| Support::Executable.results[index]._current }
   end
   
-  def test_resolve_dependencies_removes_duplicate_dependencies
+  def test_resolve_dependencies_does_not_re_execute_resolved_dependencies
     d = Dependency.new
   
     m.depends_on d
     m.depends_on d, 1,2,3
     
-    m.depends_on d
-    m.depends_on d, 1,2,3
-    
-    assert_equal 4, m.dependencies.length
     m.resolve_dependencies
-    assert_equal 2, m.dependencies.length
-    
-    results = m.dependencies.collect do |result|
-      assert_equal Support::Audit, result.class
-      result._current
-    end
-    
-    assert_equal ["", "1,2,3"], results
-  end
-  
-  def test_resolve_dependencies_freezes_dependencies
-    assert !m.dependencies.frozen?
-    m.resolve_dependencies
-    assert m.dependencies.frozen?
-  end
-  
-  def test_resolve_dependencies_does_nothing_if_dependencies_is_frozen
-    d = Dependency.new
-  
-    m.depends_on d
-    m.depends_on d, 1,2,3
-    
-    m.dependencies.freeze
-    assert m.dependencies.frozen?
+    assert_equal [[], [1,2,3]], d.resolve_arguments
     
     m.resolve_dependencies
-    
-    assert_equal [], d.resolve_arguments
-    assert_equal [[d, []], [d,[1,2,3]]], m.dependencies
+    assert_equal [[], [1,2,3]], d.resolve_arguments
   end
   
   #
@@ -168,7 +147,7 @@ class ExecutableTest < Test::Unit::TestCase
     
     m.reset_dependencies
     m.resolve_dependencies
-    assert_equal [[], [1,2,3],[], [1,2,3]], d.resolve_arguments
+    assert_equal [[], [1,2,3], [], [1,2,3]], d.resolve_arguments
   end
   
   #

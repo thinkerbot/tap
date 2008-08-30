@@ -201,8 +201,6 @@ class TaskTest < Test::Unit::TestCase
     assert d.respond_to?(:dep)
     
     d.resolve_dependencies
-    assert_equal [1,2,3], d.dependencies[0]._current
-    
     assert_equal [1,2,3], d.dep
   end
   
@@ -528,16 +526,6 @@ class TaskTest < Test::Unit::TestCase
     
     s = Sample.new
     assert_equal Sample.default_name, s.name
-  end
-  
-  def test_dependencies_are_set_to_instances_of_class_dependencies_and_args
-    assert_equal [], t.dependencies
-    
-    d = DependentClass.new
-    assert_equal [
-      [DependencyClass.instance, []],
-      [DependencyClass.instance, [1,2,3]]
-    ], d.dependencies
   end
   
   #

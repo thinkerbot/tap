@@ -2,6 +2,7 @@ require 'tap/support/audit'
 
 module Tap
   module Support
+    
     # Executable wraps methods to make them executable by App.  Methods are 
     # wrapped by extending the object that receives them; the easiest way
     # to make an object executable is to use Object#_method.
@@ -16,7 +17,6 @@ module Tap
       # Stores the on complete block.
       attr_reader :on_complete_block
       
-      # An array of [dependency, args] pairs, resolved before _execute.
       attr_reader :dependencies
       
       public
@@ -31,7 +31,54 @@ module Tap
         obj.instance_variable_set(:@dependencies, [])
         obj
       end
-    
+
+      def self.clear_dependencies
+        @registry = []
+        @results = []
+      end
+      
+      def self.registry
+        @registry
+      end
+      
+      def self.results
+        @results
+      end
+      
+      def self.index(instance, args)
+        @registry.each_with_index do |entry, index|
+          return index if entry[0] == instance && entry[1] == args
+        end
+        nil
+      end
+      
+      def self.resolved?(index)
+        @results[index] != nil
+      end
+      
+      def self.resolve(indicies)
+        indicies.each do |index|
+          next if @results[index]
+          instance, inputs = @registry[index]
+          @results[index] = instance._execute(*inputs)
+        end
+      end
+
+      def self.reset(indicies)
+        indicies.each {|index| @results[index] = nil }
+      end
+      
+      def self.register(instance, args)
+        if existing = index(instance, args)
+          return existing 
+        end
+        
+        @registry << [instance, args]
+        @registry.length - 1
+      end
+      
+      clear_dependencies
+      
       # Sets a block to receive the results of _execute.  Raises an error 
       # if an on_complete block is already set.  Override an existing
       # on_complete block by specifying override = true.
@@ -51,28 +98,22 @@ module Tap
       def depends_on(dependency, *inputs)
         raise ArgumentError, "not an Executable: #{dependency}" unless dependency.kind_of?(Executable)
         raise ArgumentError, "cannot depend on self" if dependency == self
-        dependencies << [dependency, inputs]
-        self
+        
+        index = Executable.register(dependency, inputs)
+        dependencies << index unless dependencies.include?(index)
+        index
       end
       
       # Resolves dependencies by calling dependency.resolve with
       # the dependency arguments.
       def resolve_dependencies
-        unless dependencies.frozen?
-          dependencies.uniq!
-          dependencies.collect! do |dependency, inputs|
-            dependency._execute(*inputs)
-          end.freeze
-        end
+        Executable.resolve(dependencies)
         self
       end
       
       def reset_dependencies
-        if dependencies.frozen?
-          @dependencies = dependencies.collect do |_dependency|
-            [_dependency._current_source, _dependency._original]
-          end
-        end
+        Executable.reset(dependencies)
+        self
       end
 
       # Auditing method call.  Executes _method_name for self, but audits 

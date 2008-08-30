@@ -67,12 +67,12 @@ module Tap
         protected
         
         def targets
-          targets = sequences.collect {|source, targets| targets } +
+          results = sequences.collect {|source, targets| targets } +
           forks.collect {|source, targets| targets } +
           merges.collect {|target, sources| target } +
           sync_merges.collect {|target, sources| target }
           
-          targets.flatten.uniq.sort
+          results.flatten.uniq.sort
         end
 
       end

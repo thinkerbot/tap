@@ -346,14 +346,13 @@ module Tap
       
       def dependency(name, dependency_class, *args)
         depends_on(dependency_class, *args)
-        
-        instance_variable = "@#{name}".to_sym
+
         define_method(name) do
-          unless instance_variable_defined?(instance_variable)
-            instance_variable_set(instance_variable, dependency_result(dependency_class.instance, args))
-          end
-          instance_variable_get(instance_variable)
+          index = Support::Executable.index(dependency_class.instance, args)
+          Support::Executable.results[index]._current
         end
+        
+        public(name)
       end
       
       def define(name, klass=Tap::Task, &block)
@@ -371,16 +370,19 @@ module Tap
           input = {name => input} unless input.kind_of?(Hash)
           instance_variable_set(instance_var, input)
         end
+        
+        public(name, "#{name}=")
       end
       
       def define_configurations(configs)
         case configs
         when Hash
           # hash configs are simply added as default configurations
-          send(:attr_accessor, *configs.keys)
+          attr_accessor(*configs.keys)
           configs.each_pair do |key, value|
             configurations.add(key, value)
           end
+          public(*configs.keys)
         when Array
           # array configs define configuration methods
           configs.each do |method, key, value, opts, config_block| 
@@ -572,16 +574,6 @@ module Tap
       configs = config[name] || {}
       raise ArgumentError, "config '#{name}' is not a hash" unless configs.kind_of?(Hash)
       klass.new(configs, name, &block)
-    end
-    
-    # Finds the result for the specified dependency.
-    def dependency_result(dependency, args=[])
-      resolve_dependencies
-      _result = dependencies.find do |_dependency|
-        _dependency._current_source == dependency && _dependency._original == args
-      end
-      
-      _result == nil ? _result : _result._current
     end
   end
 end
