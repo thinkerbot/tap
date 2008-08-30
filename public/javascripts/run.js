@@ -1,0 +1,4 @@
+var Run = {
+	initialize: function() {
+  },
+};

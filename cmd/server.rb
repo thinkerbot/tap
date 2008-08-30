@@ -26,6 +26,10 @@ OptionParser.new do |opts|
     options[:Port] = value
   end
   
+  opts.on("-d", "--development", Integer, "Specifies development mode") do
+    env.config[:development] = true
+  end
+  
 end.parse!(ARGV)
 
 #

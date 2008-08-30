@@ -1,0 +1,29 @@
+/*
+  Adapted by Simon Chiang in 2008 from:
+  
+  Transcending CSS by Andy Clarke
+  www.transcendingcss.com/
+*/
+
+@import url(http://tap.rubyforge.org/stylesheets/reset.css);
+@import url(http://tap.rubyforge.org/stylesheets/inman.css);
+
+html {}
+
+body {
+  position: relative;
+  width: 82em;
+  margin: 0 auto;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+/*
+  Unobtrusive Javascript Setup
+*/
+.edit, .help { display:none }
+
+/* 
+  Run Styles
+*/
+.identifier { display:none }

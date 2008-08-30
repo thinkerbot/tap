@@ -6,12 +6,12 @@
 ############################
 require 'cgi'
 require "#{File.dirname(__FILE__)}/../vendor/url_encoded_pair_parser"
-require "tap/support/server/parser"
+require "tap/support/parsers/server"
 
 cgi = CGI.new("html3")  # add HTML generation methods
 
 argh = UrlEncodedPairParser.new(cgi.params.to_a).result
-queues = Tap::Env.instance.build Tap::Support::Server::Parser.new(argh)
+queues = Tap::Support::Parsers::Server.new(argh).build(Tap::Env.instance, Tap::App.instance)
 
 cgi.out() do
   cgi.html() do

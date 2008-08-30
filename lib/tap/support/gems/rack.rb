@@ -5,18 +5,6 @@ module Tap
   module Support
     module Gems
       
-      Tap::Env.manifest(:public_paths, "public") do |search_path|
-        Dir.glob(File.join(search_path, "**/*")).collect do |path|
-          ["/" + Tap::Root.relative_filepath(search_path, path), path]
-        end
-      end
-      
-      Tap::Env.manifest(:templates, "template") do |search_path|
-        Dir.glob(File.join(search_path, "**/*.erb")).collect do |path|
-          ["/" + Tap::Root.relative_filepath(search_path, path), path]
-        end
-      end
-      
       Tap::Env.manifest(:cgis, "cgi") do |search_path|
         Dir.glob(File.join(search_path, "**/*.rb")).collect do |path|
           ["/" + Tap::Root.relative_filepath(search_path, path), path]
@@ -28,10 +16,10 @@ module Tap
           path = env['PATH_INFO']
           
           case 
-          when public_page = search(:public_paths, path)
+          when public_page = known_path(:public, path)
             # serve named static pages
             response(env) { File.read(public_page) }
-
+            
           when cgi_page = search(:cgis, path)
             # serve cgis relative to a cgi path
             run_cgi(cgi_page, env)
@@ -45,11 +33,20 @@ module Tap
             end
             template_response('index', env)
             
+          when config[:development] && template_page = known_path(:template, path)
+            response(env) { template(File.read(template_page), env) }
+            
           else
             # handle all other requests as errors
             template_response('404', env)
             
           end
+        end
+        
+        def known_path(dir, path)
+          dir = root.filepath(dir)
+          path = root.filepath(dir, path)
+          (path != dir && path.index(dir ) == 0 && File.exists?(path)) ? path : nil
         end
 
         #--
@@ -142,7 +139,7 @@ module Tap
         end
         
         def template_response(name, env)
-          path = search(:templates, name)
+          path = root.filepath(:template, "#{name}.erb")
           response(env) { template(File.read(path), env) }
         end
       end
