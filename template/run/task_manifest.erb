@@ -1,0 +1,9 @@
+<select class="manifest" id="<%= name %>" name="<%= name %>">
+<% server.manifest(:envs, true).minimize.each do |(env_key, env)| %>
+<% task_manifest = env.manifest(:tasks, true).minimize %>
+<% next if task_manifest.empty? %>
+<% task_manifest.each do |(task_key, const)| %>
+  <option value="<%= const.name %>" <%= const.name == default ? 'selected="selected"' : ''%> ><%= const.name %></option>
+<% end %>
+<% end %>
+</select>

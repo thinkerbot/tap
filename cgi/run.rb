@@ -23,20 +23,17 @@ cgi = CGI.new("html3")  # add HTML generation methods
 cgi.out() do
   case cgi.request_method
   when /GET/i
-    server.cgi_template('run',
-      :server => server,
-      :workflow => [],
-      :workflow_actions => Tap::Support::Parsers::Base::WORKFLOW_ACTIONS,
-      :tasks => [task_attributes])
-      
-  when /PUT/i
-    "put"
-    # server.cgi_template('run',
-    #   :server => server,
-    #   :workflow => [],
-    #   :workflow_actions => Tap::Support::Parsers::Base::WORKFLOW_ACTIONS)
-   
+    if cgi.params.empty?
+      server.cgi_template('run',
+        :server => server,
+        :workflow => [],
+        :workflow_actions => Tap::Support::Parsers::Base::WORKFLOW_ACTIONS,
+        :tasks => [task_attributes])
+    else
+      "hllo"
+    end
   when /POST/i
+    
     # argh = UrlEncodedPairParser.new(cgi.params.to_a).result
     # queues = Tap::Support::Parsers::Server.new(argh).build(Tap::Env.instance, Tap::App.instance)
     

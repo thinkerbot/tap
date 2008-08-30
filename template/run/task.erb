@@ -1,7 +1,7 @@
 <div class="task" id="task_<%= index %>">
   <input class="selector" type="checkbox" name="<%= index %>[selected]" value="<%= index %>">
-  <input class="identifier" type="text" name="<%= index %>[task]" value="<%= identifier %>">
-  <%= tasc.to_s %>
+<%= server.cgi_template('run/task_manifest', :name => "#{index}[task]", :default => tasc) %>
+  
   <input class="name" type="text" name="<%= index %>[name]" value="<%= tasc.default_name %>">
 
   <!-- documentation -->

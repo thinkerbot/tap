@@ -123,7 +123,7 @@ module Tap
         
         def cgi_template(name, attributes={})
           path = root.filepath(:template, "#{name}.erb")
-          Templater.new( File.read(path), attributes).build
+          Templater.new( File.read(path), {:server => self}.merge(attributes) ).build
         end
 
         def template(template, env, attributes={})

@@ -28,7 +28,8 @@
 		<% task_manifest.each do |(task_key, const)| 
 			lazydoc = Tap::Support::Lazydoc[const.require_path] 
 			lazydoc.resolve
-			summary = lazydoc[const.name]['manifest'].subject
+			summary = lazydoc[const.name]['manifest']
+			summary = summary.subject if summary.kind_of?(Tap::Support::Comment)
 			%>	
 		<li><a href="run?task=<%= task_key %>"><%= const.name %></a> <%= summary %></li>
 		<% end %>
