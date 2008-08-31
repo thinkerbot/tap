@@ -319,7 +319,7 @@ leading_and_trailing: leading_and_trailing value
 
 no_comment: no_comment value
 
-#nil_config: 
+#nil_config:
 
 }
     
@@ -337,7 +337,7 @@ leading: leading value
 long_leading: long_leading value
 leading_and_trailing: leading_and_trailing value
 no_comment: no_comment value
-#nil_config: 
+#nil_config:
 
 }
     assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
@@ -366,7 +366,7 @@ long_leading: long_leading value
 # leading of leading_and_trailing comment
 leading_and_trailing: leading_and_trailing value
 
-#no_comment: 
+#no_comment:
 
 nil_config: no longer nil value
 
@@ -392,7 +392,7 @@ trailing: new trailing value
 leading: leading value
 long_leading: long_leading value
 leading_and_trailing: leading_and_trailing value
-#no_comment: 
+#no_comment:
 nil_config: no longer nil value
 
 ###############################################################################

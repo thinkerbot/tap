@@ -52,11 +52,15 @@ module Tap
         #--
         # Runs a cgi and returns an array as demanded by rack.
         def run_cgi(cgi_path, env)
-          current_output = $>
+          current_input = $stdin
+          current_output = $stdout
+          
+          cgi_input = env['rack.input']
           cgi_output = StringIO.new("")
 
           begin
-            $> = cgi_output
+            $stdin = cgi_input
+            $stdout = cgi_output
 
             with_env(env) { load(cgi_path) }
 
@@ -77,7 +81,8 @@ module Tap
             # when an error occurs, return a standard cgi error with backtrace
             [500, {'Content-Type' => 'text/plain'}, %Q{#{$!.class}: #{$!.message}\n#{$!.backtrace.join("\n")}}]
           ensure
-            $> = current_output
+            $stdin = current_input
+            $stdout = current_output
           end
         end
 
