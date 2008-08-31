@@ -71,8 +71,25 @@ class TemplaterUtilsTest < Test::Unit::TestCase
   
   def test_yamlize_returns_to_yaml_minus_header_and_newline
     assert_equal "key: value", yamlize({'key' => 'value'})
-    assert_equal "", yamlize(nil)
+    assert_equal({'key' => 'value'}, YAML.load(yamlize({'key' => 'value'})))
+    
+    assert_equal "{}", yamlize({})
+    assert_equal({}, YAML.load(yamlize({})))
+    
+    assert_equal "~", yamlize(nil)
+    assert_equal nil, YAML.load(yamlize(nil))
+    
     assert_equal "- 1\n- 2\n- 3", yamlize([1, 2, 3])
+    assert_equal [1, 2, 3], YAML.load(yamlize([1, 2, 3]))
+    
+    assert_equal "[]", yamlize([])
+    assert_equal [], YAML.load(yamlize([]))
+    
+    assert_equal "|-\nsome\nmultiline\nstring", yamlize("some\nmultiline\nstring")
+    assert_equal "some\nmultiline\nstring", YAML.load(yamlize("some\nmultiline\nstring"))
+    
+    assert_equal '""', yamlize("")
+    assert_equal "", YAML.load(yamlize(""))
   end
   
   #

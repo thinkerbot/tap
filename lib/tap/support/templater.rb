@@ -65,7 +65,7 @@ module Tap
       	#   {'key' => 'value'}.to_yaml           # => "--- \nkey: value\n"
       	#   yamlize {'key' => 'value'}           # => "key: value"
         def yamlize(object)
-        	object.to_yaml[5...-1]
+          object == nil ? "~" : object.to_yaml[4...-1].strip
         end
         
         # Nest the return of the block in the nesting lines.
