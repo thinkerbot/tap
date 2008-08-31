@@ -1,6 +1,6 @@
 <div class="task" id="task_<%= index %>">
   <input class="selector" type="checkbox" name="<%= index %>[selected]" value="<%= index %>">
-<%= server.cgi_template('run/task_manifest', :name => "#{index}[task]", :default => tasc) %>
+<%= server.cgi_template('run/task_manifest', :name => "#{index}[tasc]", :default => tasc) %>
   
   <input class="name" type="text" name="<%= index %>[name]" value="<%= tasc.default_name %>">
 
@@ -9,10 +9,10 @@
 
   <!-- configuration -->
   <!-- TODO: merge config with class configurations -->
-  <textarea class="config" name="<%= index %>[config]"><%= tasc.configurations.format_str(:nodoc) %></textarea>
+  <textarea class="config" name="<%= index %>[config]"><%= config.kind_of?(String) ? config : yamlize(config) %></textarea>
 
   <!-- inputs -->
-  <textarea class="inputs" name="<%= index %>[inputs]"><%= inputs.to_yaml %></textarea>
+  <textarea class="inputs" name="<%= index %>[inputs]"><%= inputs.kind_of?(String) ? inputs : yamlize(inputs) %></textarea>
 
   <!-- controls -->
   <ul class="controls" id="controls_<%= index %>">

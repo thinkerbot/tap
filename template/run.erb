@@ -1,29 +1,30 @@
 <html>
 <head>
-<link rel="stylesheet" type="text/css" href="/stylesheets/run.css" />
-<script src="/javascripts/prototype.js"></script>
-<script src="/javascripts/run.js"></script>
+  <link rel="stylesheet" type="text/css" href="/stylesheets/run.css" />
+  <script src="/javascripts/prototype.js"></script>
+  <script src="/javascripts/run.js"></script>
 </head>
 <body>
-  <div class="workflow_declaration">
-    <textarea class="workflow" name="workflow">
-    <%= workflow.to_yaml %>
-    </textarea>
+  <form name="workflow" action="run" method="post">
+  <input id="action" name="action" type="hidden" value="run">
+  
+  <textarea class="workflow" name="workflow"><%= yamlize(workflow) %></textarea>
     
-<%= server.cgi_template('run/task_manifest', :name => 'tasc_selector') %>
+<%= server.cgi_template('run/task_manifest', :name => 'tasc') %>
 
-    <ul class="actions">
-      <li class="add"><a href="javascript: Run.add();" >Add</a></li>
-      <li class="remove"><a href="javascript: Run.remove();">Remove</a></li>
-    </ul>
-  </div>
-  
+  <ul class="actions">
+    <li class="add"><a href="javascript:$('action').value='add';document.workflow.submit();" >Add</a></li>
+    <li class="remove"><a href="javascript:$('action').value='remove';document.workflow.submit();">Remove</a></li>
+  </ul>
+
   <div class="tasks" id="tasks">
-<% tasks.each do |task_attributes| %>
-<%= server.cgi_template('run/task', task_attributes) %>
-<% end %>
-  
+<% tasks.each_with_index do |attributes, index| %>
+<%= server.cgi_template('run/task', attributes.merge(:index => index)) %><% end %>
   </div>
-
+  
+  <!-- As with add/remove, the action must be set by submit in case the for is 
+  left in a non-run state (as by using the back button and re-submitting)-->
+  <input type="submit" value="run" onclick="$('action').value='run'">
+  </form>
 </body>
 </html>

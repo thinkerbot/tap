@@ -12,39 +12,46 @@ server = Tap::Env.instance
 
 require 'tap/tasks/dump'
 task_attributes = {
-  :identifier => "task",
   :tasc => Tap::Tasks::Dump,
   :config => {},
-  :inputs => [],
-  :index => 0
+  :inputs => []
 }
 
 cgi = CGI.new("html3")  # add HTML generation methods
 cgi.out() do
   case cgi.request_method
   when /GET/i
-    if cgi.params.empty?
-      server.cgi_template('run',
-        :server => server,
-        :workflow => [],
-        :workflow_actions => Tap::Support::Parsers::Base::WORKFLOW_ACTIONS,
-        :tasks => [task_attributes])
-    else
-      "hllo"
-    end
+    server.cgi_template('run',
+      :server => server,
+      :workflow => {},
+      :tasks => [task_attributes])
+
   when /POST/i
+    argh = UrlEncodedPairParser.new(cgi.params.to_a).result
+    argh = Tap::Support::Parsers::Server.compact(argh)
+    parser = Tap::Support::Parsers::Server.new(argh)
     
-    # argh = UrlEncodedPairParser.new(cgi.params.to_a).result
-    # queues = Tap::Support::Parsers::Server.new(argh).build(Tap::Env.instance, Tap::App.instance)
+    case cgi['action']
+    when /ADD/i
+      cgi.pre { parser.to_yaml }
+      
+    when /REMOVE/i
+      "remove"
+    when /RUN/i
+      "run"
     
-    # if queues.empty?
-    # end
+      # argh = UrlEncodedPairParser.new(cgi.params.to_a).result
+      # queues = Tap::Support::Parsers::Server.new(argh).build(Tap::Env.instance, Tap::App.instance)
     
-    # queues.each_with_index do |queue, i|
-    #   app.queue.concat(queue)
-    #   app.run
-    # end
-  else
-    raise ArgumentError, "unhandled request method: #{cgi.request_method}"
+      # if queues.empty?
+      # end
+    
+      # queues.each_with_index do |queue, i|
+      #   app.queue.concat(queue)
+      #   app.run
+      # end
+    else raise ArgumentError, "unhandled request action: #{cgi['action']}"
+    end
+  else raise ArgumentError, "unhandled request method: #{cgi.request_method}"
   end
 end

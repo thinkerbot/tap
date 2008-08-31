@@ -14,14 +14,6 @@ module Tap
           end
         end
         
-        WORKFLOW_ACTIONS = %w{
-          round
-          sequence
-          fork
-          merge
-          sync_merge
-        } # global
-        
         attr_reader :argvs
         attr_reader :rounds
         attr_reader :sequences

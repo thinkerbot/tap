@@ -5,7 +5,7 @@ module Tap
     module Parsers
       
       # rounds syntax
-      # 0[task]=dump&0[config][key]=value&0[input][]=a&0[input][]=b
+      # 0[tasc]=dump&0[config][key]=value&0[input][]=a&0[input][]=b&0[selected]
       # sequence[1]=1,2,3
       # fork[1]=2,3
       # round[0]=1,2,3
@@ -15,13 +15,13 @@ module Tap
         
         class << self
           def parse_argv(hash)
-            raise ArgumentError, "no task specified" unless hash.has_key?('task')
-            
+            raise ArgumentError, "no task specified" unless hash.has_key?('tasc')
+
             # parse task
-            argv = [hash['task']]
+            argv = [hash.delete('tasc')]
             
             # parse configs
-            configs = hash['config']
+            configs = hash.delete('config')
             configs = YAML.load(configs) if configs.kind_of?(String)
             
             case configs
@@ -35,7 +35,7 @@ module Tap
             end
             
             # parse inputs
-            inputs = hash['inputs']
+            inputs = hash.delete('inputs')
             inputs = YAML.load(inputs) if inputs.kind_of?(String)
             
             case inputs
@@ -49,25 +49,55 @@ module Tap
           
           def parse_pairs(values)
             [*values].collect do |value|
-              value.split(',').collect {|i| i.to_i }
+              case value
+              when String then value.split(',').collect {|i| i.to_i }
+              when Array then value
+              else raise ArgumentError, "non-array inputs specified: #{value}"
+              end
             end.collect do |split|
               next if split.empty?
               [split.shift, split]
             end.compact
           end
+          
+          def compact(argh)
+            compact = {}
+            argh.each_pair do |key, value|
+              compact[key] = case value
+              when Array
+                value.length == 1 && value[0].kind_of?(String) ? value[0] : value
+              when Hash
+                compact(value)
+              else
+                value
+              end
+            end
+            compact
+          end
         end
         
         INDEX = /\A\d+\z/
         
+        attr_reader :attributes
+        
         def initialize(argh)
           @argvs = []
+          @attributes = []
           
           argh.each_pair do |key, value|
             case key
             when INDEX
               argvs[key.to_i] = Server.parse_argv(value)
-            else
-              instance_variable_set("@#{key}s", Server.parse_pairs(value))
+              attributes[key.to_i] = value
+            when "workflow"
+              hash = value.kind_of?(String) ? YAML.load(value) : value
+              unless hash.kind_of?(Hash)
+                raise ArgumentError, "non-hash workflow specified: #{value}"
+              end
+                        
+              hash.each_pair do |type, entries|
+                instance_variable_set("@#{type}s", Server.parse_pairs(entries))
+              end
             end 
           end
           

@@ -15,8 +15,8 @@ class Tap::Support::Parsers::ServerTest < Test::Unit::TestCase
   # Server.parse_argv test
   #
   
-  def test_parse_argv_parses_task_from_hash_task
-    assert_equal(["Task"], Server.parse_argv('task' => 'Task'))
+  def test_parse_argv_parses_task_from_hash_tasc
+    assert_equal(["Task"], Server.parse_argv('tasc' => 'Task'))
   end
   
   def test_parse_argv_raises_error_if_no_task_is_specified
@@ -26,14 +26,14 @@ class Tap::Support::Parsers::ServerTest < Test::Unit::TestCase
   
   def test_parse_argv_constructs_config_options_from_hash_config
     argh = {
-      'task' => 'Task',
+      'tasc' => 'Task',
       'config' => {'key' => 'value'}}
     assert_equal(['Task', '--key', 'value'], Server.parse_argv(argh))
   end
   
   def test_parse_argv_loads_configs_as_yaml_if_configs_are_a_string
     argh = {
-      'task' => 'Task',
+      'tasc' => 'Task',
       'config' => {'key' => 'value'}.to_yaml}
     assert_equal(['Task', '--key', 'value'], Server.parse_argv(argh))
   end
@@ -45,14 +45,14 @@ class Tap::Support::Parsers::ServerTest < Test::Unit::TestCase
   
   def test_parse_argv_concats_inputs_in_inputs
     argh = {
-      'task' => 'Task',
+      'tasc' => 'Task',
       'inputs' => [1,2,3]}
     assert_equal(['Task', 1,2,3], Server.parse_argv(argh))
   end
   
   def test_parse_argv_loads_inputs_as_yaml_if_inputs_are_a_string
     argh = {
-      'task' => 'Task',
+      'tasc' => 'Task',
       'inputs' => [1,2,3].to_yaml}
     assert_equal(['Task', 1,2,3], Server.parse_argv(argh))
   end
@@ -60,6 +60,15 @@ class Tap::Support::Parsers::ServerTest < Test::Unit::TestCase
   def test_parse_argv_raises_error_if_inputs_is_not_an_array_string_or_nil
     assert_raise(ArgumentError) { Server.parse_argv('inputs' => 1) }
     assert_raise(ArgumentError) { Server.parse_argv('inputs' => {}) }
+  end
+  
+  def test_parse_argv_removes_attributes_directly_from_hash
+    argh = {
+      'tasc' => 'Task',
+      'inputs' => [1,2,3].to_yaml,
+      'another' => 'value'}
+    Server.parse_argv(argh)
+    assert_equal({'another' => 'value'}, argh)
   end
   
   #
@@ -94,8 +103,8 @@ class Tap::Support::Parsers::ServerTest < Test::Unit::TestCase
   
   def test_parse_pulls_out_argvs_for_each_task
     argh = {
-      "0" => {'task' => 'zero', 'config' => {'opt' => 'value'}, 'inputs' => ['1', '2', '3']},
-      "1" => {'task' => 'one', 'config' => {'opt' => 'alt'}, 'inputs' => ['4']}
+      "0" => {'tasc' => 'zero', 'config' => {'opt' => 'value'}, 'inputs' => ['1', '2', '3']},
+      "1" => {'tasc' => 'one', 'config' => {'opt' => 'alt'}, 'inputs' => ['4']}
     }
     
     assert_equal [
@@ -106,10 +115,30 @@ class Tap::Support::Parsers::ServerTest < Test::Unit::TestCase
   
   def test_parse_pulls_out_workflow_declarations
     argh = {
-      "sequence" => ["1,2,3", "4,5"],
-      "round" => ["0,0,1", "1,3"],
-      "merge" => "0,1,2",
-      "sync_merge" => ""
+      "workflow" => {
+        "sequence" => ["1,2,3", "4,5"],
+        "round" => ["0,0,1", "1,3"],
+        "merge" => "0,1,2",
+        "sync_merge" => ""
+      }
+    }
+    
+    parser = Server.new(argh)
+    assert_equal [[1,[2,3]],[4,[5]]], parser.sequences
+    assert_equal [[0,[0,1]],[1,[3]]], parser.rounds
+    assert_equal [[0,[1,2]]], parser.merges
+    assert_equal [], parser.sync_merges
+    assert_equal [], parser.forks
+  end
+  
+  def test_parse_loads_workflow_definition_as_yaml_if_string
+    argh = {
+      "workflow" => {
+        "sequence" => ["1,2,3", "4,5"],
+        "round" => ["0,0,1", "1,3"],
+        "merge" => "0,1,2",
+        "sync_merge" => ""
+      }.to_yaml
     }
     
     parser = Server.new(argh)
