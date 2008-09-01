@@ -15,6 +15,26 @@ module Tap
         str =~ /\A---\s*\n/ ? YAML.load(str) : str
       end
       
+      # Shell quotes the input string by enclosing in quotes if
+      # str has no quotes, or double quotes if str has no double
+      # quotes.  Returns the str if it has not whitespace, quotes
+      # or double quotes.
+      #
+      # Raises an ArgumentError if str has both quotes and double
+      # quotes.
+      def shell_quote(str)
+        return str unless str =~ /[\s'"]/
+        
+        quote = str.include?("'")
+        double_quote = str.include?('"')
+        
+        case
+        when !quote then "'#{str}'"
+        when !double_quote then "\"#{str}\""
+        else raise ArgumentError, "cannot shell quote: #{str}"
+        end
+      end
+      
       # Defines a break regexp that matches a bracketed-pairs
       # break.  The left and right brackets are specified as
       # inputs.  After a match:
@@ -115,7 +135,7 @@ module Tap
         seq << next_index if two[-1] == ?:
         seq
       end
-
+      
       # Parses the match of an INSTANCE regexp into an index.
       # The input corresponds to $2 for the match.  The next 
       # index is assumed if $2 is empty.
@@ -237,7 +257,7 @@ module Tap
       
       current_round_index = @round_indicies[next_index]
       current = []
-      argv.each do |arg|        
+      argv.each do |arg|
         # add all non-breaking args to the
         # current argv array.  this should
         # include all lookups, inputs, and
@@ -250,9 +270,7 @@ module Tap
         # unless the current argv is empty,
         # append and start a new argv
         unless current.empty?
-          @tasks << current
-          @round_indicies[current_index] = (current_round_index || 0)
-          current_round_index = @round_indicies[next_index]
+          current_round_index = add_task(current, current_round_index)
           current = []
         end
         
@@ -279,8 +297,7 @@ module Tap
       end
       
       unless current.empty?
-        @tasks << current
-        @round_indicies[current_index] = (current_round_index || 0)
+        add_task(current, current_round_index)
       end
     end
     
@@ -331,7 +348,44 @@ module Tap
       collected_rounds.each {|round| round.uniq! unless round.nil? }
     end
     
+    def to_s
+      segments = []
+      
+      tasks.each do |argv| 
+        segments << argv.collect {|arg| shell_quote(arg) }.join(' ')
+      end
+
+      rounds.each_with_index do |indicies, round_index|
+        unless indicies == nil
+          segments << "+#{round_index}[#{indicies.join(',')}]"
+        end
+      end
+      
+      workflow.each_with_index do |(type, targets), source|
+        next if type == nil
+        
+        segments << case type
+        when :sequence   then [source, *targets].join(":")
+        when :fork       then "#{source}[#{targets.join(',')}]"
+        when :merge      then "#{source}{#{targets.join(',')}}"
+        when :sync_merge then "#{source}(#{targets.join(',')})"
+        end
+      end
+      
+      segments.join(" -- ")
+    end
+    
     protected
+    
+    # Returns the index of the next argv to be parsed.
+    def next_index
+      tasks.length
+    end
+    
+    # Returns the index of the last argv parsed.
+    def current_index
+      tasks.length - 1
+    end
     
     # Sets the targets to the source in workflows, tracking the
     # workflow type.
@@ -342,18 +396,14 @@ module Tap
     
     # Sets a reverse workflow... ie the source is set to
     # each target index.
-    def set_reverse_workflow(type, source, targets)  # :nodoc
+    def set_reverse_workflow(type, source, targets) # :nodoc
       targets.each {|target| set_workflow(type, target, source) }
     end
     
-    # Returns the index of the next argv to be parsed.
-    def next_index
-      tasks.length
-    end
-    
-    # Returns the index of the last argv parsed.
-    def current_index
-      tasks.length - 1
+    def add_task(definition, round_index=@round_indicies[next_index]) # :nodoc
+      @tasks << definition
+      @round_indicies[current_index] = (round_index || 0)
+      @round_indicies[next_index]
     end
   end
 end

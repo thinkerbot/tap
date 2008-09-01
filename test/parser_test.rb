@@ -35,6 +35,23 @@ class ParserUtilsTest < Test::Unit::TestCase
   end
   
   #
+  # shell_quote test
+  #
+  
+  def test_shell_quote
+    assert_equal "str", shell_quote("str")
+    assert_equal ["a", "str", "b"], Shellwords.shellwords("a str b")
+    
+    assert_equal %Q{'no "quote"'}, shell_quote("no \"quote\"")
+    assert_equal ["a", "no \"quote\"", "b"], Shellwords.shellwords(%Q{a 'no "quote"' b})
+    
+    assert_equal %Q{"no 'double quote'"}, shell_quote("no 'double quote'")
+    assert_equal ["a", "no 'double quote'", "b"], Shellwords.shellwords(%Q{a "no 'double quote'" b})
+    
+    assert_raise(ArgumentError) { shell_quote("\"quote\" and 'double quote'") }
+  end
+  
+  #
   # bracket_regexp test
   #
   
@@ -663,5 +680,70 @@ class ParserTest < Test::Unit::TestCase
       assert_equal [[1, [100]], [2, [200,300]]], parser.workflow(type), type
     end
   end
+  
+  #
+  # parse test
+  #
+  
+  def test_parse
+    p = Parser.new [
+      "a", "a1", "a2", "--key", "value", "--another", "another value", "--",
+      "b","b1", "--",
+      "c", "--",
+      "+2[0,1,2]", "--",
+      "0:1:2"]
+      
+    assert_equal [
+      ["a", "a1", "a2", "--key", "value", "--another", "another value"],
+      ["b", "b1"],
+      ["c"]
+    ], p.tasks
+    
+    assert_equal [nil, nil, [0,1,2]], p.rounds
+    assert_equal [
+      [:sequence, 1],
+      [:sequence, 2]
+    ], p.workflows
+  end
+  
+  def test_parse_splits_string_argv_using_shellwords
+    p = Parser.new "a a1 a2 --key value --another 'another value' -- b b1 -- c -- +2[0,1,2] -- 0:1:2"
+    assert_equal [
+      ["a", "a1", "a2", "--key", "value", "--another", "another value"],
+      ["b", "b1"],
+      ["c"]
+    ], p.tasks
+    
+    assert_equal [nil, nil, [0,1,2]], p.rounds
+    assert_equal [
+      [:sequence, 1],
+      [:sequence, 2]
+    ], p.workflows
+  end
+  
+  #
+  # to_s test
+  #
+  
+  def test_to_s_regenerates_argv_as_string
+    p = Parser.new
+    p.tasks.concat [
+      ["a", "a1", "a2", "--key", "value", "--another", "another value"],
+      ["b", "b1"],
+      ["c"]
+    ]
+    
+    p.round_indicies.concat [2,2,1]
+    p.workflows.concat [
+      [:sequence, 1],
+      [:sequence, 2],
+      [:fork, [1,2,3]],
+      [:merge, 6],
+      [:merge, 6]
+    ]
+    
+    assert_equal "a a1 a2 --key value --another 'another value' -- b b1 -- c -- +1[2] -- +2[0,1] -- 0:1 -- 1:2 -- 2[1,2,3] -- 6{3,4}", p.to_s
+  end
+  
 end
 
