@@ -100,18 +100,19 @@ module Tap
         [index, six == nil ? [] : parse_indicies(six)]
       end
 
-      # Parses the match of a SEQUENCE regexp into a [source_index, 
-      # target_indicies] array. The input corresponds to $2 for the 
-      # match.  The current and next index are assumed if $2 starts 
-      # and/or ends with a semi-colon.
+      # Parses the match of a SEQUENCE regexp into an array of task
+      # indicies. The input corresponds to $2 for the match.  The 
+      # current and next index are assumed if $2 starts and/or ends 
+      # with a semi-colon.
       #
-      #   parse_sequence("1:2:3")       # => [1, [2,3]]
-      #   parse_sequence(":1:2:")       # => [:current_index, [1,2,:next_index]]
+      #   parse_sequence("1:2:3")       # => [1,2,3]
+      #   parse_sequence(":1:2:")       # => [:current_index,1,2,:next_index]
       #
       def parse_sequence(two)
         seq = parse_indicies(two, /:+/)
+        seq.unshift current_index if two[0] == ?:
         seq << next_index if two[-1] == ?:
-        [two[0] == ?: ? current_index : seq.shift, seq]
+        seq
       end
 
       # Parses the match of an INSTANCE regexp into an index.
@@ -144,38 +145,78 @@ module Tap
     
     include Utils
     
-    attr_reader :argvs
-    attr_reader :sequences
-    attr_reader :instances
-    attr_reader :forks
-    attr_reader :merges
-    attr_reader :sync_merges
+    attr_reader :tasks
+    attr_reader :workflows
     
     def initialize(argv=nil)
-      @argvs = []
+      @tasks = []
       @rounds = []
-      @sequences = []
-      @instances = []
-      @forks = []
-      @merges = []
-      @sync_merges = []
-      
+      @workflows = []
+
       parse(argv) unless argv == nil
     end
     
-    def rounds
-      collected_rounds = []
-      @rounds.each_with_index do |round_index, index|
-        (collected_rounds[round_index] ||= []) << index unless round_index == nil
-      end
-      
-      collected_rounds.each {|round| round.uniq! unless round.nil? }
-    end
-    
+    # Iterates through the argv splitting out task and workflow definitions.
+    # Task definitions are split out (with configurations) along round and/or
+    # workflow break lines.  Rounds and workflows are dynamically parsed;
+    # tasks may be reassigned to rounds, or have their workflow reassigned
+    # by later arguments, perhaps in later calls to parse.
+    #
+    # === Examples
+    #
+    # Parse two tasks, with inputs and configs at separate times.  Both 
+    # are assigned to round 0.
+    #
+    #   p = Parser.new
+    #   p.parse(["a", "b", "--config", "c"])
+    #   p.tasks          
+    #   # => [
+    #   # ["a", "b", "--config", "c"]]
+    #
+    #   p.parse(["x", "y", "z"])
+    #   p.tasks          
+    #   # => [
+    #   # ["a", "b", "--config", "c"],
+    #   # ["x", "y", "z"]]
+    #   
+    #   p.rounds         # => [[0,1]]
+    #
+    # Parse two simple tasks at the same time into different rounds.
+    #
+    #   p = Parser.new ["a", "--+", "b"]
+    #   p.tasks          # => [["a"], ["b"]]
+    #   p.rounds         # => [[0], [1]]
+    #
+    # Rounds can be declared multiple ways:
+    #
+    #   p = Parser.new ["--+", "a", "--", "b", "--", "c", "--", "d"]
+    #   p.tasks          # => [["a"], ["b"], ["c"], ["d"]]
+    #   p.rounds         # => [[1,2,3], [0]]
+    #
+    #   p.parse ["+3[2,3]"]
+    #   p.rounds         # => [[1], [0], nil, [2,3]]
+    #
+    # Note the rounds were re-assigned using the second parse.  Very
+    # similar things may be done with workflows:
+    #
+    #   p = Parser.new ["a", "--:", "b", "--:", "c", "--:", "d"]
+    #   p.tasks                    # => [["a"], ["b"], ["c"], ["d"]]
+    #   p.workflow(:sequence)     # => [[0,1],[1,2],[2,3]]
+    #
+    #   p.parse ["1[2,3]"]
+    #   p.workflow(:sequence)     # => [[0,1],[2,3]]
+    #   p.workflow(:fork)         # => [[1,[2,3]]]
+    #
+    #   p.parse ["e", "--{2,3}"]
+    #   p.tasks                    # => [["a"], ["b"], ["c"], ["d"], ["e"]]
+    #   p.workflow(:sequence)     # => [[0,1]]
+    #   p.workflow(:fork)         # => [[1,[2,3]]]
+    #   p.workflow(:merge)        # => [[4,[2,3]]]
+    #
     def parse(argv)
       current_round_index = @rounds[next_index]
       current = []
-      argv.each do |arg|
+      argv.each do |arg|        
         # add all non-breaking args to the
         # current argv array.  this should
         # include all lookups, inputs, and
@@ -188,7 +229,7 @@ module Tap
         # unless the current argv is empty,
         # append and start a new argv
         unless current.empty?
-          @argvs << current
+          @tasks << current
           @rounds[current_index] = (current_round_index || 0)
           current_round_index = @rounds[next_index]
           current = []
@@ -201,49 +242,81 @@ module Tap
           current_round_index, indicies = parse_round($3, $6)
           indicies.each {|index| @rounds[index] = current_round_index }
 
-        when SEQUENCE   then @sequences << parse_sequence($2)
-        when INSTANCE   then @instances << parse_instance($2)
-        when FORK       then @forks << parse_bracket($2, $3)
-        when MERGE      then @merges << parse_bracket($2, $3)
-        when SYNC_MERGE then @sync_merges << parse_bracket($2, $3)
+        when SEQUENCE   
+          indicies = parse_sequence($2)
+          while indicies.length > 1
+            source_index = indicies.shift
+            set_workflow(:sequence, source_index, indicies[0])
+          end
+          
+        # when INSTANCE   then @instances << parse_instance($2)
+        when FORK        then set_workflow(:fork, *parse_bracket($2, $3))
+        when MERGE       then set_reverse_workflow(:merge, *parse_bracket($2, $3))
+        when SYNC_MERGE  then set_reverse_workflow(:sync_merge, *parse_bracket($2, $3))
         else raise ArgumentError, "invalid break argument: #{arg}"
         end
       end
       
       unless current.empty?
-        @argvs << current
+        @tasks << current
         @rounds[current_index] = (current_round_index || 0)
       end
     end
     
-    def workflow
-      [ [:sequence, @sequences],
-        [:fork, @forks],
-        [:merge, @merges]]
-      #[:sequence, @sequences]
-    end
-    
-    def workflow_indicies
-      results = sequences.collect {|source, targets| targets } +
-      forks.collect {|source, targets| targets } +
-      merges.collect {|target, sources| target } +
-      sync_merges.collect {|target, sources| target }
+    def workflow(type=nil)
+      # recollect reverse types
       
-      results.flatten.uniq.sort
+      workflows = []
+      @workflows.each_with_index do |entry, source|
+        next if entry == nil
+        
+        workflows[source] = case entry[0]
+        when :merge, :sync_merge
+          workflow_type, target = entry
+          (workflows[target] ||= [workflow_type, []])[1] << source
+          nil
+        else entry
+        end
+      end
+      
+      return workflows if type == nil
+      
+      declarations = []
+      workflows.each_with_index do |(workflow_type, targets), source|
+        declarations << [source, targets] if workflow_type == type
+      end
+      
+      declarations
     end
-    
+
+    def rounds
+      collected_rounds = []
+      @rounds.each_with_index do |round_index, index|
+        (collected_rounds[round_index] ||= []) << index unless round_index == nil
+      end
+      
+      collected_rounds.each {|round| round.uniq! unless round.nil? }
+    end
     
     protected
     
+    def set_workflow(type, source, targets)
+      # warn if workflows[source] is already set
+      @workflows[source] = [type, targets]
+    end
+    
+    def set_reverse_workflow(type, source, targets)
+      targets.each {|target| set_workflow(type, target, source) }
+    end
+    
     # Returns the index of the next argv to be parsed.
     def next_index
-      argvs.length
+      tasks.length
     end
     
     # Returns the index of the last argv parsed.
     def current_index
-      argvs.length - 1
+      tasks.length - 1
     end
-    
   end
 end

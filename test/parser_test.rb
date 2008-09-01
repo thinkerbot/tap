@@ -362,18 +362,18 @@ class ParserUtilsTest < Test::Unit::TestCase
   #
   
   def test_parse_sequence_documentation
-    assert_equal [1, [2,3]], parse_sequence("1:2:3")
-    assert_equal [:current_index, [1,2,:next_index]], parse_sequence(":1:2:")
+    assert_equal [1,2,3], parse_sequence("1:2:3")
+    assert_equal [:current_index,1,2,:next_index], parse_sequence(":1:2:")
   end
   
   def test_parse_sequence
-    assert_equal [:current_index, [:next_index]], parse_sequence(":")
-    assert_equal [1, [:next_index]], parse_sequence("1:")
-    assert_equal [:current_index, [2]], parse_sequence(":2")
-    assert_equal [1, [2]], parse_sequence("1:2")
-    assert_equal [1, [2,3]], parse_sequence("1:2:3")
-    assert_equal [100, [200,300]], parse_sequence("100:200:300")
-    assert_equal [:current_index, [1,2,3,:next_index]], parse_sequence(":1:2:3:")
+    assert_equal [:current_index,:next_index], parse_sequence(":")
+    assert_equal [1,:next_index], parse_sequence("1:")
+    assert_equal [:current_index,2], parse_sequence(":2")
+    assert_equal [1,2], parse_sequence("1:2")
+    assert_equal [1,2,3], parse_sequence("1:2:3")
+    assert_equal [100,200,300], parse_sequence("100:200:300")
+    assert_equal [:current_index,1,2,3,:next_index], parse_sequence(":1:2:3:")
   end
   
   #
@@ -410,10 +410,58 @@ class ParserTest < Test::Unit::TestCase
   include Tap
 
   #
-  # argvs tests
+  # parse tests
   #
 
-  def test_argvs_split_args_along_all_invalid_and_workflow_lines
+  def test_parse_documentation
+    p = Parser.new
+    p.parse(["a", "b", "--config", "c"]) 
+    expected = [
+      ["a", "b", "--config", "c"]]
+    assert_equal expected, p.tasks
+
+    p.parse(["x", "y", "z"])
+    expected = [
+      ["a", "b", "--config", "c"],
+      ["x", "y", "z"]]
+    assert_equal expected, p.tasks
+
+    assert_equal [[0,1]], p.rounds
+
+    ###
+    p = Parser.new ["a", "--+", "b"]
+    assert_equal [["a"], ["b"]], p.tasks
+    assert_equal [[0], [1]], p.rounds
+
+    ###
+    p = Parser.new ["--+", "a", "--", "b", "--", "c", "--", "d"]
+    assert_equal [["a"], ["b"], ["c"], ["d"]], p.tasks
+    assert_equal [[1,2,3], [0]], p.rounds
+
+    p.parse ["+3[2,3]"]
+    assert_equal [[1], [0], nil, [2,3]], p.rounds
+
+    ###
+    p = Parser.new ["a", "--:", "b", "--:", "c", "--:", "d"]
+    assert_equal [["a"], ["b"], ["c"], ["d"]], p.tasks
+    assert_equal [[0,1],[1,2],[2,3]], p.workflow(:sequence)
+
+    p.parse ["1[2,3]"]
+    assert_equal [[0,1],[2,3]], p.workflow(:sequence)
+    assert_equal [[1,[2,3]]], p.workflow(:fork) 
+
+    p.parse ["e", "--{2,3}"]
+    assert_equal [["a"], ["b"], ["c"], ["d"], ["e"]], p.tasks
+    assert_equal [[0,1]], p.workflow(:sequence)
+    assert_equal [[1,[2,3]]], p.workflow(:fork)
+    assert_equal [[4,[2,3]]], p.workflow(:merge)
+  end
+
+  #
+  # tasks tests
+  #
+
+  def test_parser_splits_argv_along_all_breaks_to_get_tasks
     %w{
       --
       --+
@@ -429,22 +477,22 @@ class ParserTest < Test::Unit::TestCase
         ["a", "-b", "--c"], 
         ["d", "-e", "--f"],
         ["x", "-y", "--z"]
-      ], parser.argvs
+      ], parser.tasks
     end
   end
 
-  def test_argvs_includes_short_and_long_options
+  def test_tasks_includes_short_and_long_options
     parser = Parser.new ["a", "-b", "--c", "--", "d", "-e", "--f", "--", "x", "-y", "--z"]
     assert_equal [
       ["a", "-b", "--c"], 
       ["d", "-e", "--f"],
       ["x", "-y", "--z"]
-    ], parser.argvs
+    ], parser.tasks
   end
   
-  def test_argvs_removes_empty_args
+  def test_tasks_removes_empty_declarations
     parser = Parser.new ["a","--", "--", "b", "--", "--opt", "--", "c", "--", "--"]
-    assert_equal [["a"], ["b"], ["--opt"], ["c"]], parser.argvs
+    assert_equal [["a"], ["b"], ["--opt"], ["c"]], parser.tasks
   end
   
   #
@@ -473,7 +521,9 @@ class ParserTest < Test::Unit::TestCase
     
     parser = Parser.new ["--+0[0,1]", "--+1[2]"]
     assert_equal [[0,1],[2]], parser.rounds
-    
+  end
+  
+  def test_option_breaks_are_optional_for_rounds
     parser = Parser.new ["+0[0]", "+2[1]", "--", "+1[2]"]
     assert_equal [[0],[2],[1]], parser.rounds
   end
@@ -529,64 +579,89 @@ class ParserTest < Test::Unit::TestCase
   
   def test_sequences_are_parsed
     parser = Parser.new ["--1:2", "--3:4:5"]
-    assert_equal [[1,[2]], [3,[4,5]]], parser.sequences
+    assert_equal [[1,2],[3,4],[4,5]], parser.workflow(:sequence)
+  end
+  
+  def test_option_breaks_are_optional_for_sequence
+    parser = Parser.new ["1:2", "3:4:5"]
+    assert_equal [[1,2],[3,4],[4,5]], parser.workflow(:sequence)
+    
+    parser = Parser.new ["--", "1:2", "--", "3:4:5"]
+    assert_equal [[1,2],[3,4],[4,5]], parser.workflow(:sequence)
+  end
+  
+  def test_sequences_may_be_reassigned
+    parser = Parser.new ["a", "--:", "b", "--:", "c"]
+    assert_equal [[0,1],[1,2]], parser.workflow(:sequence)
+    
+    parser.parse ["1:0:2"]
+    assert_equal [[0,2],[1,0]], parser.workflow(:sequence)
+    
+    # now in reverse
+    parser = Parser.new ["1:0:2"]
+    assert_equal [[0,2],[1,0]], parser.workflow(:sequence)
+    
+    parser.parse ["a", "--:", "b", "--:", "c"]
+    assert_equal [[0,1],[1,2]], parser.workflow(:sequence)
   end
   
   def test_sequence_uses_the_last_count_if_no_lead_index_is_specified
     parser = Parser.new ["a", "--", "b", "--:100", "c", "--:200"]
-    assert_equal [[1, [100]], [2, [200]]], parser.sequences
+    assert_equal [[1,100],[2,200]], parser.workflow(:sequence)
   end
   
   def test_sequence_uses_the_next_count_if_no_end_index_is_specified
     parser = Parser.new ["a", "--100:", "b", "--200:", "c"]
-    assert_equal [[100, [1]], [200, [2]]], parser.sequences
+    assert_equal [[100,1],[200,2]], parser.workflow(:sequence)
   end
   
   def test_sequence_use_with_no_lead_or_end_index
     parser = Parser.new ["a", "--:", "b", "--:", "c"]
-    assert_equal [[0,[1]], [1,[2]]], parser.sequences
+    assert_equal [[0,1],[1,2]], parser.workflow(:sequence)
   end
   
   #
-  # fork test
-  #
+  # bracketed workflow test
+  # (fork, merge, sync_merge)
   
-  def test_forks_are_parsed
-    parser = Parser.new ["--1[2]", "--3[4,5]"]
-    assert_equal [[1,[2]], [3,[4,5]]], parser.forks
+  def bracket_test
+    yield(:fork, '[', ']')
+    yield(:merge, '{', '}')
+    yield(:sync_merge, '(', ')')
   end
   
-  def test_fork_uses_the_last_count_if_no_lead_index_is_specified
-    parser = Parser.new ["a", "--", "b", "--[100]", "c", "--[200,300]"]
-    assert_equal [[1, [100]], [2, [200,300]]], parser.forks
+  def test_bracketed_workflows_are_parsed
+    bracket_test do |type, l, r|
+      parser = Parser.new ["--1#{l}2#{r}", "--3#{l}4,5#{r}"]
+      assert_equal [[1,[2]], [3,[4,5]]], parser.workflow(type), type
+    end
   end
   
-  #
-  # merge test
-  #
-  
-  def test_merges_are_parsed
-    parser = Parser.new ["--1{2}", "--3{4,5}"]
-    assert_equal [[1,[2]], [3,[4,5]]], parser.merges
+  def test_option_breaks_are_optional_for_bracketed_workflows
+    bracket_test do |type, l, r|
+      parser = Parser.new ["1#{l}2#{r}", "3#{l}4,5#{r}"]
+      assert_equal [[1,[2]], [3,[4,5]]], parser.workflow(type), type
+    
+      parser = Parser.new ["1#{l}2#{r}", "--", "3#{l}4,5#{r}"]
+      assert_equal [[1,[2]], [3,[4,5]]], parser.workflow(type), type
+    end
   end
   
-  def test_merge_uses_the_last_count_if_no_lead_index_is_specified
-    parser = Parser.new ["a", "--", "b", "--{100}", "c", "--{200,300}"]
-    assert_equal [[1, [100]], [2, [200,300]]], parser.merges
+  def test_bracketed_workflows_may_be_reassigned
+    bracket_test do |type, l, r|
+      parser = Parser.new ["--1#{l}2#{r}", "--3#{l}4,5#{r}"]
+      assert_equal [[1,[2]], [3,[4,5]]], parser.workflow(type), type
+    
+      parser.parse ["1#{l}4,5#{r}", "--3#{l}2#{r}"]
+      assert_equal [[1,[4,5]], [3,[2]]], parser.workflow(type), type
+    end
   end
   
-  #
-  # sync_merge test
-  #
-  
-  def test_sync_merges_are_parsed
-    parser = Parser.new ["--1(2)", "--3(4,5)"]
-    assert_equal [[1,[2]], [3,[4,5]]], parser.sync_merges
-  end
-  
-  def test_sync_merge_uses_the_last_count_if_no_lead_index_is_specified
-    parser = Parser.new ["a", "--", "b", "--(100)", "c", "--(200,300)"]
-    assert_equal [[1, [100]], [2, [200,300]]], parser.sync_merges
+  def test_bracketed_workflows_uses_the_last_count_if_no_lead_index_is_specified
+    bracket_test do |type, l, r|
+      parser = Parser.new ["a", "--", "b", "--#{l}100#{r}", "c", "--#{l}200,300#{r}"]
+      assert_equal [[1, [100]], [2, [200,300]]], parser.workflow(type), type
+    end
   end
 end
 

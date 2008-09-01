@@ -70,38 +70,25 @@ module Tap
       parser = Parser.new(argv)
       
       # attempt lookup and instantiate the task class
-      tasks = parser.argvs.collect do |args|
-        pattern = args.shift
+      tasks = parser.tasks.collect do |args|
+        task = args.shift
 
-        const = search(:tasks, pattern) or raise ArgumentError, "unknown task: #{pattern}"
-        task_class = const.constantize or raise ArgumentError, "unknown task: #{pattern}"
+        const = search(:tasks, task) or raise ArgumentError, "unknown task: #{task}"
+        task_class = const.constantize or raise ArgumentError, "unknown task: #{task}"
         task_class.instantiate(args, app)
       end
 
-      # remove tasks used by the workflow
-      workflow_tasks = parser.workflow_indicies.collect do |index|
-        task, args = tasks[index]
-        unless args.empty?
-          raise ArgumentError, "workflow target receives args: #{parser.argvs[index].join(' ')}" 
-        end
-        tasks[index] = nil
-        task
-      end
-      
       # build the workflow
-      parser.workflow.each do |type, definitions|
-        definitions.each do |source_index, target_indicies|
-          tasks[source_index].send(type, *target_indicies.collect {|i| workflow_tasks[i] })
-        end
+      parser.workflow.each_with_index do |(type, target_indicies), source_index|
+        next if type == nil
+        
+        tasks[source_index].send(type, *target_indicies.collect {|i| tasks[i] })
       end
 
       # build queues
       queues = parser.rounds.collect do |round|
         round.each do |index|
           task, args = tasks[index]
-          if task == nil
-            raise ArgumentError, "workflow task enqued to round #{round}: #{parser.argvs[index].join(' ')}"
-          end
           task.enq(*args)
         end
 
