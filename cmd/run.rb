@@ -47,9 +47,8 @@ end.parse!(ARGV)
 #
 # handle options for each specified task
 #
-require 'tap/support/parsers/command_line'
 
-queues = Tap::Support::Parsers::CommandLine.new(ARGV).build(env, app)
+queues = env.build(ARGV)
 ARGV.clear
 
 if queues.empty?
@@ -100,7 +99,5 @@ end
 # enque tasks and run!
 #
 
-queues.each_with_index do |queue, i|
-  app.queue.concat(queue)
-  app.run
-end
+env.run(queues)
+

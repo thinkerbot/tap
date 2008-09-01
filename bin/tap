@@ -58,7 +58,7 @@ end
 
 begin
   env.activate
-  env.launch(ARGV) do
+  env.execute(ARGV) do
     # give some help
     require 'tap/support/command_line'
     

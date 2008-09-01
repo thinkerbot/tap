@@ -1,9 +1,11 @@
+require 'tap/parser'
+
 module Tap
   class Exe < Env
 
     class << self
-      def instantiate
-        app = Tap::App.instance
+      def instantiate(path=Dir.pwd, logger=Tap::App::DEFAULT_LOGGER, &block)
+        app = Tap::App.instance = Tap::App.new({:root => path}, logger)
         exe = super(app, load_config(Tap::Env::GLOBAL_CONFIG_FILE), app.logger)
         
         # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
@@ -43,7 +45,7 @@ module Tap
       end
     end
     
-    def launch(argv=ARGV)
+    def execute(argv=ARGV)
       command = argv.shift.to_s
       
       if aliases && aliases.has_key?(command)
@@ -63,5 +65,59 @@ module Tap
         end
       end
     end
+
+    def build(argv=ARGV)
+      parser = Parser.new(argv)
+      
+      # attempt lookup and instantiate the task class
+      tasks = parser.argvs.collect do |args|
+        pattern = args.shift
+
+        const = search(:tasks, pattern) or raise ArgumentError, "unknown task: #{pattern}"
+        task_class = const.constantize or raise ArgumentError, "unknown task: #{pattern}"
+        task_class.instantiate(args, app)
+      end
+
+      # remove tasks used by the workflow
+      workflow_tasks = parser.workflow_indicies.collect do |index|
+        task, args = tasks[index]
+        unless args.empty?
+          raise ArgumentError, "workflow target receives args: #{parser.argvs[index].join(' ')}" 
+        end
+        tasks[index] = nil
+        task
+      end
+      
+      # build the workflow
+      parser.workflow.each do |type, definitions|
+        definitions.each do |source_index, target_indicies|
+          tasks[source_index].send(type, *target_indicies.collect {|i| workflow_tasks[i] })
+        end
+      end
+
+      # build queues
+      queues = parser.rounds.collect do |round|
+        round.each do |index|
+          task, args = tasks[index]
+          if task == nil
+            raise ArgumentError, "workflow task enqued to round #{round}: #{parser.argvs[index].join(' ')}"
+          end
+          task.enq(*args)
+        end
+
+        app.queue.clear
+      end
+      queues.delete_if {|queue| queue.empty? }
+
+      queues
+    end
+    
+    def run(queues)
+      queues.each_with_index do |queue, i|
+        app.queue.concat(queue)
+        app.run
+      end
+    end
+    
   end
 end
