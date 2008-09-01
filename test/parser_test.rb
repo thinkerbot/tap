@@ -725,7 +725,7 @@ class ParserTest < Test::Unit::TestCase
   # to_s test
   #
   
-  def test_to_s_regenerates_argv_as_string
+  def test_to_s_returns_argv_string
     p = Parser.new
     p.tasks.concat [
       ["a", "a1", "a2", "--key", "value", "--another", "another value"],
@@ -743,7 +743,74 @@ class ParserTest < Test::Unit::TestCase
     ]
     
     assert_equal "a a1 a2 --key value --another 'another value' -- b b1 -- c -- +1[2] -- +2[0,1] -- 0:1 -- 1:2 -- 2[1,2,3] -- 6{3,4}", p.to_s
+    
+    # now, check for consistency
+    p = Parser.new p.to_s
+    assert_equal [
+      ["a", "a1", "a2", "--key", "value", "--another", "another value"],
+      ["b", "b1"],
+      ["c"]
+    ], p.tasks
+
+    assert_equal [2,2,1], p.round_indicies
+    assert_equal [
+      [:sequence, 1],
+      [:sequence, 2],
+      [:fork, [1,2,3]],
+      [:merge, 6],
+      [:merge, 6]
+    ], p.workflows
   end
   
+  #
+  # dump test
+  #
+  
+  def test_dump_returns_array_dump_of_tasks_and_workflow_declarations
+    p = Parser.new
+    p.tasks.concat [
+      ["a", "a1", "a2", "--key", "value", "--another", "another value"],
+      ["b", "b1"],
+      ["c"]
+    ]
+    
+    p.round_indicies.concat [2,2,1]
+    p.workflows.concat [
+      [:sequence, 1],
+      [:sequence, 2],
+      [:fork, [1,2,3]],
+      [:merge, 6],
+      [:merge, 6]
+    ]
+    
+    assert_equal [
+      ["a", "a1", "a2", "--key", "value", "--another", "another value"],
+      ["b", "b1"],
+      ["c"],
+      "+1[2]",
+      "+2[0,1]",
+      "0:1",
+      "1:2",
+      "2[1,2,3]",
+      "6{3,4}"
+    ], p.dump
+    
+    # now, check for consistency
+    p = Parser.load p.dump
+    assert_equal [
+      ["a", "a1", "a2", "--key", "value", "--another", "another value"],
+      ["b", "b1"],
+      ["c"]
+    ], p.tasks
+
+    assert_equal [2,2,1], p.round_indicies
+    assert_equal [
+      [:sequence, 1],
+      [:sequence, 2],
+      [:fork, [1,2,3]],
+      [:merge, 6],
+      [:merge, 6]
+    ], p.workflows
+  end
 end
 

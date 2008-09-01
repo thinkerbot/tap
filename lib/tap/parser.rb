@@ -164,6 +164,18 @@ module Tap
       end
     end
     
+    class << self  
+      def load(task_argv)
+        task_argv = YAML.load(task_argv) if task_argv.kind_of?(String)
+        
+        tasks, argv = task_argv.partition {|obj| obj.kind_of?(Array) }
+        parser = new
+        parser.tasks.concat(tasks)
+        parser.parse(argv)
+        parser
+      end
+    end
+    
     include Utils
     
     # An array of task declarations.
@@ -349,30 +361,21 @@ module Tap
     end
     
     def to_s
-      segments = []
-      
-      tasks.each do |argv| 
-        segments << argv.collect {|arg| shell_quote(arg) }.join(' ')
+      segments = tasks.collect do |argv| 
+        argv.collect {|arg| shell_quote(arg) }.join(' ')
       end
-
-      rounds.each_with_index do |indicies, round_index|
-        unless indicies == nil
-          segments << "+#{round_index}[#{indicies.join(',')}]"
-        end
-      end
-      
-      workflow.each_with_index do |(type, targets), source|
-        next if type == nil
-        
-        segments << case type
-        when :sequence   then [source, *targets].join(":")
-        when :fork       then "#{source}[#{targets.join(',')}]"
-        when :merge      then "#{source}{#{targets.join(',')}}"
-        when :sync_merge then "#{source}(#{targets.join(',')})"
-        end
-      end
+      each_round_str {|str| segments << str }
+      each_workflow_str {|str| segments << str }
       
       segments.join(" -- ")
+    end
+    
+    def dump
+      segments = tasks.dup
+      each_round_str {|str| segments << str }
+      each_workflow_str {|str| segments << str }
+
+      segments
     end
     
     protected
@@ -404,6 +407,29 @@ module Tap
       @tasks << definition
       @round_indicies[current_index] = (round_index || 0)
       @round_indicies[next_index]
+    end
+    
+    # Yields each round formatted as a string.
+    def each_round_str # :nodoc
+      rounds.each_with_index do |indicies, round_index|
+        unless indicies == nil
+          yield "+#{round_index}[#{indicies.join(',')}]"
+        end
+      end
+    end
+    
+    # Yields each workflow element formatted as a string.
+    def each_workflow_str # :nodoc
+      workflow.each_with_index do |(type, targets), source|
+        next if type == nil
+        
+        yield case type
+        when :sequence   then [source, *targets].join(":")
+        when :fork       then "#{source}[#{targets.join(',')}]"
+        when :merge      then "#{source}{#{targets.join(',')}}"
+        when :sync_merge then "#{source}(#{targets.join(',')})"
+        end
+      end
     end
   end
 end
