@@ -1,3 +1,5 @@
+require 'tap/env'
+require 'tap/app'
 require 'tap/parser'
 
 module Tap

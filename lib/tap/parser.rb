@@ -1,3 +1,5 @@
+autoload(:Shellwords, 'shellwords')
+
 module Tap
 
   class Parser
@@ -152,8 +154,11 @@ module Tap
       @tasks = []
       @rounds = []
       @workflows = []
-
-      parse(argv) unless argv == nil
+      
+      case argv
+      when String, Array 
+        parse(argv)
+      end
     end
     
     # Iterates through the argv splitting out task and workflow definitions.
@@ -197,23 +202,29 @@ module Tap
     #   p.rounds         # => [[1], [0], nil, [2,3]]
     #
     # Note the rounds were re-assigned using the second parse.  Very
-    # similar things may be done with workflows:
+    # similar things may be done with workflows (note also that this
+    # example shows how parse splits a string input into an argv 
+    # using Shellwords):
     #
-    #   p = Parser.new ["a", "--:", "b", "--:", "c", "--:", "d"]
+    #   p = Parser.new "a --: b --: c --: d"
     #   p.tasks                    # => [["a"], ["b"], ["c"], ["d"]]
     #   p.workflow(:sequence)     # => [[0,1],[1,2],[2,3]]
     #
-    #   p.parse ["1[2,3]"]
+    #   p.parse "1[2,3]"
     #   p.workflow(:sequence)     # => [[0,1],[2,3]]
     #   p.workflow(:fork)         # => [[1,[2,3]]]
     #
-    #   p.parse ["e", "--{2,3}"]
+    #   p.parse "e --{2,3}"
     #   p.tasks                    # => [["a"], ["b"], ["c"], ["d"], ["e"]]
     #   p.workflow(:sequence)     # => [[0,1]]
     #   p.workflow(:fork)         # => [[1,[2,3]]]
     #   p.workflow(:merge)        # => [[4,[2,3]]]
     #
     def parse(argv)
+      if argv.kind_of?(String)
+        argv = Shellwords.shellwords(argv)
+      end
+      
       current_round_index = @rounds[next_index]
       current = []
       argv.each do |arg|        

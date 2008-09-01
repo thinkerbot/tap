@@ -12,8 +12,7 @@ $:.unshift File.expand_path(File.dirname(__FILE__))
 require 'tap/constants'
 
 # require in order...
-require 'tap/env'
-require 'tap/app'
+require 'tap/exe'
 require 'tap/task'
 require 'tap/file_task'
 require 'tap/workflow'

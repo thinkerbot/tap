@@ -442,15 +442,15 @@ class ParserTest < Test::Unit::TestCase
     assert_equal [[1], [0], nil, [2,3]], p.rounds
 
     ###
-    p = Parser.new ["a", "--:", "b", "--:", "c", "--:", "d"]
+    p = Parser.new "a --: b --: c --: d"
     assert_equal [["a"], ["b"], ["c"], ["d"]], p.tasks
     assert_equal [[0,1],[1,2],[2,3]], p.workflow(:sequence)
 
-    p.parse ["1[2,3]"]
+    p.parse "1[2,3]"
     assert_equal [[0,1],[2,3]], p.workflow(:sequence)
     assert_equal [[1,[2,3]]], p.workflow(:fork) 
 
-    p.parse ["e", "--{2,3}"]
+    p.parse "e --{2,3}"
     assert_equal [["a"], ["b"], ["c"], ["d"], ["e"]], p.tasks
     assert_equal [[0,1]], p.workflow(:sequence)
     assert_equal [[1,[2,3]]], p.workflow(:fork)
