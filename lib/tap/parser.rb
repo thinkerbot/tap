@@ -1,7 +1,6 @@
 autoload(:Shellwords, 'shellwords')
 
 module Tap
-
   class Parser
     module Utils
       module_function
@@ -147,12 +146,23 @@ module Tap
     
     include Utils
     
+    # An array of task declarations.
     attr_reader :tasks
+    
+    # The internal rounds data; an array of integers signifying the
+    # round a task should be assigned to, at a given index.
+    attr_reader :round_indicies
+    
+    # The internal workflow data; an array of [type, targets] pairs 
+    # signifying the workflow type and targets assigned to the task 
+    # at a given index.  Differs from the return from workflow in
+    # that reversed-workflows (ex merge, sync_merge) will be organized
+    # by target rather than by source.
     attr_reader :workflows
     
     def initialize(argv=nil)
       @tasks = []
-      @rounds = []
+      @round_indicies = []
       @workflows = []
       
       case argv
@@ -225,7 +235,7 @@ module Tap
         argv = Shellwords.shellwords(argv)
       end
       
-      current_round_index = @rounds[next_index]
+      current_round_index = @round_indicies[next_index]
       current = []
       argv.each do |arg|        
         # add all non-breaking args to the
@@ -241,8 +251,8 @@ module Tap
         # append and start a new argv
         unless current.empty?
           @tasks << current
-          @rounds[current_index] = (current_round_index || 0)
-          current_round_index = @rounds[next_index]
+          @round_indicies[current_index] = (current_round_index || 0)
+          current_round_index = @round_indicies[next_index]
           current = []
         end
         
@@ -251,7 +261,7 @@ module Tap
         case arg
         when ROUND
           current_round_index, indicies = parse_round($3, $6)
-          indicies.each {|index| @rounds[index] = current_round_index }
+          indicies.each {|index| @round_indicies[index] = current_round_index }
 
         when SEQUENCE   
           indicies = parse_sequence($2)
@@ -270,10 +280,19 @@ module Tap
       
       unless current.empty?
         @tasks << current
-        @rounds[current_index] = (current_round_index || 0)
+        @round_indicies[current_index] = (current_round_index || 0)
       end
     end
     
+    # Returns an array of [type, targets] objects; the index of
+    # each entry corresponds to the task on which to build the
+    # workflow of the specified type.  
+    #
+    # If a type is specified, the output is ordered differently;
+    # The return is an array of [source, targets] for the 
+    # specified workflow type.  In this case the order of the
+    # returned array is meaningless.
+    #
     def workflow(type=nil)
       # recollect reverse types
       
@@ -299,10 +318,13 @@ module Tap
       
       declarations
     end
-
+    
+    # Returns an array task indicies; the index of each entry
+    # corresponds to the round the tasks should be assigned to.
+    #
     def rounds
       collected_rounds = []
-      @rounds.each_with_index do |round_index, index|
+      @round_indicies.each_with_index do |round_index, index|
         (collected_rounds[round_index] ||= []) << index unless round_index == nil
       end
       
@@ -311,12 +333,16 @@ module Tap
     
     protected
     
-    def set_workflow(type, source, targets)
+    # Sets the targets to the source in workflows, tracking the
+    # workflow type.
+    def set_workflow(type, source, targets) # :nodoc
       # warn if workflows[source] is already set
       @workflows[source] = [type, targets]
     end
     
-    def set_reverse_workflow(type, source, targets)
+    # Sets a reverse workflow... ie the source is set to
+    # each target index.
+    def set_reverse_workflow(type, source, targets)  # :nodoc
       targets.each {|target| set_workflow(type, target, source) }
     end
     
