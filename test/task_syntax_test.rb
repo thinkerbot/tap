@@ -40,7 +40,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
     assert !t.was_in_process
     
     with_config :debug => true do
-      assert_raise(Tap::Support::RunError) do
+      assert_raise(ArgumentError) do
         t.enq 1
         app.run
       end
@@ -58,7 +58,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
     end
 
     with_config :debug => true do
-      assert_raise(Tap::Support::RunError) do
+      assert_raise(ArgumentError) do
         t.enq 1
         app.run
       end
@@ -80,7 +80,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
     t = ProcessWithOneInput.new
 
     with_config :debug => true do
-      assert_raise(Tap::Support::RunError) do
+      assert_raise(ArgumentError) do
         t.enq
         app.run
       end
@@ -89,7 +89,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
       app.run
       assert_equal [1], t.runlist
       
-      assert_raise(Tap::Support::RunError) do
+      assert_raise(ArgumentError) do
         t.enq 1, 2, 3
         app.run
       end
@@ -103,11 +103,11 @@ class TaskSyntaxTest < Test::Unit::TestCase
     end
 
     with_config :debug => true do
-      assert_raise(Tap::Support::RunError) do
+      assert_raise(ArgumentError) do
         t.enq
         app.run
       end
-      assert_raise(Tap::Support::RunError) do 
+      assert_raise(ArgumentError) do 
         t.enq 1, 2
         app.run
       end
@@ -129,11 +129,11 @@ class TaskSyntaxTest < Test::Unit::TestCase
     t = ProcessWithMultipleInputs.new
 
     with_config :debug => true do
-      assert_raise(Tap::Support::RunError) do
+      assert_raise(ArgumentError) do
         t.enq
         app.run
       end
-      assert_raise(Tap::Support::RunError) do 
+      assert_raise(ArgumentError) do 
         t.enq 1
         app.run
       end
@@ -151,11 +151,11 @@ class TaskSyntaxTest < Test::Unit::TestCase
     end
   
     with_config :debug => true do
-      assert_raise(Tap::Support::RunError) do
+      assert_raise(ArgumentError) do
         t.enq
         app.run
       end
-      assert_raise(Tap::Support::RunError) do 
+      assert_raise(ArgumentError) do 
         t.enq 1
         app.run
       end
@@ -223,11 +223,11 @@ class TaskSyntaxTest < Test::Unit::TestCase
     t = ProcessWithMixedArbitraryInputs.new
     
     with_config :debug => true do
-      assert_raise(Tap::Support::RunError) do
+      assert_raise(ArgumentError) do
         t.enq
         app.run
       end
-      assert_raise(Tap::Support::RunError) do 
+      assert_raise(ArgumentError) do 
         t.enq 1
         app.run
       end
@@ -249,11 +249,11 @@ class TaskSyntaxTest < Test::Unit::TestCase
     end
 
     with_config :debug => true do
-      assert_raise(Tap::Support::RunError) do
+      assert_raise(ArgumentError) do
         t.enq
         app.run
       end
-      assert_raise(Tap::Support::RunError) do 
+      assert_raise(ArgumentError) do 
         t.enq 1
         app.run
       end
@@ -290,7 +290,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
       app.run
       assert_equal [10, 1], t.runlist
       
-      assert_raise(Tap::Support::RunError) do
+      assert_raise(ArgumentError) do
         t.enq 1, 2
         app.run
       end

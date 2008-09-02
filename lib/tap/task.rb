@@ -435,7 +435,6 @@ module Tap
       @task_block = (task_block == nil ? default_task_block : task_block)
       
       @_method_name = :execute
-      @multithread = false
       @on_complete_block = nil
       @dependencies = []
       
@@ -468,7 +467,7 @@ module Tap
       app.queue.enq(self, inputs)
     end
 
-    batch_function :enq, :multithread=
+    batch_function :enq
     batch_function(:on_complete) {}
     
     # Executes self with the given inputs.  Execute provides hooks for subclasses

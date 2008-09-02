@@ -11,9 +11,6 @@ module Tap
       # The method called when an Executable is executed via _execute
       attr_reader :_method_name
     
-      # Indicates whether or not to execute in multithread mode.
-      attr_accessor :multithread
-
       # Stores the on complete block.
       attr_reader :on_complete_block
       
@@ -23,10 +20,9 @@ module Tap
       
       # Extends obj with Executable and sets up all required variables.  The
       # specified method will be called on _execute.
-      def self.initialize(obj, method_name, multithread=false, &on_complete_block)
+      def self.initialize(obj, method_name, &on_complete_block)
         obj.extend Executable
         obj.instance_variable_set(:@_method_name, method_name)
-        obj.instance_variable_set(:@multithread, multithread)
         obj.instance_variable_set(:@on_complete_block, on_complete_block)
         obj.instance_variable_set(:@dependencies, [])
         obj
@@ -183,8 +179,8 @@ class Object
   # Initializes a Tap::Support::Executable using the Method returned by
   # Object#method(method_name), setting multithread and the on_complete 
   # block as specified.  Returns nil if Object#method returns nil.
-  def _method(method_name, multithread=false, &on_complete_block) # :yields:  _result
+  def _method(method_name, &on_complete_block) # :yields:  _result
     return nil unless m = method(method_name)
-    Tap::Support::Executable.initialize(m, :call, multithread, &on_complete_block)
+    Tap::Support::Executable.initialize(m, :call, &on_complete_block)
   end
 end

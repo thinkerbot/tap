@@ -15,7 +15,6 @@ class ExecutableTest < Test::Unit::TestCase
   #
   
   def test_initialization
-    assert !m.multithread
     assert_nil m.on_complete_block
     assert_equal [], m.dependencies
   end

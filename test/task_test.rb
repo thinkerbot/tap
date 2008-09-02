@@ -621,34 +621,6 @@ class TaskTest < Test::Unit::TestCase
   end
   
   #
-  # multithread= test
-  #
-  
-  def test_set_multithread_sets_multithread_for_task_batch
-    t2 = t.initialize_batch_obj
-    
-    assert !t.multithread
-    assert !t2.multithread
-
-    t.multithread = true
-    
-    assert t.multithread
-    assert t2.multithread
-  end
-  
-  def test_unbatched_set_multithread_sets_multithread_for_task_only
-    t2 = t.initialize_batch_obj
-    
-    assert !t.multithread
-    assert !t2.multithread
-
-    t.unbatched_multithread = true
-    
-    assert t.multithread
-    assert !t2.multithread
-  end
-  
-  #
   # process test
   #
   

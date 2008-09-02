@@ -167,8 +167,6 @@ module Tap
   #
   # See Tap::Support::Audit for more details.
   class App < Root
-    include MonitorMixin
-
     class << self
       # Sets the current app instance
       attr_writer :instance
@@ -193,7 +191,6 @@ module Tap
     # methods that have no <tt>on_complete</tt> block
     attr_reader :aggregator
     
-    config :max_threads, 10, &c.integer           # For multithread execution
     config :debug, false, &c.flag                 # Flag debugging
     config :force, false, &c.flag                 # Force execution at checkpoints
     config :quiet, false, &c.flag                 # Suppress logging
@@ -222,10 +219,6 @@ module Tap
       super()
       
       @state = State::READY
-      @threads = [].extend(MonitorMixin)
-      @thread_queue = nil
-      @run_thread = nil
-      
       @queue = Support::ExecutableQueue.new
       @aggregator = Support::Aggregator.new
       
@@ -280,13 +273,10 @@ module Tap
       _result
     end
 
-    # Sets state = State::READY unless the app has a run_thread 
-    # (ie the app is running).  Returns self.
+    # Sets state = State::READY unless the app is running.  Returns self.
     def ready
-      synchronize do 
-        self.state = State::READY if self.run_thread == nil
-        self
-      end
+      self.state = State::READY unless self.state == State::RUN
+      self
     end
 
     # Sequentially executes the methods (ie Executable objects) in queue; run 
@@ -344,93 +334,24 @@ module Tap
     # executing when termination begins and thus will not recieve a 
     # TerminationError.  
     def run
-      synchronize do
-        return self unless self.ready.state == State::READY
+      return self unless self.ready.state == State::READY
+      self.state = State::RUN
 
-        self.run_thread = Thread.current
-        self.state = State::RUN
-      end
-      
-      # generate threading variables
-      self.thread_queue = max_threads > 0 ? Queue.new : nil
-      
       # TODO: log starting run
-      begin 
-        execution_loop do
-          break if block_given? && yield(self) 
-          
-          # if no tasks were in the queue 
-          # then clear the threads and 
-          # check for tasks again
-          if queue.empty?
-            clear_threads 
-            # break -- no executable task was found
-            break if queue.empty?
-          end
-          
+      begin
+        until queue.empty? || state != State::RUN || (block_given? && yield(self)) 
           m, inputs = queue.deq
-          
-          if thread_queue && m.multithread
-            # TODO: log enqueuing task to thread
-            
-            # generate threads as needed and allowed
-            # to execute the threads in the thread queue
-            start_thread if threads.size < max_threads 
-
-            # NOTE: the producer-consumer relationship of execution
-            # threads and the thread_queue means that tasks will sit
-            # waiting until an execution thread opens up.  in the most
-            # extreme case all executing tasks and all tasks in the 
-            # task_queue could be the same task, each with different
-            # inputs.  this deviates from the idea of batch processing,
-            # but should be rare and not at all fatal given execute
-            # synchronization.  
-            thread_queue.enq [m, inputs]
-          
-          else
-            # TODO: log execute task
-            
-            # wait for threads to complete
-            # before executing the main thread
-            clear_threads
-            execute(m, inputs)
-          end
+          execute(m, inputs)
         end
-        
-        # if the run loop exited due to a STOP state,
-        # tasks may still be in the thread queue and/or
-        # running.  be sure these are cleared
-        clear_thread_queue 
-        clear_threads 
-
-      rescue
-        # when an error is generated, be sure to terminate
-        # all threads so they can clean up after themselves.
-        # clear the thread queue first so no more tasks are
-        # executed. collect any errors that arise during
-        # termination. 
-        clear_thread_queue
-        errors =  [$!] + clear_threads(false)
-        errors.delete_if {|error| error.kind_of?(TerminateError) }
-        
+      rescue(TerminateError)
+      rescue 
         # handle the errors accordingly
         case
-        when debug?
-          raise Tap::Support::RunError.new(errors)
-        else
-          errors.each_with_index do |err, index|
-            log("RunError [#{index}] #{err.class}", err.message)
-          end
+        when debug? then raise
+        else log("RunError #{$!.class}", $!.message)
         end
       ensure
-      
-        # reset run variables
-        self.thread_queue = nil
-        
-        synchronize do
-          self.run_thread = nil
-          self.state = State::READY
-        end
+        self.state = State::READY
       end
       
       # TODO: log run complete
@@ -443,10 +364,8 @@ module Tap
     #
     # Does nothing unless state is State::RUN.
     def stop
-      synchronize do
-        self.state = State::STOP if self.state == State::RUN
-        self
-      end
+      self.state = State::STOP if self.state == State::RUN
+      self
     end
 
     # Signals a running application to terminate executing tasks 
@@ -461,10 +380,8 @@ module Tap
     #
     # Does nothing if state == State::READY.
     def terminate
-      synchronize do
-        self.state = State::TERMINATE unless self.state == State::READY
-        self
-      end
+      self.state = State::TERMINATE unless self.state == State::READY
+      self
     end
     
     # Returns an information string for the App.  
@@ -481,9 +398,7 @@ module Tap
     # threads:: the number of execution threads
     # results:: the total number of results in aggregator
     def info
-      synchronize do
-        "state: #{state} (#{State.state_str(state)}) queue: #{queue.size} thread_queue: #{thread_queue ? thread_queue.size : 0} threads: #{threads.size} results: #{aggregator.size}"
-      end
+      "state: #{state} (#{State.state_str(state)}) queue: #{queue.size} results: #{aggregator.size}"
     end
     
     # Enques the task with the inputs.  If the task is batched, then each 
@@ -600,117 +515,7 @@ module Tap
     # Sets the state of the application
     attr_writer :state
     
-    # The thread on which run is executing tasks.
-    attr_accessor :run_thread
-    
-    # An array containing the execution threads in use by run.  
-    attr_accessor :threads
-    
-    # A Queue containing multithread tasks waiting to be run 
-    # on the execution threads.  Nil if max_threads == 0
-    attr_accessor :thread_queue
-    
     private
-
-    def execution_loop
-      while true
-        case state
-        when State::STOP
-          break
-        when State::TERMINATE
-          # if an execution thread handles the termination error, 
-          # then the thread may end up here -- terminated but still 
-          # running.  Raise another termination error to enter the 
-          # termination (rescue) code.
-          raise TerminateError.new
-        end
-   
-        yield
-      end
-    end
-
-    def clear_thread_queue
-      return unless thread_queue
-      
-      # clear the queue and enque the thread complete
-      # signals, so that the thread will exit normally
-      dequeued = []
-      while !thread_queue.empty?
-        dequeued << thread_queue.deq
-      end
-
-      # add dequeued tasks back, in order, to the task 
-      # queue so no tasks get lost due to the stop
-      #
-      # BUG: this will result in an already-newly-queued 
-      # task being promoted along with it's inputs
-      dequeued.reverse_each do |task, inputs|
-        # TODO: log about not executing
-        queue.unshift(task, inputs) unless task.nil?
-      end
-    end
-    
-    def clear_threads(raise_errors=true)
-      threads.synchronize do
-        errors = []
-        return errors if threads.empty?
-      
-        # clears threads gracefully by enqueuing nils, to break
-        # the threads out of their loops, then waiting for the
-        # threads to work through the queue to the nils
-        #
-        threads.size.times { thread_queue.enq nil }
-        while true
-          # TODO -- add a time out?
-          
-          threads.dup.each do |thread|
-            next if thread.alive?
-            threads.delete(thread)
-            error = thread["error"]
-            
-            next if error.nil?
-            raise error if raise_errors
-            
-            errors << error
-          end
-
-          break if threads.empty?
-          Thread.pass
-        end
-      
-        errors
-      end
-    end
-    
-    def start_thread
-      threads.synchronize do
-        # start a new thread and add it to threads.
-        # threads simply loop and wait for a task to 
-        # be queued.  the thread will block until a 
-        # task is available (due to thread_queue.deq)
-        #
-        # TODO -- track thread index like?
-        #  thread["index"] = threads.length
-        threads << Thread.new do 
-          # TODO - log thread start
-        
-          begin
-            execution_loop do
-              m, inputs = thread_queue.deq
-              break if m.nil?
-            
-              # TODO: log execute task on thread #
-              execute(m, inputs)
-            end
-          rescue
-            # an unhandled error should immediately
-            # terminate all threads
-            terminate
-            Thread.current["error"] = $!
-          end
-        end
-      end
-    end
 
     # TerminateErrors are raised to kill executing tasks when terminate 
     # is called on an running App.  They are handled by the run rescue code.

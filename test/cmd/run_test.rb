@@ -45,7 +45,6 @@ examples:
   tap run -- task --help             Prints help for task
 
 configurations:
-        --max-threads MAX_THREADS    For multithread execution
         --debug                      Flag debugging
         --force                      Force execution at checkpoints
         --quiet                      Suppress logging

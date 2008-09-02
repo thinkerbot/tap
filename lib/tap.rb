@@ -1,5 +1,4 @@
 require 'yaml'                   # expensive to load
-require 'thread'
 
 # Apply version-specific patches
 case RUBY_VERSION
