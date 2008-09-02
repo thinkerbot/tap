@@ -1,4 +1,5 @@
 require 'tap/support/audit'
+require 'tap/support/dependable'
 
 module Tap
   module Support
@@ -7,6 +8,7 @@ module Tap
     # wrapped by extending the object that receives them; the easiest way
     # to make an object executable is to use Object#_method.
     module Executable
+      extend Dependable
       
       # The method called when an Executable is executed via _execute
       attr_reader :_method_name
@@ -27,53 +29,6 @@ module Tap
         obj.instance_variable_set(:@dependencies, [])
         obj
       end
-
-      def self.clear_dependencies
-        @registry = []
-        @results = []
-      end
-      
-      def self.registry
-        @registry
-      end
-      
-      def self.results
-        @results
-      end
-      
-      def self.index(instance, args)
-        @registry.each_with_index do |entry, index|
-          return index if entry[0] == instance && entry[1] == args
-        end
-        nil
-      end
-      
-      def self.resolved?(index)
-        @results[index] != nil
-      end
-      
-      def self.resolve(indicies)
-        indicies.each do |index|
-          next if @results[index]
-          instance, inputs = @registry[index]
-          @results[index] = instance._execute(*inputs)
-        end
-      end
-
-      def self.reset(indicies)
-        indicies.each {|index| @results[index] = nil }
-      end
-      
-      def self.register(instance, args)
-        if existing = index(instance, args)
-          return existing 
-        end
-        
-        @registry << [instance, args]
-        @registry.length - 1
-      end
-      
-      clear_dependencies
       
       # Sets a block to receive the results of _execute.  Raises an error 
       # if an on_complete block is already set.  Override an existing
