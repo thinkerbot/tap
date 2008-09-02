@@ -150,8 +150,12 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_depends_on_raises_error_if_dependency_class_does_not_respond_to_instance
-    assert_raise(ArgumentError) { DependentClass.send(:depends_on, Object) }
-    assert_raise(ArgumentError) { DependentClass.send(:depends_on, Object.new) }
+    assert_raise(ArgumentError) { DependentClass.depends_on(Object) }
+    assert_raise(ArgumentError) { DependentClass.depends_on(Object.new) }
+  end
+  
+  def test_depends_on_returns_self
+    assert_equal DependentClass, DependentClass.depends_on(DependencyClass)
   end
   
   class DependentDupClass < Tap::Task
@@ -307,7 +311,7 @@ class TaskTest < Test::Unit::TestCase
     subclass = Task.subclass('task_test/subclass/seven', {}, [[:one, Tap::Task]])
     assert_equal([[Tap::Task, []]], subclass.dependencies)
     
-    subclass = Task.subclass('task_test/subclass/seven', {}, [[:two, Tap::Task, 1,2,3]])
+    subclass = Task.subclass('task_test/subclass/seven', {}, [[:two, Tap::Task, [1,2,3]]])
     assert_equal([[Tap::Task, []],[Tap::Task, [1,2,3]]], subclass.dependencies)
     
     s = subclass.new

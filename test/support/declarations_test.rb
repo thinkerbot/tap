@@ -34,7 +34,7 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_subclass_sets_dependencies_using_initial_hash_if_given
-    klass = tasc(:declaration4 => Tap::Task)
+    klass = tasc(:declaration4 => [Tap::Task])
     assert_equal [
       [Tap::Task, []]
     ], klass.dependencies
@@ -48,12 +48,12 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_string_and_sym_dependencies_are_resolved_into_tasks_using_declare
-    klass = tasc(:declaration6 => :task)
+    klass = tasc(:declaration6 => [:task])
     assert_equal [
       [DeclarationsTest::Task, []]
     ], klass.dependencies
     
-    klass = tasc(:task => :declaration6)
+    klass = tasc(:task => [:declaration6])
     assert_equal [
       [DeclarationsTest::Declaration6, []]
     ], klass.dependencies

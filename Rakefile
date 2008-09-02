@@ -168,3 +168,12 @@ rescue(LoadError)
     puts message
   end
 end
+
+namespace :test do
+  desc 'Run functional tests.'
+  Rake::TestTask.new(:functional) do |t|
+    t.test_files = Dir.glob('test/functional/*_test.rb')
+    t.verbose = true
+    t.warning = true
+  end
+end

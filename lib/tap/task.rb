@@ -179,6 +179,8 @@ module Tap
         super
       end
       
+      # Returns an instance of self; the instance is a kind of 'global'
+      # instance used in class-level dependencies.  See depends_on.
       def instance
         @instance ||= new
       end
@@ -216,8 +218,7 @@ module Tap
         #
         # Register documentation
         #
-        
-        const_name = current == Object ? subclass_const : "#{current}::#{subclass_const}"
+        const_name = subclass.to_s
         caller.each_with_index do |line, index|
           case line
           when /\/tap\/support\/declarations.rb/ then next
@@ -334,6 +335,9 @@ module Tap
         Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
       end
       
+      # Sets a class-level dependency.  When task class B depends_on another task 
+      # class A, instances of B are initialized to depend on A.instance, with the
+      # specified arguments.  Returns self.
       def depends_on(dependency_class, *args)
         unless dependency_class.respond_to?(:instance)
           raise ArgumentError, "dependency_class does not respond to instance: #{dependency_class}"
@@ -349,6 +353,7 @@ module Tap
 
         define_method(name) do
           index = Support::Executable.index(dependency_class.instance, args)
+          Support::Executable.resolve([index])
           Support::Executable.results[index]._current
         end
         
@@ -394,8 +399,8 @@ module Tap
       end
       
       def define_dependencies(dependencies)
-        dependencies.each do |name, dependency_class, *args|
-          dependency(name, dependency_class, *args)
+        dependencies.each do |name, dependency_class, args|
+          dependency(name, dependency_class, *(args ? args : []))
         end if dependencies
       end
       

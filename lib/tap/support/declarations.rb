@@ -78,20 +78,24 @@ module Tap
         end
         
         unless dependencies.kind_of?(Array)
-          dependencies = [dependencies]
+          raise ArgumentError, "dependencies should be specified as an array (was #{dependencies.class})"
         end
         
         unless dependencies.empty?
-          dependencies.collect! do |dependency|
-            case dependency
-            when Array then dependency
-            when String, Symbol then [dependency, declare(Tap::Task, dependency)]
-            else 
-              if dependency.kind_of?(Class) && dependency.ancestors.include?(Tap::Task)
-                [File.basename(dependency.default_name), dependency]
-              else
-                raise ArgumentError, "malformed dependency declaration: #{dependency}"
-              end
+          dependencies.collect! do |entry|
+            dependency, argv = case entry
+            when Array then entry
+            else [entry, []]
+            end
+            
+            unless dependency.kind_of?(Class)
+              dependency = declare(Tap::Task, dependency)
+            end
+      
+            if dependency.ancestors.include?(Tap::Task)
+              [File.basename(dependency.default_name), dependency, argv]
+            else
+              raise ArgumentError, "malformed dependency declaration: #{dependency}"
             end
           end
         end
