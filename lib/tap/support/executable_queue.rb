@@ -1,20 +1,25 @@
 module Tap
   module Support
     
-    # ExecutableQueue allows enqueing and dequeing of 
+    # ExecutableQueue allows thread-safe enqueing and dequeing of 
     # Executable methods and inputs for execution.  
     class ExecutableQueue
-  
+      include MonitorMixin
+      
       # Creates a new ExecutableQueue
       def initialize
+        # required for MonitorMixin
+        super()
         @queue = []
       end
       
       # Clears all methods and inputs.  Returns the existing queue as an array.
       def clear
-        current = self.queue
-        self.queue = []
-        current
+        synchronize do
+          current = self.queue
+          self.queue = []
+          current
+        end
       end
       
       # Returns the number of enqueued methods
@@ -30,26 +35,32 @@ module Tap
       # Enqueues the method and inputs. Raises an error if the  
       # method is not an Executable.
       def enq(method, inputs)
-        check_method(method)
-        queue.push [method, inputs]
+        synchronize do
+          check_method(method)
+          queue.push [method, inputs]
+        end
       end
       
       # Enqueues the method and inputs, but to the top of the queue.
       # Raises an error if the method is not an Executable.
       def unshift(method, inputs)
-        check_method(method)
-        queue.unshift [method, inputs]
+        synchronize do
+          check_method(method)
+          queue.unshift [method, inputs]
+        end
       end
       
       # Dequeues the next method and inputs as an array like
       # [method, inputs]. Returns nil if the queue is empty.
       def deq
-        queue.shift
+        synchronize { queue.shift }
       end
       
       def concat(array)
-        array.each do |method, inputs|
-          enq(method, inputs)
+        synchronize do
+          array.each do |method, inputs|
+            enq(method, inputs)
+          end
         end
       end
       
