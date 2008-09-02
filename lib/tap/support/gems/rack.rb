@@ -44,9 +44,16 @@ module Tap
         end
         
         def known_path(dir, path)
-          dir = root.filepath(dir)
-          path = root.filepath(dir, path)
-          (path != dir && path.index(dir ) == 0 && File.exists?(path)) ? path : nil
+          each do |env|
+            directory = env.root.filepath(dir)
+            file = env.root.filepath(dir, path)
+            
+            if file != directory && file.index(directory) == 0 && File.exists?(file)
+              return file
+            end
+          end
+          
+          nil
         end
 
         #--
@@ -149,7 +156,7 @@ module Tap
         end
         
         def template_response(name, env)
-          path = root.filepath(:template, "#{name}.erb")
+          path = known_path(:template, "#{name}.erb")
           response(env) { template(File.read(path), env) }
         end
       end
