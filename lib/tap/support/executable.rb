@@ -13,9 +13,10 @@ module Tap
       # The method called when an Executable is executed via _execute
       attr_reader :_method_name
     
-      # Stores the on complete block.
+      # Stores the on complete block
       attr_reader :on_complete_block
       
+      # An array of dependency indexes that will be resolved on _execute
       attr_reader :dependencies
       
       public
@@ -44,8 +45,8 @@ module Tap
       end
       
       # Adds the dependency to self, making self dependent on the dependency.
-      # The dependency will be called with the input arguments during 
-      # resolve_dependencies.
+      # The dependency will be resolved by calling dependency._execute with 
+      # the input arguments during resolve_dependencies.
       def depends_on(dependency, *inputs)
         raise ArgumentError, "not an Executable: #{dependency}" unless dependency.kind_of?(Executable)
         raise ArgumentError, "cannot depend on self" if dependency == self
@@ -55,13 +56,15 @@ module Tap
         index
       end
       
-      # Resolves dependencies by calling dependency.resolve with
-      # the dependency arguments.
+      # Resolves dependencies by calling dependency._execute with
+      # the dependency arguments.  (See Dependable#resolve).
       def resolve_dependencies
         Executable.resolve(dependencies)
         self
       end
       
+      # Resets dependencies so they will be re-resolved on resolve_dependencies.
+      # (See Dependable#reset).
       def reset_dependencies
         Executable.reset(dependencies)
         self

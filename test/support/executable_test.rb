@@ -2,12 +2,13 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/support/executable'
 
 class ExecutableTest < Test::Unit::TestCase
-  include Tap
+  include Tap::Support
 
   attr_accessor :m
   
   def setup
-    @m = Tap::Support::Executable.initialize(Object.new, :object_id)
+    @m = Executable.initialize(Object.new, :object_id)
+    Executable.clear_dependencies
   end
   
   #
@@ -53,16 +54,28 @@ class ExecutableTest < Test::Unit::TestCase
     end
   end
   
-  # def test_depends_on_adds_dependency_and_args_to_dependencies
-  #   d1 = Dependency.new
-  #   d2 = Dependency.new
-  #   
-  #   m.depends_on d1
-  #   m.depends_on d2, 1,2,3
-  #   
-  #   assert_equal [[d1, []], [d2, [1,2,3]]], Support::Executable.instance_variable_get(:@registry)
-  #   assert_equal [0, 1], m.dependencies
-  # end
+  def test_depends_on_registers_dependency_with_Executable_and_adds_index_to_dependencies
+    Executable.registry << [:a, []]
+
+    d1 = Dependency.new
+    d2 = Dependency.new
+    
+    m.depends_on(d1)
+    m.depends_on(d2, 1,2,3)
+    
+    assert_equal [[:a, []], [d1, []], [d2, [1,2,3]]], Executable.registry
+    assert_equal [1,2], m.dependencies
+  end
+  
+  def test_depends_on_returns_index_of_dependency
+    d1 = Dependency.new
+    d2 = Dependency.new
+    
+    assert_equal 0, m.depends_on(d1)
+    assert_equal 1, m.depends_on(d2, 1,2,3)
+    
+    assert_equal [[d1, []], [d2, [1,2,3]]], Executable.registry
+  end
   
   def test_depends_on_raises_error_for_non_Executable_dependencies
     assert_raise(ArgumentError) { m.depends_on nil }
@@ -84,11 +97,7 @@ class ExecutableTest < Test::Unit::TestCase
     
     assert_equal 2, m.dependencies.length
   end
-  
-  # def test_depends_on_returns_index_of_dependency
-  #   assert_equal m, m.depends_on(Dependency.new)
-  # end
-  
+
   #
   # resolve_dependencies test
   #
@@ -112,7 +121,7 @@ class ExecutableTest < Test::Unit::TestCase
     m.resolve_dependencies
     
     assert_equal 2, m.dependencies.length
-    assert_equal ["", "1,2,3"], m.dependencies.collect {|index| Support::Executable.results[index]._current }
+    assert_equal ["", "1,2,3"], m.dependencies.collect {|index| Executable.results[index]._current }
   end
   
   def test_resolve_dependencies_does_not_re_execute_resolved_dependencies
@@ -126,6 +135,10 @@ class ExecutableTest < Test::Unit::TestCase
     
     m.resolve_dependencies
     assert_equal [[], [1,2,3]], d.resolve_arguments
+  end
+  
+  def test_resolve_dependencies_returns_self
+    assert_equal m, m.resolve_dependencies
   end
   
   #
@@ -147,6 +160,10 @@ class ExecutableTest < Test::Unit::TestCase
     m.reset_dependencies
     m.resolve_dependencies
     assert_equal [[], [1,2,3], [], [1,2,3]], d.resolve_arguments
+  end
+  
+  def test_reset_dependencies_returns_self
+    assert_equal m, m.reset_dependencies
   end
   
   #

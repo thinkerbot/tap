@@ -15,7 +15,7 @@ module Tap
       # during dependency resolution by instance._execute(*argv).
       attr_reader :results
       
-      # Clears all registered dependencies and results.
+      # Clears all registered dependencies and results.  
       def clear_dependencies
         @registry = []
         @results = []
