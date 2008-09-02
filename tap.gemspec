@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "0.10.3"
+  s.version = "0.10.4"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -65,6 +65,7 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/task/templates/task.erb
     lib/tap/generator/generators/task/templates/test.erb
     lib/tap/generator/manifest.rb
+    lib/tap/parser.rb
     lib/tap/patches/rake/rake_test_loader.rb
     lib/tap/patches/rake/testtask.rb
     lib/tap/patches/ruby19/backtrace_filter.rb
@@ -89,6 +90,7 @@ Gem::Specification.new do |s|
     lib/tap/support/constant.rb
     lib/tap/support/constant_utils.rb
     lib/tap/support/declarations.rb
+    lib/tap/support/dependable.rb
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
     lib/tap/support/gems/rake.rb
@@ -99,7 +101,6 @@ Gem::Specification.new do |s|
     lib/tap/support/lazydoc.rb
     lib/tap/support/manifest.rb
     lib/tap/support/parsers/base.rb
-    lib/tap/support/parsers/command_line.rb
     lib/tap/support/parsers/server.rb
     lib/tap/support/run_error.rb
     lib/tap/support/shell_utils.rb
