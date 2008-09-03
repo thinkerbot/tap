@@ -17,47 +17,35 @@ module Tap
       end
 
       def length
-        if @a.empty? || @b.empty?
-          if !@a.empty?
-            @a.length
-          elsif !@b.empty?
-            @b.length
-          else
-            0
-          end
-        else
+        case
+        when !(@a.empty? || @b.empty?)
           @a.length * @b.length
+        when @a.empty? 
+          @b.length
+        when @b.empty?
+          @a.length
         end
       end
 
-      def each(&block)
-        if @a.empty? || @b.empty?
-          if !@a.empty?
-            @a.each do |*a|
-              yield(*a) if block_given?
-            end
-          elsif !@b.empty?
-            @b.each do |*b|
-              yield(*b) if block_given?
-            end
-          end
-        else
+      def each
+        case
+        when !(@a.empty? || @b.empty?)
           @a.each do |*a|
             @b.each do |*b|
-              yield(*(a + b)) if block_given?
+              yield(*(a + b))
             end
           end
+        when @a.empty? 
+          @b.each {|*b| yield(*b) }
+        when @b.empty? 
+          @a.each {|*a| yield(*a) }
         end
       end
 
-      def collect(&block)
+      def collect
         cc = []
-        self.each do |*c| 
-          if block_given? 
-            cc << yield(*c)
-          else
-            cc << c
-          end
+        each do |*c| 
+          cc << (block_given? ? yield(*c) : c)
         end 
         cc
       end

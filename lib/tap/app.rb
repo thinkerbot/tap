@@ -445,22 +445,27 @@ module Tap
     def sync_merge(target, sources) # :yields: _result
       group = Array.new(sources.length, nil)
       sources.each_with_index do |source, index|
+        batch_map = Hash.new(0)
+        batch_length = if source.kind_of?(Support::Batchable)
+          source.batch.each_with_index {|obj, i| batch_map[obj] = i }
+          source.batch.length
+        else
+          1
+        end
+        
+        group[index] = Array.new(batch_length, nil)
+        
         source.on_complete do |_result|
-          batch_length, batch_index = if source.kind_of?(Support::Batchable)
-            [source.batch.length, _result._current_source.batch_index]
-          else
-            [1, 0]
-          end
-          
-          batch_group = group[index] ||= Array.new(batch_length, nil)
-          if batch_group[batch_index] != nil
+          batch_index = batch_map[_result._current_source]
+
+          if group[index][batch_index] != nil
             raise "sync_merge collision... already got a result for #{_result._current_source}"
           end
 
-          batch_group[batch_index] = _result
+          group[index][batch_index] = _result
           
           unless group.flatten.include?(nil)
-            Support::Combinator.new(*group).collect do |*combination|
+            Support::Combinator.new(*group).each do |*combination|
               # merge the source audits
               _group_result = Support::Audit.merge(*combination)
             
