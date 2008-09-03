@@ -17,6 +17,12 @@ module Tap
       end
     
       def file(target, options={})
+        prepare(target, options) do |path|
+          File.open(path, "wb") {|file| yield(file) if block_given? }
+        end
+      end
+      
+      def prepare(target, options={})
         target = File.expand_path(target, target_dir)
         
         case
@@ -32,7 +38,7 @@ module Tap
         
         unless pretend
           file_task.prepare(target) 
-          File.open(target, "wb") {|file| yield(file) if block_given? }
+          yield(target)
         end
       end
       

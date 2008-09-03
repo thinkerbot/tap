@@ -82,6 +82,7 @@ Gem::Specification.new do |s|
     lib/tap/support/batchable.rb
     lib/tap/support/batchable_class.rb
     lib/tap/support/class_configuration.rb
+    lib/tap/support/combinator.rb
     lib/tap/support/command_line.rb
     lib/tap/support/comment.rb
     lib/tap/support/configurable.rb
@@ -102,7 +103,6 @@ Gem::Specification.new do |s|
     lib/tap/support/manifest.rb
     lib/tap/support/parsers/base.rb
     lib/tap/support/parsers/server.rb
-    lib/tap/support/run_error.rb
     lib/tap/support/shell_utils.rb
     lib/tap/support/tdoc.rb
     lib/tap/support/tdoc/tdoc_html_generator.rb

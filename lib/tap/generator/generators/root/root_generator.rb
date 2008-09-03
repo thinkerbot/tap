@@ -4,7 +4,8 @@ module Tap::Generator::Generators
   
   # :startdoc::generator a basic tap directory structure
   #
-  # Generates a tap root directory structure:
+  # Generates a tap root directory structure.  Use the switches to 
+  # generate a tapfile and/or a tap config file:
   #
   #   root
   #   |- Rakefile
@@ -17,11 +18,10 @@ module Tap::Generator::Generators
   #       |- tap_test_suite.rb
   #       `- tapfile_test.rb
   #
-  # By default a tapfile will be created, but not a config file.
   class RootGenerator < Tap::Generator::Base
     
     config :config_file, false, &c.switch   # create a tap.yml file
-    config :tapfile, true, &c.switch        # create a tapfile
+    config :tapfile, false, &c.switch       # create a tapfile
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
     def manifest(m, root, project_name=nil)

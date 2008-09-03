@@ -19,8 +19,12 @@ module Tap
           file_task.rmdir(target) unless pretend    
         end
       end
-    
+      
       def file(target, options={})
+        prepare(target, options)
+      end
+      
+      def prepare(target, options={})
         target = File.expand_path(target, target_dir)
         
         if File.exists?(target)
@@ -31,7 +35,7 @@ module Tap
           log_relative :missing, target
         end
       end
+      
     end
-    
   end
 end
