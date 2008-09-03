@@ -475,6 +475,30 @@ module Tap
     batch_function :enq
     batch_function(:on_complete) {}
     
+    def sequence(*tasks)
+      app.sequence(self, *tasks)
+    end
+    
+    def fork(*targets)
+      app.fork(self, *targets)
+    end
+    
+    def merge(*sources)
+      app.merge(self, *sources)
+    end
+    
+    def sync_merge(*sources)
+      app.sync_merge(self, *sources)
+    end
+    
+    def switch(*targets, &block)
+      app.switch(self, *targets, &block)
+    end
+    
+    def inspect
+      "#<#{self.class.to_s}:#{object_id} #{name}>"
+    end
+    
     # Executes self with the given inputs.  Execute provides hooks for subclasses
     # to insert standard execution code: before_execute, on_execute_error,
     # and after_execute.  Override any/all of these methods as needed.

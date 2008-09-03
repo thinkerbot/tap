@@ -27,7 +27,7 @@ module Tap
   # <tt>on_complete</tt> block (if set) or be collected into an Aggregator;
   # aggregated results may be accessed per-task, as shown above.  Task 
   # <tt>on_complete</tt> blocks typically enque other tasks, allowing the
-  # construction of workflows:
+  # construction of imperative workflows:
   #
   #   # clear the previous results
   #   app.aggregator.clear
@@ -45,6 +45,29 @@ module Tap
   # Here t1 has no results because the on_complete block passed them to t2 in 
   # a simple sequence.
   #
+  # ==== Dependencies
+  #
+  # Tasks allow the construction of dependency-based workflows as well; tasks
+  # may be set to depend on other tasks such that the dependent task only 
+  # executes after the dependencies have been resolved (ie executed with a
+  # given set of inputs).
+  #
+  #   array = []
+  #   t1 = Task.new {|task, *inputs| array << inputs }
+  #   t2 = Task.new {|task, *inputs| array << inputs }
+  #
+  #   t1.depends_on(t2,1,2,3)
+  #   t1.enq(4,5,6)
+  #
+  #   app.run
+  #   array                          # => [[1,2,3], [4,5,6]]
+  #
+  # Once a dependency is resolved, it will not execute again:
+  #
+  #   t1.enq(7,8)
+  #   app.run
+  #   array                          # => [[1,2,3], [4,5,6], [7,8]]
+  #
   # ==== Batching
   #
   # Tasks can be batched, allowing the same input to be enqued to multiple 
@@ -59,31 +82,6 @@ module Tap
   #   app.run
   #   app.results(t1)                # => [1]
   #   app.results(t2)                # => [10]
-  #
-  # ==== Multithreading
-  #
-  # App supports multithreading; multithreaded tasks execute cosynchronously, 
-  # each on their own thread.  
-  #
-  #   lock = Mutex.new
-  #   array = []
-  #   t1 = Task.new  {|task| lock.synchronize { array << Thread.current.object_id }; sleep 0.1 }
-  #   t2 = Task.new  {|task| lock.synchronize { array << Thread.current.object_id }; sleep 0.1 }
-  #   
-  #   t1.multithread = true
-  #   t1.enq
-  #   t2.multithread = true
-  #   t2.enq
-  #
-  #   app.run
-  #   array.length                   # => 2
-  #   array[0] == array[1]           # => false
-  #
-  # Naturally, it is up to you to make sure each task is thread safe.  Note 
-  # that for the most part Tap::App is NOT thread safe; only run and 
-  # run-related methods (ready, stop, terminate, info) are synchronized.
-  # Methods enq and results act on thread-safe objects ExecutableQueue and 
-  # Aggregator, and should be ok to use from multiple threads.
   #
   # ==== Executables
   #
@@ -194,7 +192,8 @@ module Tap
     config :debug, false, &c.flag                 # Flag debugging
     config :force, false, &c.flag                 # Force execution at checkpoints
     config :quiet, false, &c.flag                 # Suppress logging
-
+    config :verbose, false, &c.flag               # Enables extra logging (overrides quiet)
+    
     # The constants defining the possible App states.  
     module State
       READY = 0
@@ -226,7 +225,8 @@ module Tap
       self.logger = logger
     end
     
-    DEFAULT_LOGGER = Logger.new(STDOUT)
+    # The default App logger writes to $stdout at level INFO.
+    DEFAULT_LOGGER = Logger.new($stdout)
     DEFAULT_LOGGER.level = Logger::INFO
     DEFAULT_LOGGER.formatter = lambda do |severity, time, progname, msg|
       "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
@@ -250,7 +250,7 @@ module Tap
     # Logs the action and message at the input level (default INFO).  
     # Logging is suppressed if quiet is true.
     def log(action, msg="", level=Logger::INFO)
-      logger.add(level, msg, action.to_s) unless quiet
+      logger.add(level, msg, action.to_s) if !quiet || verbose
     end
     
     # Returns the configuration filepath for the specified task name,
@@ -279,77 +279,30 @@ module Tap
       self
     end
 
-    # Sequentially executes the methods (ie Executable objects) in queue; run 
-    # continues until the queue is empty and then returns self.  An app can 
-    # only run on one thread at a time.  If run is called when already running, 
-    # run returns immediately.
+    # Sequentially calls execute with the Executable methods and inputs in 
+    # queue; run continues until the queue is empty and then returns self. 
+    # Calls to run when already running will return immediately.
     #
-    # === The Run Cycle
-    # Run can execute methods in sequential or multithreaded mode.  In sequential 
-    # mode, run executes enqued methods in order and on the current thread.  Run 
-    # continues until it reaches a method marked with multithread = true, at which 
-    # point run switches into multithreading mode.
-    #
-    # When multithreading, run shifts methods off of the queue and executes each 
-    # on their own thread (launching up to max_threads threads at one time). 
-    # Multithread execution continues until run reaches a non-multithread method,
-    # at which point run blocks, waits for the threads to complete, and switches 
-    # back into sequential mode.
-    #
-    # Run never executes multithreaded and non-multithreaded methods at the same 
-    # time.
-    #
-    # ==== Checks
     # Run checks the state of self before executing a method.  If the state is 
     # changed to State::STOP, then no more methods will be executed; currently 
     # running methods will continute to completion.  If the state is changed to 
-    # State::TERMINATE then no more methods will be executed and currently running 
-    # methods will be discontinued as described below.
-    #
-    # ==== Error Handling and Termination
-    # When unhandled errors arise during run, run enters a termination routine.  
-    # During termination a TerminationError is raised in each executing method so 
-    # that the method exits or begins executing its internal error handling code 
-    # (perhaps performing rollbacks).
-    #
-    # The TerminationError can ONLY be raised by the method itself, usually via a
-    # call to Tap::Support::Framework#check_terminate.  <tt>check_terminate</tt>
-    # is available to all Framework objects (ex Task and Workflow), but not to 
-    # Executable methods generated by _method.  These methods need to check the 
-    # state of app themselves; otherwise they will continue on to completion even 
-    # when app is in State::TERMINATE.
-    #
-    #   # this task will loop until app.terminate
-    #   Task.new {|task|  while(true) task.check_terminate end }
-    #
-    #   # this task will NEVER terminate
-    #   Task.new {|task|  while(true) end; task.check_terminate }
-    #
-    # Additional errors that arise during termination are collected and packaged 
-    # with the orignal error into a RunError.  By default all errors are logged
-    # and run exits.  If debug? is true, then the RunError will be raised for 
-    # further handling.
-    #
-    # Note: the method that caused the original unhandled error is no longer 
-    # executing when termination begins and thus will not recieve a 
-    # TerminationError.  
+    # State::TERMINATE then no more methods will be executed and currently 
+    # running methods will be discontinued as described in terminate.
     def run
-      return self unless self.ready.state == State::READY
+      return self unless state == State::READY
       self.state = State::RUN
 
       # TODO: log starting run
       begin
-        until queue.empty? || state != State::RUN || (block_given? && yield(self)) 
-          m, inputs = queue.deq
-          execute(m, inputs)
+        until queue.empty? || state != State::RUN
+          execute(*queue.deq)
         end
       rescue(TerminateError)
-      rescue 
-        # handle the errors accordingly
-        case
-        when debug? then raise
-        else log("RunError #{$!.class}", $!.message)
-        end
+        # gracefully fail for termination errors
+      rescue(Exception)
+        # handle other errors accordingly
+        raise if debug?
+        log($!.class, $!.message)
       ensure
         self.state = State::READY
       end
@@ -359,8 +312,8 @@ module Tap
     end
     
     # Signals a running application to stop executing tasks in the 
-    # queue by setting state = State::STOP.  Currently executing 
-    # tasks will continue their execution uninterrupted.
+    # queue by setting state = State::STOP.  The task currently 
+    # executing will continue uninterrupted to completion.
     #
     # Does nothing unless state is State::RUN.
     def stop
@@ -368,15 +321,11 @@ module Tap
       self
     end
 
-    # Signals a running application to terminate executing tasks 
-    # by setting state = State::TERMINATE.  When running tasks
-    # reach a termination check, the task raises a TerminationError,
-    # thus allowing executing tasks to invoke their specific 
-    # error handling code, perhaps performing rollbacks.
-    #
-    # Termination checks can be manually specified in a task
-    # using the check_terminate method (see Tap::Task#check_terminate).
-    # Termination checks automatically occur before each task execution.
+    # Signals a running application to terminate execution by setting 
+    # state = State::TERMINATE.  In this state, an executing task 
+    # will then raise a TerminateError upon check_terminate, thus 
+    # allowing the invocation of task-specific termination, perhaps 
+    # performing rollbacks. (see Tap::Task#check_terminate).
     #
     # Does nothing if state == State::READY.
     def terminate
@@ -386,16 +335,12 @@ module Tap
     
     # Returns an information string for the App.  
     #
-    #   App.instance.info   # => 'state: 0 (READY) queue: 0 thread_queue: 0 threads: 0 results: 0'
+    #   App.instance.info   # => 'state: 0 (READY) queue: 0 results: 0'
     #
     # Provided information:
     #
     # state:: the integer and string values of self.state
     # queue:: the number of methods currently in the queue
-    # thread_queue:: number of objects in the thread queue, waiting
-    #                to be run on an execution thread (methods, and 
-    #                perhaps nils to signal threads to clear)
-    # threads:: the number of execution threads
     # results:: the total number of results in aggregator
     def info
       "state: #{state} (#{State.state_str(state)}) queue: #{queue.size} results: #{aggregator.size}"
@@ -408,12 +353,12 @@ module Tap
     def enq(task, *inputs)
       case task
       when Tap::Task
-        raise "not assigned to enqueing app: #{task}" unless task.app == self
+        raise ArgumentError, "not assigned to enqueing app: #{task}" unless task.app == self
         task.enq(*inputs)
       when Support::Executable
         queue.enq(task, inputs)
       else
-        raise "Not a Task or Executable: #{task}"
+        raise ArgumentError, "not a Task or Executable: #{task}"
       end
       task
     end
@@ -425,13 +370,14 @@ module Tap
       enq(m, *inputs)
     end
     
-    # Sets a sequence workflow pattern for the tasks such that the
-    # completion of a task enqueues the next task with it's results.
-    # Batched tasks will have the pattern set for each task in the 
-    # batch.  The current audited results are yielded to the block, 
-    # if given, before the next task is enqued.
+    # Sets a sequence workflow pattern for the tasks; each task will enque 
+    # the next task with it's results.
     #
-    # Executables may provided as well as tasks.
+    # Notes:
+    # - Batched tasks will have the pattern set for each task in the batch 
+    # - The current audited results are yielded to the block, if given, 
+    #   before the next task is enqued.
+    # - Executables may provided as well as tasks.
     def sequence(*tasks) # :yields: _result
       current_task = tasks.shift
       tasks.each do |next_task|
@@ -444,13 +390,14 @@ module Tap
       end
     end
 
-    # Sets a fork workflow pattern for the tasks such that each of the
-    # targets will be enqueued with the results of the source when the
-    # source completes. Batched tasks will have the pattern set for each 
-    # task in the batch.  The source audited results are yielded to the 
-    # block, if given, before the targets are enqued.
+    # Sets a fork workflow pattern for the source task; each target
+    # will enque the results of source.
     #
-    # Executables may provided as well as tasks.
+    # Notes:
+    # - Batched tasks will have the pattern set for each task in the batch 
+    # - The current audited results are yielded to the block, if given, 
+    #   before the next task is enqued.
+    # - Executables may provided as well as tasks.
     def fork(source, *targets) # :yields: _result
       source.on_complete do |_result|
         targets.each do |target| 
@@ -459,14 +406,16 @@ module Tap
         end
       end
     end
-
-    # Sets a merge workflow pattern for the tasks such that the results
-    # of each source will be enqueued to the target when the source 
-    # completes. Batched tasks will have the pattern set for each 
-    # task in the batch.  The source audited results are yielded to  
-    # the block, if given, before the target is enqued.
+    
+    # Sets a simple merge workflow pattern for the source tasks. Each source
+    # enques target with it's result; no synchronization occurs, nor are 
+    # results grouped before being sent to the target.
     #
-    # Executables may provided as well as tasks.
+    # Notes:
+    # - Batched tasks will have the pattern set for each task in the batch 
+    # - The current audited results are yielded to the block, if given, 
+    #   before the next task is enqued.
+    # - Executables may provided as well as tasks.
     def merge(target, *sources) # :yields: _result
       sources.each do |source|
         # merging can use the existing audit trails... each distinct 
@@ -478,6 +427,69 @@ module Tap
       end
     end
     
+    # Sets a synchronized merge workflow for the source tasks.  Results from
+    # each source task are collected and enqued as a single group to the target. 
+    # The target is not enqued until all sources have completed.  Raises an
+    # error if a source returns twice before the target is enqued.
+    #
+    # Notes:
+    # - Batched tasks will have the pattern set for each task in the batch 
+    # - The current audited results are yielded to the block, if given, 
+    #   before the next task is enqued.
+    # - Executables may provided as well as tasks.
+    #
+    #-- TODO: add notes on testing and the way results are received
+    # (ie as a single object)
+    def sync_merge(target, *sources) # :yields: _result
+      group = Array.new(sources.length, nil)
+      sources.each_with_index do |source, index|
+        source.on_complete do |_result|
+          if group[index] != nil
+            raise "sync_merge collision... already got a result for #{sources[index]}"
+          end
+
+          group[index] = _result
+          
+          unless group.include?(nil)
+            # merge the source audits
+            _group_result = Support::Audit.merge(*group)
+            
+            yield(_group_result) if block_given?
+            target.enq(_group_result)
+            
+            # reset the group array
+            group.collect! {|i| nil }
+          end 
+        end
+      end
+    end
+    
+    # Sets a choice workflow pattern for the source task.  When the
+    # source task completes, switch yields the audited result to the 
+    # block which then returns the index of the target to enque with 
+    # the results. No target will be enqued if the index is false or 
+    # nil; an error is raised if no target can be found for the 
+    # specified index.
+    #
+    # Notes:
+    # - Batched tasks will have the pattern set for each task in the batch 
+    # - The current audited results are yielded to the block, if given, 
+    #   before the next task is enqued.
+    # - Executables may provided as well as tasks.
+    def switch(source, *targets) # :yields: _result
+      source.on_complete do |_result| 
+        if index = yield(_result)        
+          unless target = targets[index] 
+            raise "no switch target for index: #{index}"
+          end
+          
+          enq(target, _result)
+        else
+          aggregator.store(_result)
+        end
+      end
+    end
+        
     # Returns all aggregated, audited results for the specified tasks.  
     # Results are joined into a single array.  Arrays of tasks are 
     # allowed as inputs. See results.

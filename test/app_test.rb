@@ -65,6 +65,22 @@ class AppTest < Test::Unit::TestCase
     assert_equal [11, 21], app.results(t2)
     
     ########
+    
+    array = []
+    t1 = Task.new {|task, *inputs| array << inputs }
+    t2 = Task.new {|task, *inputs| array << inputs }
+  
+    t1.depends_on(t2,1,2,3)
+    t1.enq(4,5,6)
+  
+    app.run
+    assert_equal [[1,2,3], [4,5,6]], array
+   
+    t1.enq(7,8)
+    app.run
+    assert_equal [[1,2,3], [4,5,6], [7,8]], array
+    
+    ########
   
     t1 = Task.new  {|task, input| input += 1 }
     t2 = Task.new  {|task, input| input += 10 }
@@ -168,38 +184,6 @@ o-[add_five] 8
   end
   
   #
-  # task config tests
-  #
-  
-  def test_config_returns_current_configurations
-    app = App.new
-    expected = {
-      :root => File.expand_path(Dir.pwd),
-      :directories => {},
-      :absolute_paths => {},
-      :force => false,
-      :debug => false,
-      :quiet => false
-    }
-    assert_equal expected, app.config
-    
-    # now try with a variety of configurations changed
-    app[:lib] = 'alt/lib'
-    app[:abs, true] = '/absolute/path'
-
-    expected = {
-      :root => File.expand_path(Dir.pwd),
-      :directories => {:lib => 'alt/lib'},
-      :absolute_paths => {:abs => File.expand_path('/absolute/path')},
-      :force => false,
-      :debug => false,
-      :quiet => false
-    }
-
-    assert_equal expected, app.config
-  end
-  
-  #
   # set logger tests
   #
   
@@ -219,45 +203,34 @@ o-[add_five] 8
   # config_filepath test
   #
   
-  def test_config_filepath
-    assert_equal nil, app.config_filepath(nil)
+  def test_config_filepath_joins_config_dir_and_input
     assert_equal File.join(app['config'], "task/name.yml"), app.config_filepath("task/name")
+  end
+  
+  def test_config_filepath_is_nil_for_nil
+    assert_equal nil, app.config_filepath(nil)
+  end
+  
+  def test_config_filepath_stringifies_input
+    assert_equal File.join(app['config'], "task.yml"), app.config_filepath(:task)
   end
   
   #
   # ready test
   #
   
-  def test_ready_sets_state_to_READY_unless_running
+  def test_ready_sets_state_to_READY_unless_state_is_RUN
     app.instance_variable_set('@state', App::State::STOP)
-    assert_not_equal App::State::READY, app.state
-    
-    assert_equal app, app.ready
+    app.ready
     assert_equal App::State::READY, app.state
+    
+    app.instance_variable_set('@state', App::State::RUN)
+    app.ready
+    assert_equal App::State::RUN, app.state
   end
   
-  def test_ready_does_not_sets_state_to_READY_when_running
-    was_in_block = false
-    
-    t = Tap::Task.new do |task|
-      assert_equal App::State::RUN, app.state
-      task.app.ready
-      assert_equal App::State::RUN, app.state
-      
-      task.app.stop
-      assert_equal App::State::STOP, app.state
-      task.app.ready
-      assert_equal App::State::STOP, app.state
-      
-      was_in_block = true
-    end
-    
-    with_config :debug => true do
-      t.enq
-      app.run
-    end
-    
-    assert was_in_block
+  def test_ready_returns_self
+    assert_equal app, app.ready
   end
   
   #
@@ -266,25 +239,44 @@ o-[add_five] 8
 
   def test_run_single_task
     t = Task.new(&add_one)
-    with_config :debug => true do
-      t.enq 1
-      app.run
-    end
-    
+    t.enq 1
+    app.run
+
     assert_audit_equal(ExpAudit[[nil, 1], [t,2]], app._results(t).first)
     assert_equal [1], runlist
   end
   
-  def test_run_single_task_from_a_thread
-    t = Task.new(&add_one)
-    with_config :debug => true do
-      t.enq 1
-      th = Thread.new { app.run }
-      th.join
-    end
+  def test_run_executes_each_task_in_queue_in_order
+    Task.new(&echo).enq 1
+    Task.new(&echo).enq 2
+    Task.new(&echo).enq 3
+    
+    app.run
 
-    assert_audit_equal(ExpAudit[[nil, 1], [t,2]], app._results(t).first)
-    assert_equal [1], runlist
+    assert_equal [[1],[2],[3]], runlist
+  end
+  
+  def test_run_returns_self_when_running
+    queue_before = nil
+    queue_after = nil
+    t1 = Task.new do |task| 
+      queue_before = app.queue.to_a
+      app.run
+      queue_after = app.queue.to_a
+    end
+    t2 = Task.new
+    
+    t1.enq
+    t2.enq
+    app.run
+    
+    assert_not_nil queue_before
+    assert_not_nil queue_after
+    assert_equal queue_before, queue_after
+  end
+  
+  def test_run_returns_self
+    assert_equal app, app.run
   end
 
   #
@@ -306,16 +298,22 @@ o-[add_five] 8
     assert_equal [[t, []]], app.queue.to_a
   end
   
-  def test_enq_enques_each_task_in_task_batch
+  def test_enq_enques_each_task_in_task_batch_with_the_same_inputs
     t1 = Task.new
     t2 = t1.initialize_batch_obj
     
     assert app.queue.empty?
     app.enq(t1)
     assert_equal [[t1, []], [t2, []]], app.queue.to_a
+    
+    app.enq(t2,1,2,3)
+    assert_equal [
+      [t1, []], [t2, []],
+      [t1, [1,2,3]], [t2, [1,2,3]]
+    ], app.queue.to_a
   end
   
-  def test_enq_allows_methods
+  def test_enq_allows_Executable_methods
     m = []._method(:push)
     assert app.queue.empty?
     app.enq(m)
@@ -338,57 +336,31 @@ o-[add_five] 8
     assert_equal [[m, [1,2]]], app.queue.to_a
   end
 
-#   #
-#   # on_complete tests
-#   #
-# 
-#   def test_on_complete
-#     t1 = Task.new(&add_one)
-#     t2 = Task.new(&add_one)
-#     t3 = Task.new(&add_one)
-# 
-#     app.on_complete(t1) do |result|
-#       t2.enq result
-#       t3.enq result
-#     end
-#     with_config :debug => true do
-#       t1.enq 0
-#       app.run
-#     end
-# 
-#     assert_equal [0,1,1], runlist
-#     assert_audit_equal(ExpAudit[[nil,0],[t1,1],[t2,2]], app._results(t2).first)
-#     assert_audit_equal(ExpAudit[[nil,0],[t1,1],[t3,2]], app._results(t3).first)
-#   end
-    
   #
   # sequence tests
   #
   
-  def test_run_sequence
+  def test_sequence
     t1 = Task.new(&add_one)
     t2 = Task.new(&add_one)
     
     app.sequence(t1,t2)
-    with_config :debug => true do
-      t1.enq 0
-      app.run
-    end
-    
+    t1.enq 0
+    app.run
+
     assert_equal [0,1], runlist
     assert_audit_equal(ExpAudit[[nil,0],[t1,1],[t2,2]], app._results(t2).first)
   end
 
-  def test_run_sequence_from_trailing_task
+  def test_run_sequence_from_trailing_task_does_not_invoke_prior_tasks
     t1 = Task.new(&add_one)
     t2 = Task.new(&add_one)
     
     app.sequence(t1,t2)
-    with_config :debug => true do
-      t2.enq 1
-     app.run
-    end
     
+    t2.enq 1
+    app.run
+
     assert_equal [1], runlist
     assert_equal 0, app._results(t1).length
     assert_audit_equal(ExpAudit[[nil,1],[t2,2]], app._results(t2).first)
@@ -398,16 +370,15 @@ o-[add_five] 8
   # fork tests
   #
   
-  def test_run_fork
+  def test_fork
     t1 = Task.new(&add_one)
     t2 = Task.new(&add_one)
     t3 = Task.new(&add_one)
     
     app.fork(t1, t2, t3)
-    with_config :debug => true do
-      t1.enq 0
-      app.run
-    end
+    
+    t1.enq 0
+    app.run
   
     assert_equal [0,1,1], runlist
     assert_audit_equal(ExpAudit[[nil,0],[t1,1],[t2,2]], app._results(t2).first)
@@ -418,18 +389,17 @@ o-[add_five] 8
   # merge tests
   #
   
-  def test_run_merge
+  def test_merge
     t1 = Task.new(&add_one)
     t2 = Task.new(&add_one)
     t3 = Task.new(&add_one)
   
     app.merge(t3, t1, t2)
-    with_config :debug => true do
-      t1.enq 0
-      t2.enq 10
-      app.run
-    end
-    
+
+    t1.enq 0
+    t2.enq 10
+    app.run
+
     assert_equal [0,10,1,11], runlist
     
     assert_audits_equal([
@@ -438,30 +408,131 @@ o-[add_five] 8
     ], app._results(t3))
   end
   
-   #
-   # run batched task tests
-   #
-   
-   def test_run_batched_task
-     t1 = Task.new(:factor => 10) do |task, input|
-       runlist << input
-       input + task.config[:factor]
-     end
-     t2 = t1.initialize_batch_obj(:factor => 22)
+  #
+  # sync_merge tests
+  #
+  
+  def test_sync_merge
+    t1 = Task.new(&add_one)
+    t2 = Task.new(&add_one)
+    t3 = Task.new(&echo)
+  
+    app.sync_merge(t3, t1, t2)
 
-     with_config :debug => true do
-       t1.enq 0
-       app.run
-     end
-     
-     # note same input fed to each template 
-     assert_equal [0,0], runlist
-     
-     assert_audits_equal([
-       ExpAudit[[nil,0],[t1,10]],
-       ExpAudit[[nil,0],[t2,22]]
-     ], app._results(*t1.batch))
-   end
+    t1.enq 0
+    t2.enq 10
+    app.run
+
+    assert_equal [0,10,[[1,11]]], runlist
+
+    ea = ExpAudit[[nil,0],[t1,1]]
+    eb = ExpAudit[[nil,10],[t2,11]]
+
+    assert_audits_equal([
+      ExpAudit[ExpMerge[ea,eb], [t3,[[1,11]]]]
+    ], app._results(t3))
+  end
+  
+  def test_sync_merge_raises_error_if_target_cannot_be_enqued_before_a_source_executes_twice
+    t1 = Task.new(&add_one)
+    t2 = Task.new(&add_one)
+    t3 = Task.new(&echo)
+  
+    app.sync_merge(t3, t1, t2)
+
+    t1.enq 0
+    t1.enq 1
+    t2.enq 10
+    with_config :debug => true do
+      assert_raise(RuntimeError) { app.run }
+    end
+    assert_equal [0,1], runlist
+  end
+  
+  #
+  # switch tests
+  #
+  
+  def test_switch
+    t1 = Task.new(&add_one)
+    t2 = Task.new(&add_one)
+    t3 = Task.new(&add_one)
+    
+    index = nil
+    app.switch(t1,t2,t3) do |_results|
+      index
+    end
+    
+    # pick t2
+    index = 0
+    t1.enq 0
+    app.run
+
+    assert_equal [0,1], runlist
+    assert app._results(t1).empty?
+    assert_audit_equal(ExpAudit[[nil,0],[t1,1],[t2,2]], app._results(t2).first)
+    assert app._results(t3).empty?
+    
+    # now pick t3
+    index = 1
+    t1.enq 0
+    app.run
+
+    assert_equal [0,1,0,1], runlist
+    assert app._results(t1).empty?
+    assert_audit_equal(ExpAudit[[nil,0],[t1,1],[t2,2]], app._results(t2).first)
+    assert_audit_equal(ExpAudit[[nil,0],[t1,1],[t3,2]], app._results(t3).first)
+    
+    # now skip (aggregate result)
+    index = nil
+    t1.enq 0
+    app.run
+
+    assert_equal [0,1,0,1,0], runlist
+    assert_audit_equal(ExpAudit[[nil,0],[t1,1]], app._results(t1).first)
+    assert_audit_equal(ExpAudit[[nil,0],[t1,1],[t2,2]], app._results(t2).first)
+    assert_audit_equal(ExpAudit[[nil,0],[t1,1],[t3,2]], app._results(t3).first)
+  end
+  
+  def test_switch_raises_error_for_out_of_bounds_index
+    t1 = Task.new(&add_one)
+    t2 = Task.new(&add_one)
+    t3 = Task.new(&add_one)
+    
+    app.switch(t1,t2,t3) do |_results|
+      100
+    end
+    
+    t1.enq 0
+    with_config :debug => true do
+      assert_raise(RuntimeError) { app.run }
+    end
+  end
+
+  #
+  # run batched task tests
+  #
+
+  def test_run_batched_task
+    t1 = Task.new(:factor => 10) do |task, input|
+      runlist << input
+      input + task.config[:factor]
+    end
+    t2 = t1.initialize_batch_obj(:factor => 22)
+
+    with_config :debug => true do
+      t1.enq 0
+      app.run
+    end
+
+    # note same input fed to each template 
+    assert_equal [0,0], runlist
+
+    assert_audits_equal([
+      ExpAudit[[nil,0],[t1,10]],
+      ExpAudit[[nil,0],[t2,22]]
+    ], app._results(*t1.batch))
+  end
    
   def test_run_batched_task_with_existing_audit_trails
     t1 = Task.new(:factor => 10) do |task, input|
@@ -475,10 +546,10 @@ o-[add_five] 8
       t1.enq a
       app.run
     end
-    
+
     # note same input fed to each template 
     assert_equal [0,0], runlist
-    
+
     assert_audits_equal([
       ExpAudit[[:a,0],[t1,10]],
       ExpAudit[[:a,0],[t2,22]]
@@ -576,6 +647,8 @@ o-[add_five] 8
       ExpAudit[[nil,2],[t2_1,24],[t3_1,46]]
     ], app._results(t3.batch))
   end
+  
+  # TODO - test sync_merge, switch batched tasks
   
   #
   # other run tests
@@ -684,7 +757,7 @@ o-[add_five] 8
     output.string
   end
   
-  def test_unhandled_exception_on_main_thread_is_logged_by_default
+  def test_unhandled_exception_is_logged_by_default
     task = Task.new {|t| raise "error"}
      
     string = set_stringio_logger
@@ -692,6 +765,19 @@ o-[add_five] 8
     app.run
     
     assert string =~ /RuntimeError error/
+  end
+  
+  def test_terminate_errors_are_ignored
+    was_in_block = false
+    task = Task.new do |t| 
+      was_in_block = true
+      raise Tap::App::TerminateError
+      flunk "should have been terminated"
+    end
+     
+    task.enq
+    assert_nothing_raised { app.run }
+    assert was_in_block
   end
   
   #

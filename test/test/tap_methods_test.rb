@@ -233,6 +233,17 @@ class TapMethodsTest < Test::Unit::TestCase
     end
   end
   
+  def test_assert_audit_equal_flunks_for_empty_merge
+    ea = ExpAudit[ExpMerge[], [:a, 'a1']]
+    a = new_audit(:a, 1)
+    begin
+      assert_audit_equal(ea, a)
+      flunk "audits should not have been equal"
+    rescue
+      assert_equal "empty merge 0.", $!.message
+    end
+  end
+  
   # TODO -- test length check for assert_audit_equal
   
   #

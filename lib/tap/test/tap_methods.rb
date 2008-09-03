@@ -148,6 +148,7 @@ module Tap
         expected.each_with_index do |exp_record, i|
           case exp_record
           when ExpMerge
+            flunk "empty merge #{(nesting + [i]).join(':')}" if exp_record.empty?
             exp_record.each_with_index do |exp_audit, j|
               assert_audit_records_equal(exp_audit, actual[i][j], nesting + [i,j]) 
             end

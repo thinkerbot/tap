@@ -48,6 +48,7 @@ configurations:
         --debug                      Flag debugging
         --force                      Force execution at checkpoints
         --quiet                      Suppress logging
+        --verbose                    Enables extra logging (overrides quiet)
 
 options:
     -h, --help                       Show this message
