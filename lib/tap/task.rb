@@ -475,30 +475,36 @@ module Tap
     batch_function :enq
     batch_function(:on_complete) {}
     
+    # Convenience method, equivalent to:
+    #   self.app.sequence(self, *tasks)
     def sequence(*tasks)
       app.sequence(self, *tasks)
     end
     
+    # Convenience method, equivalent to:
+    #   self.app.fork(self, *targets)
     def fork(*targets)
       app.fork(self, *targets)
     end
     
+    # Convenience method, equivalent to:
+    #   self.app.merge(self, *sources)
     def merge(*sources)
       app.merge(self, *sources)
     end
     
+    # Convenience method, equivalent to:
+    #   self.app.sync_merge(self, *sources)
     def sync_merge(*sources)
       app.sync_merge(self, *sources)
     end
     
+    # Convenience method, equivalent to:
+    #   self.app.switch(self, *targets, &block)
     def switch(*targets, &block)
       app.switch(self, *targets, &block)
     end
-    
-    def inspect
-      "#<#{self.class.to_s}:#{object_id} #{name}>"
-    end
-    
+
     # Executes self with the given inputs.  Execute provides hooks for subclasses
     # to insert standard execution code: before_execute, on_execute_error,
     # and after_execute.  Override any/all of these methods as needed.
@@ -575,6 +581,12 @@ module Tap
     # Returns self.name
     def to_s
       name.to_s
+    end
+    
+    # Provides an abbreviated version of the default inspect, with only
+    # the task class, object_id, name, and configurations listed.
+    def inspect
+      "#<#{self.class.to_s}:#{object_id} #{name} #{config.to_hash.inspect} >"
     end
     
     protected

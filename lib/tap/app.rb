@@ -526,11 +526,9 @@ module Tap
     
     # Sets the state of the application
     attr_writer :state
-    
-    private
 
-    # TerminateErrors are raised to kill executing tasks when terminate 
-    # is called on an running App.  They are handled by the run rescue code.
+    # TerminateErrors are raised to kill executing tasks when terminate is 
+    # called on an running App.  They are handled by the run rescue code.
     class TerminateError < RuntimeError 
     end
   end

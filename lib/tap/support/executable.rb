@@ -135,8 +135,8 @@ end
 class Object
   
   # Initializes a Tap::Support::Executable using the Method returned by
-  # Object#method(method_name), setting multithread and the on_complete 
-  # block as specified.  Returns nil if Object#method returns nil.
+  # Object#method(method_name), setting the on_complete block as specified.  
+  # Returns nil if Object#method returns nil.
   def _method(method_name, &on_complete_block) # :yields:  _result
     return nil unless m = method(method_name)
     Tap::Support::Executable.initialize(m, :call, &on_complete_block)

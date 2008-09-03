@@ -241,16 +241,7 @@ While simple, this ability to reference files using aliases is useful, powerful,
 
 http://tap.rubyforge.org/images/ExecutableQueue.png
 
-Apps coordinate the execution of tasks through a queue.  The queue is just a stack of Executable objects, basically methods, and the inputs to those methods; during a run the enqued methods are sequentially executed with the inputs.  
-
-Normally the methods execute one after the other on the main thread, however the methods can be set to multithread.  In this case all sequential, multithreadable methods are executed on their own thread (up to a configurable maximum number of threads).  A non-multithreadable method blocks until all these threads finish, and then the sequential, single thread execution resumes.  
-
-For instance, assuming non-multithreadable executables [a,b,c] and multithread executables [m1, m2, m3], a queue of [a, m1, m2, m3, b, c] executes like:
-
-  a... done
-  (m1, m2, m3)... done
-  b... done
-  c... done
+Apps coordinate the execution of tasks through a queue.  The queue is just a stack of Executable objects, basically methods, and the inputs to those methods; during a run the enqued methods are sequentially executed with the inputs.
 
 ==== Tap::Support::Audit
 
