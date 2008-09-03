@@ -476,33 +476,33 @@ module Tap
     batch_function(:on_complete) {}
     
     # Convenience method, equivalent to:
-    #   self.app.sequence(self, *tasks)
+    #   self.app.sequence([self] + tasks)
     def sequence(*tasks)
-      app.sequence(self, *tasks)
+      app.sequence([self] + tasks)
     end
     
     # Convenience method, equivalent to:
-    #   self.app.fork(self, *targets)
+    #   self.app.fork(self, targets)
     def fork(*targets)
-      app.fork(self, *targets)
+      app.fork(self, targets)
     end
     
     # Convenience method, equivalent to:
-    #   self.app.merge(self, *sources)
+    #   self.app.merge(self, sources)
     def merge(*sources)
-      app.merge(self, *sources)
+      app.merge(self, sources)
     end
     
     # Convenience method, equivalent to:
-    #   self.app.sync_merge(self, *sources)
+    #   self.app.sync_merge(self, sources)
     def sync_merge(*sources)
-      app.sync_merge(self, *sources)
+      app.sync_merge(self, sources)
     end
     
     # Convenience method, equivalent to:
-    #   self.app.switch(self, *targets, &block)
+    #   self.app.switch(self, targets, &block)
     def switch(*targets, &block)
-      app.switch(self, *targets, &block)
+      app.switch(self, targets, &block)
     end
 
     # Executes self with the given inputs.  Execute provides hooks for subclasses

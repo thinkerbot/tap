@@ -378,7 +378,7 @@ module Tap
     # - The current audited results are yielded to the block, if given, 
     #   before the next task is enqued.
     # - Executables may provided as well as tasks.
-    def sequence(*tasks) # :yields: _result
+    def sequence(tasks) # :yields: _result
       current_task = tasks.shift
       tasks.each do |next_task|
         # simply pass results from one task to the next.  
@@ -398,7 +398,7 @@ module Tap
     # - The current audited results are yielded to the block, if given, 
     #   before the next task is enqued.
     # - Executables may provided as well as tasks.
-    def fork(source, *targets) # :yields: _result
+    def fork(source, targets) # :yields: _result
       source.on_complete do |_result|
         targets.each do |target| 
           yield(_result) if block_given?
@@ -416,7 +416,7 @@ module Tap
     # - The current audited results are yielded to the block, if given, 
     #   before the next task is enqued.
     # - Executables may provided as well as tasks.
-    def merge(target, *sources) # :yields: _result
+    def merge(target, sources) # :yields: _result
       sources.each do |source|
         # merging can use the existing audit trails... each distinct 
         # input is getting sent to one place (the target)
@@ -440,7 +440,7 @@ module Tap
     #
     #-- TODO: add notes on testing and the way results are received
     # (ie as a single object)
-    def sync_merge(target, *sources) # :yields: _result
+    def sync_merge(target, sources) # :yields: _result
       group = Array.new(sources.length, nil)
       sources.each_with_index do |source, index|
         source.on_complete do |_result|
@@ -476,7 +476,7 @@ module Tap
     # - The current audited results are yielded to the block, if given, 
     #   before the next task is enqued.
     # - Executables may provided as well as tasks.
-    def switch(source, *targets) # :yields: _result
+    def switch(source, targets) # :yields: _result
       source.on_complete do |_result| 
         if index = yield(_result)        
           unless target = targets[index] 

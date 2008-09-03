@@ -10,7 +10,7 @@ class SimpleSequence < Tap::Workflow
     t2 = Tap::Task.new {|task, input| input += 3 }
     t3 = Tap::Task.new {|task, input| input *= factor }
 
-    app.sequence(t1, t2, t3)
+    app.sequence([t1, t2, t3])
     self.entry_point = t1
     self.exit_point = t3
   end
@@ -51,7 +51,7 @@ class WorkflowTest < Test::Unit::TestCase
  
     def workflow
       self.entry_point = t1
-      app.sequence(t1, t2) 
+      app.sequence([t1, t2]) 
       self.exit_point[:t2] = t2
     end
   end
@@ -71,7 +71,7 @@ class WorkflowTest < Test::Unit::TestCase
     t2 = Tap::Task.new(&add_one)
     wf = Tap::Workflow.new do |w|
       w.entry_point = t1
-      w.app.sequence(t1, t2) 
+      w.app.sequence([t1, t2]) 
     end
   
     assert_equal t1, wf.entry_point
@@ -90,7 +90,7 @@ class WorkflowTest < Test::Unit::TestCase
     wf = Tap::Workflow.new do |w|
       w.entry_point[:t1] = t1
       w.entry_point[:t2] = t2
-      w.app.sequence(t2, t3) 
+      w.app.sequence([t2, t3]) 
     end
   
     assert_equal({:t1 => t1, :t2 => t2}, wf.entry_point)

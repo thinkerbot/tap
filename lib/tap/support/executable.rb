@@ -125,7 +125,7 @@ end
 #   push_to_array = array._method(:push)
 #
 #   task = Tap::Task.new  
-#   task.app.sequence(task, push_to_array)
+#   task.sequence(push_to_array)
 #
 #   task.enq(1).enq(2,3)
 #   task.app.run

@@ -344,7 +344,7 @@ o-[add_five] 8
     t1 = Task.new(&add_one)
     t2 = Task.new(&add_one)
     
-    app.sequence(t1,t2)
+    app.sequence([t1,t2])
     t1.enq 0
     app.run
 
@@ -356,7 +356,7 @@ o-[add_five] 8
     t1 = Task.new(&add_one)
     t2 = Task.new(&add_one)
     
-    app.sequence(t1,t2)
+    app.sequence([t1,t2])
     
     t2.enq 1
     app.run
@@ -375,7 +375,7 @@ o-[add_five] 8
     t2 = Task.new(&add_one)
     t3 = Task.new(&add_one)
     
-    app.fork(t1, t2, t3)
+    app.fork(t1, [t2, t3])
     
     t1.enq 0
     app.run
@@ -394,7 +394,7 @@ o-[add_five] 8
     t2 = Task.new(&add_one)
     t3 = Task.new(&add_one)
   
-    app.merge(t3, t1, t2)
+    app.merge(t3, [t1, t2])
 
     t1.enq 0
     t2.enq 10
@@ -417,7 +417,7 @@ o-[add_five] 8
     t2 = Task.new(&add_one)
     t3 = Task.new(&echo)
   
-    app.sync_merge(t3, t1, t2)
+    app.sync_merge(t3, [t1, t2])
 
     t1.enq 0
     t2.enq 10
@@ -438,7 +438,7 @@ o-[add_five] 8
     t2 = Task.new(&add_one)
     t3 = Task.new(&echo)
   
-    app.sync_merge(t3, t1, t2)
+    app.sync_merge(t3, [t1, t2])
 
     t1.enq 0
     t1.enq 1
@@ -459,7 +459,7 @@ o-[add_five] 8
     t3 = Task.new(&add_one)
     
     index = nil
-    app.switch(t1,t2,t3) do |_results|
+    app.switch(t1, [t2,t3]) do |_results|
       index
     end
     
@@ -499,7 +499,7 @@ o-[add_five] 8
     t2 = Task.new(&add_one)
     t3 = Task.new(&add_one)
     
-    app.switch(t1,t2,t3) do |_results|
+    app.switch(t1, [t2,t3]) do |_results|
       100
     end
     
@@ -565,7 +565,7 @@ o-[add_five] 8
       t.initialize_batch_obj(:factor => 22)
     end
     
-    app.fork(t1, t2, t3)
+    app.fork(t1, [t2, t3])
     with_config :debug => true do
       t1.enq 0
       app.run
@@ -612,7 +612,7 @@ o-[add_five] 8
       t.initialize_batch_obj(:factor => 22)
     end
   
-    app.merge(t3, t1, t2)
+    app.merge(t3, [t1, t2])
     t1.enq(0)
     t2.enq(2)
     with_config :debug => true do
@@ -669,7 +669,7 @@ o-[add_five] 8
     end
   
     # set the results of t2 to reinvoke the workflow
-    app.sequence(t2, t1)
+    app.sequence([t2, t1])
     
     with_config :debug => true do
       t1.enq(0)
