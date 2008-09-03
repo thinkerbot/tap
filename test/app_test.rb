@@ -605,25 +605,26 @@ o-[add_five] 8
   
   def test_merge_batched_task
     t1, t2, t3 = Array.new(3) do
-      t = Task.new(:factor => 10) do |task, input|
+      t = Task.new do |task, input|
+        input = input + [task.batch_index]
         runlist << input
-        input + task.config[:factor]
+        input
       end
-      t.initialize_batch_obj(:factor => 22)
+      t.initialize_batch_obj
     end
   
     app.merge(t3, [t1, t2])
-    t1.enq(0)
-    t2.enq(2)
+    t1.enq([1])
+    t2.enq([2])
     with_config :debug => true do
       app.run
     end
   
     assert_equal [
-      0,0,                  # 1 input to each t1
-      2,2,                  # 2 input to each t2
-      10,10,22,22,          # t1 outputs to each t3
-      12,12,24,24           # t2 outputs to each t3
+      [1,0],[1,1],                              # 1 input to each t1
+      [2,0],[2,1],                              # 2 input to each t2
+      [1,0,0],[1,0,1],[1,1,0],[1,1,1],          # t1 outputs to each t3
+      [2,0,0],[2,0,1],[2,1,0],[2,1,1]           # t2 outputs to each t3
     ], runlist
   
     t1_0 = t1.batch[0] 
@@ -637,17 +638,75 @@ o-[add_five] 8
   
     # check results
     assert_audits_equal([
-      ExpAudit[[nil,0],[t1_0,10],[t3_0,20]], 
-      ExpAudit[[nil,0],[t1_1,22],[t3_0,32]],
-      ExpAudit[[nil,2],[t2_0,12],[t3_0,22]],
-      ExpAudit[[nil,2],[t2_1,24],[t3_0,34]],
-      ExpAudit[[nil,0],[t1_0,10],[t3_1,32]],
-      ExpAudit[[nil,0],[t1_1,22],[t3_1,44]],
-      ExpAudit[[nil,2],[t2_0,12],[t3_1,34]],
-      ExpAudit[[nil,2],[t2_1,24],[t3_1,46]]
+      ExpAudit[[nil,[1]],[t1_0,[1,0]],[t3_0,[1,0,0]]], 
+      ExpAudit[[nil,[1]],[t1_1,[1,1]],[t3_0,[1,1,0]]],
+      ExpAudit[[nil,[2]],[t2_0,[2,0]],[t3_0,[2,0,0]]],
+      ExpAudit[[nil,[2]],[t2_1,[2,1]],[t3_0,[2,1,0]]],
+      
+      ExpAudit[[nil,[1]],[t1_0,[1,0]],[t3_1,[1,0,1]]],
+      ExpAudit[[nil,[1]],[t1_1,[1,1]],[t3_1,[1,1,1]]],
+      ExpAudit[[nil,[2]],[t2_0,[2,0]],[t3_1,[2,0,1]]],
+      ExpAudit[[nil,[2]],[t2_1,[2,1]],[t3_1,[2,1,1]]]
     ], app._results(t3.batch))
   end
   
+  def test_sync_merge_batched_task
+    t1, t2, t3 = Array.new(3) do
+      t = Task.new do |task, input|
+        input = input + [task.batch_index]
+        runlist << input
+        input
+      end
+      t.initialize_batch_obj
+    end
+  
+    app.sync_merge(t3, [t1, t2])
+    t1.enq([1])
+    t2.enq([2])
+    with_config :debug => true do
+      app.run
+    end
+  
+    assert_equal [
+      [1,0],[1,1],          # 1 input to each t1
+      [2,0],[2,1],          # 2 input to each t2
+      [[1,0],[2,0],0],      # each combination of t1,t2 results
+      [[1,0],[2,0],1],      
+      [[1,0],[2,1],0],
+      [[1,0],[2,1],1],
+      [[1,1],[2,0],0],
+      [[1,1],[2,0],1],
+      [[1,1],[2,1],0],
+      [[1,1],[2,1],1]
+    ], runlist
+  
+    t1_0 = t1.batch[0] 
+    t1_1 = t1.batch[1]
+  
+    t2_0 = t2.batch[0] 
+    t2_1 = t2.batch[1] 
+  
+    t3_0 = t3.batch[0] 
+    t3_1 = t3.batch[1]
+  
+    # check results
+    et1_0 = ExpAudit[[nil,[1]],[t1_0,[1,0]]]
+    et1_1 = ExpAudit[[nil,[1]],[t1_1,[1,1]]]
+    et2_0 = ExpAudit[[nil,[2]],[t2_0,[2,0]]]
+    et2_1 = ExpAudit[[nil,[2]],[t2_1,[2,1]]]
+    
+    assert_audits_equal([
+      ExpAudit[ExpMerge[et1_0,et2_0],[t3_0,[[1,0],[2,0],0]]], 
+      ExpAudit[ExpMerge[et1_0,et2_1],[t3_0,[[1,0],[2,1],0]]],
+      ExpAudit[ExpMerge[et1_1,et2_0],[t3_0,[[1,1],[2,0],0]]], 
+      ExpAudit[ExpMerge[et1_1,et2_1],[t3_0,[[1,1],[2,1],0]]],
+      
+      ExpAudit[ExpMerge[et1_0,et2_0],[t3_1,[[1,0],[2,0],1]]],
+      ExpAudit[ExpMerge[et1_0,et2_1],[t3_1,[[1,0],[2,1],1]]],
+      ExpAudit[ExpMerge[et1_1,et2_0],[t3_1,[[1,1],[2,0],1]]],
+      ExpAudit[ExpMerge[et1_1,et2_1],[t3_1,[[1,1],[2,1],1]]]
+    ], app._results(t3.batch))
+  end
   # TODO - test sync_merge, switch batched tasks
   
   #

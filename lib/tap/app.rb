@@ -1,9 +1,11 @@
 require 'logger'
-require 'tap/support/run_error'
 require 'tap/support/aggregator'
 require 'tap/support/executable_queue'
 
 module Tap
+  module Support
+    autoload(:Combinator, 'tap/support/combinator')
+  end
   
   # App coordinates the setup and running of tasks, and provides an interface 
   # to the application directory structure.  App is convenient for use within 
@@ -444,18 +446,27 @@ module Tap
       group = Array.new(sources.length, nil)
       sources.each_with_index do |source, index|
         source.on_complete do |_result|
-          if group[index] != nil
-            raise "sync_merge collision... already got a result for #{sources[index]}"
+          batch_length, batch_index = if source.kind_of?(Support::Batchable)
+            [source.batch.length, _result._current_source.batch_index]
+          else
+            [1, 0]
+          end
+          
+          batch_group = group[index] ||= Array.new(batch_length, nil)
+          if batch_group[batch_index] != nil
+            raise "sync_merge collision... already got a result for #{_result._current_source}"
           end
 
-          group[index] = _result
+          batch_group[batch_index] = _result
           
-          unless group.include?(nil)
-            # merge the source audits
-            _group_result = Support::Audit.merge(*group)
+          unless group.flatten.include?(nil)
+            Support::Combinator.new(*group).collect do |*combination|
+              # merge the source audits
+              _group_result = Support::Audit.merge(*combination)
             
-            yield(_group_result) if block_given?
-            target.enq(_group_result)
+              yield(_group_result) if block_given?
+              target.enq(_group_result)
+            end
             
             # reset the group array
             group.collect! {|i| nil }
