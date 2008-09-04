@@ -2,7 +2,7 @@ require 'tap'
 
 # Goodnight::manifest your basic goodnight moon task
 # Prints the input with a configurable message.
-Tap.task('goodnight', :message => 'goodnight') do |task, name|
-   task.log task.message, name
-   "#{task.message} #{name}"
+Tap.tasc('goodnight', :message => 'goodnight') do |name|
+  log message, name
+  "#{message} #{name}"
 end

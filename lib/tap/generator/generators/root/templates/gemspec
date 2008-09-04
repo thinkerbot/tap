@@ -5,15 +5,16 @@ Gem::Specification.new do |s|
   #s.email = "your.email@pubfactory.edu"
   #s.homepage = "http://rubyforge.org/projects/<%= project_name %>/"
   s.platform = Gem::Platform::RUBY
-  s.summary = "<%= project_name %> task library"
+  s.summary = "<%= project_name %>"
   s.require_path = "lib"
   s.test_file = "test/tap_test_suite.rb"
   #s.rubyforge_project = "<%= project_name %>"
   #s.has_rdoc = true
   s.add_dependency("tap", "~> <%= Tap::VERSION %>")
   
-  # list extra rdoc files like README here.
+  # list extra rdoc files here.
   s.extra_rdoc_files = %W{
+    README
   }
   
   # list the files you want to include here. you can
@@ -23,6 +24,6 @@ Gem::Specification.new do |s|
 <%= tapfile ? "    tapfile.rb\n" : '' %>
     test/tap_test_helper.rb
     test/tap_test_suite.rb
-    test/tapfile_test.rb
+<%= tapfile ? "    test/tapfile_test.rb\n" : '' %>
   }
 end
