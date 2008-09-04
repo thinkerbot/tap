@@ -1,5 +1,14 @@
-class OptionParser
-  class Switch
+# This patch fixes some formatting errors in OptParse.
+# In particular, long config names and config names of
+# 13 characters in length cause either ugly wrapping,
+# or an outright error.  It could also wrap long comments,
+# although that feature is currently disabled.
+#
+# See:
+# - http://bahuvrihi.lighthouseapp.com/projects/9908/tickets/97-unlucky-13-character-config-name#ticket-97-1
+
+class OptionParser # :nodoc:
+  class Switch # :nodoc:
     def summarize(sdone = [], ldone = [], width = 1, max = width - 1, indent = "")
       sopts, lopts, s = [], [], nil
       @short.each {|s| sdone.fetch(s) {sopts << s}; sdone[s] = true} if @short
@@ -40,6 +49,7 @@ class OptionParser
       
       while begin l = left.shift; r = right.shift; l or r end
         l = l.to_s.ljust(width) + ' ' + r if r and !r.empty?
+        #yield(indent + l)
         yield(indent + l.to_s)
       end
 
