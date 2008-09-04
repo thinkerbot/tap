@@ -514,200 +514,317 @@ o-[add_five] 8
   #
 
   def test_run_batched_task
-    t1 = Task.new(:factor => 10) do |task, input|
+    t1 = Task.new do |task, input|
+      input = input + [task.batch_index]
       runlist << input
-      input + task.config[:factor]
+      input
     end
-    t2 = t1.initialize_batch_obj(:factor => 22)
+    t2 = t1.initialize_batch_obj
 
-    with_config :debug => true do
-      t1.enq 0
-      app.run
-    end
+    t1.enq [0]
+    app.run
 
-    # note same input fed to each template 
-    assert_equal [0,0], runlist
+    # the same input is fed to each batched task 
+    assert_equal [
+      [0,0],
+      [0,1]
+    ], runlist
 
     assert_audits_equal([
-      ExpAudit[[nil,0],[t1,10]],
-      ExpAudit[[nil,0],[t2,22]]
+      ExpAudit[[nil,[0]],[t1,[0,0]]],
+      ExpAudit[[nil,[0]],[t2,[0,1]]]
     ], app._results(*t1.batch))
   end
    
   def test_run_batched_task_with_existing_audit_trails
-    t1 = Task.new(:factor => 10) do |task, input|
+    t1 = Task.new do |task, input|
+      input = input + [task.batch_index]
       runlist << input
-      input + task.config[:factor]
+      input
     end
-    t2 = t1.initialize_batch_obj(:factor => 22)
+    t2 = t1.initialize_batch_obj
 
-    a = Support::Audit.new(0, :a)
-    with_config :debug => true do
-      t1.enq a
-      app.run
-    end
+    a = Support::Audit.new([0], :a)
+    t1.enq a
+    app.run
 
-    # note same input fed to each template 
-    assert_equal [0,0], runlist
+    # the same input is fed to each batched task 
+    assert_equal [
+      [0,0],
+      [0,1]
+    ], runlist
 
     assert_audits_equal([
-      ExpAudit[[:a,0],[t1,10]],
-      ExpAudit[[:a,0],[t2,22]]
+      ExpAudit[[:a,[0]],[t1,[0,0]]],
+      ExpAudit[[:a,[0]],[t2,[0,1]]]
     ], app._results(t1.batch))
   end
   
   def test_fork_in_batched_task
-    t1, t2, t3 = Array.new(3) do
-      t = Task.new(:factor => 10) do |task, input|
+    t0, t1, t2 = Array.new(3) do |index|
+      t = Task.new do |task, input|
+        input = input + ["#{index}.#{task.batch_index}"]
         runlist << input
-        input + task.config[:factor]
+        input
       end
-      t.initialize_batch_obj(:factor => 22)
+      t.initialize_batch_obj
     end
     
-    app.fork(t1, [t2, t3])
-    with_config :debug => true do
-      t1.enq 0
-      app.run
-    end
+    app.fork(t0, [t1, t2])
+    t0.enq [0]
+    app.run
     
     assert_equal [
-      0,0,             # once for each t1 template
-      10,10, 10,10,    # first result into t2, t3 tasks
-      22,22, 22,22     # second result into t2, t3 tasks
+      [0,'0.0'],                        # once for each t0 template
+      [0,'0.1'],              
+      [0,'0.0','1.0'],[0,'0.0','1.1'],  # first result into t1, t2 tasks
+      [0,'0.0','2.0'],[0,'0.0','2.1'],  
+      [0,'0.1','1.0'],[0,'0.1','1.1'],  # second result into t1, t2 tasks
+      [0,'0.1','2.0'],[0,'0.1','2.1'],  
     ], runlist
   
+    t0_0 = t0.batch[0] 
+    t0_1 = t0.batch[1]
+    
     t1_0 = t1.batch[0] 
-    t1_1 = t1.batch[1]
+    t1_1 = t1.batch[1] 
     
     t2_0 = t2.batch[0] 
-    t2_1 = t2.batch[1] 
+    t2_1 = t2.batch[1]
     
-    t3_0 = t3.batch[0] 
-    t3_1 = t3.batch[1]
+    # check t1 results
+    assert_audits_equal([
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t1_0,[0,'0.0','1.0']]],
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t1_0,[0,'0.1','1.0']]],
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t1_1,[0,'0.0','1.1']]],
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t1_1,[0,'0.1','1.1']]]
+    ], app._results(t1.batch))
     
     # check t2 results
     assert_audits_equal([
-      ExpAudit[[nil,0],[t1_0,10],[t2_0,20]],
-      ExpAudit[[nil,0],[t1_1,22],[t2_0,32]],
-      ExpAudit[[nil,0],[t1_0,10],[t2_1,32]],
-      ExpAudit[[nil,0],[t1_1,22],[t2_1,44]]
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t2_0,[0,'0.0','2.0']]],
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t2_0,[0,'0.1','2.0']]],
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t2_1,[0,'0.0','2.1']]],
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t2_1,[0,'0.1','2.1']]]
     ], app._results(t2.batch))
-    
-    # check t3 results
-    assert_audits_equal([
-      ExpAudit[[nil,0],[t1_0,10],[t3_0,20]],
-      ExpAudit[[nil,0],[t1_1,22],[t3_0,32]],
-      ExpAudit[[nil,0],[t1_0,10],[t3_1,32]], 
-      ExpAudit[[nil,0],[t1_1,22],[t3_1,44]]
-    ], app._results(t3.batch))
   end
   
   def test_merge_batched_task
-    t1, t2, t3 = Array.new(3) do
+    t0, t1, t2 = Array.new(3) do |index|
       t = Task.new do |task, input|
-        input = input + [task.batch_index]
+        input = input + ["#{index}.#{task.batch_index}"]
         runlist << input
         input
       end
       t.initialize_batch_obj
     end
   
-    app.merge(t3, [t1, t2])
+    app.merge(t2, [t0, t1])
+    t0.enq([0])
     t1.enq([1])
-    t2.enq([2])
-    with_config :debug => true do
-      app.run
-    end
-  
+    app.run
+
     assert_equal [
-      [1,0],[1,1],                              # 1 input to each t1
-      [2,0],[2,1],                              # 2 input to each t2
-      [1,0,0],[1,0,1],[1,1,0],[1,1,1],          # t1 outputs to each t3
-      [2,0,0],[2,0,1],[2,1,0],[2,1,1]           # t2 outputs to each t3
+      [0,'0.0'], [0,'0.1'],             # 0 input to each t0
+      [1,'1.0'], [1,'1.1'],             # 1 input to each t1      
+       
+      [0,'0.0','2.0'],[0,'0.0','2.1'],  # t0 outputs to each t2
+      [0,'0.1','2.0'],[0,'0.1','2.1'],  
+      
+      [1,'1.0','2.0'],[1,'1.0','2.1'],  # t1 outputs to each t2
+      [1,'1.1','2.0'],[1,'1.1','2.1'],
     ], runlist
   
+    t0_0 = t0.batch[0] 
+    t0_1 = t0.batch[1]
+    
     t1_0 = t1.batch[0] 
-    t1_1 = t1.batch[1]
-  
+    t1_1 = t1.batch[1] 
+    
     t2_0 = t2.batch[0] 
-    t2_1 = t2.batch[1] 
-  
-    t3_0 = t3.batch[0] 
-    t3_1 = t3.batch[1]
+    t2_1 = t2.batch[1]
   
     # check results
     assert_audits_equal([
-      ExpAudit[[nil,[1]],[t1_0,[1,0]],[t3_0,[1,0,0]]], 
-      ExpAudit[[nil,[1]],[t1_1,[1,1]],[t3_0,[1,1,0]]],
-      ExpAudit[[nil,[2]],[t2_0,[2,0]],[t3_0,[2,0,0]]],
-      ExpAudit[[nil,[2]],[t2_1,[2,1]],[t3_0,[2,1,0]]],
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t2_0,[0,'0.0','2.0']]], 
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t2_0,[0,'0.1','2.0']]],
+      ExpAudit[[nil,[1]],[t1_0,[1,'1.0']],[t2_0,[1,'1.0','2.0']]],
+      ExpAudit[[nil,[1]],[t1_1,[1,'1.1']],[t2_0,[1,'1.1','2.0']]],
       
-      ExpAudit[[nil,[1]],[t1_0,[1,0]],[t3_1,[1,0,1]]],
-      ExpAudit[[nil,[1]],[t1_1,[1,1]],[t3_1,[1,1,1]]],
-      ExpAudit[[nil,[2]],[t2_0,[2,0]],[t3_1,[2,0,1]]],
-      ExpAudit[[nil,[2]],[t2_1,[2,1]],[t3_1,[2,1,1]]]
-    ], app._results(t3.batch))
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t2_1,[0,'0.0','2.1']]],
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t2_1,[0,'0.1','2.1']]],
+      ExpAudit[[nil,[1]],[t1_0,[1,'1.0']],[t2_1,[1,'1.0','2.1']]],
+      ExpAudit[[nil,[1]],[t1_1,[1,'1.1']],[t2_1,[1,'1.1','2.1']]]
+    ], app._results(t2.batch))
   end
   
   def test_sync_merge_batched_task
-    t1, t2, t3 = Array.new(3) do
+    t0, t1, t2 = Array.new(3) do |index|
       t = Task.new do |task, input|
-        input = input + [task.batch_index]
+        input = input + ["#{index}.#{task.batch_index}"]
         runlist << input
         input
       end
       t.initialize_batch_obj
     end
   
-    app.sync_merge(t3, [t1, t2])
+    app.sync_merge(t2, [t0, t1])
+    t0.enq([0])
     t1.enq([1])
-    t2.enq([2])
-    with_config :debug => true do
-      app.run
-    end
+    app.run
   
     assert_equal [
-      [1,0],[1,1],          # 1 input to each t1
-      [2,0],[2,1],          # 2 input to each t2
-      [[1,0],[2,0],0],      # each combination of t1,t2 results
-      [[1,0],[2,0],1],      
-      [[1,0],[2,1],0],
-      [[1,0],[2,1],1],
-      [[1,1],[2,0],0],
-      [[1,1],[2,0],1],
-      [[1,1],[2,1],0],
-      [[1,1],[2,1],1]
+      [0,'0.0'],[0,'0.1'],          # 0 input to each t0
+      [1,'1.0'],[1,'1.1'],          # 1 input to each t1
+      
+      [[0,'0.0'],[1,'1.0'],'2.0'],  # each combination of t0, t1results
+      [[0,'0.0'],[1,'1.0'],'2.1'],      
+      [[0,'0.0'],[1,'1.1'],'2.0'],
+      [[0,'0.0'],[1,'1.1'],'2.1'],
+      
+      [[0,'0.1'],[1,'1.0'],'2.0'],
+      [[0,'0.1'],[1,'1.0'],'2.1'],
+      [[0,'0.1'],[1,'1.1'],'2.0'],
+      [[0,'0.1'],[1,'1.1'],'2.1']
     ], runlist
   
+    t0_0 = t0.batch[0] 
+    t0_1 = t0.batch[1]
+    
     t1_0 = t1.batch[0] 
-    t1_1 = t1.batch[1]
-  
+    t1_1 = t1.batch[1] 
+    
     t2_0 = t2.batch[0] 
-    t2_1 = t2.batch[1] 
-  
-    t3_0 = t3.batch[0] 
-    t3_1 = t3.batch[1]
+    t2_1 = t2.batch[1]
   
     # check results
-    et1_0 = ExpAudit[[nil,[1]],[t1_0,[1,0]]]
-    et1_1 = ExpAudit[[nil,[1]],[t1_1,[1,1]]]
-    et2_0 = ExpAudit[[nil,[2]],[t2_0,[2,0]]]
-    et2_1 = ExpAudit[[nil,[2]],[t2_1,[2,1]]]
+    et0_0 = ExpAudit[[nil,[0]],[t0_0,[0,'0.0']]]
+    et0_1 = ExpAudit[[nil,[0]],[t0_1,[0,'0.1']]]
+    et1_0 = ExpAudit[[nil,[1]],[t1_0,[1,'1.0']]]
+    et1_1 = ExpAudit[[nil,[1]],[t1_1,[1,'1.1']]]
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[et1_0,et2_0],[t3_0,[[1,0],[2,0],0]]], 
-      ExpAudit[ExpMerge[et1_0,et2_1],[t3_0,[[1,0],[2,1],0]]],
-      ExpAudit[ExpMerge[et1_1,et2_0],[t3_0,[[1,1],[2,0],0]]], 
-      ExpAudit[ExpMerge[et1_1,et2_1],[t3_0,[[1,1],[2,1],0]]],
+      ExpAudit[ExpMerge[et0_0,et1_0],[t2_0,[[0,'0.0'],[1,'1.0'],'2.0']]], 
+      ExpAudit[ExpMerge[et0_0,et1_1],[t2_0,[[0,'0.0'],[1,'1.1'],'2.0']]],
+      ExpAudit[ExpMerge[et0_1,et1_0],[t2_0,[[0,'0.1'],[1,'1.0'],'2.0']]], 
+      ExpAudit[ExpMerge[et0_1,et1_1],[t2_0,[[0,'0.1'],[1,'1.1'],'2.0']]],
       
-      ExpAudit[ExpMerge[et1_0,et2_0],[t3_1,[[1,0],[2,0],1]]],
-      ExpAudit[ExpMerge[et1_0,et2_1],[t3_1,[[1,0],[2,1],1]]],
-      ExpAudit[ExpMerge[et1_1,et2_0],[t3_1,[[1,1],[2,0],1]]],
-      ExpAudit[ExpMerge[et1_1,et2_1],[t3_1,[[1,1],[2,1],1]]]
-    ], app._results(t3.batch))
+      ExpAudit[ExpMerge[et0_0,et1_0],[t2_1,[[0,'0.0'],[1,'1.0'],'2.1']]],
+      ExpAudit[ExpMerge[et0_0,et1_1],[t2_1,[[0,'0.0'],[1,'1.1'],'2.1']]],
+      ExpAudit[ExpMerge[et0_1,et1_0],[t2_1,[[0,'0.1'],[1,'1.0'],'2.1']]],
+      ExpAudit[ExpMerge[et0_1,et1_1],[t2_1,[[0,'0.1'],[1,'1.1'],'2.1']]]
+    ], app._results(t2.batch))
   end
-  # TODO - test sync_merge, switch batched tasks
+
+  def test_switch_batch_task
+    t0, t1, t2 = Array.new(3) do |index|
+      t = Task.new do |task, input|
+        input = input + ["#{index}.#{task.batch_index}"]
+        runlist << input
+        input
+      end
+      t.initialize_batch_obj
+    end
+    
+    index = nil
+    app.switch(t0,[t1,t2]) do |_results|
+      index
+    end
+    
+    t0_0 = t0.batch[0] 
+    t0_1 = t0.batch[1]
+    
+    t1_0 = t1.batch[0] 
+    t1_1 = t1.batch[1] 
+    
+    t2_0 = t2.batch[0] 
+    t2_1 = t2.batch[1]
+    
+    # pick t1
+    index = 0
+    t0.enq [0]
+    app.run
+  
+    assert_equal [
+      [0,'0.0'],[0,'0.1'],              # each input to t0
+      [0,'0.0','1.0'],[0,'0.0','1.1'],  # each t0 result to each t1
+      [0,'0.1','1.0'],[0,'0.1','1.1']
+    ], runlist
+    
+    assert app._results(t0.batch).empty?
+    assert_audits_equal([
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t1_0,[0,'0.0','1.0']]], 
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t1_0,[0,'0.1','1.0']]],
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t1_1,[0,'0.0','1.1']]],
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t1_1,[0,'0.1','1.1']]]
+    ], app._results(t1.batch))
+    assert app._results(t2.batch).empty?
+    
+    # pick t2
+    index = 1
+    t0.enq [0]
+    app.run
+  
+    assert_equal [
+      [0,'0.0'],[0,'0.1'],              # each input to t0 (from before)
+      [0,'0.0','1.0'],[0,'0.0','1.1'],  # each t0 result to each t1 (from before)
+      [0,'0.1','1.0'],[0,'0.1','1.1'],
+      
+      [0,'0.0'],[0,'0.1'],              # each input to t0
+      [0,'0.0','2.0'],[0,'0.0','2.1'],  # each t0 result to each t2
+      [0,'0.1','2.0'],[0,'0.1','2.1']
+    ], runlist
+    
+    assert app._results(t0.batch).empty?
+    assert_audits_equal([
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t1_0,[0,'0.0','1.0']]], 
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t1_0,[0,'0.1','1.0']]],
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t1_1,[0,'0.0','1.1']]],
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t1_1,[0,'0.1','1.1']]]
+    ], app._results(t1.batch))
+    assert_audits_equal([
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t2_0,[0,'0.0','2.0']]], 
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t2_0,[0,'0.1','2.0']]],
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t2_1,[0,'0.0','2.1']]],
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t2_1,[0,'0.1','2.1']]]
+    ], app._results(t2.batch))
+    
+    
+    # now skip (aggregate result)
+    index = nil
+    t0.enq [0]
+    app.run
+  
+    assert_equal [
+      [0,'0.0'],[0,'0.1'],              # each input to t0 (from before)
+      [0,'0.0','1.0'],[0,'0.0','1.1'],  # each t0 result to each t1 (from before)
+      [0,'0.1','1.0'],[0,'0.1','1.1'],
+      
+      [0,'0.0'],[0,'0.1'],              # each input to t0 (from before)
+      [0,'0.0','2.0'],[0,'0.0','2.1'],  # each t0 result to each t2 (from before)
+      [0,'0.1','2.0'],[0,'0.1','2.1'],
+      
+      [0,'0.0'],[0,'0.1'],              # each input to t0
+    ], runlist
+    
+    assert_audits_equal([
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']]], 
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']]],
+    ], app._results(t0.batch))
+    assert_audits_equal([
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t1_0,[0,'0.0','1.0']]], 
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t1_0,[0,'0.1','1.0']]],
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t1_1,[0,'0.0','1.1']]],
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t1_1,[0,'0.1','1.1']]]
+    ], app._results(t1.batch))
+    assert_audits_equal([
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t2_0,[0,'0.0','2.0']]], 
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t2_0,[0,'0.1','2.0']]],
+      ExpAudit[[nil,[0]],[t0_0,[0,'0.0']],[t2_1,[0,'0.0','2.1']]],
+      ExpAudit[[nil,[0]],[t0_1,[0,'0.1']],[t2_1,[0,'0.1','2.1']]]
+    ], app._results(t2.batch))
+    
+  end
   
   #
   # other run tests
