@@ -29,6 +29,24 @@ class UtilsTest < Test::Unit::TestCase
     ].sort, reference_map(method_path('input'), method_path('ref')).sort)
   end
   
+  def test_reference_map_maps_using_path_named_in_file_if_present
+    assert_equal "file.txt", File.read(method_path("input/dir.ref"))
+    assert_equal "dir", File.read(method_path("input/file.txt.ref"))
+    
+    # demonstrates that content is stripped
+    assert_equal %Q{
+
+  path/to/two.txt  
+
+}, File.read(method_path("input/nested.txt.ref"))
+    
+    assert_equal [
+      [method_path("input/dir.ref"), method_path("ref/file.txt"), "file.txt"],
+      [method_path("input/file.txt.ref"), method_path("ref/dir"), "dir"],
+      [method_path("input/nested.txt.ref"), method_path("ref/path/to/two.txt"), "path/to/two.txt"]
+    ], reference_map(method_path('input'), method_path('ref'))
+  end
+  
   def test_reference_map_globs_for_files_with_ref_extname
     assert_equal [[method_path("input/one.txt.ref"), method_path("ref/one.txt")]], reference_map(method_path('input'), method_path('ref'))
     assert_equal [[method_path("input/two.txt"), method_path("ref/two")]], reference_map(method_path('input'), method_path('ref'), ".txt")
@@ -57,19 +75,23 @@ class UtilsTest < Test::Unit::TestCase
   def test_dereference_replaces_source_files_with_reference_files_in_block
     assert_equal "", File.read(method_path('input/one.txt.ref'))
     assert_equal "", File.read(method_path('input/two.txt.ref'))
+    assert_equal "two.txt", File.read(method_path('input/three.txt.ref'))
     assert_equal "", File.read(method_path('input/path.ref'))
     assert !File.exists?(method_path('input/one.txt'))
     assert !File.exists?(method_path('input/two.txt'))
+    assert !File.exists?(method_path('input/three.txt'))
     assert !File.exists?(method_path('input/path'))
     
     was_in_block = false
     dereference(method_path('input'), method_path('ref')) do
       assert !File.exists?(method_path('input/one.txt.ref'))
       assert !File.exists?(method_path('input/two.txt.ref'))
+      assert !File.exists?(method_path('input/three.txt.ref'))
       assert !File.exists?(method_path('input/path.ref'))
       
       assert_equal "one", File.read(method_path('input/one.txt'))
       assert_equal "two", File.read(method_path('input/two.txt'))
+      assert_equal "two", File.read(method_path('input/three.txt'))
       assert_equal "path/to/one", File.read(method_path('input/path/to/one.txt'))
       assert_equal "path/to/two", File.read(method_path('input/path/to/two.txt'))
       
@@ -78,9 +100,11 @@ class UtilsTest < Test::Unit::TestCase
     
     assert_equal "", File.read(method_path('input/one.txt.ref'))
     assert_equal "", File.read(method_path('input/two.txt.ref'))
+    assert_equal "two.txt", File.read(method_path('input/three.txt.ref'))
     assert_equal "", File.read(method_path('input/path.ref'))
     assert !File.exists?(method_path('input/one.txt'))
     assert !File.exists?(method_path('input/two.txt'))
+    assert !File.exists?(method_path('input/three.txt'))
     assert !File.exists?(method_path('input/path'))
     
     assert was_in_block

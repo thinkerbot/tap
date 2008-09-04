@@ -1,4 +1,5 @@
 require 'test/unit'
+$:.unshift File.expand_path("#{File.dirname(__FILE__)}/..")
 
 module Test # :nodoc:
   module Unit # :nodoc:
@@ -110,6 +111,7 @@ module Tap
     autoload(:SubsetMethods, 'tap/test/subset_methods')
     autoload(:FileMethods, 'tap/test/file_methods')
     autoload(:TapMethods, 'tap/test/tap_methods')
+    autoload(:Utils, 'tap/test/utils')
   end
 end
 

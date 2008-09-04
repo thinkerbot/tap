@@ -9,12 +9,13 @@ module Tap
       # Generates an array of [source, reference] pairs mapping source
       # files to reference files under the source_dir and reference_dir,
       # respectively.  Only files under source dir with the reference_extname
-      # will be mapped; mappings are either:
+      # will be mapped; mappings are either (in this order):
       #
+      # - the path under reference_dir contained in the reference file
       # - a direct translation from source_dir to reference_dir, minus
       #   the extname
       # - a path under reference_dir with a matching basename, minus
-      #   the extname, so long as the matched path is unique
+      #   the extname (causes an error if multiple paths match)
       #
       # If a mapped path cannot be found, dereference raises an ArgumentError.
       #
@@ -43,9 +44,15 @@ module Tap
       #
       def reference_map(source_dir, reference_dir, reference_extname='.ref')
         Dir.glob(File.join(source_dir, "**/*#{reference_extname}")).collect do |path|
+          # use the path specified in the reference file, if specified
+          named_path = File.read(path).strip
+          next [path, File.join(reference_dir, named_path), named_path] unless named_path.empty?
+
+          # try translating the path the the reference_dir
           relative_path = Tap::Root.relative_filepath(source_dir, path).chomp(reference_extname)
           reference_path = File.join(reference_dir, relative_path)
 
+          # if still no path is found, glob for a unique match
           unless File.exists?(reference_path)
             matching_paths = Dir.glob(File.join(reference_dir, "**/#{File.basename(relative_path)}"))
 
@@ -64,20 +71,20 @@ module Tap
         mapped_paths = []
         begin
           [*source_dirs].each do |source_dir|
-            reference_map(source_dir, reference_dir, extname).each do |path, source|
+            reference_map(source_dir, reference_dir, extname).each do |path, source, named_path|
               FileUtils.rm_r(path)
               target = path.chomp(extname)
               FileUtils.cp_r(source, target)
-              mapped_paths << target
+              mapped_paths << [target, named_path]
             end
           end unless reference_dir == nil
           
           yield
           
         ensure
-          mapped_paths.each do |path|
+          mapped_paths.each do |path, named_path|
             FileUtils.rm_r(path) if File.exists?(path)
-            FileUtils.touch(path + extname)
+            File.open(path + extname, 'wb') {|file| file << named_path }
           end
         end
       end
