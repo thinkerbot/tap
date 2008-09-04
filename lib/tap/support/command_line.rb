@@ -1,4 +1,5 @@
 require 'optparse'
+require 'tap/patches/optparse/summarize'
 
 module Tap
   module Support
