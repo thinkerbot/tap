@@ -50,7 +50,7 @@ class OptionParser # :nodoc:
       while begin l = left.shift; r = right.shift; l or r end
         l = l.to_s.ljust(width) + ' ' + r if r and !r.empty?
         #yield(indent + l)
-        yield(indent + l.to_s)
+        yield(indent + l) unless l == nil
       end
 
       self
