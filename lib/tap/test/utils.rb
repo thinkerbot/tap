@@ -45,7 +45,7 @@ module Tap
       def reference_map(source_dir, reference_dir, reference_extname='.ref')
         Dir.glob(File.join(source_dir, "**/*#{reference_extname}")).collect do |path|
           # use the path specified in the reference file, if specified
-          named_path = File.read(path).strip
+          named_path = File.read(path).gsub(/#.*$/, "").strip
           next [path, File.join(reference_dir, named_path), named_path] unless named_path.empty?
 
           # try translating the path the the reference_dir

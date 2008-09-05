@@ -33,10 +33,12 @@ class UtilsTest < Test::Unit::TestCase
     assert_equal "file.txt", File.read(method_path("input/dir.ref"))
     assert_equal "dir", File.read(method_path("input/file.txt.ref"))
     
-    # demonstrates that content is stripped
-    assert_equal %Q{
+    # demonstrates that comments are ignored and content is stripped
+    assert_equal %Q{# comment
+    
+   # commment
 
-  path/to/two.txt  
+  path/to/two.txt  #comment
 
 }, File.read(method_path("input/nested.txt.ref"))
     

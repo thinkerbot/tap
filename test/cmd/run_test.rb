@@ -15,6 +15,7 @@ class RunTest < Test::Unit::TestCase
       cmd.check "Prints manifest", %Q{
 % #{cmd} run -T 
   dump        # the default dump task
+  load        # the default load task
   rake        # run rake tasks
 }
     end
@@ -29,6 +30,7 @@ test_run_manifest_with_tapfile_and_tasks:
   tapfile     # tapfile manifest summary
 tap:
   dump        # the default dump task
+  load        # the default load task
   rake        # run rake tasks
 }
     end
