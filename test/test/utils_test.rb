@@ -142,6 +142,26 @@ class UtilsTest < Test::Unit::TestCase
     assert was_in_block
   end
   
+  #
+  # template test
+  #
+  
+  def test_template_templates_the_specified_files_for_the_duration_of_the_block
+    assert_equal "<%= one %> was templated", File.read(method_path('one.txt'))
+    assert_equal "<%= two %> was templated", File.read(method_path('two.txt'))
+
+    was_in_block = false
+    template([method_path('one.txt'), method_path('two.txt')], :one => 1, :two => 2) do
+      assert_equal "1 was templated", File.read(method_path('one.txt'))
+      assert_equal "2 was templated", File.read(method_path('two.txt'))
+      was_in_block = true
+    end
+    
+    assert_equal "<%= one %> was templated", File.read(method_path('one.txt'))
+    assert_equal "<%= two %> was templated", File.read(method_path('two.txt'))
+    assert was_in_block
+  end
+  
 end
 
 

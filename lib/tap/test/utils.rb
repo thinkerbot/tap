@@ -1,5 +1,6 @@
 require 'tap/root'
 require 'fileutils'
+require 'tempfile'
 
 module Tap
   module Support
@@ -91,38 +92,65 @@ module Tap
       #   the final extname of the source file is removed during
       #   dereferencing regardless of what it is.
       #
-      def dereference(source_dirs, reference_dir, pattern='**/*.ref')
+      def dereference(source_dirs, reference_dir, pattern='**/*.ref', tempdir=Dir::tmpdir)
         mapped_paths = []
         begin
           [*source_dirs].each do |source_dir|
-            map = reference_map(source_dir, reference_dir, pattern)
-            map.each do |source, reference|
-              source_content = File.open(source, 'rb') {|file| file.read}
-              FileUtils.rm_r(source)
+            reference_map(source_dir, reference_dir, pattern).each do |source, reference|
               
+              # move the source file to a temporary location
+              tempfile = Tempfile.new(File.basename(source), tempdir)
+              tempfile.close
+              FileUtils.mv(source, tempfile.path)
+              
+              # copy the reference to the target
               target = source.chomp(File.extname(source))
               FileUtils.cp_r(reference, target)
-              mapped_paths << [target, source, source_content]
+              
+              mapped_paths << [target, source, tempfile]
             end
           end unless reference_dir == nil
           
           yield
           
         ensure
-          mapped_paths.each do |target, source, source_content|
+          mapped_paths.each do |target, source, tempfile|
+            # remove the target and restore the original source file
             FileUtils.rm_r(target) if File.exists?(target)
-            File.open(source, 'wb') {|file| file << source_content }
+            FileUtils.mv(tempfile.path, source)
           end
         end
       end
       
-      # Uses a Tap::Support::Templater to templates and replace the 
-      # contents of path.  The attributes will be available in the
+      # Uses a Tap::Support::Templater to template and replace the contents of path, 
+      # for the duration of the block.  The attributes will be available in the
       # template context.
-      def template(path, attributes={})
-        content = File.read(path)
-        File.open(path, "wb") do |file|
-          file << Support::Templater.new(content, attributes).build
+      def template(path, attributes={}, tempdir=Dir::tmpdir)
+        mapped_paths = []
+        begin
+          [*path].each do |path|
+            # move the source file to a temporary location
+            tempfile = Tempfile.new(File.basename(path), tempdir)
+            tempfile.close
+            FileUtils.cp(path, tempfile.path)
+              
+            # template the source file
+            content = File.read(path)
+            File.open(path, "wb") do |file|
+              file << Support::Templater.new(content, attributes).build
+            end
+            
+            mapped_paths << [path, tempfile]
+          end
+
+          yield
+          
+        ensure
+          mapped_paths.each do |path, tempfile|
+            # restore the original source file
+            FileUtils.rm(path) if File.exists?(path)
+            FileUtils.mv(tempfile.path, path)
+          end
         end
       end
       
