@@ -2,21 +2,26 @@ module Tap
   module Tasks
     # :startdoc::manifest the default dump task
     #
-    # A dump task to print application results to a file or IO.  The results are
-    # printed in a format allowing dumped results to be reloaded and used as
-    # inputs to other tasks.  See Tap::Load for more details.
+    # A dump task to print aggregated application results to a file or IO.  
+    # The results are printed as YAML, allowing dumped results to be 
+    # reloaded and used as inputs to other tasks.
     #
-    # Often dump is used as the final task in a round of tasks; if no filepath is 
-    # specified, the results are printed to stdout.
+    # Often dump is used as the final task in a round of tasks; if no filepath 
+    # is specified, the results are printed to stdout.
     #  
-    #   % tap run -- [your tasks] --+ dump FILEPATH
+    #   % tap run -- [tasks] --+ dump FILEPATH
     #
+    # See Tap::Load for more details.
     class Dump < Tap::FileTask
     
       config :date_format, '%Y-%m-%d %H:%M:%S'   # the date format
       config :audit, true, &c.switch             # include the audit trails
       config :date, true, &c.switch              # include a date
-    
+      config :filter, nil, &c.regexp_or_nil      # only dump matching objects
+      
+      # Calls dump_to with the target.  If the target is not an
+      # IO, process assumes the target is a filepath.  In that
+      # case, the file is prepared and the results dumped to it.
       def process(target=$stdout)
         case target
         when IO then dump_to(target)
@@ -34,9 +39,9 @@ module Tap
         trails = []
         results = {}
         app.aggregator.to_hash.each_pair do |src, _results|
-          name = src.respond_to?(:name) ? src.name : ''
-
-          results["#{name} (#{src.object_id})"] = _results.collect {|_audit| _audit._current }
+          next if filter && src.to_s !~ filter
+          
+          results["#{src} (#{src.object_id})"] = _results.collect {|_audit| _audit._current }
           _results.each {|_audit| trails << _audit._to_s }
         end
       

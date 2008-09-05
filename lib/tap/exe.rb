@@ -83,8 +83,12 @@ module Tap
       # build the workflow
       parser.workflow.each_with_index do |(type, target_indicies), source_index|
         next if type == nil
-        
-        tasks[source_index].send(type, *target_indicies.collect {|i| tasks[i] })
+
+        targets = target_indicies.kind_of?(Array) ?
+          target_indicies.collect {|i| tasks[i][0] } :
+          tasks[target_indicies][0]
+          
+        tasks[source_index][0].send(type, *targets)
       end
 
       # build queues
