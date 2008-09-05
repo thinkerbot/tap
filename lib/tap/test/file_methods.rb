@@ -294,9 +294,9 @@ module Tap
         expected_dir = options[:expected_dir]
         
         reference_dir = options[:reference_dir]
-        reference_extname = options[:reference_extname]
+        reference_pattern = options[:reference_pattern]
         
-        Utils.dereference([input_dir, expected_dir], reference_dir, reference_extname) do
+        Utils.dereference([input_dir, expected_dir], reference_dir, reference_pattern || '**/*.ref') do
 
           # Get the input and expected files in this manner:
           # - look for manually specified files

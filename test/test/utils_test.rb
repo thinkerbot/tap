@@ -13,11 +13,15 @@ class UtilsTest < Test::Unit::TestCase
   #
   
   def test_reference_map_documentation
+    assert_equal 'path/to/two.txt', File.read(method_path("input/two.txt.ref")) 
+    
     assert_equal [
       [method_path("input/dir.ref"), method_path("ref/dir")],
       [method_path("input/one.txt.ref"), method_path("ref/one.txt")],
       [method_path("input/two.txt.ref"), method_path("ref/path/to/two.txt")]
     ], reference_map(method_path('input'), method_path('ref'))
+    
+    assert_raise(DereferenceError) { reference_map(method_path('input'), method_path('ref'), '**/*.txt') }
   end
   
   def test_reference_map_returns_a_list_of_ref_files_under_source_dir_mapped_to_ref_dir
@@ -32,8 +36,6 @@ class UtilsTest < Test::Unit::TestCase
   def test_reference_map_maps_using_path_named_in_file_if_present
     assert_equal "file.txt", File.read(method_path("input/dir.ref"))
     assert_equal "dir", File.read(method_path("input/file.txt.ref"))
-    
-    # demonstrates that comments are ignored and content is stripped
     assert_equal %Q{# comment
     
    # commment
@@ -43,31 +45,14 @@ class UtilsTest < Test::Unit::TestCase
 }, File.read(method_path("input/nested.txt.ref"))
     
     assert_equal [
-      [method_path("input/dir.ref"), method_path("ref/file.txt"), "file.txt"],
-      [method_path("input/file.txt.ref"), method_path("ref/dir"), "dir"],
-      [method_path("input/nested.txt.ref"), method_path("ref/path/to/two.txt"), "path/to/two.txt"]
+      [method_path("input/dir.ref"), method_path("ref/file.txt")],
+      [method_path("input/file.txt.ref"), method_path("ref/dir")],
+      [method_path("input/nested.txt.ref"), method_path("ref/path/to/two.txt")]
     ], reference_map(method_path('input'), method_path('ref'))
   end
   
-  def test_reference_map_globs_for_files_with_ref_extname
-    assert_equal [[method_path("input/one.txt.ref"), method_path("ref/one.txt")]], reference_map(method_path('input'), method_path('ref'))
-    assert_equal [[method_path("input/two.txt"), method_path("ref/two")]], reference_map(method_path('input'), method_path('ref'), ".txt")
-  end
-  
-  def test_reference_map_globs_for_reference_files_matching_basename_if_default_map_does_not_exist
-    assert_equal [
-      [method_path("input/one.txt.ref"), method_path("ref/nested/one.txt")],
-      [method_path("input/two.ref"), method_path("ref/nested/two")],
-      [method_path("input/nested/three.txt.ref"), method_path("ref/three.txt")]
-    ].sort, reference_map(method_path('input'), method_path('ref')).sort
-  end
-  
-  def test_reference_map_raises_error_if_multiple_reference_files_match_path
-    assert_raise(ArgumentError) { reference_map(method_path('input'), method_path('ref')) }
-  end
-  
-  def test_reference_map_raises_error_if_no_reference_files_match_path
-    assert_raise(ArgumentError) { reference_map(method_path('input'), method_path('ref')) }
+  def test_reference_map_raises_error_if_no_reference_file_is_found
+    assert_raise(DereferenceError) { reference_map(method_path('input'), method_path('ref')) }
   end
   
   #
