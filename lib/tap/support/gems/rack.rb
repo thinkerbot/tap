@@ -12,6 +12,9 @@ module Tap
       end
       
       module Rack
+        
+        attr_accessor :handler
+        
         def call(env)
           path = env['PATH_INFO']
           
@@ -32,12 +35,6 @@ module Tap
               end
             end
             template_response('index', env)
-          when path == "/shutdown"
-            
-            # wait a second to shutdown, so a response
-            # can be sent out.
-            Thread.new { sleep 1; @handler.shutdown }
-            response(env) { "done" }
             
           when config[:development] && template_page = known_path(:template, path)
             response(env) { template(File.read(template_page), env) }

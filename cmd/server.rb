@@ -38,5 +38,5 @@ end.parse!(ARGV)
 
 env.extend Tap::Support::Gems::Rack
 Rack::Handler::WEBrick.run(env, options) do |handler|
-  env.instance_variable_set(:@handler, handler)
+  env.handler = handler
 end
