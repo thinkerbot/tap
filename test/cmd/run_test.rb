@@ -234,13 +234,28 @@ unknown task: --help
 % #{cmd} run -- with_string_config --string "#{backslash_n}"},
       /with_string_config \"\\n\"/    # "\n"
       
-      # --string '\\n'
-      # --string "\\n"
-      escape_backslash_n = '\\' + '\n'
-      cmd.match "Run with escaped newline string syntax", %Q{
+      platform_test(:mswin, :nix) do
+        # --string '\\n'
+        # --string "\\n"
+        escape_backslash_n = '\\' + '\n'
+        cmd.match "Run with escaped newline string syntax", %Q{
 % #{cmd} run -- with_string_config --string '#{escape_backslash_n}'
 % #{cmd} run -- with_string_config --string "#{escape_backslash_n}"}, 
-      /with_string_config \"\\\\n\"/  # '\n'
+        /with_string_config \"\\\\n\"/  # '\n'
+      end
+      
+      platform_test(:darwin) do
+        # --string '\\n'
+        escape_backslash_n = '\\' + '\n'
+        cmd.match "Run with escaped newline string syntax", %Q{
+% #{cmd} run -- with_string_config --string '#{escape_backslash_n}'}, 
+        /with_string_config \"\\\\n\"/  # '\n'
+        
+        # --string "\\n"
+        cmd.match "Run with escaped newline string syntax", %Q{
+% #{cmd} run -- with_string_config --string "#{escape_backslash_n}"}, 
+        /with_string_config \"\\n\"/  # "\n"
+      end
 
     end
   end
