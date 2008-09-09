@@ -125,10 +125,10 @@ module Tap
       # Uses a Tap::Support::Templater to template and replace the contents of path, 
       # for the duration of the block.  The attributes will be available in the
       # template context.
-      def template(path, attributes={}, tempdir=Dir::tmpdir)
+      def template(paths, attributes={}, tempdir=Dir::tmpdir)
         mapped_paths = []
         begin
-          [*path].each do |path|
+          [*paths].each do |path|
             # move the source file to a temporary location
             tempfile = Tempfile.new(File.basename(path), tempdir)
             tempfile.close

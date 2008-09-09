@@ -405,6 +405,62 @@ module Tap
       end
       RANGE_OR_NIL = range_or_nil_block
       
+      # Returns a block that checks the input is a Time. String inputs are 
+      # loaded using Time.parse and then converted into times.  Parsed times 
+      # are local unless specified otherwise.
+      #
+      #   time.class               # => Proc
+      #
+      #   now = Time.now
+      #   time.call(now)           # => now
+      #
+      #   time.call('2008-08-08 20:00:00.00 +08:00').getutc.strftime('%Y/%m/%d %H:%M:%S %Z')
+      #   #  => '2008/08/08 12:00:00 UTC'
+      #
+      #   time.call('2008-08-08').strftime('%Y/%m/%d %H:%M:%S')
+      #   #  => '2008/08/08 00:00:00'
+      #
+      #   time.call(1)             # => ValidationError
+      #   time.call(nil)           # => ValidationError
+      #
+      # Warning: Time.parse will parse a valid time (Time.now)
+      # even when no time is specified:
+      #
+      #   time.call('str').strftime('%Y/%m/%d %H:%M:%S')      
+      #   # => Time.now.strftime('%Y/%m/%d %H:%M:%S')      
+      #
+      def time()
+        # adding this here is a compromise to lazy-load the parse
+        # method (autoload doesn't work since Time already exists)
+        require 'time' unless Time.respond_to?(:parse)
+        TIME
+      end
+      
+      TIME = lambda do |input|
+        input = Time.parse(input) if input.kind_of?(String)
+        validate(input, [Time])
+      end
+      
+      # Same as time but allows nil:
+      #
+      #   time_or_nil.call('~')    # => nil
+      #   time_or_nil.call(nil)    # => nil
+      def time_or_nil()
+        # adding this check is a compromise to autoload the parse 
+        # method (autoload doesn't work since Time already exists)
+        require 'time' unless Time.respond_to?(:parse)
+        TIME_OR_NIL
+      end
+      
+      TIME_OR_NIL = lambda do |input|
+        input = case input
+        when nil, '~' then nil
+        when String then Time.parse(input)
+        else input
+        end
+        
+        validate(input, [Time, nil])
+      end
     end
   end
 end
