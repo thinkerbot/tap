@@ -19,6 +19,7 @@ module Tap
       def clear_dependencies
         @registry = []
         @results = []
+        @resolve_stack = []
       end
       
       # Returns the index of the [instance, argv] pair in self,
@@ -44,12 +45,24 @@ module Tap
       
       # Resolves the instance-argv pairs at the specified indicies by calling 
       # instance._execute(*argv).  Results are collected in results; a pair is 
-      # only resolved if an existing result does not exist.  Returns self.
+      # only resolved if an existing result does not exist and an error is
+      # raised if circular dependencies are detected. Returns self.
       def resolve(indicies)
         indicies.each do |index|
-          next if results[index]
+          next if resolved?(index)
+          
+          if @resolve_stack.include?(index)
+            raise CircularDependencyError.new(@resolve_stack)
+          end
+
+          # mark the results at the index to prevent
+          # infinite loops with circular dependencies
+          @resolve_stack.push index
+
           instance, inputs = registry[index]
           results[index] = instance._execute(*inputs)
+          
+          @resolve_stack.pop
         end
         self
       end
@@ -68,6 +81,12 @@ module Tap
         self
       end
       
+      # Raised when resolve detects circular dependencies.
+      class CircularDependencyError < StandardError
+        def initialize(resolve_stack)
+          super "circular dependency: [#{resolve_stack.join(', ')}]"
+        end
+      end
     end
   end
 end

@@ -43,12 +43,14 @@ class ExecutableTest < Test::Unit::TestCase
   class Dependency
     attr_reader :resolve_arguments
     
-    def initialize
+    def initialize(trace=[])
       @resolve_arguments = []
+      @trace = trace
       Tap::Support::Executable.initialize(self, :resolve)
     end
     
     def resolve(*args)
+      @trace << self
       @resolve_arguments << args
       args.join(",")
     end
@@ -139,6 +141,34 @@ class ExecutableTest < Test::Unit::TestCase
   
   def test_resolve_dependencies_returns_self
     assert_equal m, m.resolve_dependencies
+  end
+  
+  def test_resolve_resolves_nested_dependencies
+    resolve_trace = []
+    
+    a = Dependency.new resolve_trace
+    b = Dependency.new resolve_trace
+    c = Dependency.new resolve_trace
+    
+    m.depends_on(a)
+    a.depends_on(b)
+    a.depends_on(c)
+    
+    m.resolve_dependencies
+    assert_equal [b, c, a], resolve_trace
+  end
+  
+  def test_resolve_raises_error_for_circular_dependencies
+    a = Dependency.new
+    b = Dependency.new
+
+    m.depends_on(a)
+    a.depends_on(b)
+    b.depends_on(m)
+    
+    assert_raise(Dependable::CircularDependencyError) { m.resolve_dependencies }
+    assert_raise(Dependable::CircularDependencyError) { a.resolve_dependencies }
+    assert_raise(Dependable::CircularDependencyError) { b.resolve_dependencies }
   end
   
   #
