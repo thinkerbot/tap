@@ -378,6 +378,45 @@ module Tap
       segments
     end
     
+    def build(env, app)
+      # attempt lookup and instantiation of the task classes
+      # note that instances is actually an array of [instance, args]
+      # pairs, where the instance will be enqued with the args
+      instances = tasks.collect do |args|
+        task = args.shift
+
+        const = env.search(:tasks, task) or raise ArgumentError, "unknown task: #{task}"
+        task_class = const.constantize or raise ArgumentError, "unknown task: #{task}"
+        task_class.instantiate(args, app)
+      end
+
+      # build the workflow
+      workflow.each_with_index do |(type, target_indicies), source_index|
+        next if type == nil
+
+        targets = if target_indicies.kind_of?(Array)
+          target_indicies.collect {|i| instances[i][0] }
+        else
+          instances[target_indicies][0]
+        end
+        
+        instances[source_index][0].send(type, *targets)
+      end
+
+      # build queues
+      queues = rounds.collect do |round|
+        round.each do |index|
+          task, args = instances[index]
+          task.enq(*args)
+        end
+
+        app.queue.clear
+      end
+      queues.delete_if {|queue| queue.empty? }
+
+      queues
+    end
+    
     protected
     
     # Returns the index of the next argv to be parsed.

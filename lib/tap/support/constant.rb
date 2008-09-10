@@ -65,6 +65,10 @@ module Tap
           name.constantize
         end
       end
+      
+      def inspect
+        "#<#{self.class}:#{object_id} #{name}#{@require_path == nil ? "" : " (#{@require_path})"}>"
+      end
     end
   end
 end

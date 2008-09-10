@@ -519,10 +519,8 @@ module Tap
     # mini-matches the input pattern.  See Tap::Root.minimal_match? 
     # for details on mini-matching.
     def find(name, pattern, value_only=true)
-      manifest(name).each do |key, value|
-        return(value_only ? value : [key, value]) if Root.minimal_match?(key, pattern)
-      end
-      nil
+      return nil unless entry = manifest(name)[pattern]
+      value_only ? entry[1] : entry
     end
     
     # Like find, but searches across all envs for the matching value.
@@ -582,12 +580,8 @@ module Tap
       lines.join("\n")
     end
 
-    def inspect(brief=false)
-      brief ? "#<#{self.class}:#{object_id} root='#{root.root}'>" : super()
-    end
-    
-    def to_s
-      inspect(true)
+    def inspect
+      "#<#{self.class}:#{object_id} root='#{root.root}'>"
     end
     
     protected

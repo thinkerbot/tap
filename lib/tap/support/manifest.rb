@@ -134,7 +134,29 @@ module Tap
         entries.collect {|path, value| [hash[path], value] }
       end
       
-      protected
+      # Returns the first [key, value] entry where the key mini-matches 
+      # the input pattern.  See Tap::Root.minimal_match?  for details on 
+      # mini-matching.
+      def [](pattern)
+        find {|key, value| Root.minimal_match?(key, pattern)}
+      end
+      
+      def inspect
+        lines = ["", "search paths:"]
+        search_paths.each_with_index do |path, index|
+          indent = (index == search_path_index ? "* " : "  ")
+          lines << (indent + path.inspect)
+        end
+        
+        lines << ""
+        lines << "mini-entries:"
+        minimize.each do |mini, value| 
+          lines << "  #{mini}: #{value.inspect}"
+        end
+        lines << ""
+        
+        "#{self.class}:#{object_id} #{lines.join("\n")}"
+      end
 
       # Raised when multiple paths are assigned to the same manifest key.
       class ManifestConflict < StandardError

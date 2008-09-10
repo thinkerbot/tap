@@ -69,40 +69,7 @@ module Tap
     end
 
     def build(argv=ARGV)
-      parser = Parser.new(argv)
-      
-      # attempt lookup and instantiate the task class
-      tasks = parser.tasks.collect do |args|
-        task = args.shift
-
-        const = search(:tasks, task) or raise ArgumentError, "unknown task: #{task}"
-        task_class = const.constantize or raise ArgumentError, "unknown task: #{task}"
-        task_class.instantiate(args, app)
-      end
-
-      # build the workflow
-      parser.workflow.each_with_index do |(type, target_indicies), source_index|
-        next if type == nil
-
-        targets = target_indicies.kind_of?(Array) ?
-          target_indicies.collect {|i| tasks[i][0] } :
-          tasks[target_indicies][0]
-          
-        tasks[source_index][0].send(type, *targets)
-      end
-
-      # build queues
-      queues = parser.rounds.collect do |round|
-        round.each do |index|
-          task, args = tasks[index]
-          task.enq(*args)
-        end
-
-        app.queue.clear
-      end
-      queues.delete_if {|queue| queue.empty? }
-
-      queues
+      Parser.new(argv).build(self, app)
     end
     
     def run(queues)
