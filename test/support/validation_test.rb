@@ -335,7 +335,7 @@ class ValidationTest < Test::Unit::TestCase
     now = Time.now
     assert_equal now, time.call(now)
   
-    assert_equal '2008/08/08 12:00:00 UTC', time.call('2008-08-08 20:00:00.00 +08:00').getutc.strftime('%Y/%m/%d %H:%M:%S %Z')
+    assert_equal '2008/08/08 12:00:00', time.call('2008-08-08 20:00:00.00 +08:00').getutc.strftime('%Y/%m/%d %H:%M:%S')
     assert_equal '2008/08/08 00:00:00', time.call('2008-08-08').strftime('%Y/%m/%d %H:%M:%S')
 
     assert_raise(ValidationError) { time.call(1) }

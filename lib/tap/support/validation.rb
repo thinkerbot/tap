@@ -414,8 +414,8 @@ module Tap
       #   now = Time.now
       #   time.call(now)           # => now
       #
-      #   time.call('2008-08-08 20:00:00.00 +08:00').getutc.strftime('%Y/%m/%d %H:%M:%S %Z')
-      #   #  => '2008/08/08 12:00:00 UTC'
+      #   time.call('2008-08-08 20:00:00.00 +08:00').getutc.strftime('%Y/%m/%d %H:%M:%S')
+      #   #  => '2008/08/08 12:00:00'
       #
       #   time.call('2008-08-08').strftime('%Y/%m/%d %H:%M:%S')
       #   #  => '2008/08/08 00:00:00'
