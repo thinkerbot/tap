@@ -103,4 +103,48 @@ class ConstantTest < Test::Unit::TestCase
     assert c1 != c4
   end
   
+  #
+  # constantize test
+  #
+  
+  def test_constantize_returns_the_constant_corresponding_to_name
+    assert_equal Object, Constant.new('Object').constantize
+    assert_equal Tap, Constant.new('Tap').constantize
+    assert_equal Constant, Constant.new('Tap::Support::Constant').constantize
+  end
+  
+  def test_constantize_requires_require_path_if_the_constant_cannot_be_found
+    require_path = File.expand_path("#{File.dirname(__FILE__)}/constant/require_path.rb")
+    
+    assert !Object.const_defined?(:UnknownConstant)
+    assert File.exists?(require_path)
+    assert !$".include?(require_path)
+    
+    # assertion can't be done in on line since UnknownConstant
+    # is not defined until after constantize
+    const = Constant.new('UnknownConstant', require_path).constantize
+    assert_equal UnknownConstant, const
+    
+    assert $".include?(require_path)
+  end
+  
+  def test_constantize_raises_error_if_the_constant_cannot_be_found
+    empty_file = "#{File.dirname(__FILE__)}/constant/empty_file.rb"
+    assert !Object.const_defined?(:TotallyUnknownConstant)
+    
+    assert_raise(NameError) { Constant.new('TotallyUnknownConstant').constantize }
+    assert_raise(NameError) { Constant.new('TotallyUnknownConstant', empty_file).constantize }
+  end
+  
+  #
+  # inspect test
+  #
+  
+  def test_inspect
+    c = Constant.new('Sample::Const')
+    assert_equal "#<Tap::Support::Constant:#{c.object_id} Sample::Const>", c.inspect
+    
+    c = Constant.new('Sample::Const', '/require/path.rb')
+    assert_equal "#<Tap::Support::Constant:#{c.object_id} Sample::Const (/require/path.rb)>", c.inspect
+  end
 end

@@ -78,6 +78,36 @@ class ManifestTest < Test::Unit::TestCase
   end
   
   #
+  # empty? test
+  #
+  
+  def test_manifest_is_empty_if_entries_are_empty
+    assert m.entries.empty?
+    assert m.empty?
+    
+    m.entries << [:one, 1]
+    assert !m.empty?
+  end
+  
+  #
+  # search_paths= test
+  #
+  
+  def test_setting_search_paths_clears_entries_and_resets_search_path_index_to_zero
+    m = ManifestSubclass.new([[:one, [1]],[:two, [2]],[:three, [3]]])
+    m.build
+    
+    assert !m.entries.empty?
+    assert_not_equal 0, m.search_path_index
+    
+    m.search_paths = [[:four, [4]],[:five, [5]]]
+    
+    assert_equal [[:four, [4]],[:five, [5]]], m.search_paths
+    assert m.entries.empty?
+    assert_equal 0, m.search_path_index
+  end
+  
+  #
   # reset test
   #
   
@@ -243,5 +273,43 @@ class ManifestTest < Test::Unit::TestCase
     m.entries << ["path/to/another.txt", 3]
     
     assert_equal [['to/file', 1],['another/file', 2],['another', 3]], m.minimize
+  end
+  
+  #
+  # AGET test
+  #
+  
+  def test_AGET_returns_first_matching_minimized_key
+    m.entries << ["/path/to/one", 1]
+    m.entries << ["/path/to/another/one", 2]
+    m.entries << ["/path/to/two", 3]
+    
+    assert_equal ["/path/to/one", 1], m['one']
+    assert_equal ["/path/to/one", 1], m['to/one']
+    assert_equal ["/path/to/another/one", 2], m['another/one']
+    assert_equal ["/path/to/two", 3], m['two']
+  end
+  
+  def test_AGET_returns_nil_for_no_matching_key
+    assert m.entries.empty?
+    assert_equal nil, m['one']
+  end
+  
+  def test_AGET_discovers_entries_as_needed
+    m = ManifestSubclass.new([
+      ['/path/to/one', [1]],
+      ["/path/to/another/one", [2]],
+      ["/path/to/two", [3]]])
+    assert m.entries.empty?
+    
+    assert_equal ["/path/to/one_0", 1], m['one_0']
+    assert_equal [["/path/to/one_0", 1]], m.entries
+    
+    assert_equal ["/path/to/two_0", 3], m['two_0']
+    assert_equal [
+      ["/path/to/one_0", 1],
+      ["/path/to/another/one_0", 2],
+      ["/path/to/two_0", 3]
+    ], m.entries
   end
 end

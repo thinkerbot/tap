@@ -40,6 +40,8 @@ module Tap
         entries.empty?
       end
       
+      # Sets the search_paths for self.  Setting search_paths
+      # clears all entries and puts search_path_index to zero.
       def search_paths=(search_paths)
         @entries = []
         @search_paths = search_paths
@@ -94,9 +96,9 @@ module Tap
         new_entry
       end
       
-      # Iterates over each (key, value) entry in self, dynamically identifying entries 
-      # from search_paths if necessary.  New entries are identifed using the each_for
-      # method.
+      # Iterates over each (key, value) entry in self, dynamically 
+      # identifying entries from search_paths if necessary.  New 
+      # entries are identifed using the each_for method.
       def each
         entries.each do |key, path| 
           yield(key, path) 
@@ -135,10 +137,15 @@ module Tap
       end
       
       # Returns the first [key, value] entry where the key mini-matches 
-      # the input pattern.  See Tap::Root.minimal_match?  for details on 
-      # mini-matching.
+      # the input pattern, or nil if no matching entry is found.  This
+      # method identifies new entries as in each, as needed.
+      #
+      # See Tap::Root.minimal_match? for details on mini-matching.
       def [](pattern)
-        find {|key, value| Root.minimal_match?(key, pattern)}
+        each do |key, value| 
+          return [key, value] if Root.minimal_match?(key, pattern)
+        end
+        nil
       end
       
       def inspect
