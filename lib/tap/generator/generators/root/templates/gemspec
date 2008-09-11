@@ -21,9 +21,7 @@ Gem::Specification.new do |s|
   # check this manifest using 'rake :print_manifest'
   s.files = %W{
 <%= config_file ? "    tap.yml\n" : '' %>
-<%= tapfile ? "    tapfile.rb\n" : '' %>
     test/tap_test_helper.rb
     test/tap_test_suite.rb
-<%= tapfile ? "    test/tapfile_test.rb\n" : '' %>
   }
 end

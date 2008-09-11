@@ -617,6 +617,22 @@ a (0)
     assert_equal [root["/path/to/lib"], root["/path/to/another/lib"], "post"], $LOAD_PATH
   end
   
+  def test_activate_requires_requires_after_setting_load_paths
+    e.load_paths = [method_dir(:lib)]
+    
+    a = method_filepath('require_a')
+    b = 'require_b'
+    e.requires = [a,b]
+    
+    assert !Object.const_defined?(:RequireA)
+    assert !Object.const_defined?(:RequireB)
+    
+    e.activate
+    
+    assert Object.const_defined?(:RequireA)
+    assert Object.const_defined?(:RequireB)
+  end
+  
   def test_activate_assigns_self_as_Env_instance
     assert_nil Tap::Env.instance
     e.activate

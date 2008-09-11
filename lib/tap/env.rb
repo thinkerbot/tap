@@ -123,12 +123,11 @@ module Tap
         manifests[name] = manifest_class
       end
       
-      # Returns the gemspecs for all installed gems with a DEFAULT_TASK_FILE
-      # or DEFAULT_CONFIG_FILE. If latest==true, then only the specs for the 
-      # most current gems will be returned.
+      # Returns the gemspecs for all installed gems with a DEFAULT_CONFIG_FILE. 
+      # If latest==true, then only the specs for the most current gems will be 
+      # returned.
       def gemspecs(latest=true)
         Support::Gems.select_gems(latest) do |spec|
-          File.exists?(File.join(spec.full_gem_path, DEFAULT_TASK_FILE)) ||
           File.exists?(File.join(spec.full_gem_path, DEFAULT_CONFIG_FILE))
         end
       end
@@ -175,15 +174,9 @@ module Tap
     @@instance = nil
     @@instances = {}
     @@manifests = {:envs => Manifest}
-
-    # The global config file path
-    GLOBAL_CONFIG_FILE = File.join(Support::Gems.user_home, ".tap.yml")
     
     # The default config file path
     DEFAULT_CONFIG_FILE = "tap.yml"
-    
-    # The default task file path
-    DEFAULT_TASK_FILE = "tapfile.rb"
     
     # The Root directory structure for self.
     attr_reader :root
@@ -193,6 +186,9 @@ module Tap
     
     # A hash of the manifests for self.
     attr_reader :manifests
+    
+    # Specify files to require when self is activated.
+    config :requires, [], &c.array_or_nil
     
     # Specify gems to load as nested Envs.  Gems may be specified 
     # by name and/or version, like 'gemname >= 1.2'; by default the 
@@ -235,7 +231,7 @@ module Tap
     # Designate paths for discovering generators.  
     path_config :generator_paths, ["lib"]
     
-    path_manifest(:tasks, :load_paths, "**/*.rb", [DEFAULT_TASK_FILE]) do |load_path, path|
+    path_manifest(:tasks, :load_paths, "**/*.rb") do |load_path, path|
       next unless File.file?(path) && document = Support::Lazydoc.scan_doc(path, 'manifest')
       
       document.const_names.collect do |const_name|
@@ -454,6 +450,12 @@ module Tap
       end
     
       $LOAD_PATH.uniq!
+      
+      # perform requires
+      requires.each do |path|
+        require path
+      end
+      
       true
     end
     
@@ -582,6 +584,21 @@ module Tap
 
     def inspect
       "#<#{self.class}:#{object_id} root='#{root.root}'>"
+    end
+    
+    def dump
+      dump = {}
+      each do |env|
+        hash = {'mtime' => File.mtime(env.root.root)}
+        @@manifests.keys.each do |key|
+          next if key == :envs
+          hash[key] = env.manifest(key).build.entries 
+        end
+        
+        dump[env.root.root] = hash
+      end
+      
+      dump
     end
     
     protected
