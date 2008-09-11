@@ -4,7 +4,7 @@ module Tap
   module Support
     module Gems
       module_function
-      
+
       # Finds the home directory for the user (method taken from Rubygems).
       def find_home
         ['HOME', 'USERPROFILE'].each do |homekey|
@@ -19,9 +19,9 @@ module Tap
           File.expand_path("~")
         rescue
           if File::ALT_SEPARATOR then
-              "C:/"
+            "C:/"
           else
-              "/"
+            "/"
           end
         end
       end

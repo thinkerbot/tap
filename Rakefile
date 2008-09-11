@@ -144,7 +144,7 @@ task :default => :test
 desc 'Run tests.'
 Rake::TestTask.new(:test) do |t|
   t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
-    filename =~ /test\/check/ || filename =~ /test\/cmd\/.*\//
+    filename =~ /test\/check/ || filename =~ /test\/cmd\/.*\// || filename =~ /test\/functional\/.*/
   end
   
   t.verbose = true
@@ -171,9 +171,18 @@ end
 
 namespace :test do
   desc 'Run functional tests.'
-  Rake::TestTask.new(:functional) do |t|
-    t.test_files = Dir.glob('test/functional/*_test.rb')
-    t.verbose = true
-    t.warning = true
+  task(:functional) do
+    failures = []
+    Dir.glob('test/functional/*_test.rb').each do |path|
+      begin
+        sh('ruby', "-w", path)
+      rescue(Exception)
+        failures << path
+      end
+    end
+    
+    unless failures.empty?
+      puts "\nFailures (#{failures.length}):\n#{failures.join("\n")}"
+    end
   end
 end

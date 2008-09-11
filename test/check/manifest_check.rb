@@ -60,4 +60,17 @@ class ManifestCheck < Test::Unit::TestCase
       end
     end
   end
+  
+  def test_speed_to_check_mtimes_on_files
+    bm(20) do |x|
+      x.report("100x mtime speed") do
+        100.times do
+          FILES.each do |path| 
+            File.mtime(path)
+          end
+        end
+      end
+    end
+  end
+  
 end
