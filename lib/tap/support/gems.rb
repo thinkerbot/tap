@@ -1,36 +1,19 @@
-autoload(:Gem, 'rubygems')
+# This quick-require of rubygems causes Gem::SpecFetcher to be autoloaded.  
+# In general Gem::SpecFetcher will not be needed, and it's inclusion 
+# accounts for > 1/2 the require time for rubygems.  A patch has been 
+# submitted; pending it's acceptance this will not be needed.
+$" << 'rubygems/spec_fetcher.rb'
+require 'rubygems'
+$".delete('rubygems/spec_fetcher.rb')
+module Gem
+  autoload(:SpecFetcher, 'rubygems/spec_fetcher')
+end
 
 module Tap
   module Support
     module Gems
       module_function
 
-      # Finds the home directory for the user (method taken from Rubygems).
-      def find_home
-        ['HOME', 'USERPROFILE'].each do |homekey|
-          return ENV[homekey] if ENV[homekey]
-        end
-
-        if ENV['HOMEDRIVE'] && ENV['HOMEPATH'] then
-          return "#{ENV['HOMEDRIVE']}:#{ENV['HOMEPATH']}"
-        end
-
-        begin
-          File.expand_path("~")
-        rescue
-          if File::ALT_SEPARATOR then
-            "C:/"
-          else
-            "/"
-          end
-        end
-      end
-
-      # The home directory for the user.
-      def user_home
-        @user_home ||= find_home
-      end
-      
       # Returns the gemspec for the specified gem.  A gem version 
       # can be specified in the name, like 'gem >= 1.2'.  The gem 
       # will be activated using +gem+ if necessary.
