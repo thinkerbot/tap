@@ -12,7 +12,7 @@ module Tap
         
         # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
         if !File.exists?(Tap::Env::DEFAULT_CONFIG_FILE)
-          exe.gems = gemspecs(true)
+          exe.gems = gemspecs(false)
         end
         
         # add the default tap instance

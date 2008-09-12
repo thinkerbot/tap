@@ -195,11 +195,9 @@ module Tap
     # latest version of the gem is selected.
     #
     # Gems are immediately loaded (via gem) through this method.
-    #--
-    # Note that the gems are resolved to gemspecs using Env.gemspec,
-    # so self.gems returns an array of gemspecs.
     config_attr :gems, [] do |input|
       check_configurable
+      specs_by_name = {}
       @gems = [*input].compact.collect do |gem_name| 
         spec = Support::Gems.gemspec(gem_name)
         
@@ -208,8 +206,20 @@ module Tap
         else Env.instance_for(spec.full_gem_path)
         end
         
-        spec
+        (specs_by_name[spec.name] ||= []) << spec
+        spec.name
       end.uniq
+      
+      # this song and dance is to ensure that the latest spec for a
+      # given gem appears first in the manifest
+      specs_by_name.each_pair do |name, specs|
+        specs_by_name[name] = specs.uniq.sort_by {|spec| spec.version }.reverse
+      end
+      
+      @gems.collect! do |name|
+        specs_by_name[name]
+      end.flatten!
+      
       reset_envs
     end
 
