@@ -12,5 +12,5 @@ name = ARGV.shift
 const = env.search(:generators, name) or raise "unknown generator: #{name}"
 
 generator_class = const.constantize
-generator, argv = generator_class.instantiate(ARGV)
+generator, argv = generator_class.parse(ARGV)
 generator.extend(Tap::Generator::Generate).process(*argv)

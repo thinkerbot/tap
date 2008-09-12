@@ -87,7 +87,10 @@ module Tap
         end
         
         task_class or raise ArgumentError, "unknown task: #{task}"
-        task_class.instantiate(args, app)
+        task_class.parse(args, app) do |help|
+          puts help
+          exit
+        end
       end
     end
     

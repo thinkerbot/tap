@@ -721,6 +721,19 @@ class ParserTest < Test::Unit::TestCase
     ], p.workflows
   end
   
+  def test_parse_is_non_destructive
+    argv = [
+      "a", "a1", "a2", "--key", "value", "--another", "another value", "--",
+      "b","b1", "--",
+      "c", "--",
+      "+2[0,1,2]", "--",
+      "0:1:2"]
+    argv_ref = argv.dup
+    
+    p = Parser.new argv
+    assert_equal argv_ref, argv
+  end
+  
   #
   # to_s test
   #

@@ -247,7 +247,16 @@ module Tap
         subclass
       end
       
-      def instantiate(argv, app=Tap::App.instance) # => instance, argv
+      # Parses the argv into an instance of self and an array of arguments (implicitly
+      # to be enqued to the instance and run by app).  Yields a help string to the
+      # block, if given, when the argv indicates 'help'.
+      #
+      def parse(argv, app=Tap::App.instance, &block) # :yields: help_str
+        parse!(argv.dup, &block)
+      end
+      
+      # Same as parse, but removes switches destructively. 
+      def parse!(argv, app=Tap::App.instance) # :yields: help_str
         opts = OptionParser.new
 
         # Add configurations
@@ -269,8 +278,7 @@ module Tap
 
         opts.on_tail("-h", "--help", "Print this help") do
           opts.banner = "#{help}usage: tap run -- #{to_s.underscore} #{args.subject}"
-          puts opts
-          exit
+          yield(opts.to_s) if block_given?
         end
 
         # Add option for name
@@ -295,21 +303,28 @@ module Tap
             use_args << obj
           end
         end
-
+        
+        # parse the argv
         opts.parse!(argv)
+        
+        # build and reconfigure the instance and any associated
+        # batch objects as specified in the file configurations
         obj = new({}, name, app)
-
         path_configs = load_config(app.config_filepath(name))
         if path_configs.kind_of?(Array)
           path_configs.each_with_index do |path_config, i|
-            obj.initialize_batch_obj(path_config, "#{name}_#{i}") unless i == 0
+            next if i == 0
+            batch_obj = obj.initialize_batch_obj(path_config, "#{name}_#{i}")
+            batch_obj.reconfigure(config)
           end
           path_configs = path_configs[0]
         end
-
+        obj.reconfigure(path_configs).reconfigure(config)
+        
+        # recollect arguments
         argv = (argv + use_args).collect {|str| str =~ /\A---\s*\n/ ? YAML.load(str) : str }
 
-        [obj.reconfigure(path_configs).reconfigure(config), argv]
+        [obj, argv]
       end
 
       def lazydoc(resolve=true)
