@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# usage: rap taskname {options} [args]
 
 require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 
@@ -61,16 +62,36 @@ end
 begin
   env.activate
   
-  queues = env.build(ARGV) {|args| Tap::Tasks::Rake }
-  ARGV.clear
-
-  if queues.empty?
-    puts "no task specified"
+  case ARGV[0]
+  when '--help', nil, '-T'
+    # give some help
+    require 'tap/support/command_line'
+    
+    puts Tap::Support::CommandLine.usage(__FILE__)
+    puts
+    puts "===  tap tasks ==="
+    puts env.summarize(:tasks) {|const| const.document[const.name]['manifest'] }
+    puts
+    puts "=== rake tasks ==="
+    Tap::Tasks::Rake.new.enq('-T')
+    Tap::App.instance.run
+    
+    # this is not currently reached as rake exits on -T
+    puts
+    puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
     exit
-  end
+  else
+    queues = env.build(ARGV) {|args| Tap::Tasks::Rake }
+    ARGV.clear
+
+    if queues.empty?
+      puts "no task specified"
+      exit
+    end
   
-  env.set_signals
-  env.run(queues)
+    env.set_signals
+    env.run(queues)
+  end
   
 rescue
   env.handle_error($!)

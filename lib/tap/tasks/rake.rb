@@ -45,9 +45,9 @@ module Tap
     
       class << self
       
-        # Overrides Tap::Support::FrameworkClass#instantiate to do  
+        # Overrides Tap::Support::FrameworkClass#parse! to do  
         # nothing so that all args get passed forward to rake.
-        def instantiate(argv, app=Tap::App.instance) # => instance, argv
+        def parse!(argv, app=Tap::App.instance) # => instance, argv
           if argv.include?('--help')
             puts help
             exit
