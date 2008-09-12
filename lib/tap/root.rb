@@ -293,8 +293,7 @@ module Tap
       #   Tap::Root.minimal_match?('dir/file-0.1.0.txt', 'r/file')        # => true
       #
       def minimal_match?(path, mini_path)
-        extname = File.extname(mini_path)
-        extname = '' if extname =~ /^\.\d+$/
+        extname = non_version_extname(mini_path)
         version = mini_path =~ /(-\d+(\.\d+)*)#{extname}$/ ? $1 : ''
    
         match_path = case
@@ -303,10 +302,10 @@ module Tap
           path
         when !version.empty?
           # match up to version
-          path.chomp(File.extname(path))
+          path.chomp(non_version_extname(path))
         else
           # match up base
-          path.chomp(File.extname(path)).sub(/(-\d+(\.\d+)*)$/, '')
+          path.chomp(non_version_extname(path)).sub(/(-\d+(\.\d+)*)$/, '')
         end
         
         # key ends with pattern AND basenames of each are equal... 
@@ -396,6 +395,13 @@ module Tap
         end
         
         just_one
+      end
+      
+      # utility method for minimal_match --  returns a non-version 
+      # extname, or an empty string if the path ends in a version.
+      def non_version_extname(path) # :nodoc:
+        extname = File.extname(path)
+        extname =~ /^\.\d+$/ ? '' : extname
       end
       
     end

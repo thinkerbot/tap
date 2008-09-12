@@ -445,6 +445,13 @@ class RootTest < Test::Unit::TestCase
     assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'b/c-0.1.d')
     assert Tap::Root.minimal_match?('a/b/c-0.1.d', 'a/b/c-0.1.d')
     
+    assert Tap::Root.minimal_match?('a/b/c-0.0.1', 'c')
+    assert Tap::Root.minimal_match?('a/b/c-0.0.1', 'b/c')
+    assert Tap::Root.minimal_match?('a/b/c-0.0.1', 'a/b/c')
+    assert Tap::Root.minimal_match?('a/b/c-0.0.1', 'c-0.0.1')
+    assert Tap::Root.minimal_match?('a/b/c-0.0.1', 'b/c-0.0.1')
+    assert Tap::Root.minimal_match?('a/b/c-0.0.1', 'a/b/c-0.0.1')
+    
     assert !Tap::Root.minimal_match?('a/b/c.d', 'C')
     assert !Tap::Root.minimal_match?('a/b/c.d', 'B/c')
     assert !Tap::Root.minimal_match?('a/b/c.d', 'A/b/c')
