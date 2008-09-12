@@ -249,14 +249,14 @@ module Tap
       
       # Parses the argv into an instance of self and an array of arguments (implicitly
       # to be enqued to the instance and run by app).  Yields a help string to the
-      # block, if given, when the argv indicates 'help'.
+      # block when the argv indicates 'help'.
       #
-      def parse(argv, app=Tap::App.instance, &block) # :yields: help_str
+      def parse(argv=ARGV, app=Tap::App.instance, &block) # :yields: help_str
         parse!(argv.dup, &block)
       end
       
       # Same as parse, but removes switches destructively. 
-      def parse!(argv, app=Tap::App.instance) # :yields: help_str
+      def parse!(argv=ARGV, app=Tap::App.instance) # :yields: help_str
         opts = OptionParser.new
 
         # Add configurations
@@ -278,7 +278,7 @@ module Tap
 
         opts.on_tail("-h", "--help", "Print this help") do
           opts.banner = "#{help}usage: tap run -- #{to_s.underscore} #{args.subject}"
-          yield(opts.to_s) if block_given?
+          yield(opts.to_s)
         end
 
         # Add option for name
@@ -325,6 +325,15 @@ module Tap
         argv = (argv + use_args).collect {|str| str =~ /\A---\s*\n/ ? YAML.load(str) : str }
 
         [obj, argv]
+      end
+      
+      def execute(argv=ARGV)
+        instance, args = parse(ARGV) do |help|
+          puts help
+          exit
+        end
+
+        instance.execute(*args)
       end
 
       def lazydoc(resolve=true)

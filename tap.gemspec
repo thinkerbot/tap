@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "0.10.4"
+  s.version = "0.10.5"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.require_path = "lib"
   s.rubyforge_project = "tap"
   s.bindir = "bin"
-  s.executables = ["tap"]
+  s.executables = ["tap", "rap"]
   s.default_executable = "tap"
   s.has_rdoc = true
   s.rdoc_options << '--title' << 'Tap - Task Application' << '--main' << 'README' 
@@ -35,6 +35,7 @@ Gem::Specification.new do |s|
     doc/Tutorial
     doc/Class\sReference
     doc/Command\sReference
+    bin/rap
     bin/tap
     lib/tap/app.rb
     lib/tap/constants.rb
@@ -55,6 +56,7 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/file_task/templates/task.erb
     lib/tap/generator/generators/file_task/templates/test.erb
     lib/tap/generator/generators/root/root_generator.rb
+    lib/tap/generator/generators/root/templates/README
     lib/tap/generator/generators/root/templates/Rakefile
     lib/tap/generator/generators/root/templates/tapfile
     lib/tap/generator/generators/root/templates/gemspec
@@ -114,6 +116,7 @@ Gem::Specification.new do |s|
     lib/tap/support/versions.rb
     lib/tap/task.rb
     lib/tap/tasks/dump.rb
+    lib/tap/tasks/load.rb
     lib/tap/tasks/rake.rb
     lib/tap/test/env_vars.rb
     lib/tap/test/file_methods.rb
