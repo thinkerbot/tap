@@ -21,20 +21,20 @@ class RunTest < Test::Unit::TestCase
     end
   end
   
- def test_run_manifest_with_tapfile_and_tasks
-   script_test do |cmd|
-      cmd.check "Prints manifest", %Q{
-% #{cmd} run -T
-test_run_manifest_with_tapfile_and_tasks:
-  sample      # sample manifest summary
-  tapfile     # tapfile manifest summary
-tap:
-  dump        # the default dump task
-  load        # the default load task
-  rake        # run rake tasks
-}
-    end
-  end
+#  def test_run_manifest_with_tapfile_and_tasks
+#    script_test do |cmd|
+#       cmd.check "Prints manifest", %Q{
+# % #{cmd} run -T
+# test_run_manifest_with_tapfile_and_tasks:
+#   sample      # sample manifest summary
+#   tapfile     # tapfile manifest summary
+# tap:
+#   dump        # the default dump task
+#   load        # the default load task
+#   rake        # run rake tasks
+# }
+#     end
+#   end
   
   def test_run_help
     script_test do |cmd|
@@ -94,36 +94,36 @@ options:
         --use FILE                   Loads inputs from file
 }
 
-      cmd.check "Prints help for task declarations", %Q{
-% #{cmd} run -- tapfile/declaration --help
-Tapfile::Declaration -- declaration summary
---------------------------------------------------------------------------------
-  extended declaration documentation
---------------------------------------------------------------------------------
-usage: tap run -- tapfile/declaration 
-
-configurations:
-        --key KEY
-
-options:
-    -h, --help                       Print this help
-        --name NAME                  Specify a name
-        --use FILE                   Loads inputs from file
-% #{cmd} run -- tapfile/mixed_input --help
-Tapfile::MixedInput -- mixed input summary
---------------------------------------------------------------------------------
-  extended mixed input documentation
---------------------------------------------------------------------------------
-usage: tap run -- tapfile/mixed_input INPUT INPUTS...
-
-configurations:
-        --key KEY
-
-options:
-    -h, --help                       Print this help
-        --name NAME                  Specify a name
-        --use FILE                   Loads inputs from file
-}
+#       cmd.check "Prints help for task declarations", %Q{
+# % #{cmd} run -- tapfile/declaration --help
+# Tapfile::Declaration -- declaration summary
+# --------------------------------------------------------------------------------
+#   extended declaration documentation
+# --------------------------------------------------------------------------------
+# usage: tap run -- tapfile/declaration 
+# 
+# configurations:
+#         --key KEY
+# 
+# options:
+#     -h, --help                       Print this help
+#         --name NAME                  Specify a name
+#         --use FILE                   Loads inputs from file
+# % #{cmd} run -- tapfile/mixed_input --help
+# Tapfile::MixedInput -- mixed input summary
+# --------------------------------------------------------------------------------
+#   extended mixed input documentation
+# --------------------------------------------------------------------------------
+# usage: tap run -- tapfile/mixed_input INPUT INPUTS...
+# 
+# configurations:
+#         --key KEY
+# 
+# options:
+#     -h, --help                       Print this help
+#         --name NAME                  Specify a name
+#         --use FILE                   Loads inputs from file
+# }
 
       cmd.check "help for unknown task",  %Q{
 % #{cmd} run -- unknown --help

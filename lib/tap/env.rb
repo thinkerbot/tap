@@ -586,21 +586,6 @@ module Tap
       "#<#{self.class}:#{object_id} root='#{root.root}'>"
     end
     
-    def dump
-      dump = {}
-      each do |env|
-        hash = {'mtime' => File.mtime(env.root.root)}
-        @@manifests.keys.each do |key|
-          next if key == :envs
-          hash[key] = env.manifest(key).build.entries 
-        end
-        
-        dump[env.root.root] = hash
-      end
-      
-      dump
-    end
-    
     protected
     
     # Raises an error if self is already active (and hence, configurations

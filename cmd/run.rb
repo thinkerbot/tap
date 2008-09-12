@@ -45,7 +45,7 @@ OptionParser.new do |opts|
 end.parse!(ARGV)
 
 #
-# handle options for each specified task
+# build and run the argv
 #
 
 queues = env.build(ARGV)
@@ -56,48 +56,6 @@ if queues.empty?
   exit
 end
 
-#
-# set signals 
-#
-
-# info signal -- Note: some systems do 
-# not support the INFO signal 
-# (windows, fedora, at least)
-signals = Signal.list.keys
-if signals.include?("INFO")
-  Signal.trap("INFO") do
-    puts app.info
-  end
-end
-
-# interuption signal
-if signals.include?("INT")
-  Signal.trap("INT") do
-    puts " interrupted!"
-    # prompt for decision
-    while true
-      print "stop, terminate, exit, or resume? (s/t/e/r):"
-      case gets.strip
-      when /s(top)?/i 
-        app.stop
-        break
-      when /t(erminate)?/i 
-        app.terminate
-        break
-      when /e(xit)?/i 
-        exit
-      when /r(esume)?/i 
-        break
-      else
-        puts "unexpected response..."
-      end
-    end
-  end
-end
-
-#
-# enque tasks and run!
-#
-
+env.set_signals
 env.run(queues)
 

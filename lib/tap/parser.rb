@@ -378,16 +378,12 @@ module Tap
       segments
     end
     
-    def build(env, app)
+    def build(app)
       # attempt lookup and instantiation of the task classes
       # note that instances is actually an array of [instance, args]
       # pairs, where the instance will be enqued with the args
       instances = tasks.collect do |args|
-        task = args.shift
-
-        const = env.search(:tasks, task) or raise ArgumentError, "unknown task: #{task}"
-        task_class = const.constantize or raise ArgumentError, "unknown task: #{task}"
-        task_class.instantiate(args, app)
+        yield(args)
       end
 
       # build the workflow

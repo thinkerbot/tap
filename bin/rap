@@ -1,14 +1,4 @@
 #!/usr/local/bin/ruby
-# usage: tap <command> {options} [args]
-#
-# examples:
-#   tap generate root .                  # generates a root dir
-#   tap run taskname --option input      # runs the 'taskname' task
-#
-# help:
-#   tap help                             # prints this help
-#   tap command --help                   # prints help for 'command'
-#
 
 require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 
@@ -17,7 +7,14 @@ begin
   
   $DEBUG = true if ARGV.delete('-d-')
   env = Tap::Exe.instantiate
-
+  
+  # add the DEFAULT_TASK_FILE if it exists
+  task_file = File.expand_path('tapfile.rb')
+  if File.exists?(task_file)
+    env.requires.unshift(task_file)
+    env.manifest(:tasks).search_paths << [Dir.pwd, task_file]
+  end
+  
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
@@ -52,22 +49,29 @@ rescue(Exception)
 end 
 
 #
-# run tap
+# run rap
 #
+
+module Tap
+  module Tasks
+    autoload(:Rake, 'tap/tasks/rake')
+  end
+end
 
 begin
   env.activate
-  env.execute(ARGV) do
-    # give some help
-    require 'tap/support/command_line'
-    
-    puts Tap::Support::CommandLine.usage(__FILE__)
-    puts
-    puts "available commands:"
-    puts env.summarize(:commands)
-    puts
-    puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
+  
+  queues = env.build(ARGV) {|args| Tap::Tasks::Rake }
+  ARGV.clear
+
+  if queues.empty?
+    puts "no task specified"
+    exit
   end
+  
+  env.set_signals
+  env.run(queues)
+  
 rescue
   env.handle_error($!)
 end

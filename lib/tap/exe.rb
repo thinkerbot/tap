@@ -21,14 +21,6 @@ module Tap
           [tap.root[:lib], task_path]
         end
         exe.push(tap)
-        
-        # add the DEFAULT_TASK_FILE if it exists
-        task_file = File.expand_path(DEFAULT_TASK_FILE)
-        if File.exists?(task_file)
-          exe.requires.unshift(task_file)
-          exe.manifest(:tasks).search_paths << [Dir.pwd, task_file]
-        end
-        
         exe
       end
       
@@ -44,10 +36,7 @@ module Tap
     
     # The global config file path
     GLOBAL_CONFIG_FILE = File.join(Gem.user_home, ".tap.yml")
-    
-    # The default task file path
-    DEFAULT_TASK_FILE = "tapfile.rb"
-    
+
     # Alias for root (Exe should have a Tap::App as root)
     def app
       root
@@ -85,7 +74,58 @@ module Tap
     end
 
     def build(argv=ARGV)
-      Parser.new(argv).build(self, app)
+      Parser.new(argv).build(app) do |args|
+        task = args.shift
+        const = search(:tasks, task) 
+        
+        task_class = case
+        when const then const.constantize 
+        when block_given?
+          args.unshift(task)
+          yield(args)
+        else nil
+        end
+        
+        task_class or raise ArgumentError, "unknown task: #{task}"
+        task_class.instantiate(args, app)
+      end
+    end
+    
+    def set_signals
+      # info signal -- Note: some systems do 
+      # not support the INFO signal 
+      # (windows, fedora, at least)
+      signals = Signal.list.keys
+      if signals.include?("INFO")
+        Signal.trap("INFO") do
+          puts app.info
+        end
+      end
+
+      # interuption signal
+      if signals.include?("INT")
+        Signal.trap("INT") do
+          puts " interrupted!"
+          # prompt for decision
+          while true
+            print "stop, terminate, exit, or resume? (s/t/e/r):"
+            case gets.strip
+            when /s(top)?/i 
+              app.stop
+              break
+            when /t(erminate)?/i 
+              app.terminate
+              break
+            when /e(xit)?/i 
+              exit
+            when /r(esume)?/i 
+              break
+            else
+              puts "unexpected response..."
+            end
+          end
+        end
+      end
     end
     
     def run(queues)
