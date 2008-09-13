@@ -59,21 +59,57 @@ class FileMethodsTest < Test::Unit::TestCase
     end
   end
 
-  # #
-  # # method_tempfile test
-  # #
-  # 
-  # def test_method_tempfile_returns_new_file_in_output_dir
-  #   output_root = File.join(trs.root, method_name_str, "output")
-  #   
-  #   filepath1 =File.join(output_root, "file#{$$}.0")
-  #   assert_equal filepath1, method_tempfile('file')
-  #   
-  #   filepath2 = File.join(output_root,  "file#{$$}.1")
-  #   assert_equal filepath2, method_tempfile('file')
-  #   
-  #   assert_equal [filepath1, filepath2], method_tempfiles
-  # end
+  #
+  # method_tempfile test
+  #
+  
+  def test_method_tempfile_adds_index_to_path_starting_at_method_tempfiles_length_and_skipping_existing_files
+    make_test_directories
+
+    method_tempfiles << nil
+    FileUtils.touch(method_root.filepath(:output, 'file.2.txt'))
+    
+    filepath1 = method_tempfile('file.txt')
+    assert_equal method_root.filepath(:output, "file.1.txt"), filepath1
+    
+    filepath3 = method_tempfile('file.txt')
+    assert_equal method_root.filepath(:output, "file.3.txt"), filepath3
+
+    assert_equal [nil, filepath1, filepath3], method_tempfiles
+  end
+  
+  def test_method_tempfile_works_for_directory_paths
+    make_test_directories
+
+    method_tempfiles << nil
+    FileUtils.touch(method_root.filepath(:output, 'file.2'))
+    
+    filepath1 = method_tempfile('file')
+    assert_equal method_root.filepath(:output, "file.1"), filepath1
+    
+    filepath3 = method_tempfile('file')
+    assert_equal method_root.filepath(:output, "file.3"), filepath3
+
+    assert_equal [nil, filepath1, filepath3], method_tempfiles
+  end
+  
+  def test_method_tempfile_does_not_create_file_unless_block_is_given
+    make_test_directories
+    output_root = method_root[:output]
+    
+    filepath0 = method_tempfile('file.txt')
+    assert !File.exists?(filepath0)
+    
+    filepath1 = method_tempfile('file.txt') {|file| file << "content" }
+    assert File.exists?(filepath1)
+    assert_equal "content", File.read(filepath1)
+  end
+  
+  def test_method_tempfile_creates_parent_dir_if_it_does_not_exist
+    assert !File.exists?(method_root.filepath(:output, 'dir'))
+    method_tempfile('dir/file.txt')
+    assert File.exists?(method_root.filepath(:output, 'dir'))
+  end
   
   #
   # assert_files

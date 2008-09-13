@@ -88,27 +88,29 @@ module Tap
         method_name.to_s
       end
     
-      # Generates a temporary filepath formatted like "output_dir\filename.pid.n.ext" where n 
-      # is a counter that will be incremented from until a non-existant filepath is achieved.
+      # Generates a temporary filepath formatted like "output_dir\filename.n.ext"
+      # where n is a counter that ensures the filepath is unique and non-existant
+      # (specificaly n is equal to the number of method_tempfiles generated 
+      # by the current test, incremented as necessary to achieve a non-existant
+      # filepath). method_tempfile does not create the filepath unless a block is 
+      # given, in which case an open File will be passed to the block.
       #
       # Notes:
-      # - By default filename is the calling method
-      # - The extension is chomped off the end of the filename
-      # - If the directory for the filepath does not exist, the directory will be created
-      # - Like all files in the output directory, tempfiles will be deleted by the default 
-      #   +teardown+ method
+      # - by default filename is the calling method
+      # - the extension is chomped off the end of the filename
+      # - the directory for the file will be created if it does not exist
+      # - like all files in the output directory, tempfiles will be deleted by
+      #   the default +teardown+ method
       def method_tempfile(filename=method_name_str, &block)
         ext = File.extname(filename)
         basename = filename.chomp(ext)
-        filepath = method_root.filepath(:output, sprintf('%s%d.%d%s', basename, $$, method_tempfiles.length, ext))
-        method_tempfiles << filepath
-      
-        dirname = File.dirname(filepath)
+        path = next_indexed_path(method_root.filepath(:output, basename), method_tempfiles.length, ext)
+        dirname = File.dirname(path)
+        
+        method_tempfiles << path
         FileUtils.mkdir_p(dirname) unless File.exists?(dirname)
-        if block_given?
-          File.open(filepath, "w", &block)
-        end
-        filepath
+        File.open(path, "w", &block) if block_given?
+        path
       end
       
       # assert_files runs a file-based test that feeds all files from input_dir
@@ -322,6 +324,14 @@ module Tap
         }
       end
       
+      private
+      
+      # utility method for method_tempfile; increments index until the
+      # path base.indexext does not exist.
+      def next_indexed_path(base, index, ext) # :nodoc:
+        path = sprintf('%s.%d%s', base, index, ext)
+        File.exists?(path) ? next_indexed_path(base, index + 1, ext) : path
+      end
     end
   end
 end
