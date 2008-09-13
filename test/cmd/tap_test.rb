@@ -102,8 +102,8 @@ after line two
   #     cmd.command_path = %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
   # 
   #     cmd.check " generate task goodnight", "Generates a task" do |result|
-  #       assert File.exists?(method_filepath(:output, 'lib/goodnight.rb'))
-  #       assert File.exists?(method_filepath(:output, 'test/goodnight_test.rb'))
+  #       assert File.exists?(method_root.filepath(:output, 'lib/goodnight.rb'))
+  #       assert File.exists?(method_root.filepath(:output, 'test/goodnight_test.rb'))
   #     end
   # 
   #     cmd.check " run -- goodnight moon --message hello", "Run the task", /hello moon/

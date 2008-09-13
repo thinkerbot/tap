@@ -6,18 +6,17 @@ class FileMethodsDocTest < Test::Unit::TestCase
   acts_as_file_test
 
   def test_something
-    dir = File.expand_path( File.dirname(__FILE__) )
-    assert_equal dir + "/file_methods_doc", trs.root
-    assert_equal dir + "/file_methods_doc/test_something", method_root
-    assert_equal dir + "/file_methods_doc/test_something/input", method_dir(:input)  
+    assert_equal File.expand_path(__FILE__.chomp('_test.rb')), self.class.test_root.root
+    assert_equal File.expand_path(__FILE__.chomp('_test.rb') + "/test_something"), method_root.root
+    assert_equal File.expand_path(__FILE__.chomp('_test.rb') + "/test_something/input"), method_root[:input]
   end
   
   def test_sub
     assert_files do |input_files|
       input_files.collect do |filepath|
         input = File.read(filepath)
-        output_file = method_filepath(:output, File.basename(filepath))
-
+        output_file = method_root.filepath(:output, File.basename(filepath))
+  
         File.open(output_file, "w") do |f|
           f << input.gsub(/input/, "output")
         end 

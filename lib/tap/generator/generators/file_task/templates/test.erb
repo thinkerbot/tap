@@ -17,7 +17,7 @@ class <%= const.name %>Test < Test::Unit::TestCase
     t = <%= const.name %>.new 
     assert_files do |input_files|
       input_files.each do |source|
-        target = method_filepath(:output, 'result.yml') 
+        target = method_root.filepath(:output, 'result.yml') 
         t.enq(source, target)
       end
     

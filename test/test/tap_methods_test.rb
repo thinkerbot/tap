@@ -296,7 +296,7 @@ class TapMethodsTest < Test::Unit::TestCase
         was_in_block = true
         
         input_files.collect do |input_file|
-          output_file = method_filepath(:output, File.basename(input_file))
+          output_file = method_root.filepath(:output, File.basename(input_file))
           t.execute(input_file, output_file)
         end
       end

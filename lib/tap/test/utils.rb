@@ -173,7 +173,7 @@ module Tap
           yield(a[index], b[index], index)
         end
       end
-      
+
       # Attempts to remove the specified directory.  The root 
       # will not be removed if the directory does not exist, or
       # is not empty.  

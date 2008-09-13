@@ -618,9 +618,9 @@ a (0)
   end
   
   def test_activate_requires_requires_after_setting_load_paths
-    e.load_paths = [method_dir(:lib)]
+    e.load_paths = [method_root[:lib]]
     
-    a = method_filepath('require_a')
+    a = method_root.filepath('require_a')
     b = 'require_b'
     e.requires = [a,b]
     

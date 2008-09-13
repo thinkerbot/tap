@@ -4,132 +4,83 @@ require 'tap/test/file_methods'
 class FileMethodsTest < Test::Unit::TestCase
   include Tap::Test::FileMethods
   
-  self.trs = Tap::Root.new(
+  self.test_root = Tap::Root.new(
     __FILE__.chomp("_test.rb"), 
     {:input => 'input', :output => 'output', :expected => 'expected'})
-
-  def test_method_name_returns_test_method_name1
-    assert_equal "test_method_name_returns_test_method_name1", method_name_str  
+  
+  #
+  # method_name_str test
+  #
+  
+  def test_method_name_str_returns_test_method_name1
+    assert_equal "test_method_name_str_returns_test_method_name1", method_name_str  
   end
   
-  def test_method_name_returns_test_method_name2
-    assert_equal "test_method_name_returns_test_method_name2", method_name_str  
+  def test_method_name_str_returns_test_method_name2
+    assert_equal "test_method_name_str_returns_test_method_name2", method_name_str  
   end
+  
+  #
+  # method_root test
+  #
+  
+  def test_method_root_is_a_duplicate_of_test_root_reconfigured_to_method_name_dir
+    assert method_root.kind_of?(Tap::Root)
+    
+    test_root_config = ctr.config.to_hash
+    test_root_config[:root] = ctr[method_name_str]
+    assert_equal test_root_config, method_root.config.to_hash
+  end
+  
+  #
+  # make_test_directories test
+  #
   
   def test_make_test_directories 
-    root = File.expand_path( __FILE__.chomp("_test.rb") )
+    root = File.expand_path( __FILE__.chomp("_test.rb")  + "/test_make_test_directories")
     begin
-      assert_equal root, trs[:root]
+      assert_equal root, method_root[:root]
       assert_equal({
           :input => 'input', 
           :output => 'output', 
-          :expected => 'expected'}, trs.directories)
+          :expected => 'expected'}, method_root.directories)
       
-      trs.directories.values.each do |dir|
-        assert !File.exists?(File.join(root, "test_make_test_directories", dir.to_s)), dir
+      method_root.directories.values.each do |dir|
+        assert !File.exists?(method_root[dir]), dir
       end
       
       make_test_directories
    
-      trs.directories.values.each do |dir|
-        assert File.exists?(File.join(root, "test_make_test_directories", dir.to_s)), dir
+      method_root.directories.values.each do |dir|
+        assert File.exists?(method_root[dir]), dir
       end
     ensure
-      dir =  File.join(File.join(root, "test_make_test_directories"))
-      FileUtils.rm_r dir if File.exists?(dir)
+      FileUtils.rm_r root if File.exists?(root)
     end
   end
 
-  #
-  # method filepath tests
-  #
-
-  def test_method_dir_adds_method_to_path  
-    assert_equal File.join(trs.root, method_name_str, "input"), method_dir(:input)
-  end
-  
-  def test_method_filepath_adds_method_to_path
-    input_root = File.join(trs.root, method_name_str, "input")
-    assert_equal File.join(input_root, "file.txt"), method_filepath(:input, 'file.txt')
-    assert_equal File.join(input_root, "folder/file.txt"), method_filepath(:input, 'folder', 'file.txt')
-  end
-
-  #
-  # method relative filepath tests
-  #
-
-  def test_method_relative_filepath_removes_method_dir  
-    input_root = File.join(trs.root, method_name_str, "input")
-    assert_equal 'file.txt', method_relative_filepath(:input,  File.join(input_root, "file.txt"))
-    assert_equal 'folder/file.txt', method_relative_filepath(:input, File.join(input_root, "folder/file.txt"))
-  end
-
-  def test_method_relative_filepath_expands_filepaths
-    input_root = File.join(trs.root, method_name_str, "input")
-    assert_equal 'file.txt', method_relative_filepath(:input, File.join(input_root, "folder/.././file.txt") )
-  end
-  
-  def test_method_relative_filepath_returns_nil_unless_filepath_begins_with_method_dir
-    assert_nil method_relative_filepath(:input, File.join('some/path', trs[:input], 'file.txt') )
-  end
-  
-  def test_method_relative_filepath_returns_empty_string_if_filepath_is_method_dir
-    assert_equal '', method_relative_filepath(:input, method_dir(:input) )
-  end
-  
-  
-  #
-  # method translate tests
-  #
-  
-  def test_method_translate
-    ['file.txt', 'folder/file.txt'].each do |path|
-      filepath = File.join(trs.root, method_name_str, "input", path)
-      expected = File.join(trs.root, method_name_str, "output", path)
-    
-      assert_equal expected, method_translate(filepath, :input, :output)
-    end
-  end  
-  
-  #
-  # method glob tests
-  #
-  
-  def test_method_glob
-    {
-      [:expected] => ["file.yml", "file_1.txt", "file_2.txt"],
-      [:expected, "*"] => ["file.yml", "file_1.txt", "file_2.txt"],
-      [:expected, "*.txt"] => ["file_1.txt", "file_2.txt"],
-      [:expected, "*.txt", "*.yml"] => ["file.yml", "file_1.txt", "file_2.txt"]
-    }.each_pair do |testcase, expected|
-      expected.collect! { |file| method_filepath(:expected, file) }
-      
-      assert_equal expected.sort, method_glob(*testcase).sort
-    end
-  end  
-  
-  #
-  # method_tempfile test
-  #
-  
-  def test_method_tempfile_returns_new_file_in_output_dir
-    output_root = File.join(trs.root, method_name_str, "output")
-    
-    filepath1 =File.join(output_root, "file#{$$}.0")
-    assert_equal filepath1, method_tempfile('file')
-    
-    filepath2 = File.join(output_root,  "file#{$$}.1")
-    assert_equal filepath2, method_tempfile('file')
-    
-    assert_equal [filepath1, filepath2], method_tempfiles
-  end
+  # #
+  # # method_tempfile test
+  # #
+  # 
+  # def test_method_tempfile_returns_new_file_in_output_dir
+  #   output_root = File.join(trs.root, method_name_str, "output")
+  #   
+  #   filepath1 =File.join(output_root, "file#{$$}.0")
+  #   assert_equal filepath1, method_tempfile('file')
+  #   
+  #   filepath2 = File.join(output_root,  "file#{$$}.1")
+  #   assert_equal filepath2, method_tempfile('file')
+  #   
+  #   assert_equal [filepath1, filepath2], method_tempfiles
+  # end
   
   #
   # assert_files
   #
   
   def setup_file(dir, path, content)
-    path = method_filepath(dir, path)
+    path = method_root.filepath(dir, path)
     dir = File.dirname(path)
     FileUtils.mkdir_p(dir) unless File.exists?(dir)
     
@@ -145,7 +96,7 @@ class FileMethodsTest < Test::Unit::TestCase
     
     assert_files do |input_files|
       input_files.collect do |input_file|
-        target = method_filepath(:output, File.basename(input_file))
+        target = method_root.filepath(:output, File.basename(input_file))
         File.open(target, "w") do |file|
           file << "processed "
           file << File.read(input_file)
@@ -164,7 +115,7 @@ class FileMethodsTest < Test::Unit::TestCase
     begin
       assert_files do |input_files|
         input_files.collect do |input_file|
-          target = method_filepath(:output, File.basename(input_file))
+          target = method_root.filepath(:output, File.basename(input_file))
           File.open(target, "w") do |file|
             file << "processed "
             file << File.read(input_file)
@@ -189,7 +140,7 @@ class FileMethodsTest < Test::Unit::TestCase
     begin
       assert_files do |input_files|
         input_files.collect do |input_file|
-          target = method_filepath(:output, File.basename(input_file))
+          target = method_root.filepath(:output, File.basename(input_file))
           File.open(target, "w") do |file|
             file << "processed "
             file << File.read(input_file)
@@ -214,7 +165,7 @@ class FileMethodsTest < Test::Unit::TestCase
     begin
       assert_files do |input_files|
         input_files.collect do |input_file|
-          target = method_filepath(:output, File.basename(input_file))
+          target = method_root.filepath(:output, File.basename(input_file))
           File.open(target, "w") do |file|
             file << "processed "
             file << File.read(input_file)
@@ -258,7 +209,7 @@ class FileMethodsTest < Test::Unit::TestCase
       was_in_block = true
       []
     end
-
+  
     assert was_in_block
   end
   
@@ -270,9 +221,9 @@ class FileMethodsTest < Test::Unit::TestCase
     setup_file :expected, "one.txt", "processed file one"
     setup_file :expected, "two.txt", "processed file two"
     
-    assert_files :reference_dir => method_dir(:ref) do |input_files|
+    assert_files :reference_dir => method_root[:ref] do |input_files|
       input_files.collect do |input_file|
-        target = method_filepath(:output, File.basename(input_file))
+        target = method_root.filepath(:output, File.basename(input_file))
         File.open(target, "w") do |file|
           file << "processed "
           file << File.read(input_file)
@@ -287,11 +238,11 @@ class FileTestTestWithOptions < Test::Unit::TestCase
   acts_as_file_test :root => "some/root/dir"
   
   def test_test_setup
-    assert_equal File.expand_path("some/root/dir"), trs[:root]
+    assert_equal File.expand_path("some/root/dir"), ctr[:root]
     assert_equal({
         :input => 'input', 
         :output => 'output', 
-        :expected => 'expected'}, trs.directories)
+        :expected => 'expected'}, ctr.directories)
   end
 end
 

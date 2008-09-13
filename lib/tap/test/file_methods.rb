@@ -6,88 +6,26 @@ module Tap
   module Test  
     
 
-    # FileMethods sets up a TestCase with methods for accessing and utilizing
-    # test-specific files and directories.  Each class that acts_as_file_test
-    # is set up with a Tap::Root structure (trs) that mediates the creation of 
-    # test method filepaths. 
+    # FileMethods facilitates access and utilization of test-specific files and
+    # directories.  Each test method is setup with a method_root (a Tap::Root)
+    # specific for the test; the method_root is a duplicate of the class 
+    # test_root, reconfigured with method_root.root = test_root[method_name].
+    # The acts_as_file_test sets up test_root to point at a directory based
+    # on the test file.
     #
+    #   [file_methods_doc_test.rb]
     #   class FileMethodsDocTest < Test::Unit::TestCase
     #     acts_as_file_test
     # 
     #     def test_something
-    #                           #    dir = File.expand_path( File.dirname(__FILE__) )
-    #       trs.root            # => dir + "/file_methods_doc", 
-    #       method_root         # => dir + "/file_methods_doc/test_something", 
-    #       method_dir(:input)  # => dir + "/file_methods_doc/test_something/input"
+    #       self.class.test_root.root     # => File.expand_path(__FILE__.chomp('_test.rb'))
+    #       method_root.root              # => File.expand_path(__FILE__.chomp('_test.rb') + "/test_something")
+    #       method_root[:input]           # => File.expand_path(__FILE__.chomp('_test.rb') + "/test_something/input")
     #     end
     #   end
     #
-    # === assert_files
-    #
-    # FileMethods is specifically designed for tests that transform a set of input 
-    # files into output files.  For this type of test, input and expected files can
-    # placed into their respective directories then used within the context of
-    # assert_files to ensure the output files are equal to the expected files.
-    # 
-    # For example, lets define a test that transforms input files into output files
-    # in a trivial way, simply by replacing 'input' with 'output' in the file.
-    #
-    #   class FileMethodsDocTest < Test::Unit::TestCase
-    #     acts_as_file_test
-    # 
-    #     def test_sub
-    #       assert_files do |input_files|
-    #         input_files.collect do |filepath|
-    #           input = File.read(filepath)
-    #           output_file = method_filepath(:output, File.basename(filepath))
-    #
-    #           File.open(output_file, "w") do |f|
-    #             f << input.gsub(/input/, "output")
-    #           end 
-    #
-    #           output_file
-    #         end
-    #       end
-    #     end
-    #   end
-    #
-    # Now say you had some input and expected files for the 'test_sub' method:
-    #
-    #   [file_methods_doc/test_sub/input/one.txt]
-    #   test input 1
-    #
-    #   [file_methods_doc/test_sub/input/two.txt]
-    #   test input 2
-    #
-    #   [file_methods_doc/test_sub/expected/one.txt]
-    #   test output 1
-    #
-    #   [file_methods_doc/test_sub/expected/two.txt]
-    #   test output 2
-    #
-    # When you run the FileMethodsDocTest test, the test_sub test will pass
-    # the input files to the assert_files block.  Then assert_files compares
-    # the returned filepaths with the expected files translated from the 
-    # expected directory to the output directory.  In this case, the files 
-    # are equal and the test passes.
-    #
-    # The test fails if the returned files aren't equal to the expected files,
-    # either because there are missing or extra files, or if the file contents
-    # are different. 
-    #
-    # When the test completes, the teardown method cleans up the output directory.  
-    # For ease in debugging, ENV variable flags can be specified to keep all 
-    # output files (KEEP_OUTPUTS) or to keep the output files for just the tests 
-    # that fail (KEEP_FAILURES).  These flags can be specified from the command 
-    # line if you're running the tests with rake or tap:
-    #
-    #   % rake test keep_outputs=true
-    #   % tap run test keep_failures=true
-    #
-    #
-    # === Class Methods
-    # 
-    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] for documentation of the class methods added by FileMethods.
+    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] and
+    # FileMethodsClass for more information.
     module FileMethods
       include Tap::Test::EnvVars
       
@@ -96,104 +34,58 @@ module Tap
         base.extend FileMethodsClass
       end
       
-      # Convenience accessor for the test root structure
-      def trs
-        self.class.trs
+      # Convenience method to access the class test_root.
+      def ctr
+        self.class.test_root
       end
-    
-      # Creates the trs.directories, specific to the method calling make_test_directories
+      
+      # Creates the method_root.directories.
       def make_test_directories
-        trs.directories.values.each do |dir| 
-          FileUtils.mkdir_p( File.join(trs.root, method_name_str, dir) )
+        method_root.directories.values.each do |dir| 
+          FileUtils.mkdir_p( method_root[dir] )
         end
       end
       
       attr_reader :method_tempfiles
       
-      # Setup deletes the the output directory if it exists, and tries to remove the
-      # method root directory so the directory structure is reset before running the
-      # test, even if outputs were left over from previous tests.
+      attr_reader :method_root
+      
+      # Sets up the method_root as a duplicate of test_root, reconfigured to 
+      # class.test_root[method_name_str].  Also deletes the the method_root[:output]
+      # directory in the event that it was left over from a previous tests.
       def setup
         super
+        @method_root = ctr.dup.reconfigure(:root => ctr[method_name_str])
         @method_tempfiles = []
-        clear_method_dir(:output)
-        Utils.try_remove_dir(method_root)
+        
+        Utils.try_remove_dir(method_root[:output])
+        Utils.try_remove_dir(method_root.root)
       end
     
-      # Teardown deletes the the output directories unless flagged otherwise.  Note 
-      # that teardown also checks the environment variables for flags.  To keep all outputs 
-      # (or failures) for all tests, flag keep outputs from the command line like:
+      # teardown deletes the the method_root[:output] directory unless flagged
+      # otherwise by an ENV variable. To keep all outputs (or failures) for all 
+      # tests, set the ENV variables from the command line like:
       #
-      #   % tap run test KEEP_OUTPUTS=true
-      #   % tap run test KEEP_FAILURES=true
+      #   % rap test KEEP_OUTPUTS=true
+      #   % rap test KEEP_FAILURES=true
+      #
       def teardown     
         # clear out the output folder if it exists, unless flagged otherwise
         unless env("KEEP_OUTPUTS") || (!@test_passed && env("KEEP_FAILURES"))
           begin
-             clear_method_dir(:output) 
+             Utils.try_remove_dir(method_root[:output])
           rescue
             raise("teardown failure: could not remove output files")
           end
         end
         
-        Utils.try_remove_dir(method_root)
-        Utils.try_remove_dir(trs.root)
+        Utils.try_remove_dir(method_root.root)
+        Utils.try_remove_dir(self.class.test_root.root)
       end 
       
       # Returns method_name as a string (Ruby 1.9 symbolizes method_name)
       def method_name_str
         method_name.to_s
-      end
-
-      # The method_root directory is defined as trs.filepath(method_name)
-      def method_root(method=method_name_str)
-        trs.filepath(method)
-      end
-
-      # The method directory is defined as 'dir/method', where method is the calling method
-      # by default.  method_dir returns the method directory if it exists, otherwise it returns
-      # trs[dir].
-      def method_dir(dir, method=method_name_str)
-        File.join(method_root(method), trs.directories[dir] || dir.to_s)
-      end
-    
-      # Returns a glob of files matching the input pattern, underneath the method directory
-      # if it exists, otherwise the <tt>trs[dir]</tt> directory.
-      def method_glob(dir, *patterns)
-        dir = trs.relative_filepath(:root, method_dir(dir))
-        trs.glob(dir, *patterns) 
-      end
-    
-      # Returns a filepath constructed from the method directory if it exists, 
-      # otherwise the filepath will be constructed from <tt>trs[dir]</tt>. 
-      def method_filepath(dir, *filenames)
-        File.join(method_dir(dir), *filenames)
-      end
-    
-      # Removes the method directory from the input filepath, returning the resuting filename.
-      # If the method directory does not exist, <tt>trs[dir]</tt> will be removed.
-      def method_relative_filepath(dir, filepath)
-        dir = trs.relative_filepath(:root, method_dir(dir))
-        trs.relative_filepath(dir, filepath)
-      end
-    
-      # Returns an output file corresponding to the input file, translated from the
-      # input directory to the output directory.  
-      #
-      # If the input method directory exists, it will be removed from the filepath.  
-      # If the output method directory exists, it will be inserted in the filepath.  
-      def method_translate(filepath, input_dir, output_dir)
-        input_dir = trs.relative_filepath(:root, method_dir(input_dir))
-        output_dir = trs.relative_filepath(:root, method_dir(output_dir))
-        trs.translate(filepath, input_dir, output_dir)
-      end
-      
-      # Attempts to recursively remove the specified method directory and all 
-      # files within it.  Raises an error if the removal does not succeed.
-      def clear_method_dir(dir)
-        # clear out the folder if it exists
-        dir_path = method_dir(dir, method_name_str)
-        FileUtils.rm_r(dir_path) if File.exists?(dir_path)
       end
     
       # Generates a temporary filepath formatted like "output_dir\filename.pid.n.ext" where n 
@@ -208,7 +100,7 @@ module Tap
       def method_tempfile(filename=method_name_str, &block)
         ext = File.extname(filename)
         basename = filename.chomp(ext)
-        filepath = method_filepath(:output, sprintf('%s%d.%d%s', basename, $$, method_tempfiles.length, ext))
+        filepath = method_root.filepath(:output, sprintf('%s%d.%d%s', basename, $$, method_tempfiles.length, ext))
         method_tempfiles << filepath
       
         dirname = File.dirname(filepath)
@@ -225,14 +117,73 @@ module Tap
       # the block are used in the comparison; additional files in the output directory 
       # are effectively ignored.
       #
+      # === Example
+      # Lets define a test that transforms input files into output files in a trivial 
+      # way, simply by replacing 'input' with 'output' in the file.
+      #
+      #   class FileMethodsDocTest < Test::Unit::TestCase
+      #     acts_as_file_test
+      # 
+      #     def test_sub
+      #       assert_files do |input_files|
+      #         input_files.collect do |filepath|
+      #           input = File.read(filepath)
+      #           output_file = method_root.filepath(:output, File.basename(filepath))
+      #
+      #           File.open(output_file, "w") do |f|
+      #             f << input.gsub(/input/, "output")
+      #           end 
+      #
+      #           output_file
+      #         end
+      #       end
+      #     end
+      #   end
+      #
+      # Now say you had some input and expected files for the 'test_sub' method:
+      #
+      #   file_methods_doc/test_sub
+      #   |- expected
+      #   |   |- one.txt
+      #   |   `- two.txt
+      #   `- input
+      #       |- one.txt
+      #       `- two.txt
+      # 
+      #   [input/one.txt]
+      #   test input 1
+      #
+      #   [input/two.txt]
+      #   test input 2
+      #
+      #   [expected/one.txt]
+      #   test output 1
+      #
+      #   [expected/two.txt]
+      #   test output 2
+      #
+      # When you run the test, the assert_files passes the input files to the 
+      # block.  When the block completes, assert_files compares the output files
+      # returned by the block with the files in the expected directory.  In this 
+      # case, the files are equal and the test passes.
+      #
+      # Say you changed the content of one of the expected files:
+      #
+      #   [expected/one.txt]
+      #   test flunk 1
+      #
+      # Now the test fails because the output files aren't equal to the expected
+      # files.  The test will also fail if there are missing or extra files. 
+      #
+      # === Options
       # A variety of options can be specified to adjust the behavior:
       # 
       #   :input_dir                      specify the directory to glob for input files
-      #                                     (default method_dir(:input))
+      #                                     (default method_root[:input])
       #   :output_dir                     specify the output directory
-      #                                     (default method_dir(:output))
+      #                                     (default method_root[:output])
       #   :expected_dir                   specify the directory to glob for expected files
-      #                                     (default method_dir(:expected))
+      #                                     (default method_root[:expected])
       #   :input_files                    directly specify the input files to pass to the block
       #   :expected_files                 directly specify the expected files used for comparison
       #   :include_input_directories      specifies directories to be included in the 
@@ -242,14 +193,13 @@ module Tap
       #                                     dirs are excluded, note that naturally only files 
       #                                     have their actual content compared)  
       #                  
-      # Option keys should be symbols.  assert_files will fail if :expected_files was 
-      # not specified in the options and no files were found in method_dir(:expected).  
-      # This tries to prevent silent false-positive results when you forget to put 
-      # expected files in their place.
+      # assert_files will fail if :expected_files was not specified in the options 
+      # and no files were found in :expected_dir.  This check tries to prevent silent
+      # false-positive results when you forget to put expected files in their place.
       #
       # === File References
       # Sometimes the same files will get used across multiple tests.  To prevent
-      # duplication, and allow separate management of test files, file references
+      # duplication and allow separate management of test files, file references
       # can be provided in place of test files.  For instance, with a test
       # directory like:
       #
@@ -267,19 +217,29 @@ module Tap
       # The input and expected files (all references in this case) can be dereferenced 
       # to the 'ref' filepaths like so:
       #
-      #   assert_files :reference_dir => method_dir(:ref) do |input_files|
+      #   assert_files :reference_dir => method_root[:ref] do |input_files|
       #     input_files # => ['method_root/ref/one.txt', 'method_root/ref/two.txt']
       #
       #     input_files.collect do |input_file|
-      #       output_file = method_filepath(:output, File.basename(input_file)
+      #       output_file = method_root.filepath(:output, File.basename(input_file)
       #       FileUtils.cp(input_file, output_file)
       #       output_file
       #     end
       #   end
       #
       # Dereferencing occurs relative to the input_dir/expected_dir configurations; a
-      # reference_dir must be specified for dereferencing to occur (see dereference
-      # for more details).
+      # reference_dir must be specified for dereferencing to occur (see 
+      # Tap::Test::Utils.dereference for more details).
+      #
+      # === Keeping Outputs
+      # By default FileMethods sets teardown to cleans up the output directory. For 
+      # ease in debugging, ENV variable flags can be specified to keep all output 
+      # files (KEEP_OUTPUTS) or to keep the output files for just the tests that fail 
+      # (KEEP_FAILURES).  These flags can be specified from the command line if you're
+      # running the tests with rake or rap:
+      #
+      #   % rake test keep_outputs=true
+      #   % rap test keep_failures=true
       #
       #--
       # TODO:
@@ -348,9 +308,9 @@ module Tap
       # The default assert_files options
       def default_assert_files_options
         {
-          :input_dir => method_dir(:input),
-          :output_dir => method_dir(:output),
-          :expected_dir => method_dir(:expected),
+          :input_dir => method_root[:input],
+          :output_dir => method_root[:output],
+          :expected_dir => method_root[:expected],
           
           :input_files => nil,
           :expected_files => nil,

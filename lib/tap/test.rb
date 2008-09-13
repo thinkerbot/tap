@@ -4,19 +4,11 @@ $:.unshift File.expand_path("#{File.dirname(__FILE__)}/..")
 module Test # :nodoc:
   module Unit # :nodoc:
     
-    # Methods extending TestCase.  
-    #
-    # === Method Availability
-    # Note that these methods are added piecemeal by Tap::Test::SubsetMethods, 
-    # Tap::Test::FileMethods and Tap::Test::TapMethods, but that fact doesn't 
-    # come through in the documentation.  Hence, not all of them will be available 
-    # if you're only using SubsetMethods or FileMethods.  Breaks down like this:
-    #
-    #   Using:           Methods Available:
-    #   TapMethods       all
-    #   FileMethods      all, except acts_as_tap_test
-    #   SubsetMethods    all, except acts_as_tap_test, acts_as_file_test, file_test_root
-    #
+    # Methods extending TestCase. For more information see:
+    # - Tap::Test::SubsetMethods
+    # - Tap::Test::FileMethods
+    # - Tap::Test::TapMethods
+    #   
     #--
     #See the TestTutorial for more information.
     class TestCase
@@ -27,11 +19,12 @@ module Test # :nodoc:
           child.instance_variable_set(:@run_test_suite, true)
         end
         
-        #
-        # Methods for skipping a test suite
-        #
-        
+        # Indicates when the test suite should be run or skipped.
         attr_accessor :run_test_suite
+        
+        # An array of messages printed when a test is skipped
+        # by setting run_test_suite to false.
+        attr_reader :skip_messages
 
         # Causes a test suite to be skipped.  If a message is given, it will
         # print and notify the user the test suite has been skipped.
@@ -40,39 +33,47 @@ module Test # :nodoc:
 
           # experimental -- perhaps use this so that a test can be skipped
           # for multiple reasons?
-          @skip_messages << msg
+          skip_messages << msg
         end
 
         alias :original_suite :suite
 
-        # Modifies the default suite method to include/exclude tests based on platform.
+        # Modifies the default suite method to skip the suit unless
+        # run_test_suite is true.  If the test is skipped, the skip_messages 
+        # will be printed along with the default 'Skipping <Test>' message.
         def suite # :nodoc:
           if run_test_suite
             original_suite
           else
-            skip_message = @skip_messages.compact.join(', ')
+            skip_message = skip_messages.compact.join(', ')
             puts "Skipping #{name}#{skip_message.empty? ? '' : ': ' + skip_message}"
+            
+            # return an empty test suite of the appropriate name
             Test::Unit::TestSuite.new(name)
           end
         end
         
-        # Causes a TestCase to act as a file test, by instantiating a class Tap::Root 
-        # (trs), and including FileMethods.  The root and directories used to 
-        # instantiate trs can be specified as options.  By default file_test_root
-        # and the directories {:input => 'input', :output => 'output', :expected => 'expected'} 
-        # will be used.
+        # Causes a TestCase to act as a file test, by including FileMethods and
+        # instantiating test_root (a Tap::Root used to determine a variety of
+        # test filepaths).  The root and directories used by test_root may be 
+        # specified as options.  
         #
-        # Note: file_test_root determines a root directory <em>based on the calling file</em>.  
-        # Be sure to specify the root directory explicitly if you call acts_as_file_test
-        # from a file that is NOT meant to be test file.
+        # Note: by default acts_as_file_test determines a root directory 
+        # <em>based on the calling file</em>.  Be sure to specify the root 
+        # directory manually if you call acts_as_file_test from a file that 
+        # isn't the test file.
         def acts_as_file_test(options={})
           include Tap::Test::FileMethods
           
           options = {
-            :root => file_test_root,
-            :directories => {:input => 'input', :output => 'output', :expected => 'expected'}
+            :root => test_root_dir,
+            :directories => {
+              :input => 'input',
+              :output => 'output',
+              :expected => 'expected'}
           }.merge(options)
-          self.trs = Tap::Root.new(options[:root], options[:directories])
+          
+          self.test_root = Tap::Root.new(options[:root], options[:directories])
         end
 
         # Causes a unit test to act as a tap test -- resulting in the following:
@@ -80,23 +81,39 @@ module Test # :nodoc:
         # - inclusion of Tap::Test::SubsetMethods
         # - inclusion of Tap::Test::InstanceMethods 
         #
-        # Note:  Unless otherwise specified, <tt>acts_as_tap_test</tt> infers a root directory
-        # based on the calling file. Be sure to specify the root directory explicitly 
-        # if you call acts_as_file_test from a file that is NOT meant to be test file.
+        # Note: by default acts_as_tap_test determines a root directory 
+        # <em>based on the calling file</em>.  Be sure to specify the root 
+        # directory manually if you call acts_as_file_test from a file that 
+        # isn't the test file.
         def acts_as_tap_test(options={})
           include Tap::Test::SubsetMethods
           include Tap::Test::FileMethods
           include Tap::Test::TapMethods
           
-          acts_as_file_test({:root => file_test_root}.merge(options))
+          acts_as_file_test({:root => test_root_dir}.merge(options))
         end
 
         def acts_as_script_test(options={})
           include Tap::Test::FileMethods
           include Tap::Test::ScriptMethods
           
-          acts_as_file_test({:root => file_test_root}.merge(options))
+          acts_as_file_test({:root => test_root_dir}.merge(options))
         end
+        
+        private
+        
+        # Infers the test root directory from the calling file.
+        #   'some_class.rb' => 'some_class'
+        #   'some_class_test.rb' => 'some_class'
+        def test_root_dir # :nodoc:
+          # caller[1] is considered the calling file (which should be the test case)
+          # note that the output of calller.first is like:
+          #   ./path/to/file.rb:10
+          #   ./path/to/file.rb:10:in 'method'
+          calling_file = caller[1].gsub(/:\d+(:in .*)?$/, "")
+          calling_file.chomp(File.extname(calling_file)).chomp("_test") 
+        end
+         
       end
     end
   end

@@ -162,11 +162,7 @@ module Tap
 
       # The configurations used to initialize self.app
       def app_config
-        { :root => method_root, 
-          :directories => trs.directories,
-          :absolute_paths => trs.absolute_paths,
-          :quiet => true, 
-          :debug => true}
+        method_root.config.to_hash.merge(:quiet => true, :debug => true)
       end
       
       # Reconfigures app with the input configurations for the 

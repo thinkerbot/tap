@@ -3,7 +3,7 @@ require 'tap/spec/file_methods'
 describe Tap::Spec::FileMethods do
   include Tap::Spec::FileMethods
   
-  self.trs = Tap::Root.new(
+  self.test_root = Tap::Root.new(
     __FILE__.chomp("_spec.rb"), 
     {:input => 'input', :output => 'output', :expected => 'expected'})
     
@@ -23,16 +23,16 @@ describe Tap::Spec::FileMethods do
         root = File.expand_path(__FILE__.chomp("_spec.rb"))
         
         check root.should == trs[:root]
-        check trs.directories.should == {:input => 'input', :output => 'output', :expected => 'expected'}
+        check ctr.directories.should == {:input => 'input', :output => 'output', :expected => 'expected'}
 
-        trs.directories.values.each do |dir|
+        ctr.directories.values.each do |dir|
           dir_path = File.join(root, "should_make_trs_directories", dir.to_s)
           File.exists?(dir_path).should be_false
         end
 
         make_test_directories
 
-        trs.directories.values.each do |dir|
+        ctr.directories.values.each do |dir|
           dir_path = File.join(root, "should_make_trs_directories", dir.to_s)
           File.exists?(dir_path).should be_true
         end
@@ -47,7 +47,7 @@ describe Tap::Spec::FileMethods do
     it "should compare transformed inputs to expected" do
       assert_files do |input_files|
         input_files.collect do |input_file|
-          target = method_filepath(:output, File.basename(input_file))
+          target = method_root.filepath(:output, File.basename(input_file))
           File.open(target, "w") do |file|
             file << "processed "
             file << File.read(input_file)
@@ -62,7 +62,7 @@ describe Tap::Spec::FileMethods do
       begin
         assert_files do |input_files|
           input_files.collect do |input_file|
-            target = method_filepath(:output, File.basename(input_file))
+            target = method_root.filepath(:output, File.basename(input_file))
             File.open(target, "w") do |file|
               file << "processed "
               file << File.read(input_file)
@@ -82,7 +82,7 @@ describe Tap::Spec::FileMethods do
       begin
         assert_files do |input_files|
           input_files.collect do |input_file|
-            target = method_filepath(:output, File.basename(input_file))
+            target = method_root.filepath(:output, File.basename(input_file))
             File.open(target, "w") do |file|
               file << "processed "
               file << File.read(input_file)
@@ -102,7 +102,7 @@ describe Tap::Spec::FileMethods do
       begin
         assert_files do |input_files|
           input_files.collect do |input_file|
-            target = method_filepath(:output, File.basename(input_file))
+            target = method_root.filepath(:output, File.basename(input_file))
             File.open(target, "w") do |file|
               file << "processed "
               file << File.read(input_file)
@@ -145,9 +145,9 @@ describe Tap::Spec::FileMethods do
     end
     
     it "should translate reference files when specified" do
-      assert_files :reference_dir => method_dir(:ref) do |input_files|
+      assert_files :reference_dir => method_root[(:ref) do |input_files|
         input_files.collect do |input_file|
-          target = method_filepath(:output, File.basename(input_file))
+          target = method_root.filepath(:output, File.basename(input_file))
           File.open(target, "w") do |file|
             file << "processed "
             file << File.read(input_file)
