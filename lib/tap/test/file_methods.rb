@@ -58,7 +58,7 @@ module Tap
         @method_root = ctr.dup.reconfigure(:root => ctr[method_name_str])
         @method_tempfiles = []
         
-        Utils.try_remove_dir(method_root[:output])
+        Utils.clear_dir(method_root[:output])
         Utils.try_remove_dir(method_root.root)
       end
     
@@ -73,7 +73,7 @@ module Tap
         # clear out the output folder if it exists, unless flagged otherwise
         unless env("KEEP_OUTPUTS") || (!@test_passed && env("KEEP_FAILURES"))
           begin
-             Utils.try_remove_dir(method_root[:output])
+             Utils.clear_dir(method_root[:output])
           rescue
             raise("teardown failure: could not remove output files")
           end

@@ -59,7 +59,7 @@ module Tap
         nil
       end
       
-      def script_test(test_dir=method_root)
+      def script_test(test_dir=method_root.root)
         subset_test("SCRIPT", "s") do
           cmd = ScriptTest.new(default_command_path)
           yield(cmd)

@@ -589,7 +589,7 @@ class FileTaskTest < Test::Unit::TestCase
     t.mkdir(relative_dir)
 
     expected = [
-      method_root,
+      method_root.root,
       method_root.filepath(:output),
       method_root.filepath(:output, 'path'),
       method_root.filepath(:output, 'path/to'),

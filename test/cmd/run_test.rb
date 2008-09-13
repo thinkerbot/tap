@@ -133,7 +133,7 @@ unknown task: unknown
   end
   
   def test_run
-    script_test(method_root) do |cmd|
+    script_test do |cmd|
       # variations on no task specified 
   
       cmd.check "Prints no task specified", %Q{
