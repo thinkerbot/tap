@@ -65,9 +65,9 @@ module Tap
         base.extend FileMethodsClass
       end
       
-      # Convenience method to access the class test_root.
+      # Convenience method to access the class_test_root.
       def ctr
-        self.class.test_root
+        self.class.class_test_root
       end
       
       # Creates the method_root.directories.
@@ -89,8 +89,8 @@ module Tap
       end
 
       # The test-method-specific Tap::Root which may be used to
-      # access test files.  method_root is a duplicate of test_root
-      # reconfigured so that method_root.root = ctr[method_name.to_sym].
+      # access test files.  method_root is a duplicate of ctr
+      # reconfigured so that method_root.root is ctr[ method_name.to_sym ]
       attr_reader :method_root
       
       # An array of filepaths setup by method_tempfile; these files

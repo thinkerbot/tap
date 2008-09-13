@@ -4,10 +4,8 @@ module Tap
     # Class methods extending tests which include FileMethods.
     module FileMethodsClass
       
-      # The test root structure (a Tap::Root).  All method_roots
-      # are initialized as duplicates of test_root, reconfigured
-      # so that root = test_root[method_name_str].
-      attr_accessor :test_root
+      # The class-level test root (a Tap::Root).
+      attr_accessor :class_test_root
       
     end
   end

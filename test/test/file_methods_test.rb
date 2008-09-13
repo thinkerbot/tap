@@ -4,7 +4,7 @@ require 'tap/test/file_methods'
 class FileMethodsTest < Test::Unit::TestCase
   include Tap::Test::FileMethods
   
-  self.test_root = Tap::Root.new(
+  self.class_test_root = Tap::Root.new(
     __FILE__.chomp("_test.rb"), 
     {:input => 'input', :output => 'output', :expected => 'expected'})
   
