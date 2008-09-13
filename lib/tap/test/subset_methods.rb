@@ -4,17 +4,11 @@ require 'tap/test/subset_methods_class'
 module Tap
   module Test
     
-    # Ideally you always run all of your tests and they all run and pass everywhere. In 
-    # practice it's useful to suppress the execution of some tests -- long running tests, 
-    # tests specific for a given platform, or tests that depend on some condition, such 
-    # as the version of some optional third-party software your code interacts with.
+    # SubsetMethods provides methods to conditionally run tests, or to skip a 
+    # test suite entirely.
     # 
-    # SubsetMethods extends TestCase with methods for defining conditions that can be 
-    # used to conditionally perform some action, or skip a test suite entirely.  When 
-    # you include SubsetMethods within a specific TestCase, additional methods are 
-    # made available for filtering tests.
-    # 
-    #   require 'tap/test/subset_methods'
+    #   require 'tap/test'
+    #
     #   class Test::Unit::TestCase
     #     # only true if running on windows
     #     condition(:windows) { match_platform?('mswin') }
@@ -27,8 +21,9 @@ module Tap
     #     skip_test unless satisfied?(:windows)
     #   end
     # 
-    # WindowsOnlyTest will only run on a Windows platform. These conditions can be used 
-    # in specific tests, when only some tests need to be skipped.
+    # Here the WindowsOnlyTest will only run on a Windows platform. Conditions
+    # like these may be targeted at specific tests when only some tests need 
+    # to be skipped.
     # 
     #   class RunOnlyAFewTest < Test::Unit::TestCase
     #     include SubsetMethods
@@ -57,32 +52,31 @@ module Tap
     #     end
     #   end
     # 
-    # In the example, the ENV variables EXTENDED, BENCHMARK, and CUSTOM act as flags
-    # to run specific tests.  If you're running your test using Rake, ENV variables 
-    # can be set from the command line like so:
+    # In the example, the ENV variables EXTENDED, BENCHMARK, and CUSTOM act as
+    # flags to run specific tests.  If you're running your test using Rake, ENV
+    # variables can be set from the command line like so:
     # 
     #   % rake test EXTENDED=true
     #   % rake test BENCHMARK=true
     # 
-    # Since tap can run rake tasks as well, these are equivalent:
+    # Since tap and rap can run rake tasks as well, these are equivalent:
     #
     #   % tap run test EXTENDED=true
-    #   % tap run test BENCHMARK=true
+    #   % rap test BENCHMARK=true
     #
     # In so far as SubsetMethods is concerned, the environment variables are 
-    # case-insensitive.  As in the example, additional ENV-variable-dependent 
-    # tests can be defined using the subset_test method. To run all tests that  
-    # get switched using an environment variable, set ALL=true.  
+    # case-insensitive.  As in the example, additional ENV-based tests can be 
+    # defined using the subset_test method. To run all tests that get switched 
+    # using an ENV variable, set ALL=true.  
     #
     #   # also runs benchmark tests
-    #   % tap run test BenchMark=true
+    #   % rap test BenchMark=true
     #
     #   # runs all tests
-    #   % tap run test all=true
+    #   % rap test all=true
     #
-    # === Class Methods
-    # 
-    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] for documentation of the class methods added by SubsetMethods
+    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] and
+    # SubsetMethodsClass for more information.
     module SubsetMethods
       include Tap::Test::EnvVars
       
@@ -90,12 +84,14 @@ module Tap
         super
         base.extend SubsetMethodsClass
       end
-  
-      def satisfied?(*conditions)
-        self.class.satisfied?(*conditions)
+      
+      # Returns true if the specified conditions are satisfied.
+      def satisfied?(*condition_names)
+        self.class.satisfied?(*condition_names)
       end
       
-      # Returns true if the subset type or 'ALL' is specified in ENV
+      # Returns true if the subset type (ex 'BENCHMARK') or 'ALL' is
+      # specified in ENV.
       def run_subset?(type)
         self.class.run_subset?(type)
       end
@@ -117,7 +113,7 @@ module Tap
       #     platform_test('mswin') { ... }
       #   end
       #
-      # See TestCase#match_platform? for matching details.
+      # See SubsetMethodsClass#match_platform? for matching details.
       def platform_test(*platforms)
         if self.class.match_platform?(*platforms)
           yield
@@ -126,9 +122,9 @@ module Tap
         end
       end
       
-      # Conditonal test.  Only runs if the named conditions are satisfied.
-      # If no conditons are explicitly set, only runs if all conditions 
-      # are satisfied.
+      # Conditonal test.  Only runs if the specified conditions are satisfied.
+      # If no conditons are explicitly set, condition_test only runs if ALL 
+      # conditions for the test are satisfied.
       # 
       #   condition(:is_true) { true }
       #   condition(:is_false) { false }
@@ -141,23 +137,23 @@ module Tap
       #     condition_test {  # does not run }
       #   end
       #
-      # See TestCase#condition for more details.
-      def condition_test(*conditions)
-        unsatisfied_conditions = self.class.unsatisfied_conditions(*conditions)
-        if unsatisfied_conditions.empty?
+      # See SubsetMethodsClass#condition for more details.
+      def condition_test(*condition_names)
+        if self.class.unsatisfied_conditions(*condition_names).empty?
           yield
         else
           print ' '
         end
       end
       
-      # Basic method for a subset test.  The provided block will run if:
-      # - The subset type is specified in ENV
-      # - The subset 'ALL' is specified in ENV
-      # - The test method name matches the regexp provided in the <TYPE>_TEST ENV variable
+      # Defines a subset test.  The provided block will only run if:
+      # - the subset type is specified in ENV
+      # - the subset 'ALL' is specified in ENV
+      # - the test method name matches the regexp provided in the 
+      #   <TYPE>_TEST ENV variable
       #  
-      # Otherwise the block will be skipped and +skip+ will be printed in the test output.  
-      # By default skip is the first letter of +type+.
+      # Otherwise the block will be skipped and +skip+ will be printed in the
+      # test output.  By default skip is the first letter of +type+.
       #
       # For example, with these methods:
       #
@@ -176,17 +172,18 @@ module Tap
       #   ENV['CUSTOM_TEST']=test_one  test_one
       #   ENV['CUSTOM']=nil            no tests get run
       # 
-      # If you're running your tests with Rake, ENV variables can be set from the 
-      # command line, so you might use these command line statements:
+      # If you're running your tests with rake (or rap), ENV variables may be
+      # set from the command line.
       #
       #   # all tests
-      #   % rake test all=true
+      #   % rap test all=true
       #
       #   # custom subset tests
-      #   % rake test custom=true
+      #   % rap test custom=true
       #
-      #   # just test_one
-      #   % rake test custom_test=test_one
+      #   # just test_one (it is the only test
+      #   # matching the '.est_on.' pattern)
+      #   % rap test custom_test=.est_on.
       #
       def subset_test(type, skip=type[0..0].downcase)
         type = type.upcase

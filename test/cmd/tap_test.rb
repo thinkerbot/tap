@@ -30,7 +30,7 @@ examples:
   tap run taskname --option input      # runs the 'taskname' task
 
 help:
-  tap help                             # prints this help
+  tap --help                           # prints this help
   tap command --help                   # prints help for 'command'
 
 available commands:
