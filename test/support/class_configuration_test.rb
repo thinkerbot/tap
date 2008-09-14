@@ -3,6 +3,7 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 class ClassConfigurationTest < Test::Unit::TestCase
   include Tap::Support
   include Tap::Test::SubsetMethods
+  include Tap::Test::ScriptMethods
   
   class Sample
   end
@@ -323,7 +324,7 @@ no_comment: no_comment value
 
 }
     
-    assert_equal expected[1..-1], cc.format_str
+    assert_output_equal expected[1..-1], cc.format_str
   end
   
   def test_format_str_without_documentation
@@ -340,8 +341,7 @@ no_comment: no_comment value
 #nil_config:
 
 }
-    assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
-    
+    assert_output_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
   end
   
   def test_format_str_using_subclass
@@ -379,7 +379,7 @@ subclass_config: subclass_config value
 
 }
 
-    assert_equal expected[1..-1], cc.format_str
+    assert_output_equal expected[1..-1], cc.format_str
   end
   
   def test_format_str_using_subclass_without_doc
@@ -401,7 +401,7 @@ nil_config: no longer nil value
 subclass_config: subclass_config value
 
 }
-    assert_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
+    assert_output_equal expected_without_doc[1..-1], cc.format_str(:nodoc)
   end
   
 end

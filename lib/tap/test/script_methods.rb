@@ -10,7 +10,7 @@ module Tap
         base.send(:include, Tap::Test::SubsetMethods)  
       end
       
-      def assert_output_equal(a, b, msg)
+      def assert_output_equal(a, b, msg=nil)
         a = a[1..-1] if a[0] == ?\n
         if a == b
           assert true
@@ -26,7 +26,7 @@ module Tap
         end
       end
       
-      def assert_alike(a, b, msg)
+      def assert_alike(a, b, msg=nil)
         if b =~ a
           assert true
         else

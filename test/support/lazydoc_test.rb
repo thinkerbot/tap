@@ -356,7 +356,7 @@ ignored
 ignored
 # trailer
 }) do |namespace, key, comment|
-     results << [namespace, key, comment.subject, comment.lines]
+     results << [namespace, key, comment.subject, comment.content]
    end
 
    assert_equal 1, results.length
@@ -410,7 +410,7 @@ blah blah # ::key value7
 # ::key-
 # ignored
 }) do |namespace, key, comment|
-     results << comment.lines
+     results << comment.content
    end
 
    assert_equal 2, results.length
@@ -590,11 +590,11 @@ not a subject line
     doc.comments.concat [c1, c2]
     doc.resolve(str)
 
-    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c1.lines
+    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c1.content
     assert_equal "subject line one", c1.subject
     assert_equal 6, c1.line_number
 
-    assert_equal [['comment two']], c2.lines
+    assert_equal [['comment two']], c2.content
     assert_equal "subject line two", c2.subject
     assert_equal 10, c2.line_number
   end
@@ -607,7 +607,7 @@ not a subject line
 
     assert doc.const_attrs.has_key?('Name::Space')
     assert doc.const_attrs['Name::Space'].has_key?('key')
-    assert_equal [['attribute comment']], doc.const_attrs['Name::Space']['key'].lines
+    assert_equal [['attribute comment']], doc.const_attrs['Name::Space']['key'].content
     assert_equal 'subject line', doc.const_attrs['Name::Space']['key'].subject
   end
 
@@ -626,13 +626,13 @@ subject line one
     c = doc.register(2)
     doc.resolve
 
-    assert_equal [['comment one']], c.lines
+    assert_equal [['comment one']], c.content
     assert_equal "subject line one", c.subject
     assert_equal 2, c.line_number
 
     assert doc.const_attrs.has_key?('Name::Space')
     assert doc.const_attrs['Name::Space'].has_key?('key')
-    assert_equal [['attribute comment']], doc.const_attrs['Name::Space']['key'].lines
+    assert_equal [['attribute comment']], doc.const_attrs['Name::Space']['key'].content
     assert_equal 'subject line', doc.const_attrs['Name::Space']['key'].subject
   end
 
@@ -651,10 +651,10 @@ subject line one
     doc.comments << c2
     assert !doc.resolve("# comment two\nsubject line two")
 
-    assert_equal [['comment one']], c1.lines
+    assert_equal [['comment one']], c1.content
     assert_equal "subject line one", c1.subject
 
-    assert_equal [], c2.lines
+    assert_equal [], c2.content
     assert_equal nil, c2.subject
   end
   
@@ -687,11 +687,11 @@ not a subject line
 
     assert_equal 6, c0.line_number
     assert_equal "subject line one", c0.subject
-    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c0.lines
+    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c0.content
 
     assert_equal 10, c1.line_number
     assert_equal "subject line two", c1.subject
-    assert_equal [['comment two']], c1.lines
+    assert_equal [['comment two']], c1.content
   end
 
   def test_resolve_passes_matched_comments_to_the_callback
@@ -706,7 +706,7 @@ not a subject line
 
     assert_equal 6, c0.line_number
     assert_equal "subject line one", c0.subject
-    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c0.lines
+    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c0.content
   end
 
   def test_resolve_stops_matching_the_pattern_if_the_callback_returns_true

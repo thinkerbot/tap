@@ -125,13 +125,13 @@ module Tap
       end
       
       class Description < Comment
-        def resolve(comment_lines)
+        def resolve(lines)
           if super
             
             @subject = case
-            when lines.empty? || lines[0][0].to_s !~ /^::desc(.*)/ then ""
+            when content.empty? || content[0][0].to_s !~ /^::desc(.*)/ then ""
             else
-              lines[0].shift
+              content[0].shift
               $1.strip
             end
             

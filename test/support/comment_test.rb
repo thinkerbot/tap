@@ -29,17 +29,26 @@ this is the subject line
 }
   
     c = Comment.parse(comment_string)
-    assert_equal([
+    expected = [
     ['comments spanning multiple', 'lines are collected'],
     [''],
     ['  while indented lines'],
     ['  are preserved individually'],
     [''],
-    []], c.lines)
-    
+    []]
+    assert_equal expected, c.content   
     assert_equal "this is the subject line", c.subject
+    
+    c = Comment.parse(comment_string) {|frag| frag.strip.empty? }
+    expected = [
+    ['comments spanning multiple', 'lines are collected']]
+    assert_equal expected, c.content   
+    assert_equal nil, c.subject
   end
   
+  # comment test will yield the string with both LF and CRLF
+  # line endings; to ensure there is no dependency on the 
+  # end of line style
   def comment_test(str)
     yield(str.gsub(/\r?\n/, "\n"))
     yield(str.gsub(/\r?\n/, "\r\n"))
@@ -52,7 +61,7 @@ this is the subject line
  \t  # with whitespace   \t
 })  do |str|
       c = Comment.parse(str)
-      assert_equal [['comment', 'spanning lines', 'with whitespace']], c.lines
+      assert_equal [['comment', 'spanning lines', 'with whitespace']], c.content
       assert_equal nil, c.subject
     end
   end
@@ -64,7 +73,7 @@ this is the subject line
  \t  # with whitespace   \t
 })  do |str|      
       c = Comment.parse(StringScanner.new(str))
-      assert_equal [['comment', 'spanning lines', 'with whitespace']], c.lines
+      assert_equal [['comment', 'spanning lines', 'with whitespace']], c.content
       assert_equal nil, c.subject
     end
   end
@@ -78,7 +87,7 @@ this is the subject line
 # line
 })  do |str|
       c = Comment.parse(str)
-      assert_equal [['comment'],[' with indented'], ["\tlines"], ['new spanning', 'line']], c.lines
+      assert_equal [['comment'],[' with indented'], ["\tlines"], ['new spanning', 'line']], c.content
       assert_equal nil, c.subject
     end
   end
@@ -96,7 +105,7 @@ this is the subject line
 # line
 })  do |str|
       c = Comment.parse(str)
-      assert_equal [['comment'],[''],[''],[' with indented'],[''],["\tlines"],[''],['new spanning', 'line']], c.lines
+      assert_equal [['comment'],[''],[''],[' with indented'],[''],["\tlines"],[''],['new spanning', 'line']], c.content
       assert_equal nil, c.subject
     end
   end
@@ -109,7 +118,7 @@ this is the subject line
 # ignored
 })  do |str|
       c = Comment.parse(str)
-      assert_equal [['comment', 'spanning lines']], c.lines
+      assert_equal [['comment', 'spanning lines']], c.content
       assert_equal nil, c.subject
     end
   end
@@ -124,7 +133,7 @@ this is the subject line
       c = Comment.parse(str) do |comment|
         comment =~ /^end/
       end
-      assert_equal [['comment', 'spanning lines']], c.lines
+      assert_equal [['comment', 'spanning lines']], c.content
       assert_equal nil, c.subject
     end
   end
@@ -136,7 +145,7 @@ subject line
 ignored
 })  do |str|
       c = Comment.parse(str)
-      assert_equal [['comment']], c.lines
+      assert_equal [['comment']], c.content
       assert_equal "subject line", c.subject
     end
   end
@@ -149,7 +158,7 @@ subject line
 ignored
 })  do |str|
       c = Comment.parse(str)
-      assert_equal [['comment']], c.lines
+      assert_equal [['comment']], c.content
       assert_equal "subject line", c.subject
     end
   end
@@ -165,7 +174,7 @@ not the subject line
         comment =~ /^end/
       end
 
-      assert_equal [['comment']], c.lines
+      assert_equal [['comment']], c.content
       assert_equal nil, c.subject
     end
   end
@@ -177,7 +186,7 @@ not the subject line
 # not a subject line
 })  do |str|
       c = Comment.parse(str)
-      assert_equal [['comment']], c.lines
+      assert_equal [['comment']], c.content
       assert_equal nil, c.subject
     end
   end
@@ -189,7 +198,7 @@ subject line
 # ignored
 })  do |str|
       c = Comment.parse(str)
-      assert_equal [], c.lines
+      assert_equal [], c.content
       assert_equal 'subject line', c.subject
     end
   end
@@ -200,7 +209,7 @@ subject line # with a trailing comment
 # ignored
 })  do |str|
       c = Comment.parse(str)
-      assert_equal [], c.lines
+      assert_equal [], c.content
       assert_equal 'subject line # with a trailing comment', c.subject
     end
   end
@@ -232,8 +241,7 @@ subject line # with a trailing comment
         c.push(fragment)
       end
     end
-     
-    actual = c.lines   
+    
     expected = [
        ['comments spanning multiple', 'lines are collected'],
        [''],
@@ -241,19 +249,25 @@ subject line # with a trailing comment
        ['  are preserved individually'],
        [''],
        []]
-    assert_equal(expected, actual)
+    assert_equal(expected, c.content)
   end
   
   #
   # wrap test
   #
   
-  def test_wraps_str_to_cols
+  def test_wraps_documentation
     assert_equal ["some line", "that will", "wrap"], Comment.wrap("some line that will wrap", 10)
+    assert_equal ["     line", "that will", "wrap"], Comment.wrap("     line that will wrap    ", 10)
+    assert_equal [], Comment.wrap("                            ", 10)
   end
   
   def test_wrap_breaks_on_newlines
     assert_equal ["line that", "will wrap", "a line", "that wont"], Comment.wrap("line that will wrap\na line\nthat wont", 10)
+  end
+  
+  def test_preserves_multiple_newlines
+    assert_equal ["line that", "", "", "", "will wrap"], Comment.wrap("line that\n\n\n\nwill wrap", 10)
   end
   
   def test_wrap_resolves_tabs_using_tabsize
@@ -266,38 +280,9 @@ subject line # with a trailing comment
   
   def test_initialize
     c = Comment.new
-    assert_equal [], c.lines
+    assert_equal [], c.content
     assert_equal nil, c.subject
     assert_equal nil, c.line_number
-  end
-  
-  #
-  # unshift test
-  #
-  
-  def test_unshift_documentation
-    c = Comment.new
-    c.unshift "some line"
-    c.unshift "fragments"
-    c.unshift ["a", "whole", "new line"]
-    assert_equal([["a", "whole", "new line"], ["fragments", "some line"]], c.lines)
-  end
-  
-  def test_unshift_unshifts_fragment_to_first_line
-    c.unshift "a line"
-    c.unshift "fragment"
-    assert_equal [["fragment", "a line"]], c.lines
-  end
-
-  def test_unshift_unshifts_array_if_given
-    c.unshift "fragment"
-    c.unshift ["some", "array"]
-    assert_equal [["some", "array"], ['fragment']], c.lines
-  end
-
-  def test_unshift_replaces_first_array_if_first_is_empty
-    c.unshift ["some", "array"]
-    assert_equal [["some", "array"]], c.lines
   end
   
   #
@@ -309,24 +294,114 @@ subject line # with a trailing comment
     c.push "some line"
     c.push "fragments"
     c.push ["a", "whole", "new line"]
-    assert_equal([["some line", "fragments"], ["a", "whole", "new line"]], c.lines)
+    
+    expected = [
+      ["some line", "fragments"], 
+      ["a", "whole", "new line"]]
+    assert_equal(expected, c.content)
   end
   
   def test_push_adds_fragment_to_last_line
     c.push "a line"
     c.push "fragment"
-    assert_equal [["a line", "fragment"]], c.lines
+    assert_equal [["a line", "fragment"]], c.content
   end
 
   def test_push_adds_array_if_given
     c.push "fragment"
     c.push ["some", "array"]
-    assert_equal [['fragment'], ["some", "array"]], c.lines
+    assert_equal [['fragment'], ["some", "array"]], c.content
   end
 
   def test_push_replaces_last_array_if_last_is_empty
     c.push ["some", "array"]
-    assert_equal [["some", "array"]], c.lines
+    assert_equal [["some", "array"]], c.content
+  end
+  
+  #
+  # append test
+  #
+  
+  def test_append_documentation
+    lines = [
+      "# comment spanning multiple",
+      "# lines",
+      "#",
+      "#   indented line one",
+      "#   indented line two",
+      "#    ",
+      "not a comment line"]
+  
+    c = Comment.new
+    lines.each {|line| c.append(line) }
+  
+    expected = [
+    ['comment spanning multiple', 'lines'],
+    [''],
+    ['  indented line one'],
+    ['  indented line two'],
+    [''],
+    []]
+    assert_equal expected, c.content
+  end
+  
+  #
+  # unshift test
+  #
+  
+  def test_unshift_documentation
+    c = Comment.new
+    c.unshift "some line"
+    c.unshift "fragments"
+    c.unshift ["a", "whole", "new line"]
+    
+    expected = [
+      ["a", "whole", "new line"], 
+      ["fragments", "some line"]]
+    assert_equal(expected, c.content)
+  end
+  
+  def test_unshift_unshifts_fragment_to_first_line
+    c.unshift "a line"
+    c.unshift "fragment"
+    assert_equal [["fragment", "a line"]], c.content
+  end
+
+  def test_unshift_unshifts_array_if_given
+    c.unshift "fragment"
+    c.unshift ["some", "array"]
+    assert_equal [["some", "array"], ['fragment']], c.content
+  end
+
+  def test_unshift_replaces_first_array_if_first_is_empty
+    c.unshift ["some", "array"]
+    assert_equal [["some", "array"]], c.content
+  end
+  
+  #
+  # prepend test
+  #
+  
+  def test_prepend_documentation
+    lines = [
+      "# comment spanning multiple",
+      "# lines",
+      "#",
+      "#   indented line one",
+      "#   indented line two",
+      "#    ",
+      "not a comment line"]
+  
+    c = Comment.new
+    lines.reverse_each {|line| c.prepend(line) }
+  
+    expected = [
+    ['comment spanning multiple', 'lines'],
+    [''],
+    ['  indented line one'],
+    ['  indented line two'],
+    ['']]
+    assert_equal expected, c.content
   end
   
   #
@@ -339,18 +414,18 @@ subject line # with a trailing comment
     c.push ['', "\t\r  \n", ' ']
     c.push []
     
-    assert_equal [[''],['fragment'],['', "\t\r  \n", ' '],[]], c.lines
+    assert_equal [[''],['fragment'],['', "\t\r  \n", ' '],[]], c.content
     c.trim
-    assert_equal [['fragment']], c.lines
+    assert_equal [['fragment']], c.content
   end
   
   def test_trim_ensures_lines_is_not_empty
     c.push ['']
     c.push ['']
-    assert_equal [[''],['']], c.lines
+    assert_equal [[''],['']], c.content
     
     c.trim
-    assert_equal [], c.lines
+    assert_equal [], c.content
   end
   
   def test_trim_returns_self
@@ -362,10 +437,10 @@ subject line # with a trailing comment
   #
   
   def test_empty_is_true_if_there_are_no_non_empty_lines_in_self
-    assert_equal [], c.lines
+    assert_equal [], c.content
     assert c.empty?
     
-    c.lines.push "line"
+    c.content.push "frag"
     
     assert !c.empty?
   end
@@ -388,5 +463,47 @@ subject line # with a trailing comment
     c.push ["a", "whole", "new line"]
     
     assert_equal ["some line.fragments", "a.whole.new line"], c.to_s('.', nil)
+  end
+  
+  #
+  # wrap test
+  #
+  
+  def test_wrap_wraps_to_s_to_the_specified_number_of_columns
+    c.push "some line"
+    c.push "fragments"
+    c.push ["a", "whole", "new line"]
+    
+    expected = %Q{
+some line
+fragments
+a whole
+new line
+}.strip
+
+    assert_equal expected, c.wrap(10)
+  end
+  
+  #
+  # == test
+  #
+  
+  def test_another_is_equal_to_self_if_another_is_a_Comment_and_they_have_the_same_line_number_subject_and_content
+    a = Comment.new
+    b = Comment.new
+    
+    c = Comment.new
+    c.line_number = 10
+    
+    d = Comment.new
+    d.subject = "subject"
+    
+    e = Comment.new
+    e.push "frag"
+    
+    assert a == b
+    assert a != c
+    assert a != d
+    assert a != e
   end
 end

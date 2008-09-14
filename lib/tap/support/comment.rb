@@ -2,14 +2,37 @@ require 'strscan'
 
 module Tap
   module Support 
-    # Comment represents a comment parsed by Lazydoc.
+    # Comment represents a code comment parsed by Lazydoc.  Comments consist
+    # of a subject and the content of the comment which normally break down
+    # like this:
+    #   
+    #   sample_comment = %Q{
+    #   # this is the content of the comment
+    #   #
+    #   # which may stretch across
+    #   # multiple lines
+    #   this is the subject
+    #   }
+    #   
+    # The subject of a comment is the first non-comment line following the
+    # content, and the content is an array of comment fragments organized 
+    # by line as they would be printed in an output:
+    #
+    #   c = Comment.parse(sample_comment)
+    #   c.subject      # => "this is the subject"
+    #   c.content      
+    #   # => [
+    #   # ["this is the content of the comment"], 
+    #   # [""], 
+    #   # ["which may stretch across", "multiple lines"]]
+    #
     class Comment
     
       class << self
       
         # Parses the input string into a comment, stopping at end_regexp
         # or the first non-comment line.  Also parses the next non-comment
-        # lines as the comment subject.  Takes a string or a StringScanner
+        # line as the comment subject.  Takes a string or a StringScanner
         # and returns the new comment.
         #
         #   comment_string = %Q{
@@ -26,7 +49,7 @@ module Tap
         #   }
         #
         #   c = Comment.parse(comment_string)
-        #   c.lines   
+        #   c.content   
         #   # => [
         #   # ['comments spanning multiple', 'lines are collected'],
         #   # [''],
@@ -36,6 +59,19 @@ module Tap
         #   # []]
         #   c.subject   # => "this is the subject line"
         #
+        # Parsing may be manually ended by providing a block; parse yields
+        # each line fragment to the block and stops parsing when the block
+        # returns true.  Note that no subject will be parsed under these
+        # circumstances.
+        #
+        #   c = Comment.parse(comment_string) {|frag| frag.strip.empty? }
+        #   c.content   
+        #   # => [
+        #   # ['comments spanning multiple', 'lines are collected']]
+        #   c.subject   # => nil
+        #
+        # Subject parsing may also be suppressed by setting parse_subject
+        # to false.
         def parse(str, parse_subject=true) # :yields: fragment
           scanner = case str
           when StringScanner then str
@@ -70,12 +106,10 @@ module Tap
           comment
         end
         
-        # Scans the line checking if it is a comment.  If so, scan
-        # yields the parse fragments to the block which correspond
-        # to the type of comment input (continuation, indent, etc).
-        # Returns true if the line is a comment, false otherwise.
-        #
-        # Scan may be used to build a comment from an array of lines:
+        # Scan determines if and how to add a line fragment to a comment and
+        # yields the appropriate fragments to the block.  Returns true if
+        # fragments are yielded and false otherwise.  A comment's content 
+        # may be built from an array of lines using scan like so:
         #
         #   lines = [
         #     "# comments spanning multiple",
@@ -96,7 +130,7 @@ module Tap
         #     end
         #   end
         #
-        #   c.lines   
+        #   c.content   
         #   # => [
         #   # ['comments spanning multiple', 'lines are collected'],
         #   # [''],
@@ -113,25 +147,27 @@ module Tap
           true
         end
         
-        def wrap(lines, cols=80, tabsize=2)
-          lines = lines.split(/\r?\n/) unless lines.kind_of?(Array)
-          
-          lines.collect do |line|
-            line = line.gsub(/\t/, " " * tabsize) unless tabsize == nil
-
-            if line.strip.empty? 
-              line
-            else
-              # wrapping algorithm is slightly modified from 
-              # http://blog.macromates.com/2006/wrapping-text-with-regular-expressions/
-              line.gsub(/(.{1,#{cols}})( +|$\r?\n?)|(.{1,#{cols}})/, "\\1\\3\n").split(/\s*\n/)
-            end
-          end.flatten
+        # Splits a line of text along whitespace breaks into fragments of cols
+        # width.  Tabs in the line will be expanded into tabsize spaces; 
+        # fragments are rstripped of whitespace.
+        # 
+        #   Comment.wrap("some line that will wrap", 10)       # => ["some line", "that will", "wrap"]
+        #   Comment.wrap("     line that will wrap    ", 10)   # => ["     line", "that will", "wrap"]
+        #   Comment.wrap("                            ", 10)   # => []
+        #
+        # The wrapping algorithm is slightly modified from:
+        # http://blog.macromates.com/2006/wrapping-text-with-regular-expressions/
+        def wrap(line, cols=80, tabsize=2)
+          line = line.gsub(/\t/, " " * tabsize) unless tabsize == nil
+          line.gsub(/(.{1,#{cols}})( +|$\r?\n?)|(.{1,#{cols}})/, "\\1\\3\n").split(/\s*?\n/)
         end
         
         private
         
-        def categorize(fragment, indent)
+        # utility method used by scan to categorize and yield
+        # the appropriate objects to add the fragment to a
+        # comment
+        def categorize(fragment, indent) # :nodoc:
            case
            when fragment == indent
              # empty comment line
@@ -148,48 +184,56 @@ module Tap
          end
       end
     
-      # An array of line fragment arrays.
-      attr_reader :lines
+      # An array of comment fragments organized into 
+      # lines as they would be printed in an output.
+      # Ex: [["fragments", "of line", "one"], 
+      #      ["fragments", "of line", "two"]]
+      attr_reader :content
     
-      # The next non-comment line after the comment ends.
-      # This is the line that would receive the comment
-      # in RDoc documentation.
+      # The subject of the comment (normally set to the next 
+      # non-comment line after the content ends; ie the line 
+      # that would receive the comment in RDoc documentation).
       attr_accessor :subject
       
       # Returns the line number for the subject line, if known.
       attr_accessor :line_number
       
-      # Flag indicating whether or not self has been resolved.
+      # Flag indicating the subject and content are resolved.
       attr_accessor :resolved
       
       def initialize(line_number=nil)
-        @lines = []
+        @content = []
         @subject = nil
         @line_number = line_number
         @resolved = false
       end
 
-      # Pushes the fragment onto the last line array.  If fragment is an
-      # array itself, then fragment will be pushed onto lines.
+      # Pushes the fragment onto the last line array of content.  If the
+      # fragment is an array itself then it will be pushed onto content 
+      # as a new line.
       #
       #   c = Comment.new
       #   c.push "some line"
       #   c.push "fragments"
       #   c.push ["a", "whole", "new line"]
-      #   c.lines         # => [["some line", "fragments"], ["a", "whole", "new line"]]
+      #
+      #   c.content         
+      #   # => [
+      #   # ["some line", "fragments"], 
+      #   # ["a", "whole", "new line"]]
       #
       def push(fragment)
-        lines << [] if lines.empty?
+        content << [] if content.empty?
         
         case fragment
         when Array
-          if lines[-1].empty? 
-            lines[-1] = fragment
+          if content[-1].empty? 
+            content[-1] = fragment
           else
-            lines.push fragment
+            content.push fragment
           end
         else
-           lines[-1].push fragment
+           content[-1].push fragment
         end
       end
       
@@ -198,90 +242,152 @@ module Tap
         push(fragment)
       end
       
-      # Unshifts the fragment to the first line array.  If fragment is an
-      # array itself, then fragment will be unshifted onto lines.
+      # Scans the comment line using Comment.scan and pushes the appropriate
+      # fragments onto self.  Used to build a content by scanning down a set
+      # of lines.
+      #
+      #   lines = [
+      #     "# comment spanning multiple",
+      #     "# lines",
+      #     "#",
+      #     "#   indented line one",
+      #     "#   indented line two",
+      #     "#    ",
+      #     "not a comment line"]
+      #
+      #   c = Comment.new
+      #   lines.each {|line| c.append(line) }
+      #
+      #   c.content 
+      #   # => [
+      #   # ['comment spanning multiple', 'lines'],
+      #   # [''],
+      #   # ['  indented line one'],
+      #   # ['  indented line two'],
+      #   # [''],
+      #   # []]
+      #
+      def append(line)
+        Comment.scan(line) {|f| push(f) }
+      end
+      
+      # Unshifts the fragment to the first line array of content.  If the
+      # fragment is an array itself then it will be unshifted onto content
+      # as a new line.
       #
       #   c = Comment.new
       #   c.unshift "some line"
       #   c.unshift "fragments"
       #   c.unshift ["a", "whole", "new line"]
-      #   c.lines         # => [["a", "whole", "new line"], ["fragments", "some line"]]
+      #
+      #   c.content         
+      #   # => [
+      #   # ["a", "whole", "new line"], 
+      #   # ["fragments", "some line"]]
       #
       def unshift(fragment)
-        lines << [] if lines.empty?
+        content << [] if content.empty?
         
         case fragment
         when Array
-          if lines[0].empty? 
-            lines[0] = fragment
+          if content[0].empty? 
+            content[0] = fragment
           else
-            lines.unshift fragment
+            content.unshift fragment
           end
         else
-           lines[0].unshift fragment
+           content[0].unshift fragment
         end
       end
       
-      def prepend(comment_line)
-        Comment.scan(comment_line) {|f| unshift(f) }
+      # Scans the comment line using Comment.scan and unshifts the appropriate 
+      # fragments onto self.  Used to build a content by scanning up a set of
+      # lines.
+      #
+      #   lines = [
+      #     "# comment spanning multiple",
+      #     "# lines",
+      #     "#",
+      #     "#   indented line one",
+      #     "#   indented line two",
+      #     "#    ",
+      #     "not a comment line"]
+      #
+      #   c = Comment.new
+      #   lines.reverse_each {|line| c.prepend(line) }
+      #
+      #   c.content 
+      #   # => [
+      #   # ['comment spanning multiple', 'lines'],
+      #   # [''],
+      #   # ['  indented line one'],
+      #   # ['  indented line two'],
+      #   # ['']]
+      #
+      def prepend(line)
+        Comment.scan(line) {|f| unshift(f) }
       end
       
-      def append(comment_line)
-        Comment.scan(comment_line) {|f| push(f) }
-      end
-      
-      # Removes leading and trailing lines that are empty ([]) 
-      # or whitespace (['']).  Returns self.
+      # Removes leading and trailing lines from content that are
+      # empty ([]) or whitespace (['']).  Returns self.
       def trim
-        lines.shift while !lines.empty? && (lines[0].empty? || lines[0].join.strip.empty?)
-        lines.pop while !lines.empty? && (lines[-1].empty? || lines[-1].join.strip.empty?)
+        content.shift while !content.empty? && (content[0].empty? || content[0].join.strip.empty?)
+        content.pop   while !content.empty? && (content[-1].empty? || content[-1].join.strip.empty?)
         self
       end
       
-      # True if there are no fragments in self.
+      # True if all lines in content are empty.
       def empty?
-        !lines.find {|array| !array.empty?}
+        !content.find {|line| !line.empty?}
       end
       
-      def wrap(cols=80, tabsize=2, line_sep="\n", fragment_sep=" ", strip=true)
-        resolved_lines = Comment.wrap(to_s(fragment_sep, nil, strip), cols, tabsize)
-        line_sep ? resolved_lines.join(line_sep) : resolved_lines
-      end
-    
-      # Returns lines as a string where line fragments are joined by
+      # Returns content as a string where line fragments are joined by
       # fragment_sep and lines are joined by line_sep. 
       def to_s(fragment_sep=" ", line_sep="\n", strip=true)
-        resolved_lines = lines.collect {|line| line.join(fragment_sep)}
+        lines = content.collect {|line| line.join(fragment_sep)}
         
         # strip leading an trailing whitespace lines
         if strip
-          resolved_lines.shift while !resolved_lines.empty? && resolved_lines[0].empty?
-          resolved_lines.pop while !resolved_lines.empty? && resolved_lines[-1].empty?
+          lines.shift while !lines.empty? && lines[0].empty?
+          lines.pop while !lines.empty? && lines[-1].empty?
         end
         
-        line_sep ? resolved_lines.join(line_sep) : resolved_lines
+        line_sep ? lines.join(line_sep) : lines
       end
       
+      # Like to_s, but wraps the content to the specified number of cols
+      # and expands tabs to tabsize spaces.
+      def wrap(cols=80, tabsize=2, line_sep="\n", fragment_sep=" ", strip=true)
+        lines = Comment.wrap(to_s(fragment_sep, "\n", strip), cols, tabsize)
+        line_sep ? lines.join(line_sep) : lines
+      end
+      
+      # Returns true if another is a Comment with the same
+      # line_number, subject, and content as self
       def ==(another)
         another.kind_of?(Comment) && 
         self.line_number == another.line_number &&
         self.subject == another.subject &&
-        self.lines == another.lines
+        self.content == another.content
       end
       
-      def resolve(comment_lines)
+      def resolve(lines)
         return false if resolved
         
+        if lines.kind_of?(String)
+          lines = lines.split(/\r?\n/)
+        end
+        
         n = line_number
-        self.subject = comment_lines[n]
+        self.subject = lines[n]
 
         # remove whitespace lines
         n -= 1
-        n -= 1 while comment_lines[n].strip.empty?
+        n -= 1 while lines[n].strip.empty?
 
         # put together the comment
         while n >= 0
-          break unless prepend(comment_lines[n])
+          break unless prepend(lines[n])
           n -= 1
         end
          
