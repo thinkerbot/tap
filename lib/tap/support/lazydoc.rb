@@ -4,14 +4,81 @@ module Tap
   module Support
     
     # Lazydoc scans source files to pull out documentation.  Lazydoc can find two
-    # types of documentation, constant attributes and code comments.
+    # types of documentation, constant attributes and code comments, and works
+    # with LazyAttributes to make documentation available in the code.  First,
+    # an example:
+    #
+    #   # Sample::key <this is the subject line>
+    #   # a constant attribute content string that
+    #   # can span multiple lines...
+    #   #
+    #   #   code.is_allowed
+    #   #   much.as_in RDoc
+    #   #
+    #   # and stops at the next non-comment
+    #   # line, the next constant attribute,
+    #   # or an end key
+    #   class Sample
+    #     extend Tap::Support::LazyAttributes
+    #     self.source_file = __FILE__
+    #
+    #     lazy_attr :key
+    #
+    #     # comment content for a code comment
+    #     # may similarly span multiple lines
+    #     def method_one
+    #     end
+    #   end
+    #   
+    # Although the comments are normally not available in the code, lazy_attrs 
+    # reach into the source file to allow the following:
+    #
+    #   comment = Sample::key
+    #   comment.subject       # => "<this is the subject line>"
+    #   comment.content       
+    #   # => [
+    #   # ["a constant attribute content string that", "can span multiple lines..."],
+    #   # [""],
+    #   # ["  code.is_allowed"],
+    #   # ["  much.as_in RDoc"],
+    #   # [""],
+    #   # ["and stops at the next non-comment", "line, the next constant attribute,", "or an end key"]]
+    #
+    #   "\n#{'.' * 30}\n" + comment.wrap(30) + "\n#{'.' * 30}\n"
+    #   # => %q{
+    #   # ..............................
+    #   # a constant attribute content
+    #   # string that can span multiple
+    #   # lines...
+    #   # 
+    #   #   code.is_allowed
+    #   #   much.as_in RDoc
+    #   # 
+    #   # and stops at the next
+    #   # non-comment line, the next
+    #   # constant attribute, or an end
+    #   # key
+    #   # ..............................
+    #   #}
+    #
+    # Individual lines of code may be singled out and resolved by Lazydoc.
+    # Here, a Regexp is used to identify the line that gets turned into a 
+    # Comment (note that in this case the Lazydoc needs to be reset to 
+    # resolve the new comment):
+    #
+    #   lazydoc = Sample.lazydoc.reset
+    #   comment = lazydoc.register(/method_one/)
+    #   
+    #   lazydoc.resolve
+    #   comment.subject       # => "  def method_one"
+    #   comment.content       # => [["comment content for a code comment", "may similarly span multiple lines"]]
+    #
+    # And with the basics in mind, here are some details...
     #
     # === Constant Attributes
-    #
     # Constant attributes are designated the same as constants in Ruby, but with
     # an extra 'key' constant that must consist of only lowercase letters and/or
-    # underscores.  For example,
-    # these are constant attributes:
+    # underscores.  For example, these are constant attributes:
     #
     #   # Const::Name::key
     #   # Const::Name::key_with_underscores
@@ -24,9 +91,9 @@ module Tap
     #   # Const::Name::k@y
     #
     # Lazydoc parses a Comment for each constant attribute by using the remainder 
-    # of the line as a subject and scanning down for comment lines until a
-    # non-comment line, an end key, or a new attribute is reached.  Lazydoc
-    # then stores the comment by constant name and key.
+    # of the line as a subject and scanning down for comment content until a
+    # non-comment line, an end key, or a new attribute is reached; the comment 
+    # is then stored by constant name and key.
     #
     #   str = %Q{
     #   # Const::Name::key subject for key
@@ -51,8 +118,8 @@ module Tap
     #   #  'another' => ['subject for another', 'comment for another parsed to an end key']
     #   # }}
     #
-    # Attributes are only parsed from comment lines.  To turn off attribute parsing for 
-    # a section of documentation, use start/stop keys:
+    # Attributes are only parsed from commented lines.  To turn off attribute
+    # parsing for a section of documentation, use start/stop keys:
     #
     #   str = %Q{
     #   Const::Name::not_parsed
@@ -67,11 +134,8 @@ module Tap
     #   lazydoc.resolve(str)
     #   lazydoc.to_hash {|comment| comment.subject }   # => {'Const::Name' => {'parsed' => 'subject'}}
     #
-    # ==== startdoc
-    # Lazydoc is completely separate from RDoc, but the syntax of Lazydoc was developed
-    # with RDoc in mind.  To hide attributes in one line, make use of the RDoc 
-    # <tt>:startdoc:</tt> document modifier like this (spaces added to keep them in the
-    # example):
+    # To hide attributes from RDoc, make use of the RDoc <tt>:startdoc:</tt> 
+    # document modifier like this (spaces added to keep them in the example):
     #
     #   # :start doc::Const::Name::one hidden in RDoc
     #   # * This line is visible in RDoc.
@@ -85,7 +149,7 @@ module Tap
     #   #
     #   # * This line is also visible in RDoc.
     #
-    # Here is the same text, actually in RDoc:
+    # Here is the same text, for comparison if you are reading this as RDoc:
     #
     # :startdoc::Const::Name::one hidden in RDoc
     # * This line is visible in RDoc.
@@ -100,10 +164,10 @@ module Tap
     # * This line is also visible in RDoc.
     #
     # === Code Comments
-    # Code comments are lines marked for parsing if and when a Lazydoc gets resolved.
-    # Unlike constant attributes, the line is the subject of a code comment and
-    # comment lines are parsed up from it (effectively mimicking the behavior of
-    # RDoc).
+    # Code comments are lines registered for parsing if and when a Lazydoc gets 
+    # resolved. Unlike constant attributes, the registered line is the comment
+    # subject and the comment content is parsed up from it (basically mimicking 
+    # the behavior of RDoc).
     #
     #   str = %Q{
     #   # comment lines for
@@ -127,6 +191,12 @@ module Tap
     #   # => [
     #   # ['def method', 'comment lines for the method'],
     #   # ['def another_method', 'as in RDoc, the comment can be separated from the method']]
+    #
+    # Comments may be registered to specific line numbers, or with a Proc or
+    # Regexp that will determine the line number during resolution.  In the case
+    # of a Regexp, the first matching line is used; Procs receive the lines of 
+    # the document and return the line that should be used.  See Comment#resolve
+    # for more details.
     #
     class Lazydoc
       
@@ -314,9 +384,6 @@ module Tap
       # are hashes of (key, comment) pairs.
       attr_reader :const_attrs
       
-      # An array of [regexp, comment_class, callback] entries.  
-      attr_reader :patterns
-      
       # The default constant name used when no constant name
       # is specified for a constant attribute.
       attr_reader :default_const_name
@@ -328,25 +395,40 @@ module Tap
         self.source_file = source_file
         @default_const_name = default_const_name
         @comments = []
-        @patterns = []
         @const_attrs = {}
         @resolved = false
+        self.reset
       end
       
-      def default_const_name=(value)
-        current = const_attrs.delete(@default_const_name)
-        const_attrs[value] = current
-        @default_const_name = value
-      end
-      
-      # Returns the attributes for the specified const_name.
-      def [](const_name)
-        const_attrs[const_name] ||= {}
+      # Resets self by clearing const_attrs, comments, and setting
+      # resolved to false.  Generally NOT recommended as this 
+      # clears any work you've done registering lines; to simply
+      # allow resolve to re-scan a document, manually set
+      # resolved to false.
+      def reset
+        @const_attrs.clear
+        @comments.clear
+        @resolved = false
+        self
       end
       
       # Sets the source file for self.  Expands the source file path if necessary.
       def source_file=(source_file)
         @source_file = source_file == nil ? nil : File.expand_path(source_file)
+      end
+      
+      # Sets the default_const_name for self.  Any const_attrs assigned to 
+      # the previous default_const_name will be removed from const_attrs 
+      # and merged with any const_attrs already assigned to the new 
+      # default_const_name.
+      def default_const_name=(const_name)
+        self[const_name].merge!(const_attrs.delete(@default_const_name) || {})
+        @default_const_name = const_name
+      end
+      
+      # Returns the attributes for the specified const_name.
+      def [](const_name)
+        const_attrs[const_name] ||= {}
       end
 
       # Register the specified line number to self.  Returns a 

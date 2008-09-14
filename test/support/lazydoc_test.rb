@@ -17,6 +17,30 @@ module CallerRegexpTestModule
   end
 end
 
+# used in documentation test below
+
+# Sample::key <this is the subject line>
+# a constant attribute content string that
+# can span multiple lines...
+#
+#   code.is_allowed
+#   much.as_in RDoc
+#
+# and stops at the next non-comment
+# line, the next constant attribute,
+# or an end key
+class Sample
+  extend Tap::Support::LazyAttributes
+  self.source_file = __FILE__
+  
+  lazy_attr :key
+
+  # comment content for a code comment
+  # may similarly span multiple lines
+  def method_one
+  end
+end
+
 class LazydocTest < Test::Unit::TestCase
   include Tap::Support
   include Tap::Test::SubsetMethods
@@ -58,7 +82,43 @@ class LazydocTest < Test::Unit::TestCase
   # documentation test
   #
   
-  def test_documentation
+  def test_documentation 
+    comment = Sample::key
+    assert_equal "<this is the subject line>", comment.subject
+         
+    expected = [
+    ["a constant attribute content string that", "can span multiple lines..."],
+    [""],
+    ["  code.is_allowed"],
+    ["  much.as_in RDoc"],
+    [""],
+    ["and stops at the next non-comment", "line, the next constant attribute,", "or an end key"]]
+    assert_equal expected, comment.content
+    
+    expected = %q{
+..............................
+a constant attribute content
+string that can span multiple
+lines...
+
+  code.is_allowed
+  much.as_in RDoc
+
+and stops at the next
+non-comment line, the next
+constant attribute, or an end
+key
+..............................
+}
+    assert_equal expected, "\n#{'.' * 30}\n" + comment.wrap(30) + "\n#{'.' * 30}\n"
+
+    lazydoc = Sample.lazydoc.reset
+    comment = lazydoc.register(/method_one/)
+    
+    lazydoc.resolve
+    assert_equal "  def method_one", comment.subject
+    assert_equal [["comment content for a code comment", "may similarly span multiple lines"]], comment.content
+  
     str = %Q{
 # Const::Name::key subject for key
 # comment for key
@@ -72,16 +132,16 @@ class LazydocTest < Test::Unit::TestCase
 #
 # ignored comment
 }
-
+  
     lazydoc = Lazydoc.new
     lazydoc.resolve(str)
-
+    
     expected = {'Const::Name' => {
      'key' =>     ['subject for key', 'comment for key parsed until a non-comment line'],
      'another' => ['subject for another', 'comment for another parsed to an end key']
     }}
-    assert_equal(expected, lazydoc.to_hash {|comment| [comment.subject, comment.to_s] })
-
+    assert_equal expected, lazydoc.to_hash {|comment| [comment.subject, comment.to_s] } 
+  
     str = %Q{
 Const::Name::not_parsed
 
@@ -90,13 +150,11 @@ Const::Name::not_parsed
 # :::+
 # Const::Name::parsed subject
 }
-
+  
     lazydoc = Lazydoc.new
     lazydoc.resolve(str)
     assert_equal({'Const::Name' => {'parsed' => 'subject'}}, lazydoc.to_hash {|comment| comment.subject })
-
-    ##########
-
+  
     str = %Q{
 # comment lines for
 # the method
@@ -109,16 +167,16 @@ end
 def another_method
 end
 }
-
+  
     lazydoc = Lazydoc.new
     lazydoc.register(3)
     lazydoc.register(9)
     lazydoc.resolve(str)
-
+  
     expected = [
     ['def method', 'comment lines for the method'],
     ['def another_method', 'as in RDoc, the comment can be separated from the method']]
-    assert_equal(expected, lazydoc.comments.collect {|comment| [comment.subject, comment.to_s] } )
+    assert_equal expected, lazydoc.comments.collect {|comment| [comment.subject, comment.to_s] } 
   end
 
   def test_startdoc_syntax
@@ -530,6 +588,33 @@ Skipped::key
     assert_not_nil doc.source_file
     doc.source_file = nil
     assert_nil doc.source_file
+  end
+  
+  #
+  # default_const_name= test
+  #
+
+  def test_set_default_const_name_sets_the_default_const_name
+    assert_equal('', doc.default_const_name)
+    doc.default_const_name = 'Const::Name'
+    assert_equal('Const::Name', doc.default_const_name)
+  end
+
+  def test_set_default_const_name_merges_any_existing_default_const_attrs_with_const_attrs_for_the_new_name
+    doc['']['one'] = 'value one'
+    doc['']['two'] = 'value two'
+    doc['New']['two'] = 'New value two'
+    doc['New']['three'] = 'New value three'
+    
+    assert_equal({
+      '' => {'one' => 'value one', 'two' => 'value two'},
+      'New' => {'two' => 'New value two', 'three' => 'New value three'},
+    }, doc.const_attrs)
+    
+    doc.default_const_name = 'New'
+    assert_equal({
+      'New' => {'one' => 'value one',  'two' => 'value two', 'three' => 'New value three'},
+    }, doc.const_attrs)
   end
 
   #
