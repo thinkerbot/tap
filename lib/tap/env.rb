@@ -244,13 +244,9 @@ module Tap
     path_manifest(:tasks, :load_paths, "**/*.rb") do |load_path, path|
       next unless File.file?(path) && document = Support::Lazydoc.scan_doc(path, 'manifest')
       
-      document.const_names.collect do |const_name|
-        if const_name.empty?
-          key = env.root.relative_filepath(load_path, path).chomp('.rb')
-          [key, Support::Constant.new(key.camelize, path)]
-        else
-          [const_name.underscore, Support::Constant.new(const_name, path)]
-        end
+      document.default_const_name = env.root.relative_filepath(load_path, path).chomp('.rb').camelize
+      document.const_attrs.keys.collect do |const_name|
+        [const_name.underscore, Support::Constant.new(const_name, path)]
       end
     end
     
@@ -263,13 +259,9 @@ module Tap
       next unless File.file?(path) && "#{File.basename(dirname)}_generator.rb" == File.basename(path)
       
       next unless document = Support::Lazydoc.scan_doc(path, 'generator')
-      document.const_names.collect do |const_name|
-        if const_name.empty?
-          key = env.root.relative_filepath(generator_path, dirname)
-          [key, Support::Constant.new((key + '_generator').camelize, path)]
-        else
-          [const_name.underscore, Support::Constant.new(const_name, path)]
-        end
+      document.default_const_name = "#{env.root.relative_filepath(generator_path, dirname)}_generator".camelize
+      document.const_attrs.keys.collect do |const_name|
+        [const_name.underscore.chomp('_generator'), Support::Constant.new(const_name, path)]
       end
     end
     

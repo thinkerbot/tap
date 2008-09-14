@@ -10,16 +10,29 @@ module Tap
     #
     # Constant attributes are designated the same as constants in Ruby, but with
     # an extra 'key' constant that must consist of only lowercase letters and/or
-    # underscores.  Attributes are only parsed from comment lines.
+    # underscores.  For example,
+    # these are constant attributes:
     #
-    # When Lazydoc finds an attribute it parses a Comment value where the subject
-    # is the remainder of the line, and comment lines are parsed down until a
-    # non-comment line, an end key, or a new attribute is reached.
+    #   # Const::Name::key
+    #   # Const::Name::key_with_underscores
+    #   # ::key
+    #
+    # While these are not:
+    #
+    #   # Const::Name::Key
+    #   # Const::Name::key2
+    #   # Const::Name::k@y
+    #
+    # Lazydoc parses a Comment for each constant attribute by using the remainder 
+    # of the line as a subject and scanning down for comment lines until a
+    # non-comment line, an end key, or a new attribute is reached.  Lazydoc
+    # then stores the comment by constant name and key.
     #
     #   str = %Q{
     #   # Const::Name::key subject for key
     #   # comment for key
-    #   # parsed until a non-comment line
+    #   # parsed until a 
+    #   # non-comment line
     #
     #   # Const::Name::another subject for another
     #   # comment for another
@@ -38,18 +51,15 @@ module Tap
     #   #  'another' => ['subject for another', 'comment for another parsed to an end key']
     #   # }}
     #
-    # A constant name does not need to be specified; when no constant name is
-    # specified, Lazydoc will store the key as a default for the document. To
-    # turn off attribute parsing for a section of documentation, use start/stop
-    # keys:
+    # Attributes are only parsed from comment lines.  To turn off attribute parsing for 
+    # a section of documentation, use start/stop keys:
     #
     #   str = %Q{
+    #   Const::Name::not_parsed
+    #
     #   # :::-
     #   # Const::Name::not_parsed
     #   # :::+
-    #
-    #   Const::Name::not_parsed
-    #
     #   # Const::Name::parsed subject
     #   }
     #
@@ -58,7 +68,6 @@ module Tap
     #   lazydoc.to_hash {|comment| comment.subject }   # => {'Const::Name' => {'parsed' => 'subject'}}
     #
     # ==== startdoc
-    #
     # Lazydoc is completely separate from RDoc, but the syntax of Lazydoc was developed
     # with RDoc in mind.  To hide attributes in one line, make use of the RDoc 
     # <tt>:startdoc:</tt> document modifier like this (spaces added to keep them in the
@@ -91,7 +100,6 @@ module Tap
     # * This line is also visible in RDoc.
     #
     # === Code Comments
-    #
     # Code comments are lines marked for parsing if and when a Lazydoc gets resolved.
     # Unlike constant attributes, the line is the subject of a code comment and
     # comment lines are parsed up from it (effectively mimicking the behavior of
@@ -115,7 +123,7 @@ module Tap
     #   lazydoc.register(9)
     #   lazydoc.resolve(str)
     #
-    #   lazydoc.code_comments.collect {|comment| [comment.subject, comment.to_s] } 
+    #   lazydoc.comments.collect {|comment| [comment.subject, comment.to_s] } 
     #   # => [
     #   # ['def method', 'comment lines for the method'],
     #   # ['def another_method', 'as in RDoc, the comment can be separated from the method']]
@@ -163,33 +171,33 @@ module Tap
         end
 
         # Register the specified line numbers to the lazydoc for source_file.
-        # Returns a CodeComment corresponding to the line.
-        def register(source_file, line_number)
-          Lazydoc[source_file].register(line_number)
+        # Returns a comment_class instance corresponding to the line.
+        def register(source_file, line_number, comment_class=Comment)
+          Lazydoc[source_file].register(line_number, comment_class)
         end
         
         # Resolves all lazydocs which include the specified code comments.
-        def resolve_comments(code_comments)
+        def resolve_comments(comments)
           registry.each do |doc|
-            next if (code_comments & doc.code_comments).empty?
+            next if (comments & doc.comments).empty?
             doc.resolve
           end
         end
         
         # Scans the specified file for attributes keyed by key and stores 
-        # the resulting comments in the corresponding lazydoc.
-        # Returns the lazydoc.
+        # the resulting comments in the source_file lazydoc. Returns the
+        # lazydoc.
         def scan_doc(source_file, key)
           lazydoc = nil
           scan(File.read(source_file), key) do |const_name, attr_key, comment|
             lazydoc = self[source_file] unless lazydoc
-            lazydoc.attributes(const_name)[attr_key] = comment
+            lazydoc[const_name][attr_key] = comment
           end
           lazydoc
         end
         
-        # Scans the string or StringScanner for attributes matching the key;
-        # keys may be patterns, they are incorporated into a regexp. Yields 
+        # Scans the string or StringScanner for attributes matching the key
+        # (keys may be patterns, they are incorporated into a regexp). Yields 
         # each (const_name, key, value) triplet to the mandatory block and
         # skips regions delimited by the stop and start keys <tt>:-</tt> 
         # and <tt>:+</tt>.
@@ -294,27 +302,46 @@ module Tap
       
       include Enumerable
       
-      # The source file for self, used in resolving comments and
-      # attributes.
+      # The source file for self, used during resolve.
       attr_reader :source_file
       
-      # An array of Comment objects identifying lines resolved or
-      # to-be-resolved for self.
-      attr_reader :code_comments
+      # An array of Comment objects identifying lines 
+      # resolved or to-be-resolved for self.
+      attr_reader :comments
       
       # A hash of (const_name, attributes) pairs tracking the constant 
       # attributes resolved or to-be-resolved for self.  Attributes
       # are hashes of (key, comment) pairs.
       attr_reader :const_attrs
       
+      # An array of [regexp, comment_class, callback] entries.  
       attr_reader :patterns
       
-      def initialize(source_file=nil)
+      # The default constant name used when no constant name
+      # is specified for a constant attribute.
+      attr_reader :default_const_name
+      
+      # Flag indicating whether or not self has been resolved.
+      attr_accessor :resolved
+      
+      def initialize(source_file=nil, default_const_name='')
         self.source_file = source_file
-        @code_comments = []
-        @patterns = {}
+        @default_const_name = default_const_name
+        @comments = []
+        @patterns = []
         @const_attrs = {}
         @resolved = false
+      end
+      
+      def default_const_name=(value)
+        current = const_attrs.delete(@default_const_name)
+        const_attrs[value] = current
+        @default_const_name = value
+      end
+      
+      # Returns the attributes for the specified const_name.
+      def [](const_name)
+        const_attrs[const_name] ||= {}
       end
       
       # Sets the source file for self.  Expands the source file path if necessary.
@@ -322,132 +349,52 @@ module Tap
         @source_file = source_file == nil ? nil : File.expand_path(source_file)
       end
 
-      # Returns the attributes for the specified const_name.
-      def attributes(const_name)
-        const_attrs[const_name] ||= {}
-      end
-      
-      # Returns default document attributes (ie attributes(''))
-      def default_attributes
-        attributes('')
-      end
-      
-      # Returns the attributes for const_name merged to default_attributes.  
-      # Set merge_defaults to false to get just the attributes for const_name.
-      def [](const_name, merge_defaults=true)
-        merge_defaults ? default_attributes.merge(attributes(const_name)) : attributes(const_name)
-      end
-      
-      # Yields each (const_name, attributes) pair to the block; const_names where
-      # the attributes are empty are skipped.
-      def each
-        const_attrs.each_pair do |const_name, attrs|
-          yield(const_name, attrs) unless attrs.empty?
-        end
-      end
-      
-      # Returns true if the attributes for const_name are not empty.
-      def has_const?(const_name)
-        const_attrs.each_pair do |constname, attrs|
-          next unless constname == const_name
-          return !attrs.empty?
-        end
-        
-        false
-      end
-      
-      # Returns an array of the constant names in self, for which
-      # the constant attributes are not empty.
-      def const_names
-        names = []
-        const_attrs.each_pair do |const_name, attrs|
-          names << const_name unless attrs.empty?
-        end
-        names
-      end
-
       # Register the specified line number to self.  Returns a 
-      # Comment object corresponding to the line.
-      def register(line_number)
-        comment = code_comments.find {|c| c.line_number == line_number }
-
-        if comment == nil
-          comment = Comment.new(line_number)
-          code_comments << comment
-        end
-
+      # comment_class instance corresponding to the line.
+      def register(line_number, comment_class=Comment)
+        comment = comment_class.new(line_number)
+        comments << comment
         comment
       end
       
-      def register_pattern(key, regexp, &block) # :yields: comment, match
-        patterns[key] = [regexp, block]
+      #--
+      # During resolve each line matching regexp will be 
+      # parsed as a comment and sent to callback; if the
+      # callback returns true 
+      def register_pattern(regexp, comment_class=Comment, &callback) # :yields: comment
+        patterns << [regexp, comment_class, callback]
       end
-      
-      def register_method_pattern(key, method, range=0..-1)
-        register_pattern(key, /^\s*def\s+#{method}(\((.*?)\))?/) do |comment, match|
-          args = match[2].to_s.split(',').collect do |arg|
-            arg = arg.strip.upcase
-            case arg
-            when /^&/ then nil
-            when /^\*/ then arg[1..-1] + "..."
-            else arg
-            end
-          end
-          
-          comment.subject = args[range].join(', ')
-        end
+
+      def register_method_pattern(method, comment_class=Comment, &callback) # :yields: comment
+        register_pattern(/^\s*def\s+#{method}(\W|$)/, comment_class, &callback)
       end
-      
-      # Returns true if the code_comments for source_file are frozen.
-      def resolved?
-        @resolved
-      end
-      
-      attr_writer :resolved
       
       def resolve(str=nil)
-        return(false) if resolved?
+        return(false) if resolved
         
-        if str == nil 
-          raise ArgumentError, "no source file specified" unless source_file && File.exists?(source_file)
-          str = File.read(source_file)
-        end
-        
+        str = File.read(source_file) if str == nil
         Lazydoc.parse(str) do |const_name, key, comment|
-          attributes(const_name)[key] = comment
+          const_name = default_const_name if const_name.empty?
+          self[const_name][key] = comment
         end
         
-        lines = str.split(/\r?\n/)
+        unless comments.empty? && patterns.empty?
+          lines = str.split(/\r?\n/)
         
-        patterns.each_pair do |key, (regexp, block)|
-          next if default_attributes.has_key?(key)
+          comments.collect! do |comment|
+            resolve_comment(lines, comment)
+          end
           
-          lines.each_with_index do |line, line_number|
-            next unless line =~ regexp
-            
-            comment = register(line_number)
-            default_attributes[key] = comment
-            break if block.call(comment, $~)
+          patterns.each do |regexp, comment_class, callback|  
+            lines.each_with_index do |line, line_number|
+              next unless line =~ regexp
+              
+              comment = register(line_number, comment_class)
+              resolve_comment(lines, comment)
+              
+              break if callback && callback.call(comment)
+            end
           end
-        end unless patterns.empty?
-          
-        code_comments.collect! do |comment|
-          line_number = comment.line_number
-          comment.subject = lines[line_number] if comment.subject == nil
-
-          # remove whitespace lines
-          line_number -= 1
-          while lines[line_number].strip.empty?
-            line_number -= 1
-          end
-
-          # put together the comment
-          while line_number >= 0
-            break unless comment.prepend(lines[line_number])
-            line_number -= 1
-          end
-
-          comment
         end
         
         @resolved = true
@@ -455,14 +402,37 @@ module Tap
       
       def to_hash
         const_hash = {}
-        const_names.sort.each do |const_name|
+        const_attrs.each_pair do |const_name, attributes|
+          next if attributes.empty?
+          
           attr_hash = {}
-          self[const_name, false].each_pair do |key, comment|
+          attributes.each_pair do |key, comment|
             attr_hash[key] = (block_given? ? yield(comment) : comment)
           end
           const_hash[const_name] = attr_hash
         end
         const_hash
+      end
+      
+      protected
+      
+      def resolve_comment(lines, comment)
+        line_number = comment.line_number
+        comment.subject = lines[line_number]
+
+        # remove whitespace lines
+        line_number -= 1
+        while lines[line_number].strip.empty?
+          line_number -= 1
+        end
+
+        # put together the comment
+        while line_number >= 0
+          break unless comment.prepend(lines[line_number])
+          line_number -= 1
+        end
+
+        comment
       end
     end
   end

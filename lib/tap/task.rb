@@ -214,36 +214,7 @@ module Tap
         subclass.define_configurations(configs)
         subclass.define_dependencies(dependencies)
         subclass.define_process(block) if block_given?
-  
-        #
-        # Register documentation
-        #
-        const_name = subclass.to_s
-        caller.each_with_index do |line, index|
-          case line
-          when /\/tap\/support\/declarations.rb/ then next
-          when Support::Lazydoc::CALLER_REGEXP
-            subclass.source_file = File.expand_path($1)
-            lzd = subclass.lazydoc(false)
-            lzd[const_name, false]['manifest'] = lzd.register($3.to_i - 1)            
-            break
-          end
-        end
-
-        arity = options[:arity] || (block_given? ? block.arity : -1)
-        comment = Support::Comment.new
-        comment.subject = case
-        when arity > 0
-          Array.new(arity, "INPUT").join(' ')
-        when arity < 0
-          array = Array.new(-1 * arity - 1, "INPUT")
-          array << "INPUTS..."
-          array.join(' ')
-        else ""
-        end
-        subclass.lazydoc(false)[const_name, false]['args'] ||= comment
-
-        subclass.default_name = const_name.underscore
+        subclass.default_name = subclass.to_s.underscore
         subclass
       end
       
@@ -338,7 +309,24 @@ module Tap
 
       def lazydoc(resolve=true)
         lazydoc = super(false)
-        lazydoc.register_method_pattern('args', :process) unless lazydoc.resolved?
+        lazydoc.register_method_pattern(:process) do |comment|
+          comment.subject =~ /process(\((.*?)\))?/
+          
+          args = $2.to_s.split(',').collect do |arg|
+            arg = arg.strip.upcase
+            case arg
+            when /^&/ then nil
+            when /^\*/ then arg[1..-1] + "..."
+            else arg
+            end
+          end
+          
+          comment.subject = args.join(', ')
+          lazydoc[self.to_s]['args'] ||= comment
+          
+          true
+        end unless lazydoc.resolved
+        
         super
       end
 

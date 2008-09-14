@@ -27,19 +27,7 @@ class LazyAttributesTest < Test::Unit::TestCase
     assert_equal Tap::Support::Comment, LazyClass.unknown.class
     assert_equal nil, LazyClass.unknown.subject
     
-    comment = Tap::Support::Lazydoc[__FILE__].attributes('LazyAttributesTest::LazyClass')['unknown']
+    comment = Tap::Support::Lazydoc[__FILE__]['LazyAttributesTest::LazyClass']['unknown']
     assert_equal comment, LazyClass.unknown
-  end
-  
-  # ::lazy default subject
-  class AnotherLazyClass
-    extend Tap::Support::LazyAttributes
-    self.source_file = __FILE__
-    
-    lazy_attr :lazy
-  end
-  
-  def test_lazy_attr_will_return_default_if_specified
-    assert_equal "default subject", AnotherLazyClass.lazy.subject
   end
 end

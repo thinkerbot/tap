@@ -59,6 +59,16 @@ class DeclarationsTest < Test::Unit::TestCase
     ], klass.dependencies
   end
   
+  def test_tasc_registers_documentation
+    
+    # ::desc summary
+    # a multiline
+    # comment
+    tasc(:declaration7)
+    assert_equal "summary", Declaration7.manifest.subject
+    assert_equal "a multiline comment", Declaration7.manifest.to_s
+  end
+  
   #
   # tasc nesting
   #

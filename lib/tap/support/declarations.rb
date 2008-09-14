@@ -20,18 +20,6 @@ module Tap
       def tasc(name, configs={}, &block)
         declare(Tap::Task, name, configs, &block)
       end
-
-      def task(name, configs={}, &block)
-         mod_declare(Tap::Task, name, configs, &block)
-      end
-
-      def file_tasc(name, configs={}, &block)
-        declare(Tap::FileTask, name, configs, &block)
-      end
-
-      def file_task(name, configs={}, &block)
-         mod_declare(Tap::FileTask, name, configs, &block)
-      end
       
       protected
 
@@ -70,7 +58,7 @@ module Tap
         arity
       end
       
-      def declare(klass, declaration, configs={}, options={}, &block)
+      def parse(declaration)
         # Extract name and dependencies from declaration
         name, dependencies = case declaration
         when Hash then declaration.to_a[0]
@@ -100,38 +88,45 @@ module Tap
           end
         end
         
-        # Nest the constant name
+        [name, dependencies]
+      end
+      
+      def declare(klass, declaration, configs={}, options={}, &block)
+        # parse the declaration
+        name, dependencies = parse(declaration)
+        
+        # nest the constant name
         base = (self.kind_of?(Module) ? self : self.class).instance_variable_get(:@tap_declaration_base)
         name = File.join(base, name.to_s)
         
-        klass.subclass(name, configs, dependencies, options, &block)
+        # generate the subclass
+        subclass = klass.subclass(name, configs, dependencies, options, &block)
+        
+        # register documentation
+        caller[1] =~ Support::Lazydoc::CALLER_REGEXP
+        subclass.source_file = File.expand_path($1)
+        lazydoc = subclass.lazydoc(false)
+        lazydoc[subclass.to_s]['manifest'] = lazydoc.register($3.to_i - 1).extend DeclarationManifest      
+
+        arity = options[:arity] || (block_given? ? block.arity : -1)
+        comment = Comment.new
+        comment.subject = case
+        when arity > 0
+          Array.new(arity, "INPUT").join(' ')
+        when arity < 0
+          array = Array.new(-1 * arity - 1, "INPUT")
+          array << "INPUTS..."
+          array.join(' ')
+        else ""
+        end
+        lazydoc[subclass.to_s]['args'] ||= comment
+        
+        subclass
       end
       
-      def mod_declare(klass, declaration, configs={}, &block)
-        options = {}
-        options[:arity] = arity(block) if block_given?
-
-        subclass = declare(klass, declaration, configs, options)
+      module DeclarationManifest
         
-        if block_given?
-          mod = Module.new
-          mod.module_eval %Q{
-            ACTION = ObjectSpace._id2ref(#{block.object_id})
-            def process(*args)
-              results = super
-              case ACTION.arity
-              when 0 then ACTION.call
-              when 1 then ACTION.call(self)
-              else ACTION.call(self, *args)
-              end
-              results
-            end
-          }
-          subclass.send(:include, mod)
-        end
-        subclass.instance
       end
-
     end
   end
 end

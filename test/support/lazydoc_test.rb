@@ -62,7 +62,8 @@ class LazydocTest < Test::Unit::TestCase
     str = %Q{
 # Const::Name::key subject for key
 # comment for key
-# parsed until a non-comment line
+# parsed until a 
+# non-comment line
 
 # Const::Name::another subject for another
 # comment for another
@@ -82,10 +83,11 @@ class LazydocTest < Test::Unit::TestCase
     assert_equal(expected, lazydoc.to_hash {|comment| [comment.subject, comment.to_s] })
 
     str = %Q{
+Const::Name::not_parsed
+
 # :::-
 # Const::Name::not_parsed
 # :::+
-
 # Const::Name::parsed subject
 }
 
@@ -116,7 +118,7 @@ end
     expected = [
     ['def method', 'comment lines for the method'],
     ['def another_method', 'as in RDoc, the comment can be separated from the method']]
-    assert_equal(expected, lazydoc.code_comments.collect {|comment| [comment.subject, comment.to_s] } )
+    assert_equal(expected, lazydoc.comments.collect {|comment| [comment.subject, comment.to_s] } )
   end
 
   def test_startdoc_syntax
@@ -507,9 +509,10 @@ Skipped::key
   def test_initialize
     doc = Lazydoc.new
     assert_equal(nil, doc.source_file)
+    assert_equal('', doc.default_const_name)
     assert_equal({}, doc.const_attrs)
-    assert_equal([], doc.code_comments)
-    assert !doc.resolved?
+    assert_equal([], doc.comments)
+    assert !doc.resolved
   end
 
   #
@@ -530,74 +533,25 @@ Skipped::key
   end
 
   #
-  # attributes test
+  # AGET test
   #
 
-  def test_attributes_returns_attributes_associated_with_the_const_name
+  def test_AGET_returns_attributes_associated_with_the_const_name
     doc.const_attrs['Const::Name'] = {:one => 1}
-    assert_equal({:one => 1}, doc.attributes('Const::Name'))
+    assert_equal({:one => 1}, doc['Const::Name'])
   end
 
-  def test_attributes_initializes_hash_in_const_attrs_if_necessary
+  def test_AGET_initializes_hash_in_const_attrs_if_const_attrs_does_not_have_const_name_as_a_key
     assert doc.const_attrs.empty?
-    assert_equal({}, doc.attributes('Const::Name'))
+    assert_equal({}, doc['Const::Name'])
     assert_equal({'Const::Name' => {}}, doc.const_attrs)
-  end
-
-  #
-  # defualt_attributes test
-  #
-
-  def test_default_attributes_returns_attributes_for_empty_const_name
-    doc.const_attrs[''] = {:one => 1}
-    assert_equal({:one => 1}, doc.attributes(''))
-    assert_equal({:one => 1}, doc.default_attributes)
-  end
-
-  #
-  # [] test 
-  #
-
-  def test_get_returns_attributes_for_const_name_merged_to_the_default_attributes_for_self
-    doc.const_attrs[''] = {:one => 'one', :two => 'two'}
-    doc.const_attrs['Const::Name'] = {:one => 1, :three => 3}
-    assert_equal({:one => 1, :two => 'two', :three => 3}, doc['Const::Name'])
-  end
-
-  #
-  # each test
-  #
-
-  def test_each_yields_each_const_name_and_attrs_pair_to_block
-    doc.const_attrs[''] = {:one => 'one'}
-    doc.const_attrs['Const::Name'] = {:one => 1}
-
-    results = []
-    doc.each do |const_name, attrs|
-      results << [const_name, attrs]
-    end
-    results = results.sort_by {|entry| entry.first }
-
-    assert_equal [['', {:one => 'one'}], ['Const::Name', {:one => 1}]], results
-  end
-
-  def test_each_skips_pairs_with_empty_attrs
-    doc.const_attrs[''] = {}
-    doc.const_attrs['Const::Name'] = {}
-
-    results = []
-    doc.each do |const_name, attrs|
-      results << [const_name, attrs]
-    end
-
-    assert_equal [], results
   end
 
   #
   # register test
   #
 
-  def test_register_adds_line_number_to_code_comments
+  def test_register_adds_line_number_to_comments
     c1 = doc.register(1)
     assert_equal 1, c1.line_number
 
@@ -607,14 +561,14 @@ Skipped::key
     c3 = doc.register(3)
     assert_equal 3, c3.line_number
 
-    assert_equal([c1, c2, c3], doc.code_comments)
+    assert_equal([c1, c2, c3], doc.comments)
   end
 
   #
   # resolve test
   #
 
-  def test_resolve_parses_code_comments_from_str_for_source_file
+  def test_resolve_parses_comments_from_str_for_source_file
     str = %Q{
 # comment one
 # spanning multiple lines
@@ -633,7 +587,7 @@ not a subject line
 
     c1 = Comment.new(6)
     c2 = Comment.new(10)
-    doc.code_comments.concat [c1, c2]
+    doc.comments.concat [c1, c2]
     doc.resolve(str)
 
     assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c1.lines
@@ -644,48 +598,6 @@ not a subject line
     assert_equal "subject line two", c2.subject
     assert_equal 10, c2.line_number
   end
-
-#   def test_resolve_adds_code_comments_for_line_matching_comment_regexp
-#     str = %Q{
-# # comment one
-# # spanning multiple lines
-# #
-# #   indented line
-# #    
-# subject line one
-# 
-# # comment two
-# 
-# subject line two
-# 
-# # ignored
-# not a subject line
-# }
-#     doc.resolve(str, /subject line/)
-#     c1, c2 = doc.code_comments
-# 
-#     assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c1.lines
-#     assert_equal "subject line one", c1.subject
-#     assert_equal 6, c1.line_number
-# 
-#     assert_equal [['comment two']], c2.lines
-#     assert_equal "subject line two", c2.subject
-#     assert_equal 10, c2.line_number
-#   end
-
-#   def test_resolve_passes_matched_code_comment_and_regexp_match_to_block_if_given
-#     str = %Q{
-# line two match
-# line three match
-# }
-# 
-#     comment_lines = []
-#     doc.resolve(str, /line (.*) /) do |comment, match|
-#       comment_lines << [comment.line_number, match[1]]
-#     end
-# 
-#     assert_equal [[1,'two'], [2,'three']], comment_lines
-#   end
 
   def test_resolve_reads_const_attrs_from_str
     doc.resolve %Q{
@@ -725,18 +637,18 @@ subject line one
   end
 
   def test_resolve_sets_resolved_to_true
-    assert !doc.resolved?
+    assert !doc.resolved
     doc.resolve ""
-    assert doc.resolved?
+    assert doc.resolved
   end
 
   def test_resolve_does_nothing_if_already_resolved
     c1 = Comment.new(1)
     c2 = Comment.new(1)
-    doc.code_comments << c1
+    doc.comments << c1
     assert doc.resolve("# comment one\nsubject line one")
 
-    doc.code_comments << c2
+    doc.comments << c2
     assert !doc.resolve("# comment two\nsubject line two")
 
     assert_equal [['comment one']], c1.lines
@@ -744,5 +656,82 @@ subject line one
 
     assert_equal [], c2.lines
     assert_equal nil, c2.subject
+  end
+  
+  #
+  # test resolve with patterns
+  #
+  
+  PATTERN_STR = %Q{
+# comment one
+# spanning multiple lines
+#
+#   indented line
+#    
+subject line one
+
+# comment two
+
+subject line two
+
+# ignored
+not a subject line
+}
+  
+  def test_resolve_parses_comments_for_lines_matching_registered_patterns
+    doc.register_pattern(/subject line \w{3}/)
+    doc.resolve(PATTERN_STR)
+
+    assert_equal 2, doc.comments.length
+    c0, c1 = doc.comments
+
+    assert_equal 6, c0.line_number
+    assert_equal "subject line one", c0.subject
+    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c0.lines
+
+    assert_equal 10, c1.line_number
+    assert_equal "subject line two", c1.subject
+    assert_equal [['comment two']], c1.lines
+  end
+
+  def test_resolve_passes_matched_comments_to_the_callback
+    was_in_block = false
+    doc.register_pattern(/subject line \w{3}/) do |comment|
+      assert_equal comment, doc.comments[0]
+      was_in_block = true
+    end
+    doc.resolve(PATTERN_STR)
+
+    c0 = doc.comments[0]
+
+    assert_equal 6, c0.line_number
+    assert_equal "subject line one", c0.subject
+    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c0.lines
+  end
+
+  def test_resolve_stops_matching_the_pattern_if_the_callback_returns_true
+    was_in_block = false
+    doc.register_pattern(/subject line \w{3}/) do |comment|
+      assert_equal comment, doc.comments[0]
+      was_in_block = true
+
+      true
+    end
+    doc.resolve(PATTERN_STR)
+
+    assert_equal 1, doc.comments.length
+    assert was_in_block
+  end
+  
+  def test_resolve_continues_matching_the_pattern_if_the_callback_returns_false
+    was_in_block = false
+    doc.register_pattern(/subject line \w{3}/) do |comment|
+      was_in_block = true
+      false
+    end
+    doc.resolve(PATTERN_STR)
+
+    assert_equal 2, doc.comments.length
+    assert was_in_block
   end
 end
