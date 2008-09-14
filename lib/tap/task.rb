@@ -249,7 +249,12 @@ module Tap
 
         opts.on_tail("-h", "--help", "Print this help") do
           opts.banner = "#{help}usage: tap run -- #{to_s.underscore} #{args.subject}"
-          yield(opts.to_s)
+          if block_given? 
+            yield(opts.to_s)
+          else
+            puts opts
+            exit
+          end
         end
 
         # Add option for name
@@ -309,24 +314,7 @@ module Tap
 
       def lazydoc(resolve=true)
         lazydoc = super(false)
-        lazydoc.register_method_pattern(:process) do |comment|
-          comment.subject =~ /process(\((.*?)\))?/
-          
-          args = $2.to_s.split(',').collect do |arg|
-            arg = arg.strip.upcase
-            case arg
-            when /^&/ then nil
-            when /^\*/ then arg[1..-1] + "..."
-            else arg
-            end
-          end
-          
-          comment.subject = args.join(', ')
-          lazydoc[self.to_s]['args'] ||= comment
-          
-          true
-        end unless lazydoc.resolved
-        
+        lazydoc[self.to_s]['args'] ||= lazydoc.register_method(:process, Args)
         super
       end
 
@@ -626,6 +614,25 @@ module Tap
       configs = config[name] || {}
       raise ArgumentError, "config '#{name}' is not a hash" unless configs.kind_of?(Hash)
       klass.new(configs, name, &block)
+    end
+    
+    class Args < Support::Comment
+      def resolve(lines)
+        super
+        @subject =~ /def \w+(\((.*?)\))?/
+      
+        args = $2.to_s.split(',').collect do |arg|
+          arg = arg.strip.upcase
+          case arg
+          when /^&/ then nil
+          when /^\*/ then arg[1..-1] + "..."
+          else arg
+          end
+        end
+      
+        @subject = args.join(', ')
+        self
+      end
     end
   end
 end

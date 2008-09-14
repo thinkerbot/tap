@@ -352,21 +352,18 @@ module Tap
       # Register the specified line number to self.  Returns a 
       # comment_class instance corresponding to the line.
       def register(line_number, comment_class=Comment)
-        comment = comment_class.new(line_number)
-        comments << comment
+        comment = comments.find {|c| c.class == comment_class && c.line_number == line_number }
+        
+        if comment == nil
+          comment = comment_class.new(line_number)
+          comments << comment
+        end
+        
         comment
       end
       
-      #--
-      # During resolve each line matching regexp will be 
-      # parsed as a comment and sent to callback; if the
-      # callback returns true 
-      def register_pattern(regexp, comment_class=Comment, &callback) # :yields: comment
-        patterns << [regexp, comment_class, callback]
-      end
-
-      def register_method_pattern(method, comment_class=Comment, &callback) # :yields: comment
-        register_pattern(/^\s*def\s+#{method}(\W|$)/, comment_class, &callback)
+      def register_method(method, comment_class=Comment)
+        register(/^\s*def\s+#{method}(\W|$)/, comment_class)
       end
       
       def resolve(str=nil)
@@ -378,20 +375,10 @@ module Tap
           self[const_name][key] = comment
         end
         
-        unless comments.empty? && patterns.empty?
-          lines = str.split(/\r?\n/)
-        
+        unless comments.empty?
+          lines = str.split(/\r?\n/)  
           comments.each do |comment|
             comment.resolve(lines)
-          end
-          
-          patterns.each do |regexp, comment_class, callback|  
-            lines.each_with_index do |line, line_number|
-              next unless line =~ regexp
-              
-              comment = register(line_number, comment_class).resolve(lines)
-              break if callback && callback.call(comment)
-            end
           end
         end
         

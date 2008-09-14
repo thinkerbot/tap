@@ -588,14 +588,16 @@ subject
     assert_equal [["comment parsed", "up from line number"]], c.content
   end
   
-  def test_resolve_raises_error_when_resolving_and_no_line_number_is_set
+  def test_resolve_quietly_does_nothing_when_resolving_and_no_line_number_is_set
     assert_equal nil, c.line_number
-    assert_raise(ArgumentError) { c.resolve "" }
+    c.resolve [""]
+    assert_equal nil, c.subject
+    assert_equal [], c.content
   end
   
   def test_resolve_raises_a_range_error_when_line_number_is_out_of_lines
     c.line_number = 2
-    assert_raise(ArgumentError) { c.resolve ["", ""] }
+    assert_raise(RangeError) { c.resolve ["", ""] }
   end
   
   #

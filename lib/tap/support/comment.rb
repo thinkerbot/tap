@@ -415,8 +415,11 @@ module Tap
         else line_number
         end
          
-        unless n.kind_of?(Integer) && n < lines.length
-          raise ArgumentError, "cannot resolve using line_number and lines: #{line_number}\n[ '#{lines.join("',\n  '")}']"
+        # quietly exit if a line number was not found
+        return self unless n.kind_of?(Integer)
+          
+        unless n < lines.length
+          raise RangeError, "line_number outside of lines: #{line_number} (#{lines.length})"
         end
         
         self.line_number = n

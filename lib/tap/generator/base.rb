@@ -6,7 +6,7 @@ module Tap
       class << self
         def lazydoc(resolve=true)
           lazydoc = super(false)
-          lazydoc.register_method_pattern('args', :manifest, 1..-1) unless lazydoc.resolved?
+          lazydoc[self.to_s]['args'] ||= lazydoc.register_method(:manifest, Task::Args)
           super
         end
       end
