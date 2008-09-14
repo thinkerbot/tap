@@ -26,6 +26,37 @@ module Tap
     #   # [""], 
     #   # ["which may stretch across", "multiple lines"]]
     #
+    # When pulling comments out of a document, comments may be initialized
+    # to the line of the subject and then resolved using the document:
+    #
+    #   document = %Q{
+    #   module Sample
+    #     # this is the content of the comment
+    #     # for method_one
+    #     def method_one
+    #     end
+    #
+    #     # this is the content of the comment
+    #     # for method_two
+    #     def method_two
+    #     end
+    #   end}
+    #
+    #   c1 = Comment.new(4)
+    #   c2 = Comment.new(9)
+    #
+    #   # resolve will split the document, but 
+    #   # splitting once beforehand is more efficient
+    #   lines = document.split(/\r?\n/)
+    #
+    #   c1.resolve(lines)
+    #   c1.subject     # => "  def method_one"
+    #   c1.content     # => [["this is the content of the comment", "for method_one"]]
+    #
+    #   c2.resolve(lines)
+    #   c2.subject     # => "  def method_two"
+    #   c2.content     # => [["this is the content of the comment", "for method_two"]]
+    #   
     class Comment
     
       class << self
@@ -328,6 +359,40 @@ module Tap
         Comment.scan(line) {|f| unshift(f) }
       end
       
+      # Builds the subject and content of self using lines; resolve sets
+      # the subject to the line at line_number, and parses content up
+      # from there.  When complete, resolve sets resolved to true; resolve
+      # will not modify self if already resolved.
+      #
+      # Returns true if self was modified, false otherwise.
+      #
+      # Notes:
+      # - resolve is a good hook for post-processing in subclasses
+      # - lines may be an array or a string; string inputs are split
+      #   into lines along newline boundaries.
+      def resolve(lines)
+        return false if resolved
+        lines = lines.split(/\r?\n/) if lines.kind_of?(String)
+        
+        raise ArgumentError, "cannot resolve when no line_number is set" unless line_number
+        raise RangeError, "line_number >= lines.length" unless line_number < lines.length
+        
+        n = line_number
+        self.subject = lines[n]
+
+        # remove whitespace lines
+        n -= 1
+        n -= 1 while n >=0 && lines[n].strip.empty?
+
+        # put together the comment
+        while n >= 0
+          break unless prepend(lines[n])
+          n -= 1
+        end
+         
+        @resolved = true
+      end
+      
       # Removes leading and trailing lines from content that are
       # empty ([]) or whitespace (['']).  Returns self.
       def trim
@@ -369,29 +434,6 @@ module Tap
         self.line_number == another.line_number &&
         self.subject == another.subject &&
         self.content == another.content
-      end
-      
-      def resolve(lines)
-        return false if resolved
-        
-        if lines.kind_of?(String)
-          lines = lines.split(/\r?\n/)
-        end
-        
-        n = line_number
-        self.subject = lines[n]
-
-        # remove whitespace lines
-        n -= 1
-        n -= 1 while lines[n].strip.empty?
-
-        # put together the comment
-        while n >= 0
-          break unless prepend(lines[n])
-          n -= 1
-        end
-         
-        @resolved = true
       end
     end
   end

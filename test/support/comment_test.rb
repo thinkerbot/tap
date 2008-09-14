@@ -11,6 +11,54 @@ class CommentTest < Test::Unit::TestCase
   end
   
   #
+  # documentation test 
+  #
+  
+  def test_class_documentation
+    sample_comment = %Q{
+# this is the content of the comment
+#
+# which may stretch across
+# multiple lines
+this is the subject
+}
+    
+    c = Comment.parse(sample_comment)
+    assert_equal "this is the subject", c.subject
+    expected = [
+    ["this is the content of the comment"], 
+    [""], 
+    ["which may stretch across", "multiple lines"]]
+    assert_equal expected, c.content
+  
+    document = %Q{
+module Sample
+  # this is the content of the comment
+  # for method_one
+  def method_one
+  end
+
+  # this is the content of the comment
+  # for method_two
+  def method_two
+  end
+end}
+  
+    c1 = Comment.new(4)
+    c2 = Comment.new(9)
+  
+    lines = document.split(/\r?\n/)
+  
+    c1.resolve(lines)
+    assert_equal "  def method_one", c1.subject
+    assert_equal [["this is the content of the comment", "for method_one"]], c1.content
+  
+    c2.resolve(lines)
+    assert_equal "  def method_two", c2.subject
+    assert_equal [["this is the content of the comment", "for method_two"]], c2.content
+  end
+  
+  #
   # parse test
   #
   
@@ -402,6 +450,88 @@ subject line # with a trailing comment
     ['  indented line two'],
     ['']]
     assert_equal expected, c.content
+  end
+  
+  #
+  # resolve test
+  #
+  
+  def test_resolve_resolves_comment_from_line_number_up
+    lines = [
+      "not a comment",
+      "# comment parsed",
+      "# up from line number",
+      "subject"]
+
+   c.line_number = 3
+   c.resolve(lines)
+   assert_equal "subject", c.subject
+   assert_equal [["comment parsed", "up from line number"]], c.content
+  end
+
+  def test_resolve_skips_up_from_subject_past_whitespace_lines_to_content
+    lines = [
+      "not a comment",
+      "# comment parsed",
+      "# up from line number",
+      "",
+      " \t     \r  ",
+      "subject"]
+
+   c.line_number = 5
+   c.resolve(lines)
+   assert_equal "subject", c.subject
+   assert_equal [["comment parsed", "up from line number"]], c.content
+  end
+  
+  def test_resolve_parses_no_content_if_none_is_specified
+    lines = [
+      "not a comment",
+      "",
+      " \t     \r  ",
+      "subject"]
+
+   c.line_number = 3
+   c.resolve(lines)
+   assert_equal "subject", c.subject
+   assert_equal [], c.content
+  end
+
+  def test_resolve_splits_string_into_lines
+    str = %Q{not a comment
+# comment parsed
+# up from line number
+subject
+}
+
+   c.line_number = 3
+   c.resolve(str)
+   assert_equal "subject", c.subject
+   assert_equal [["comment parsed", "up from line number"]], c.content
+  end
+  
+  def test_resolve_returns_true_if_self_was_modified
+   c.line_number = 0
+   assert_equal true, c.resolve([""])
+   assert_equal false, c.resolve([""])
+  end
+  
+  def test_resolve_sets_resolved_to_true
+    c.line_number =  0
+    
+    assert !c.resolved
+    c.resolve [""]
+    assert c.resolved
+  end
+  
+  def test_resolve_raises_error_when_resolving_and_no_line_number_is_set
+    assert_equal nil, c.line_number
+    assert_raise(ArgumentError) { c.resolve "" }
+  end
+  
+  def test_resolve_raises_a_range_error_when_line_number_is_out_of_lines
+    c.line_number = 2
+    assert_raise(RangeError) { c.resolve ["", ""] }
   end
   
   #
