@@ -295,8 +295,6 @@ module Tap
               end
             end
             comment.subject = value
-            comment.resolved = true
-            
             yield(const_name, key, comment)
           end
         end
@@ -391,8 +389,7 @@ module Tap
             lines.each_with_index do |line, line_number|
               next unless line =~ regexp
               
-              comment = register(line_number, comment_class)
-              comment.resolve(lines)
+              comment = register(line_number, comment_class).resolve(lines)
               break if callback && callback.call(comment)
             end
           end

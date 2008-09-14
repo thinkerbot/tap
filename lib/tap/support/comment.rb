@@ -42,18 +42,15 @@ module Tap
     #     end
     #   end}
     #
-    #   c1 = Comment.new(4)
-    #   c2 = Comment.new(9)
-    #
     #   # resolve will split the document, but 
     #   # splitting once beforehand is more efficient
     #   lines = document.split(/\r?\n/)
     #
-    #   c1.resolve(lines)
+    #   c1 = Comment.new(4).resolve(lines)
     #   c1.subject     # => "  def method_one"
     #   c1.content     # => [["this is the content of the comment", "for method_one"]]
     #
-    #   c2.resolve(lines)
+    #   c2 = Comment.new(9).resolve(lines)
     #   c2.subject     # => "  def method_two"
     #   c2.content     # => [["this is the content of the comment", "for method_two"]]
     #   
@@ -227,16 +224,15 @@ module Tap
       attr_accessor :subject
       
       # Returns the line number for the subject line, if known.
+      # Although normally an integer, line_number may be
+      # set to a Regexp or Proc to dynamically determine
+      # itself during resolve.
       attr_accessor :line_number
-      
-      # Flag indicating the subject and content are resolved.
-      attr_accessor :resolved
       
       def initialize(line_number=nil)
         @content = []
         @subject = nil
         @line_number = line_number
-        @resolved = false
       end
 
       # Pushes the fragment onto the last line array of content.  If the
@@ -361,25 +357,72 @@ module Tap
       
       # Builds the subject and content of self using lines; resolve sets
       # the subject to the line at line_number, and parses content up
-      # from there.  When complete, resolve sets resolved to true; resolve
-      # will not modify self if already resolved.
+      # from there.  Any previously set subject and content is overridden.  
+      # Returns self.
       #
-      # Returns true if self was modified, false otherwise.
+      #   document = %Q{
+      #   module Sample
+      #     # this is the content of the comment
+      #     # for method_one
+      #     def method_one
+      #     end
+      # 
+      #     # this is the content of the comment
+      #     # for method_two
+      #     def method_two
+      #     end
+      #   end}
+      #
+      #   c = Comment.new 4
+      #   c.resolve(document)
+      #   c.subject     # => "  def method_one"
+      #   c.content     # => [["this is the content of the comment", "for method_one"]]
       #
       # Notes:
       # - resolve is a good hook for post-processing in subclasses
       # - lines may be an array or a string; string inputs are split
       #   into lines along newline boundaries.
+      #
+      # === late-evaluation line numbers
+      # The line_number used by resolve may be determined directly from
+      # lines by setting line_number to a Regexp and Proc. In the case
+      # of a Regexp, the first line matching the regexp is used:
+      #
+      #   c = Comment.new(/def method/)
+      #   c.resolve(document)
+      #   c.line_number = 4
+      #   c.subject     # => "  def method_one"
+      #   c.content     # => [["this is the content of the comment", "for method_one"]]
+      #
+      # Procs are called with lines and are expected to return the
+      # actual line number.  
+      #
+      #   c = Comment.new lambda {|lines| 9 }
+      #   c.resolve(document)
+      #   c.line_number = 9
+      #   c.subject     # => "  def method_two"
+      #   c.content     # => [["this is the content of the comment", "for method_two"]]
+      #
+      # As shown in the examples, in both cases the late-evaluation 
+      # line_number overwrites the Regexp or Proc.
       def resolve(lines)
-        return false if resolved
         lines = lines.split(/\r?\n/) if lines.kind_of?(String)
         
-        raise ArgumentError, "cannot resolve when no line_number is set" unless line_number
-        raise RangeError, "line_number >= lines.length" unless line_number < lines.length
+        # resolve late-evaluation line numbers
+        n = case line_number
+        when Regexp then match_index(line_number, lines)
+        when Proc then line_number.call(lines)
+        else line_number
+        end
+         
+        unless n.kind_of?(Integer) && n < lines.length
+          raise ArgumentError, "cannot resolve using line_number and lines: #{line_number}\n[ '#{lines.join("',\n  '")}']"
+        end
         
-        n = line_number
+        self.line_number = n
         self.subject = lines[n]
-
+        self.content.clear
+        
         # remove whitespace lines
         n -= 1
         n -= 1 while n >=0 && lines[n].strip.empty?
@@ -390,7 +433,7 @@ module Tap
           n -= 1
         end
          
-        @resolved = true
+        self
       end
       
       # Removes leading and trailing lines from content that are
@@ -434,6 +477,17 @@ module Tap
         self.line_number == another.line_number &&
         self.subject == another.subject &&
         self.content == another.content
+      end
+      
+      private
+      
+      # utility method used to by resolve to find the index
+      # of a line matching a regexp line_number.
+      def match_index(regexp, lines) # :nodoc:
+        lines.each_with_index do |line, index|
+          return index if line =~ regexp
+        end
+        nil
       end
     end
   end

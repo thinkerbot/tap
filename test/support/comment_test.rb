@@ -44,16 +44,13 @@ module Sample
   end
 end}
   
-    c1 = Comment.new(4)
-    c2 = Comment.new(9)
-  
     lines = document.split(/\r?\n/)
   
-    c1.resolve(lines)
+    c1 = Comment.new(4).resolve(lines)
     assert_equal "  def method_one", c1.subject
     assert_equal [["this is the content of the comment", "for method_one"]], c1.content
   
-    c2.resolve(lines)
+    c2 = Comment.new(9).resolve(lines)
     assert_equal "  def method_two", c2.subject
     assert_equal [["this is the content of the comment", "for method_two"]], c2.content
   end
@@ -456,6 +453,38 @@ subject line # with a trailing comment
   # resolve test
   #
   
+  def test_resolve_documetation
+    document = %Q{
+module Sample
+  # this is the content of the comment
+  # for method_one
+  def method_one
+  end
+
+  # this is the content of the comment
+  # for method_two
+  def method_two
+  end
+end}
+  
+    c = Comment.new 4
+    c.resolve(document)
+    assert_equal "  def method_one", c.subject
+    assert_equal [["this is the content of the comment", "for method_one"]], c.content
+  
+    c = Comment.new(/def method/)
+    c.resolve(document)
+    c.line_number = 4
+    assert_equal "  def method_one", c.subject
+    assert_equal [["this is the content of the comment", "for method_one"]], c.content
+  
+    c = Comment.new lambda {|lines| 9 }
+    c.resolve(document)
+    c.line_number = 9
+    assert_equal "  def method_two", c.subject
+    assert_equal [["this is the content of the comment", "for method_two"]], c.content
+  end
+  
   def test_resolve_resolves_comment_from_line_number_up
     lines = [
       "not a comment",
@@ -510,18 +539,53 @@ subject
    assert_equal [["comment parsed", "up from line number"]], c.content
   end
   
-  def test_resolve_returns_true_if_self_was_modified
+  def test_resolve_returns_self
    c.line_number = 0
-   assert_equal true, c.resolve([""])
-   assert_equal false, c.resolve([""])
+   assert_equal c, c.resolve([""])
   end
   
-  def test_resolve_sets_resolved_to_true
-    c.line_number =  0
+  def test_resolve_overrides_previous_subject_and_content
+     lines = [
+       "not a comment",
+       "# comment parsed",
+       "# up from line number",
+       "subject"]
+
+    c.line_number = 3
+    c.subject = "overridden"
+    c.content << "overridden"
     
-    assert !c.resolved
-    c.resolve [""]
-    assert c.resolved
+    c.resolve(lines)
+    assert_equal "subject", c.subject
+    assert_equal [["comment parsed", "up from line number"]], c.content
+  end
+  
+  def test_resolve_late_evaluates_regexp_line_numbers_to_the_first_matching_line
+     lines = [
+       "not a comment",
+       "# comment parsed",
+       "# up from line number",
+       "subject"]
+
+    c.line_number = /subject/
+    c.resolve(lines)
+    assert_equal 3, c.line_number
+    assert_equal "subject", c.subject
+    assert_equal [["comment parsed", "up from line number"]], c.content
+  end
+  
+  def test_resolve_late_evaluates_proc_line_numbers_by_calling_with_lines_to_get_the_actual_line_number
+     lines = [
+       "not a comment",
+       "# comment parsed",
+       "# up from line number",
+       "subject"]
+
+    c.line_number = lambda {|lines| 3 }
+    c.resolve(lines)
+    assert_equal 3, c.line_number
+    assert_equal "subject", c.subject
+    assert_equal [["comment parsed", "up from line number"]], c.content
   end
   
   def test_resolve_raises_error_when_resolving_and_no_line_number_is_set
@@ -531,7 +595,7 @@ subject
   
   def test_resolve_raises_a_range_error_when_line_number_is_out_of_lines
     c.line_number = 2
-    assert_raise(RangeError) { c.resolve ["", ""] }
+    assert_raise(ArgumentError) { c.resolve ["", ""] }
   end
   
   #

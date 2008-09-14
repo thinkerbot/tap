@@ -126,19 +126,16 @@ module Tap
       
       class Description < Comment
         def resolve(lines)
-          if super
+          super
             
-            @subject = case
-            when content.empty? || content[0][0].to_s !~ /^::desc(.*)/ then ""
-            else
-              content[0].shift
-              $1.strip
-            end
-            
-            true
+          @subject = case
+          when content.empty? || content[0][0].to_s !~ /^::desc(.*)/ then ""
           else
-            false
+            content[0].shift
+            $1.strip
           end
+            
+          self
         end
       end
     end
