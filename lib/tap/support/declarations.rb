@@ -106,7 +106,7 @@ module Tap
         caller[1] =~ Support::Lazydoc::CALLER_REGEXP
         subclass.source_file = File.expand_path($1)
         lazydoc = subclass.lazydoc(false)
-        lazydoc[subclass.to_s]['manifest'] = lazydoc.register($3.to_i - 1).extend DeclarationManifest      
+        lazydoc[subclass.to_s]['manifest'] = lazydoc.register($3.to_i - 1, Description)
 
         arity = options[:arity] || (block_given? ? block.arity : -1)
         comment = Comment.new
@@ -124,8 +124,22 @@ module Tap
         subclass
       end
       
-      module DeclarationManifest
-        
+      class Description < Comment
+        def resolve(comment_lines)
+          if super
+            
+            @subject = case
+            when lines.empty? || lines[0][0].to_s !~ /^::desc(.*)/ then ""
+            else
+              lines[0].shift
+              $1.strip
+            end
+            
+            true
+          else
+            false
+          end
+        end
       end
     end
   end

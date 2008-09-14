@@ -158,11 +158,15 @@ module Tap
       
       # Returns the line number for the subject line, if known.
       attr_accessor :line_number
-    
+      
+      # Flag indicating whether or not self has been resolved.
+      attr_accessor :resolved
+      
       def initialize(line_number=nil)
         @lines = []
         @subject = nil
         @line_number = line_number
+        @resolved = false
       end
 
       # Pushes the fragment onto the last line array.  If fragment is an
@@ -264,7 +268,25 @@ module Tap
         self.subject == another.subject &&
         self.lines == another.lines
       end
+      
+      def resolve(comment_lines)
+        return false if resolved
+        
+        n = line_number
+        self.subject = comment_lines[n]
 
+        # remove whitespace lines
+        n -= 1
+        n -= 1 while comment_lines[n].strip.empty?
+
+        # put together the comment
+        while n >= 0
+          break unless prepend(comment_lines[n])
+          n -= 1
+        end
+         
+        @resolved = true
+      end
     end
   end
 end

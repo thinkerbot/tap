@@ -60,13 +60,23 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_tasc_registers_documentation
-    
     # ::desc summary
     # a multiline
     # comment
     tasc(:declaration7)
+    
+    Tap::Support::Lazydoc[__FILE__].resolved = false
+    assert_equal Tap::Support::Declarations::Description, Declaration7.manifest.class
     assert_equal "summary", Declaration7.manifest.subject
     assert_equal "a multiline comment", Declaration7.manifest.to_s
+    
+    # a comment with no
+    # description
+    tasc(:declaration9)
+    
+    Tap::Support::Lazydoc[__FILE__].resolved = false
+    assert_equal "", Declaration9.manifest.subject
+    assert_equal "a comment with no description", Declaration9.manifest.to_s
   end
   
   #

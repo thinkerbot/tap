@@ -119,6 +119,25 @@ module Tap
         self.default(false) == another.default(false)
       end
       
+      def to_optparse_argv
+        argtype = case arg_type
+        when :optional 
+          "#{long} [#{arg_name}]"
+        when :switch 
+          long(true)
+        when :flag
+          long
+        when :list
+          "#{long} a,b,c"
+        when :mandatory, nil
+          "#{long} #{arg_name}"
+        else
+          raise "unknown arg_type: #{arg_type}"
+        end
+
+        [short, argtype, desc].compact
+      end
+      
     end
   end
 end

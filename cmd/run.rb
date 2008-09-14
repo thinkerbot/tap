@@ -22,7 +22,7 @@ OptionParser.new do |opts|
   Tap::App.configurations.each do |receiver, key, config|
     next if receiver == Tap::Root
     
-    opts.on(*cmdline.configv(config)) do |value|
+    opts.on(*config.to_optparse_argv) do |value|
       app.send(config.writer, value)
     end
   end

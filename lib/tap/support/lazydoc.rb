@@ -295,6 +295,8 @@ module Tap
               end
             end
             comment.subject = value
+            comment.resolved = true
+            
             yield(const_name, key, comment)
           end
         end
@@ -381,8 +383,8 @@ module Tap
         unless comments.empty? && patterns.empty?
           lines = str.split(/\r?\n/)
         
-          comments.collect! do |comment|
-            resolve_comment(lines, comment)
+          comments.each do |comment|
+            comment.resolve(lines)
           end
           
           patterns.each do |regexp, comment_class, callback|  
@@ -390,8 +392,7 @@ module Tap
               next unless line =~ regexp
               
               comment = register(line_number, comment_class)
-              resolve_comment(lines, comment)
-              
+              comment.resolve(lines)
               break if callback && callback.call(comment)
             end
           end
@@ -412,27 +413,6 @@ module Tap
           const_hash[const_name] = attr_hash
         end
         const_hash
-      end
-      
-      protected
-      
-      def resolve_comment(lines, comment)
-        line_number = comment.line_number
-        comment.subject = lines[line_number]
-
-        # remove whitespace lines
-        line_number -= 1
-        while lines[line_number].strip.empty?
-          line_number -= 1
-        end
-
-        # put together the comment
-        while line_number >= 0
-          break unless comment.prepend(lines[line_number])
-          line_number -= 1
-        end
-
-        comment
       end
     end
   end

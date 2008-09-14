@@ -1,6 +1,6 @@
 require 'tap/support/batchable'
 require 'tap/support/executable'
-require 'tap/support/command_line'
+autoload(:OptionParser, 'optparse')
 
 module Tap
 
@@ -231,15 +231,15 @@ module Tap
         opts = OptionParser.new
 
         # Add configurations
-        config = {}
+        argv_config = {}
         unless configurations.empty?
           opts.separator ""
           opts.separator "configurations:"
         end
 
-        configurations.each do |receiver, key, configuration|
-          opts.on(*Support::CommandLine.configv(configuration)) do |value|
-            config[key] = value
+        configurations.each do |receiver, key, config|
+          opts.on(*config.to_optparse_argv) do |value|
+            argv_config[key] = value
           end
         end
 
@@ -286,11 +286,11 @@ module Tap
           path_configs.each_with_index do |path_config, i|
             next if i == 0
             batch_obj = obj.initialize_batch_obj(path_config, "#{name}_#{i}")
-            batch_obj.reconfigure(config)
+            batch_obj.reconfigure(argv_config)
           end
           path_configs = path_configs[0]
         end
-        obj.reconfigure(path_configs).reconfigure(config)
+        obj.reconfigure(path_configs).reconfigure(argv_config)
         
         # recollect arguments
         argv = (argv + use_args).collect {|str| str =~ /\A---\s*\n/ ? YAML.load(str) : str }

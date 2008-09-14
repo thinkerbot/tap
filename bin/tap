@@ -11,6 +11,7 @@
 #
 
 require "#{File.dirname(__FILE__)}/../lib/tap.rb"
+require 'tap/support/command_line'
 
 # setup the environment
 begin
@@ -58,9 +59,6 @@ end
 begin
   env.activate
   env.execute(ARGV) do
-    # give some help
-    require 'tap/support/command_line'
-    
     puts Tap::Support::CommandLine.usage(__FILE__)
     puts
     puts "available commands:"

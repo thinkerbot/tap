@@ -2,6 +2,7 @@
 # usage: rap taskname {options} [args]
 
 require "#{File.dirname(__FILE__)}/../lib/tap.rb"
+require 'tap/support/command_line'
 
 # setup the environment
 begin
@@ -64,9 +65,6 @@ begin
   
   case ARGV[0]
   when '--help', nil, '-T'
-    # give some help
-    require 'tap/support/command_line'
-    
     puts Tap::Support::CommandLine.usage(__FILE__)
     puts
     puts "===  tap tasks ==="

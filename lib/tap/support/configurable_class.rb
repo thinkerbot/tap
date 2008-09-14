@@ -251,7 +251,7 @@ module Tap
           case line
           when /in .config.$/ then next
           when Lazydoc::CALLER_REGEXP
-            options[:desc] = Lazydoc.register($1, $3.to_i - 1)
+            options[:desc] = Lazydoc.register($1, $3.to_i - 1, Description)
             break
           end
         end if options[:desc] == nil
@@ -286,6 +286,18 @@ module Tap
         when Validation::ARRAY then "'[a, b, c]'"
         when Validation::HASH then "'{one: 1, two: 2}'"
         else nil
+        end
+      end
+      
+      class Description < Comment
+        def empty?
+          to_str.empty?
+        end
+
+        def to_str
+          # currently removes the :no_default: document modifier
+          # which is used during generation of TDoc
+          subject.to_s =~ /#\s*(:no_default:)?\s*(.*)$/ ? $2.strip : ""
         end
       end
     end
