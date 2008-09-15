@@ -5,7 +5,7 @@
 $" << 'rubygems/spec_fetcher.rb'
 require 'rubygems'
 $".delete('rubygems/spec_fetcher.rb')
-module Gem
+module Gem # :nodoc:
   autoload(:SpecFetcher, 'rubygems/spec_fetcher')
 end
 

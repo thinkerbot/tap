@@ -3,10 +3,10 @@ require 'tap/support/lazydoc/document'
 module Tap
   module Support
     
-    # Lazydoc pulls documentation out of source files and, with LazyAttributes,
-    # makes documentation available within the code.  Lazydoc can find two
-    # types of documentation, constant attributes and code comments.  To
-    # illustrate, consider the following:
+    # Lazydoc lazily pulls documentation out of source files and makes it
+    # available through LazyAttributes.  Lazydoc can find two types of 
+    # documentation, constant attributes and code comments.  To illustrate, 
+    # consider the following:
     #
     #   # Sample::key <this is the subject line>
     #   # a constant attribute content string that
@@ -30,12 +30,14 @@ module Tap
     #     end
     #   end
     # 
-    # When a lazy_attr is called, Lazydoc scans the source file for a constant
-    # attribute corresponding to the key and stores the information as a
+    # When a lazy attribute is called, Lazydoc scans <tt>source_file</tt> for
+    # the corresponding constant attribute and makes it available as a
     # Lazydoc::Comment.
     #
     #   comment = Sample::key
-    #   comment.subject       # => "<this is the subject line>"
+    #   comment.subject       
+    #   # => "<this is the subject line>"
+    #
     #   comment.content       
     #   # => [
     #   # ["a constant attribute content string that", "can span multiple lines..."],
@@ -62,24 +64,21 @@ module Tap
     #   # ..............................
     #   #}
     #
-    # Individual lines of code may be singled out and resolved by Lazydoc.
-    # Here a Regexp is used to identify the line that gets parsed into a 
-    # comment (note that in this case the Lazydoc needs to be reset to 
-    # resolve the new comment):
+    # In addition, individual lines of code may be registered and resolved by Lazydoc:
     #
-    #   lazydoc = Sample.lazydoc.reset
-    #   comment = lazydoc.register(/method_one/)
+    #   doc = Sample.lazydoc.reset
+    #   comment = doc.register(/method_one/)
     #   
-    #   lazydoc.resolve
+    #   doc.resolve
     #   comment.subject       # => "  def method_one"
     #   comment.content       # => [["comment content for a code comment", "may similarly span multiple lines"]]
     #
-    # And with the basics in mind, here are some details...
+    # With these basics in mind, here are some details...
     #
     # === Constant Attributes
-    # Constant attributes are designated the same as constants in Ruby, but with
-    # an extra 'key' constant that must consist of only lowercase letters and/or
-    # underscores.  For example, these are constant attributes:
+    # Constant attributes are like constants in Ruby, but with an extra 'key' 
+    # that must consist of only lowercase letters and/or underscores.  For 
+    # example, these are constant attributes:
     #
     #   # Const::Name::key
     #   # Const::Name::key_with_underscores
@@ -92,9 +91,9 @@ module Tap
     #   # Const::Name::k@y
     #
     # Lazydoc parses a Lazydoc::Comment for each constant attribute by using the 
-    # remainder of the line as a subject and scanning down for comment content 
-    # until a non-comment line, an end key, or a new attribute is reached; the 
-    # comment is then stored by constant name and key.
+    # remainder of the line as a subject and scanning down for content.  Scanning
+    # continues until a non-comment line, an end key, or a new attribute is 
+    # reached; the comment is then stored by constant name and key.
     #
     #   str = %Q{
     #   # Const::Name::key subject for key
@@ -110,17 +109,18 @@ module Tap
     #   # ignored comment
     #   }
     #
-    #   lazydoc = Lazydoc.new
-    #   lazydoc.resolve(str)
+    #   doc = Lazydoc::Document.new
+    #   doc.resolve(str)
     #
-    #   lazydoc.to_hash {|comment| [comment.subject, comment.to_s] } 
-    #   # => {'Const::Name' => {
-    #   #  'key' =>     ['subject for key', 'comment for key parsed until a non-comment line'],
-    #   #  'another' => ['subject for another', 'comment for another parsed to an end key']
-    #   # }}
+    #   doc.to_hash {|comment| [comment.subject, comment.to_s] } 
+    #   # => {
+    #   # 'Const::Name' => {
+    #   #   'key' =>     ['subject for key', 'comment for key parsed until a non-comment line'],
+    #   #   'another' => ['subject for another', 'comment for another parsed to an end key']}
+    #   # }
     #
-    # Attributes are only parsed from commented lines.  To turn off attribute
-    # parsing for a section of documentation, use start/stop keys:
+    # Constant attributes are only parsed from commented lines.  To turn off
+    # attribute parsing for a section of documentation, use start/stop keys:
     #
     #   str = %Q{
     #   Const::Name::not_parsed
@@ -131,12 +131,13 @@ module Tap
     #   # Const::Name::parsed subject
     #   }
     #
-    #   lazydoc = Lazydoc.new
-    #   lazydoc.resolve(str)
-    #   lazydoc.to_hash {|comment| comment.subject }   # => {'Const::Name' => {'parsed' => 'subject'}}
+    #   doc = Lazydoc::Document.new
+    #   doc.resolve(str)
+    #   doc.to_hash {|comment| comment.subject }   # => {'Const::Name' => {'parsed' => 'subject'}}
     #
     # To hide attributes from RDoc, make use of the RDoc <tt>:startdoc:</tt> 
-    # document modifier like this (spaces added to keep them in the example):
+    # document modifier like this (note that spaces are added to prevent RDoc
+    # from hiding the example):
     #
     #   # :start doc::Const::Name::one hidden in RDoc
     #   # * This line is visible in RDoc.
@@ -164,15 +165,16 @@ module Tap
     #
     # * This line is also visible in RDoc.
     #
-    # As a side note, within the code 'Const::Name::key' is not a reference
-    # to the 'key' constant (it would be invalid).  In *very* idiomatic ruby
-    # 'Const::Name::key' is equivalent to the method call 'Const::Name.key'.
+    # As a side note, <tt>Const::Name::key</tt> is not a reference to the 'key' 
+    # constant (as that would be invalid).  In *very* idiomatic ruby
+    # <tt>Const::Name::key</tt> is equivalent to the method call 
+    # <tt>Const::Name.key</tt>.
     #
     # === Code Comments
     # Code comments are lines registered for parsing if and when a Lazydoc gets 
     # resolved. Unlike constant attributes, the registered line is the comment
-    # subject and the comment content is parsed up from it (basically mimicking 
-    # the behavior of RDoc).
+    # subject and contents are parsed up from it (basically mimicking the 
+    # behavior of RDoc).
     #
     #   str = %Q{
     #   # comment lines for
@@ -187,20 +189,20 @@ module Tap
     #   end
     #   }
     #
-    #   lazydoc = Lazydoc.new
-    #   lazydoc.register(3)
-    #   lazydoc.register(9)
-    #   lazydoc.resolve(str)
+    #   doc = Lazydoc::Document.new
+    #   doc.register(3)
+    #   doc.register(9)
+    #   doc.resolve(str)
     #
-    #   lazydoc.comments.collect {|comment| [comment.subject, comment.to_s] } 
+    #   doc.comments.collect {|comment| [comment.subject, comment.to_s] } 
     #   # => [
     #   # ['def method', 'comment lines for the method'],
     #   # ['def another_method', 'as in RDoc, the comment can be separated from the method']]
     #
     # Comments may be registered to specific line numbers, or with a Proc or
     # Regexp that will determine the line number during resolution.  In the case
-    # of a Regexp, the first matching line is used; Procs receive the lines of 
-    # the document and return the line that should be used.  See 
+    # of a Regexp, the first matching line is used; Procs receive an array of
+    # lines and should return the line number that should be used.  See 
     # Lazydoc::Comment#resolve for more details.
     #
     module Lazydoc

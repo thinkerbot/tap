@@ -106,10 +106,10 @@ key
 }
     assert_equal expected, "\n#{'.' * 30}\n" + comment.wrap(30) + "\n#{'.' * 30}\n"
 
-    lazydoc = Sample.lazydoc.reset
-    comment = lazydoc.register(/method_one/)
+    doc = Sample.lazydoc.reset
+    comment = doc.register(/method_one/)
     
-    lazydoc.resolve
+    doc.resolve
     assert_equal "  def method_one", comment.subject
     assert_equal [["comment content for a code comment", "may similarly span multiple lines"]], comment.content
   
@@ -127,14 +127,14 @@ key
 # ignored comment
 }
   
-    lazydoc = Lazydoc::Document.new
-    lazydoc.resolve(str)
+    doc = Lazydoc::Document.new
+    doc.resolve(str)
     
     expected = {'Const::Name' => {
      'key' =>     ['subject for key', 'comment for key parsed until a non-comment line'],
      'another' => ['subject for another', 'comment for another parsed to an end key']
     }}
-    assert_equal expected, lazydoc.to_hash {|comment| [comment.subject, comment.to_s] } 
+    assert_equal expected, doc.to_hash {|comment| [comment.subject, comment.to_s] } 
   
     str = %Q{
 Const::Name::not_parsed
@@ -145,9 +145,9 @@ Const::Name::not_parsed
 # Const::Name::parsed subject
 }
   
-    lazydoc = Lazydoc::Document.new
-    lazydoc.resolve(str)
-    assert_equal({'Const::Name' => {'parsed' => 'subject'}}, lazydoc.to_hash {|comment| comment.subject })
+    doc = Lazydoc::Document.new
+    doc.resolve(str)
+    assert_equal({'Const::Name' => {'parsed' => 'subject'}}, doc.to_hash {|comment| comment.subject })
   
     str = %Q{
 # comment lines for
@@ -162,10 +162,10 @@ def another_method
 end
 }
   
-    lazydoc = Lazydoc::Document.new
-    lazydoc.register(3)
-    lazydoc.register(9)
-    lazydoc.resolve(str)
+    doc = Lazydoc::Document.new
+    doc.register(3)
+    doc.register(9)
+    doc.resolve(str)
   
     expected = [
     ['def method', 'comment lines for the method'],
@@ -188,14 +188,14 @@ end
 # * This line is also visible in RDoc.
 }
 
-    lazydoc = Lazydoc::Document.new
-    lazydoc.resolve(str)
+    doc = Lazydoc::Document.new
+    doc.resolve(str)
 
     expected = {'Const::Name' => {
      'one' => ['hidden in RDoc', '* This line is visible in RDoc.'],
      'two' => ['', 'You can hide attribute comments like this.']
     }}
-    assert_equal(expected, lazydoc.to_hash {|comment| [comment.subject, comment.to_s] })
+    assert_equal(expected, doc.to_hash {|comment| [comment.subject, comment.to_s] })
   end
   
   #

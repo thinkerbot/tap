@@ -86,8 +86,6 @@ Gem::Specification.new do |s|
     lib/tap/support/batchable_class.rb
     lib/tap/support/class_configuration.rb
     lib/tap/support/combinator.rb
-    lib/tap/support/command_line.rb
-    lib/tap/support/comment.rb
     lib/tap/support/configurable.rb
     lib/tap/support/configurable_class.rb
     lib/tap/support/configuration.rb
@@ -103,6 +101,11 @@ Gem::Specification.new do |s|
     lib/tap/support/instance_configuration.rb
     lib/tap/support/lazy_attributes.rb
     lib/tap/support/lazydoc.rb
+    lib/tap/support/lazydoc/comment.rb
+    lib/tap/support/lazydoc/config.rb
+    lib/tap/support/lazydoc/declaration.rb
+    lib/tap/support/lazydoc/document.rb
+    lib/tap/support/lazydoc/method.rb
     lib/tap/support/manifest.rb
     lib/tap/support/parsers/base.rb
     lib/tap/support/parsers/server.rb
