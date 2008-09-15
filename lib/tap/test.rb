@@ -127,6 +127,7 @@ module Tap
     autoload(:SubsetMethods, 'tap/test/subset_methods')
     autoload(:FileMethods, 'tap/test/file_methods')
     autoload(:TapMethods, 'tap/test/tap_methods')
+    autoload(:ScriptMethods, 'tap/test/script_methods')
     autoload(:Utils, 'tap/test/utils')
   end
 end

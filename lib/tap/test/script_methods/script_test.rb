@@ -1,4 +1,5 @@
 require 'tap/support/shell_utils'
+require 'tap/test/script_methods/regexp_escape'
 
 module Tap
   module Test
@@ -47,10 +48,11 @@ module Tap
         def time(msg, command)
           commands << [command, msg, nil, nil]
         end
-
-        def check(msg, command, &validation)
+        
+        def check(msg, command, use_regexp_escapes=true, &validation)
           new_commands = split(command) 
           new_commands.each_with_index do |(cmd, expected), i|
+            expected = RegexpEscape.new(expected) if expected && use_regexp_escapes
             commands << [cmd, (new_commands.length > 1 ? "#{msg} (#{i})" : msg), expected, validation]
           end
         end
