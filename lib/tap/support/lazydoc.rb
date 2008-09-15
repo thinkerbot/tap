@@ -1,12 +1,12 @@
-require 'tap/support/comment'
+require 'tap/support/lazydoc/document'
 
 module Tap
   module Support
     
-    # Lazydoc scans source files to pull out documentation.  Lazydoc can find two
-    # types of documentation, constant attributes and code comments, and works
-    # with LazyAttributes to make documentation available in the code.  First,
-    # an example:
+    # Lazydoc pulls documentation out of source files and, with LazyAttributes,
+    # makes documentation available within the code.  Lazydoc can find two
+    # types of documentation, constant attributes and code comments.  To
+    # illustrate, consider the following:
     #
     #   # Sample::key <this is the subject line>
     #   # a constant attribute content string that
@@ -29,9 +29,10 @@ module Tap
     #     def method_one
     #     end
     #   end
-    #   
-    # Although the comments are normally not available in the code, lazy_attrs 
-    # reach into the source file to allow the following:
+    # 
+    # When a lazy_attr is called, Lazydoc scans the source file for a constant
+    # attribute corresponding to the key and stores the information as a
+    # Lazydoc::Comment.
     #
     #   comment = Sample::key
     #   comment.subject       # => "<this is the subject line>"
@@ -62,8 +63,8 @@ module Tap
     #   #}
     #
     # Individual lines of code may be singled out and resolved by Lazydoc.
-    # Here, a Regexp is used to identify the line that gets turned into a 
-    # Comment (note that in this case the Lazydoc needs to be reset to 
+    # Here a Regexp is used to identify the line that gets parsed into a 
+    # comment (note that in this case the Lazydoc needs to be reset to 
     # resolve the new comment):
     #
     #   lazydoc = Sample.lazydoc.reset
@@ -90,10 +91,10 @@ module Tap
     #   # Const::Name::key2
     #   # Const::Name::k@y
     #
-    # Lazydoc parses a Comment for each constant attribute by using the remainder 
-    # of the line as a subject and scanning down for comment content until a
-    # non-comment line, an end key, or a new attribute is reached; the comment 
-    # is then stored by constant name and key.
+    # Lazydoc parses a Lazydoc::Comment for each constant attribute by using the 
+    # remainder of the line as a subject and scanning down for comment content 
+    # until a non-comment line, an end key, or a new attribute is reached; the 
+    # comment is then stored by constant name and key.
     #
     #   str = %Q{
     #   # Const::Name::key subject for key
@@ -163,6 +164,10 @@ module Tap
     #
     # * This line is also visible in RDoc.
     #
+    # As a side note, within the code 'Const::Name::key' is not a reference
+    # to the 'key' constant (it would be invalid).  In *very* idiomatic ruby
+    # 'Const::Name::key' is equivalent to the method call 'Const::Name.key'.
+    #
     # === Code Comments
     # Code comments are lines registered for parsing if and when a Lazydoc gets 
     # resolved. Unlike constant attributes, the registered line is the comment
@@ -195,10 +200,10 @@ module Tap
     # Comments may be registered to specific line numbers, or with a Proc or
     # Regexp that will determine the line number during resolution.  In the case
     # of a Regexp, the first matching line is used; Procs receive the lines of 
-    # the document and return the line that should be used.  See Comment#resolve
-    # for more details.
+    # the document and return the line that should be used.  See 
+    # Lazydoc::Comment#resolve for more details.
     #
-    class Lazydoc
+    module Lazydoc
       
       # A regexp matching an attribute start or end.  After a match:
       #
@@ -220,265 +225,159 @@ module Tap
       # Note that line numbers in caller start at 1, not 0.
       CALLER_REGEXP = /^(([A-z]:)?[^:]+):(\d+)/
       
-      class << self
-        
-        # A hash of (source_file, lazydoc) pairs tracking the
-        # Lazydoc instance for the given source file.
-        def registry
-          @registry ||= []
+      module_function
+      
+      # A hash of (source_file, lazydoc) pairs tracking the
+      # Lazydoc instance for the given source file.
+      def registry
+        @registry ||= []
+      end
+      
+      # Returns the lazydoc in registry for the specified source file.
+      # If no such lazydoc exists, one will be created for it.
+      def [](source_file)
+        source_file = File.expand_path(source_file.to_s)
+        lazydoc = registry.find {|doc| doc.source_file == source_file }
+        if lazydoc == nil
+          lazydoc = Document.new(source_file)
+          registry << lazydoc
         end
-        
-        # Returns the lazydoc in registry for the specified source file.
-        # If no such lazydoc exists, one will be created for it.
-        def [](source_file)
-          source_file = File.expand_path(source_file.to_s)
-          lazydoc = registry.find {|doc| doc.source_file == source_file }
-          if lazydoc == nil
-            lazydoc = new(source_file)
-            registry << lazydoc
-          end
-          lazydoc
+        lazydoc
+      end
+
+      # Register the specified line numbers to the lazydoc for source_file.
+      # Returns a comment_class instance corresponding to the line.
+      def register(source_file, line_number, comment_class=Comment)
+        Lazydoc[source_file].register(line_number, comment_class)
+      end
+      
+      # Resolves all lazydocs which include the specified code comments.
+      def resolve_comments(comments)
+        registry.each do |doc|
+          next if (comments & doc.comments).empty?
+          doc.resolve
+        end
+      end
+      
+      # Scans the specified file for attributes keyed by key and stores 
+      # the resulting comments in the source_file lazydoc. Returns the
+      # lazydoc.
+      def scan_doc(source_file, key)
+        lazydoc = nil
+        scan(File.read(source_file), key) do |const_name, attr_key, comment|
+          lazydoc = self[source_file] unless lazydoc
+          lazydoc[const_name][attr_key] = comment
+        end
+        lazydoc
+      end
+      
+      # Scans the string or StringScanner for attributes matching the key
+      # (keys may be patterns, they are incorporated into a regexp). Yields 
+      # each (const_name, key, value) triplet to the mandatory block and
+      # skips regions delimited by the stop and start keys <tt>:-</tt> 
+      # and <tt>:+</tt>.
+      #
+      #   str = %Q{
+      #   # Const::Name::key value
+      #   # ::alt alt_value
+      #   #
+      #   # Ignored::Attribute::not_matched value
+      #   # :::-
+      #   # Also::Ignored::key value
+      #   # :::+
+      #   # Another::key another value
+      #
+      #   Ignored::key value
+      #   }
+      #
+      #   results = []
+      #   Lazydoc.scan(str, 'key|alt') do |const_name, key, value|
+      #     results << [const_name, key, value]
+      #   end
+      #
+      #   results    
+      #   # => [
+      #   # ['Const::Name', 'key', 'value'], 
+      #   # ['', 'alt', 'alt_value'], 
+      #   # ['Another', 'key', 'another value']]
+      #
+      # Returns the StringScanner used during scanning.
+      def scan(str, key) # :yields: const_name, key, value
+        scanner = case str
+        when StringScanner then str
+        when String then StringScanner.new(str)
+        else raise TypeError, "can't convert #{str.class} into StringScanner or String"
         end
 
-        # Register the specified line numbers to the lazydoc for source_file.
-        # Returns a comment_class instance corresponding to the line.
-        def register(source_file, line_number, comment_class=Comment)
-          Lazydoc[source_file].register(line_number, comment_class)
-        end
-        
-        # Resolves all lazydocs which include the specified code comments.
-        def resolve_comments(comments)
-          registry.each do |doc|
-            next if (comments & doc.comments).empty?
-            doc.resolve
-          end
-        end
-        
-        # Scans the specified file for attributes keyed by key and stores 
-        # the resulting comments in the source_file lazydoc. Returns the
-        # lazydoc.
-        def scan_doc(source_file, key)
-          lazydoc = nil
-          scan(File.read(source_file), key) do |const_name, attr_key, comment|
-            lazydoc = self[source_file] unless lazydoc
-            lazydoc[const_name][attr_key] = comment
-          end
-          lazydoc
-        end
-        
-        # Scans the string or StringScanner for attributes matching the key
-        # (keys may be patterns, they are incorporated into a regexp). Yields 
-        # each (const_name, key, value) triplet to the mandatory block and
-        # skips regions delimited by the stop and start keys <tt>:-</tt> 
-        # and <tt>:+</tt>.
-        #
-        #   str = %Q{
-        #   # Const::Name::key value
-        #   # ::alt alt_value
-        #   #
-        #   # Ignored::Attribute::not_matched value
-        #   # :::-
-        #   # Also::Ignored::key value
-        #   # :::+
-        #   # Another::key another value
-        #
-        #   Ignored::key value
-        #   }
-        #
-        #   results = []
-        #   Lazydoc.scan(str, 'key|alt') do |const_name, key, value|
-        #     results << [const_name, key, value]
-        #   end
-        #
-        #   results    
-        #   # => [
-        #   # ['Const::Name', 'key', 'value'], 
-        #   # ['', 'alt', 'alt_value'], 
-        #   # ['Another', 'key', 'another value']]
-        #
-        # Returns the StringScanner used during scanning.
-        def scan(str, key) # :yields: const_name, key, value
-          scanner = case str
-          when StringScanner then str
-          when String then StringScanner.new(str)
-          else raise TypeError, "can't convert #{str.class} into StringScanner or String"
-          end
+        regexp = /^(.*?)::(:-|#{key})/
+        while !scanner.eos?
+          break if scanner.skip_until(regexp) == nil
 
-          regexp = /^(.*?)::(:-|#{key})/
-          while !scanner.eos?
-            break if scanner.skip_until(regexp) == nil
-
-            if scanner[2] == ":-"
-              scanner.skip_until(/:::\+/)
-            else
-              next unless scanner[1] =~ CONSTANT_REGEXP
-              key = scanner[2]
-              yield($1.to_s, key, scanner.matched.strip) if scanner.scan(/[ \r\t].*$|$/)
+          if scanner[2] == ":-"
+            scanner.skip_until(/:::\+/)
+          else
+            next unless scanner[1] =~ CONSTANT_REGEXP
+            key = scanner[2]
+            yield($1.to_s, key, scanner.matched.strip) if scanner.scan(/[ \r\t].*$|$/)
+          end
+        end
+      
+        scanner
+      end
+    
+      # Parses constant attributes from the string or StringScanner.  Yields 
+      # each (const_name, key, comment) triplet to the mandatory block 
+      # and skips regions delimited by the stop and start keys <tt>:-</tt> 
+      # and <tt>:+</tt>.
+      #
+      #   str = %Q{
+      #   # Const::Name::key subject for key
+      #   # comment for key
+      #
+      #   # :::-
+      #   # Ignored::key value
+      #   # :::+
+      #
+      #   # Ignored text before attribute ::another subject for another
+      #   # comment for another
+      #   }
+      #
+      #   results = []
+      #   Lazydoc.parse(str) do |const_name, key, comment|
+      #     results << [const_name, key, comment.subject, comment.to_s]
+      #   end
+      #
+      #   results    
+      #   # => [
+      #   # ['Const::Name', 'key', 'subject for key', 'comment for key'], 
+      #   # ['', 'another', 'subject for another', 'comment for another']]
+      #
+      # Returns the StringScanner used during scanning.
+      def parse(str) # :yields: const_name, key, comment
+        scanner = case str
+        when StringScanner then str
+        when String then StringScanner.new(str)
+        else raise TypeError, "can't convert #{str.class} into StringScanner or String"
+        end
+        
+        scan(scanner, '[a-z_]+') do |const_name, key, value|
+          comment = Comment.parse(scanner, false) do |line|
+            if line =~ ATTRIBUTE_REGEXP
+              # rewind to capture the next attribute unless an end is specified.
+              scanner.unscan unless $4 == '-' && $3 == key && $1.to_s == const_name
+              true
+            else false
             end
           end
-        
-          scanner
-        end
-      
-        # Parses constant attributes from the string or StringScanner.  Yields 
-        # each (const_name, key, comment) triplet to the mandatory block 
-        # and skips regions delimited by the stop and start keys <tt>:-</tt> 
-        # and <tt>:+</tt>.
-        #
-        #   str = %Q{
-        #   # Const::Name::key subject for key
-        #   # comment for key
-        #
-        #   # :::-
-        #   # Ignored::key value
-        #   # :::+
-        #
-        #   # Ignored text before attribute ::another subject for another
-        #   # comment for another
-        #   }
-        #
-        #   results = []
-        #   Lazydoc.parse(str) do |const_name, key, comment|
-        #     results << [const_name, key, comment.subject, comment.to_s]
-        #   end
-        #
-        #   results    
-        #   # => [
-        #   # ['Const::Name', 'key', 'subject for key', 'comment for key'], 
-        #   # ['', 'another', 'subject for another', 'comment for another']]
-        #
-        # Returns the StringScanner used during scanning.
-        def parse(str) # :yields: const_name, key, comment
-          scanner = case str
-          when StringScanner then str
-          when String then StringScanner.new(str)
-          else raise TypeError, "can't convert #{str.class} into StringScanner or String"
-          end
-          
-          scan(scanner, '[a-z_]+') do |const_name, key, value|
-            comment = Comment.parse(scanner, false) do |line|
-              if line =~ ATTRIBUTE_REGEXP
-                # rewind to capture the next attribute unless an end is specified.
-                scanner.unscan unless $4 == '-' && $3 == key && $1.to_s == const_name
-                true
-              else false
-              end
-            end
-            comment.subject = value
-            yield(const_name, key, comment)
-          end
+          comment.subject = value
+          yield(const_name, key, comment)
         end
       end
       
-      include Enumerable
-      
-      # The source file for self, used during resolve.
-      attr_reader :source_file
-      
-      # An array of Comment objects identifying lines 
-      # resolved or to-be-resolved for self.
-      attr_reader :comments
-      
-      # A hash of (const_name, attributes) pairs tracking the constant 
-      # attributes resolved or to-be-resolved for self.  Attributes
-      # are hashes of (key, comment) pairs.
-      attr_reader :const_attrs
-      
-      # The default constant name used when no constant name
-      # is specified for a constant attribute.
-      attr_reader :default_const_name
-      
-      # Flag indicating whether or not self has been resolved.
-      attr_accessor :resolved
-      
-      def initialize(source_file=nil, default_const_name='')
-        self.source_file = source_file
-        @default_const_name = default_const_name
-        @comments = []
-        @const_attrs = {}
-        @resolved = false
-        self.reset
-      end
-      
-      # Resets self by clearing const_attrs, comments, and setting
-      # resolved to false.  Generally NOT recommended as this 
-      # clears any work you've done registering lines; to simply
-      # allow resolve to re-scan a document, manually set
-      # resolved to false.
-      def reset
-        @const_attrs.clear
-        @comments.clear
-        @resolved = false
-        self
-      end
-      
-      # Sets the source file for self.  Expands the source file path if necessary.
-      def source_file=(source_file)
-        @source_file = source_file == nil ? nil : File.expand_path(source_file)
-      end
-      
-      # Sets the default_const_name for self.  Any const_attrs assigned to 
-      # the previous default_const_name will be removed from const_attrs 
-      # and merged with any const_attrs already assigned to the new 
-      # default_const_name.
-      def default_const_name=(const_name)
-        self[const_name].merge!(const_attrs.delete(@default_const_name) || {})
-        @default_const_name = const_name
-      end
-      
-      # Returns the attributes for the specified const_name.
-      def [](const_name)
-        const_attrs[const_name] ||= {}
-      end
-
-      # Register the specified line number to self.  Returns a 
-      # comment_class instance corresponding to the line.
-      def register(line_number, comment_class=Comment)
-        comment = comments.find {|c| c.class == comment_class && c.line_number == line_number }
-        
-        if comment == nil
-          comment = comment_class.new(line_number)
-          comments << comment
-        end
-        
-        comment
-      end
-      
-      def register_method(method, comment_class=Comment)
-        register(/^\s*def\s+#{method}(\W|$)/, comment_class)
-      end
-      
-      def resolve(str=nil)
-        return(false) if resolved
-        
-        str = File.read(source_file) if str == nil
-        Lazydoc.parse(str) do |const_name, key, comment|
-          const_name = default_const_name if const_name.empty?
-          self[const_name][key] = comment
-        end
-        
-        unless comments.empty?
-          lines = str.split(/\r?\n/)  
-          comments.each do |comment|
-            comment.resolve(lines)
-          end
-        end
-        
-        @resolved = true
-      end
-      
-      def to_hash
-        const_hash = {}
-        const_attrs.each_pair do |const_name, attributes|
-          next if attributes.empty?
-          
-          attr_hash = {}
-          attributes.each_pair do |key, comment|
-            attr_hash[key] = (block_given? ? yield(comment) : comment)
-          end
-          const_hash[const_name] = attr_hash
-        end
-        const_hash
+      def usage(path, cols=80)
+        scanner = StringScanner.new(File.read(path))
+        scanner.scan(/^#!.*?$/)
+        Comment.parse(scanner, false).wrap(cols, 2).strip
       end
     end
   end

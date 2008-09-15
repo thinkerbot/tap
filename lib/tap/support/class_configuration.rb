@@ -125,7 +125,7 @@ module Tap
       def code_comments
         code_comments = []
         values.each do |config| 
-          code_comments << config.desc if config.desc.kind_of?(Comment)
+          code_comments << config.desc if config.desc.kind_of?(Lazydoc::Comment)
         end
         code_comments
       end

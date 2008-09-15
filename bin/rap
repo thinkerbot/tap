@@ -2,7 +2,6 @@
 # usage: rap taskname {options} [args]
 
 require "#{File.dirname(__FILE__)}/../lib/tap.rb"
-require 'tap/support/command_line'
 
 # setup the environment
 begin
@@ -65,7 +64,7 @@ begin
   
   case ARGV[0]
   when '--help', nil, '-T'
-    puts Tap::Support::CommandLine.usage(__FILE__)
+    puts Tap::Support::Lazydoc.usage(__FILE__)
     puts
     puts "===  tap tasks ==="
     puts env.summarize(:tasks) {|const| const.document[const.name]['manifest'] }

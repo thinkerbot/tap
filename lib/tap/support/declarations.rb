@@ -1,3 +1,5 @@
+require 'tap/support/lazydoc/declaration'
+
 module Tap
   module Support
     module Declarations
@@ -103,13 +105,13 @@ module Tap
         subclass = klass.subclass(name, configs, dependencies, options, &block)
         
         # register documentation
-        caller[1] =~ Support::Lazydoc::CALLER_REGEXP
+        caller[1] =~ Lazydoc::CALLER_REGEXP
         subclass.source_file = File.expand_path($1)
         lazydoc = subclass.lazydoc(false)
-        lazydoc[subclass.to_s]['manifest'] = lazydoc.register($3.to_i - 1, Description)
+        lazydoc[subclass.to_s]['manifest'] = lazydoc.register($3.to_i - 1, Lazydoc::Declaration)
 
         arity = options[:arity] || (block_given? ? block.arity : -1)
-        comment = Comment.new
+        comment = Lazydoc::Comment.new
         comment.subject = case
         when arity > 0
           Array.new(arity, "INPUT").join(' ')
@@ -124,20 +126,6 @@ module Tap
         subclass
       end
       
-      class Description < Comment
-        def resolve(lines)
-          super
-            
-          @subject = case
-          when content.empty? || content[0][0].to_s !~ /^::desc(.*)/ then ""
-          else
-            content[0].shift
-            $1.strip
-          end
-            
-          self
-        end
-      end
     end
   end
 end

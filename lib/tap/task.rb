@@ -1,5 +1,6 @@
 require 'tap/support/batchable'
 require 'tap/support/executable'
+require 'tap/support/lazydoc/method'
 autoload(:OptionParser, 'optparse')
 
 module Tap
@@ -314,7 +315,7 @@ module Tap
 
       def lazydoc(resolve=true)
         lazydoc = super(false)
-        lazydoc[self.to_s]['args'] ||= lazydoc.register_method(:process, Args)
+        lazydoc[self.to_s]['args'] ||= lazydoc.register_method(:process, Support::Lazydoc::Method)
         super
       end
 
@@ -616,23 +617,5 @@ module Tap
       klass.new(configs, name, &block)
     end
     
-    class Args < Support::Comment
-      def resolve(lines)
-        super
-        @subject =~ /def \w+(\((.*?)\))?/
-      
-        args = $2.to_s.split(',').collect do |arg|
-          arg = arg.strip.upcase
-          case arg
-          when /^&/ then nil
-          when /^\*/ then arg[1..-1] + "..."
-          else arg
-          end
-        end
-      
-        @subject = args.join(', ')
-        self
-      end
-    end
   end
 end

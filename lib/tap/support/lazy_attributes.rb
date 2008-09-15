@@ -22,7 +22,7 @@ module Tap
       private
       
       def get_lazy_attr(attribute)
-        lazydoc[self.to_s][attribute] ||= Tap::Support::Comment.new
+        lazydoc[self.to_s][attribute] ||= Lazydoc::Comment.new
       end
       
     end 

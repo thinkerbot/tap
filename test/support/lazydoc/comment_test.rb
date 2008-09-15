@@ -1,8 +1,8 @@
-require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/support/comment'
+require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require 'tap/support/lazydoc/comment'
 
 class CommentTest < Test::Unit::TestCase
-  include Tap::Support
+  include Tap::Support::Lazydoc
   
   attr_reader :c
   

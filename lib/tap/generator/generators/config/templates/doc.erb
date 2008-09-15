@@ -3,7 +3,7 @@
 ###############################################################################
 <% configurations.each do |key, config| %>
 
-<% Comment.wrap(config.desc.to_s, 50, 2).each do |line|  %>
+<% Lazydoc::Comment.wrap(config.desc.to_s, 50, 2).each do |line|  %>
 # <%=  line %>
 <% end %>
 <%= config.default == nil ? '#' : '' %><%= yamlize({key.to_s => config.default}) %>

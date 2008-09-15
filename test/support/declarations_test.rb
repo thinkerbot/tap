@@ -66,7 +66,7 @@ class DeclarationsTest < Test::Unit::TestCase
     tasc(:declaration7)
     
     Tap::Support::Lazydoc[__FILE__].resolved = false
-    assert_equal Tap::Support::Declarations::Description, Declaration7.manifest.class
+    assert_equal Tap::Support::Lazydoc::Declaration, Declaration7.manifest.class
     assert_equal "summary", Declaration7.manifest.subject
     assert_equal "a multiline comment", Declaration7.manifest.to_s
     

@@ -14,8 +14,6 @@ app = Tap::App.instance
 
 dump = false
 OptionParser.new do |opts|
-  cmdline = Tap::Support::CommandLine
-  
   opts.separator ""
   opts.separator "configurations:"
   
@@ -31,7 +29,7 @@ OptionParser.new do |opts|
   opts.separator "options:"
 
   opts.on("-h", "--help", "Show this message") do
-    opts.banner = cmdline.usage(__FILE__)
+    opts.banner = Tap::Support::Lazydoc.usage(__FILE__)
     Tap::App.lazydoc.resolve
     puts opts
     exit
