@@ -193,6 +193,33 @@ module Tap
         end
       end
       
+      # Sets ARGV to the input argv for the duration of the block.
+      def with_argv(argv=[])
+        current_argv = ARGV.dup
+        begin
+          ARGV.clear
+          ARGV.concat(argv)
+          
+          yield
+          
+        ensure
+          ARGV.clear
+          ARGV.concat(current_argv)
+        end
+      end
+      
+      def whitespace_escape(str)
+        str.to_s.gsub(/\s/) do |match|
+          case match
+          when "\n" then "\\n\n"
+          when "\t" then "\\t"
+          when "\r" then "\\r"
+          when "\f" then "\\f"
+          else match
+          end
+        end
+      end
+      
       # Raised when no reference can be found for a reference path.
       class DereferenceError < StandardError
       end

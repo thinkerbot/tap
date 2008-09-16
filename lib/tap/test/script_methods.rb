@@ -18,9 +18,9 @@ module Tap
           flunk %Q{
 #{msg}
 ==================== expected output ====================
-#{a.gsub(/\t/, "\\t").gsub(/\r\n/, "\\r\\n\n").gsub(/\n/, "\\n\n")}
+#{Utils.whitespace_escape(a)}
 ======================== but was ========================
-#{b.gsub(/\t/, "\\t").gsub(/\r\n/, "\\r\\n\n").gsub(/\n/, "\\n\n")}
+#{Utils.whitespace_escape(b)}
 =========================================================
 }
         end
@@ -35,23 +35,9 @@ module Tap
 ================= expected output like ==================
 #{a}
 ======================== but was ========================
-#{b.gsub(/\t/, "\\t").gsub(/\r\n/, "\\r\\n\n").gsub(/\n/, "\\n\n")}
+#{Utils.whitespace_escape(b)}
 =========================================================
 }
-        end
-      end
-      
-      def with_argv(argv=[])
-        current_argv = ARGV.dup
-        begin
-          ARGV.clear
-          ARGV.concat(argv)
-          
-          yield
-          
-        ensure
-          ARGV.clear
-          ARGV.concat(current_argv)
         end
       end
       
@@ -65,7 +51,7 @@ module Tap
           yield(cmd)
           
           Tap::Root.chdir(test_dir, true) do
-            with_argv do
+            Utils.with_argv do
               puts "\n# == #{method_name}"
 
               cmd.run(env('stepwise')) do |expected, result, msg|

@@ -4,33 +4,69 @@ require 'tap/test/script_methods/regexp_escape'
 class RegexpEscapeTest < Test::Unit::TestCase
   include Tap::Test::ScriptMethods
  
-  def test_resolve_basic_escapes
-    assert_equal "ab.*?c", RegexpEscape.resolve("ab:...:c")
-    assert Regexp.new("ab.*?c") =~ "(arb lead) ab (arb string 123!) c (arb tail)"
+  #
+  # documentation test
+  #
+  
+  def test_documentation
+    assert_equal 'reg\[exp\]\+\ chars\.\ are\(quoted\)', RegexpEscape.escape('reg[exp]+ chars. are(quoted)')
+    assert_equal 'these\ are\ not:\ a(b*)c',  RegexpEscape.escape('these are not: :.a(b*)c.:')
+  
+    assert_equal '_.*?_.*?_.*?', RegexpEscape.escape('_:..:_:...:_:....:')
+    assert_equal '.{1}', RegexpEscape.escape(':..{1}.:')
     
-    assert_equal "a\\.b.*?c\\.", RegexpEscape.resolve("a.b:...:c.")
-    assert Regexp.new("a\\.b.*?c\\.") =~ "(arb lead) a.b (arb string 123!) c. (arb tail)"
-    
-    assert_equal "a\\.b.*?c.*?d", RegexpEscape.resolve("a.b:...:c:...:d")
-    assert Regexp.new("a\\.b.*?c.*?d") =~ "(arb lead) a.b (arb string 123!) c (arb string 123!) d (arb tail)"
+    r = RegexpEscape.new %q{
+a multiline
+:...:
+example}
+  
+    assert r =~ %q{
+a multiline
+matching
+example}
+  
+    assert r !~ %q{
+a failing multiline
+example}
+  
+    expected = %q{\n
+a multiline\n
+:...:\n
+example}
+    assert_equal expected, r.to_s 
+  end
+ 
+  #
+  # quote/escape test
+  #
+ 
+  def test_escape_escapes_non_escaped_regexp_characters
+    assert_equal 'ab:\.:c', RegexpEscape.escape("ab:.:c")
+    assert_equal '\ \+\*\[\(\)\]', RegexpEscape.escape(" +*[()]")
   end
   
-  def test_resolve_substituent_escapes
-    assert_equal 'ab\d\d:\d\d:\d\dc', RegexpEscape.resolve('ab:.(\d\d:\d\d:\d\d).:c')
-    assert Regexp.new('ab\d\d:\d\d:\d\dc') =~ "(arb lead) ab08:08:08c (arb tail)"
+  def test_escape_preserves_escaped_regexp_characters
+    assert_equal 'ab.{1}c', RegexpEscape.escape("ab:..{1}.:c")
+    assert_equal ' +*[()]', RegexpEscape.escape(":. +*[()].:")
+    assert_equal 'abcdef', RegexpEscape.escape("ab:.c.:de:.f.:")
+  end
+  
+  def test_escape_treats_all_period_escapes_as_a_lazy_match_any
+    assert_equal "ab.*?c", RegexpEscape.escape("ab:..:c")
+    assert_equal "a.*?b.*?c", RegexpEscape.escape("a:..:b:......:c")
   end
   
   #
   # matching test
   #
   
-  def test_regexp_escape_matching
+  def test_multiline_regexp_escape
     regexp = RegexpEscape.new(%q{
 some \regexp+(text)
 :...:
-:.(\w+).:
+:.\w+.:
 more :...: in*[the] m\iddle
-another :.(\d\d:\d\d).: in the middle
+another :.\d\d:\d\d.: in the middle
 })
     
     assert regexp =~ %q{
@@ -71,7 +107,17 @@ another 0808 in the middle
   # to_s test
   #
   
-  def test_to_s_returns_original_string
-    assert_equal %q{some \regexp+(text):...:}, RegexpEscape.new(%q{some \regexp+(text):...:}).to_s
+  def test_to_s_returns_whitespace_escaped_version_of_original_string
+    assert_equal %q{\n
+      some regexp+(text):...:\n
+      \n
+      across  \n
+      several \t lines\n
+    }, RegexpEscape.new(%Q{
+      some regexp+(text):...:
+      
+      across  
+      several \t lines
+    }).to_s
   end
 end
