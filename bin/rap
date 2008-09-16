@@ -5,22 +5,37 @@ require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 
 # setup the environment
 begin
-  
-  $DEBUG = true if ARGV.delete('-d-')
   env = Tap::Exe.instantiate
-  
-  # add the DEFAULT_TASK_FILE if it exists
-  task_file = File.expand_path('tapfile.rb')
-  if File.exists?(task_file)
-    env.requires.unshift(task_file)
-    env.manifest(:tasks).search_paths << [Dir.pwd, task_file]
-  end
-  
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
   puts $!.message
   exit(1)
+end
+
+# parse super options
+require 'tap/support/super_optparse'
+Tap::Support::SuperOptionParser.new do |opts|
+  opts.on("-e", "--env [CONFIG:VALUE]", "set an env configuration") do |arg|
+    config, value = arg.split(":", 2)
+    env.config[config.to_sym] = value
+  end
+  
+  opts.on("-a", "--app [CONFIG:VALUE]", "set an app configuration") do |arg|
+    config, value = arg.split(":", 2)
+    env.app.config[config.to_sym] = value
+  end
+  
+  opts.on("-d", "set $DEBUG to true") do
+    $DEBUG = true
+  end
+end.parse!
+
+# add the DEFAULT_TASK_FILE if it exists
+task_file = File.expand_path('tapfile.rb')
+if File.exists?(task_file)
+  env.requires.unshift(task_file)
+  env.manifest(:tasks).search_paths << [Dir.pwd, task_file]
 end
 
 #
