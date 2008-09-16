@@ -170,7 +170,7 @@ end
     expected = [
     ['def method', 'comment lines for the method'],
     ['def another_method', 'as in RDoc, the comment can be separated from the method']]
-    assert_equal expected, lazydoc.comments.collect {|comment| [comment.subject, comment.to_s] } 
+    assert_equal expected, doc.comments.collect {|comment| [comment.subject, comment.to_s] } 
   end
 
   def test_startdoc_syntax

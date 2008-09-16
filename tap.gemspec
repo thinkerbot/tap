@@ -125,6 +125,7 @@ Gem::Specification.new do |s|
     lib/tap/test/file_methods.rb
     lib/tap/test/file_methods_class.rb
     lib/tap/test/script_methods.rb
+    lib/tap/test/script_methods/regexp_escape.rb
     lib/tap/test/script_methods/script_test.rb
     lib/tap/test/subset_methods.rb
     lib/tap/test/subset_methods_class.rb

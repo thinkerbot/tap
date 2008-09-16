@@ -97,7 +97,7 @@ class GeneratorTest < Test::Unit::TestCase
       cmd.check "Destroys the root directory",
       "% #{cmd} destroy root ." do |result|
         if File.exists?(method_root[:output])
-          assert method_glob(:output).empty?
+          assert method_root.glob(:output).empty?
         end
       end
     end

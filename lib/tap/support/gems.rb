@@ -1,13 +1,4 @@
-# This quick-require of rubygems causes Gem::SpecFetcher to be autoloaded.  
-# In general Gem::SpecFetcher will not be needed, and it's inclusion 
-# accounts for > 1/2 the require time for rubygems.  A patch has been 
-# submitted; pending it's acceptance this will not be needed.
-$" << 'rubygems/spec_fetcher.rb'
 require 'rubygems'
-$".delete('rubygems/spec_fetcher.rb')
-module Gem # :nodoc:
-  autoload(:SpecFetcher, 'rubygems/spec_fetcher')
-end
 
 module Tap
   module Support
