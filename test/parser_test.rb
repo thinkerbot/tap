@@ -427,54 +427,6 @@ class ParserTest < Test::Unit::TestCase
   include Tap
 
   #
-  # parse tests
-  #
-
-  def test_parse_documentation
-    p = Parser.new
-    p.parse(["a", "b", "--config", "c"]) 
-    expected = [
-      ["a", "b", "--config", "c"]]
-    assert_equal expected, p.tasks
-
-    p.parse(["x", "y", "z"])
-    expected = [
-      ["a", "b", "--config", "c"],
-      ["x", "y", "z"]]
-    assert_equal expected, p.tasks
-
-    assert_equal [[0,1]], p.rounds
-
-    ###
-    p = Parser.new ["a", "--+", "b"]
-    assert_equal [["a"], ["b"]], p.tasks
-    assert_equal [[0], [1]], p.rounds
-
-    ###
-    p = Parser.new ["--+", "a", "--", "b", "--", "c", "--", "d"]
-    assert_equal [["a"], ["b"], ["c"], ["d"]], p.tasks
-    assert_equal [[1,2,3], [0]], p.rounds
-
-    p.parse ["+3[2,3]"]
-    assert_equal [[1], [0], nil, [2,3]], p.rounds
-
-    ###
-    p = Parser.new "a --: b --: c --: d"
-    assert_equal [["a"], ["b"], ["c"], ["d"]], p.tasks
-    assert_equal [[0,1],[1,2],[2,3]], p.workflow(:sequence)
-
-    p.parse "1[2,3]"
-    assert_equal [[0,1],[2,3]], p.workflow(:sequence)
-    assert_equal [[1,[2,3]]], p.workflow(:fork) 
-
-    p.parse "e --{2,3}"
-    assert_equal [["a"], ["b"], ["c"], ["d"], ["e"]], p.tasks
-    assert_equal [[0,1]], p.workflow(:sequence)
-    assert_equal [[1,[2,3]]], p.workflow(:fork)
-    assert_equal [[4,[2,3]]], p.workflow(:merge)
-  end
-
-  #
   # tasks tests
   #
 
@@ -682,8 +634,60 @@ class ParserTest < Test::Unit::TestCase
   end
   
   #
-  # parse test
+  # parse tests
   #
+
+  def test_parse_documentation
+    p = Parser.new
+    p.parse(["a", "b", "--config", "c"]) 
+    expected = [
+      ["a", "b", "--config", "c"]]
+    assert_equal expected, p.tasks
+
+    p.parse(["x", "y", "z"])
+    expected = [
+      ["a", "b", "--config", "c"],
+      ["x", "y", "z"]]
+    assert_equal expected, p.tasks
+
+    assert_equal [[0,1]], p.rounds
+
+    ###
+    p = Parser.new ["a", "--+", "b"]
+    assert_equal [["a"], ["b"]], p.tasks
+    assert_equal [[0], [1]], p.rounds
+
+    ###
+    p = Parser.new ["--+", "a", "--", "b", "--", "c", "--", "d"]
+    assert_equal [["a"], ["b"], ["c"], ["d"]], p.tasks
+    assert_equal [[1,2,3], [0]], p.rounds
+
+    p.parse ["+3[2,3]"]
+    assert_equal [[1], [0], nil, [2,3]], p.rounds
+
+    ###
+    p = Parser.new "a --: b --: c --: d"
+    assert_equal [["a"], ["b"], ["c"], ["d"]], p.tasks
+    assert_equal [[0,1],[1,2],[2,3]], p.workflow(:sequence)
+
+    p.parse "1[2,3]"
+    assert_equal [[0,1],[2,3]], p.workflow(:sequence)
+    assert_equal [[1,[2,3]]], p.workflow(:fork) 
+
+    p.parse "e --{2,3}"
+    assert_equal [["a"], ["b"], ["c"], ["d"], ["e"]], p.tasks
+    assert_equal [[0,1]], p.workflow(:sequence)
+    assert_equal [[1,[2,3]]], p.workflow(:fork)
+    assert_equal [[4,[2,3]]], p.workflow(:merge)
+    
+    p = Parser.new "a -. -- b -- .- c -- d"
+    assert_equal [["a", "--", "b", "--", "c"], ["d"]], p.tasks
+    
+    argv = ["a", "--", "b", "---", "args", "after", "stop"]
+    p = Parser.new
+    assert_equal ["args", "after", "stop"], p.parse(argv)
+    assert_equal [["a"], ["b"]], p.tasks
+  end
   
   def test_parse
     p = Parser.new [
@@ -741,6 +745,35 @@ class ParserTest < Test::Unit::TestCase
       ["b"],
       ["c"]
     ], p.tasks
+  end
+  
+  def test_parse_stops_at_end_flag
+    p = Parser.new "a -- b --- c"
+    assert_equal [["a"], ["b"]], p.tasks
+  end
+  
+  #
+  # parse! test
+  #
+  
+  def test_parse_bang_is_destructive
+    argv = [
+      "a", "a1", "a2", "--key", "value", "--another", "another value", "--",
+      "b","b1", "--",
+      "c", "--",
+      "+2[0,1,2]", "--",
+      "0:1:2"]
+    argv_ref = argv.dup
+
+    Parser.new.parse!(argv)
+    assert argv.empty?
+  end
+  
+  def test_parse_bang_stops_at_end_flag
+    p = Parser.new
+    args = p.parse! "a -- b --- c"
+    assert_equal [["a"], ["b"]], p.tasks
+    assert_equal ["c"], args
   end
   
   #

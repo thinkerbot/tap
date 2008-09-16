@@ -54,6 +54,9 @@ module Tap
       # The escape end argument
       ESCAPE_END = ".-"
       
+      # The parser end flag
+      END_FLAG = "---"
+      
       # Matches any breaking arg (ex: '--', '--+', '--1:2')
       BREAK =  /\A--(\z|[\+\d\:\*\[\{\(])/
         
@@ -215,8 +218,12 @@ module Tap
     # tasks may be reassigned to rounds, or have their workflow reassigned
     # by later arguments, perhaps in later calls to parse.
     #
-    # === Examples
+    # Parse is non-destructive to argv.  Parsing continues until the end of
+    # argv, or a an end flag '---' is reached.  The remaining argv is
+    # returned as an array.  Breaks can be escaped by enclosing them in 
+    # '-.' and '.-' delimiters.
     #
+    # === Examples
     # Parse two tasks, with inputs and configs at separate times.  Both 
     # are assigned to round 0.
     #
@@ -255,7 +262,7 @@ module Tap
     # using Shellwords):
     #
     #   p = Parser.new "a --: b --: c --: d"
-    #   p.tasks                    # => [["a"], ["b"], ["c"], ["d"]]
+    #   p.tasks                   # => [["a"], ["b"], ["c"], ["d"]]
     #   p.workflow(:sequence)     # => [[0,1],[1,2],[2,3]]
     #
     #   p.parse "1[2,3]"
@@ -263,12 +270,32 @@ module Tap
     #   p.workflow(:fork)         # => [[1,[2,3]]]
     #
     #   p.parse "e --{2,3}"
-    #   p.tasks                    # => [["a"], ["b"], ["c"], ["d"], ["e"]]
+    #   p.tasks                   # => [["a"], ["b"], ["c"], ["d"], ["e"]]
     #   p.workflow(:sequence)     # => [[0,1]]
     #   p.workflow(:fork)         # => [[1,[2,3]]]
     #   p.workflow(:merge)        # => [[4,[2,3]]]
     #
+    # Use escapes ('-.' and '.-') to bring breaks into a task array.  Any
+    # number of breaks/args may occur within an escape sequence; breaks
+    # are re-activated after the stop-escape:
+    #
+    #   p = Parser.new "a -. -- b -- .- c -- d"
+    #   p.tasks                   # => [["a", "--", "b", "--", "c"], ["d"]]
+    #
+    # Use the stop delimiter to stop parsing (the unparsed argv is 
+    # returned by parse):
+    #
+    #   argv = ["a", "--", "b", "---", "args", "after", "stop"]
+    #   p = Parser.new
+    #   p.parse(argv)             # => ["args", "after", "stop"]
+    #   p.tasks                   # => [["a"], ["b"]]
+    #
     def parse(argv)
+      parse!(argv.dup)
+    end
+    
+    # Same as parse, but removes parsed args from argv.
+    def parse!(argv)
       if argv.kind_of?(String)
         argv = Shellwords.shellwords(argv)
       end
@@ -276,7 +303,9 @@ module Tap
       current_round_index = @round_indicies[next_index]
       current = []
       escape = false
-      argv.each do |arg|
+      while !argv.empty?
+        arg = argv.shift
+        
         # add escaped arguments
         if escape
           if arg == ESCAPE_END
@@ -294,6 +323,9 @@ module Tap
           next
         end
         
+        # break if the end flag is reached
+        break if arg == END_FLAG
+
         # add all non-breaking args to the
         # current argv array.  this should
         # include all lookups, inputs, and
@@ -335,6 +367,8 @@ module Tap
       unless current.empty?
         add_task(current, current_round_index)
       end
+      
+      argv
     end
     
     # Returns an array of [type, targets] objects; the index of

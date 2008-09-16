@@ -581,7 +581,7 @@ subject
        "# up from line number",
        "subject"]
 
-    c.line_number = lambda {|lines| 3 }
+    c.line_number = lambda {|l| 3 }
     c.resolve(lines)
     assert_equal 3, c.line_number
     assert_equal "subject", c.subject

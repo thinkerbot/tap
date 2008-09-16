@@ -62,12 +62,14 @@ module Tap
               regexp_str = ".*?" if regexp_str =~ /^\.*$/
               substituents << regexp_str
             end
+            substituents << ""
 
             splits = str.split(ESCAPE_SEQUENCE).collect do |split|
               super(split)
             end
             splits << "" if splits.empty?
-            splits.zip(substituents).flatten.join
+            
+            splits.zip(substituents).to_a.flatten.join
           end
           
           # Same as escape.

@@ -134,7 +134,7 @@ key
      'key' =>     ['subject for key', 'comment for key parsed until a non-comment line'],
      'another' => ['subject for another', 'comment for another parsed to an end key']
     }}
-    assert_equal expected, doc.to_hash {|comment| [comment.subject, comment.to_s] } 
+    assert_equal expected, doc.to_hash {|c| [c.subject, c.to_s] } 
   
     str = %Q{
 Const::Name::not_parsed
@@ -147,7 +147,7 @@ Const::Name::not_parsed
   
     doc = Lazydoc::Document.new
     doc.resolve(str)
-    assert_equal({'Const::Name' => {'parsed' => 'subject'}}, doc.to_hash {|comment| comment.subject })
+    assert_equal({'Const::Name' => {'parsed' => 'subject'}}, doc.to_hash {|c| c.subject })
   
     str = %Q{
 # comment lines for
@@ -170,7 +170,7 @@ end
     expected = [
     ['def method', 'comment lines for the method'],
     ['def another_method', 'as in RDoc, the comment can be separated from the method']]
-    assert_equal expected, doc.comments.collect {|comment| [comment.subject, comment.to_s] } 
+    assert_equal expected, doc.comments.collect {|c| [c.subject, c.to_s] } 
   end
 
   def test_startdoc_syntax
