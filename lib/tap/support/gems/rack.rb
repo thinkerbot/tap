@@ -1,5 +1,6 @@
 require 'rack'
 require 'cgi'
+require 'yaml'
 
 module Tap
   module Support

@@ -89,7 +89,9 @@ module Tap
       # is empty, does not exist, or is not a file.
       def load_config(path)
         return {} if path == nil || !File.file?(path)
-
+        
+        # this check prevents YAML loading for empty files
+        return {} if File.size(path) == 0
         YAML.load_file(path) || {}
       end
       

@@ -1,4 +1,4 @@
-require 'yaml'                   # expensive to load
+autoload(:YAML, 'yaml')                   # expensive to load
 
 # Apply version-specific patches
 case RUBY_VERSION

@@ -24,7 +24,7 @@ class SampleFile < Tap::FileTask
     # now perform the task...
     array = File.read(filepath).split(/\r?\n/)
     File.open(target, "wb") do |file|
-      file << array.to_yaml
+      file << YAML.dump(array)
     end
     
     target

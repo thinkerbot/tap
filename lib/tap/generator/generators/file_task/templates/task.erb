@@ -25,7 +25,7 @@ class <%= const.const_name %> < Tap::FileTask
     end
 
     File.open(target, "wb") do |file|
-      file << letter_count.to_yaml
+      file << YAML.dump(letter_count)
     end
 
     target
