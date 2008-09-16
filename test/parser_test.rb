@@ -734,6 +734,15 @@ class ParserTest < Test::Unit::TestCase
     assert_equal argv_ref, argv
   end
   
+  def test_parse_does_not_parse_escaped_args
+    p = Parser.new "a -. -- --: --1[2,3] 4{5,6} x y .- z -- b -- c"
+    assert_equal [
+      ["a", "--", "--:", "--1[2,3]", "4{5,6}", "x", "y", "z"],
+      ["b"],
+      ["c"]
+    ], p.tasks
+  end
+  
   #
   # to_s test
   #

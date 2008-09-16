@@ -8,7 +8,7 @@ module Tap
     class << self
       def instantiate(path=Dir.pwd, logger=Tap::App::DEFAULT_LOGGER, &block)
         app = Tap::App.instance = Tap::App.new({:root => path}, logger)
-        exe = super(app, load_config(GLOBAL_CONFIG_FILE), app.logger)
+        exe = super(app, load_config(GLOBAL_CONFIG_FILE), app.logger, &block)
         
         # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
         if !File.exists?(Tap::Env::DEFAULT_CONFIG_FILE)

@@ -14,31 +14,17 @@ require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 
 # setup the environment
 begin
+  
+  # handle super options
+  $DEBUG = true if ARGV.delete('-d-')
   env = Tap::Exe.instantiate
+  
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
   puts $!.message
   exit(1)
 end
-
-# parse super options
-require 'tap/support/super_optparse'
-Tap::Support::SuperOptionParser.new do |opts|
-  opts.on("-e", "--env [CONFIG:VALUE]", "set an env configuration") do |arg|
-    config, value = arg.split(":", 2)
-    env.config[config.to_sym] = value
-  end
-  
-  opts.on("-a", "--app [CONFIG:VALUE]", "set an app configuration") do |arg|
-    config, value = arg.split(":", 2)
-    env.app.config[config.to_sym] = value
-  end
-  
-  opts.on("-d", "set $DEBUG to true") do
-    $DEBUG = true
-  end
-end.parse!
 
 #
 # setup after script

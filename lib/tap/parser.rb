@@ -48,6 +48,12 @@ module Tap
         /\A(--)?(\d*)#{Regexp.escape(l)}([\d,]*)#{Regexp.escape(r)}\z/
       end
       
+      # The escape begin argument
+      ESCAPE_BEGIN = "-."
+      
+      # The escape end argument
+      ESCAPE_END = ".-"
+      
       # Matches any breaking arg (ex: '--', '--+', '--1:2')
       BREAK =  /\A--(\z|[\+\d\:\*\[\{\(])/
         
@@ -269,7 +275,25 @@ module Tap
       
       current_round_index = @round_indicies[next_index]
       current = []
+      escape = false
       argv.each do |arg|
+        # add escaped arguments
+        if escape
+          if arg == ESCAPE_END
+            escape = false
+          else
+            current << arg
+          end
+          
+          next
+        end
+        
+        # begin escaping if necessary
+        if arg == ESCAPE_BEGIN
+          escape = true
+          next
+        end
+        
         # add all non-breaking args to the
         # current argv array.  this should
         # include all lookups, inputs, and
