@@ -638,6 +638,27 @@ class ParserTest < Test::Unit::TestCase
   #
 
   def test_parse_documentation
+    p = Parser.new "a -- b --+ c -- d -- e --+3[4]"
+    assert_equal [[0,1,3],[2], nil, [4]], p.rounds
+  
+    p = Parser.new "a --: b -- c --1:2"
+    assert_equal [["a"], ["b"], ["c"]], p.tasks
+    assert_equal [[0,1],[1,2]], p.workflow(:sequence)
+  
+    p = Parser.new "a -- b --* global_name --config for --global"
+    assert_equal [2], p.globals
+  
+    p = Parser.new "a -- b -- c"
+    assert_equal [["a"], ["b"], ["c"]], p.tasks
+  
+    p = Parser.new "a -. -- b .- -- c"
+    assert_equal [["a", "--", "b"], ["c"]], p.tasks
+  
+    p = Parser.new "a -- b --- c"
+    assert_equal [["a"], ["b"]], p.tasks
+  end
+
+  def test_parse_documentation___old___
     p = Parser.new
     p.parse(["a", "b", "--config", "c"]) 
     expected = [
@@ -707,7 +728,7 @@ class ParserTest < Test::Unit::TestCase
     assert_equal [
       [:sequence, 1],
       [:sequence, 2]
-    ], p.workflows
+    ], p.workflow_map
   end
   
   def test_parse_splits_string_argv_using_shellwords
@@ -722,7 +743,7 @@ class ParserTest < Test::Unit::TestCase
     assert_equal [
       [:sequence, 1],
       [:sequence, 2]
-    ], p.workflows
+    ], p.workflow_map
   end
   
   def test_parse_is_non_destructive
@@ -788,8 +809,8 @@ class ParserTest < Test::Unit::TestCase
       ["c"]
     ]
     
-    p.round_indicies.concat [2,2,1]
-    p.workflows.concat [
+    p.rounds_map.concat [2,2,1]
+    p.workflow_map.concat [
       [:sequence, 1],
       [:sequence, 2],
       [:fork, [1,2,3]],
@@ -807,14 +828,14 @@ class ParserTest < Test::Unit::TestCase
       ["c"]
     ], p.tasks
 
-    assert_equal [2, nil, nil, nil, nil, nil, nil], p.round_indicies
+    assert_equal [2, nil, nil, nil, nil, nil, nil], p.rounds_map
     assert_equal [
       [:sequence, 1],
       [:sequence, 2],
       [:fork, [1,2,3]],
       [:merge, 6],
       [:merge, 6]
-    ], p.workflows
+    ], p.workflow_map
   end
   
   #
@@ -829,8 +850,8 @@ class ParserTest < Test::Unit::TestCase
       ["c"]
     ]
     
-    p.round_indicies.concat [2,2,1]
-    p.workflows.concat [
+    p.rounds_map.concat [2,2,1]
+    p.workflow_map.concat [
       [:sequence, 1],
       [:sequence, 2],
       [:fork, [1,2,3]],
@@ -858,14 +879,14 @@ class ParserTest < Test::Unit::TestCase
       ["c"]
     ], p.tasks
 
-    assert_equal [2, nil, nil, nil, nil, nil, nil], p.round_indicies
+    assert_equal [2, nil, nil, nil, nil, nil, nil], p.rounds_map
     assert_equal [
       [:sequence, 1],
       [:sequence, 2],
       [:fork, [1,2,3]],
       [:merge, 6],
       [:merge, 6]
-    ], p.workflows
+    ], p.workflow_map
   end
 end
 

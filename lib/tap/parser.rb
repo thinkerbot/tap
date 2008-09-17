@@ -190,26 +190,26 @@ module Tap
     # An array of task declarations.
     attr_reader :tasks
     
-    # The internal rounds data; an array of integers signifying the
-    # round a task should be assigned to, at a given index.
-    attr_reader :round_indicies
+    # An array of integers indicating which tasks
+    # should be set as globals.
+    attr_reader :globals
+    
+    # The internal rounds data; an array of integers mapping to tasks
+    # by index.  The integers signify the round the corresponding
+    # task should be assigned to; a nil entry indicates the task
+    # should not be enqued to a round.
+    attr_reader :rounds_map
     
     # The internal workflow data; an array of [type, targets] pairs 
-    # signifying the workflow type and targets assigned to the task 
-    # at a given index.  Differs from the return from workflow in
-    # that reversed-workflows (ex merge, sync_merge) will be organized
-    # by target rather than by source.
-    attr_reader :workflows
-    
-    # An array of indicies indicating which tasks are intended to
-    # be global instances.
-    attr_reader :globals
+    # mapping to tasks by index.  The entries signify the workflow 
+    # type and targets assigned to the corresponding task.
+    attr_reader :workflow_map
     
     def initialize(argv=nil)
       @tasks = []
-      @round_indicies = []
-      @workflows = []
       @globals = []
+      @rounds_map = []
+      @workflow_map = []
       
       case argv
       when String, Array 
@@ -220,14 +220,84 @@ module Tap
     # Iterates through the argv splitting out task and workflow definitions.
     # Task definitions are split out (with configurations) along round and/or
     # workflow break lines.  Rounds and workflows are dynamically parsed;
-    # tasks may be reassigned to rounds, or have their workflow reassigned
-    # by later arguments, perhaps in later calls to parse.
+    # tasks may be reassigned to different rounds or workflows by later 
+    # arguments.
     #
-    # Parse is non-destructive to argv.  Parsing continues until the end of
-    # argv, or a an end flag '---' is reached.  The remaining argv is
-    # returned as an array.  Breaks can be escaped by enclosing them in 
-    # '-.' and '.-' delimiters.
+    # Parse is non-destructive to argv.  If a string argv is provided, parse
+    # splits it into an array using Shellwords.
     #
+    # ==== Round Assignment
+    # Tasks can be defined and set to a round using the following:
+    #
+    #   break           assigns task(s)         to round
+    #   --              next                    0
+    #   --+             next                    1
+    #   --++            next                    2
+    #   --+2            next                    2
+    #   --+2[1,2,3]     1,2,3                   2
+    #
+    # Here all task (except c) are parsed into round 0, then the
+    # final argument reassigns e to round 3.
+    #
+    #   p = Parser.new "a -- b --+ c -- d -- e --+3[4]"
+    #   p.rounds                   # => [[0,1,3],[2], nil, [4]]
+    #
+    # ==== Workflow Assignment
+    # All simple workflow patterns except switch can be specified within
+    # the parse syntax (switch is the exception because there is no good
+    # way to define a block from an array).  
+    #
+    #   break      pattern       source(s)      target(s)
+    #   --:        sequence      last           next
+    #   --[]       fork          last           next
+    #   --{}       merge         next           last
+    #   --()       sync_merge    next           last
+    #
+    #   example       meaning
+    #   --1:2         1.sequence(2)
+    #   --1:2:3       1.sequence(2,3)
+    #   --:2:         last.sequence(2,next)
+    #   --[]          last.fork(next)
+    #   --1{2,3,4}    1.merge(2,3,4)
+    #   --(2,3,4)     last.sync_merge(2,3,4)
+    #
+    # Note how all of the bracketed styles behave similarly; they are
+    # parsed with essentially the same code, only reversing the source
+    # and target in the case of merges.
+    #
+    # Here a and b are sequenced inline.  Task c is assigned to no 
+    # workflow until the final argument which sequenced b and c.
+    #
+    #   p = Parser.new "a --: b -- c --1:2"
+    #   p.tasks                    # => [["a"], ["b"], ["c"]]
+    #   p.workflow(:sequence)      # => [[0,1],[1,2]]
+    #
+    # ==== Globals
+    # Global instances of task (used, for example, by dependencies) may
+    # be assigned in the parse syntax as well.  The break for a global
+    # is '--*'.
+    #
+    #   p = Parser.new "a -- b --* global_name --config for --global"
+    #   p.globals                  # => [2]
+    #
+    # ==== Escapes and End Flags
+    # Breaks can be escaped by enclosing them in '-.' and '.-' delimiters;
+    # any number of arguments may be enclosed within the escape. After the 
+    # end delimiter, breaks are active once again.
+    #
+    #   p = Parser.new "a -- b -- c"
+    #   p.tasks                    # => [["a"], ["b"], ["c"]]
+    # 
+    #   p = Parser.new "a -. -- b .- -- c"
+    #   p.tasks                    # => [["a", "--", "b"], ["c"]]
+    #
+    # Parsing continues until the end of argv, or a an end flag '---' is 
+    # reached.  The end flag may also be escaped.
+    #
+    #   p = Parser.new "a -- b --- c"
+    #   p.tasks                    # => [["a"], ["b"]]
+    #
+    #--
     # === Examples
     # Parse two tasks, with inputs and configs at separate times.  Both 
     # are assigned to round 0.
@@ -296,7 +366,7 @@ module Tap
     #   p.tasks                   # => [["a"], ["b"]]
     #
     def parse(argv)
-      parse!(argv.dup)
+      parse!(argv.kind_of?(String) ? argv : argv.dup)
     end
     
     # Same as parse, but removes parsed args from argv.
@@ -353,7 +423,7 @@ module Tap
         case arg
         when ROUND
           round_index, indicies = parse_round($3, $6)
-          indicies.each {|index| round_indicies[index] = round_index }
+          indicies.each {|index| rounds_map[index] = round_index }
           next
           
         when SEQUENCE   
@@ -381,7 +451,7 @@ module Tap
     
     # Returns an array of [type, targets] objects; the index of
     # each entry corresponds to the task on which to build the
-    # workflow of the specified type.  
+    # workflow.
     #
     # If a type is specified, the output is ordered differently;
     # The return is an array of [source, targets] for the 
@@ -392,7 +462,7 @@ module Tap
       # recollect reverse types
       
       workflows = []
-      @workflows.each_with_index do |entry, source|
+      workflow_map.each_with_index do |entry, source|
         next if entry == nil
         
         workflows[source] = case entry[0]
@@ -419,7 +489,7 @@ module Tap
     #
     def rounds
       collected_rounds = []
-      @round_indicies.each_with_index do |round_index, index|
+      @rounds_map.each_with_index do |round_index, index|
         (collected_rounds[round_index] ||= []) << index unless round_index == nil
       end
       
@@ -445,19 +515,19 @@ module Tap
     end
     
     def build(app)
-      # attempt lookup and instantiation of the task classes
-      # note that instances is actually an array of [instance, args]
-      # pairs, where the instance will be enqued with the args
-      instances = tasks.collect do |args|
-        yield(args)
+      instances = []
+      
+      # instantiate and assign globals
+      globals.each do |index|
+        task, args = yield(tasks[index])
+        task.class.instance = task
+        instances[index] = [task, args]
       end
       
-      # assign globals
-      # globals.each do |index|
-      #   task, args = instances[index]
-      #   instances[index] = nil
-      #   task.class.instance = task
-      # end
+      # instantiate the remaining task classes
+      tasks.each_with_index do |args, index|
+        instances[index] ||= yield(args)
+      end
 
       # build the workflow
       workflow.each_with_index do |(type, target_indicies), source_index|
@@ -484,7 +554,7 @@ module Tap
       end
       queues.delete_if {|queue| queue.empty? }
       
-      # check
+      # notify any args that will be overlooked
       instances.compact.each do |(instance, args)|
         next if args.empty?
         puts "ignoring args: #{instance} [#{args.join(' ')}]"
@@ -505,11 +575,11 @@ module Tap
       tasks.length - 1
     end
     
-    # Sets the targets to the source in workflows, tracking the
+    # Sets the targets to the source in workflow_map, tracking the
     # workflow type.
     def set_workflow(type, source, targets) # :nodoc
-      workflows[source] = [type, targets]
-      [*targets].each {|target| round_indicies[target] = nil }
+      workflow_map[source] = [type, targets]
+      [*targets].each {|target| rounds_map[target] = nil }
     end
     
     # Sets a reverse workflow... ie the source is set to
@@ -520,7 +590,7 @@ module Tap
     
     def add_task(definition, round_index) # :nodoc
       tasks << definition
-      round_indicies[current_index] = round_index
+      rounds_map[current_index] = round_index
     end
     
     # Yields each round formatted as a string.

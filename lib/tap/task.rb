@@ -180,6 +180,10 @@ module Tap
         super
       end
       
+      #--
+      # use with caution... should reset dependencies?
+      attr_writer :instance
+      
       # Returns an instance of self; the instance is a kind of 'global'
       # instance used in class-level dependencies.  See depends_on.
       def instance
