@@ -1,6 +1,6 @@
 require  File.join(File.dirname(__FILE__), 'tap_test_helper')
 require 'tap/parser'
-
+require 'yaml'
 
 class ParserUtilsTest < Test::Unit::TestCase
   include Tap::Parser::Utils
@@ -703,7 +703,7 @@ class ParserTest < Test::Unit::TestCase
       ["c"]
     ], p.tasks
     
-    assert_equal [nil, nil, [0,1,2]], p.rounds
+    assert_equal [nil, nil, [0]], p.rounds
     assert_equal [
       [:sequence, 1],
       [:sequence, 2]
@@ -718,7 +718,7 @@ class ParserTest < Test::Unit::TestCase
       ["c"]
     ], p.tasks
     
-    assert_equal [nil, nil, [0,1,2]], p.rounds
+    assert_equal [nil, nil, [0]], p.rounds
     assert_equal [
       [:sequence, 1],
       [:sequence, 2]
@@ -807,7 +807,7 @@ class ParserTest < Test::Unit::TestCase
       ["c"]
     ], p.tasks
 
-    assert_equal [2,2,1], p.round_indicies
+    assert_equal [2, nil, nil, nil, nil, nil, nil], p.round_indicies
     assert_equal [
       [:sequence, 1],
       [:sequence, 2],
@@ -858,7 +858,7 @@ class ParserTest < Test::Unit::TestCase
       ["c"]
     ], p.tasks
 
-    assert_equal [2,2,1], p.round_indicies
+    assert_equal [2, nil, nil, nil, nil, nil, nil], p.round_indicies
     assert_equal [
       [:sequence, 1],
       [:sequence, 2],

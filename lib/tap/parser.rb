@@ -201,10 +201,15 @@ module Tap
     # by target rather than by source.
     attr_reader :workflows
     
+    # An array of indicies indicating which tasks are intended to
+    # be global instances.
+    attr_reader :globals
+    
     def initialize(argv=nil)
       @tasks = []
       @round_indicies = []
       @workflows = []
+      @globals = []
       
       case argv
       when String, Array 
@@ -300,7 +305,7 @@ module Tap
         argv = Shellwords.shellwords(argv)
       end
       
-      current_round_index = @round_indicies[next_index]
+      round_index = 0
       current = []
       escape = false
       while !argv.empty?
@@ -338,7 +343,8 @@ module Tap
         # unless the current argv is empty,
         # append and start a new argv
         unless current.empty?
-          current_round_index = add_task(current, current_round_index)
+          add_task(current, round_index)
+          round_index = 0
           current = []
         end
         
@@ -346,26 +352,28 @@ module Tap
         # and add to the appropriate collection
         case arg
         when ROUND
-          current_round_index, indicies = parse_round($3, $6)
-          indicies.each {|index| @round_indicies[index] = current_round_index }
-
+          round_index, indicies = parse_round($3, $6)
+          indicies.each {|index| round_indicies[index] = round_index }
+          next
+          
         when SEQUENCE   
           indicies = parse_sequence($2)
           while indicies.length > 1
-            source_index = indicies.shift
-            set_workflow(:sequence, source_index, indicies[0])
+            set_workflow(:sequence, indicies.shift, indicies[0])
           end
           
-        # when INSTANCE   then @instances << parse_instance($2)
+        when INSTANCE    then globals << parse_instance($2)
         when FORK        then set_workflow(:fork, *parse_bracket($2, $3))
         when MERGE       then set_reverse_workflow(:merge, *parse_bracket($2, $3))
         when SYNC_MERGE  then set_reverse_workflow(:sync_merge, *parse_bracket($2, $3))
         else raise ArgumentError, "invalid break argument: #{arg}"
         end
+        
+        round_index = nil
       end
       
       unless current.empty?
-        add_task(current, current_round_index)
+        add_task(current, round_index)
       end
       
       argv
@@ -443,6 +451,13 @@ module Tap
       instances = tasks.collect do |args|
         yield(args)
       end
+      
+      # assign globals
+      # globals.each do |index|
+      #   task, args = instances[index]
+      #   instances[index] = nil
+      #   task.class.instance = task
+      # end
 
       # build the workflow
       workflow.each_with_index do |(type, target_indicies), source_index|
@@ -461,12 +476,19 @@ module Tap
       queues = rounds.collect do |round|
         round.each do |index|
           task, args = instances[index]
+          instances[index] = nil
           task.enq(*args)
         end
 
         app.queue.clear
       end
       queues.delete_if {|queue| queue.empty? }
+      
+      # check
+      instances.compact.each do |(instance, args)|
+        next if args.empty?
+        puts "ignoring args: #{instance} [#{args.join(' ')}]"
+      end
 
       queues
     end
@@ -486,8 +508,8 @@ module Tap
     # Sets the targets to the source in workflows, tracking the
     # workflow type.
     def set_workflow(type, source, targets) # :nodoc
-      # warn if workflows[source] is already set
-      @workflows[source] = [type, targets]
+      workflows[source] = [type, targets]
+      [*targets].each {|target| round_indicies[target] = nil }
     end
     
     # Sets a reverse workflow... ie the source is set to
@@ -496,10 +518,9 @@ module Tap
       targets.each {|target| set_workflow(type, target, source) }
     end
     
-    def add_task(definition, round_index=@round_indicies[next_index]) # :nodoc
-      @tasks << definition
-      @round_indicies[current_index] = (round_index || 0)
-      @round_indicies[next_index]
+    def add_task(definition, round_index) # :nodoc
+      tasks << definition
+      round_indicies[current_index] = round_index
     end
     
     # Yields each round formatted as a string.
