@@ -13,10 +13,14 @@ module Tap
         # An array of (command, message, expected, validation)
         # entries, representing the accumulated test commands.
         attr_reader :commands
-
-        def initialize(command_path=nil)
+        
+        attr_reader :stepwise, :run_block
+        
+        def initialize(command_path=nil, stepwise=false, &run_block)
           @command_path = command_path
           @commands = []
+          @stepwise = stepwise
+          @run_block = run_block
         end
         
         # Splits the input string, collecting single-line commands
@@ -50,28 +54,33 @@ module Tap
         end
         
         def check(msg, command, use_regexp_escapes=true, &validation)
-          new_commands = split(command) 
-          new_commands.each_with_index do |(cmd, expected), i|
+          new_commands = split(command)
+          commands = new_commands.collect do |cmd, expected|
             expected = RegexpEscape.new(expected) if expected && use_regexp_escapes
-            commands << [cmd, (new_commands.length > 1 ? "#{msg} (#{i})" : msg), expected, validation]
+            [cmd, msg, expected, validation]
           end
+          
+          run(commands)
         end
 
         def match(msg, command, regexp=nil, &validation)
-          new_commands = split(command) 
-          new_commands.each_with_index do |(cmd, expected), i|
+          new_commands = split(command)
+          commands = new_commands.collect do |cmd, expected|
             raise "expected text specified in match command" unless expected == nil
-            commands << [cmd, (new_commands.length > 1 ? "#{msg} (#{i})" : msg), regexp, validation]
+            [cmd, msg, regexp, validation]
           end
+          
+          run(commands)
         end
         
-        def run(stepwise=false)
-          commands.each do |cmd, msg, expected, validation|
+        def run(commands)
+          commands.each_with_index do |(cmd, msg, expected, validation), i|
             start = Time.now
             result = capture_sh(cmd) {|ok, status, tempfile_path| }
             elapsed = Time.now - start
-
-            yield(expected, result, %Q{#{msg}\n% #{cmd}}) if expected
+            
+            cmd_msg = commands.length > 1 ? "#{msg} (#{i})" : msg
+            run_block.call(expected, result, %Q{#{cmd_msg}\n% #{cmd}}) if expected
             validation.call(result) if validation
 
             if stepwise
@@ -80,12 +89,12 @@ module Tap
 %s
 > %s
 %s
-Time Elapsed: %.3fs} % [msg, cmd, result, elapsed]
+Time Elapsed: %.3fs} % [cmd_msg, cmd, result, elapsed]
 
               print "\nContinue? (y/n): "
               break if gets.strip =~ /^no?$/i
-            else            
-              puts "%.3fs : %s" % [elapsed, msg]
+            else
+              puts "%.3fs : %s" % [elapsed, cmd_msg]
             end
           end
         end

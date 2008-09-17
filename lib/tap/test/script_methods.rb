@@ -47,14 +47,11 @@ module Tap
       
       def script_test(test_dir=method_root.root)
         subset_test("SCRIPT", "s") do
-          cmd = ScriptTest.new(default_command_path)
-          yield(cmd)
-          
-          Tap::Root.chdir(test_dir, true) do
+          Tap::Root.chdir(test_dir, true) do  
             Utils.with_argv do
               puts "\n# == #{method_name}"
 
-              cmd.run(env('stepwise')) do |expected, result, msg|
+              cmd = ScriptTest.new(default_command_path, env('stepwise')) do |expected, result, msg|
                 case expected
                 when String
                   assert_output_equal(expected, result, msg)
@@ -62,6 +59,8 @@ module Tap
                   assert_alike(expected, result, msg)
                 end
               end
+              
+              yield(cmd)
             end
           end
         end
