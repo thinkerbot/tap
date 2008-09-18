@@ -1,4 +1,4 @@
-require 'tap/support/batchable'
+# require 'tap/support/batchable'
 require 'tap/support/executable'
 require 'tap/support/lazydoc/method'
 autoload(:OptionParser, 'optparse')
@@ -158,7 +158,6 @@ module Tap
   #   t1.array.object_id == t2.array.object_id     # => false
   #
   class Task
-    include Support::Batchable
     include Support::Configurable
     include Support::Executable
     
@@ -420,10 +419,6 @@ module Tap
     lazy_attr :manifest
     lazy_attr :args
     
-    # The application used to load config_file templates 
-    # (and hence, to initialize batched objects).
-    attr_reader :app
-    
     # The name of self.
     #--
     # Currently names may be any object.  Audit makes use of name
@@ -439,14 +434,15 @@ module Tap
     # config_file = app.config_filepath(name).  
     def initialize(config={}, name=nil, app=App.instance, &task_block)
       super()
-      
-      @app = app
+
       @name = name || self.class.default_name
       @task_block = (task_block == nil ? default_task_block : task_block)
       
+      @app = app
       @_method_name = :execute
       @on_complete_block = nil
       @dependencies = []
+      @batch = [self]
       
       case config
       when Support::InstanceConfiguration 
@@ -465,49 +461,10 @@ module Tap
     # will be a duplicate of the current object but with a new name and/or 
     # configurations.
     def initialize_batch_obj(overrides={}, name=nil)
-      obj = super().reconfigure(overrides)
+      obj = self.dup.reconfigure(overrides)
       obj.name = name if name
+      batch << obj
       obj 
-    end
-    
-    # Enqueues self and self.batch to app with the inputs.  
-    # The number of inputs provided should match the number 
-    # of inputs specified by the arity of the _method_name method.
-    def enq(*inputs)
-      app.queue.enq(self, inputs)
-    end
-
-    batch_function :enq
-    batch_function(:on_complete) {}
-    
-    # Convenience method, equivalent to:
-    #   self.app.sequence([self] + tasks)
-    def sequence(*tasks)
-      app.sequence([self] + tasks)
-    end
-    
-    # Convenience method, equivalent to:
-    #   self.app.fork(self, targets)
-    def fork(*targets)
-      app.fork(self, targets)
-    end
-    
-    # Convenience method, equivalent to:
-    #   self.app.merge(self, sources)
-    def merge(*sources)
-      app.merge(self, sources)
-    end
-    
-    # Convenience method, equivalent to:
-    #   self.app.sync_merge(self, sources)
-    def sync_merge(*sources)
-      app.sync_merge(self, sources)
-    end
-    
-    # Convenience method, equivalent to:
-    #   self.app.switch(self, targets, &block)
-    def switch(*targets, &block)
-      app.switch(self, targets, &block)
     end
 
     # Executes self with the given inputs.  Execute provides hooks for subclasses

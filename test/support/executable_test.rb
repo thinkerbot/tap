@@ -197,6 +197,65 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   #
+  # batch test
+  #
+  
+  def test_batch_with
+    m1 = Executable.initialize(Object.new, :object_id)
+    m2 = Executable.initialize(Object.new, :object_id)
+    m3 = Executable.initialize(Object.new, :object_id)
+
+    m1.batch_with(m2, m3)
+    
+    assert_equal [m1, m2, m3], m1.batch
+    assert_equal [m1, m2, m3], m2.batch
+    assert_equal [m1, m2, m3], m3.batch
+  end
+  
+  #
+  # batched? test
+  #
+  
+  def test_batched_returns_true_if_batch_size_is_greater_than_one
+    assert !m.batched?
+    assert_equal 1, m.batch.size
+    
+    m1 = Executable.initialize(Object.new, :object_id)
+    m.batch_with(m1)
+    
+    assert m.batched?
+    assert m1.batched?
+  end
+  
+  #
+  # batch_index test
+  #
+  
+  def test_batch_index_returns_the_index_of_the_task_in_batch
+    m1 = Executable.initialize(Object.new, :object_id)
+    m.batch_with(m1)
+    
+    assert_equal [m, m1], m.batch
+    assert_equal 0, m.batch_index
+    assert_equal 1, m1.batch_index
+  end
+  
+  #
+  # initialize_batch_obj test
+  #
+  
+  # def test_created_batch_tasks_are_added_to_and_share_the_same_execute_batch
+  #   assert_equal [m], m.batch
+  #   
+  #   m1 = m.initialize_batch_obj
+  #   m2 = m1.initialize_batch_obj
+  #   
+  #   assert_equal [m, m1, m2], m.batch
+  #   assert_equal m.batch.object_id, m1.batch.object_id
+  #   assert_equal m.batch.object_id, m2.batch.object_id
+  # end
+  
+  #
   # Object#_method test
   #
   

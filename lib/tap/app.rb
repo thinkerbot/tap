@@ -270,9 +270,7 @@ module Tap
     # aggregator unless an on_complete block is set.  Returns the audited 
     # result.
     def execute(m, inputs)
-      _result = m._execute(*inputs)
-      aggregator.store(_result) unless m.on_complete_block
-      _result
+      m._execute(*inputs)
     end
 
     # Sets state = State::READY unless the app is running.  Returns self.
@@ -446,13 +444,9 @@ module Tap
       group = Array.new(sources.length, nil)
       sources.each_with_index do |source, index|
         batch_map = Hash.new(0)
-        batch_length = if source.kind_of?(Support::Batchable)
-          source.batch.each_with_index {|obj, i| batch_map[obj] = i }
-          source.batch.length
-        else
-          1
-        end
-        
+        source.batch.each_with_index {|obj, i| batch_map[obj] = i }
+        batch_length = source.batch.length
+ 
         group[index] = Array.new(batch_length, nil)
         
         source.on_complete do |_result|
@@ -529,6 +523,10 @@ module Tap
     #
     def results(*tasks)
       _results(tasks).collect {|_result| _result._current}
+    end
+    
+    def inspect
+      "#<#{self.class.to_s}:#{object_id} root: #{root} >"
     end
     
     protected
