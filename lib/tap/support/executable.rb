@@ -9,7 +9,7 @@ module Tap
     # to make an object executable is to use Object#_method.
     module Executable
       
-      # The application the Executable belongs to.
+      # The Tap::App the Executable belongs to.
       attr_reader :app
       
       # The method called when an Executable is executed via _execute
@@ -28,11 +28,11 @@ module Tap
       
       # Extends obj with Executable and sets up all required variables.  The
       # specified method will be called on _execute.
-      def self.initialize(obj, method_name, app=App.instance, batch=[], &on_complete_block)
+      def self.initialize(obj, method_name, app=App.instance, batch=[])
         obj.extend Executable
         obj.instance_variable_set(:@app, app)
         obj.instance_variable_set(:@_method_name, method_name)
-        obj.instance_variable_set(:@on_complete_block, on_complete_block)
+        obj.instance_variable_set(:@on_complete_block, nil)
         obj.instance_variable_set(:@dependencies, [])
         obj.instance_variable_set(:@batch, batch)
         batch << obj
@@ -51,6 +51,51 @@ module Tap
         batch.index(self)
       end
       
+      # Merges the batches for self and the specified Executables,
+      # removing duplicates.
+      #
+      #   class BatchExecutable
+      #     include Tap::Support::Executable
+      #     def initialize(batch=[])
+      #       @batch = batch
+      #       batch << self
+      #     end
+      #   end
+      #
+      #   b1 = BatchExecutable.new
+      #   b2 = BatchExecutable.new
+      #   b3 = BatchExecutable.new
+      #
+      #   b1.batch_with(b2, b3)
+      #   b1.batch                   # => [b1, b2, b3]
+      #   b3.batch                   # => [b1, b2, b3]
+      #
+      # Note that batch_with is not recursive (ie it does not 
+      # merge the batches of each member in the batch):
+      #
+      #   b4 = BatchExecutable.new
+      #   b4.batch_with(b3)   
+      #            
+      #   b4.batch                   # => [b4, b1, b2, b3]
+      #   b3.batch                   # => [b4, b1, b2, b3]
+      #   b2.batch                   # => [b1, b2, b3]
+      #   b1.batch                   # => [b1, b2, b3]
+      #
+      # However it does affect all objects that share the same
+      # underlying batch:
+      #
+      #   b5 = BatchExecutable.new(b1.batch)
+      #   b6 = BatchExecutable.new
+      #
+      #   b5.batch.object_id         # => b1.batch.object_id
+      #   b5.batch                   # => [b1, b2, b3, b5]
+      #
+      #   b5.batch_with(b6)
+      #
+      #   b5.batch                   # => [b1, b2, b3, b5, b6]
+      #   b1.batch                   # => [b1, b2, b3, b5, b6]
+      #
+      # Returns self.
       def batch_with(*executables)
         batches = [batch] + executables.collect {|executable| executable.batch }
         batches.uniq!
@@ -63,16 +108,12 @@ module Tap
         
         merged.uniq!
         batches.each {|batch| batch.concat(merged) }
-        merged
+        self
       end
       
-      def unbatched_enq(*inputs)
-        app.queue.enq(self, inputs)
-      end
-      
-      # Enqueues self and self.batch to app with the inputs.  
-      # The number of inputs provided should match the number 
-      # of inputs specified by the arity of the _method_name method.
+      # Enqueues self and self.batch to app with the inputs. The number 
+      # of inputs provided should match the number of inputs specified 
+      # by the arity of the _method_name method.
       def enq(*inputs)
         batch.each do |executable| 
           executable.unbatched_enq(*inputs)
@@ -80,16 +121,15 @@ module Tap
         self
       end
       
-      def unbatched_on_complete(override=false, &block) # :yields: _result
-        unless on_complete_block == nil || override
-          raise "on_complete_block already set: #{self}" 
-        end
-        @on_complete_block = block
+      # Like enq, but only enques self.
+      def unbatched_enq(*inputs)
+        app.queue.enq(self, inputs)
+        self
       end
       
-      # Sets a block to receive the results of _execute.  Raises an error 
-      # if an on_complete block is already set.  Override an existing
-      # on_complete block by specifying override = true.
+      # Sets a block to receive the results of _execute.  Raises an
+      # error if an on_complete block is already set.  Override an
+      # existing on_complete block by specifying override = true.
       #
       # Note the block recieves an audited result and not
       # the result itself (see Audit for more information).
@@ -97,6 +137,15 @@ module Tap
         batch.each do |executable| 
           executable.unbatched_on_complete(override, &block)
         end
+        self
+      end
+      
+      # Like on_complete, but only sets on_complete_block for self.
+      def unbatched_on_complete(override=false, &block) # :yields: _result
+        unless on_complete_block == nil || override
+          raise "on_complete_block already set: #{self}" 
+        end
+        @on_complete_block = block
         self
       end
       
@@ -243,9 +292,11 @@ module Tap
       # The dependency will be resolved by calling dependency._execute with 
       # the input arguments during resolve_dependencies.
       def depends_on(dependency, *inputs)
-        batch.each do |executable| 
-          executable.unbatched_depends_on(dependency, *inputs)
+        index = unbatched_depends_on(dependency, *inputs)
+        batch.each do |e| 
+          e.dependencies << index unless e.dependencies.include?(index)
         end
+        index
       end
       
       # Resolves dependencies by calling dependency._execute with
@@ -333,8 +384,8 @@ class Object
   # Initializes a Tap::Support::Executable using the Method returned by
   # Object#method(method_name), setting the on_complete block as specified.  
   # Returns nil if Object#method returns nil.
-  def _method(method_name, app=Tap::App.instance, &on_complete_block) # :yields:  _result
+  def _method(method_name, app=Tap::App.instance) # :yields:  _result
     return nil unless m = method(method_name)
-    Tap::Support::Executable.initialize(m, :call, app, &on_complete_block)
+    Tap::Support::Executable.initialize(m, :call, app)
   end
 end
