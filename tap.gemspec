@@ -76,9 +76,9 @@ Gem::Specification.new do |s|
     lib/tap/root.rb
     lib/tap/spec.rb
     lib/tap/spec/adapter.rb
-    lib/tap/spec/file_methods.rb
-    lib/tap/spec/file_methods_class.rb
-    lib/tap/spec/subset_methods.rb
+    lib/tap/spec/file_test.rb
+    lib/tap/spec/file_test_class.rb
+    lib/tap/spec/subset_test.rb
     lib/tap/support/aggregator.rb
     lib/tap/support/assignments.rb
     lib/tap/support/audit.rb
@@ -122,14 +122,14 @@ Gem::Specification.new do |s|
     lib/tap/tasks/load.rb
     lib/tap/tasks/rake.rb
     lib/tap/test/env_vars.rb
-    lib/tap/test/file_methods.rb
-    lib/tap/test/file_methods_class.rb
-    lib/tap/test/script_methods.rb
-    lib/tap/test/script_methods/regexp_escape.rb
-    lib/tap/test/script_methods/script_test.rb
-    lib/tap/test/subset_methods.rb
-    lib/tap/test/subset_methods_class.rb
-    lib/tap/test/tap_methods.rb
+    lib/tap/test/file_test.rb
+    lib/tap/test/file_test_class.rb
+    lib/tap/test/script_test.rb
+    lib/tap/test/script_test/regexp_escape.rb
+    lib/tap/test/script_test/script_test.rb
+    lib/tap/test/subset_test.rb
+    lib/tap/test/subset_test_class.rb
+    lib/tap/test/tap_test.rb
     lib/tap/test/utils.rb
     lib/tap/test.rb
     lib/tap/workflow.rb

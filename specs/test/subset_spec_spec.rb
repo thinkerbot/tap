@@ -1,7 +1,7 @@
-require 'tap/spec/subset_methods'
+require 'tap/spec/subset_test'
 
-describe Tap::Spec::SubsetMethods do
-  include Tap::Spec::SubsetMethods
+describe Tap::Spec::SubsetTest do
+  include Tap::Spec::SubsetTest
 
   before do
     @env_hold = {}

@@ -2,7 +2,7 @@ require File.join(File.dirname(__FILE__), 'tap_test_helper.rb')
 require 'tap/root'
 
 class RootTest < Test::Unit::TestCase
-  include Tap::Test::SubsetMethods
+  include Tap::Test::SubsetTest
   
   attr_reader :r, :tr
   

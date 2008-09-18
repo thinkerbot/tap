@@ -1,8 +1,8 @@
-require  File.dirname(__FILE__) + '/../../tap_test_helper'
-require 'tap/test/script_methods/regexp_escape'
+require  File.dirname(__FILE__) + '/../tap_test_helper'
+require 'tap/test/regexp_escape'
 
 class RegexpEscapeTest < Test::Unit::TestCase
-  include Tap::Test::ScriptMethods
+  include Tap::Test
  
   #
   # documentation test

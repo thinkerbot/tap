@@ -1,13 +1,13 @@
-require  File.dirname(__FILE__) + '/../../tap_test_helper'
-require 'tap/test/script_methods/script_test'
+require  File.dirname(__FILE__) + '/../tap_test_helper'
+require 'tap/test/script_tester'
 
-class ScriptTestTest < Test::Unit::TestCase
-  include Tap::Test::ScriptMethods
+class ScriptTesterTest < Test::Unit::TestCase
+  include Tap::Test
   
   attr_reader :cmd
   
   def setup
-    @cmd = ScriptTest.new
+    @cmd = ScriptTester.new
   end
   
   #
@@ -15,11 +15,11 @@ class ScriptTestTest < Test::Unit::TestCase
   #
 
   def test_initialize
-    cmd = ScriptTest.new
+    cmd = ScriptTester.new
     assert_equal nil, cmd.command_path
     assert_equal [], cmd.commands
     
-    cmd = ScriptTest.new("path")
+    cmd = ScriptTester.new("path")
     assert_equal "path", cmd.command_path
   end
   
@@ -28,7 +28,7 @@ class ScriptTestTest < Test::Unit::TestCase
   #
   
   def test_to_s_returns_command_path
-    assert_equal "path", ScriptTest.new("path").to_s
+    assert_equal "path", ScriptTester.new("path").to_s
   end
   
   #
@@ -36,7 +36,7 @@ class ScriptTestTest < Test::Unit::TestCase
   #
   
   def test_split_documentation
-    cmd = ScriptTest.new
+    cmd = ScriptTester.new
 
     expected = [
      ["command one", "expected text for command one\n"],

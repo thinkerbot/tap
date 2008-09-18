@@ -1,10 +1,10 @@
 require 'benchmark'
-require 'tap/test/subset_methods_class'
+require 'tap/test/subset_test_class'
 
 module Tap
   module Test
     
-    # SubsetMethods provides methods to conditionally run tests, or to skip a 
+    # SubsetTest provides methods to conditionally run tests, or to skip a 
     # test suite entirely.
     # 
     #   require 'tap/test'
@@ -26,7 +26,7 @@ module Tap
     # to be skipped.
     # 
     #   class RunOnlyAFewTest < Test::Unit::TestCase
-    #     include SubsetMethods
+    #     include SubsetTest
     # 
     #     def test_runs_all_the_time
     #       assert true
@@ -64,7 +64,7 @@ module Tap
     #   % tap run test EXTENDED=true
     #   % rap test BENCHMARK=true
     #
-    # In so far as SubsetMethods is concerned, the environment variables are 
+    # In so far as SubsetTest is concerned, the environment variables are 
     # case-insensitive.  As in the example, additional ENV-based tests can be 
     # defined using the subset_test method. To run all tests that get switched 
     # using an ENV variable, set ALL=true.  
@@ -76,13 +76,13 @@ module Tap
     #   % rap test all=true
     #
     # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] and
-    # SubsetMethodsClass for more information.
-    module SubsetMethods
+    # SubsetTestClass for more information.
+    module SubsetTest
       include Tap::Test::EnvVars
       
       def self.included(base)
         super
-        base.extend SubsetMethodsClass
+        base.extend SubsetTestClass
       end
       
       # Returns true if the specified conditions are satisfied.
@@ -113,7 +113,7 @@ module Tap
       #     platform_test('mswin') { ... }
       #   end
       #
-      # See SubsetMethodsClass#match_platform? for matching details.
+      # See SubsetTestClass#match_platform? for matching details.
       def platform_test(*platforms)
         if self.class.match_platform?(*platforms)
           yield
@@ -137,7 +137,7 @@ module Tap
       #     condition_test {  # does not run }
       #   end
       #
-      # See SubsetMethodsClass#condition for more details.
+      # See SubsetTestClass#condition for more details.
       def condition_test(*condition_names)
         if self.class.unsatisfied_conditions(*condition_names).empty?
           yield

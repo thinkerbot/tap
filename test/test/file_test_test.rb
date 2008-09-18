@@ -1,8 +1,8 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper.rb') 
-require 'tap/test/file_methods'
+require 'tap/test/file_test'
 
-class FileMethodsTest < Test::Unit::TestCase
-  include Tap::Test::FileMethods
+class FileTestTest < Test::Unit::TestCase
+  include Tap::Test::FileTest
   
   self.class_test_root = Tap::Root.new(
     __FILE__.chomp("_test.rb"), 

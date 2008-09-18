@@ -33,15 +33,15 @@ module Tap
     #
     # === Class Methods
     # 
-    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] for documentation of the class methods added by TapMethods.
-    module TapMethods
+    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] for documentation of the class methods added by TapTest.
+    module TapTest
       
       # Returns the test-method-specific application.
       attr_reader :app
       
       # Setup creates a test-method-specific application that is initialized
       # to the method_root, and uses the directories and absolute paths from
-      # trs (the test root structure, see Tap::Test::FileMethods). 
+      # trs (the test root structure, see Tap::Test::FileTest). 
       #
       # Also makes sure Tap::App.instance returns the test method app.
       def setup
@@ -54,11 +54,11 @@ module Tap
       # audit test methods
       #
       
-      # Used to define expected audits in Tap::Test::TapMethods#assert_audit_equal
+      # Used to define expected audits in Tap::Test::TapTest#assert_audit_equal
       class ExpAudit < Array
       end
       
-      # Used to define merged audit trails in Tap::Test::TapMethods#assert_audit_equal
+      # Used to define merged audit trails in Tap::Test::TapTest#assert_audit_equal
       class ExpMerge < Array
       end
       

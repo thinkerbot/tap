@@ -1,8 +1,8 @@
 require 'test/unit'
-require 'tap/test/subset_methods'
+require 'tap/test/subset_test'
 
-class SubsetMethodsTest < Test::Unit::TestCase
-  include Tap::Test::SubsetMethods
+class SubsetTestTest < Test::Unit::TestCase
+  include Tap::Test::SubsetTest
 
   def setup
     @env_hold = {}
@@ -120,7 +120,7 @@ class SubsetMethodsTest < Test::Unit::TestCase
 end
 
 # class SkippedTest < Test::Unit::TestCase
-#   include Tap::Test::SubsetMethods
+#   include Tap::Test::SubsetTest
 #   
 #   if !conditions.empty?
 #     raise "conditions were NOT empty in subclass"
@@ -154,7 +154,7 @@ end
 # end
 # 
 # class NonSkippedTest < Test::Unit::TestCase
-#   include Tap::Test::SubsetMethods
+#   include Tap::Test::SubsetTest
 #   
 #   condition(:unsatisfied) do 
 #     true    

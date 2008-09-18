@@ -43,7 +43,7 @@ end
 
 class LazydocTest < Test::Unit::TestCase
   include Tap::Support
-  include Tap::Test::SubsetMethods
+  include Tap::Test::SubsetTest
   
   #
   # syntax test

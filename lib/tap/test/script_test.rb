@@ -1,13 +1,15 @@
-require 'tap/test/subset_methods'
-require 'tap/test/script_methods/script_test'
+require 'tap/test/assertions'
+require 'tap/test/script_tester'
+require 'tap/test/subset_test'
 
 module Tap
   module Test
-    module ScriptMethods
+    module ScriptTest
       
       def self.included(base)
         super
-        base.send(:include, Tap::Test::SubsetMethods)  
+        base.send(:include, Tap::Test::SubsetTest)
+        base.send(:include, Tap::Test::Assertions) 
       end
       
       def default_command_path
@@ -20,7 +22,7 @@ module Tap
             Utils.with_argv do
               puts "\n# == #{method_name}"
 
-              cmd = ScriptTest.new(default_command_path, env('stepwise')) do |expected, result, msg|
+              cmd = ScriptTester.new(default_command_path, env('stepwise')) do |expected, result, msg|
                 case expected
                 when String
                   assert_output_equal(expected, result, msg)

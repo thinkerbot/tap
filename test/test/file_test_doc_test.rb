@@ -1,8 +1,8 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper.rb') 
-require 'tap/test/file_methods'
+require 'tap/test/file_test'
 
 # documentation test
-class FileMethodsDocTest < Test::Unit::TestCase
+class FileTestDocTest < Test::Unit::TestCase
   acts_as_file_test
 
   def test_something

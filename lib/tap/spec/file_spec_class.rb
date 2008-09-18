@@ -1,6 +1,6 @@
 module Tap
   module Spec
-    module FileMethodsClass
+    module FileTestClass
       def trs
         @trs ||= (superclass.respond_to?(:trs) ? superclass.trs : nil)
       end

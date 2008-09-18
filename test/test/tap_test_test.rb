@@ -18,7 +18,7 @@ class TestSetupTest < Test::Unit::TestCase
   end
 end
 
-class TapMethodsTest < Test::Unit::TestCase
+class TapTestTest < Test::Unit::TestCase
   include TapTestMethods
   acts_as_tap_test 
   
@@ -30,8 +30,8 @@ class TapMethodsTest < Test::Unit::TestCase
     assert runlist.empty?
     assert_equal @app, app
     assert_equal Tap::App.instance, app
-    assert_equal File.expand_path(File.dirname(__FILE__) + "/tap_methods/test_setup"), File.expand_path(app[:root])
-    assert_equal File.expand_path(File.dirname(__FILE__) + "/tap_methods/test_setup/input"), File.expand_path(app[:input])
+    assert_equal File.expand_path(File.dirname(__FILE__) + "/tap_test/test_setup"), File.expand_path(app[:root])
+    assert_equal File.expand_path(File.dirname(__FILE__) + "/tap_test/test_setup/input"), File.expand_path(app[:input])
   end
   
   def test_clear_runlist_empties_runlist

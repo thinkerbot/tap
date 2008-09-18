@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/test/script_methods'
+require 'tap/test/script_test'
 
 class TapTest < Test::Unit::TestCase
   acts_as_script_test 

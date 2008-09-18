@@ -3,8 +3,8 @@ require 'tap/test/env_vars'
 module Tap
   module Test
     
-    # Class methods extending tests which include SubsetMethods.
-    module SubsetMethodsClass
+    # Class methods extending tests which include SubsetTest.
+    module SubsetTestClass
       include Tap::Test::EnvVars
       
       # Passes conditions to subclass

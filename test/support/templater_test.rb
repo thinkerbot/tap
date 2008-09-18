@@ -63,7 +63,7 @@ end
 
 class TemplaterUtilsTest < Test::Unit::TestCase
   include Tap::Support::Templater::Utils
-  include Tap::Test::SubsetMethods
+  include Tap::Test::SubsetTest
   
   #
   # yamlize test

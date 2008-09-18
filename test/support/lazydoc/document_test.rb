@@ -3,7 +3,7 @@ require 'tap/support/lazydoc/document'
 
 class DocumentTest < Test::Unit::TestCase
   include Tap::Support::Lazydoc
-  include Tap::Test::SubsetMethods
+  include Tap::Test::SubsetTest
   
   attr_reader :doc
 

@@ -3,7 +3,7 @@ require 'tap/support/versions'
 
 class VersionTest < Test::Unit::TestCase
   include Tap::Support::Versions
-  include Tap::Test::SubsetMethods
+  include Tap::Test::SubsetTest
 
   def test_documentation
     assert_equal "path/to/file-1.0.txt", version("path/to/file.txt", 1.0)  

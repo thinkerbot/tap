@@ -2,7 +2,7 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 
 class InstanceConfigurationTest < Test::Unit::TestCase
   include Tap::Support
-  include Tap::Test::SubsetMethods
+  include Tap::Test::SubsetTest
   
   class Receiver
     attr_accessor :key

@@ -2,7 +2,7 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/support/combinator'
 
 class CombinatorTest < Test::Unit::TestCase
-  include Tap::Test::SubsetMethods
+  include Tap::Test::SubsetTest
   include Tap::Support
   
   def test_initialize

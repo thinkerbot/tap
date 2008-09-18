@@ -1,19 +1,19 @@
-require 'tap/test/utils'
 require 'tap/test/env_vars'
-require 'tap/test/file_methods_class'
+require 'tap/test/assertions'
+require 'tap/test/regexp_escape'
+require 'tap/test/file_test_class'
 
 module Tap
   module Test  
     
-
-    # FileMethods facilitates access and utilization of test-specific files and
-    # directories. FileMethods provides each test method is setup with a Tap::Root 
+    # FileTest facilitates access and utilization of test-specific files and
+    # directories. FileTest provides each test method is setup with a Tap::Root 
     # (method_root) specific for the method, and defines a new assertion method 
     # (assert_files) to facilitate tests which involve the production and/or 
     # modification of files.
     #
-    #   [file_methods_doc_test.rb]
-    #   class FileMethodsDocTest < Test::Unit::TestCase
+    #   [file_test_doc_test.rb]
+    #   class FileTestDocTest < Test::Unit::TestCase
     #     acts_as_file_test
     # 
     #     def test_something
@@ -56,13 +56,14 @@ module Tap
     #   end
     #
     # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] and
-    # FileMethodsClass for more information.
-    module FileMethods
+    # FileTestClass for more information.
+    module FileTest
       include Tap::Test::EnvVars
+      include Tap::Test::Assertions
       
       def self.included(base)
         super
-        base.extend FileMethodsClass
+        base.extend FileTestClass
       end
       
       # Convenience method to access the class_test_root.
@@ -144,37 +145,6 @@ module Tap
       def method_name_str
         method_name.to_s
       end
-      
-      def assert_output_equal(a, b, msg=nil)
-        a = a[1..-1] if a[0] == ?\n
-        if a == b
-          assert true
-        else
-          flunk %Q{
-#{msg}
-==================== expected output ====================
-#{Utils.whitespace_escape(a)}
-======================== but was ========================
-#{Utils.whitespace_escape(b)}
-=========================================================
-}
-        end
-      end
-
-      def assert_alike(a, b, msg=nil)
-        if b =~ a
-          assert true
-        else
-          flunk %Q{
-#{msg}
-================= expected output like ==================
-#{Utils.whitespace_escape(a)}
-======================== but was ========================
-#{Utils.whitespace_escape(b)}
-=========================================================
-}
-        end
-      end
     
       # Generates a temporary filepath formatted like "output_dir\filename.n.ext"
       # where n is a counter that ensures the filepath is unique and non-existant
@@ -217,7 +187,7 @@ module Tap
       # Lets define a test that transforms input files into output files in a trivial 
       # way, simply by replacing 'input' with 'output' in the file.
       #
-      #   class FileMethodsDocTest < Test::Unit::TestCase
+      #   class FileTestDocTest < Test::Unit::TestCase
       #     acts_as_file_test
       # 
       #     def test_sub
@@ -238,7 +208,7 @@ module Tap
       #
       # Now say you had some input and expected files for the 'test_sub' method:
       #
-      #   file_methods_doc/test_sub
+      #   file_test_doc/test_sub
       #   |- expected
       #   |   |- one.txt
       #   |   `- two.txt
@@ -327,7 +297,7 @@ module Tap
       # for more details).
       #
       # === Keeping Outputs
-      # By default FileMethods sets teardown to cleans up the output directory. For 
+      # By default FileTest sets teardown to cleans up the output directory. For 
       # ease in debugging, ENV variable flags can be specified to keep all output 
       # files (KEEP_OUTPUTS) or to keep the output files for just the tests that fail 
       # (KEEP_FAILURES).  These flags can be specified from the command line if you're
@@ -350,7 +320,7 @@ module Tap
       
       def assert_files_alike(options={}, &block) # :yields: input_files
         transform_test(block, options) do |expected_file, output_file|
-          regexp = ScriptMethods::RegexpEscape.new(File.read(expected_file)) 
+          regexp = RegexpEscape.new(File.read(expected_file)) 
           str = File.read(output_file)
           assert_alike(regexp, str, "<#{expected_file}> not equal to\n<#{output_file}>")
         end

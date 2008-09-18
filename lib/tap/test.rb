@@ -5,9 +5,9 @@ module Test # :nodoc:
   module Unit # :nodoc:
     
     # Methods extending TestCase. For more information see:
-    # - Tap::Test::SubsetMethods
-    # - Tap::Test::FileMethods
-    # - Tap::Test::TapMethods
+    # - Tap::Test::SubsetTest
+    # - Tap::Test::FileTest
+    # - Tap::Test::TapTest
     #   
     #--
     #See the TestTutorial for more information.
@@ -53,7 +53,11 @@ module Test # :nodoc:
           end
         end
         
-        # Causes a TestCase to act as a file test, by including FileMethods and
+        def acts_as_subset_test
+          include Tap::Test::SubsetTest
+        end
+        
+        # Causes a TestCase to act as a file test, by including FileTest and
         # instantiating class_test_root (a Tap::Root).  The root and directories 
         # used by class_test_root may be specified as options.  
         #
@@ -62,7 +66,7 @@ module Test # :nodoc:
         # directory manually if you call acts_as_file_test from a file that 
         # isn't the test file.
         def acts_as_file_test(options={})
-          include Tap::Test::FileMethods
+          include Tap::Test::FileTest
           
           options = {
             :root => test_root_dir,
@@ -77,7 +81,7 @@ module Test # :nodoc:
 
         # Causes a unit test to act as a tap test -- resulting in the following:
         # - setup using acts_as_file_test
-        # - inclusion of Tap::Test::SubsetMethods
+        # - inclusion of Tap::Test::SubsetTest
         # - inclusion of Tap::Test::InstanceMethods 
         #
         # Note: by default acts_as_tap_test determines a root directory 
@@ -85,18 +89,16 @@ module Test # :nodoc:
         # directory manually if you call acts_as_file_test from a file that 
         # isn't the test file.
         def acts_as_tap_test(options={})
-          include Tap::Test::SubsetMethods
-          include Tap::Test::FileMethods
-          include Tap::Test::TapMethods
-          
+          acts_as_subset_test
           acts_as_file_test({:root => test_root_dir}.merge(options))
+          
+          include Tap::Test::TapTest
         end
 
         def acts_as_script_test(options={})
-          include Tap::Test::FileMethods
-          include Tap::Test::ScriptMethods
-          
           acts_as_file_test({:root => test_root_dir}.merge(options))
+          
+          include Tap::Test::ScriptTest
         end
         
         private
@@ -120,15 +122,14 @@ end
 
 module Tap
   
-  # Modules facilitating testing.  TapMethods are specific to
-  # Tap, but SubsetMethods and FileMethods are more general in 
+  # Modules facilitating testing.  TapTest are specific to
+  # Tap, but SubsetTest and FileTest are more general in 
   # their utility.
   module Test
-    autoload(:SubsetMethods, 'tap/test/subset_methods')
-    autoload(:FileMethods, 'tap/test/file_methods')
-    autoload(:TapMethods, 'tap/test/tap_methods')
-    autoload(:ScriptMethods, 'tap/test/script_methods')
-    autoload(:Utils, 'tap/test/utils')
+    autoload(:SubsetTest, 'tap/test/subset_test')
+    autoload(:FileTest, 'tap/test/file_test')
+    autoload(:TapTest, 'tap/test/tap_test')
+    autoload(:ScriptTest, 'tap/test/script_test')
   end
 end
 

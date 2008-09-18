@@ -1,7 +1,7 @@
-require 'tap/spec/file_methods'
+require 'tap/spec/file_test'
 
-describe Tap::Spec::FileMethods do
-  include Tap::Spec::FileMethods
+describe Tap::Spec::FileTest do
+  include Tap::Spec::FileTest
   
   self.test_root = Tap::Root.new(
     __FILE__.chomp("_spec.rb"), 
