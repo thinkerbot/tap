@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "0.10.6"
+  s.version = "0.10.7"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -76,9 +76,7 @@ Gem::Specification.new do |s|
     lib/tap/root.rb
     lib/tap/spec.rb
     lib/tap/spec/adapter.rb
-    lib/tap/spec/file_test.rb
-    lib/tap/spec/file_test_class.rb
-    lib/tap/spec/subset_test.rb
+    lib/tap/spec/inheritable_class_test_root.rb
     lib/tap/support/aggregator.rb
     lib/tap/support/assignments.rb
     lib/tap/support/audit.rb
@@ -121,12 +119,14 @@ Gem::Specification.new do |s|
     lib/tap/tasks/dump.rb
     lib/tap/tasks/load.rb
     lib/tap/tasks/rake.rb
+    lib/tap/test/assertions.rb
     lib/tap/test/env_vars.rb
+    lib/tap/test/extensions.rb
     lib/tap/test/file_test.rb
     lib/tap/test/file_test_class.rb
     lib/tap/test/script_test.rb
-    lib/tap/test/script_test/regexp_escape.rb
-    lib/tap/test/script_test/script_test.rb
+    lib/tap/test/regexp_escape.rb
+    lib/tap/test/script_tester.rb
     lib/tap/test/subset_test.rb
     lib/tap/test/subset_test_class.rb
     lib/tap/test/tap_test.rb
