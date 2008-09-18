@@ -1,12 +1,8 @@
-require 'tap/spec/file_test'
+require 'tap/spec'
 
-describe Tap::Spec::FileTest do
-  include Tap::Spec::FileTest
+describe "FileTest under RSpec" do
+  acts_as_file_test
   
-  self.test_root = Tap::Root.new(
-    __FILE__.chomp("_spec.rb"), 
-    {:input => 'input', :output => 'output', :expected => 'expected'})
-    
   describe('method_name') do
     it "should return the underscored description1" do
       method_name.should == "should_return_the_underscored_description1"
@@ -18,26 +14,26 @@ describe Tap::Spec::FileTest do
   end
 
   describe('make_test_directories') do
-    it "should make trs directories" do
+    it "should make method_root directories" do
       begin
-        root = File.expand_path(__FILE__.chomp("_spec.rb"))
+        root = File.expand_path(__FILE__.chomp("_spec.rb") + "/should_make_method_root_directories")
         
-        check root.should == trs[:root]
-        check ctr.directories.should == {:input => 'input', :output => 'output', :expected => 'expected'}
+        root.should == method_root[:root]
+        method_root.directories.should == {:input => 'input', :output => 'output', :expected => 'expected'}
 
-        ctr.directories.values.each do |dir|
-          dir_path = File.join(root, "should_make_trs_directories", dir.to_s)
+        method_root.directories.values.each do |dir|
+          dir_path = File.join(root, dir.to_s)
           File.exists?(dir_path).should be_false
         end
 
         make_test_directories
 
-        ctr.directories.values.each do |dir|
-          dir_path = File.join(root, "should_make_trs_directories", dir.to_s)
+        method_root.directories.values.each do |dir|
+          dir_path = File.join(root, dir.to_s)
           File.exists?(dir_path).should be_true
         end
       ensure
-        dir =  File.join(File.join(root, "should_make_trs_directories"))
+        dir =  File.join(File.join(root, "should_make_method_root_directories"))
         FileUtils.rm_r dir if File.exists?(dir)
       end
     end
@@ -145,7 +141,7 @@ describe Tap::Spec::FileTest do
     end
     
     it "should translate reference files when specified" do
-      assert_files :reference_dir => method_root[(:ref) do |input_files|
+      assert_files :reference_dir => method_root[:ref] do |input_files|
         input_files.collect do |input_file|
           target = method_root.filepath(:output, File.basename(input_file))
           File.open(target, "w") do |file|

@@ -159,7 +159,6 @@ begin
     t.verbose = true
     t.warning = true
     t.spec_files = Dir.glob( File.join('specs', ENV['pattern'] || '**/*_spec.rb') )
-    t.spec_files.unshift 'specs/spec_helper.rb'
   end
 rescue(LoadError)
   message = $!.message

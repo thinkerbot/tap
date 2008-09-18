@@ -1,7 +1,7 @@
-require 'tap/spec/subset_test'
+require 'tap/spec'
 
-describe Tap::Spec::SubsetTest do
-  include Tap::Spec::SubsetTest
+describe "SubsetTest in Rspec" do
+  acts_as_subset_test
 
   before do
     @env_hold = {}
