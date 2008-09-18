@@ -2,8 +2,8 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 
 class ClassConfigurationTest < Test::Unit::TestCase
   include Tap::Support
-  include Tap::Test::SubsetMethods
-  include Tap::Test::ScriptMethods
+  
+  acts_as_file_test
   
   class Sample
   end
@@ -14,6 +14,7 @@ class ClassConfigurationTest < Test::Unit::TestCase
   attr_reader :c
   
   def setup
+    super
     @c = ClassConfiguration.new Sample
   end
   

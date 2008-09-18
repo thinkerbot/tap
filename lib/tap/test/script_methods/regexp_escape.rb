@@ -22,13 +22,13 @@ module Tap
       #   RegexpEscape.escape(':..{1}.:')                  # => '.{1}'
       #
       # RegexpEscape instances are initialized using the escaped input string
-      # and format the original string upon to_s, to simplify their use in 
-      # tests.
+      # and return the original string upon to_s.
       #
-      #   r = RegexpEscape.new %q{
+      #   str = %q{
       #   a multiline
       #   :...:
       #   example}
+      #   r = RegexpEscape.new(str)
       #
       #   r =~ %q{
       #   a multiline
@@ -39,11 +39,7 @@ module Tap
       #   a failing multiline
       #   example}  # => true
       #
-      #   r.to_s 
-      #   # => %q{\n
-      #   # a multiline\n
-      #   # :...:\n
-      #   # example}
+      #   r.to_s    # => str
       #
       class RegexpEscape < Regexp
         
@@ -83,10 +79,9 @@ module Tap
           @original_str = str
         end
         
-        # Returns the original string for self, but with
-        # whitespace escaped as in Utils#whitespace_escape
+        # Returns the original string for self
         def to_s
-          Utils.whitespace_escape(@original_str)
+          @original_str
         end
       end
     end

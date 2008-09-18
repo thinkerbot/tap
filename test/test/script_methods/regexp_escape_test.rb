@@ -15,10 +15,11 @@ class RegexpEscapeTest < Test::Unit::TestCase
     assert_equal '_.*?_.*?_.*?', RegexpEscape.escape('_:..:_:...:_:....:')
     assert_equal '.{1}', RegexpEscape.escape(':..{1}.:')
     
-    r = RegexpEscape.new %q{
+    str = %q{
 a multiline
 :...:
 example}
+    r = RegexpEscape.new(str)
   
     assert r =~ %q{
 a multiline
@@ -29,11 +30,7 @@ example}
 a failing multiline
 example}
   
-    expected = %q{\n
-a multiline\n
-:...:\n
-example}
-    assert_equal expected, r.to_s 
+    assert_equal str, r.to_s 
   end
  
   #
@@ -107,17 +104,13 @@ another 0808 in the middle
   # to_s test
   #
   
-  def test_to_s_returns_whitespace_escaped_version_of_original_string
-    assert_equal %q{\n
-      some regexp+(text):...:\n
-      \n
-      across  \n
-      several \t lines\n
-    }, RegexpEscape.new(%Q{
-      some regexp+(text):...:
-      
-      across  
-      several \t lines
-    }).to_s
+  def test_to_s_returns_original_str
+    str = %Q{
+some regexp+(text):...:
+
+across  
+several \t lines
+}
+    assert_equal str, RegexpEscape.new(str).to_s
   end
 end

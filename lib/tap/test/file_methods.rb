@@ -121,13 +121,19 @@ module Tap
       #   % rap test KEEP_FAILURES=true
       #
       # Be sure to call super when overriding this method.
-      def teardown     
+      def teardown
+        # check that method_root still exists (nil may
+        # indicate setup was overridden without super)
+        unless method_root
+          raise "teardown failure: method_root is nil"
+        end
+        
         # clear out the output folder if it exists, unless flagged otherwise
         unless env("KEEP_OUTPUTS") || (!@test_passed && env("KEEP_FAILURES"))
           begin
              Utils.clear_dir(method_root[:output])
           rescue
-            raise("teardown failure: could not remove output files")
+            raise("teardown failure: could not remove output files (#{$!.message})")
           end
         end
         
@@ -137,6 +143,37 @@ module Tap
       # Returns method_name as a string (Ruby 1.9 symbolizes method_name)
       def method_name_str
         method_name.to_s
+      end
+      
+      def assert_output_equal(a, b, msg=nil)
+        a = a[1..-1] if a[0] == ?\n
+        if a == b
+          assert true
+        else
+          flunk %Q{
+#{msg}
+==================== expected output ====================
+#{Utils.whitespace_escape(a)}
+======================== but was ========================
+#{Utils.whitespace_escape(b)}
+=========================================================
+}
+        end
+      end
+
+      def assert_alike(a, b, msg=nil)
+        if b =~ a
+          assert true
+        else
+          flunk %Q{
+#{msg}
+================= expected output like ==================
+#{Utils.whitespace_escape(a)}
+======================== but was ========================
+#{Utils.whitespace_escape(b)}
+=========================================================
+}
+        end
       end
     
       # Generates a temporary filepath formatted like "output_dir\filename.n.ext"
@@ -303,7 +340,42 @@ module Tap
       # TODO:
       # * add debugging information to indicate, for instance,  
       #   when dereferencing is going on.
-      def assert_files(options={}) # :yields: input_files
+      def assert_files(options={}, &block) # :yields: input_files
+        transform_test(block, options) do |expected_file, output_file|
+          unless FileUtils.cmp(expected_file, output_file) 
+            flunk "<#{expected_file}> not equal to\n<#{output_file}>"
+          end
+        end
+      end
+      
+      def assert_files_alike(options={}, &block) # :yields: input_files
+        transform_test(block, options) do |expected_file, output_file|
+          regexp = ScriptMethods::RegexpEscape.new(File.read(expected_file)) 
+          str = File.read(output_file)
+          assert_alike(regexp, str, "<#{expected_file}> not equal to\n<#{output_file}>")
+        end
+      end
+      
+      # The default assert_files options
+      def default_assert_files_options
+        {
+          :input_dir => method_root[:input],
+          :output_dir => method_root[:output],
+          :expected_dir => method_root[:expected],
+          
+          :input_files => nil,
+          :expected_files => nil,
+          :include_input_directories => false,
+          :include_expected_directories => false,
+          
+          :reference_dir => nil,
+          :reference_extname => '.ref'
+        }
+      end
+      
+      private
+      
+      def transform_test(block, options={}) # :yields: expected_files, output_files
         make_test_directories
         
         options = default_assert_files_options.merge(options)
@@ -342,7 +414,7 @@ module Tap
           end
         
           # get output files from the block, expand and sort
-          output_files = [yield(input_files)].flatten.collect do |output_file| 
+          output_files = [block.call(input_files)].flatten.collect do |output_file| 
             File.expand_path(output_file)
           end.sort
         
@@ -356,31 +428,16 @@ module Tap
           errors = []
           Utils.each_pair(expected_files, output_files) do |expected_file, output_file|
             unless (File.directory?(expected_file) && File.directory?(output_file)) || FileUtils.cmp(expected_file, output_file)
-              errors << "<#{expected_file}> not equal to\n<#{output_file}>"
+              begin
+                yield(expected_file, output_file)
+              rescue
+                errors << $!
+              end
             end
           end
           flunk "File compare failed:\n" + errors.join("\n") unless errors.empty?
         end
       end
-      
-      # The default assert_files options
-      def default_assert_files_options
-        {
-          :input_dir => method_root[:input],
-          :output_dir => method_root[:output],
-          :expected_dir => method_root[:expected],
-          
-          :input_files => nil,
-          :expected_files => nil,
-          :include_input_directories => false,
-          :include_expected_directories => false,
-          
-          :reference_dir => nil,
-          :reference_extname => '.ref'
-        }
-      end
-      
-      private
       
       # utility method for method_tempfile; increments index until the
       # path base.indexext does not exist.
