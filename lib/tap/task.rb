@@ -356,9 +356,9 @@ module Tap
         depends_on(dependency_class, *args)
 
         define_method(name) do
-          index = Support::Executable.index(dependency_class.instance, args)
-          Support::Executable.resolve([index])
-          Support::Executable.results[index]._current
+          index = app.dependencies.index(dependency_class.instance, args)
+          app.dependencies.resolve([index])
+          app.dependencies.results[index]._current
         end
         
         public(name)

@@ -1,5 +1,6 @@
 require 'logger'
 require 'tap/support/aggregator'
+require 'tap/support/dependencies'
 require 'tap/support/executable_queue'
 
 module Tap
@@ -191,6 +192,8 @@ module Tap
     # methods that have no <tt>on_complete</tt> block
     attr_reader :aggregator
     
+    attr_reader :dependencies
+    
     config :debug, false, &c.flag                 # Flag debugging
     config :force, false, &c.flag                 # Force execution at checkpoints
     config :quiet, false, &c.flag                 # Suppress logging
@@ -222,6 +225,7 @@ module Tap
       @state = State::READY
       @queue = Support::ExecutableQueue.new
       @aggregator = Support::Aggregator.new
+      @dependencies = Support::Dependencies.new
       
       initialize_config(config)
       self.logger = logger
@@ -368,136 +372,6 @@ module Tap
     def mq(object, method_name, *inputs)
       m = object._method(method_name)
       enq(m, *inputs)
-    end
-    
-    # Sets a sequence workflow pattern for the tasks; each task will enque 
-    # the next task with it's results.
-    #
-    # Notes:
-    # - Batched tasks will have the pattern set for each task in the batch 
-    # - The current audited results are yielded to the block, if given, 
-    #   before the next task is enqued.
-    # - Executables may provided as well as tasks.
-    def sequence(tasks) # :yields: _result
-      current_task = tasks.shift
-      tasks.each do |next_task|
-        # simply pass results from one task to the next.  
-        current_task.on_complete do |_result| 
-          yield(_result) if block_given?
-          enq(next_task, _result)
-        end
-        current_task = next_task
-      end
-    end
-
-    # Sets a fork workflow pattern for the source task; each target
-    # will enque the results of source.
-    #
-    # Notes:
-    # - Batched tasks will have the pattern set for each task in the batch 
-    # - The current audited results are yielded to the block, if given, 
-    #   before the next task is enqued.
-    # - Executables may provided as well as tasks.
-    def fork(source, targets) # :yields: _result
-      source.on_complete do |_result|
-        targets.each do |target| 
-          yield(_result) if block_given?
-          enq(target, _result)
-        end
-      end
-    end
-    
-    # Sets a simple merge workflow pattern for the source tasks. Each source
-    # enques target with it's result; no synchronization occurs, nor are 
-    # results grouped before being sent to the target.
-    #
-    # Notes:
-    # - Batched tasks will have the pattern set for each task in the batch 
-    # - The current audited results are yielded to the block, if given, 
-    #   before the next task is enqued.
-    # - Executables may provided as well as tasks.
-    def merge(target, sources) # :yields: _result
-      sources.each do |source|
-        # merging can use the existing audit trails... each distinct 
-        # input is getting sent to one place (the target)
-        source.on_complete do |_result| 
-          yield(_result) if block_given?
-          enq(target, _result)
-        end
-      end
-    end
-    
-    # Sets a synchronized merge workflow for the source tasks.  Results from
-    # each source task are collected and enqued as a single group to the target. 
-    # The target is not enqued until all sources have completed.  Raises an
-    # error if a source returns twice before the target is enqued.
-    #
-    # Notes:
-    # - Batched tasks will have the pattern set for each task in the batch 
-    # - The current audited results are yielded to the block, if given, 
-    #   before the next task is enqued.
-    # - Executables may provided as well as tasks.
-    #
-    #-- TODO: add notes on testing and the way results are received
-    # (ie as a single object)
-    def sync_merge(target, sources) # :yields: _result
-      group = Array.new(sources.length, nil)
-      sources.each_with_index do |source, index|
-        batch_map = Hash.new(0)
-        source.batch.each_with_index {|obj, i| batch_map[obj] = i }
-        batch_length = source.batch.length
- 
-        group[index] = Array.new(batch_length, nil)
-        
-        source.on_complete do |_result|
-          batch_index = batch_map[_result._current_source]
-
-          if group[index][batch_index] != nil
-            raise "sync_merge collision... already got a result for #{_result._current_source}"
-          end
-
-          group[index][batch_index] = _result
-          
-          unless group.flatten.include?(nil)
-            Support::Combinator.new(*group).each do |*combination|
-              # merge the source audits
-              _group_result = Support::Audit.merge(*combination)
-            
-              yield(_group_result) if block_given?
-              target.enq(_group_result)
-            end
-            
-            # reset the group array
-            group.collect! {|i| nil }
-          end 
-        end
-      end
-    end
-    
-    # Sets a choice workflow pattern for the source task.  When the
-    # source task completes, switch yields the audited result to the 
-    # block which then returns the index of the target to enque with 
-    # the results. No target will be enqued if the index is false or 
-    # nil; an error is raised if no target can be found for the 
-    # specified index.
-    #
-    # Notes:
-    # - Batched tasks will have the pattern set for each task in the batch 
-    # - The current audited results are yielded to the block, if given, 
-    #   before the next task is enqued.
-    # - Executables may provided as well as tasks.
-    def switch(source, targets) # :yields: _result
-      source.on_complete do |_result| 
-        if index = yield(_result)        
-          unless target = targets[index] 
-            raise "no switch target for index: #{index}"
-          end
-          
-          enq(target, _result)
-        else
-          aggregator.store(_result)
-        end
-      end
     end
         
     # Returns all aggregated, audited results for the specified tasks.  

@@ -3,9 +3,11 @@ module Tap
     
     # Dependable encapsulates the module-level methods facilitating 
     # dependencies in Executable.
-    module Dependable
-      def self.extended(base)
-        base.clear_dependencies
+    class Dependencies
+      def initialize
+        @registry = []
+        @results = []
+        @resolve_stack = []
       end
       
       # An array of registered [instance, argv] pairs.
@@ -16,10 +18,10 @@ module Tap
       attr_reader :results
       
       # Clears all registered dependencies and results.  
-      def clear_dependencies
-        @registry = []
-        @results = []
-        @resolve_stack = []
+      def clear
+        registry.clear
+        results.clear
+        @resolve_stack.clear
       end
       
       # Returns the index of the [instance, argv] pair in self,

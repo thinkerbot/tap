@@ -4,11 +4,11 @@ require 'tap/support/executable'
 class ExecutableTest < Test::Unit::TestCase
   include Tap::Support
 
-  attr_accessor :m
+  attr_accessor :m, :app
   
   def setup
-    @m = Executable.initialize(Object.new, :object_id)
-    Executable.clear_dependencies
+    @app = Tap::App.new
+    @m = Executable.initialize(Object.new, :object_id, @app)
   end
   
   #
@@ -57,7 +57,7 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   def test_depends_on_registers_dependency_with_Executable_and_adds_index_to_dependencies
-    Executable.registry << [:a, []]
+    app.dependencies.registry << [:a, []]
 
     d1 = Dependency.new
     d2 = Dependency.new
@@ -65,7 +65,7 @@ class ExecutableTest < Test::Unit::TestCase
     m.depends_on(d1)
     m.depends_on(d2, 1,2,3)
     
-    assert_equal [[:a, []], [d1, []], [d2, [1,2,3]]], Executable.registry
+    assert_equal [[:a, []], [d1, []], [d2, [1,2,3]]], app.dependencies.registry
     assert_equal [1,2], m.dependencies
   end
   
@@ -123,7 +123,7 @@ class ExecutableTest < Test::Unit::TestCase
     m.resolve_dependencies
     
     assert_equal 2, m.dependencies.length
-    assert_equal ["", "1,2,3"], m.dependencies.collect {|index| Executable.results[index]._current }
+    assert_equal ["", "1,2,3"], m.dependencies.collect {|index| app.dependencies.results[index]._current }
   end
   
   def test_resolve_dependencies_does_not_re_execute_resolved_dependencies
@@ -166,9 +166,9 @@ class ExecutableTest < Test::Unit::TestCase
     a.depends_on(b)
     b.depends_on(m)
     
-    assert_raise(Dependable::CircularDependencyError) { m.resolve_dependencies }
-    assert_raise(Dependable::CircularDependencyError) { a.resolve_dependencies }
-    assert_raise(Dependable::CircularDependencyError) { b.resolve_dependencies }
+    assert_raise(Dependencies::CircularDependencyError) { m.resolve_dependencies }
+    assert_raise(Dependencies::CircularDependencyError) { a.resolve_dependencies }
+    assert_raise(Dependencies::CircularDependencyError) { b.resolve_dependencies }
   end
   
   #

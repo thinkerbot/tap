@@ -1,6 +1,5 @@
 require 'tap/app'
 require 'tap/support/audit'
-require 'tap/support/dependable'
 
 module Tap
   module Support
@@ -9,8 +8,7 @@ module Tap
     # wrapped by extending the object that receives them; the easiest way
     # to make an object executable is to use Object#_method.
     module Executable
-      extend Dependable
-  
+      
       # The application the Executable belongs to.
       attr_reader :app
       
@@ -40,32 +38,6 @@ module Tap
         batch << obj
         
         obj
-      end
-      
-      # Adds the dependency to self, making self dependent on the dependency.
-      # The dependency will be resolved by calling dependency._execute with 
-      # the input arguments during resolve_dependencies.
-      def depends_on(dependency, *inputs)
-        raise ArgumentError, "not an Executable: #{dependency}" unless dependency.kind_of?(Executable)
-        raise ArgumentError, "cannot depend on self" if dependency == self
-        
-        index = Executable.register(dependency, inputs)
-        dependencies << index unless dependencies.include?(index)
-        index
-      end
-      
-      # Resolves dependencies by calling dependency._execute with
-      # the dependency arguments.  (See Dependable#resolve).
-      def resolve_dependencies
-        Executable.resolve(dependencies)
-        self
-      end
-      
-      # Resets dependencies so they will be re-resolved on resolve_dependencies.
-      # (See Dependable#reset).
-      def reset_dependencies
-        Executable.reset(dependencies)
-        self
       end
       
       # Returns true if the batch size is greater than one 
@@ -102,7 +74,9 @@ module Tap
       # The number of inputs provided should match the number 
       # of inputs specified by the arity of the _method_name method.
       def enq(*inputs)
-        batch.each {|t| t.unbatched_enq(*inputs) }
+        batch.each do |executable| 
+          executable.unbatched_enq(*inputs)
+        end
         self
       end
       
@@ -120,38 +94,172 @@ module Tap
       # Note the block recieves an audited result and not
       # the result itself (see Audit for more information).
       def on_complete(override=false, &block) # :yields: _result
-        batch.each {|t| t.unbatched_on_complete(override, &block) }
+        batch.each do |executable| 
+          executable.unbatched_on_complete(override, &block)
+        end
         self
       end
       
-      # Convenience method, equivalent to:
-      #   self.app.sequence([self] + tasks)
-      def sequence(*tasks)
-        app.sequence([self] + tasks)
+      # Sets a sequence workflow pattern for the tasks; each task will enque 
+      # the next task with it's results.
+      #
+      # Notes:
+      # - Batched tasks will have the pattern set for each task in the batch 
+      # - The current audited results are yielded to the block, if given, 
+      #   before the next task is enqued.
+      # - Executables may provided as well as tasks.
+      def sequence(*tasks) # :yields: _result
+        current_task = self
+        tasks.each do |next_task|
+          # simply pass results from one task to the next.  
+          current_task.on_complete do |_result| 
+            yield(_result) if block_given?
+            next_task.enq(_result)
+          end
+          current_task = next_task
+        end
       end
 
-      # Convenience method, equivalent to:
-      #   self.app.fork(self, targets)
-      def fork(*targets)
-        app.fork(self, targets)
+      # Sets a fork workflow pattern for the source task; each target
+      # will enque the results of source.
+      #
+      # Notes:
+      # - Batched tasks will have the pattern set for each task in the batch 
+      # - The current audited results are yielded to the block, if given, 
+      #   before the next task is enqued.
+      # - Executables may provided as well as tasks.
+      def fork(*targets) # :yields: _result
+        on_complete do |_result|
+          targets.each do |target| 
+            yield(_result) if block_given?
+            target.enq(_result)
+          end
+        end
       end
 
-      # Convenience method, equivalent to:
-      #   self.app.merge(self, sources)
-      def merge(*sources)
-        app.merge(self, sources)
+      # Sets a simple merge workflow pattern for the source tasks. Each source
+      # enques target with it's result; no synchronization occurs, nor are 
+      # results grouped before being sent to the target.
+      #
+      # Notes:
+      # - Batched tasks will have the pattern set for each task in the batch 
+      # - The current audited results are yielded to the block, if given, 
+      #   before the next task is enqued.
+      # - Executables may provided as well as tasks.
+      def merge(*sources) # :yields: _result
+        sources.each do |source|
+          # merging can use the existing audit trails... each distinct 
+          # input is getting sent to one place (the target)
+          source.on_complete do |_result| 
+            yield(_result) if block_given?
+            enq(_result)
+          end
+        end
       end
 
-      # Convenience method, equivalent to:
-      #   self.app.sync_merge(self, sources)
-      def sync_merge(*sources)
-        app.sync_merge(self, sources)
+      # Sets a synchronized merge workflow for the source tasks.  Results from
+      # each source task are collected and enqued as a single group to the target. 
+      # The target is not enqued until all sources have completed.  Raises an
+      # error if a source returns twice before the target is enqued.
+      #
+      # Notes:
+      # - Batched tasks will have the pattern set for each task in the batch 
+      # - The current audited results are yielded to the block, if given, 
+      #   before the next task is enqued.
+      # - Executables may provided as well as tasks.
+      #
+      #-- TODO: add notes on testing and the way results are received
+      # (ie as a single object)
+      def sync_merge(*sources) # :yields: _result
+        group = Array.new(sources.length, nil)
+        sources.each_with_index do |source, index|
+          batch_map = Hash.new(0)
+          source.batch.each_with_index {|obj, i| batch_map[obj] = i }
+          batch_length = source.batch.length
+
+          group[index] = Array.new(batch_length, nil)
+
+          source.on_complete do |_result|
+            batch_index = batch_map[_result._current_source]
+
+            if group[index][batch_index] != nil
+              raise "sync_merge collision... already got a result for #{_result._current_source}"
+            end
+
+            group[index][batch_index] = _result
+
+            unless group.flatten.include?(nil)
+              Support::Combinator.new(*group).each do |*combination|
+                # merge the source audits
+                _group_result = Support::Audit.merge(*combination)
+
+                yield(_group_result) if block_given?
+                enq(_group_result)
+              end
+
+              # reset the group array
+              group.collect! {|i| nil }
+            end 
+          end
+        end
       end
 
-      # Convenience method, equivalent to:
-      #   self.app.switch(self, targets, &block)
-      def switch(*targets, &block)
-        app.switch(self, targets, &block)
+      # Sets a choice workflow pattern for the source task.  When the
+      # source task completes, switch yields the audited result to the 
+      # block which then returns the index of the target to enque with 
+      # the results. No target will be enqued if the index is false or 
+      # nil; an error is raised if no target can be found for the 
+      # specified index.
+      #
+      # Notes:
+      # - Batched tasks will have the pattern set for each task in the batch 
+      # - The current audited results are yielded to the block, if given, 
+      #   before the next task is enqued.
+      # - Executables may provided as well as tasks.
+      def switch(*targets) # :yields: _result
+        on_complete do |_result| 
+          if index = yield(_result)        
+            unless target = targets[index] 
+              raise "no switch target for index: #{index}"
+            end
+
+            target.enq(_result)
+          else
+            app.aggregator.store(_result)
+          end
+        end
+      end
+      
+      def unbatched_depends_on(dependency, *inputs)
+        raise ArgumentError, "not an Executable: #{dependency}" unless dependency.kind_of?(Executable)
+        raise ArgumentError, "cannot depend on self" if dependency == self
+        
+        index = app.dependencies.register(dependency, inputs)
+        dependencies << index unless dependencies.include?(index)
+        index
+      end
+      
+      # Adds the dependency to self, making self dependent on the dependency.
+      # The dependency will be resolved by calling dependency._execute with 
+      # the input arguments during resolve_dependencies.
+      def depends_on(dependency, *inputs)
+        batch.each do |executable| 
+          executable.unbatched_depends_on(dependency, *inputs)
+        end
+      end
+      
+      # Resolves dependencies by calling dependency._execute with
+      # the dependency arguments.  (See Dependable#resolve).
+      def resolve_dependencies
+        app.dependencies.resolve(dependencies)
+        self
+      end
+      
+      # Resets dependencies so they will be re-resolved on resolve_dependencies.
+      # (See Dependable#reset).
+      def reset_dependencies
+        app.dependencies.reset(dependencies)
+        self
       end
       
       # Auditing method call.  Executes _method_name for self, but audits 

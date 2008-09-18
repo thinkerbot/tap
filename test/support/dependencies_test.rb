@@ -1,60 +1,170 @@
-# require File.join(File.dirname(__FILE__), 'tap_test_helper')
-# require 'tap/env'
-# require 'tap/support/dependencies'
+require  File.join(File.dirname(__FILE__), '../tap_test_helper')
+require 'tap/support/dependencies'
 
-# class EnvTest < Test::Unit::TestCase
-#   
-#   acts_as_file_test
-#   
-#   attr_accessor :e, :root
-#   
-#   def setup
-#     super
-# 
-#     @current_load_paths = $LOAD_PATH.dup
-#     $LOAD_PATH.clear
-#     @current_dependencies_load_paths = Dependencies.load_paths.dup
-#     Dependencies.load_paths.clear
-#     
-#     @e = Tap::Env.new
-#     @root = Tap::Root.new
-#   end
-#   
-#   def teardown
-#     super
-#     
-#     Tap::Env.send(:class_variable_set, :@@instance, nil)
-#     $LOAD_PATH.clear
-#     $LOAD_PATH.concat(@current_load_paths)
-#     Dependencies.load_paths.clear
-#     Dependencies.load_paths.concat(@current_dependencies_load_paths)
-#   end
-#   
-#   
-  #
-  # reload test
-  #
+class DependenciesTest < Test::Unit::TestCase
+  include Tap::Support
   
-  # def test_reload_returns_unloaded_constants
-  #   Dependencies.clear
-  #   Dependencies.load_paths << method_root
-  # 
-  #   assert_equal [], e.reload
-  #   assert File.exists?( File.join(method_root, 'env_test_class.rb') )
-  #   
-  #   assert !Object.const_defined?("EnvTestClass")
-  #   klass = EnvTestClass
-  #     
-  #   assert Object.const_defined?("EnvTestClass")
-  #   assert_equal [:EnvTestClass], e.reload.collect {|c| c.to_sym }
-  #   assert !Object.const_defined?("EnvTestClass")
-  # end
+  attr_reader :m
+  
+  def setup
+    @m = Dependencies.new
+  end
   
   #
-  # load_path_targets test
+  # clear test
   #
   
-  # def test_load_path_targets_is_LOAD_PATH_and_Dependencies_load_paths_if_using_dependencies
-  #   e.use_dependencies = true
-  #   assert_equal [$LOAD_PATH, Dependencies.load_paths], e.load_path_targets
-  # end
+  def test_clear_resets_the_registry_and_results
+    m.registry << :a
+    m.results << :b
+    
+    assert_not_equal [], m.registry
+    assert_not_equal [], m.results
+    
+    m.clear
+    
+    assert_equal [], m.registry
+    assert_equal [], m.results
+  end
+  
+  #
+  # index test
+  #
+  
+  def test_index_returns_the_index_of_the_instance_argv_pair_in_self
+    m.registry << [:a, [1,2,3]]
+    m.registry << [:b, [4,5]]
+    m.registry << [:c, []]
+    
+    assert_equal 0, m.index(:a, [1,2,3])
+    assert_equal 2, m.index(:c, [])
+    assert_equal 2, m.index(:c)
+  end
+  
+  def test_index_returns_nil_if_the_pair_is_not_registered
+    assert_nil m.index(:a, [])
+    assert_nil m.index(:a)
+  end
+  
+  #
+  # register test
+  #
+  
+  def test_register_adds_the_instance_argv_pair_to_registry
+    assert_equal [], m.registry
+
+    m.register(:a, [1,2,3])
+    m.register(:a, [4,5])
+    m.register(:b, [4,5])
+    m.register(:c)
+    
+    assert_equal [
+      [:a, [1,2,3]], 
+      [:a, [4,5]], 
+      [:b, [4,5]], 
+      [:c, []]
+    ], m.registry
+  end
+  
+  def test_register_does_not_duplicate_existing_instance_argv_pairs_in_registry
+    m.registry << [:a, [1,2,3]]
+    m.registry << [:b, [4,5]]
+    m.registry << [:c, []]
+    
+    m.register(:a, [1,2,3])
+    m.register(:c, [])
+    m.register(:c)
+    
+    assert_equal [
+      [:a, [1,2,3]],
+      [:b, [4,5]],
+      [:c, []]
+    ], m.registry
+  end
+  
+  def test_register_returns_the_index_of_the_instance_argv_pair_in_self
+    m.registry << [:a, [1,2,3]]
+    m.registry << [:b, [4,5]]
+    m.registry << [:c, []]
+    
+    assert_equal 0, m.register(:a, [1,2,3])
+    assert_equal 2, m.register(:c, [])
+    
+    assert_equal 3, m.register(:d)
+    assert_equal 4, m.register(:e, [1,2,3])
+    assert_equal 3, m.register(:d)
+  end
+  
+  #
+  # resolve test
+  #
+  
+  class ExecutableMock
+    def _execute(*args)
+      args << object_id
+      args
+    end
+  end
+  
+  def test_resolve_resolves_instance_argv_pairs_at_the_specified_indicies
+    a = ExecutableMock.new
+    c = ExecutableMock.new
+    
+    m.registry << [a, [1,2,3]]
+    m.registry << [:b, []]
+    m.registry << [c, []]
+    
+    m.resolve([0,2])
+    
+    assert m.resolved?(0)
+    assert m.resolved?(2)
+    
+    assert_equal [[1,2,3, a.object_id], nil, [c.object_id]], m.results
+  end
+  
+  def test_resolve_does_not_re_resolve_resolved_pairs
+    a = ExecutableMock.new
+    m.registry << [a, [1,2,3]]
+
+    m.resolve([0])
+    assert_equal [[1,2,3, a.object_id]], m.results
+    
+    m.registry[0] = [a, []]
+    
+    m.resolve([0])
+    assert_equal [[1,2,3, a.object_id]], m.results
+    
+    m.reset([0])
+    m.resolve([0])
+    assert_equal [[a.object_id]], m.results
+  end
+  
+  #
+  # resolved? test
+  #
+  
+  def test_resolved_is_true_if_the_results_at_the_index_are_non_nil
+    m.results.concat([:a, nil, :c])
+    
+    assert m.resolved?(0)
+    assert m.resolved?(2)
+    assert m.resolved?(-1)
+    
+    assert !m.resolved?(1)
+    assert !m.resolved?(100)
+  end
+  
+  #
+  # reset test
+  #
+
+  def test_reset_resets_the_results_at_the_specified_indicies_to_nil
+    m.results.concat([:a, :b, :c])
+    m.reset([0,2])
+    assert_equal [nil, :b, nil], m.results
+  end
+  
+  def test_reset_returns_self
+    assert_equal m, m.reset([])
+  end
+end
