@@ -65,7 +65,8 @@ module Tap
       # Asserts that an array of audits are all equal, basically feeding
       # each pair of audits to assert_audit_equal.
       def assert_audits_equal(expected, audits)
-        Utils.each_pair_with_index(expected, audits) do |exp, audit, index|
+        error_msg = "expected <#{audits.length}> audits, but was <#{expected.length}>"
+        Utils.each_pair_with_index(expected, audits, error_msg) do |exp, audit, index|
           assert_audit_equal(exp, audit, [index])
         end
       end

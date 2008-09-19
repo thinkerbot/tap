@@ -164,11 +164,14 @@ module Tap
       end
 
       # Same as each_pair but yields the index of the entries as well.
-      def each_pair_with_index(a, b, &block) # :yields: entry_a, entry_b, index
+      def each_pair_with_index(a, b, error_msg=nil, &block) # :yields: entry_a, entry_b, index
         a = [a] unless a.kind_of?(Array)
         b = [b] unless b.kind_of?(Array)
-
-        raise ArgumentError, "The input arrays must have an equal number of entries." unless a.length == b.length
+        
+        unless a.length == b.length
+          raise ArgumentError, (error_msg || "The input arrays must have an equal number of entries.")
+        end
+        
         0.upto(a.length-1) do |index|
           yield(a[index], b[index], index)
         end

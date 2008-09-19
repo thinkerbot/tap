@@ -194,10 +194,12 @@ module Tap
       #   before the next task is enqued.
       # - Executables may provided as well as tasks.
       def fork(*targets) # :yields: _result
+        stack, iterate = _options(targets)
+        
         on_complete do |_result|
           targets.each do |target| 
             yield(_result) if block_given?
-            target.enq(_result)
+            _add(target, _result, stack, iterate)
           end
         end
       end
@@ -212,12 +214,14 @@ module Tap
       #   before the next task is enqued.
       # - Executables may provided as well as tasks.
       def merge(*sources) # :yields: _result
+        stack, iterate = _options(sources)
+        
         sources.each do |source|
           # merging can use the existing audit trails... each distinct 
           # input is getting sent to one place (the target)
           source.on_complete do |_result| 
             yield(_result) if block_given?
-            enq(_result)
+            _add(self, _result, stack, iterate)
           end
         end
       end
@@ -235,7 +239,15 @@ module Tap
       #
       #-- TODO: add notes on testing and the way results are received
       # (ie as a single object)
+      # 
+      # - note stacking with a sync merge is *somewhat* pointless;
+      #   it does not change the run order, but of course it does
+      #   allow other tasks to be interleaved.
+      #
       def sync_merge(*sources) # :yields: _result
+        stack, iterate = _options(sources)
+        raise NotImplementedError, "iterate is not yet implemented for sync_merge" if iterate
+          
         group = Array.new(sources.length, nil)
         sources.each_with_index do |source, index|
           batch_map = Hash.new(0)
@@ -259,7 +271,7 @@ module Tap
                 _group_result = Support::Audit.merge(*combination)
 
                 yield(_group_result) if block_given?
-                enq(_group_result)
+                _add(self, _group_result, stack, iterate)
               end
 
               # reset the group array
