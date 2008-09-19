@@ -4,33 +4,18 @@ require 'tap/support/executable'
 class ExecutableTest < Test::Unit::TestCase
   include Tap::Support
   
-  attr_accessor :m, :app
+  acts_as_tap_test
+  
+  attr_accessor :m
   
   def setup
-    @app = Tap::App.new
-    @m = new_executable
-  end
-  
-  def new_executable(batch=[], app=app)
-    Executable.initialize(Object.new, :object_id, app, batch)
+    super
+    @m = Executable.initialize(Object.new, :object_id, app)
   end
   
   #
   # initialization tests
   #
-  
-  def test_initialization
-    app = Tap::App.new
-    m = Object.new
-    
-    assert_equal m, Executable.initialize(m, :object_id, app, [1,2,3])
-    assert m.kind_of?(Executable)
-    assert_equal :object_id, m._method_name
-    assert_equal app, m.app
-    assert_equal [1,2,3,m], m.batch
-    assert_nil m.on_complete_block
-    assert_equal [], m.dependencies
-  end
   
   def test_initialization_defaults
     m = Executable.initialize(Object.new, :object_id)
@@ -38,8 +23,104 @@ class ExecutableTest < Test::Unit::TestCase
     assert_equal :object_id, m._method_name
     assert_equal Tap::App.instance, m.app
     assert_equal [m], m.batch
-    assert_nil m.on_complete_block
     assert_equal [], m.dependencies
+    assert_nil m.on_complete_block
+  end
+  
+  def test_initialize
+    app = Tap::App.new
+    m = Object.new
+    b = lambda {}
+    
+    assert_equal m, Executable.initialize(m, :object_id, app, [1,2,3], [4,5,6], &b)
+    assert m.kind_of?(Executable)
+    assert_equal :object_id, m._method_name
+    assert_equal app, m.app
+    assert_equal [1,2,3,m], m.batch
+    assert_equal [4,5,6], m.dependencies
+    assert_equal b, m.on_complete_block
+  end
+  
+  #
+  # initialize_batch_obj test
+  #
+  
+  def test_initialize_batch_obj_duplicates_self_and_adds_duplicate_to_batch
+    b = lambda {}
+    m = Executable.initialize(Object.new, :object_id, app, [1,2,3], [4,5,6], &b)
+
+    m1 = m.initialize_batch_obj
+    m2 = m1.initialize_batch_obj
+    
+    assert_equal :object_id, m._method_name
+    assert_equal :object_id, m1._method_name
+    assert_equal :object_id, m2._method_name
+    
+    assert_equal app, m.app
+    assert_equal m.app.object_id, m1.app.object_id
+    assert_equal m.app.object_id, m2.app.object_id
+    
+    assert_equal [4,5,6], m.dependencies
+    assert_equal m.dependencies.object_id, m1.dependencies.object_id
+    assert_equal m.dependencies.object_id, m2.dependencies.object_id
+    
+    assert_equal [1,2,3, m, m1, m2], m.batch
+    assert_equal m.batch.object_id, m1.batch.object_id
+    assert_equal m.batch.object_id, m2.batch.object_id
+    
+    assert_equal b, m.on_complete_block
+    assert_equal b, m1.on_complete_block
+    assert_equal b, m2.on_complete_block
+  end
+  
+  class SimpleExecutable
+    include Tap::Support::Executable
+    
+    attr_reader :var
+    
+    def initialize(method_name, app, batch, dependencies, &on_complete_block)
+      @_method_name = method_name
+      @app = app
+      @batch = batch
+      @dependencies = dependencies
+      @on_complete_block = on_complete_block
+      
+      batch << self
+      
+      # a variable to demonstrate duplication
+      @var = Object.new
+    end
+  end
+  
+  def test_initialize_batch_obj_with_class_including_Executable_behaves_the_same
+    b = lambda {}
+    m = SimpleExecutable.new(:object_id, app, [1,2,3], [4,5,6], &b)
+
+    m1 = m.initialize_batch_obj
+    m2 = m1.initialize_batch_obj
+    
+    assert_equal m1.var, m.var
+    assert_equal m2.var, m.var
+    
+    assert_equal :object_id, m._method_name
+    assert_equal :object_id, m1._method_name
+    assert_equal :object_id, m2._method_name
+    
+    assert_equal app, m.app
+    assert_equal m.app.object_id, m1.app.object_id
+    assert_equal m.app.object_id, m2.app.object_id
+    
+    assert_equal [4,5,6], m.dependencies
+    assert_equal m.dependencies.object_id, m1.dependencies.object_id
+    assert_equal m.dependencies.object_id, m2.dependencies.object_id
+    
+    assert_equal [1,2,3, m, m1, m2], m.batch
+    assert_equal m.batch.object_id, m1.batch.object_id
+    assert_equal m.batch.object_id, m2.batch.object_id
+    
+    assert_equal b, m.on_complete_block
+    assert_equal b, m1.on_complete_block
+    assert_equal b, m2.on_complete_block
   end
   
   #
@@ -50,7 +131,7 @@ class ExecutableTest < Test::Unit::TestCase
     assert !m.batched?
     assert_equal 1, m.batch.size
     
-    m.batch << nil
+    m.initialize_batch_obj
     
     assert_equal 2, m.batch.size
     assert m.batched?
@@ -64,14 +145,16 @@ class ExecutableTest < Test::Unit::TestCase
     assert_equal [m], m.batch
     assert_equal 0, m.batch_index
     
-    m.batch.clear
-    m.batch.concat [0,1,m]
-    assert_equal 2, m.batch_index
+    m1 = m.initialize_batch_obj
+    
+    assert_equal [m, m1], m.batch
+    assert_equal 1, m1.batch_index
   end
   
   #
   # batch_with test
   #
+  
   class BatchExecutable
     include Tap::Support::Executable
     def initialize(batch=[])
@@ -133,7 +216,7 @@ class ExecutableTest < Test::Unit::TestCase
   def test_batch_with_removes_duplicates
     m1 = BatchExecutable.new
     m2 = BatchExecutable.new
-
+  
     m1.batch.clear
     m1.batch.concat [0,1]
     
@@ -175,9 +258,9 @@ class ExecutableTest < Test::Unit::TestCase
     
     assert_equal [[m, [1]], [m, [1]], [m, [2]]], app.queue.to_a
   end
-
+  
   def test_enq_enqueues_batched_executables
-    m1 = new_executable(m.batch)
+    m1 = m.initialize_batch_obj
     
     assert app.queue.empty?
     assert_equal 2, m.batch.size
@@ -197,7 +280,7 @@ class ExecutableTest < Test::Unit::TestCase
   #
   
   def test_unbatched_enq_only_enqueues_self
-    m1 = new_executable(m.batch)
+    m1 = m.initialize_batch_obj
     
     assert_equal 2, m.batch.size
     assert app.queue.empty?
@@ -216,11 +299,11 @@ class ExecutableTest < Test::Unit::TestCase
   #
   
   def test_on_complete_sets_on_complete_block_for_all_executables_in_batch
-    m1 = new_executable(m.batch)
+    m1 = m.initialize_batch_obj
     
     assert_equal nil, m.on_complete_block
     assert_equal nil, m1.on_complete_block
-
+  
     b = lambda {}
     m.on_complete(&b)
     
@@ -229,7 +312,7 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   def test_on_complete_raises_error_when_any_on_complete_block_in_batch_is_already_set
-    m1 = new_executable(m.batch)
+    m1 = m.initialize_batch_obj
     
     m1.unbatched_on_complete {}
     assert !m.on_complete_block
@@ -239,7 +322,7 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   def test_on_complete_with_override_overrides_all_on_complete_blocks_in_batch
-    m1 = new_executable(m.batch)
+    m1 = m.initialize_batch_obj
     m.on_complete {}
     b = lambda {}
     
@@ -253,9 +336,9 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   def test_on_complete_with_override_and_no_block_sets_on_complete_block_to_nil_for_each_in_batch
-    m1 = new_executable(m.batch)
+    m1 = m.initialize_batch_obj
     m.on_complete {}
-
+  
     assert_not_equal nil, m.on_complete_block
     assert_not_equal nil, m1.on_complete_block
     
@@ -274,11 +357,11 @@ class ExecutableTest < Test::Unit::TestCase
   #
   
   def test_unbatched_on_complete_sets_on_complete_block_only_for_self
-    m1 = new_executable(m.batch)
+    m1 = m.initialize_batch_obj
     
     assert_equal nil, m.on_complete_block
     assert_equal nil, m1.on_complete_block
-
+  
     b = lambda {}
     m.unbatched_on_complete(&b)
     
@@ -293,8 +376,8 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   def test_unbatched_on_complete_with_override_overrides_complete_block_only_for_self
-    m1 = new_executable(m.batch)
-
+    m1 = m.initialize_batch_obj
+  
     assert_equal nil, m.on_complete_block
     assert_equal nil, m1.on_complete_block
     
@@ -306,9 +389,9 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   def test_unbatched_on_complete_with_override_and_no_block_sets_on_complete_block_to_nil_only_for_self
-    m1 = new_executable(m.batch)
+    m1 = m.initialize_batch_obj
     m.on_complete {}
-
+  
     assert_not_equal nil, m.on_complete_block
     assert_not_equal nil, m1.on_complete_block
     
@@ -320,6 +403,109 @@ class ExecutableTest < Test::Unit::TestCase
   
   def test_unbatched_on_complete_returns_self
     assert_equal m, m.unbatched_on_complete
+  end
+  
+  class Tracer
+    include Tap::Support::Executable
+    
+    class << self
+      def intern(n, app, runlist)
+        Array.new(n) { |index| new(index, app, runlist) }
+      end
+    end
+    
+    def initialize(index, app, runlist)
+      @index = index
+      @runlist = runlist
+      
+      @app = app
+      @_method_name = :trace
+      @on_complete_block =nil
+      @dependencies = []
+      @batch = [self]
+    end
+    
+    def trace(result_array)
+      id = "#{@index}.#{batch_index}"
+      
+      @runlist << id
+      result_array + [id]
+    end
+  end
+  
+  #
+  # sequence tests
+  #
+  
+  def test_simple_sequence
+    runlist = []
+    t0_0, t1_0 = Tracer.intern(2, app, runlist)
+    
+    t0_0.sequence(t1_0)
+    t0_0.enq []
+    app.run
+
+    assert_equal %w{
+      0.0 1.0
+    }, runlist
+    
+    assert_audits_equal([
+      ExpAudit[[nil,[]],[t0_0,['0.0']],[t1_0,['0.0', '1.0']]]
+    ], app._results(t1_0))
+  end
+  
+  def test_batch_sequence
+    runlist = []
+    t0_0, t1_0 = Tracer.intern(2, app, runlist)
+    t0_1 = t0_0.initialize_batch_obj
+    t1_1 = t1_0.initialize_batch_obj
+    
+    t0_0.sequence(t1_0)
+    t0_0.enq []
+    app.run
+
+    assert_equal %w{
+      0.0 1.0 
+          1.1
+      0.1 1.0 
+          1.1
+    }, runlist
+      
+    assert_audits_equal([
+      ExpAudit[[nil,[]],[t0_0,['0.0']],[t1_0,['0.0', '1.0']]],
+      ExpAudit[[nil,[]],[t0_1,['0.1']],[t1_0,['0.1', '1.0']]]
+    ], app._results(t1_0))
+      
+    assert_audits_equal([
+      ExpAudit[[nil,[]],[t0_0,['0.0']],[t1_1,['0.0', '1.1']]], 
+      ExpAudit[[nil,[]],[t0_1,['0.1']],[t1_1,['0.1', '1.1']]], 
+    ], app._results(t1_1))
+  end
+  
+  def test_batched_stack_sequence
+    runlist = []
+    t0_0, t1_0 = Tracer.intern(2, app, runlist)
+    t0_1 = t0_0.initialize_batch_obj
+    t1_1 = t1_0.initialize_batch_obj
+    
+    t0_0.sequence(t1_0, :stack => true)
+    t0_0.enq []
+    app.run
+  
+    assert_equal %w{
+      0.0      0.1
+      1.0 1.1  1.0 1.1
+    }, runlist
+      
+    assert_audits_equal([
+      ExpAudit[[nil,[]],[t0_0,['0.0']],[t1_0,['0.0', '1.0']]],
+      ExpAudit[[nil,[]],[t0_1,['0.1']],[t1_0,['0.1', '1.0']]]
+    ], app._results(t1_0))
+      
+    assert_audits_equal([
+      ExpAudit[[nil,[]],[t0_0,['0.0']],[t1_1,['0.0', '1.1']]], 
+      ExpAudit[[nil,[]],[t0_1,['0.1']],[t1_1,['0.1', '1.1']]], 
+    ], app._results(t1_1))
   end
   
   #
@@ -344,7 +530,7 @@ class ExecutableTest < Test::Unit::TestCase
   
   def test_depends_on_registers_dependency_with_Executable_and_adds_index_to_dependencies
     app.dependencies.registry << [:a, []]
-
+  
     d1 = Dependency.new
     d2 = Dependency.new
     
@@ -385,7 +571,7 @@ class ExecutableTest < Test::Unit::TestCase
     
     assert_equal 2, m.dependencies.length
   end
-
+  
   #
   # resolve_dependencies test
   #
@@ -447,7 +633,7 @@ class ExecutableTest < Test::Unit::TestCase
   def test_resolve_raises_error_for_circular_dependencies
     a = Dependency.new
     b = Dependency.new
-
+  
     m.depends_on(a)
     a.depends_on(b)
     b.depends_on(m)
@@ -481,23 +667,6 @@ class ExecutableTest < Test::Unit::TestCase
   def test_reset_dependencies_returns_self
     assert_equal m, m.reset_dependencies
   end
-  
-
-  
-  #
-  # initialize_batch_obj test
-  #
-  
-  # def test_created_batch_tasks_are_added_to_and_share_the_same_execute_batch
-  #   assert_equal [m], m.batch
-  #   
-  #   m1 = m.initialize_batch_obj
-  #   m2 = m1.initialize_batch_obj
-  #   
-  #   assert_equal [m, m1, m2], m.batch
-  #   assert_equal m.batch.object_id, m1.batch.object_id
-  #   assert_equal m.batch.object_id, m2.batch.object_id
-  # end
   
   #
   # Object#_method test

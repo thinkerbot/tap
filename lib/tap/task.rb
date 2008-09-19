@@ -460,9 +460,8 @@ module Tap
     # will be a duplicate of the current object but with a new name and/or 
     # configurations.
     def initialize_batch_obj(overrides={}, name=nil)
-      obj = self.dup.reconfigure(overrides)
+      obj = super().reconfigure(overrides)
       obj.name = name if name
-      batch << obj
       obj 
     end
 
