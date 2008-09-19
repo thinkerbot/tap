@@ -1,4 +1,3 @@
-# require 'tap/support/batchable'
 require 'tap/support/executable'
 require 'tap/support/lazydoc/method'
 autoload(:OptionParser, 'optparse')

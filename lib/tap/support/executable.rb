@@ -1,4 +1,3 @@
-require 'tap/app'
 require 'tap/support/audit'
 
 module Tap

@@ -78,8 +78,8 @@ module Tap
   #
   #   t1 = Task.new  {|task, input| input += 1 }
   #   t2 = Task.new  {|task, input| input += 10 }
-  #   Task.batch(t1, t2)             # => [t1, t2]
   #
+  #   t1.batch_with(t2)
   #   t1.enq 0
   #
   #   app.run

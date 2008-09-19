@@ -50,7 +50,7 @@ module Tap
       end
       
       def time(msg, command)
-        commands << [command, msg, nil, nil]
+        run([command, msg, nil, nil])
       end
       
       def check(msg, command, use_regexp_escapes=true, &validation)
@@ -60,7 +60,7 @@ module Tap
           [cmd, msg, expected, validation]
         end
         
-        run(commands)
+        run(*commands)
       end
 
       def match(msg, command, regexp=nil, &validation)
@@ -70,10 +70,10 @@ module Tap
           [cmd, msg, regexp, validation]
         end
         
-        run(commands)
+        run(*commands)
       end
       
-      def run(commands)
+      def run(*commands)
         commands.each_with_index do |(cmd, msg, expected, validation), i|
           start = Time.now
           result = capture_sh(cmd) {|ok, status, tempfile_path| }

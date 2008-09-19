@@ -82,8 +82,8 @@ class AppTest < Test::Unit::TestCase
   
     t1 = Task.new  {|task, input| input += 1 }
     t2 = Task.new  {|task, input| input += 10 }
-    assert_equal [t1, t2], Task.batch(t1, t2)
-  
+    
+    t1.batch_with(t2)
     t1.enq 0
   
     app.run
@@ -864,17 +864,14 @@ o-[add_five] 8
   #
 
   def test__results_returns_audited_results_for_listed_sources
-    t1 = Task.new {|task, input| input + 1 }
-    a1 = t1._execute(0)
-    
-    t2 = Task.new {|task, input| input + 1 } 
-    a2 = t2._execute(1)
+    a1 = Tap::Support::Audit.new._record(:t1, 1)
+    a2 = Tap::Support::Audit.new._record(:t2, 2)
     
     app.aggregator.store a1
     app.aggregator.store a2
-    assert_equal [a1], app._results(t1)
-    assert_equal [a2, a1], app._results(t2, t1)
-    assert_equal [a1, a1], app._results(t1, t1)
+    assert_equal [a1], app._results(:t1)
+    assert_equal [a2, a1], app._results(:t2, :t1)
+    assert_equal [a1, a1], app._results(:t1, :t1)
   end
   
   #
@@ -895,17 +892,14 @@ o-[add_five] 8
   end
   
   def test_results_returns_current_values_of__results
-    t1 = Task.new {|task, input| input + 1 }
-    a1 = t1._execute(0)
-    
-    t2 = Task.new {|task, input| input + 1 } 
-    a2 = t2._execute(1)
+    a1 = Tap::Support::Audit.new._record(:t1, 1)
+    a2 = Tap::Support::Audit.new._record(:t2, 2)
     
     app.aggregator.store a1
     app.aggregator.store a2
-    assert_equal [1], app.results(t1)
-    assert_equal [2, 1], app.results(t2, t1)
-    assert_equal [1, 1], app.results(t1, t1)
+    assert_equal [1], app.results(:t1)
+    assert_equal [2, 1], app.results(:t2, :t1)
+    assert_equal [1, 1], app.results(:t1, :t1)
   end
   
   def test_results_for_various_objects
