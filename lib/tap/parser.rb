@@ -41,11 +41,13 @@ module Tap
       #
       #   $2:: The source string after the break. 
       #        (ex: '--[]' => '', '--1[]' => '1')
-      #   $3:: The target string, or nil. 
+      #   $3:: The target string. 
       #        (ex: '--[]' => '', '--1[1,2,3]' => '1,2,3')
+      #   $4:: The modifier string.
+      #        (ex: '--[]i' => 'i', '--1[1,2,3]is' => 'is')
       #
       def bracket_regexp(l, r)
-        /\A(--)?(\d*)#{Regexp.escape(l)}([\d,]*)#{Regexp.escape(r)}\z/
+        /\A(--)?(\d*)#{Regexp.escape(l)}([\d,]*)#{Regexp.escape(r)}([A-z]*)\z/
       end
       
       # The escape begin argument
@@ -76,8 +78,10 @@ module Tap
       #
       #   $2:: The sequence string after the break. 
       #        (ex: '--:' => ':', '--1:2' => '1:2', '--1:' => '1:', '--:2' => ':2')
+      #   $4:: The modifier string.
+      #        (ex: '--:i' => 'i', '--1:2is' => 'is')
       #
-      SEQUENCE = /\A(--)?(\d*(:\d*)+)\z/
+      SEQUENCE = /\A(--)?(\d*(:\d*)+)([A-z]*)\z/
       
       # Matches an instance break.  After the match:
       #
@@ -170,6 +174,18 @@ module Tap
         targets = parse_indicies(three)
         targets << next_index if targets.empty?
         [two.empty? ? current_index : two.to_i, targets]
+      end
+    end
+    
+    class WorkflowDefinition
+      attr_accessor :argv, :type, :targets, :options, :global
+      
+      def initialize
+        @argv = []
+        @type = 0 # number if round, else a workflow type
+        @targets = []
+        @options = nil
+        @global = false
       end
     end
     
@@ -426,16 +442,16 @@ module Tap
           indicies.each {|index| rounds_map[index] = round_index }
           next
           
-        when SEQUENCE   
+        when SEQUENCE
           indicies = parse_sequence($2)
           while indicies.length > 1
-            set_workflow(:sequence, indicies.shift, indicies[0])
+            set_workflow(:sequence, $4, indicies.shift, indicies[0])
           end
           
         when INSTANCE    then globals << parse_instance($2)
-        when FORK        then set_workflow(:fork, *parse_bracket($2, $3))
-        when MERGE       then set_reverse_workflow(:merge, *parse_bracket($2, $3))
-        when SYNC_MERGE  then set_reverse_workflow(:sync_merge, *parse_bracket($2, $3))
+        when FORK        then set_workflow(:fork, $4, *parse_bracket($2, $3))
+        when MERGE       then set_reverse_workflow(:merge, $4, *parse_bracket($2, $3))
+        when SYNC_MERGE  then set_reverse_workflow(:sync_merge, $4, *parse_bracket($2, $3))
         else raise ArgumentError, "invalid break argument: #{arg}"
         end
         
@@ -530,7 +546,7 @@ module Tap
       end
 
       # build the workflow
-      workflow.each_with_index do |(type, target_indicies), source_index|
+      workflow.each_with_index do |(type, target_indicies, options), source_index|
         next if type == nil
 
         targets = if target_indicies.kind_of?(Array)
@@ -538,6 +554,7 @@ module Tap
         else
           instances[target_indicies][0]
         end
+        #targets << options
         
         instances[source_index][0].send(type, *targets)
       end
@@ -577,15 +594,15 @@ module Tap
     
     # Sets the targets to the source in workflow_map, tracking the
     # workflow type.
-    def set_workflow(type, source, targets) # :nodoc
-      workflow_map[source] = [type, targets]
+    def set_workflow(type, options, source, targets) # :nodoc
+      workflow_map[source] = [type, targets, options]
       [*targets].each {|target| rounds_map[target] = nil }
     end
     
     # Sets a reverse workflow... ie the source is set to
     # each target index.
-    def set_reverse_workflow(type, source, targets) # :nodoc
-      targets.each {|target| set_workflow(type, target, source) }
+    def set_reverse_workflow(type, options, source, targets) # :nodoc
+      targets.each {|target| set_workflow(type, options, target, source) }
     end
     
     def add_task(definition, round_index) # :nodoc

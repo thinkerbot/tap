@@ -61,56 +61,100 @@ class ParserUtilsTest < Test::Unit::TestCase
     assert "--[]" =~ r
     assert_equal "", $2
     assert_equal "", $3
+    assert_equal "", $4
     
     assert "--1[]" =~ r
     assert_equal "1", $2
     assert_equal "", $3
+    assert_equal "", $4
     
     assert "--[2]" =~ r
     assert_equal "", $2
     assert_equal "2", $3
+    assert_equal "", $4
     
     assert "--1[2]" =~ r
     assert_equal "1", $2
     assert_equal "2", $3
+    assert_equal "", $4
     
     assert "--1[2,3,4]" =~ r
     assert_equal "1", $2
     assert_equal "2,3,4", $3
+    assert_equal "", $4
   
     assert "--100[200,300,400]" =~ r
     assert_equal "100", $2
     assert_equal "200,300,400", $3
+    assert_equal "", $4
+    
+    assert "--[]i" =~ r
+    assert_equal "", $2
+    assert_equal "", $3
+    assert_equal "i", $4
+    
+    assert "--[]is" =~ r
+    assert_equal "", $2
+    assert_equal "", $3
+    assert_equal "is", $4
+    
+    assert "--1[2,3,4]is" =~ r
+    assert_equal "1", $2
+    assert_equal "2,3,4", $3
+    assert_equal "is", $4
 
     # same without option break
     assert "[]" =~ r
     assert_equal "", $2
     assert_equal "", $3
+    assert_equal "", $4
     
     assert "1[]" =~ r
     assert_equal "1", $2
     assert_equal "", $3
+    assert_equal "", $4
     
     assert "[2]" =~ r
     assert_equal "", $2
     assert_equal "2", $3
+    assert_equal "", $4
     
     assert "1[2]" =~ r
     assert_equal "1", $2
     assert_equal "2", $3
+    assert_equal "", $4
     
     assert "1[2,3,4]" =~ r
     assert_equal "1", $2
     assert_equal "2,3,4", $3
+    assert_equal "", $4
   
     assert "100[200,300,400]" =~ r
     assert_equal "100", $2
     assert_equal "200,300,400", $3
+    assert_equal "", $4
 
+    assert "[]i" =~ r
+    assert_equal "", $2
+    assert_equal "", $3
+    assert_equal "i", $4
+    
+    assert "[]is" =~ r
+    assert_equal "", $2
+    assert_equal "", $3
+    assert_equal "is", $4
+    
+    assert "1[2,3,4]is" =~ r
+    assert_equal "1", $2
+    assert_equal "2,3,4", $3
+    assert_equal "is", $4
+    
     # non-matching
     assert "--1" !~ r
     assert "--1[2, 3, 4]" !~ r
     assert "1" !~ r
+    assert "--[]1" !~ r
+    assert "--1[2,3,4]1" !~ r
   end
   
   #
@@ -267,22 +311,36 @@ class ParserUtilsTest < Test::Unit::TestCase
     
     assert "--:" =~ r
     assert_equal ":", $2
+    assert_equal "", $4
     
     assert "--1:2" =~ r
     assert_equal "1:2", $2
+    assert_equal "", $4
     
     assert "--1:" =~ r
     assert_equal "1:", $2
+    assert_equal "", $4
     
     assert "--:2" =~ r
     assert_equal ":2", $2
+    assert_equal "", $4
     
     assert "--100:200" =~ r
     assert_equal "100:200", $2
+    assert_equal "", $4
     
     assert "--1:2:3" =~ r
     assert_equal "1:2:3", $2
+    assert_equal "", $4
 
+    assert "--:i" =~ r
+    assert_equal ":", $2
+    assert_equal "i", $4
+    
+    assert "--1:2is" =~ r
+    assert_equal "1:2", $2
+    assert_equal "is", $4
+    
     # same without option break
     assert ":" =~ r
     assert_equal ":", $2
@@ -302,10 +360,19 @@ class ParserUtilsTest < Test::Unit::TestCase
     assert "1:2:3" =~ r
     assert_equal "1:2:3", $2
     
+    assert ":i" =~ r
+    assert_equal ":", $2
+    assert_equal "i", $4
+    
+    assert "1:2is" =~ r
+    assert_equal "1:2", $2
+    assert_equal "is", $4
+    
     # non-matching
     assert "--1" !~ r
     assert "-- 1 : 2" !~ r
     assert "1" !~ r
+    assert "--i" !~ r
   end
   
   #
@@ -726,8 +793,8 @@ class ParserTest < Test::Unit::TestCase
     
     assert_equal [nil, nil, [0]], p.rounds
     assert_equal [
-      [:sequence, 1],
-      [:sequence, 2]
+      [:sequence, 1, ''],
+      [:sequence, 2, '']
     ], p.workflow_map
   end
   
@@ -741,8 +808,8 @@ class ParserTest < Test::Unit::TestCase
     
     assert_equal [nil, nil, [0]], p.rounds
     assert_equal [
-      [:sequence, 1],
-      [:sequence, 2]
+      [:sequence, 1, ''],
+      [:sequence, 2, '']
     ], p.workflow_map
   end
   
@@ -811,11 +878,11 @@ class ParserTest < Test::Unit::TestCase
     
     p.rounds_map.concat [2,2,1]
     p.workflow_map.concat [
-      [:sequence, 1],
-      [:sequence, 2],
-      [:fork, [1,2,3]],
-      [:merge, 6],
-      [:merge, 6]
+      [:sequence, 1, ''],
+      [:sequence, 2, ''],
+      [:fork, [1,2,3], ''],
+      [:merge, 6, ''],
+      [:merge, 6, '']
     ]
     
     assert_equal "a a1 a2 --key value --another 'another value' -- b b1 -- c -- +1[2] -- +2[0,1] -- 0:1 -- 1:2 -- 2[1,2,3] -- 6{3,4}", p.to_s
@@ -830,11 +897,11 @@ class ParserTest < Test::Unit::TestCase
 
     assert_equal [2, nil, nil, nil, nil, nil, nil], p.rounds_map
     assert_equal [
-      [:sequence, 1],
-      [:sequence, 2],
-      [:fork, [1,2,3]],
-      [:merge, 6],
-      [:merge, 6]
+      [:sequence, 1, ''],
+      [:sequence, 2, ''],
+      [:fork, [1,2,3], ''],
+      [:merge, 6, ''],
+      [:merge, 6, '']
     ], p.workflow_map
   end
   
@@ -852,11 +919,11 @@ class ParserTest < Test::Unit::TestCase
     
     p.rounds_map.concat [2,2,1]
     p.workflow_map.concat [
-      [:sequence, 1],
-      [:sequence, 2],
-      [:fork, [1,2,3]],
-      [:merge, 6],
-      [:merge, 6]
+      [:sequence, 1, ''],
+      [:sequence, 2, ''],
+      [:fork, [1,2,3], ''],
+      [:merge, 6, ''],
+      [:merge, 6, '']
     ]
     
     assert_equal [
@@ -881,11 +948,11 @@ class ParserTest < Test::Unit::TestCase
 
     assert_equal [2, nil, nil, nil, nil, nil, nil], p.rounds_map
     assert_equal [
-      [:sequence, 1],
-      [:sequence, 2],
-      [:fork, [1,2,3]],
-      [:merge, 6],
-      [:merge, 6]
+      [:sequence, 1, ''],
+      [:sequence, 2, ''],
+      [:fork, [1,2,3], ''],
+      [:merge, 6, ''],
+      [:merge, 6, '']
     ], p.workflow_map
   end
 end

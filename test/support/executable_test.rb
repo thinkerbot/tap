@@ -429,7 +429,10 @@ class ExecutableTest < Test::Unit::TestCase
       id = "#{@index}.#{batch_index}"
       
       @runlist << id
+      trace = [trace] unless trace.kind_of?(Array)
+      
       trace.collect do |str|
+        str = str.inspect if str.kind_of?(Array)
         "#{str} #{id}".strip
       end
     end
@@ -860,7 +863,7 @@ class ExecutableTest < Test::Unit::TestCase
     m1_0 = ExpAudit[[nil,['']],[t1_0,['1.0']]]
 
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['["0.0"] 2.0', '["1.0"] 2.0']]]
     ], app._results(t2_0))
   end
   
@@ -893,17 +896,17 @@ class ExecutableTest < Test::Unit::TestCase
     m1_1 = ExpAudit[[nil,['']],[t1_1,['1.1']]]
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_0,['0.0 2.0', '1.1 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_0,['0.1 2.0', '1.0 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_0,['0.1 2.0', '1.1 2.0']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['["0.0"] 2.0', '["1.0"] 2.0']]],
+      ExpAudit[ExpMerge[m0_0,m1_1], [t2_0,['["0.0"] 2.0', '["1.1"] 2.0']]],
+      ExpAudit[ExpMerge[m0_1,m1_0], [t2_0,['["0.1"] 2.0', '["1.0"] 2.0']]],
+      ExpAudit[ExpMerge[m0_1,m1_1], [t2_0,['["0.1"] 2.0', '["1.1"] 2.0']]]
     ], app._results(t2_0))
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_1,['0.0 2.1', '1.0 2.1']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_1,['0.0 2.1', '1.1 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_1,['0.1 2.1', '1.0 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_1,['0.1 2.1', '1.1 2.1']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_1,['["0.0"] 2.1', '["1.0"] 2.1']]],
+      ExpAudit[ExpMerge[m0_0,m1_1], [t2_1,['["0.0"] 2.1', '["1.1"] 2.1']]],
+      ExpAudit[ExpMerge[m0_1,m1_0], [t2_1,['["0.1"] 2.1', '["1.0"] 2.1']]],
+      ExpAudit[ExpMerge[m0_1,m1_1], [t2_1,['["0.1"] 2.1', '["1.1"] 2.1']]]
     ], app._results(t2_1))
   end
   
@@ -925,7 +928,7 @@ class ExecutableTest < Test::Unit::TestCase
     m1_0 = ExpAudit[[nil,['']],[t1_0,['1.0']]]
 
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['["0.0"] 2.0', '["1.0"] 2.0']]]
     ], app._results(t2_0))
   end
   
@@ -958,17 +961,17 @@ class ExecutableTest < Test::Unit::TestCase
     m1_1 = ExpAudit[[nil,['']],[t1_1,['1.1']]]
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_0,['0.0 2.0', '1.1 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_0,['0.1 2.0', '1.0 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_0,['0.1 2.0', '1.1 2.0']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['["0.0"] 2.0', '["1.0"] 2.0']]],
+      ExpAudit[ExpMerge[m0_0,m1_1], [t2_0,['["0.0"] 2.0', '["1.1"] 2.0']]],
+      ExpAudit[ExpMerge[m0_1,m1_0], [t2_0,['["0.1"] 2.0', '["1.0"] 2.0']]],
+      ExpAudit[ExpMerge[m0_1,m1_1], [t2_0,['["0.1"] 2.0', '["1.1"] 2.0']]]
     ], app._results(t2_0))
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_1,['0.0 2.1', '1.0 2.1']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_1,['0.0 2.1', '1.1 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_1,['0.1 2.1', '1.0 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_1,['0.1 2.1', '1.1 2.1']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_1,['["0.0"] 2.1', '["1.0"] 2.1']]],
+      ExpAudit[ExpMerge[m0_0,m1_1], [t2_1,['["0.0"] 2.1', '["1.1"] 2.1']]],
+      ExpAudit[ExpMerge[m0_1,m1_0], [t2_1,['["0.1"] 2.1', '["1.0"] 2.1']]],
+      ExpAudit[ExpMerge[m0_1,m1_1], [t2_1,['["0.1"] 2.1', '["1.1"] 2.1']]]
     ], app._results(t2_1))
   end
   
