@@ -119,11 +119,11 @@ module Tap
       # round. The inputs correspond to $3 and $6 for the match.
       #
       # If $3 is nil, a round index of zero is assumed; if $6 is  
-      # nil, then indicies of [] are assumed.
+      # nil or empty, then indicies of [:current_index] are assumed.
       #
-      #   parse_round("+", "")          # => [1, []]
+      #   parse_round("+", "")          # => [1, [:current_index]]
       #   parse_round("+2", "1,2,3")    # => [2, [1,2,3]]
-      #   parse_round(nil, nil)         # => [0, []]
+      #   parse_round(nil, nil)         # => [0, [:current_index]]
       #
       def parse_round(three, six)
         index = case three
@@ -131,61 +131,96 @@ module Tap
         when /\d/ then three[1, three.length-1].to_i
         else three.length
         end
-        [index, six == nil ? [] : parse_indicies(six)]
+        [index, six.to_s.empty? ? [current_index] : parse_indicies(six)]
       end
 
       # Parses the match of a SEQUENCE regexp into an array of task
       # indicies. The input corresponds to $2 for the match.  The 
-      # current and next index are assumed if $2 starts and/or ends 
+      # previous and current index are assumed if $2 starts and/or ends 
       # with a semi-colon.
       #
       #   parse_sequence("1:2:3")       # => [1,2,3]
-      #   parse_sequence(":1:2:")       # => [:current_index,1,2,:next_index]
+      #   parse_sequence(":1:2:")       # => [:previous_index,1,2,:current_index]
       #
       def parse_sequence(two)
         seq = parse_indicies(two, /:+/)
-        seq.unshift current_index if two[0] == ?:
-        seq << next_index if two[-1] == ?:
+        seq.unshift previous_index if two[0] == ?:
+        seq << current_index if two[-1] == ?:
         seq
       end
       
       # Parses the match of an INSTANCE regexp into an index.
-      # The input corresponds to $2 for the match.  The next 
+      # The input corresponds to $2 for the match.  The current 
       # index is assumed if $2 is empty.
       #
       #   parse_instance("1")           # => 1
-      #   parse_instance("")            # => :next_index
+      #   parse_instance("")            # => :current_index
       #
       def parse_instance(two)
-        two.empty? ? next_index : two.to_i
+        two.empty? ? current_index : two.to_i
       end
 
       # Parses the match of an bracket_regexp into a [source_index, 
       # target_indicies] array. The inputs corresponds to $2 and
-      # $3 for the match.  The current and next index are assumed 
+      # $3 for the match.  The previous and current index are assumed 
       # if $2 and/or $3 is empty.
       #
       #   parse_bracket("1", "2,3")     # => [1, [2,3]]
-      #   parse_bracket("", "")         # => [:current_index, [:next_index]]
-      #   parse_bracket("1", "")        # => [1, [:next_index]]
-      #   parse_bracket("", "2,3")      # => [:current_index, [2,3]]
+      #   parse_bracket("", "")         # => [:previous_index, [:current_index]]
+      #   parse_bracket("1", "")        # => [1, [:current_index]]
+      #   parse_bracket("", "2,3")      # => [:previous_index, [2,3]]
       #
       def parse_bracket(two, three)
         targets = parse_indicies(three)
-        targets << next_index if targets.empty?
-        [two.empty? ? current_index : two.to_i, targets]
+        targets << current_index if targets.empty?
+        [two.empty? ? previous_index : two.to_i, targets]
       end
     end
     
-    class WorkflowDefinition
-      attr_accessor :argv, :type, :targets, :options, :global
+    class TaskDefinition
+      attr_reader :argv
+      attr_reader :source
+      attr_reader :join
       
       def initialize
         @argv = []
-        @type = 0 # number if round, else a workflow type
-        @targets = []
-        @options = nil
-        @global = false
+        @source = nil
+        @join = nil
+      end
+      
+      def source=(input)
+        # remove the join in the targets, if
+        # necessary, to prevent scrambling
+        if @source.kind_of?(Join)
+          @source.targets.each do |target|
+            target.join = nil
+          end
+        end
+        
+        @source = input
+      end
+      
+      def join=(input)
+         @join = input
+         
+        # set the source of the targets
+        if input.kind_of?(Join)
+          input.targets.each do |target|
+            target.source = input
+          end
+        end
+      end
+    end
+    
+    class Join
+      attr_accessor :type
+      attr_accessor :targets
+      attr_accessor :options
+      
+      def initialize(type, targets, options)
+        @type = type
+        @targets = targets
+        @options = options
       end
     end
     
@@ -203,29 +238,12 @@ module Tap
     
     include Utils
     
-    # An array of task declarations.
-    attr_reader :tasks
-    
-    # An array of integers indicating which tasks
-    # should be set as globals.
-    attr_reader :globals
-    
-    # The internal rounds data; an array of integers mapping to tasks
-    # by index.  The integers signify the round the corresponding
-    # task should be assigned to; a nil entry indicates the task
-    # should not be enqued to a round.
-    attr_reader :rounds_map
-    
-    # The internal workflow data; an array of [type, targets] pairs 
-    # mapping to tasks by index.  The entries signify the workflow 
-    # type and targets assigned to the corresponding task.
-    attr_reader :workflow_map
+    # An array of task definitions.
+    attr_reader :task_definitions
     
     def initialize(argv=nil)
-      @tasks = []
-      @globals = []
-      @rounds_map = []
-      @workflow_map = []
+      @task_definitions = []
+      @current_index = 0
       
       case argv
       when String, Array 
@@ -233,6 +251,15 @@ module Tap
       end
     end
     
+    def clear
+      @task_definitions = []
+      @current_index = 0
+    end
+    
+    def [](index)
+      task_definitions[index] ||= TaskDefinition.new
+    end
+
     # Iterates through the argv splitting out task and workflow definitions.
     # Task definitions are split out (with configurations) along round and/or
     # workflow break lines.  Rounds and workflows are dynamically parsed;
@@ -284,9 +311,9 @@ module Tap
     # Here a and b are sequenced inline.  Task c is assigned to no 
     # workflow until the final argument which sequenced b and c.
     #
-    #   p = Parser.new "a --: b -- c --1:2"
-    #   p.tasks                    # => [["a"], ["b"], ["c"]]
-    #   p.workflow(:sequence)      # => [[0,1],[1,2]]
+    #   p = Parser.new "a --: b -- c --1:2i"
+    #   p.argvs                    # => [["a"], ["b"], ["c"]]
+    #   p.workflow(:sequence)      # => [[0,[1],''],[1,[2],'i']]
     #
     # ==== Globals
     # Global instances of task (used, for example, by dependencies) may
@@ -302,16 +329,16 @@ module Tap
     # end delimiter, breaks are active once again.
     #
     #   p = Parser.new "a -- b -- c"
-    #   p.tasks                    # => [["a"], ["b"], ["c"]]
+    #   p.argvs                    # => [["a"], ["b"], ["c"]]
     # 
     #   p = Parser.new "a -. -- b .- -- c"
-    #   p.tasks                    # => [["a", "--", "b"], ["c"]]
+    #   p.argvs                    # => [["a", "--", "b"], ["c"]]
     #
     # Parsing continues until the end of argv, or a an end flag '---' is 
     # reached.  The end flag may also be escaped.
     #
     #   p = Parser.new "a -- b --- c"
-    #   p.tasks                    # => [["a"], ["b"]]
+    #   p.argvs                    # => [["a"], ["b"]]
     #
     #--
     # === Examples
@@ -390,79 +417,82 @@ module Tap
       if argv.kind_of?(String)
         argv = Shellwords.shellwords(argv)
       end
+      argv.unshift('--')
       
-      round_index = 0
-      current = []
+      self.clear
+      current_argv = self[current_index].argv
       escape = false
       while !argv.empty?
         arg = argv.shift
         
-        # add escaped arguments
+        # if escaping, add escaped arguments 
+        # until an escape-end argument
         if escape
           if arg == ESCAPE_END
             escape = false
           else
-            current << arg
+            current_argv << arg
           end
           
           next
         end
         
-        # begin escaping if necessary
+        # begin escaping if indicated
         if arg == ESCAPE_BEGIN
           escape = true
           next
         end
         
-        # break if the end flag is reached
+        # break on an end-flag
         break if arg == END_FLAG
 
-        # add all non-breaking args to the
-        # current argv array.  this should
-        # include all lookups, inputs, and
-        # configurations
-        unless arg =~ BREAK || (current.empty? && arg =~ WORKFLOW)
-          current << arg
+        # add all other non-breaking args to
+        # the current argv; this includes
+        # both inputs and configurations
+        unless arg =~ BREAK || (current_argv.empty? && arg =~ WORKFLOW)
+          current_argv << arg
           next  
         end
         
+        # a breaking argument was reached:
         # unless the current argv is empty,
-        # append and start a new argv
-        unless current.empty?
-          add_task(current, round_index)
-          round_index = 0
-          current = []
+        # append and start a new definition
+        unless current_argv.empty?
+          self.current_index += 1
+          current_argv = self[current_index].argv
         end
         
-        # determine the type of break, parse, 
-        # and add to the appropriate collection
+        # determine the type of break and modify
+        # task definitions appropriately
         case arg
         when ROUND
-          round_index, indicies = parse_round($3, $6)
-          indicies.each {|index| rounds_map[index] = round_index }
+          round, indicies = parse_round($3, $6)
+          indicies.each {|index| self[index].source = round }
           next
           
         when SEQUENCE
           indicies = parse_sequence($2)
           while indicies.length > 1
-            set_workflow(:sequence, $4, indicies.shift, indicies[0])
-          end
+            set(:sequence, $4, indicies.shift, indicies[0])
+         end
           
-        when INSTANCE    then globals << parse_instance($2)
-        when FORK        then set_workflow(:fork, $4, *parse_bracket($2, $3))
-        when MERGE       then set_reverse_workflow(:merge, $4, *parse_bracket($2, $3))
-        when SYNC_MERGE  then set_reverse_workflow(:sync_merge, $4, *parse_bracket($2, $3))
+        when INSTANCE    
+          self[parse_instance($2)].source = :global
+          
+        when FORK        then set(:fork, $4, *parse_bracket($2, $3))
+        when MERGE       then set(:merge, $4, *parse_bracket($2, $3))
+        when SYNC_MERGE  then set(:sync_merge, $4, *parse_bracket($2, $3))
         else raise ArgumentError, "invalid break argument: #{arg}"
         end
-        
-        round_index = nil
       end
-      
-      unless current.empty?
-        add_task(current, round_index)
-      end
-      
+
       argv
+    end
+    
+    def argvs
+      task_definitions.collect do |task_definition|
+        task_definition.argv
+      end.delete_if {|argv| argv.empty? }
     end
     
     # Returns an array of [type, targets] objects; the index of
@@ -475,41 +505,41 @@ module Tap
     # returned array is meaningless.
     #
     def workflow(type=nil)
-      # recollect reverse types
-      
-      workflows = []
-      workflow_map.each_with_index do |entry, source|
-        next if entry == nil
-        
-        workflows[source] = case entry[0]
-        when :merge, :sync_merge
-          workflow_type, target = entry
-          (workflows[target] ||= [workflow_type, []])[1] << source
-          nil
-        else entry
-        end
-      end
-      
-      return workflows if type == nil
-      
       declarations = []
-      workflows.each_with_index do |(workflow_type, targets), source|
-        declarations << [source, targets] if workflow_type == type
+      task_definitions.each_index do |source_index|
+        task_definition = task_definitions[source_index]
+        next unless task_definition
+        
+        join = task_definition.join
+        next unless join && join.type == type
+        
+        target_indicies = join.targets.collect {|target| task_definitions.index(target) }
+        declarations << [source_index, target_indicies, join.options]  
       end
       
       declarations
+    end
+    
+    def globals
+      globals = []
+      task_definitions.each_index do |index|
+        globals << index if task_definitions[index].source == :global
+      end
+      globals
     end
     
     # Returns an array task indicies; the index of each entry
     # corresponds to the round the tasks should be assigned to.
     #
     def rounds
-      collected_rounds = []
-      @rounds_map.each_with_index do |round_index, index|
-        (collected_rounds[round_index] ||= []) << index unless round_index == nil
+      rounds = []
+      task_definitions.each_index do |index|
+        round = task_definitions[index].source
+        (rounds[round] ||= []) << index if round.kind_of?(Integer)
       end
       
-      collected_rounds.each {|round| round.uniq! unless round.nil? }
+      rounds.each {|round| round.uniq! unless round.nil? }
+      rounds
     end
     
     def to_s
@@ -582,32 +612,20 @@ module Tap
     
     protected
     
-    # Returns the index of the next argv to be parsed.
-    def next_index
-      tasks.length
-    end
-    
     # Returns the index of the last argv parsed.
-    def current_index
-      tasks.length - 1
+    attr_accessor :current_index
+    
+    # Returns the index of the next argv to be parsed.
+    def previous_index
+      raise 'there is no previous index' if current_index < 1
+      current_index - 1
     end
     
     # Sets the targets to the source in workflow_map, tracking the
     # workflow type.
-    def set_workflow(type, options, source, targets) # :nodoc
-      workflow_map[source] = [type, targets, options]
-      [*targets].each {|target| rounds_map[target] = nil }
-    end
-    
-    # Sets a reverse workflow... ie the source is set to
-    # each target index.
-    def set_reverse_workflow(type, options, source, targets) # :nodoc
-      targets.each {|target| set_workflow(type, options, target, source) }
-    end
-    
-    def add_task(definition, round_index) # :nodoc
-      tasks << definition
-      rounds_map[current_index] = round_index
+    def set(type, options, source_index, target_indicies) # :nodoc
+      targets = [*target_indicies].collect {|target_index| self[target_index] }
+      self[source_index].join = Join.new(type, targets, options)
     end
     
     # Yields each round formatted as a string.
