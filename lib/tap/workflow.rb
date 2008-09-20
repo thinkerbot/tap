@@ -1,4 +1,7 @@
 module Tap
+  module Support
+    autoload(:Parser, 'tap/support/parser')
+  end
   
   # Workflow is a specialized type of Task allowing the encapsulation and reuse of  
   # workflow logic.  Workflows are still under construction.
