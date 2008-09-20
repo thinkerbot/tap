@@ -375,7 +375,7 @@ module Tap
           case arg
           when ROUND
             round, indicies = parse_round($2, $5)
-            indicies.each {|index| schema[index].source = round }
+            indicies.each {|index| schema[index].input = round }
 
           when SEQUENCE
             indicies = parse_sequence($1)

@@ -4,16 +4,6 @@ module Tap
   module Support
     class Schema
       class << self  
-        def load(task_argv)
-          task_argv = YAML.load(task_argv) if task_argv.kind_of?(String)
-
-          tasks, argv = task_argv.partition {|obj| obj.kind_of?(Array) }
-          parser = new
-          parser.tasks.concat(tasks)
-          parser.parse(argv)
-          parser
-        end
-        
         # Shell quotes the input string by enclosing in quotes if
         # str has no quotes, or double quotes if str has no double
         # quotes.  Returns the str if it has not whitespace, quotes
@@ -33,6 +23,16 @@ module Tap
           else raise ArgumentError, "cannot shell quote: #{str}"
           end
         end
+        
+        def load(task_argv)
+          task_argv = YAML.load(task_argv) if task_argv.kind_of?(String)
+
+          tasks, argv = task_argv.partition {|obj| obj.kind_of?(Array) }
+          parser = new
+          parser.tasks.concat(tasks)
+          parser.parse(argv)
+          parser
+        end
       end
       
       attr_reader :nodes
@@ -41,78 +41,84 @@ module Tap
         @nodes = nodes
       end
       
+      # Retrieves the node at index, or instantiates a new Node
+      # if no such node exists.
       def [](index)
         nodes[index] ||= Node.new
       end
       
-      # Sets the targets to the source in workflow_map, tracking the
-      # workflow type.
-      def set(type, options, source_index, target_indicies) # :nodoc
-        targets = [*target_indicies].collect {|target_index| self[target_index] }
-        self[source_index].join = Node::Join.new(type, targets, options)
-      end
-
+      # Returns an array of the argvs across all nodes.  Nil and
+      # empty argvs are removed.
       def argvs
-        nodes.collect do |task_definition|
-          task_definition.argv
-        end.delete_if {|argv| argv.empty? }
-      end
-
-      # Returns an array of [type, targets] objects; the index of
-      # each entry corresponds to the task on which to build the
-      # workflow.
-      #
-      # If a type is specified, the output is ordered differently;
-      # The return is an array of [source, targets] for the 
-      # specified workflow type.  In this case the order of the
-      # returned array is meaningless.
-      #
-      def workflow(type=nil)
-        declarations = []
-        nodes.each_index do |source_index|
-          task_definition = nodes[source_index]
-          next unless task_definition
-
-          join = task_definition.join
-          next unless join && join.type == type
-
-          target_indicies = join.targets.collect {|target| nodes.index(target) }
-          declarations << [source_index, target_indicies, join.options]  
+        nodes.collect do |node|
+          node == nil ? nil : node.argv
         end
-
-        declarations
       end
-
-      def globals
-        globals = []
-        nodes.each_index do |index|
-          globals << index if nodes[index].source == :global
-        end
-        globals
-      end
-
-      # Returns an array task indicies; the index of each entry
-      # corresponds to the round the tasks should be assigned to.
-      #
+      
+      # Returns a collection of nodes sorted into 
+      # arrays by node.round.
       def rounds
         rounds = []
         nodes.each_index do |index|
-          round = nodes[index].source
-          (rounds[round] ||= []) << index if round.kind_of?(Integer)
+          next unless node = nodes[index]
+          (rounds[node.round] ||= []) << index if node.round
         end
-
-        rounds.each {|round| round.uniq! unless round.nil? }
         rounds
       end
-
-      def to_s
-        segments = tasks.collect do |argv| 
-          argv.collect {|arg| shell_quote(arg) }.join(' ')
+      
+      # Returns a collection of global nodes.
+      def globals
+        globals = []
+        nodes.each_index do |index|
+          node = nodes[index]
+          globals << index if node && node.global?
         end
-        each_round_str {|str| segments << str }
-        each_workflow_str {|str| segments << str }
+        globals
+      end
+      
+      def joins
+        joins = {}
+        nodes.each_index do |index|
+          next unless node = nodes[index]
+          
+          if node.input.kind_of?(Node::Join)
+            (joins[node.input] ||= [[],[]])[1] << index
+          end
+          
+          if node.output.kind_of?(Node::Join)
+            (joins[node.output] ||= [[],[]])[0] << index
+          end
+        end
 
-        segments.join(" -- ")
+        joins
+      end
+      
+      # def to_s
+      #   segments = []
+      #   nodes.each do |node|
+      #     next if node == nil
+      # 
+      #     segments << case node.round
+      #     when 0 then "--"
+      #     when 1 then "--+"
+      #     when nil then nil
+      #     else "--+#{node.round}"
+      #     end
+      #     
+      #     segments.concat(node.argv.collect {|arg| Schema.shell_quote(arg) })
+      #   end
+      # 
+      #   each_join_str {|str| segments << "--#{str}" }
+      #   segments.join(' ')
+      # end
+      
+      # Sets the targets to the source in workflow_map, tracking the
+      # workflow type.
+      def set(type, options, source_index, target_indicies) # :nodoc
+        join = Node::Join.new(type, options)
+        
+        [*target_indicies].each {|target_index| self[target_index].input = join }
+        self[source_index].output = join
       end
 
       def dump
@@ -128,7 +134,7 @@ module Tap
 
         # instantiate and assign globals
         globals.each do |index|
-          task, args = yield(tasks[index])
+          task, args = yield(nodes[index].argv)
           task.class.instance = task
           instances[index] = [task, args]
         end
@@ -177,23 +183,21 @@ module Tap
 
       # Yields each round formatted as a string.
       def each_round_str # :nodoc
-        rounds.each_with_index do |indicies, round_index|
-          unless indicies == nil
-            yield "+#{round_index}[#{indicies.join(',')}]"
-          end
+        index = 0
+        rounds.each do |indicies|
+          yield "+#{index}[#{indicies.join(',')}]" unless indicies == nil
+          index += 1
         end
       end
 
       # Yields each workflow element formatted as a string.
-      def each_workflow_str # :nodoc
-        workflow.each_with_index do |(type, targets), source|
-          next if type == nil
-
-          yield case type
-          when :sequence   then [source, *targets].join(":")
-          when :fork       then "#{source}[#{targets.join(',')}]"
-          when :merge      then "#{source}{#{targets.join(',')}}"
-          when :sync_merge then "#{source}(#{targets.join(',')})"
+      def each_join_str # :nodoc
+        joins.each_pair do |join, (inputs, outputs)| 
+          yield case join.type
+          when :sequence   then (inputs + outputs).join(":")
+          when :fork       then "#{inputs[0]}[#{outputs.join(',')}]"
+          when :merge      then "#{outputs[0]}{#{inputs.join(',')}}"
+          when :sync_merge then "#{outputs[0]}(#{inputs.join(',')})"
           end
         end
       end
