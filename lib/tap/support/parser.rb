@@ -11,22 +11,22 @@ module Tap
       # implemented in the including class.
       module Utils
         module_function
-        
+
         # Defines a break regexp that matches a bracketed-pairs
         # break.  The left and right brackets are specified as
         # inputs.  After a match:
         #
         #   $1:: The source string after the break. 
-        #        (ex: '--[]' => '', '--1[]' => '1')
+        #        (ex: '[]' => '', '1[]' => '1')
         #   $2:: The target string. 
-        #        (ex: '--[]' => '', '--1[1,2,3]' => '1,2,3')
+        #        (ex: '[]' => '', '1[1,2,3]' => '1,2,3')
         #   $3:: The modifier string.
-        #        (ex: '--[]i' => 'i', '--1[1,2,3]is' => 'is')
+        #        (ex: '[]i' => 'i', '1[1,2,3]is' => 'is')
         #
         def bracket_regexp(l, r)
-          /\A--(\d*)#{Regexp.escape(l)}([\d,]*)#{Regexp.escape(r)}([A-z]*)\z/
+          /\A(\d*)#{Regexp.escape(l)}([\d,]*)#{Regexp.escape(r)}([A-z]*)\z/
         end
-        
+
         # The escape begin argument
         ESCAPE_BEGIN = "-."
 
@@ -37,35 +37,37 @@ module Tap
         END_FLAG = "---"
 
         # Matches any breaking arg (ex: '--', '--+', '--1:2')
-        BREAK =  /\A--(\z|[\+\d\:\*\[\{\(])/
-
-        # Matches the start of any workflow regex (ex: '+', '2', '[', '{')
-        WORKFLOW =  /\A[\+\d\:\*\[\{\(]/
+        # After the match:
+        #
+        #   $1:: The string after the break
+        #        (ex: '--' => '', '--++' => '++', '--1(2,3)' => '1(2,3)')
+        #
+        BREAK =  /\A--(\z|[\+\d\:\*\[\{\(].*\z)/
 
         # Matches an execution-round break.  After the match:
         #
-        #   $2:: The round string after the break, or nil. 
-        #        (ex: '--' => nil, '--++' => '++', '--+1' => '+1')
+        #   $2:: The round string, or nil.
+        #        (ex: '' => nil, '++' => '++', '+1' => '+1')
         #   $5:: The target string, or nil. 
-        #        (ex: '--+' => nil, '--+[1,2,3]' => '1,2,3')
+        #        (ex: '+' => nil, '+[1,2,3]' => '1,2,3')
         #
-        ROUND = /\A--(\z|(\+(\d*|\+*))(\[([\d,]*)\])?\z)/
+        ROUND = /\A((\+(\d*|\+*))(\[([\d,]*)\])?)?\z/
 
         # Matches a sequence break.  After the match:
         #
         #   $1:: The sequence string after the break. 
-        #        (ex: '--:' => ':', '--1:2' => '1:2', '--1:' => '1:', '--:2' => ':2')
+        #        (ex: ':' => ':', '1:2' => '1:2', '1:' => '1:', ':2' => ':2')
         #   $3:: The modifier string.
-        #        (ex: '--:i' => 'i', '--1:2is' => 'is')
+        #        (ex: ':i' => 'i', '1:2is' => 'is')
         #
-        SEQUENCE = /\A--(\d*(:\d*)+)([A-z]*)\z/
+        SEQUENCE = /\A(\d*(:\d*)+)([A-z]*)\z/
 
         # Matches an instance break.  After the match:
         #
         #   $1:: The index string after the break.
-        #        (ex: '--*' => '', '--*1' => '1')
+        #        (ex: '*' => '', '*1' => '1')
         #
-        INSTANCE = /\A--\*(\d*)\z/
+        INSTANCE = /\A\*(\d*)\z/
 
         # A break regexp using "[]"
         FORK = bracket_regexp("[", "]")
@@ -75,13 +77,13 @@ module Tap
 
         # A break regexp using "()"
         SYNC_MERGE = bracket_regexp("(", ")")
-        
+
         # Parses an indicies str along commas, and collects the indicies
         # as integers. Ex:
         #
-        # parse_indicies('') # => []
-        # parse_indicies('1') # => [1]
-        # parse_indicies('1,2,3') # => [1,2,3]
+        #   parse_indicies('')                  # => []
+        #   parse_indicies('1')                 # => [1]
+        #   parse_indicies('1,2,3')             # => [1,2,3]
         #
         def parse_indicies(str, regexp=/,+/)
           indicies = []
@@ -90,69 +92,69 @@ module Tap
           end
           indicies
         end
- 
+
         # Parses the match of a ROUND regexp into a round index
         # and an array of task indicies that should be added to the
-        # round. The inputs correspond to $3 and $6 for the match.
+        # round. The inputs correspond to $2 and $5 for the match.
         #
-        # If $3 is nil, a round index of zero is assumed; if $6 is
+        # If $2 is nil, a round index of zero is assumed; if $5 is
         # nil or empty, then indicies of [:current_index] are assumed.
         #
-        # parse_round("+", "") # => [1, [:current_index]]
-        # parse_round("+2", "1,2,3") # => [2, [1,2,3]]
-        # parse_round(nil, nil) # => [0, [:current_index]]
+        #   parse_round("+", "")                # => [1, [:current_index]]
+        #   parse_round("+2", "1,2,3")          # => [2, [1,2,3]]
+        #   parse_round(nil, nil)               # => [0, [:current_index]]
         #
-        def parse_round(three, six)
-          index = case three
+        def parse_round(two, five)
+          index = case two
           when nil then 0
-          when /\d/ then three[1, three.length-1].to_i
-          else three.length
+          when /\d/ then two[1, two.length-1].to_i
+          else two.length
           end
-          [index, six.to_s.empty? ? [current_index] : parse_indicies(six)]
+          [index, five.to_s.empty? ? [current_index] : parse_indicies(five)]
         end
- 
-        # Parses the match of a SEQUENCE regexp into an array of task
-        # indicies. The input corresponds to $2 for the match. The
-        # previous and current index are assumed if $2 starts and/or ends
-        # with a semi-colon.
+
+        # Parses the match of a SEQUENCE regexp into a [source_index,
+        # target_indicies, options] array. The inputs corresponds to $1 
+        # and $3 for the match. The previous and current index are 
+        # assumed if $1 starts and/or ends with a semi-colon.
         #
-        # parse_sequence("1:2:3") # => [1,2,3]
-        # parse_sequence(":1:2:") # => [:previous_index,1,2,:current_index]
+        #   parse_sequence("1:2:3", '')         # => [1, [2,3], {}]
+        #   parse_sequence(":1:2:", '')         # => [:previous_index,[1,2,:current_index], {}]
         #
-        def parse_sequence(two)
-          seq = parse_indicies(two, /:+/)
-          seq.unshift previous_index if two[0] == ?:
-          seq << current_index if two[-1] == ?:
-          seq
+        def parse_sequence(one, three)
+          seq = parse_indicies(one, /:+/)
+          seq.unshift previous_index if one[0] == ?:
+          seq << current_index if one[-1] == ?:
+          [seq.shift, seq, parse_options(three)]
         end
-      
+
         # Parses the match of an INSTANCE regexp into an index.
-        # The input corresponds to $2 for the match. The current
-        # index is assumed if $2 is empty.
+        # The input corresponds to $1 for the match. The current
+        # index is assumed if $1 is empty.
         #
-        # parse_instance("1") # => 1
-        # parse_instance("") # => :current_index
+        #   parse_instance("1")                 # => 1
+        #   parse_instance("")                  # => :current_index
         #
-        def parse_instance(two)
-          two.empty? ? current_index : two.to_i
+        def parse_instance(one)
+          one.empty? ? current_index : one.to_i
         end
- 
+
         # Parses the match of an bracket_regexp into a [source_index,
-        # target_indicies] array. The inputs corresponds to $2 and
-        # $3 for the match. The previous and current index are assumed
-        # if $2 and/or $3 is empty.
+        # target_indicies, options] array. The inputs corresponds to $1,
+        # $2, and $3 for the match. The previous and current index are
+        # assumed if $1 and/or $2 is empty.
         #
-        # parse_bracket("1", "2,3") # => [1, [2,3]]
-        # parse_bracket("", "") # => [:previous_index, [:current_index]]
-        # parse_bracket("1", "") # => [1, [:current_index]]
-        # parse_bracket("", "2,3") # => [:previous_index, [2,3]]
+        #   parse_bracket("1", "2,3", "")       # => [1, [2,3], {}]
+        #   parse_bracket("", "", "")           # => [:previous_index, [:current_index], {}]
+        #   parse_bracket("1", "", "")          # => [1, [:current_index], {}]
+        #   parse_bracket("", "2,3", "")        # => [:previous_index, [2,3], {}]
         #
-        def parse_bracket(two, three)
-          targets = parse_indicies(three)
+        def parse_bracket(one, two, three)
+          targets = parse_indicies(two)
           targets << current_index if targets.empty?
-          [two.empty? ? previous_index : two.to_i, targets]
+          [one.empty? ? previous_index : one.to_i, targets, parse_options(three)]
         end
-        
+
         def parse_options(three)
           {}
         end
@@ -323,13 +325,12 @@ module Tap
 
       # Same as parse, but removes parsed args from argv.
       def parse!(argv)
-        if argv.kind_of?(String)
-          argv = Shellwords.shellwords(argv)
-        end
+        argv = Shellwords.shellwords(argv) if argv.kind_of?(String)
         argv.unshift('--')
-
-        current_argv = schema[current_index].argv        
+        
         escape = false
+        current_argv = schema[current_index].argv        
+        
         while !argv.empty?
           arg = argv.shift
 
@@ -344,51 +345,35 @@ module Tap
 
             next
           end
-
-          # begin escaping if indicated
-          if arg == ESCAPE_BEGIN
-            escape = true
-            next
-          end
-
-          # break on an end-flag
-          break if arg == END_FLAG
-
-          # add all other non-breaking args to
-          # the current argv; this includes
-          # both inputs and configurations
-          unless arg =~ BREAK || (current_argv.empty? && arg =~ WORKFLOW)
-            current_argv << arg
-            next  
-          end
-
-          # a breaking argument was reached:
-          # unless the current argv is empty,
-          # append and start a new definition
-          unless current_argv.empty?
-            self.current_index += 1
-            current_argv = schema[current_index].argv
-          end
-
-          # determine the type of break and modify
-          # task definitions appropriately
+          
           case arg
-          when ROUND
-            round, indicies = parse_round($2, $5)
-            indicies.each {|index| schema[index].input = round }
-
-          when SEQUENCE
-            indicies = parse_sequence($1)
-            options = parse_options($3)
-            while indicies.length > 1
-              schema.set(:sequence, options, indicies.shift, indicies[0])
+          when ESCAPE_BEGIN
+            # begin escaping if indicated
+            escape = true
+            
+          when END_FLAG
+            # break on an end-flag
+            break
+          
+          when BREAK
+            # a breaking argument was reached:
+            # unless the current argv is empty,
+            # append and start a new definition
+            unless current_argv.empty?
+              self.current_index += 1
+              current_argv = schema[current_index].argv
             end
-
-          when INSTANCE    then schema[parse_instance($1)].globalize
-          when FORK        then schema.set(:fork,       parse_options($3), *parse_bracket($1, $2))
-          when MERGE       then schema.set_reverse(:merge,      parse_options($3), *parse_bracket($1, $2))
-          when SYNC_MERGE  then schema.set_reverse(:sync_merge, parse_options($3), *parse_bracket($1, $2))
-          else raise ArgumentError, "invalid break argument: #{arg}"
+            
+            # parse the break string for any
+            # schema modifications
+            parse_break($1)
+            
+          else
+            # add all other non-breaking args to
+            # the current argv; this includes
+            # both inputs and configurations
+            current_argv << arg
+            
           end
         end
 
@@ -406,6 +391,21 @@ module Tap
         current_index - 1
       end
       
+      # determines the type of break and modifies self appropriately
+      def parse_break(arg) # :nodoc:
+        case arg
+        when ROUND
+          round, indicies = parse_round($2, $5)
+          indicies.each {|index| schema[index].round = round }
+          
+        when INSTANCE    then schema[parse_instance($1)].globalize
+        when SEQUENCE    then schema.set(:sequence,           *parse_sequence($1, $3))
+        when FORK        then schema.set(:fork,               *parse_bracket($1, $2, $3))
+        when MERGE       then schema.set_reverse(:merge,      *parse_bracket($1, $2, $3))
+        when SYNC_MERGE  then schema.set_reverse(:sync_merge, *parse_bracket($1, $2, $3))    
+        else raise ArgumentError, "invalid break argument: #{arg}"
+        end
+      end
     end
   end
 end

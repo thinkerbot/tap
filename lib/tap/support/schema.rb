@@ -1,9 +1,12 @@
 require 'tap/support/node'
+autoload(:Shellwords, 'shellwords')
 
 module Tap
   module Support
     class Schema
-      class << self  
+      module Utils
+        module_function
+        
         # Shell quotes the input string by enclosing in quotes if
         # str has no quotes, or double quotes if str has no double
         # quotes.  Returns the str if it has not whitespace, quotes
@@ -24,6 +27,62 @@ module Tap
           end
         end
         
+        # Formats a round string.
+        #
+        #   format_round(1, [1,2,3])            # => "+1[1,2,3]"
+        #
+        def format_round(round, indicies)
+          "+#{round}[#{indicies.join(',')}]"
+        end
+
+        # Formats a sequence string.
+        #
+        #   format_sequence(1, [2,3], {})       # => "1:2:3"
+        #
+        def format_sequence(source_index, target_indicies, options)
+          ([source_index] + target_indicies).join(":") + format_options(options)
+        end
+
+        # Formats a global instance string.
+        #
+        #   format_instance(1)                  # => "*1"
+        #
+        def format_instance(index)
+          "*#{index}"
+        end
+
+        # Formats a fork string.
+        #
+        #   format_fork(1, [2,3],{})            # => "1[2,3]"
+        #
+        def format_fork(source_index, target_indicies, options)
+          "#{source_index}[#{target_indicies.join(',')}]#{format_options(options)}"
+        end
+
+        # Formats a merge string (note the target index is
+        # provided first).
+        #
+        #   format_merge(1, [2,3],{})           # => "1{2,3}"
+        #
+        def format_merge(target_index, source_indicies, options)
+          "#{target_index}{#{source_indicies.join(',')}}#{format_options(options)}"
+        end
+
+        # Formats a sync_merge string (note the target index 
+        # is provided first).
+        #
+        #   format_sync_merge(1, [2,3],{})      # => "1(2,3)"
+        #
+        def format_sync_merge(target_index, source_indicies, options)
+          "#{target_index}(#{source_indicies.join(',')})#{format_options(options)}"
+        end
+
+        def format_options(options)
+          ""
+        end
+      end
+      
+      class << self          
         def load(task_argv)
           task_argv = YAML.load(task_argv) if task_argv.kind_of?(String)
 
@@ -35,11 +94,14 @@ module Tap
         end
       end
       
+      include Utils
+      
       # An array of the nodes registered in self.
       attr_reader :nodes
 
       def initialize(nodes=[])
         @nodes = nodes
+        @current_index = 1
       end
       
       # Retrieves the node at index, or instantiates
@@ -50,7 +112,7 @@ module Tap
       
       # Sets a join between the source and targets.  
       # Returns the new join.
-      def set(type, options, source_index, target_indicies)
+      def set(type, source_index, target_indicies, options={})
         join = Node::Join.new(type, options)
         
         [*target_indicies].each {|target_index| self[target_index].input = join  }
@@ -61,7 +123,7 @@ module Tap
       
       # Sets a reverse join between the sources and target.  
       # Returns the new join.
-      def set_reverse(type, options, source_indicies, target_index)
+      def set_reverse(type, target_index, source_indicies, options={})
         join = Node::ReverseJoin.new(type, options)
         
         self[target_index].output = join
@@ -100,27 +162,38 @@ module Tap
       
       # Returns a collection of nodes sorted  
       # into arrays by node.round.
-      def rounds
+      def rounds(as_indicies=false)
         rounds = []
         nodes.each do |node|
           (rounds[node.round] ||= []) << node if node && node.round
         end
+        
+        rounds.each do |round|
+          next unless round
+          round.collect! {|node| nodes.index(node) }
+        end if as_indicies
+
         rounds
       end
       
       # Returns a collection of global nodes
       # (nodes with no input or output set).
-      def globals
+      def globals(as_indicies=false)
         globals = []
         nodes.each do |node|
           globals << node if node && node.global?
         end
+        
+        globals.collect! do |node| 
+          nodes.index(node)
+        end if as_indicies
+        
         globals
       end
       
-      # Returns a hash of [join, [input_nodes, output_nodes]] pairs
+      # Returns a hash of [join, [source_node, target_nodes]] pairs
       # across all nodes.
-      def join_hash
+      def join_hash(as_indicies=false)
         joins = {}
         nodes.each do |node|
           next unless node
@@ -135,10 +208,20 @@ module Tap
             (joins[node.output] ||= [nil,[]])[0] = node
           end
         end
-
-        joins
+        
+        if as_indicies
+          join_indicies = {}
+          joins.each_pair do |join, (source_node, target_nodes)|
+            target_indicies = target_nodes.collect {|node| nodes.index(node) }
+            join_indicies[join] = [nodes.index(source_node), target_indicies]
+          end
+          
+          join_indicies
+        else
+          joins
+        end
       end
-
+      
       def build(app)
         tasks = {}
         
@@ -196,14 +279,14 @@ module Tap
           segments << "--"
           
           node.argv.each do |arg| 
-            segments << Schema.shell_quote(arg)
+            segments << shell_quote(arg)
           end unless node == nil
         end
         
         each_schema_str {|str| segments << "--#{str}" }
         segments.join(' ')
       end
-
+      
       protected
       
       # Yields each formatted schema string (global, round, and join).
@@ -216,7 +299,7 @@ module Tap
       # Yields globals formatted as a string.
       def each_globals_str # :nodoc:
         globals.each do |node|
-          yield "*#{nodes.index(node)}"
+          yield format_instance(nodes.index(node))
         end
       end
       
@@ -226,7 +309,7 @@ module Tap
         rounds.each do |indicies|
           unless indicies == nil || index == 0
             indicies = indicies.collect {|node| nodes.index(node) }
-            yield "+#{index}[#{indicies.join(',')}]"
+            yield format_round(index, indicies)
           end
           index += 1
         end
@@ -239,10 +322,10 @@ module Tap
           target_indicies = target_nodes.collect {|node| nodes.index(node) }
           
           yield case join.type
-          when :sequence   then ([source_index] + target_indicies).join(":")
-          when :fork       then "#{source_index}[#{target_indicies.join(',')}]"
-          when :merge      then "#{source_index}{#{target_indicies.join(',')}}"
-          when :sync_merge then "#{source_index}(#{target_indicies.join(',')})"
+          when :sequence   then format_sequence(source_index, target_indicies, join.options)
+          when :fork       then format_fork(source_index, target_indicies, join.options)
+          when :merge      then format_merge(source_index, target_indicies, join.options)
+          when :sync_merge then format_sync_merge(source_index, target_indicies, join.options)
           else raise "unknown join type: #{join.type} (#{source_index}, [#{target_indicies.join(',')}])"
           end
         end

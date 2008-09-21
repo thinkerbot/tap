@@ -1,6 +1,74 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/support/schema'
-require 'shellwords'
+
+class SchemaUtilsTest < Test::Unit::TestCase
+  include Tap::Support::Schema::Utils
+
+  #
+  # shell_quote test
+  #
+  
+  def test_shell_quote
+    assert_equal "str", shell_quote("str")
+    assert_equal ["a", "str", "b"], Shellwords.shellwords("a str b")
+    
+    assert_equal %Q{'no "quote"'}, shell_quote("no \"quote\"")
+    assert_equal ["a", "no \"quote\"", "b"], Shellwords.shellwords(%Q{a 'no "quote"' b})
+    
+    assert_equal %Q{"no 'double quote'"}, shell_quote("no 'double quote'")
+    assert_equal ["a", "no 'double quote'", "b"], Shellwords.shellwords(%Q{a "no 'double quote'" b})
+    
+    assert_raise(ArgumentError) { shell_quote("\"quote\" and 'double quote'") }
+  end
+  
+  #
+  # format_round test
+  #
+  
+  def test_format_round
+    assert_equal "+1[1,2,3]", format_round(1, [1,2,3])
+  end
+
+  #
+  # format_sequence test
+  #
+  
+  def test_format_sequence
+    assert_equal "1:2:3", format_sequence(1, [2,3], {}) 
+  end
+  
+  #
+  # format_instance test
+  #
+
+  def test_format_instance
+    assert_equal "*1", format_instance(1)
+  end
+  
+  #
+  # format_fork test
+  #
+
+  def test_format_fork
+    assert_equal "1[2,3]", format_fork(1, [2,3], {}) 
+  end
+  
+  #
+  # format_merge test
+  #
+
+  def test_format_merge
+    assert_equal "1{2,3}", format_merge(1, [2,3], {}) 
+  end
+  
+  #
+  # format_sync_merge test
+  #
+
+  def test_format_sync_merge
+    assert_equal "1(2,3)", format_sync_merge(1, [2,3], {}) 
+  end
+end
 
 class SchemaTest < Test::Unit::TestCase
   include Tap::Support
@@ -15,23 +83,6 @@ class SchemaTest < Test::Unit::TestCase
   
   def node_set(n=3)
     Array.new(n) {|index| Node.new([index], 0) }
-  end
-  
-  #
-  # Schema.shell_quote test
-  #
-  
-  def test_shell_quote
-    assert_equal "str", Schema.shell_quote("str")
-    assert_equal ["a", "str", "b"], Shellwords.shellwords("a str b")
-    
-    assert_equal %Q{'no "quote"'}, Schema.shell_quote("no \"quote\"")
-    assert_equal ["a", "no \"quote\"", "b"], Shellwords.shellwords(%Q{a 'no "quote"' b})
-    
-    assert_equal %Q{"no 'double quote'"}, Schema.shell_quote("no 'double quote'")
-    assert_equal ["a", "no 'double quote'", "b"], Shellwords.shellwords(%Q{a "no 'double quote'" b})
-    
-    assert_raise(ArgumentError) { Schema.shell_quote("\"quote\" and 'double quote'") }
   end
   
   #
@@ -60,7 +111,7 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   def test_set_returns_a_new_join
-    join = schema.set(:type, {}, 0, [])
+    join = schema.set(:type, 0, [], {})
     
     assert_equal Node::Join, join.class
     assert_equal :type, join.type
@@ -68,7 +119,7 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   def test_set_sets_inputs_and_outputs_for_specified_nodes_to_the_new_join
-    join = schema.set(:type, {}, 0, [1,2])
+    join = schema.set(:type, 0, [1,2], {})
     
     assert_equal join, n0.output
     assert_equal join, n1.input
@@ -80,7 +131,7 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   def test_set_reverse_returns_a_new_reverse_join
-    join = schema.set_reverse(:type, {}, [], 0)
+    join = schema.set_reverse(:type, 0, [], {})
     
     assert_equal Node::ReverseJoin, join.class
     assert_equal :type, join.type
@@ -88,7 +139,7 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   def test_set_reverse_sets_inputs_and_outputs_for_specified_nodes_to_the_new_join
-    join = schema.set_reverse(:type, {}, [1,2], 0)
+    join = schema.set_reverse(:type, 0, [1,2], {})
     
     assert_equal join, n0.output
     assert_equal join, n1.input
@@ -171,8 +222,8 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   def test_join_hash_returns_hash_of_input_and_output_nodes_by_join
-    a = schema.set(:a, :options, 0, [1,2])
-    b = schema.set_reverse(:b, :options, [3,4], 5)
+    a = schema.set(:a, 0, [1,2])
+    b = schema.set_reverse(:b, 5, [3,4])
     
     assert_equal({
       a => [n0, [n1,n2]], 
@@ -257,7 +308,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_sequence_breaks_for_sequence_joins
     schema = Schema.new node_set
-    schema.set :sequence, {}, 0, [1,2]
+    schema.set :sequence, 0, [1,2]
 
     assert_equal "-- 0 -- 1 -- 2 --0:1:2", schema.to_s
     assert_equal [[0],[1],[2],"0:1:2"], schema.dump
@@ -265,7 +316,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_fork_breaks_for_fork_joins
     schema = Schema.new node_set
-    schema.set :fork, {}, 0, [1,2]
+    schema.set :fork, 0, [1,2]
 
     assert_equal "-- 0 -- 1 -- 2 --0[1,2]", schema.to_s
     assert_equal [[0],[1],[2],"0[1,2]"], schema.dump
@@ -273,7 +324,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_merge_breaks_for_merge_joins
     schema = Schema.new node_set
-    schema.set_reverse :merge, {}, [0,1], 2
+    schema.set_reverse :merge, 2, [0,1]
 
     assert_equal "-- 0 -- 1 -- 2 --2{0,1}", schema.to_s
     assert_equal [[0],[1],[2],"2{0,1}"], schema.dump
@@ -281,7 +332,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_sync_merge_breaks_for_sync_merge_joins
     schema = Schema.new node_set
-    schema.set_reverse :sync_merge, {}, [0,1], 2
+    schema.set_reverse :sync_merge, 2, [0,1]
 
     assert_equal "-- 0 -- 1 -- 2 --2(0,1)", schema.to_s
     assert_equal [[0],[1],[2],"2(0,1)"], schema.dump
@@ -289,7 +340,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_raises_error_for_unknown_join_type
     schema = Schema.new node_set
-    schema.set :unknown, {}, 0, [1]
+    schema.set :unknown, 0, [1]
 
     assert_raise(RuntimeError) { schema.to_s }
     assert_raise(RuntimeError) { schema.dump }
