@@ -3,6 +3,78 @@ autoload(:Shellwords, 'shellwords')
 
 module Tap
   module Support
+    
+    # ==== Round Assignment
+    # Tasks can be defined and set to a round using the following:
+    #
+    #   break           assigns task(s)         to round
+    #   --              next                    0
+    #   --+             next                    1
+    #   --++            next                    2
+    #   --+2            next                    2
+    #   --+2[1,2,3]     1,2,3                   2
+    #
+    # Here all task (except c) are parsed into round 0, then the
+    # final argument reassigns e to round 3.
+    #
+    #   schema = Parser.new("a -- b --+ c -- d -- e --+3[4]").schema
+    #   schema.rounds(true)             # => [[0,1,3],[2], nil, [4]]
+    #
+    # ==== Workflow Assignment
+    # All simple workflow patterns except switch can be specified within
+    # the parse syntax (switch is the exception because there is no good
+    # way to define a block from an array).  
+    #
+    #   break      pattern       source(s)      target(s)
+    #   --:        sequence      last           next
+    #   --[]       fork          last           next
+    #   --{}       merge         next           last
+    #   --()       sync_merge    next           last
+    #
+    #   example       meaning
+    #   --1:2         1.sequence(2)
+    #   --1:2:3       1.sequence(2,3)
+    #   --:2:         last.sequence(2,next)
+    #   --[]          last.fork(next)
+    #   --1{2,3,4}    1.merge(2,3,4)
+    #   --(2,3,4)     last.sync_merge(2,3,4)
+    #
+    # Note how all of the bracketed styles behave similarly; they are
+    # parsed with essentially the same code, only reversing the source
+    # and target in the case of merges.
+    #
+    # Here a and b are sequenced inline.  Task c is assigned to no 
+    # workflow until the final argument which sequenced b and c.
+    #
+    #   schema = Parser.new("a --: b -- c --1:2i").schema
+    #   schema.argvs                    # => [["a"], ["b"], ["c"], []]
+    #   schema.joins(true)              # => [[:sequence,0,[1],{}], [:sequence,1,[2],{:iterate => true}]]
+    #
+    # ==== Globals
+    # Global instances of task (used, for example, by dependencies) may
+    # be assigned in the parse syntax as well.  The break for a global
+    # is '--*'.
+    #
+    #   schema = Parser.new("a -- b --* global_name --config for --global").schema
+    #   schema.globals(true)            # => [2]
+    #
+    # ==== Escapes and End Flags
+    # Breaks can be escaped by enclosing them in '-.' and '.-' delimiters;
+    # any number of arguments may be enclosed within the escape. After the 
+    # end delimiter, breaks are active once again.
+    #
+    #   schema = Parser.new("a -- b -- c").schema
+    #   schema.argvs                    # => [["a"], ["b"], ["c"]]
+    # 
+    #   schema = Parser.new("a -. -- b .- -- c").schema
+    #   schema.argvs                    # => [["a", "--", "b"], ["c"]]
+    #
+    # Parsing continues until the end of argv, or a an end flag '---' is 
+    # reached.  The end flag may also be escaped.
+    #
+    #   schema = Parser.new("a -- b --- c").schema
+    #   schema.argvs                    # => [["a"], ["b"]]
+    #
     class Parser
       
       # A set of parsing routines used internally by Tap::Support::Parser,
@@ -113,19 +185,19 @@ module Tap
           [index, five.to_s.empty? ? [current_index] : parse_indicies(five)]
         end
 
-        # Parses the match of a SEQUENCE regexp into a [source_index,
-        # target_indicies, options] array. The inputs corresponds to $1 
-        # and $3 for the match. The previous and current index are 
-        # assumed if $1 starts and/or ends with a semi-colon.
+        # Parses the match of a SEQUENCE regexp into an [indicies, options] 
+        # array. The inputs corresponds to $1 and $3 for the match. The 
+        # previous and current index are assumed if $1 starts and/or ends 
+        # with a semi-colon.
         #
-        #   parse_sequence("1:2:3", '')         # => [1, [2,3], {}]
-        #   parse_sequence(":1:2:", '')         # => [:previous_index,[1,2,:current_index], {}]
+        #   parse_sequence("1:2:3", '')         # => [[1,2,3], {}]
+        #   parse_sequence(":1:2:", '')         # => [[:previous_index,1,2,:current_index], {}]
         #
         def parse_sequence(one, three)
           seq = parse_indicies(one, /:+/)
           seq.unshift previous_index if one[0] == ?:
           seq << current_index if one[-1] == ?:
-          [seq.shift, seq, parse_options(three)]
+          [seq, parse_options(three)]
         end
 
         # Parses the match of an INSTANCE regexp into an index.
@@ -154,9 +226,24 @@ module Tap
           targets << current_index if targets.empty?
           [one.empty? ? previous_index : one.to_i, targets, parse_options(three)]
         end
-
+        
+        # Parses an options string into a hash.  The input corresponds
+        # to $3 in a SEQUENCE or bracket_regexp match.  Raises an error
+        # if the options string contains unknown options.
+        #
+        #   parse_options("")                   # => {}
+        #   parse_options("is")                 # => {:iterate => true, :stack => true}
+        #
         def parse_options(three)
-          {}
+          options = {}
+          three.each_byte do |byte|
+            case byte
+            when ?i then options[:iterate] = true
+            when ?s then options[:stack] = true
+            else raise "unknown options in: #{three}"
+            end
+          end
+          options
         end
       end
       
@@ -179,145 +266,6 @@ module Tap
       #
       # Parse is non-destructive to argv.  If a string argv is provided, parse
       # splits it into an array using Shellwords.
-      #
-      # ==== Round Assignment
-      # Tasks can be defined and set to a round using the following:
-      #
-      #   break           assigns task(s)         to round
-      #   --              next                    0
-      #   --+             next                    1
-      #   --++            next                    2
-      #   --+2            next                    2
-      #   --+2[1,2,3]     1,2,3                   2
-      #
-      # Here all task (except c) are parsed into round 0, then the
-      # final argument reassigns e to round 3.
-      #
-      #   p = Parser.new "a -- b --+ c -- d -- e --+3[4]"
-      #   p.rounds                   # => [[0,1,3],[2], nil, [4]]
-      #
-      # ==== Workflow Assignment
-      # All simple workflow patterns except switch can be specified within
-      # the parse syntax (switch is the exception because there is no good
-      # way to define a block from an array).  
-      #
-      #   break      pattern       source(s)      target(s)
-      #   --:        sequence      last           next
-      #   --[]       fork          last           next
-      #   --{}       merge         next           last
-      #   --()       sync_merge    next           last
-      #
-      #   example       meaning
-      #   --1:2         1.sequence(2)
-      #   --1:2:3       1.sequence(2,3)
-      #   --:2:         last.sequence(2,next)
-      #   --[]          last.fork(next)
-      #   --1{2,3,4}    1.merge(2,3,4)
-      #   --(2,3,4)     last.sync_merge(2,3,4)
-      #
-      # Note how all of the bracketed styles behave similarly; they are
-      # parsed with essentially the same code, only reversing the source
-      # and target in the case of merges.
-      #
-      # Here a and b are sequenced inline.  Task c is assigned to no 
-      # workflow until the final argument which sequenced b and c.
-      #
-      #   p = Parser.new "a --: b -- c --1:2i"
-      #   p.argvs                    # => [["a"], ["b"], ["c"]]
-      #   p.workflow(:sequence)      # => [[0,[1],''],[1,[2],'i']]
-      #
-      # ==== Globals
-      # Global instances of task (used, for example, by dependencies) may
-      # be assigned in the parse syntax as well.  The break for a global
-      # is '--*'.
-      #
-      #   p = Parser.new "a -- b --* global_name --config for --global"
-      #   p.globals                  # => [2]
-      #
-      # ==== Escapes and End Flags
-      # Breaks can be escaped by enclosing them in '-.' and '.-' delimiters;
-      # any number of arguments may be enclosed within the escape. After the 
-      # end delimiter, breaks are active once again.
-      #
-      #   p = Parser.new "a -- b -- c"
-      #   p.argvs                    # => [["a"], ["b"], ["c"]]
-      # 
-      #   p = Parser.new "a -. -- b .- -- c"
-      #   p.argvs                    # => [["a", "--", "b"], ["c"]]
-      #
-      # Parsing continues until the end of argv, or a an end flag '---' is 
-      # reached.  The end flag may also be escaped.
-      #
-      #   p = Parser.new "a -- b --- c"
-      #   p.argvs                    # => [["a"], ["b"]]
-      #
-      #--
-      # === Examples
-      # Parse two tasks, with inputs and configs at separate times.  Both 
-      # are assigned to round 0.
-      #
-      #   p = Parser.new
-      #   p.parse(["a", "b", "--config", "c"])
-      #   p.tasks          
-      #   # => [
-      #   # ["a", "b", "--config", "c"]]
-      #
-      #   p.parse(["x", "y", "z"])
-      #   p.tasks          
-      #   # => [
-      #   # ["a", "b", "--config", "c"],
-      #   # ["x", "y", "z"]]
-      #   
-      #   p.rounds         # => [[0,1]]
-      #
-      # Parse two simple tasks at the same time into different rounds.
-      #
-      #   p = Parser.new ["a", "--+", "b"]
-      #   p.tasks          # => [["a"], ["b"]]
-      #   p.rounds         # => [[0], [1]]
-      #
-      # Rounds can be declared multiple ways:
-      #
-      #   p = Parser.new ["--+", "a", "--", "b", "--", "c", "--", "d"]
-      #   p.tasks          # => [["a"], ["b"], ["c"], ["d"]]
-      #   p.rounds         # => [[1,2,3], [0]]
-      #
-      #   p.parse ["+3[2,3]"]
-      #   p.rounds         # => [[1], [0], nil, [2,3]]
-      #
-      # Note the rounds were re-assigned using the second parse.  Very
-      # similar things may be done with workflows (note also that this
-      # example shows how parse splits a string input into an argv 
-      # using Shellwords):
-      #
-      #   p = Parser.new "a --: b --: c --: d"
-      #   p.tasks                   # => [["a"], ["b"], ["c"], ["d"]]
-      #   p.workflow(:sequence)     # => [[0,1],[1,2],[2,3]]
-      #
-      #   p.parse "1[2,3]"
-      #   p.workflow(:sequence)     # => [[0,1],[2,3]]
-      #   p.workflow(:fork)         # => [[1,[2,3]]]
-      #
-      #   p.parse "e --{2,3}"
-      #   p.tasks                   # => [["a"], ["b"], ["c"], ["d"], ["e"]]
-      #   p.workflow(:sequence)     # => [[0,1]]
-      #   p.workflow(:fork)         # => [[1,[2,3]]]
-      #   p.workflow(:merge)        # => [[4,[2,3]]]
-      #
-      # Use escapes ('-.' and '.-') to bring breaks into a task array.  Any
-      # number of breaks/args may occur within an escape sequence; breaks
-      # are re-activated after the stop-escape:
-      #
-      #   p = Parser.new "a -. -- b -- .- c -- d"
-      #   p.tasks                   # => [["a", "--", "b", "--", "c"], ["d"]]
-      #
-      # Use the stop delimiter to stop parsing (the unparsed argv is 
-      # returned by parse):
-      #
-      #   argv = ["a", "--", "b", "---", "args", "after", "stop"]
-      #   p = Parser.new
-      #   p.parse(argv)             # => ["args", "after", "stop"]
-      #   p.tasks                   # => [["a"], ["b"]]
       #
       def parse(argv)
         parse!(argv.kind_of?(String) ? argv : argv.dup)
@@ -380,6 +328,20 @@ module Tap
         schema
       end
       
+      def load(argv)
+         argv.each do |arg|
+          case arg
+          when Array
+            schema.nodes << arg
+            self.current_index += 1
+          else
+            parse_break(arg)
+          end
+        end
+        
+        schema
+      end
+      
       protected
       
       # The index of the node currently being parsed.
@@ -398,8 +360,13 @@ module Tap
           round, indicies = parse_round($2, $5)
           indicies.each {|index| schema[index].round = round }
           
+        when SEQUENCE
+          indicies, options = parse_sequence($1, $3)
+          while indicies.length > 1
+            schema.set(:sequence, indicies.shift, indicies[0], options)
+          end
+
         when INSTANCE    then schema[parse_instance($1)].globalize
-        when SEQUENCE    then schema.set(:sequence,           *parse_sequence($1, $3))
         when FORK        then schema.set(:fork,               *parse_bracket($1, $2, $3))
         when MERGE       then schema.set_reverse(:merge,      *parse_bracket($1, $2, $3))
         when SYNC_MERGE  then schema.set_reverse(:sync_merge, *parse_bracket($1, $2, $3))    

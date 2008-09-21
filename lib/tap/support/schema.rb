@@ -3,6 +3,8 @@ autoload(:Shellwords, 'shellwords')
 
 module Tap
   module Support
+    autoload(:Parser, 'tap/support/parser')
+    
     class Schema
       module Utils
         module_function
@@ -77,24 +79,47 @@ module Tap
           "#{target_index}(#{source_indicies.join(',')})#{format_options(options)}"
         end
 
+        # Formats an options hash into a string.  Raises an error
+        # for unknown options.
+        #
+        #   format_options({:iterate => true})  # => "i"
+        #
         def format_options(options)
-          ""
-        end
-      end
-      
-      class << self          
-        def load(task_argv)
-          task_argv = YAML.load(task_argv) if task_argv.kind_of?(String)
-
-          tasks, argv = task_argv.partition {|obj| obj.kind_of?(Array) }
-          parser = new
-          parser.tasks.concat(tasks)
-          parser.parse(argv)
-          parser
+          options_str = []
+          options.each_pair do |key, value|
+            case key
+            when :iterate 
+              options_str << 'i' if value
+              
+            when :stack
+              options_str << 's' if value
+              
+            else raise "unknown keys in: #{options}"
+            end
+          end
+          
+          options_str.sort.join
         end
       end
       
       include Utils
+      
+      class << self
+        def parse(argv=ARGV)
+          Support::Parser.new(argv).schema
+        end
+
+        def load(argv)
+          parser = Parser.new
+          parser.load(argv)
+          parser.schema
+        end
+
+        def load_file(path)
+          argv = YAML.load_file(path)
+          load(argv)
+        end
+      end
       
       # An array of the nodes registered in self.
       attr_reader :nodes
@@ -193,7 +218,7 @@ module Tap
       
       # Returns a hash of [join, [source_node, target_nodes]] pairs
       # across all nodes.
-      def join_hash(as_indicies=false)
+      def joins(as_indicies=false)
         joins = {}
         nodes.each do |node|
           next unless node
@@ -210,13 +235,13 @@ module Tap
         end
         
         if as_indicies
-          join_indicies = {}
+          summary = []
           joins.each_pair do |join, (source_node, target_nodes)|
             target_indicies = target_nodes.collect {|node| nodes.index(node) }
-            join_indicies[join] = [nodes.index(source_node), target_indicies]
+            summary << [join.type, nodes.index(source_node), target_indicies, join.options]
           end
           
-          join_indicies
+          summary.sort_by {|entry| entry[1] || -1 }
         else
           joins
         end
@@ -237,7 +262,9 @@ module Tap
         end
 
         # build the workflow
-        join_hash.each_pair do |join, (source_node, target_nodes)|
+        joins.each_pair do |join, (source_node, target_nodes)|
+          raise "unassigned join: #{join}" if source_node == nil
+
           targets = target_nodes.collect do |target_node|
             tasks[target_node][0]
           end
@@ -258,7 +285,7 @@ module Tap
         # notify any args that will be overlooked
         tasks.each_pair do |node, (task, args)|
           next if args.empty?
-          puts "ignoring args: #{task} [#{args.join(' ')}]"
+          warn "warning: ignoring args for node (#{nodes.index(node)}) #{task} [#{args.join(' ')}]"
         end
 
         queues
@@ -317,7 +344,7 @@ module Tap
 
       # Yields each join formatted as a string.
       def each_join_str # :nodoc
-        join_hash.each_pair do |join, (source_node, target_nodes)|
+        joins.each_pair do |join, (source_node, target_nodes)|
           source_index = nodes.index(source_node)
           target_indicies = target_nodes.collect {|node| nodes.index(node) }
           

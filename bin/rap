@@ -79,7 +79,10 @@ begin
     puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
     exit
   else
-    queues = env.build(ARGV) {|args| Tap::Tasks::Rake }
+    queues = env.build(ARGV) do |args|
+      warn "warning: implict rake for [#{args.join(' ')}]"
+      Tap::Tasks::Rake
+    end
     ARGV.clear
 
     if queues.empty?

@@ -3,9 +3,26 @@ module Tap
 
     # Represents a task node in a Schema.
     class Node
-      Join = Struct.new :type, :options
-      ReverseJoin = Struct.new :type, :options
+      class Join 
+        attr_reader :type
+        attr_reader :options
+        
+        def initialize(type, options)
+          @type = type
+          @options = options
+        end
+        
+        def inspect
+          "#<Join:#{object_id}>"
+        end
+      end
       
+      class ReverseJoin < Join
+        def inspect
+          "#<ReverseJoin:#{object_id}>"
+        end
+      end
+
       # An array of arguments used to instantiate
       # the node, and to specify arguments enqued
       # to the instance (when the node is directly
@@ -52,9 +69,9 @@ module Tap
       end
       
       def inspect
-        "#<#{self.class}:#{object_id} argv=[#{argv.join(' ')}] >"
+        "#<#{self.class}:#{object_id} argv=[#{argv.join(' ')}] input=#{input.inspect} output=#{output.inspect}>"
       end
-    
+
     end
   end
 end

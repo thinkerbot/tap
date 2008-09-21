@@ -25,7 +25,7 @@ class SchemaUtilsTest < Test::Unit::TestCase
   # format_round test
   #
   
-  def test_format_round
+  def test_format_round_documentation
     assert_equal "+1[1,2,3]", format_round(1, [1,2,3])
   end
 
@@ -33,7 +33,7 @@ class SchemaUtilsTest < Test::Unit::TestCase
   # format_sequence test
   #
   
-  def test_format_sequence
+  def test_format_sequence_documentation
     assert_equal "1:2:3", format_sequence(1, [2,3], {}) 
   end
   
@@ -41,7 +41,7 @@ class SchemaUtilsTest < Test::Unit::TestCase
   # format_instance test
   #
 
-  def test_format_instance
+  def test_format_instance_documentation
     assert_equal "*1", format_instance(1)
   end
   
@@ -49,7 +49,7 @@ class SchemaUtilsTest < Test::Unit::TestCase
   # format_fork test
   #
 
-  def test_format_fork
+  def test_format_fork_documentation
     assert_equal "1[2,3]", format_fork(1, [2,3], {}) 
   end
   
@@ -57,7 +57,7 @@ class SchemaUtilsTest < Test::Unit::TestCase
   # format_merge test
   #
 
-  def test_format_merge
+  def test_format_merge_documentation
     assert_equal "1{2,3}", format_merge(1, [2,3], {}) 
   end
   
@@ -65,8 +65,22 @@ class SchemaUtilsTest < Test::Unit::TestCase
   # format_sync_merge test
   #
 
-  def test_format_sync_merge
+  def test_format_sync_merge_documentation
     assert_equal "1(2,3)", format_sync_merge(1, [2,3], {}) 
+  end
+  
+  #
+  # format_options test
+  #
+
+  def test_format_options
+    assert_equal "", format_options({})
+    assert_equal "is", format_options({:iterate => true, :stack => true})
+    assert_equal "", format_options({:iterate => false, :stack => false})
+  end
+  
+  def test_format_options_raises_error_for_unknown_options
+    assert_raise(RuntimeError) { format_options(:key => 'value') }
   end
 end
 
@@ -221,41 +235,15 @@ class SchemaTest < Test::Unit::TestCase
   # joins test
   #
   
-  def test_join_hash_returns_hash_of_input_and_output_nodes_by_join
+  def test_joins_returns_hash_of_input_and_output_nodes_by_join
     a = schema.set(:a, 0, [1,2])
     b = schema.set_reverse(:b, 5, [3,4])
     
     assert_equal({
       a => [n0, [n1,n2]], 
       b => [n5, [n3,n4]]
-    }, schema.join_hash)
+    }, schema.joins)
   end
-  
-  # #
-  # # joins_by_type test
-  # #
-  # 
-  # def test_joins_by_type
-  #   n0, n1, n2, n3, n4, n5 = Array.new(6) { Node.new }
-  #   a = Node::Join.new(:a, :options)
-  #   b = Node::Join.new(:b, :options)
-  #   
-  #   n0.output = a
-  #   n1.input = a
-  #   n2.input = a
-  #   
-  #   n3.output = b
-  #   n4.output = b
-  #   n5.input = b
-  # 
-  #   schema = Schema.new [n0, n1, n2, n3, n4, n5]
-  #   assert_equal({
-  #     :a => [
-  #       [[n0], [n1,n2], :options]],
-  #     :b => [
-  #       [[n3,n4], [n5], :options]]
-  #   }, schema.joins_by_type)
-  # end
   
   #
   # dump/to_s test

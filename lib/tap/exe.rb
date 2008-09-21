@@ -1,5 +1,6 @@
 require 'tap/env'
 require 'tap/app'
+require 'tap/support/schema'
 
 module Tap
   class Exe < Env
@@ -73,7 +74,7 @@ module Tap
     end
 
     def build(argv=ARGV)
-      Workflow.parse(argv).compact.build(app) do |args|
+      Support::Schema.parse(argv).compact.build(app) do |args|
         task = args.shift
         const = search(:tasks, task) 
         
