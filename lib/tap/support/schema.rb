@@ -24,6 +24,22 @@ module Tap
           end
         end
         
+        def format_sequence(indicies)
+          indicies.join(':')
+        end
+        
+        def format_fork(source_index, target_indicies)
+          "#{source_index}[#{target_indicies.join(',')}]"
+        end
+        
+        def format_merge(source_index, target_indicies)
+          "#{source_index}{#{target_indicies.join(',')}}"
+        end
+        
+        def format_sync_merge(source_index, target_indicies)
+          "#{source_index}(#{target_indicies.join(',')})"
+        end
+        
         def load(task_argv)
           task_argv = YAML.load(task_argv) if task_argv.kind_of?(String)
 
@@ -35,98 +51,95 @@ module Tap
         end
       end
       
+      # An array of the nodes registered in self.
       attr_reader :nodes
 
       def initialize(nodes=[])
         @nodes = nodes
       end
       
-      # Retrieves the node at index, or instantiates a new Node
-      # if no such node exists.
+      # Retrieves the node at index, or instantiates
+      # a new Node if one does not already exists.
       def [](index)
         nodes[index] ||= Node.new
       end
       
-      # Returns an array of the argvs across all nodes.  Nil and
-      # empty argvs are removed.
+      # Sets a join between the sources and targets.  
+      # Returns the new join.
+      def set(type, options, source_indicies, target_indicies)
+        join = Node::Join.new(type, options)
+        
+        [*target_indicies].each {|target_index| self[target_index].input = join  }
+        [*source_indicies].each {|source_index| self[source_index].output = join }
+        
+        join
+      end
+      
+      # Removes all nil nodes, and nodes with empty argvs.
+      # Additionally reassigns rounds by shifting later
+      # rounds up to fill any nils in the rounds array.
+      #
+      # Returns self.
+      def compact
+        # remove nil and empty nodes
+        nodes.delete_if do |node|
+          node == nil || node.argv.empty?
+        end
+        
+        # reassign rounds
+        index = 0
+        rounds.compact.each do |round|
+          round.each {|node| node.round = index }
+          index += 1
+        end
+        
+        self
+      end
+      
+      # Returns an array of the argvs for each nodes.
       def argvs
         nodes.collect do |node|
           node == nil ? nil : node.argv
         end
       end
       
-      # Returns a collection of nodes sorted into 
-      # arrays by node.round.
+      # Returns a collection of nodes sorted  
+      # into arrays by node.round.
       def rounds
         rounds = []
-        nodes.each_index do |index|
-          next unless node = nodes[index]
-          (rounds[node.round] ||= []) << index if node.round
+        nodes.each do |node|
+          (rounds[node.round] ||= []) << node if node && node.round
         end
         rounds
       end
       
-      # Returns a collection of global nodes.
+      # Returns a collection of global nodes
+      # (nodes with no input or output set).
       def globals
         globals = []
-        nodes.each_index do |index|
-          node = nodes[index]
-          globals << index if node && node.global?
+        nodes.each do |node|
+          globals << node if node && node.global?
         end
         globals
       end
       
-      def joins
+      # Returns a hash of [join, [input_nodes, output_nodes]] pairs
+      # across all nodes.
+      def join_hash
         joins = {}
-        nodes.each_index do |index|
-          next unless node = nodes[index]
+        nodes.each do |node|
+          next unless node
           
           if node.input.kind_of?(Node::Join)
-            (joins[node.input] ||= [[],[]])[1] << index
+            (joins[node.input] ||= [[],[]])[1] << node
           end
           
           if node.output.kind_of?(Node::Join)
-            (joins[node.output] ||= [[],[]])[0] << index
+            (joins[node.output] ||= [[],[]])[0] << node
           end
         end
 
         joins
-      end
-      
-      # def to_s
-      #   segments = []
-      #   nodes.each do |node|
-      #     next if node == nil
-      # 
-      #     segments << case node.round
-      #     when 0 then "--"
-      #     when 1 then "--+"
-      #     when nil then nil
-      #     else "--+#{node.round}"
-      #     end
-      #     
-      #     segments.concat(node.argv.collect {|arg| Schema.shell_quote(arg) })
-      #   end
-      # 
-      #   each_join_str {|str| segments << "--#{str}" }
-      #   segments.join(' ')
-      # end
-      
-      # Sets the targets to the source in workflow_map, tracking the
-      # workflow type.
-      def set(type, options, source_index, target_indicies) # :nodoc
-        join = Node::Join.new(type, options)
-        
-        [*target_indicies].each {|target_index| self[target_index].input = join }
-        self[source_index].output = join
-      end
-
-      def dump
-        segments = tasks.dup
-        each_round_str {|str| segments << str }
-        each_workflow_str {|str| segments << str }
-
-        segments
       end
 
       def build(app)
@@ -178,26 +191,70 @@ module Tap
 
         queues
       end
+      
+      # Creates an array dump of the contents of self.
+      def dump
+        segments = argvs
+        each_schema_str {|str| segments << str }
+        segments
+      end
+      
+      # Constructs a command-line string for the schema, ex:
+      # '-- a -- b --0:1'.
+      def to_s
+        segments = []
+        nodes.each do |node|
+          segments << "--"
+          
+          node.argv.each do |arg| 
+            segments << Schema.shell_quote(arg)
+          end unless node == nil
+        end
+        
+        each_schema_str {|str| segments << "--#{str}" }
+        segments.join(' ')
+      end
 
       protected
-
+      
+      # Yields each formatted schema string (global, round, and join).
+      def each_schema_str # :nodoc:
+        each_globals_str {|str| yield str }
+        each_round_str   {|str| yield str }
+        each_join_str    {|str| yield str }
+      end
+      
+      # Yields globals formatted as a string.
+      def each_globals_str # :nodoc:
+        globals.each do |node|
+          yield "*#{nodes.index(node)}"
+        end
+      end
+      
       # Yields each round formatted as a string.
       def each_round_str # :nodoc
         index = 0
         rounds.each do |indicies|
-          yield "+#{index}[#{indicies.join(',')}]" unless indicies == nil
+          unless indicies == nil || index == 0
+            indicies = indicies.collect {|node| nodes.index(node) }
+            yield "+#{index}[#{indicies.join(',')}]"
+          end
           index += 1
         end
       end
 
-      # Yields each workflow element formatted as a string.
+      # Yields each join formatted as a string.
       def each_join_str # :nodoc
-        joins.each_pair do |join, (inputs, outputs)| 
+        join_hash.each_pair do |join, (inputs, outputs)|
+          inputs = inputs.collect {|node| nodes.index(node) }
+          outputs = outputs.collect {|node| nodes.index(node) }
+          
           yield case join.type
           when :sequence   then (inputs + outputs).join(":")
           when :fork       then "#{inputs[0]}[#{outputs.join(',')}]"
           when :merge      then "#{outputs[0]}{#{inputs.join(',')}}"
           when :sync_merge then "#{outputs[0]}(#{inputs.join(',')})"
+          else raise "unknown join type: #{join.type} [[#{inputs.join(',')}], [#{outputs.join(',')}]]"
           end
         end
       end

@@ -384,7 +384,7 @@ module Tap
               schema.set(:sequence, options, indicies.shift, indicies[0])
             end
 
-          when INSTANCE    then schema[parse_instance($1)].reset
+          when INSTANCE    then schema[parse_instance($1)].globalize
           when FORK        then schema.set(:fork,       parse_options($3), *parse_bracket($1, $2))
           when MERGE       then schema.set(:merge,      parse_options($3), *parse_bracket($1, $2))
           when SYNC_MERGE  then schema.set(:sync_merge, parse_options($3), *parse_bracket($1, $2))
