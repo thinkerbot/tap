@@ -67,7 +67,6 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/task/templates/task.erb
     lib/tap/generator/generators/task/templates/test.erb
     lib/tap/generator/manifest.rb
-    lib/tap/parser.rb
     lib/tap/patches/optparse/summarize.rb
     lib/tap/patches/rake/rake_test_loader.rb
     lib/tap/patches/rake/testtask.rb
@@ -80,8 +79,6 @@ Gem::Specification.new do |s|
     lib/tap/support/aggregator.rb
     lib/tap/support/assignments.rb
     lib/tap/support/audit.rb
-    lib/tap/support/batchable.rb
-    lib/tap/support/batchable_class.rb
     lib/tap/support/class_configuration.rb
     lib/tap/support/combinator.rb
     lib/tap/support/configurable.rb
@@ -90,7 +87,7 @@ Gem::Specification.new do |s|
     lib/tap/support/constant.rb
     lib/tap/support/constant_utils.rb
     lib/tap/support/declarations.rb
-    lib/tap/support/dependable.rb
+    lib/tap/support/dependencies.rb
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
     lib/tap/support/gems/rake.rb
@@ -105,8 +102,9 @@ Gem::Specification.new do |s|
     lib/tap/support/lazydoc/document.rb
     lib/tap/support/lazydoc/method.rb
     lib/tap/support/manifest.rb
-    lib/tap/support/parsers/base.rb
-    lib/tap/support/parsers/server.rb
+    lib/tap/support/node.rb
+    lib/tap/support/parser.rb
+    lib/tap/support/schema.rb
     lib/tap/support/shell_utils.rb
     lib/tap/support/tdoc.rb
     lib/tap/support/tdoc/tdoc_html_generator.rb

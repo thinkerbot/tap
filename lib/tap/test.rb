@@ -16,7 +16,10 @@ module Test # :nodoc:
       extend Tap::Test::Extensions
       
       class << self
+        alias tap_original_test_case_inherited inherited
+        
         def inherited(child)
+          tap_original_test_case_inherited(child)
           child.instance_variable_set(:@skip_messages, [])
           child.instance_variable_set(:@run_test_suite, true)
         end

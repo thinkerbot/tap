@@ -1,5 +1,3 @@
-autoload(:PP, 'pp')
-      
 module Tap
   module Support 
     

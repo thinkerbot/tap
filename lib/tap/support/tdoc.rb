@@ -47,6 +47,11 @@ else
   end
 end
 
+unless Object.const_defined?(:TokenStream)
+  TokenStream = RDoc::TokenStream
+  Options = RDoc::Options
+end
+
 module Tap
   module Support
   

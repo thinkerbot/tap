@@ -271,10 +271,10 @@ module Tap
       # blocks, such as switch (Validation::SWITCH) and list
       # (Validation::LIST).
       def arg_type(block) # :nodoc:
-        case block
-        when Validation::SWITCH then :switch
-        when Validation::FLAG then :flag
-        when Validation::LIST then :list
+        case 
+        when block == Validation::SWITCH then :switch
+        when block == Validation::FLAG then :flag
+        when block == Validation::LIST then :list
         else nil
         end
       end
@@ -283,9 +283,9 @@ module Tap
       # blocks, such as switch (Validation::ARRAY) and list
       # (Validation::HASH).
       def arg_name(block) # :nodoc:
-        case block
-        when Validation::ARRAY then "'[a, b, c]'"
-        when Validation::HASH then "'{one: 1, two: 2}'"
+        case
+        when block == Validation::ARRAY then "'[a, b, c]'"
+        when block == Validation::HASH then "'{one: 1, two: 2}'"
         else nil
         end
       end
