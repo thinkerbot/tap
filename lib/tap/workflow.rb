@@ -80,6 +80,11 @@ module Tap
   #   app.results(w1.exit_points, w2.exit_points))    # => [8, -8]
   #
   class Workflow < Task
+    class << self
+      def parse(argv=ARGV)
+        Support::Parser.new(argv).schema
+      end
+    end
 
     # The entry point for self.
     attr_accessor :entry_point

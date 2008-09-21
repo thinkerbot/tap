@@ -73,7 +73,7 @@ module Tap
     end
 
     def build(argv=ARGV)
-      Workflow.parse(argv).build(app) do |args|
+      Workflow.parse(argv).compact.build(app) do |args|
         task = args.shift
         const = search(:tasks, task) 
         

@@ -24,22 +24,6 @@ module Tap
           end
         end
         
-        def format_sequence(indicies)
-          indicies.join(':')
-        end
-        
-        def format_fork(source_index, target_indicies)
-          "#{source_index}[#{target_indicies.join(',')}]"
-        end
-        
-        def format_merge(source_index, target_indicies)
-          "#{source_index}{#{target_indicies.join(',')}}"
-        end
-        
-        def format_sync_merge(source_index, target_indicies)
-          "#{source_index}(#{target_indicies.join(',')})"
-        end
-        
         def load(task_argv)
           task_argv = YAML.load(task_argv) if task_argv.kind_of?(String)
 
@@ -143,50 +127,45 @@ module Tap
       end
 
       def build(app)
-        instances = []
-
-        # instantiate and assign globals
-        globals.each do |index|
-          task, args = yield(nodes[index].argv)
-          task.class.instance = task
-          instances[index] = [task, args]
+        tasks = {}
+        
+        # instantiate the nodes
+        nodes.each do |node|
+          tasks[node] = yield(node.argv) if node
         end
-
-        # instantiate the remaining task classes
-        tasks.each_with_index do |args, index|
-          instances[index] ||= yield(args)
+        
+        # instantiate and reconfigure globals
+        globals.each do |node|
+          task, args = tasks[node]
+          task.class.instance.reconfigure(task.config.to_hash)
         end
 
         # build the workflow
-        workflow.each_with_index do |(type, target_indicies, options), source_index|
-          next if type == nil
-
-          targets = if target_indicies.kind_of?(Array)
-            target_indicies.collect {|i| instances[i][0] }
-          else
-            instances[target_indicies][0]
+        join_hash.each_pair do |join, (input_nodes, output_nodes)|
+          targets = output_nodes.collect do |target_node|
+            tasks[target_node][0]
           end
-          #targets << options
-
-          instances[source_index][0].send(type, *targets)
+          targets << join.options
+          
+          input_nodes.each do |source_node|
+            tasks[source_node][0].send(join.type, *targets)
+          end
         end
 
         # build queues
-        queues = rounds.collect do |round|
-          round.each do |index|
-            task, args = instances[index]
-            instances[index] = nil
+        queues = rounds.compact.collect do |round|
+          round.each do |node|
+            task, args = tasks.delete(node)
             task.enq(*args)
           end
 
           app.queue.clear
         end
-        queues.delete_if {|queue| queue.empty? }
-
+        
         # notify any args that will be overlooked
-        instances.compact.each do |(instance, args)|
+        tasks.each_pair do |node, (task, args)|
           next if args.empty?
-          puts "ignoring args: #{instance} [#{args.join(' ')}]"
+          puts "ignoring args: #{task} [#{args.join(' ')}]"
         end
 
         queues
