@@ -386,8 +386,8 @@ module Tap
 
           when INSTANCE    then schema[parse_instance($1)].globalize
           when FORK        then schema.set(:fork,       parse_options($3), *parse_bracket($1, $2))
-          when MERGE       then schema.set(:merge,      parse_options($3), *parse_bracket($1, $2))
-          when SYNC_MERGE  then schema.set(:sync_merge, parse_options($3), *parse_bracket($1, $2))
+          when MERGE       then schema.set_reverse(:merge,      parse_options($3), *parse_bracket($1, $2))
+          when SYNC_MERGE  then schema.set_reverse(:sync_merge, parse_options($3), *parse_bracket($1, $2))
           else raise ArgumentError, "invalid break argument: #{arg}"
           end
         end

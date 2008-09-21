@@ -4,6 +4,7 @@ module Tap
     # Represents a task node in a Schema.
     class Node
       Join = Struct.new :type, :options
+      ReverseJoin = Struct.new :type, :options
       
       # An array of arguments used to instantiate
       # the node, and to specify arguments enqued

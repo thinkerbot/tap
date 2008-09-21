@@ -48,13 +48,24 @@ module Tap
         nodes[index] ||= Node.new
       end
       
-      # Sets a join between the sources and targets.  
+      # Sets a join between the source and targets.  
       # Returns the new join.
-      def set(type, options, source_indicies, target_indicies)
+      def set(type, options, source_index, target_indicies)
         join = Node::Join.new(type, options)
         
         [*target_indicies].each {|target_index| self[target_index].input = join  }
-        [*source_indicies].each {|source_index| self[source_index].output = join }
+        self[source_index].output = join
+        
+        join
+      end
+      
+      # Sets a reverse join between the sources and target.  
+      # Returns the new join.
+      def set_reverse(type, options, source_indicies, target_index)
+        join = Node::ReverseJoin.new(type, options)
+        
+        self[target_index].output = join
+        [*source_indicies].each {|source_index| self[source_index].input = join }
         
         join
       end
@@ -114,12 +125,14 @@ module Tap
         nodes.each do |node|
           next unless node
           
-          if node.input.kind_of?(Node::Join)
-            (joins[node.input] ||= [[],[]])[1] << node
+          case node.input
+          when Node::Join, Node::ReverseJoin
+            (joins[node.input] ||= [nil,[]])[1] << node
           end
           
-          if node.output.kind_of?(Node::Join)
-            (joins[node.output] ||= [[],[]])[0] << node
+          case node.output
+          when Node::Join, Node::ReverseJoin
+            (joins[node.output] ||= [nil,[]])[0] = node
           end
         end
 
@@ -141,15 +154,12 @@ module Tap
         end
 
         # build the workflow
-        join_hash.each_pair do |join, (input_nodes, output_nodes)|
-          targets = output_nodes.collect do |target_node|
+        join_hash.each_pair do |join, (source_node, target_nodes)|
+          targets = target_nodes.collect do |target_node|
             tasks[target_node][0]
           end
           targets << join.options
-          
-          input_nodes.each do |source_node|
-            tasks[source_node][0].send(join.type, *targets)
-          end
+          tasks[source_node][0].send(join.type, *targets)
         end
 
         # build queues
@@ -224,16 +234,16 @@ module Tap
 
       # Yields each join formatted as a string.
       def each_join_str # :nodoc
-        join_hash.each_pair do |join, (inputs, outputs)|
-          inputs = inputs.collect {|node| nodes.index(node) }
-          outputs = outputs.collect {|node| nodes.index(node) }
+        join_hash.each_pair do |join, (source_node, target_nodes)|
+          source_index = nodes.index(source_node)
+          target_indicies = target_nodes.collect {|node| nodes.index(node) }
           
           yield case join.type
-          when :sequence   then (inputs + outputs).join(":")
-          when :fork       then "#{inputs[0]}[#{outputs.join(',')}]"
-          when :merge      then "#{outputs[0]}{#{inputs.join(',')}}"
-          when :sync_merge then "#{outputs[0]}(#{inputs.join(',')})"
-          else raise "unknown join type: #{join.type} [[#{inputs.join(',')}], [#{outputs.join(',')}]]"
+          when :sequence   then ([source_index] + target_indicies).join(":")
+          when :fork       then "#{source_index}[#{target_indicies.join(',')}]"
+          when :merge      then "#{source_index}{#{target_indicies.join(',')}}"
+          when :sync_merge then "#{source_index}(#{target_indicies.join(',')})"
+          else raise "unknown join type: #{join.type} (#{source_index}, [#{target_indicies.join(',')}])"
           end
         end
       end
