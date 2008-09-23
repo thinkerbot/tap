@@ -119,52 +119,48 @@ class SubsetTestTest < Test::Unit::TestCase
   end
 end
 
-# class SkippedTest < Test::Unit::TestCase
-#   include Tap::Test::SubsetTest
-#   
-#   if !conditions.empty?
-#     raise "conditions were NOT empty in subclass"
-#   end
-#   
-#   condition(:unsatisfied) do 
-#     false
-#   end
-#   
-#   unless satisfied?(:unsatisfied)
-#     skip_test
-#   end
-#   
-#   def test_method
-#     flunk "test WAS run"
-#   end
-# end
+#
+# inheritance test
+#
 
-# class SkippedSubTest < SkippedTest
-#   if conditions.empty?
-#     raise "conditions WERE empty in subclass"
-#   end
-#   
-#   condition(:unsatisfied) do 
-#     true
-#   end
-# 
-#   def test_method
-#     assert true
-#   end
-# end
-# 
-# class NonSkippedTest < Test::Unit::TestCase
-#   include Tap::Test::SubsetTest
-#   
-#   condition(:unsatisfied) do 
-#     true    
-#   end
-#   
-#   unless satisfied?(:unsatisfied)
-#     skip_test
-#   end
-#   
-#   def test_method
-#     assert true
-#   end
-# end
+class SubsetBaseTest < Test::Unit::TestCase
+  include Tap::Test::SubsetTest
+
+  if !conditions.empty?
+    raise "conditions were NOT empty in subset class"
+  end
+  
+  condition(:satisfied) do 
+    true
+  end
+  
+  def test_class_level_condition
+    assert self.class.satisfied?(:satisfied)
+  end
+end
+
+class SubsetInheritanceTest < SubsetBaseTest
+  if conditions.empty?
+    raise "conditions WERE empty in subclass"
+  end
+  
+  def test_class_level_condition
+    assert self.class.satisfied?(:satisfied)
+  end
+end
+
+class SubsetOverrideTest < SubsetBaseTest
+  if conditions.empty?
+    raise "conditions WERE empty in subclass"
+  end
+  
+  condition(:satisfied) do 
+    false
+  end
+
+  def test_class_level_condition
+    assert !self.class.satisfied?(:satisfied)
+  end
+end
+
+

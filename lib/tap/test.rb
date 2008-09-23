@@ -19,6 +19,7 @@ module Test # :nodoc:
         alias tap_original_test_case_inherited inherited
         
         def inherited(child)
+          super
           tap_original_test_case_inherited(child)
           child.instance_variable_set(:@skip_messages, [])
           child.instance_variable_set(:@run_test_suite, true)

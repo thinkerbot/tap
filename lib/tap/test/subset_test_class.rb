@@ -8,20 +8,20 @@ module Tap
       include Tap::Test::EnvVars
       
       # Passes conditions to subclass
-      def inherited(subclass) # :nodoc:
+      def inherited(child) # :nodoc:
         super
-        subclass_conditions = conditions.inject({}) do |memo, (key, value)|
-          memo.update(key => (value.dup rescue value))
-        end
-        subclass.instance_variable_set(:@conditions, subclass_conditions)
-        subclass.instance_variable_set(:@run_test_suite, nil)
-        subclass.instance_variable_set(:@skip_messages, [])
+        dup = {}
+        conditions.each_pair {|key, value| dup[key] = value.dup }
+        child.instance_variable_set(:@conditions, dup)
+      end
+      
+      # Initialize conditions.
+      def self.extended(base) # :nodoc:
+        base.instance_variable_set(:@conditions, {})
       end
       
       # A hash of [name, [msg, condition_block]] pairs defined by condition.
-      def conditions
-        @conditions ||= {}
-      end
+      attr_reader :conditions
     
       # Defines a condition block and associated message.  
       # Raises an error if no condition block is given.
@@ -37,8 +37,16 @@ module Tap
       #   satisfied?(:is_true)              # => true
       #   satisfied?(:is_true, :is_false)   # => false
       #
-      def satisfied?(*names)
-        unsatisfied_conditions(*names).empty?
+      # Yields the name and message for each unsatisfied condition to the
+      # block, if given.
+      def satisfied?(*names) # :yields: name-of-unsatisfied-condition, msg
+        unsatisfied = unsatisfied_conditions(*names)
+        
+        unsatisfied.each do |name| 
+          yield(name, condition[name][0])
+        end if block_given?
+          
+        unsatisfied.empty?
       end
         
       # Returns an array of the unsatified conditions.  Raises 
