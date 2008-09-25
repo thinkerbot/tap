@@ -258,38 +258,49 @@ module Tap
       def sync_merge(*sources) # :yields: _result
         iterate, stack, unbatched = _workflow_flags(sources)
         on_complete = unbatched ? :unbatched_on_complete : :on_complete
-        raise NotImplementedError, "unbatched is not yet implemented for sync_merge" if  unbatched
-        raise NotImplementedError, "iterate is not yet implemented for sync_merge" if iterate
+        
+        # a hash of (source, index) pairs where index is the
+        # index of the source in a combination
+        indicies = {}
+        
+        # a hash of (source, combinations) pairs where combinations
+        # are combination arrays that the source participates in.
+        # note that in unbatched mode, some sources may not
+        # participate in any combinations.
+        combinations = {}
+        
+        sets = sources.collect {|source| unbatched ? [source] : source.batch }
+        Support::Combinator.new(*sets).each do |combo|
+          combination = Array.new(combo.length, nil)
           
-        group = Array.new(sources.length, nil)
+          combo.each do |source|
+            indicies[source] ||= combo.index(source)
+            (combinations[source] ||= []) << combination
+          end
+        end
+        
         sources.each_with_index do |source, index|
-          batch_map = Hash.new(0)
-          source.batch.each_with_index {|obj, i| batch_map[obj] = i }
-          batch_length = source.batch.length
-
-          group[index] = Array.new(batch_length, nil)
-
-          source.on_complete do |_result|
-            batch_index = batch_map[_result._current_source]
-
-            if group[index][batch_index] != nil
-              raise "sync_merge collision... already got a result for #{_result._current_source}"
-            end
-
-            group[index][batch_index] = _result
-
-            unless group.flatten.include?(nil)
-              Support::Combinator.new(*group).each do |combination|
-                # merge the source audits
-                _group_result = Support::Audit.merge(*combination)
-
-                yield(_group_result) if block_given?
-                _add(self, _group_result, iterate, stack, unbatched)
+          source.send(on_complete) do |_result|
+            src = _result._current_source
+            
+            source_index = indicies[src]
+            (combinations[src] ||= []).each do |combination|
+              if combination[source_index] != nil
+                raise "sync_merge collision... already got a result for #{src}"
               end
+              
+              combination[source_index] = _result
+              unless combination.include?(nil)
+                # merge the source audits
+                _merge_result = Support::Audit.merge(*combination)
 
-              # reset the group array
-              group.collect! {|i| nil }
-            end 
+                yield(_merge_result) if block_given?
+                _add(self, _merge_result, iterate, stack, unbatched)
+                
+                # reset the group array
+                combination.collect! {|i| nil }
+              end
+            end
           end
         end
       end
