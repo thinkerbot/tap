@@ -23,6 +23,14 @@ module Tap
       # The batch for the Executable.
       attr_reader :batch
       
+      # An array of workflow flags.  All workflow flags are false unless specified.
+      WORKFLOW_FLAGS = [:iterate, :stack, :unbatched]
+      
+      # An array of the first character in each WORKFLOW_FLAGS. 
+      SHORT_WORKFLOW_FLAGS = WORKFLOW_FLAGS.collect do |flag| 
+        flag.to_s[0,1]
+      end
+      
       public
       
       # Extends obj with Executable and sets up all required variables.  The
@@ -172,14 +180,15 @@ module Tap
       #   before the next task is enqued.
       # - Executables may provided as well as tasks.
       def sequence(*tasks) # :yields: _result
-        stack, iterate = _options(tasks)
+        iterate, stack, unbatched = _workflow_flags(tasks)
+        on_complete = unbatched ? :unbatched_on_complete : :on_complete
         
         current_task = self
         tasks.each do |next_task|
-          # simply pass results from one task to the next.  
-          current_task.on_complete do |_result| 
+          # simply pass results from one task to the next. 
+          current_task.send(on_complete) do |_result| 
             yield(_result) if block_given?
-            _add(next_task, _result, stack, iterate)
+            _add(next_task, _result, iterate, stack, unbatched)
           end
           current_task = next_task
         end
@@ -194,12 +203,13 @@ module Tap
       #   before the next task is enqued.
       # - Executables may provided as well as tasks.
       def fork(*targets) # :yields: _result
-        stack, iterate = _options(targets)
+        iterate, stack, unbatched = _workflow_flags(targets)
+        on_complete = unbatched ? :unbatched_on_complete : :on_complete
         
-        on_complete do |_result|
+        send(on_complete) do |_result|
           targets.each do |target| 
             yield(_result) if block_given?
-            _add(target, _result, stack, iterate)
+            _add(target, _result, iterate, stack, unbatched)
           end
         end
       end
@@ -214,14 +224,15 @@ module Tap
       #   before the next task is enqued.
       # - Executables may provided as well as tasks.
       def merge(*sources) # :yields: _result
-        stack, iterate = _options(sources)
+        iterate, stack, unbatched = _workflow_flags(sources)
+        on_complete = unbatched ? :unbatched_on_complete : :on_complete
         
         sources.each do |source|
           # merging can use the existing audit trails... each distinct 
           # input is getting sent to one place (the target)
-          source.on_complete do |_result| 
+          source.send(on_complete) do |_result| 
             yield(_result) if block_given?
-            _add(self, _result, stack, iterate)
+            _add(self, _result, iterate, stack, unbatched)
           end
         end
       end
@@ -245,7 +256,9 @@ module Tap
       #   allow other tasks to be interleaved.
       #
       def sync_merge(*sources) # :yields: _result
-        stack, iterate = _options(sources)
+        iterate, stack, unbatched = _workflow_flags(sources)
+        on_complete = unbatched ? :unbatched_on_complete : :on_complete
+        raise NotImplementedError, "unbatched is not yet implemented for sync_merge" if  unbatched
         raise NotImplementedError, "iterate is not yet implemented for sync_merge" if iterate
           
         group = Array.new(sources.length, nil)
@@ -266,12 +279,12 @@ module Tap
             group[index][batch_index] = _result
 
             unless group.flatten.include?(nil)
-              Support::Combinator.new(*group).each do |*combination|
+              Support::Combinator.new(*group).each do |combination|
                 # merge the source audits
                 _group_result = Support::Audit.merge(*combination)
 
                 yield(_group_result) if block_given?
-                _add(self, _group_result, stack, iterate)
+                _add(self, _group_result, iterate, stack, unbatched)
               end
 
               # reset the group array
@@ -392,29 +405,40 @@ module Tap
       
       private
       
-      def _add(obj, _results, stack, iterate)
+      def _add(obj, _results, iterate, stack, unbatched)
         results = iterate ? _results._expand : [_results]
         results.each do |_result|
           if stack 
-            obj.enq(_result)
-          else  
-            obj.batch.each do |o|
-              app.execute(o, _result)
+            
+            if unbatched
+              obj.unbatched_enq(_result)
+            else
+              obj.enq(_result)
             end
+            
+          else
+            
+            if unbatched
+              app.execute(obj, _result)
+            else
+              obj.batch.each do |o|
+                app.execute(o, _result)
+              end
+            end
+            
           end
         end
       end
       
-      def _options(executables)
-        case executables[-1]
-        when Executable
-        when Hash 
+      def _workflow_flags(executables)
+        if executables[-1].kind_of?(Hash)
           options = executables.pop
-          return [options[:stack] || false, options[:iterate] || false]
+          WORKFLOW_FLAGS.collect {|flag| options[flag] || false }
+        else        
+          Array.new(WORKFLOW_FLAGS.length, false)
         end
-        
-        [false, false]
       end
+      
     end
   end
 end

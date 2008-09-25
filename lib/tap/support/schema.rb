@@ -87,17 +87,14 @@ module Tap
         def format_options(options)
           options_str = []
           options.each_pair do |key, value|
-            case key
-            when :iterate 
-              options_str << 'i' if value
-              
-            when :stack
-              options_str << 's' if value
-              
-            else raise "unknown keys in: #{options}"
+            unless index = Executable::WORKFLOW_FLAGS.index(key)
+              raise "unknown key in: #{options} (#{key})"
+            end
+            
+            if value
+              options_str << Executable::SHORT_WORKFLOW_FLAGS[index]
             end
           end
-          
           options_str.sort.join
         end
       end

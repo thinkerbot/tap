@@ -425,15 +425,18 @@ class ExecutableTest < Test::Unit::TestCase
       @batch = [self]
     end
     
+    def concat(str, id)
+      "#{str} #{id}".strip
+    end
+    
     def trace(trace)
       id = "#{@index}.#{batch_index}"
-      
       @runlist << id
-      trace = [trace] unless trace.kind_of?(Array)
       
-      trace.collect do |str|
-        str = str.inspect if str.kind_of?(Array)
-        "#{str} #{id}".strip
+      case trace
+      when Array then trace.collect {|str| concat(str, id) }
+      when String then concat(trace, id)
+      else raise "cannot utilize trace: #{trace}"
       end
     end
   end
@@ -447,7 +450,7 @@ class ExecutableTest < Test::Unit::TestCase
     t0_0, t1_0 = Tracer.intern(2, app, runlist)
     
     t0_0.sequence(t1_0)
-    t0_0.enq [""]
+    t0_0.enq ""
     app.run
   
     assert_equal %w{
@@ -455,7 +458,7 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_0,['0.0 1.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
   end
   
@@ -466,7 +469,7 @@ class ExecutableTest < Test::Unit::TestCase
     t1_1 = t1_0.initialize_batch_obj
     
     t0_0.sequence(t1_0)
-    t0_0.enq ['']
+    t0_0.enq ''
     app.run
   
     assert_equal %w{
@@ -477,13 +480,13 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
       
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_0,['0.0 1.0']]],
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t1_0,['0.1 1.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
     ], app._results(t1_0))
       
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_1,['0.0 1.1']]], 
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t1_1,['0.1 1.1']]], 
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']], 
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']], 
     ], app._results(t1_1))
   end
   
@@ -492,7 +495,7 @@ class ExecutableTest < Test::Unit::TestCase
     t0_0, t1_0 = Tracer.intern(2, app, runlist)
     
     t0_0.sequence(t1_0, :stack => true)
-    t0_0.enq [""]
+    t0_0.enq ""
     app.run
   
     assert_equal %w{
@@ -500,7 +503,7 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_0,['0.0 1.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
   end
   
@@ -511,7 +514,7 @@ class ExecutableTest < Test::Unit::TestCase
     t1_1 = t1_0.initialize_batch_obj
     
     t0_0.sequence(t1_0, :stack => true)
-    t0_0.enq ['']
+    t0_0.enq ''
     app.run
   
     assert_equal %w{
@@ -520,13 +523,13 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
       
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_0,['0.0 1.0']]],
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t1_0,['0.1 1.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
     ], app._results(t1_0))
       
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_1,['0.0 1.1']]], 
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t1_1,['0.1 1.1']]], 
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']], 
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']], 
     ], app._results(t1_1))
   end
   
@@ -544,9 +547,31 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
 
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t1_0, ['a 0.0 1.0']]],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t1_0, ['b 0.0 1.0']]]
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
     ], app._results(t1_0))
+  end
+  
+  def test_unbatched_sequence
+    runlist = []
+    t0_0, t1_0 = Tracer.intern(2, app, runlist)
+    t0_1 = t0_0.initialize_batch_obj
+    t1_1 = t1_0.initialize_batch_obj
+    
+    t0_0.sequence(t1_0, :unbatched => true)
+    t0_0.enq ''
+    app.run
+  
+    assert_equal %w{
+      0.0 1.0
+      0.1
+    }, runlist
+    
+    assert_audits_equal([
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+    ], app._results(t1_0))
+    
+    assert app._results(t1_1).empty?
   end
   
   #
@@ -558,7 +583,7 @@ class ExecutableTest < Test::Unit::TestCase
     t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
     
     t0_0.fork(t1_0, t2_0)
-    t0_0.enq [""]
+    t0_0.enq ""
     app.run
   
     assert_equal %w{
@@ -567,11 +592,11 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_0,['0.0 1.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_0,['0.0 2.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
     ], app._results(t2_0))
   end
   
@@ -583,7 +608,7 @@ class ExecutableTest < Test::Unit::TestCase
     t2_1 = t2_0.initialize_batch_obj
     
     t0_0.fork(t1_0, t2_0)
-    t0_0.enq ['']
+    t0_0.enq ''
     app.run
   
     assert_equal %w{
@@ -598,23 +623,23 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
       
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_0,['0.0 1.0']]],
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t1_0,['0.1 1.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
     ], app._results(t1_0))
       
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_1,['0.0 1.1']]], 
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t1_1,['0.1 1.1']]], 
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']], 
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']], 
     ], app._results(t1_1))
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_0,['0.0 2.0']]],
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t2_0,['0.1 2.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
     ], app._results(t2_0))
       
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_1,['0.0 2.1']]], 
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t2_1,['0.1 2.1']]], 
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']], 
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']], 
     ], app._results(t2_1))
   end
   
@@ -623,7 +648,7 @@ class ExecutableTest < Test::Unit::TestCase
     t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
     
     t0_0.fork(t1_0, t2_0, :stack => true)
-    t0_0.enq [""]
+    t0_0.enq ""
     app.run
   
     assert_equal %w{
@@ -632,11 +657,11 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_0,['0.0 1.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_0,['0.0 2.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
     ], app._results(t2_0))
   end
   
@@ -648,7 +673,7 @@ class ExecutableTest < Test::Unit::TestCase
     t2_1 = t2_0.initialize_batch_obj
     
     t0_0.fork(t1_0, t2_0, :stack => true)
-    t0_0.enq ['']
+    t0_0.enq ''
     app.run
   
     assert_equal %w{
@@ -657,23 +682,23 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
       
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_0,['0.0 1.0']]],
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t1_0,['0.1 1.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
     ], app._results(t1_0))
       
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t1_1,['0.0 1.1']]], 
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t1_1,['0.1 1.1']]], 
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']], 
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']], 
     ], app._results(t1_1))
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_0,['0.0 2.0']]],
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t2_0,['0.1 2.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
     ], app._results(t2_0))
       
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_1,['0.0 2.1']]], 
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t2_1,['0.1 2.1']]], 
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']], 
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']], 
     ], app._results(t2_1))
   end
   
@@ -693,14 +718,44 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
 
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t1_0, ['a 0.0 1.0']]],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t1_0, ['b 0.0 1.0']]]
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
     ], app._results(t1_0))
     
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t2_0, ['a 0.0 2.0']]],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t2_0, ['b 0.0 2.0']]]
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t2_0, 'a 0.0 2.0']],
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t2_0, 'b 0.0 2.0']]
     ], app._results(t2_0))
+  end
+  
+  def test_unbatched_fork
+    runlist = []
+    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_1 = t0_0.initialize_batch_obj
+    t1_1 = t1_0.initialize_batch_obj
+    t2_1 = t2_0.initialize_batch_obj
+    
+    t0_0.fork(t1_0, t2_0, :unbatched => true)
+    t0_0.enq ""
+    app.run
+  
+    assert_equal %w{
+      0.0 1.0
+          2.0
+      0.1 
+    }, runlist
+    
+    assert_audits_equal([
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+    ], app._results(t1_0))
+    
+    assert app._results(t1_1).empty?
+    
+    assert_audits_equal([
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
+    ], app._results(t2_0))
+    
+    assert app._results(t2_1).empty?
   end
   
   #
@@ -712,8 +767,8 @@ class ExecutableTest < Test::Unit::TestCase
     t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
 
     t2_0.merge(t0_0, t1_0)
-    t0_0.enq ['']
-    t1_0.enq ['']
+    t0_0.enq ''
+    t1_0.enq ''
     app.run
   
     assert_equal %w{
@@ -722,8 +777,8 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_0,['0.0 2.0']]], 
-      ExpAudit[[nil,['']],[t1_0,['1.0']],[t2_0,['1.0 2.0']]],
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']], 
+      ExpAudit[[nil, ''],[t1_0, '1.0'],[t2_0, '1.0 2.0']],
     ], app._results(t2_0))
   end
   
@@ -735,8 +790,8 @@ class ExecutableTest < Test::Unit::TestCase
     t2_1 = t2_0.initialize_batch_obj
     
     t2_0.merge(t0_0, t1_0)
-    t0_0.enq ['']
-    t1_0.enq ['']
+    t0_0.enq ''
+    t1_0.enq ''
     app.run
   
     assert_equal %w{
@@ -751,17 +806,17 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_0,['0.0 2.0']]], 
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t2_0,['0.1 2.0']]], 
-      ExpAudit[[nil,['']],[t1_0,['1.0']],[t2_0,['1.0 2.0']]], 
-      ExpAudit[[nil,['']],[t1_1,['1.1']],[t2_0,['1.1 2.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']], 
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']], 
+      ExpAudit[[nil, ''],[t1_0, '1.0'],[t2_0, '1.0 2.0']], 
+      ExpAudit[[nil, ''],[t1_1, '1.1'],[t2_0, '1.1 2.0']]
     ], app._results(t2_0))
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_1,['0.0 2.1']]],
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t2_1,['0.1 2.1']]],
-      ExpAudit[[nil,['']],[t1_0,['1.0']],[t2_1,['1.0 2.1']]],
-      ExpAudit[[nil,['']],[t1_1,['1.1']],[t2_1,['1.1 2.1']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']],
+      ExpAudit[[nil, ''],[t1_0, '1.0'],[t2_1, '1.0 2.1']],
+      ExpAudit[[nil, ''],[t1_1, '1.1'],[t2_1, '1.1 2.1']]
     ], app._results(t2_1))
   end
   
@@ -770,8 +825,8 @@ class ExecutableTest < Test::Unit::TestCase
     t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
 
     t2_0.merge(t0_0, t1_0, :stack => true)
-    t0_0.enq ['']
-    t1_0.enq ['']
+    t0_0.enq ''
+    t1_0.enq ''
     app.run
   
     assert_equal %w{
@@ -780,8 +835,8 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_0,['0.0 2.0']]], 
-      ExpAudit[[nil,['']],[t1_0,['1.0']],[t2_0,['1.0 2.0']]],
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']], 
+      ExpAudit[[nil, ''],[t1_0, '1.0'],[t2_0, '1.0 2.0']],
     ], app._results(t2_0))
   end
   
@@ -793,8 +848,8 @@ class ExecutableTest < Test::Unit::TestCase
     t2_1 = t2_0.initialize_batch_obj
     
     t2_0.merge(t0_0, t1_0, :stack => true)
-    t0_0.enq ['']
-    t1_0.enq ['']
+    t0_0.enq ''
+    t1_0.enq ''
     app.run
   
     assert_equal %w{
@@ -803,17 +858,17 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_0,['0.0 2.0']]], 
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t2_0,['0.1 2.0']]], 
-      ExpAudit[[nil,['']],[t1_0,['1.0']],[t2_0,['1.0 2.0']]], 
-      ExpAudit[[nil,['']],[t1_1,['1.1']],[t2_0,['1.1 2.0']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']], 
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']], 
+      ExpAudit[[nil, ''],[t1_0, '1.0'],[t2_0, '1.0 2.0']], 
+      ExpAudit[[nil, ''],[t1_1, '1.1'],[t2_0, '1.1 2.0']]
     ], app._results(t2_0))
     
     assert_audits_equal([
-      ExpAudit[[nil,['']],[t0_0,['0.0']],[t2_1,['0.0 2.1']]],
-      ExpAudit[[nil,['']],[t0_1,['0.1']],[t2_1,['0.1 2.1']]],
-      ExpAudit[[nil,['']],[t1_0,['1.0']],[t2_1,['1.0 2.1']]],
-      ExpAudit[[nil,['']],[t1_1,['1.1']],[t2_1,['1.1 2.1']]]
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
+      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']],
+      ExpAudit[[nil, ''],[t1_0, '1.0'],[t2_1, '1.0 2.1']],
+      ExpAudit[[nil, ''],[t1_1, '1.1'],[t2_1, '1.1 2.1']]
     ], app._results(t2_1))
   end
   
@@ -834,11 +889,38 @@ class ExecutableTest < Test::Unit::TestCase
     }, runlist
 
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t2_0, ['a 0.0 2.0']]],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t2_0, ['b 0.0 2.0']]],
-      ExpAudit[[nil,['c', 'd']],[t1_0,['c 1.0', 'd 1.0']],[AuditExpand.new(0), 'c 1.0'],[t2_0, ['c 1.0 2.0']]],
-      ExpAudit[[nil,['c', 'd']],[t1_0,['c 1.0', 'd 1.0']],[AuditExpand.new(1), 'd 1.0'],[t2_0, ['d 1.0 2.0']]]
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t2_0, 'a 0.0 2.0']],
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t2_0, 'b 0.0 2.0']],
+      ExpAudit[[nil,['c', 'd']],[t1_0,['c 1.0', 'd 1.0']],[AuditExpand.new(0), 'c 1.0'],[t2_0, 'c 1.0 2.0']],
+      ExpAudit[[nil,['c', 'd']],[t1_0,['c 1.0', 'd 1.0']],[AuditExpand.new(1), 'd 1.0'],[t2_0, 'd 1.0 2.0']]
     ], app._results(t2_0))
+  end
+  
+  def test_unbatched_merge
+    runlist = []
+    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_1 = t0_0.initialize_batch_obj
+    t1_1 = t1_0.initialize_batch_obj
+    t2_1 = t2_0.initialize_batch_obj
+    
+    t2_0.merge(t0_0, t1_0, :unbatched => true)
+    t0_0.enq ''
+    t1_0.enq ''
+    app.run
+  
+    assert_equal %w{
+      0.0 2.0
+      0.1
+      1.0 2.0
+      1.1
+    }, runlist
+    
+    assert_audits_equal([
+      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
+      ExpAudit[[nil, ''],[t1_0, '1.0'],[t2_0, '1.0 2.0']]
+    ], app._results(t2_0))
+    
+    assert app._results(t2_1).empty?
   end
   
   #
@@ -850,8 +932,8 @@ class ExecutableTest < Test::Unit::TestCase
     t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
 
     t2_0.sync_merge(t0_0, t1_0)
-    t0_0.enq ['']
-    t1_0.enq ['']
+    t0_0.enq ''
+    t1_0.enq ''
     app.run
   
     assert_equal %w{
@@ -859,11 +941,11 @@ class ExecutableTest < Test::Unit::TestCase
       1.0 2.0
     }, runlist
     
-    m0_0 = ExpAudit[[nil,['']],[t0_0,['0.0']]]
-    m1_0 = ExpAudit[[nil,['']],[t1_0,['1.0']]]
+    m0_0 = ExpAudit[[nil, ''],[t0_0, '0.0']]
+    m1_0 = ExpAudit[[nil, ''],[t1_0, '1.0']]
 
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['["0.0"] 2.0', '["1.0"] 2.0']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]]
     ], app._results(t2_0))
   end
   
@@ -875,8 +957,8 @@ class ExecutableTest < Test::Unit::TestCase
     t2_1 = t2_0.initialize_batch_obj
     
     t2_0.sync_merge(t0_0, t1_0)
-    t0_0.enq ['']
-    t1_0.enq ['']
+    t0_0.enq ''
+    t1_0.enq ''
     app.run
     
     assert_equal %w{
@@ -890,23 +972,23 @@ class ExecutableTest < Test::Unit::TestCase
           2.0 2.1
     }, runlist
     
-    m0_0 = ExpAudit[[nil,['']],[t0_0,['0.0']]]
-    m0_1 = ExpAudit[[nil,['']],[t0_1,['0.1']]]
-    m1_0 = ExpAudit[[nil,['']],[t1_0,['1.0']]]
-    m1_1 = ExpAudit[[nil,['']],[t1_1,['1.1']]]
+    m0_0 = ExpAudit[[nil, ''],[t0_0, '0.0']]
+    m0_1 = ExpAudit[[nil, ''],[t0_1, '0.1']]
+    m1_0 = ExpAudit[[nil, ''],[t1_0, '1.0']]
+    m1_1 = ExpAudit[[nil, ''],[t1_1, '1.1']]
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['["0.0"] 2.0', '["1.0"] 2.0']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_0,['["0.0"] 2.0', '["1.1"] 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_0,['["0.1"] 2.0', '["1.0"] 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_0,['["0.1"] 2.0', '["1.1"] 2.0']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]],
+      ExpAudit[ExpMerge[m0_0,m1_1], [t2_0,['0.0 2.0', '1.1 2.0']]],
+      ExpAudit[ExpMerge[m0_1,m1_0], [t2_0,['0.1 2.0', '1.0 2.0']]],
+      ExpAudit[ExpMerge[m0_1,m1_1], [t2_0,['0.1 2.0', '1.1 2.0']]]
     ], app._results(t2_0))
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_1,['["0.0"] 2.1', '["1.0"] 2.1']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_1,['["0.0"] 2.1', '["1.1"] 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_1,['["0.1"] 2.1', '["1.0"] 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_1,['["0.1"] 2.1', '["1.1"] 2.1']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_1,['0.0 2.1', '1.0 2.1']]],
+      ExpAudit[ExpMerge[m0_0,m1_1], [t2_1,['0.0 2.1', '1.1 2.1']]],
+      ExpAudit[ExpMerge[m0_1,m1_0], [t2_1,['0.1 2.1', '1.0 2.1']]],
+      ExpAudit[ExpMerge[m0_1,m1_1], [t2_1,['0.1 2.1', '1.1 2.1']]]
     ], app._results(t2_1))
   end
   
@@ -915,8 +997,8 @@ class ExecutableTest < Test::Unit::TestCase
     t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
 
     t2_0.sync_merge(t0_0, t1_0, :stack => true)
-    t0_0.enq ['']
-    t1_0.enq ['']
+    t0_0.enq ''
+    t1_0.enq ''
     app.run
   
     assert_equal %w{
@@ -924,11 +1006,11 @@ class ExecutableTest < Test::Unit::TestCase
       1.0 2.0
     }, runlist
     
-    m0_0 = ExpAudit[[nil,['']],[t0_0,['0.0']]]
-    m1_0 = ExpAudit[[nil,['']],[t1_0,['1.0']]]
+    m0_0 = ExpAudit[[nil,''],[t0_0,'0.0']]
+    m1_0 = ExpAudit[[nil,''],[t1_0,'1.0']]
 
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['["0.0"] 2.0', '["1.0"] 2.0']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]]
     ], app._results(t2_0))
   end
   
@@ -940,8 +1022,8 @@ class ExecutableTest < Test::Unit::TestCase
     t2_1 = t2_0.initialize_batch_obj
     
     t2_0.sync_merge(t0_0, t1_0, :stack => true)
-    t0_0.enq ['']
-    t1_0.enq ['']
+    t0_0.enq ''
+    t1_0.enq ''
     app.run
     
     assert_equal %w{
@@ -955,23 +1037,23 @@ class ExecutableTest < Test::Unit::TestCase
           2.0 2.1
     }, runlist
     
-    m0_0 = ExpAudit[[nil,['']],[t0_0,['0.0']]]
-    m0_1 = ExpAudit[[nil,['']],[t0_1,['0.1']]]
-    m1_0 = ExpAudit[[nil,['']],[t1_0,['1.0']]]
-    m1_1 = ExpAudit[[nil,['']],[t1_1,['1.1']]]
+    m0_0 = ExpAudit[[nil, ''],[t0_0, '0.0']]
+    m0_1 = ExpAudit[[nil, ''],[t0_1, '0.1']]
+    m1_0 = ExpAudit[[nil, ''],[t1_0, '1.0']]
+    m1_1 = ExpAudit[[nil, ''],[t1_1, '1.1']]
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['["0.0"] 2.0', '["1.0"] 2.0']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_0,['["0.0"] 2.0', '["1.1"] 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_0,['["0.1"] 2.0', '["1.0"] 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_0,['["0.1"] 2.0', '["1.1"] 2.0']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]],
+      ExpAudit[ExpMerge[m0_0,m1_1], [t2_0,['0.0 2.0', '1.1 2.0']]],
+      ExpAudit[ExpMerge[m0_1,m1_0], [t2_0,['0.1 2.0', '1.0 2.0']]],
+      ExpAudit[ExpMerge[m0_1,m1_1], [t2_0,['0.1 2.0', '1.1 2.0']]]
     ], app._results(t2_0))
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_1,['["0.0"] 2.1', '["1.0"] 2.1']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_1,['["0.0"] 2.1', '["1.1"] 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_1,['["0.1"] 2.1', '["1.0"] 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_1,['["0.1"] 2.1', '["1.1"] 2.1']]]
+      ExpAudit[ExpMerge[m0_0,m1_0], [t2_1,['0.0 2.1', '1.0 2.1']]],
+      ExpAudit[ExpMerge[m0_0,m1_1], [t2_1,['0.0 2.1', '1.1 2.1']]],
+      ExpAudit[ExpMerge[m0_1,m1_0], [t2_1,['0.1 2.1', '1.0 2.1']]],
+      ExpAudit[ExpMerge[m0_1,m1_1], [t2_1,['0.1 2.1', '1.1 2.1']]]
     ], app._results(t2_1))
   end
   
@@ -980,9 +1062,9 @@ class ExecutableTest < Test::Unit::TestCase
     t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
   
     t2_0.sync_merge(t0_0, t1_0, :stack => true)
-    t0_0.enq ['']
-    t0_0.enq ['']
-    t1_0.enq ['']
+    t0_0.enq ''
+    t0_0.enq ''
+    t1_0.enq ''
     
     assert_raise(RuntimeError) { app.run }
     assert_equal %w{

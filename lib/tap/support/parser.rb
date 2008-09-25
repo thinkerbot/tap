@@ -236,12 +236,13 @@ module Tap
         #
         def parse_options(three)
           options = {}
-          three.each_byte do |byte|
-            case byte
-            when ?i then options[:iterate] = true
-            when ?s then options[:stack] = true
-            else raise "unknown options in: #{three}"
+          0.upto(three.length - 1) do |char_index|
+            char = three[char_index, 1]
+            unless index = Executable::SHORT_WORKFLOW_FLAGS.index(char)
+              raise "unknown option in: #{three} (#{char})"
             end
+            
+            options[Executable::WORKFLOW_FLAGS[index]] = true
           end
           options
         end
