@@ -23,14 +23,6 @@ module Tap
       # The batch for the Executable.
       attr_reader :batch
       
-      # An array of workflow flags.  All workflow flags are false unless specified.
-      WORKFLOW_FLAGS = [:iterate, :stack, :unbatched]
-      
-      # An array of the first character in each WORKFLOW_FLAGS. 
-      SHORT_WORKFLOW_FLAGS = WORKFLOW_FLAGS.collect do |flag| 
-        flag.to_s[0,1]
-      end
-      
       public
       
       # Extends obj with Executable and sets up all required variables.  The
@@ -179,19 +171,8 @@ module Tap
       # - The current audited results are yielded to the block, if given, 
       #   before the next task is enqued.
       # - Executables may provided as well as tasks.
-      def sequence(*tasks) # :yields: _result
-        iterate, stack, unbatched = _workflow_flags(tasks)
-        on_complete = unbatched ? :unbatched_on_complete : :on_complete
-        
-        current_task = self
-        tasks.each do |next_task|
-          # simply pass results from one task to the next. 
-          current_task.send(on_complete) do |_result| 
-            yield(_result) if block_given?
-            _add(next_task, _result, iterate, stack, unbatched)
-          end
-          current_task = next_task
-        end
+      def sequence(*tasks, &block) # :yields: _result
+        Joins::Sequence.join(self, tasks, &block)
       end
 
       # Sets a fork workflow pattern for the source task; each target
@@ -202,16 +183,8 @@ module Tap
       # - The current audited results are yielded to the block, if given, 
       #   before the next task is enqued.
       # - Executables may provided as well as tasks.
-      def fork(*targets) # :yields: _result
-        iterate, stack, unbatched = _workflow_flags(targets)
-        on_complete = unbatched ? :unbatched_on_complete : :on_complete
-        
-        send(on_complete) do |_result|
-          targets.each do |target| 
-            yield(_result) if block_given?
-            _add(target, _result, iterate, stack, unbatched)
-          end
-        end
+      def fork(*targets, &block) # :yields: _result
+        Joins::Fork.join(self, targets, &block)
       end
 
       # Sets a simple merge workflow pattern for the source tasks. Each source
@@ -223,18 +196,8 @@ module Tap
       # - The current audited results are yielded to the block, if given, 
       #   before the next task is enqued.
       # - Executables may provided as well as tasks.
-      def merge(*sources) # :yields: _result
-        iterate, stack, unbatched = _workflow_flags(sources)
-        on_complete = unbatched ? :unbatched_on_complete : :on_complete
-        
-        sources.each do |source|
-          # merging can use the existing audit trails... each distinct 
-          # input is getting sent to one place (the target)
-          source.send(on_complete) do |_result| 
-            yield(_result) if block_given?
-            _add(self, _result, iterate, stack, unbatched)
-          end
-        end
+      def merge(*sources, &block) # :yields: _result
+        Joins::Merge.join(self, sources, &block)
       end
 
       # Sets a synchronized merge workflow for the source tasks.  Results from
@@ -255,54 +218,8 @@ module Tap
       #   it does not change the run order, but of course it does
       #   allow other tasks to be interleaved.
       #
-      def sync_merge(*sources) # :yields: _result
-        iterate, stack, unbatched = _workflow_flags(sources)
-        on_complete = unbatched ? :unbatched_on_complete : :on_complete
-        
-        # a hash of (source, index) pairs where index is the
-        # index of the source in a combination
-        indicies = {}
-        
-        # a hash of (source, combinations) pairs where combinations
-        # are combination arrays that the source participates in.
-        # note that in unbatched mode, some sources may not
-        # participate in any combinations.
-        combinations = {}
-        
-        sets = sources.collect {|source| unbatched ? [source] : source.batch }
-        Support::Combinator.new(*sets).each do |combo|
-          combination = Array.new(combo.length, nil)
-          
-          combo.each do |source|
-            indicies[source] ||= combo.index(source)
-            (combinations[source] ||= []) << combination
-          end
-        end
-        
-        sources.each_with_index do |source, index|
-          source.send(on_complete) do |_result|
-            src = _result._current_source
-            
-            source_index = indicies[src]
-            (combinations[src] ||= []).each do |combination|
-              if combination[source_index] != nil
-                raise "sync_merge collision... already got a result for #{src}"
-              end
-              
-              combination[source_index] = _result
-              unless combination.include?(nil)
-                # merge the source audits
-                _merge_result = Support::Audit.merge(*combination)
-
-                yield(_merge_result) if block_given?
-                _add(self, _merge_result, iterate, stack, unbatched)
-                
-                # reset the group array
-                combination.collect! {|i| nil }
-              end
-            end
-          end
-        end
+      def sync_merge(*sources, &block) # :yields: _result
+        Joins::SyncMerge.join(self, sources, &block)
       end
 
       # Sets a choice workflow pattern for the source task.  When the
@@ -317,18 +234,8 @@ module Tap
       # - The current audited results are yielded to the block, if given, 
       #   before the next task is enqued.
       # - Executables may provided as well as tasks.
-      def switch(*targets) # :yields: _result
-        on_complete do |_result| 
-          if index = yield(_result)        
-            unless target = targets[index] 
-              raise "no switch target for index: #{index}"
-            end
-
-            target.enq(_result)
-          else
-            app.aggregator.store(_result)
-          end
-        end
+      def switch(*targets, &block) # :yields: _result
+        Joins::Switch.join(self, targets, &block)
       end
       
       def unbatched_depends_on(dependency, *inputs)
@@ -412,42 +319,6 @@ module Tap
       
       def inspect
         "#<#{self.class.to_s}:#{object_id} _method: #{_method_name} batch_length: #{batch.length} app: #{app}>"
-      end
-      
-      private
-      
-      def _add(obj, _results, iterate, stack, unbatched)
-        results = iterate ? _results._expand : [_results]
-        results.each do |_result|
-          if stack 
-            
-            if unbatched
-              obj.unbatched_enq(_result)
-            else
-              obj.enq(_result)
-            end
-            
-          else
-            
-            if unbatched
-              app.execute(obj, _result)
-            else
-              obj.batch.each do |o|
-                app.execute(o, _result)
-              end
-            end
-            
-          end
-        end
-      end
-      
-      def _workflow_flags(executables)
-        if executables[-1].kind_of?(Hash)
-          options = executables.pop
-          WORKFLOW_FLAGS.collect {|flag| options[flag] || false }
-        else        
-          Array.new(WORKFLOW_FLAGS.length, false)
-        end
       end
       
     end

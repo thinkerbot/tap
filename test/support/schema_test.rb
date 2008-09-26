@@ -125,35 +125,22 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   def test_set_returns_a_new_join
-    join = schema.set(:type, 0, [], {})
+    join = schema.set(Join, 0, [], {})
     
-    assert_equal Node::Join, join.class
-    assert_equal :type, join.type
+    assert_equal Join, join.class
     assert_equal({}, join.options)
   end
   
   def test_set_sets_inputs_and_outputs_for_specified_nodes_to_the_new_join
-    join = schema.set(:type, 0, [1,2], {})
+    join = schema.set(Join, 0, [1,2], {})
     
     assert_equal join, n0.output
     assert_equal join, n1.input
     assert_equal join, n2.input
   end
   
-  #
-  # set_reverse test
-  #
-  
-  def test_set_reverse_returns_a_new_reverse_join
-    join = schema.set_reverse(:type, 0, [], {})
-    
-    assert_equal Node::ReverseJoin, join.class
-    assert_equal :type, join.type
-    assert_equal({}, join.options)
-  end
-  
-  def test_set_reverse_sets_inputs_and_outputs_for_specified_nodes_to_the_new_join
-    join = schema.set_reverse(:type, 0, [1,2], {})
+  def test_set_with_a_ReverseJoin_sets_inputs_and_outputs_for_specified_nodes_to_the_new_join
+    join = schema.set(ReverseJoin, 0, [1,2], {})
     
     assert_equal join, n0.output
     assert_equal join, n1.input
@@ -236,8 +223,8 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   def test_joins_returns_hash_of_input_and_output_nodes_by_join
-    a = schema.set(:a, 0, [1,2])
-    b = schema.set_reverse(:b, 5, [3,4])
+    a = schema.set(Join, 0, [1,2])
+    b = schema.set(ReverseJoin, 5, [3,4])
     
     assert_equal({
       a => [n0, [n1,n2]], 
@@ -296,7 +283,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_sequence_breaks_for_sequence_joins
     schema = Schema.new node_set
-    schema.set :sequence, 0, [1,2]
+    schema.set Joins::Sequence, 0, [1,2]
 
     assert_equal "-- 0 -- 1 -- 2 --0:1:2", schema.to_s
     assert_equal [[0],[1],[2],"0:1:2"], schema.dump
@@ -304,7 +291,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_fork_breaks_for_fork_joins
     schema = Schema.new node_set
-    schema.set :fork, 0, [1,2]
+    schema.set Joins::Fork, 0, [1,2]
 
     assert_equal "-- 0 -- 1 -- 2 --0[1,2]", schema.to_s
     assert_equal [[0],[1],[2],"0[1,2]"], schema.dump
@@ -312,7 +299,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_merge_breaks_for_merge_joins
     schema = Schema.new node_set
-    schema.set_reverse :merge, 2, [0,1]
+    schema.set Joins::Merge, 2, [0,1]
 
     assert_equal "-- 0 -- 1 -- 2 --2{0,1}", schema.to_s
     assert_equal [[0],[1],[2],"2{0,1}"], schema.dump
@@ -320,18 +307,18 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_sync_merge_breaks_for_sync_merge_joins
     schema = Schema.new node_set
-    schema.set_reverse :sync_merge, 2, [0,1]
+    schema.set Joins::SyncMerge, 2, [0,1]
 
     assert_equal "-- 0 -- 1 -- 2 --2(0,1)", schema.to_s
     assert_equal [[0],[1],[2],"2(0,1)"], schema.dump
   end
   
-  def test_to_s_and_dump_raises_error_for_unknown_join_type
-    schema = Schema.new node_set
-    schema.set :unknown, 0, [1]
-
-    assert_raise(RuntimeError) { schema.to_s }
-    assert_raise(RuntimeError) { schema.dump }
-  end
+  # def test_to_s_and_dump_raises_error_for_unknown_join_type
+  #   schema = Schema.new node_set
+  #   schema.set :unknown, 0, [1]
+  # 
+  #   assert_raise(RuntimeError) { schema.to_s }
+  #   assert_raise(RuntimeError) { schema.dump }
+  # end
 
 end

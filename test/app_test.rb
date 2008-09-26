@@ -475,8 +475,9 @@ o-[add_five] 8
     app.run
   
     assert_equal [
-      [0,'0.0'],[0,'0.1'],              # each input to t0
+      [0,'0.0'],            # each input to t0
       [0,'0.0','1.0'],[0,'0.0','1.1'],  # each t0 result to each t1
+      [0,'0.1'],  
       [0,'0.1','1.0'],[0,'0.1','1.1']
     ], runlist
     
@@ -495,12 +496,14 @@ o-[add_five] 8
     app.run
   
     assert_equal [
-      [0,'0.0'],[0,'0.1'],              # each input to t0 (from before)
+      [0,'0.0'],         # each input to t0 (from before)
       [0,'0.0','1.0'],[0,'0.0','1.1'],  # each t0 result to each t1 (from before)
+      [0,'0.1'],     
       [0,'0.1','1.0'],[0,'0.1','1.1'],
       
-      [0,'0.0'],[0,'0.1'],              # each input to t0
+      [0,'0.0'],          # each input to t0
       [0,'0.0','2.0'],[0,'0.0','2.1'],  # each t0 result to each t2
+      [0,'0.1'],    
       [0,'0.1','2.0'],[0,'0.1','2.1']
     ], runlist
     
@@ -525,12 +528,14 @@ o-[add_five] 8
     app.run
   
     assert_equal [
-      [0,'0.0'],[0,'0.1'],              # each input to t0 (from before)
+      [0,'0.0']    ,     # each input to t0 (from before)
       [0,'0.0','1.0'],[0,'0.0','1.1'],  # each t0 result to each t1 (from before)
+      [0,'0.1'],    
       [0,'0.1','1.0'],[0,'0.1','1.1'],
       
-      [0,'0.0'],[0,'0.1'],              # each input to t0 (from before)
+      [0,'0.0'],          # each input to t0 (from before)
       [0,'0.0','2.0'],[0,'0.0','2.1'],  # each t0 result to each t2 (from before)
+      [0,'0.1'],    
       [0,'0.1','2.0'],[0,'0.1','2.1'],
       
       [0,'0.0'],[0,'0.1'],              # each input to t0

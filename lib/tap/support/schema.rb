@@ -1,4 +1,5 @@
 require 'tap/support/node'
+require 'tap/support/joins'
 autoload(:Shellwords, 'shellwords')
 
 module Tap
@@ -87,12 +88,12 @@ module Tap
         def format_options(options)
           options_str = []
           options.each_pair do |key, value|
-            unless index = Executable::WORKFLOW_FLAGS.index(key)
+            unless index = Join::FLAGS.index(key)
               raise "unknown key in: #{options} (#{key})"
             end
             
             if value
-              options_str << Executable::SHORT_WORKFLOW_FLAGS[index]
+              options_str << Join::SHORT_FLAGS[index]
             end
           end
           options_str.sort.join
@@ -134,23 +135,12 @@ module Tap
       
       # Sets a join between the source and targets.  
       # Returns the new join.
-      def set(type, source_index, target_indicies, options={})
-        join = Node::Join.new(type, options)
-        
+      def set(join_class, source_indicies, target_indicies, options={})
+        join = join_class.new(options)
+
+        [*source_indicies].each {|source_index| self[source_index].output = join }
         [*target_indicies].each {|target_index| self[target_index].input = join  }
-        self[source_index].output = join
-        
-        join
-      end
-      
-      # Sets a reverse join between the sources and target.  
-      # Returns the new join.
-      def set_reverse(type, target_index, source_indicies, options={})
-        join = Node::ReverseJoin.new(type, options)
-        
-        self[target_index].output = join
-        [*source_indicies].each {|source_index| self[source_index].input = join }
-        
+
         join
       end
       
@@ -221,12 +211,12 @@ module Tap
           next unless node
           
           case node.input
-          when Node::Join, Node::ReverseJoin
+          when Join, ReverseJoin
             (joins[node.input] ||= [nil,[]])[1] << node
           end
           
           case node.output
-          when Node::Join, Node::ReverseJoin
+          when Join, ReverseJoin
             (joins[node.output] ||= [nil,[]])[0] = node
           end
         end
@@ -235,7 +225,7 @@ module Tap
           summary = []
           joins.each_pair do |join, (source_node, target_nodes)|
             target_indicies = target_nodes.collect {|node| nodes.index(node) }
-            summary << [join.type, nodes.index(source_node), target_indicies, join.options]
+            summary << [join.name, nodes.index(source_node), target_indicies, join.options]
           end
           
           summary.sort_by {|entry| entry[1] || -1 }
@@ -265,8 +255,9 @@ module Tap
           targets = target_nodes.collect do |target_node|
             tasks[target_node][0]
           end
-          targets << join.options
-          tasks[source_node][0].send(join.type, *targets)
+          source = tasks[source_node][0]
+          
+          join.join(source, targets)
         end
 
         # build queues
@@ -345,12 +336,12 @@ module Tap
           source_index = nodes.index(source_node)
           target_indicies = target_nodes.collect {|node| nodes.index(node) }
           
-          yield case join.type
-          when :sequence   then format_sequence(source_index, target_indicies, join.options)
-          when :fork       then format_fork(source_index, target_indicies, join.options)
-          when :merge      then format_merge(source_index, target_indicies, join.options)
-          when :sync_merge then format_sync_merge(source_index, target_indicies, join.options)
-          else raise "unknown join type: #{join.type} (#{source_index}, [#{target_indicies.join(',')}])"
+          yield case join
+          when Joins::Sequence   then format_sequence(source_index, target_indicies, join.options)
+          when Joins::Fork       then format_fork(source_index, target_indicies, join.options)
+          when Joins::Merge      then format_merge(source_index, target_indicies, join.options)
+          when Joins::SyncMerge  then format_sync_merge(source_index, target_indicies, join.options)
+          else raise "unknown join type: #{join.class} (#{source_index}, [#{target_indicies.join(',')}])"
           end
         end
       end

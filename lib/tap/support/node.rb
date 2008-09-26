@@ -3,26 +3,7 @@ module Tap
 
     # Represents a task node in a Schema.
     class Node
-      class Join 
-        attr_reader :type
-        attr_reader :options
-        
-        def initialize(type, options)
-          @type = type
-          @options = options
-        end
-        
-        def inspect
-          "#<Join:#{object_id}>"
-        end
-      end
       
-      class ReverseJoin < Join
-        def inspect
-          "#<ReverseJoin:#{object_id}>"
-        end
-      end
-
       # An array of arguments used to instantiate
       # the node, and to specify arguments enqued
       # to the instance (when the node is directly

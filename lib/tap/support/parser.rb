@@ -238,11 +238,11 @@ module Tap
           options = {}
           0.upto(three.length - 1) do |char_index|
             char = three[char_index, 1]
-            unless index = Executable::SHORT_WORKFLOW_FLAGS.index(char)
+            unless index = Join::SHORT_FLAGS.index(char)
               raise "unknown option in: #{three} (#{char})"
             end
             
-            options[Executable::WORKFLOW_FLAGS[index]] = true
+            options[Join::FLAGS[index]] = true
           end
           options
         end
@@ -364,13 +364,13 @@ module Tap
         when SEQUENCE
           indicies, options = parse_sequence($1, $3)
           while indicies.length > 1
-            schema.set(:sequence, indicies.shift, indicies[0], options)
+            schema.set(Joins::Sequence, indicies.shift, indicies[0], options)
           end
 
         when INSTANCE    then schema[parse_instance($1)].globalize
-        when FORK        then schema.set(:fork,               *parse_bracket($1, $2, $3))
-        when MERGE       then schema.set_reverse(:merge,      *parse_bracket($1, $2, $3))
-        when SYNC_MERGE  then schema.set_reverse(:sync_merge, *parse_bracket($1, $2, $3))    
+        when FORK        then schema.set(Joins::Fork,       *parse_bracket($1, $2, $3))
+        when MERGE       then schema.set(Joins::Merge,      *parse_bracket($1, $2, $3))
+        when SYNC_MERGE  then schema.set(Joins::SyncMerge,  *parse_bracket($1, $2, $3))    
         else raise ArgumentError, "invalid break argument: #{arg}"
         end
       end
