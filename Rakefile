@@ -93,6 +93,7 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   
   rdoc.rdoc_dir = 'rdoc'
   rdoc.title    = 'Tap (task application)'
+  rdoc.main     = 'README'
   rdoc.options << '--line-numbers' << '--inline-source'
   rdoc.rdoc_files.include( spec.extra_rdoc_files )
   

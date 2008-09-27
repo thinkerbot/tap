@@ -22,9 +22,6 @@ Gem::Specification.new do |s|
     doc/Command\sReference}
   
   s.files = %W{
-    README
-    MIT-LICENSE
-    History
     cgi/run.rb
     cmd/console.rb
     cmd/destroy.rb
@@ -94,6 +91,13 @@ Gem::Specification.new do |s|
     lib/tap/support/gems/rack.rb
     lib/tap/support/gems.rb
     lib/tap/support/instance_configuration.rb
+    lib/tap/support/join.rb
+    lib/tap/support/joins.rb
+    lib/tap/support/joins/fork.rb
+    lib/tap/support/joins/merge.rb
+    lib/tap/support/joins/sequence.rb
+    lib/tap/support/joins/switch.rb
+    lib/tap/support/joins/sync_merge.rb
     lib/tap/support/lazy_attributes.rb
     lib/tap/support/lazydoc.rb
     lib/tap/support/lazydoc/comment.rb

@@ -62,6 +62,42 @@ module Tap
       class ExpMerge < Array
       end
       
+      class Tracer
+        include Tap::Support::Executable
+
+        class << self
+          def intern(n, app, runlist)
+            Array.new(n) { |index| new(index, app, runlist) }
+          end
+        end
+
+        def initialize(index, app, runlist)
+          @index = index
+          @runlist = runlist
+
+          @app = app
+          @_method_name = :trace
+          @on_complete_block =nil
+          @dependencies = []
+          @batch = [self]
+        end
+
+        def concat(str, id)
+          "#{str} #{id}".strip
+        end
+
+        def trace(trace)
+          id = "#{@index}.#{batch_index}"
+          @runlist << id
+
+          case trace
+          when Array then trace.collect {|str| concat(str, id) }
+          when String then concat(trace, id)
+          else raise "cannot utilize trace: #{trace}"
+          end
+        end
+      end
+      
       # Asserts that an array of audits are all equal, basically feeding
       # each pair of audits to assert_audit_equal.
       def assert_audits_equal(expected, audits)
