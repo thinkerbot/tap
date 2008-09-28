@@ -21,8 +21,11 @@ module Tap
       
         attr_accessor :env
        
-        def collect_tasks
-          ARGV.collect! do |arg|
+        def collect_tasks(*args)
+          # a little song and dance for compliance with
+          # rake pre- and post-0.8.2
+          argv = args.empty? ? ARGV : args[0]
+          argv.collect! do |arg|
             next(arg) unless arg =~ /^:([a-z_\d]+):(.*)$/
             env_pattern = $1
             rake_task = $2
@@ -55,7 +58,7 @@ module Tap
               fail "No Rakefile found for '#{env_pattern}' (looking for: #{@rakefiles.join(', ')})"
             end
           end
-        
+          
           super
         end
       

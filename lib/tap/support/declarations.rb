@@ -1,4 +1,5 @@
 require 'tap/support/lazydoc/declaration'
+autoload(:OpenStruct, 'ostruct')
 
 module Tap
   module Support
@@ -20,7 +21,31 @@ module Tap
       end
       
       def tasc(name, configs={}, &block)
-        declare(Tap::Task, name, configs, &block)
+        # in this scheme, arg_names will be empty
+        name, arg_names, configs, dependencies = resolve_args([name, configs])
+        declare(Tap::Task, name, configs, dependencies, &block)
+      end
+      
+      def task(*args, &block)
+        name, arg_names, configs, dependencies = resolve_args(args)
+        
+        task_class = declare(Tap::Task, name, configs, dependencies) do |*inputs|
+          args = OpenStruct.new
+          arg_names.each do |arg_name|
+            break if inputs.empty?
+            args.arg_name = inputs.shift
+          end
+
+          self.class::BLOCKS.each do |task_block|
+            task_block.call(self, args)
+          end
+        end
+        
+        unless task_class.const_defined?(:BLOCKS)
+          task_class.const_set(:BLOCKS, [])
+        end
+        task_class::BLOCKS << block unless block == nil
+        task_class.instance
       end
       
       protected
@@ -49,6 +74,49 @@ module Tap
 
       private
       
+      # Resolve the arguments for a task/rule.  Returns a triplet of
+      # [task_name, arg_name_list, configs, prerequisites].
+      #
+      # From Rake 0.8.3
+      # Changes:
+      # - no :needs support for the trailing Hash (which is now config)
+      def resolve_args(args)
+        task_name = args.shift
+        arg_names = args
+        configs = {}
+        needs = []
+        
+        if task_name.is_a?(Hash)
+          hash = task_name
+          task_name = hash.keys[0]
+          needs = hash[task_name]
+        end
+        
+        if arg_names.last.is_a?(Hash)
+          configs = arg_names.pop
+        end
+        
+        needs = needs.respond_to?(:to_ary) ? needs.to_ary : [needs]
+        needs = needs.compact.collect do |need|
+          dependency, argv = case need
+          when Array then need
+          else [need, []]
+          end
+          
+          unless dependency.kind_of?(Class)
+            dependency = declare(Tap::Task, dependency)
+          end
+    
+          if dependency.ancestors.include?(Tap::Task)
+            [File.basename(dependency.default_name), dependency, argv]
+          else
+            raise ArgumentError, "malformed dependency declaration: #{need}"
+          end
+        end
+        
+        [task_name, arg_names, configs, needs]
+      end
+
       def arity(block)
         arity = block.arity
         
@@ -60,43 +128,7 @@ module Tap
         arity
       end
       
-      def parse(declaration)
-        # Extract name and dependencies from declaration
-        name, dependencies = case declaration
-        when Hash then declaration.to_a[0]
-        else [declaration, []]
-        end
-        
-        unless dependencies.kind_of?(Array)
-          raise ArgumentError, "dependencies should be specified as an array (was #{dependencies.class})"
-        end
-        
-        unless dependencies.empty?
-          dependencies.collect! do |entry|
-            dependency, argv = case entry
-            when Array then entry
-            else [entry, []]
-            end
-            
-            unless dependency.kind_of?(Class)
-              dependency = declare(Tap::Task, dependency)
-            end
-      
-            if dependency.ancestors.include?(Tap::Task)
-              [File.basename(dependency.default_name), dependency, argv]
-            else
-              raise ArgumentError, "malformed dependency declaration: #{dependency}"
-            end
-          end
-        end
-        
-        [name, dependencies]
-      end
-      
-      def declare(klass, declaration, configs={}, options={}, &block)
-        # parse the declaration
-        name, dependencies = parse(declaration)
-        
+      def declare(klass, name, configs={}, dependencies=[], options={}, &block)
         # nest the constant name
         base = (self.kind_of?(Module) ? self : self.class).instance_variable_get(:@tap_declaration_base)
         name = File.join(base, name.to_s)
