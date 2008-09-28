@@ -323,18 +323,33 @@ class DeclarationsTest < Test::Unit::TestCase
     
   def test_task_args_declaration_will_override_with_later_args
     arg_hash_a = nil
-    s = task(:s, :one, :two, :three) do |t, args|
+    p = task(:p, :one, :two, :three) do |t, args|
       arg_hash_a = args.marshal_dump
     end
     
     arg_hash_b = nil
-    s1 = task(:s, :four, :five) do |t, args|
+    p1 = task(:p, :four, :five) do |t, args|
       arg_hash_b = args.marshal_dump
     end
 
-    s1.process('1','2','3','4','5')
+    p1.process('1','2','3','4','5')
     assert_equal({:four => '1', :five => '2'}, arg_hash_a)
     assert_equal({:four => '1', :five => '2'}, arg_hash_b)
   end
   
+  def test_task_args_declaration_will_override_with_later_args_when_no_later_args_are_given
+    arg_hash_a = nil
+    q = task(:q, :one, :two, :three) do |t, args|
+      arg_hash_a = args.marshal_dump
+    end
+    
+    arg_hash_b = nil
+    q1 = task(:q) do |t, args|
+      arg_hash_b = args.marshal_dump
+    end
+
+    q1.process('1','2','3','4','5')
+    assert_equal({}, arg_hash_a)
+    assert_equal({}, arg_hash_b)
+  end
 end

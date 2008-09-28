@@ -20,16 +20,16 @@ module Tap
         set_declaration_base(base)
       end
       
-      def tasc(name, configs={}, &block)
+      def tasc(*args, &block)
         # in this scheme, arg_names will be empty
-        name, arg_names, configs, dependencies = resolve_args([name, configs])
-        declare(Tap::Task, name, configs, dependencies, &block)
+        name, configs, dependencies, arg_names = resolve_args(args)
+        declare(Tap::Task, name, configs, dependencies, arg_names, &block)
       end
       
       def task(*args, &block)
-        name, arg_names, configs, dependencies = resolve_args(args)
+        name, configs, dependencies, arg_names = resolve_args(args)
         
-        task_class = declare(Tap::Task, name, configs, dependencies) do |*inputs|
+        task_class = declare(Tap::Task, name, configs, dependencies, arg_names) do |*inputs|
           args = {}
           arg_names.each do |arg_name|
             break if inputs.empty?
@@ -81,7 +81,7 @@ module Tap
       private
       
       # Resolve the arguments for a task/rule.  Returns a triplet of
-      # [task_name, arg_name_list, configs, prerequisites].
+      # [task_name, configs, prerequisites, arg_name_list].
       #
       # From Rake 0.8.3
       # Changes:
@@ -120,7 +120,7 @@ module Tap
           end
         end
         
-        [task_name, arg_names, configs, needs]
+        [task_name, configs, needs, arg_names]
       end
 
       def arity(block)
@@ -134,13 +134,13 @@ module Tap
         arity
       end
       
-      def declare(klass, name, configs={}, dependencies=[], options={}, &block)
+      def declare(klass, name, configs={}, dependencies=[], arg_names=[], &block)
         # nest the constant name
         base = (self.kind_of?(Module) ? self : self.class).instance_variable_get(:@tap_declaration_base)
         name = File.join(base, name.to_s)
         
         # generate the subclass
-        subclass = klass.subclass(name, configs, dependencies, options, &block)
+        subclass = klass.subclass(name, configs, dependencies, &block)
         
         # register documentation
         caller[1] =~ Lazydoc::CALLER_REGEXP
@@ -148,18 +148,20 @@ module Tap
         lazydoc = subclass.lazydoc(false)
         lazydoc[subclass.to_s]['manifest'] = lazydoc.register($3.to_i - 1, Lazydoc::Declaration)
 
-        arity = options[:arity] || (block_given? ? block.arity : -1)
-        comment = Lazydoc::Comment.new
-        comment.subject = case
-        when arity > 0
-          Array.new(arity, "INPUT").join(' ')
-        when arity < 0
-          array = Array.new(-1 * arity - 1, "INPUT")
-          array << "INPUTS..."
-          array.join(' ')
-        else ""
+        if arg_names.empty?
+          arity = block_given? ? arity(block) : -1
+          case 
+          when arity > 0
+            arg_names = Array.new(arity, "INPUT")
+          when arity < 0
+            arg_names = Array.new(-1 * arity - 1, "INPUT")
+            arg_names << "INPUTS..."
+          end
         end
-        lazydoc[subclass.to_s]['args'] ||= comment
+        
+        comment = Lazydoc::Comment.new
+        comment.subject = arg_names.join(' ')
+        lazydoc[subclass.to_s]['args'] = comment
         
         # update any dependencies in instance
         subclass.dependencies.each do |dependency, args|
