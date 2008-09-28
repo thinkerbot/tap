@@ -62,6 +62,16 @@ module Tap
         def [](const_name)
           const_attrs[const_name] ||= {}
         end
+        
+        # Returns an array of the const_names in self with at
+        # least one attribute.
+        def const_names
+          names = []
+          const_attrs.each_pair do |const_name, attrs|
+            names << const_name unless attrs.empty?
+          end
+          names
+        end
 
         # Register the specified line number to self.  Returns a 
         # comment_class instance corresponding to the line.

@@ -63,12 +63,26 @@ end
 begin
   env.activate
   
+  tasks_manifest = env.manifest(:tasks)
+  Tap::Support::Lazydoc.registry.each do |document|
+    Tap::Support::Lazydoc.scan_doc(document.source_file, 'manifest')
+    
+    document.const_attrs.each_pair do |const_name, attrs|
+      next if attrs.empty?
+      tasks_manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name, document.source_file)]
+    end
+  end
+  
   case ARGV[0]
   when '--help', nil, '-T'
     puts Tap::Support::Lazydoc.usage(__FILE__)
     puts
     puts "===  tap tasks ==="
-    puts env.summarize(:tasks) {|const| const.document[const.name]['manifest'] }
+    str = env.summarize(:tasks) do |const| 
+      const.document.resolve
+      const.document[const.name]['manifest'].subject
+    end
+    puts str
     puts
     puts "=== rake tasks ==="
     Tap::Tasks::Rake.new.enq('-T')
