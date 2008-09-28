@@ -30,14 +30,19 @@ module Tap
         name, arg_names, configs, dependencies = resolve_args(args)
         
         task_class = declare(Tap::Task, name, configs, dependencies) do |*inputs|
-          args = OpenStruct.new
+          args = {}
           arg_names.each do |arg_name|
             break if inputs.empty?
-            args.arg_name = inputs.shift
+            args[arg_name] = inputs.shift
           end
-
+          
+          args = OpenStruct.new(args)
           self.class::BLOCKS.each do |task_block|
-            task_block.call(self, args)
+            case task_block.arity
+            when 0 then task_block.call()
+            when 1 then task_block.call(self)
+            else task_block.call(self, args)
+            end
           end
         end
         
@@ -45,6 +50,7 @@ module Tap
           task_class.const_set(:BLOCKS, [])
         end
         task_class::BLOCKS << block unless block == nil
+        
         task_class.instance
       end
       
@@ -154,6 +160,11 @@ module Tap
         else ""
         end
         lazydoc[subclass.to_s]['args'] ||= comment
+        
+        # update any dependencies in instance
+        subclass.dependencies.each do |dependency, args|
+          subclass.instance.depends_on(dependency.instance, *args)
+        end
         
         subclass
       end

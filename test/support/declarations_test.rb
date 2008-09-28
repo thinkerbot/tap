@@ -11,72 +11,112 @@ class DeclarationsTest < Test::Unit::TestCase
   #
   
   def test_tasc_generates_subclass_of_Task_by_name
-    assert !DeclarationsTest.const_defined?(:Declaration1)
-    klass = tasc(:declaration1)
-    assert_equal DeclarationsTest::Declaration1, klass
+    assert !DeclarationsTest.const_defined?(:Tasc0)
+    klass = tasc(:tasc0)
+    assert_equal DeclarationsTest::Tasc0, klass
     assert_equal Tap::Task, klass.superclass
   end
   
-  def test_subclass_is_assigned_configurations
-    klass = tasc(:declaration2, {:key => 'value'})
-    assert_equal({:key => 'value'}, klass.configurations.to_hash)
+  def test_multiple_calls_to_tasc_with_the_same_name_return_same_class
+    klass_a = tasc(:tasc1)
+    klass_b = tasc(:tasc1)
+    assert_equal klass_a, klass_b
   end
   
-  def test_subclass_sets_block_as_process
+  def test_tasc_subclass_is_assigned_configurations
+    tasc(:tasc2, {:key => 'value'})
+    assert_equal({:key => 'value'}, Tasc2.configurations.to_hash)
+  end
+  
+  def test_tasc_subclass_sets_block_as_process
     was_in_block = false
-    klass = tasc(:declaration3) do
+    tasc(:tasc3) do
       was_in_block = true
     end
     
     assert !was_in_block
-    klass.new.process
+    Tasc3.new.process
     assert was_in_block
   end
   
-  def test_subclass_sets_dependencies_using_initial_hash_if_given
-    klass = tasc(:declaration4 => [Tap::Task])
+  def test_tasc_subclass_sets_dependencies_using_initial_hash_if_given
+    tasc(:tasc4 => [Tap::Task])
     assert_equal [
       [Tap::Task, []]
-    ], klass.dependencies
+    ], Tasc4.dependencies
     
-    
-    klass = tasc(:declaration5 => [Tap::Task, Tap::FileTask])
+    tasc(:tasc5 => [Tap::Task, [Tap::FileTask, [1,2,3]]])
     assert_equal [
       [Tap::Task, []], 
-      [Tap::FileTask, []]
-    ], klass.dependencies
+      [Tap::FileTask, [1,2,3]]
+    ], Tasc5.dependencies
   end
   
-  def test_string_and_sym_dependencies_are_resolved_into_tasks_using_declare
-    klass = tasc(:declaration6 => [:task])
+  def test_tasc_sym_dependencies_are_resolved_into_tasks_using_declare
+    tasc(:tasc8 => [:tasc6, [:tasc7, [1,2,3]]])
     assert_equal [
-      [DeclarationsTest::Task, []]
-    ], klass.dependencies
-    
-    klass = tasc(:task => [:declaration6])
+      [Tasc6, []],
+      [Tasc7, [1,2,3]]
+    ], Tasc8.dependencies
+  end
+  
+  def test_tasc_dependencies_may_be_added_in_multiple_calls
+    tasc(:tasc10 => [:tasc9])
+    tasc(:tasc10 => [[:tasc9, [1,2,3]]])
+
     assert_equal [
-      [DeclarationsTest::Declaration6, []]
-    ], klass.dependencies
+      [Tasc9, []],
+      [Tasc9, [1,2,3]]
+    ], Tasc10.dependencies
+  end
+  
+  def test_tasc_does_not_add_duplicate_dependencies
+    tasc(:tasc12 => [:tasc11])
+    tasc(:tasc12 => [:tasc11])
+    tasc(:tasc12 => [:tasc11, :tasc11])
+    tasc(:tasc12 => [[:tasc11, [1,2,3]]])
+    tasc(:tasc12 => [[:tasc11, [1,2,3]]])
+    tasc(:tasc12 => [[:tasc11, [1,2,3]], [:tasc11, [1,2,3]]])
+
+    assert_equal [
+      [Tasc11, []],
+      [Tasc11, [1,2,3]]
+    ], Tasc12.dependencies
   end
   
   def test_tasc_registers_documentation
     # ::desc summary
     # a multiline
     # comment
-    tasc(:declaration7)
+    tasc(:tasc13)
     
     Tap::Support::Lazydoc[__FILE__].resolved = false
-    assert_equal Tap::Support::Lazydoc::Declaration, Declaration7.manifest.class
-    assert_equal "summary", Declaration7.manifest.subject
-    assert_equal "a multiline comment", Declaration7.manifest.to_s
+    assert_equal Tap::Support::Lazydoc::Declaration, Tasc13.manifest.class
+    assert_equal "summary", Tasc13.manifest.subject
+    assert_equal "a multiline comment", Tasc13.manifest.to_s
     
     # a comment with no
     # description
-    tasc(:declaration9)
+    tasc(:tasc14)
     
     Tap::Support::Lazydoc[__FILE__].resolved = false
-    assert_equal "", Declaration9.manifest.subject
-    assert_equal "a comment with no description", Declaration9.manifest.to_s
+    assert_equal "", Tasc14.manifest.subject
+    assert_equal "a comment with no description", Tasc14.manifest.to_s
+  end
+  
+  def test_multiple_calls_to_tasc_reassigns_documentation
+    # ::desc summary
+    # comment
+    tasc(:tasc15)
+    
+    # ::desc new summary
+    # new comment
+    tasc(:tasc15)
+    
+    Tap::Support::Lazydoc[__FILE__].resolved = false
+    assert_equal Tap::Support::Lazydoc::Declaration, Tasc15.manifest.class
+    assert_equal "new summary", Tasc15.manifest.subject
+    assert_equal "new comment", Tasc15.manifest.to_s
   end
   
   #
@@ -104,14 +144,122 @@ class DeclarationsTest < Test::Unit::TestCase
   # task declaration
   #
   
-  def test_task_generates_subclass_of_Task_by_name
-    assert !DeclarationsTest.const_defined?(:Rake1)
-    task(:rake1)
-    assert DeclarationsTest.const_defined?(:Rake1)
-    assert_equal Tap::Task, Rake1.superclass
+  def test_task_generates_instance_of_subclass_of_Task_by_name
+    assert !DeclarationsTest.const_defined?(:Task0)
+    instance = task(:task0)
+    assert_equal DeclarationsTest::Task0, instance.class
+    assert_equal Task0.instance, instance
+    assert_equal Tap::Task, Task0.superclass
   end
   
-  def test_task_returns_instance_of_Rake_subclass
+  def test_multiple_calls_to_task_with_the_same_name_return_same_instance
+    instance_a = task(:task1)
+    instance_b = task(:task1)
+    assert_equal instance_a, instance_b
+  end
+  
+  def test_task_subclass_is_assigned_configurations
+    task(:task2, {:key => 'value'})
+    assert_equal({:key => 'value'}, Task2.configurations.to_hash)
+  end
+  
+  def test_task_subclass_runs_block_during_process
+    was_in_block = false
+    task(:task3) do
+      was_in_block = true
+    end
+    
+    assert !was_in_block
+    Task3.new.process
+    assert was_in_block
+  end
+  
+  def test_task_subclass_sets_dependencies_using_initial_hash_if_given
+    task(:task4 => [Tap::Task])
+    assert_equal [
+      [Tap::Task, []]
+    ], Task4.dependencies
+    
+    instance = task(:task5 => [Tap::Task, [Tap::FileTask, [1,2,3]]])
+    assert_equal [
+      [Tap::Task, []], 
+      [Tap::FileTask, [1,2,3]]
+    ], Task5.dependencies
+  end
+  
+  def test_task_sym_dependencies_are_resolved_into_tasks_using_declare
+    task(:task8 => [:task6, [:task7, [1,2,3]]])
+    assert_equal [
+      [Task6, []],
+      [Task7, [1,2,3]]
+    ], Task8.dependencies
+  end
+  
+  def test_task_dependencies_may_be_added_in_multiple_calls
+    task(:task10 => [:task9])
+    task(:task10 => [[:task9, [1,2,3]]])
+
+    assert_equal [
+      [Task9, []],
+      [Task9, [1,2,3]]
+    ], Task10.dependencies
+  end
+  
+  def test_task_does_not_add_duplicate_dependencies
+    task(:task12 => [:task11])
+    task(:task12 => [:task11])
+    task(:task12 => [:task11, :task11])
+    task(:task12 => [[:task11, [1,2,3]]])
+    task(:task12 => [[:task11, [1,2,3]]])
+    task(:task12 => [[:task11, [1,2,3]], [:task11, [1,2,3]]])
+
+    assert_equal [
+      [Task11, []],
+      [Task11, [1,2,3]]
+    ], Task12.dependencies
+  end
+  
+  def test_task_registers_documentation
+    # ::desc summary
+    # a multiline
+    # comment
+    task(:task13)
+    
+    Tap::Support::Lazydoc[__FILE__].resolved = false
+    assert_equal Tap::Support::Lazydoc::Declaration, Task13.manifest.class
+    assert_equal "summary", Task13.manifest.subject
+    assert_equal "a multiline comment", Task13.manifest.to_s
+    
+    # a comment with no
+    # description
+    task(:task14)
+    
+    Tap::Support::Lazydoc[__FILE__].resolved = false
+    assert_equal "", Task14.manifest.subject
+    assert_equal "a comment with no description", Task14.manifest.to_s
+  end
+  
+  def test_multiple_calls_to_task_reassigns_documentation
+    # ::desc summary
+    # comment
+    task(:task15)
+    
+    # ::desc new summary
+    # new comment
+    task(:task15)
+    
+    Tap::Support::Lazydoc[__FILE__].resolved = false
+    assert_equal Tap::Support::Lazydoc::Declaration, Task15.manifest.class
+    assert_equal "new summary", Task15.manifest.subject
+    assert_equal "new comment", Task15.manifest.to_s
+  end
+  
+  #
+  # rake compatibility tests
+  # 
+  # many of these tests are patterned after check/rake_check.rb
+  
+  def test_task_returns_instance_of_subclass
     result = task(:rake2)
     assert_equal Rake2.instance, result 
   end
@@ -130,6 +278,63 @@ class DeclarationsTest < Test::Unit::TestCase
     t = task(:rake3, &block_two)
     t.process
     assert_equal [1,2], results
+  end
+  
+  def test_task_supports_dependencies_like_rake
+    runlist = []
+    
+    a = task(:a) {|t| runlist << t }
+    b = task(:b => [:a])  {|t| runlist << t }
+    c = task(:c => :b)  {|t| runlist << t }
+    
+    c._execute
+    assert_equal [a,b,c], runlist
+  end
+  
+  def test_task_supports_rake_args_declaration
+    arg_hash = nil
+    x = task(:x, :one, :two, :three) do |t, args|
+      arg_hash = args.marshal_dump
+    end
+    
+    x.process('1', '2', '3')
+    assert_equal({:one => '1', :two => '2', :three => '3'}, arg_hash)
+  end
+  
+  def test_task_args_declaration_with_too_few_args_uses_nil
+    arg_hash = nil
+    y = task(:y, :one, :two, :three) do |t, args|
+      arg_hash = args.marshal_dump
+    end
+    
+    y.process('1','2')
+    assert_equal({:one => '1', :two => '2'}, arg_hash)
+  end
+  
+  def test_task_args_declaration_with_too_many_args_ignores_extra_args
+    arg_hash = nil
+    z = task(:z, :one, :two, :three) do |t, args|
+      arg_hash = args.marshal_dump
+    end
+    
+    z.process('1','2','3','4')
+    assert_equal({:one => '1', :two => '2', :three => '3'}, arg_hash)
+  end
+    
+  def test_task_args_declaration_will_override_with_later_args
+    arg_hash_a = nil
+    s = task(:s, :one, :two, :three) do |t, args|
+      arg_hash_a = args.marshal_dump
+    end
+    
+    arg_hash_b = nil
+    s1 = task(:s, :four, :five) do |t, args|
+      arg_hash_b = args.marshal_dump
+    end
+
+    s1.process('1','2','3','4','5')
+    assert_equal({:four => '1', :five => '2'}, arg_hash_a)
+    assert_equal({:four => '1', :five => '2'}, arg_hash_b)
   end
   
 end
