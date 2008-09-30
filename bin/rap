@@ -1,7 +1,8 @@
 #!/usr/bin/env ruby
 # usage: rap taskname {options} [args]
 
-require "#{File.dirname(__FILE__)}/../lib/tap.rb"
+$:.unshift "#{File.dirname(__FILE__)}/../lib"
+require 'tap/declarations'
 
 # setup the environment
 begin
@@ -11,9 +12,9 @@ begin
   env = Tap::Exe.instantiate
   
   # add the DEFAULT_TASK_FILE if it exists
-  task_file = File.expand_path('tapfile.rb')
+  task_file = File.expand_path('Tapfile')
   if File.exists?(task_file)
-    env.requires.unshift(task_file)
+    env.loads.unshift(task_file)
     env.manifest(:tasks).search_paths << [Dir.pwd, task_file]
   end
   
@@ -62,16 +63,6 @@ end
 
 begin
   env.activate
-  
-  tasks_manifest = env.manifest(:tasks)
-  Tap::Support::Lazydoc.registry.each do |document|
-    Tap::Support::Lazydoc.scan_doc(document.source_file, 'manifest')
-    
-    document.const_attrs.each_pair do |const_name, attrs|
-      next if attrs.empty?
-      tasks_manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name, document.source_file)]
-    end
-  end
   
   case ARGV[0]
   when '--help', nil, '-T'

@@ -1,10 +1,8 @@
-require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/support/declarations'
-
-Tap.extend Tap::Support::Declarations
+require  File.join(File.dirname(__FILE__), 'tap_test_helper')
+require 'tap/declarations'
 
 class DeclarationsTest < Test::Unit::TestCase
-  include Tap::Support::Declarations
+  include Tap::Declarations
   
   #
   # tasc declaration
@@ -124,7 +122,7 @@ class DeclarationsTest < Test::Unit::TestCase
   #
   
   module Nest
-    extend Tap::Support::Declarations
+    extend Tap::Declarations
     tasc(:sample) {}
   end
  
@@ -135,7 +133,7 @@ class DeclarationsTest < Test::Unit::TestCase
     assert Nest.const_defined?("Sample")
   end
   
-  def test_declarations_are_not_nested_for_tap
+  def test_declarations_are_not_nested_for_rap
     const = Tap.tasc(:sample_declaration)
     assert_equal "SampleDeclaration", const.to_s
   end

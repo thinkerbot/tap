@@ -14,10 +14,6 @@ require 'tap/constants'
 require 'tap/exe'
 require 'tap/task'
 require 'tap/file_task'
-require 'tap/workflow'
-
-require 'tap/support/declarations'
-Tap.extend Tap::Support::Declarations
 
 # Apply platform-specific patches
 # case RUBY_PLATFORM

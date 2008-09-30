@@ -36,6 +36,7 @@ Gem::Specification.new do |s|
     bin/tap
     lib/tap/app.rb
     lib/tap/constants.rb
+    lib/tap/declarations.rb
     lib/tap/env.rb
     lib/tap/exe.rb
     lib/tap/file_task.rb
@@ -83,7 +84,6 @@ Gem::Specification.new do |s|
     lib/tap/support/configuration.rb
     lib/tap/support/constant.rb
     lib/tap/support/constant_utils.rb
-    lib/tap/support/declarations.rb
     lib/tap/support/dependencies.rb
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
@@ -102,7 +102,6 @@ Gem::Specification.new do |s|
     lib/tap/support/lazydoc.rb
     lib/tap/support/lazydoc/comment.rb
     lib/tap/support/lazydoc/config.rb
-    lib/tap/support/lazydoc/declaration.rb
     lib/tap/support/lazydoc/document.rb
     lib/tap/support/lazydoc/method.rb
     lib/tap/support/manifest.rb
@@ -134,7 +133,6 @@ Gem::Specification.new do |s|
     lib/tap/test/tap_test.rb
     lib/tap/test/utils.rb
     lib/tap/test.rb
-    lib/tap/workflow.rb
     lib/tap.rb
     template/404.erb
     template/index.erb

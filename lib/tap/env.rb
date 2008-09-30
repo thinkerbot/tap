@@ -190,6 +190,9 @@ module Tap
     # Specify files to require when self is activated.
     config :requires, [], &c.array_or_nil
     
+    # Specify files to load when self is activated.
+    config :loads, [], &c.array_or_nil
+    
     # Specify gems to load as nested Envs.  Gems may be specified 
     # by name and/or version, like 'gemname >= 1.2'; by default the 
     # latest version of the gem is selected.
@@ -456,6 +459,11 @@ module Tap
       # perform requires
       requires.each do |path|
         require path
+      end
+      
+      # perform loads
+      loads.each do |path|
+        load path
       end
       
       true

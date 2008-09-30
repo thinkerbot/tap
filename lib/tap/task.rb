@@ -438,7 +438,7 @@ module Tap
       @task_block = (task_block == nil ? default_task_block : task_block)
       
       @app = app
-      @_method_name = :execute
+      @_method_name = :execute_with_callbacks
       @on_complete_block = nil
       @dependencies = []
       @batch = [self]
@@ -454,6 +454,8 @@ module Tap
       self.class.dependencies.each do |task_class, args|
         depends_on(task_class.instance, *args)
       end
+      
+      workflow
     end
     
     # Creates a new batched object and adds the object to batch. The batched object 
@@ -471,15 +473,7 @@ module Tap
     #
     # Execute passes the inputs to process and returns the result.
     def execute(*inputs)  
-      before_execute
-      begin
-        result = process(*inputs)
-      rescue
-        on_execute_error($!)
-      end
-      after_execute
-       
-      result
+      _execute(*inputs)._current
     end
     
     # The method for processing inputs into outputs.  Override this method in
@@ -556,6 +550,10 @@ module Tap
       nil
     end
     
+    # Hook to define a workflow for defined tasks.
+    def workflow
+    end
+    
     # Hook to execute code before inputs are processed.
     def before_execute() end
   
@@ -569,6 +567,18 @@ module Tap
     end
     
     private
+    
+    def execute_with_callbacks(*inputs)  
+      before_execute
+      begin
+        result = process(*inputs)
+      rescue
+        on_execute_error($!)
+      end
+      after_execute
+       
+      result
+    end
     
     def config_task(name, klass=Tap::Task, &block)
       configs = config[name] || {}
