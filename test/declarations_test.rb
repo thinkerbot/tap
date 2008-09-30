@@ -4,6 +4,11 @@ require 'tap/declarations'
 class DeclarationsTest < Test::Unit::TestCase
   include Tap::Declarations
   
+  def setup
+    @declaration_base = "DeclarationsTest"
+    @env = Tap::Env.instance_for(File.dirname(__FILE__))
+  end
+  
   #
   # tasc declaration
   #
@@ -123,7 +128,7 @@ class DeclarationsTest < Test::Unit::TestCase
   
   module Nest
     extend Tap::Declarations
-    tasc(:sample) {}
+    c = tasc(:sample) {}
   end
  
   def test_declarations_nest_constant

@@ -22,21 +22,29 @@ module Tap
       end
     end
     
-    def self.set_declaration_base(base)
-      # TODO -- warn if base is Object -- conflict with Rake
-      declaration_base = base.to_s
-      declaration_base = "" if ["Object", "Tap"].include?(declaration_base)
-
-      base.instance_variable_set(:@tap_declaration_base, declaration_base.underscore)
+    module TaskClass
+      def new(*args)
+        @instance ||= super
+      end
     end
-
-    def self.included(base)
-      set_declaration_base(base)
-    end
-
+    
     def self.extended(base)
-      set_declaration_base(base)
+      declaration_base = base.to_s
+      case declaration_base
+      when "Object", "Tap" 
+        declaration_base = ""
+      end
+      
+      base.instance_variable_set(:@declaration_base, declaration_base.underscore)
+      
+      caller[1] =~ Lazydoc::CALLER_REGEXP
+      dir = File.dirname(File.expand_path($1))
+      base.instance_variable_set(:@env, Tap::Env.instance_for(dir))
     end
+    
+    attr_accessor :env
+    
+    attr_accessor :declaration_base
     
     def tasc(*args, &block)
       # in this scheme, arg_names will be empty
@@ -46,7 +54,6 @@ module Tap
     
     def task(*args, &block)
       name, configs, dependencies, arg_names = resolve_args(args)
-      
       task_class = declare(Tap::Task, name, configs, dependencies, arg_names) do |*inputs|
         args = {}
         arg_names.each do |arg_name|
@@ -62,41 +69,20 @@ module Tap
           else task_block.call(self, args)
           end
         end
+        
+        nil
       end
       
       unless task_class.const_defined?(:BLOCKS)
         task_class.const_set(:BLOCKS, [])
       end
       task_class::BLOCKS << block unless block == nil
+      task_class.extend TaskClass
       
       task_class.instance
     end
     
     protected
-
-    def config(key, value=nil, options={}, &block)
-      if options[:desc] == nil
-        caller[0] =~ Lazydoc::CALLER_REGEXP
-        options[:desc] = Lazydoc.register($1, $3.to_i - 1)
-      end 
-
-      [:config, key, value, options, block]
-    end
-
-    def config_attr(key, value=nil, options={}, &block)
-      if options[:desc] == nil
-        caller[0] =~ Lazydoc::CALLER_REGEXP
-        options[:desc] = Lazydoc.register($1, $3.to_i - 1)
-      end
-
-      [:config_attr, key, value, options, block]
-    end
-
-    def c
-      Tap::Support::Validation
-    end
-
-    private
     
     # Resolve the arguments for a task/rule.  Returns a triplet of
     # [task_name, configs, prerequisites, arg_name_list].
@@ -128,7 +114,8 @@ module Tap
         end
         
         unless dependency.kind_of?(Class)
-          dependency = declare(Tap::Task, dependency)
+          const = env.search(:tasks, dependency.to_s)
+          dependency = const ? const.constantize : declare(Tap::Task, dependency)
         end
   
         if dependency.ancestors.include?(Tap::Task)
@@ -140,7 +127,7 @@ module Tap
       
       [task_name, configs, needs, arg_names]
     end
-
+    
     def arity(block)
       arity = block.arity
       
@@ -154,8 +141,7 @@ module Tap
     
     def declare(klass, name, configs={}, dependencies=[], arg_names=[], &block)
       # nest the constant name
-      base = (self.kind_of?(Module) ? self : self.class).instance_variable_get(:@tap_declaration_base)
-      name = File.join(base, name.to_s)
+      name = File.join(declaration_base, name.to_s)
       
       # generate the subclass
       subclass = klass.subclass(name, configs, dependencies, &block)
@@ -186,8 +172,7 @@ module Tap
         subclass.instance.depends_on(dependency.instance, *args)
       end
       
-      dir = File.dirname(lazydoc.source_file)
-      manifest = Tap::Env.instance_for(dir).manifest(:tasks).build
+      manifest = env.manifest(:tasks).build
       const_name = subclass.to_s
       unless manifest.entries.find {|lookup, const| const.name == const_name }
         manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name, lazydoc.source_file)]
