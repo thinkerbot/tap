@@ -61,10 +61,10 @@ module Tap
           else
       
             if unbatched
-              app.execute(executable, _result)
+              executable._execute(_result)
             else
               executable.batch.each do |e|
-                app.execute(e, _result)
+                e._execute(_result)
               end
             end
       

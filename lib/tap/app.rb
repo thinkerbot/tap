@@ -4,9 +4,6 @@ require 'tap/support/dependencies'
 require 'tap/support/executable_queue'
 
 module Tap
-  module Support
-    autoload(:Combinator, 'tap/support/combinator')
-  end
   
   # App coordinates the setup and running of tasks, and provides an interface 
   # to the application directory structure.  App is convenient for use within 
@@ -270,13 +267,6 @@ module Tap
     # Execution methods
     #
     
-    # Executes the input Executable with the inputs.  Stores the result in 
-    # aggregator unless an on_complete block is set.  Returns the audited 
-    # result.
-    def execute(m, inputs)
-      m._execute(*inputs)
-    end
-
     # Sets state = State::READY unless the app is running.  Returns self.
     def ready
       self.state = State::READY unless self.state == State::RUN
@@ -299,7 +289,8 @@ module Tap
       # TODO: log starting run
       begin
         until queue.empty? || state != State::RUN
-          execute(*queue.deq)
+          executable, inputs = queue.deq
+          executable._execute(*inputs)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors

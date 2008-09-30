@@ -1,5 +1,7 @@
 module Tap
   module Support
+    autoload(:Combinator, 'tap/support/combinator')
+    
     module Joins
       
       class SyncMerge < ReverseJoin
