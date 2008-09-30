@@ -1,0 +1,13 @@
+
+module RapTest
+  extend Tap::Declarations
+
+  tasc(:tasc_with_no_block)
+  tasc(:tasc_with_no_args) {}
+  tasc(:tasc_with_arg) {|arg|}
+  tasc(:tasc_with_args) {|one, two|}
+  tasc(:tasc_with_splat) {|arg, *splat|}
+  
+  task(:task_without_args) {}
+  task(:task_with_args) {|task, args|}
+end

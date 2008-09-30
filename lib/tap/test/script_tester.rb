@@ -16,6 +16,8 @@ module Tap
       
       attr_reader :stepwise, :run_block
       
+      NIL_VALIDATION = lambda {}
+      
       def initialize(command_path=nil, stepwise=false, &run_block)
         @command_path = command_path
         @commands = []
@@ -50,7 +52,7 @@ module Tap
       end
       
       def time(msg, command)
-        run([command, msg, nil, nil])
+        run([command, msg, nil, NIL_VALIDATION])
       end
       
       def check(msg, command, use_regexp_escapes=true, &validation)
@@ -75,6 +77,10 @@ module Tap
       
       def run(*commands)
         commands.each_with_index do |(cmd, msg, expected, validation), i|
+          unless expected || validation
+            raise ArgumentError, "no expectation or validation set for: #{cmd}"
+          end
+          
           start = Time.now
           result = capture_sh(cmd) {|ok, status, tempfile_path| }
           elapsed = Time.now - start

@@ -1,1 +1,0 @@
-# ::manifest sample manifest summary

@@ -22,7 +22,7 @@ module Tap
       end
     end
     
-    module TaskClass
+    module TaskSingleton
       def new(*args)
         @instance ||= super
       end
@@ -47,21 +47,42 @@ module Tap
     attr_accessor :declaration_base
     
     def tasc(*args, &block)
-      # in this scheme, arg_names will be empty
       name, configs, dependencies, arg_names = resolve_args(args)
+      
+      # do a little dance to anticipate
+      # arg_names if none are provided
+      if arg_names.empty?
+        if block_given?
+          arity = block.arity
+          case 
+          when arity > 0
+            arg_names = Array.new(arity, "INPUT")
+          when arity < 0
+            arg_names = Array.new(-1 * arity - 1, "INPUT")
+            arg_names << "INPUTS..."
+          end
+        else
+          # indicates no block was provided,
+          # no args comment is set.
+          arg_names = nil
+        end
+      end
+        
       declare(Tap::Task, name, configs, dependencies, arg_names, &block)
     end
     
     def task(*args, &block)
       name, configs, dependencies, arg_names = resolve_args(args)
       task_class = declare(Tap::Task, name, configs, dependencies, arg_names) do |*inputs|
+        # collect inputs to make a rakish-args object
         args = {}
         arg_names.each do |arg_name|
           break if inputs.empty?
           args[arg_name] = inputs.shift
         end
-        
         args = OpenStruct.new(args)
+        
+        # execute each block assciated with this task
         self.class::BLOCKS.each do |task_block|
           case task_block.arity
           when 0 then task_block.call()
@@ -73,12 +94,14 @@ module Tap
         nil
       end
       
+      # add the block to the task
       unless task_class.const_defined?(:BLOCKS)
         task_class.const_set(:BLOCKS, [])
       end
       task_class::BLOCKS << block unless block == nil
-      task_class.extend TaskClass
       
+      # ensure the task has only one instance
+      task_class.extend TaskSingleton
       task_class.instance
     end
     
@@ -128,17 +151,6 @@ module Tap
       [task_name, configs, needs, arg_names]
     end
     
-    def arity(block)
-      arity = block.arity
-      
-      case
-      when arity > 0 then arity -= 1
-      when arity < 0 then arity += 1
-      end
-      
-      arity
-    end
-    
     def declare(klass, name, configs={}, dependencies=[], arg_names=[], &block)
       # nest the constant name
       name = File.join(declaration_base, name.to_s)
@@ -151,21 +163,12 @@ module Tap
       subclass.source_file = File.expand_path($1)
       lazydoc = subclass.lazydoc(false)
       lazydoc[subclass.to_s]['manifest'] = lazydoc.register($3.to_i - 1, Lazydoc::Declaration)
-
-      if arg_names.empty?
-        arity = block_given? ? arity(block) : -1
-        case 
-        when arity > 0
-          arg_names = Array.new(arity, "INPUT")
-        when arity < 0
-          arg_names = Array.new(-1 * arity - 1, "INPUT")
-          arg_names << "INPUTS..."
-        end
-      end
       
-      comment = Lazydoc::Comment.new
-      comment.subject = arg_names.join(' ')
-      lazydoc[subclass.to_s]['args'] = comment
+      if arg_names
+        comment = Lazydoc::Comment.new
+        comment.subject = arg_names.join(' ')
+        lazydoc[subclass.to_s]['args'] = comment
+      end
       
       # update any dependencies in instance
       subclass.dependencies.each do |dependency, args|
