@@ -363,7 +363,7 @@ module Tap
         public(name)
       end
       
-      def define(name, klass=Tap::Task, &block)
+      def define(name, klass=Tap::Task, config=klass.configurations.to_hash, &block)
         instance_var = "@#{name}".to_sym
         
         define_method(name) do |*args|
@@ -380,6 +380,8 @@ module Tap
         end
         
         public(name, "#{name}=")
+        
+        configurations.add(name, config, :reader => nil, :writer => nil)
       end
       
       def define_configurations(configs)
