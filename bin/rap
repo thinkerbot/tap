@@ -10,6 +10,7 @@ begin
   # handle super options
   $DEBUG = true if ARGV.delete('-d-')
   env = Tap::Exe.instantiate
+  env.unshift(Tap::Declarations.env)
   
   # add the DEFAULT_TASK_FILE if it exists
   task_file = File.expand_path('Tapfile')

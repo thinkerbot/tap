@@ -31,20 +31,25 @@ module Tap
     def self.extended(base)
       declaration_base = base.to_s
       case declaration_base
-      when "Object", "Tap" 
+      when "Object", "Tap", "main"
         declaration_base = ""
       end
       
       base.instance_variable_set(:@declaration_base, declaration_base.underscore)
-      
-      caller[1] =~ Lazydoc::CALLER_REGEXP
-      dir = File.dirname(File.expand_path($1))
-      base.instance_variable_set(:@env, Tap::Env.instance_for(dir))
+      base.instance_variable_set(:@current_desc, nil)
     end
     
-    attr_accessor :env
+    def self.env
+      @env ||= Tap::Env.new(:load_paths => [], :command_paths => [], :generator_paths => [])
+    end
+    
+    def env
+      Declarations.env
+    end
     
     attr_accessor :declaration_base
+    
+    attr_accessor :current_desc
     
     def tasc(*args, &block)
       name, configs, dependencies, arg_names = resolve_args(args)
@@ -105,6 +110,26 @@ module Tap
       task_class.instance
     end
     
+    def namespace(name, &block)
+      name = name.to_s
+      const = File.join(declaration_base, name).camelize
+      const.try_constantize do |const_name|
+        base = case declaration_base
+        when "" then Object
+        else declaration_base.camelize.constantize
+        end
+        
+        m = base.const_set(name.camelize, Module.new)
+        m.extend Tap::Declarations
+        m.module_eval(&block)
+      end
+    end
+    
+    def desc(str)
+      self.current_desc = Lazydoc::Comment.new
+      self.current_desc.subject = str
+    end
+    
     protected
     
     # Resolve the arguments for a task/rule.  Returns a triplet of
@@ -137,7 +162,10 @@ module Tap
         end
         
         unless dependency.kind_of?(Class)
-          const = env.search(:tasks, dependency.to_s)
+          # converts dependencies like 'update:session'
+          # note this will prevent lookup from other envs.
+          dependency = dependency.to_s.split(/:+/).join("/")
+          const = env.find(:tasks, dependency.to_s)
           dependency = const ? const.constantize : declare(Tap::Task, dependency)
         end
   
@@ -162,7 +190,8 @@ module Tap
       caller[1] =~ Lazydoc::CALLER_REGEXP
       subclass.source_file = File.expand_path($1)
       lazydoc = subclass.lazydoc(false)
-      lazydoc[subclass.to_s]['manifest'] = lazydoc.register($3.to_i - 1, Lazydoc::Declaration)
+      lazydoc[subclass.to_s]['manifest'] = current_desc || lazydoc.register($3.to_i - 1, Lazydoc::Declaration)
+      self.current_desc = nil
       
       if arg_names
         comment = Lazydoc::Comment.new
