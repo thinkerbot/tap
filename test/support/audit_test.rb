@@ -313,28 +313,28 @@ o-[B] 3
   end
   
   #
-  # expand tests
+  # iterate tests
   #
   
-  def test_expand_forks_for_and_records_each_in_current
+  def test_iterate_forks_for_and_records_each_in_current
     a = Audit.new([1,2,3])
-    e = a._expand
+    e = a._iterate
     
     assert_equal 3, e.length
     
-    assert_equal [nil, AuditExpand.new(0)], e[0]._sources
+    assert_equal [nil, AuditIterate.new(0)], e[0]._sources
     assert_equal [[1,2,3], 1],  e[0]._values
     
-    assert_equal [nil, AuditExpand.new(1)], e[1]._sources
+    assert_equal [nil, AuditIterate.new(1)], e[1]._sources
     assert_equal [[1,2,3], 2],  e[1]._values
     
-    assert_equal [nil, AuditExpand.new(2)], e[2]._sources
+    assert_equal [nil, AuditIterate.new(2)], e[2]._sources
     assert_equal [[1,2,3], 3],  e[2]._values
   end
   
-  def test_expand_raises_error_if_current_does_not_respond_to_each
+  def test_iterate_raises_error_if_current_does_not_respond_to_each
     a = Audit.new(nil)
-    assert_raise(NoMethodError) { a._expand }
+    assert_raise(NoMethodError) { a._iterate }
   end
   
   #

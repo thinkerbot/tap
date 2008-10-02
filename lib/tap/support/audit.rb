@@ -3,6 +3,8 @@ module Tap
     
     # Marks the merge of multiple Audit trails
     class AuditMerge < Array
+      
+      # True if another is an AuditMerge and passes Array#==
       def ==(another)
         another.kind_of?(AuditMerge) && super
       end
@@ -12,19 +14,32 @@ module Tap
     class AuditSplit
       attr_reader :block
       def initialize(block) @block = block end
-        
+      
+      # True if another is an AuditSplit with the same block.
       def ==(another)
         another.kind_of?(AuditSplit) && another.block == block
+      end
+      
+      # Returns '_split' to indicate a split in an audit trail.
+      def to_s
+        "_split"
       end
     end
     
     # Marks the expansion of an Audit trail
-    class AuditExpand
+    class AuditIterate
       attr_reader :index
       def initialize(index) @index = index end
-        
+      
+      # True if another is an AuditIterate with the same index.
       def ==(another)
-        another.kind_of?(AuditExpand) && another.index == index
+        another.kind_of?(AuditIterate) && another.index == index
+      end
+      
+      # Returns '_iterate(index)' to indicate an iteration of
+      # outputs in an audit trail.
+      def to_s
+        "_iterate(#{index})"
       end
     end
 
@@ -282,12 +297,12 @@ module Tap
       end
       
       # _forks self for each member in _current.  Records the next value as
-      # [item, AuditExpand.new(<index of item>)].  Raises an error if _current 
+      # [item, AuditIterate.new(<index of item>)].  Raises an error if _current 
       # does not respond to each.
-      def _expand
+      def _iterate
         expanded = []
         _current.each do |value|
-          expanded << _fork._record(AuditExpand.new(expanded.length), value)
+          expanded << _fork._record(AuditIterate.new(expanded.length), value)
         end
         expanded
       end

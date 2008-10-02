@@ -48,7 +48,7 @@ module Tap
       def enq(executable, _results)
         app = executable.app
         
-        results = iterate ? _results._expand : [_results]
+        results = iterate ? _results._iterate : [_results]
         results.each do |_result|
           if stack 
       

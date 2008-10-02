@@ -377,8 +377,8 @@ class SwitchTest < Test::Unit::TestCase
     
     assert app._results(t0_0).empty?
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
     ], app._results(t1_0))
     assert app._results(t2_0).empty?
     
@@ -396,12 +396,12 @@ class SwitchTest < Test::Unit::TestCase
     
     assert app._results(t0_0).empty?
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t2_0, 'a 0.0 2.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t2_0, 'b 0.0 2.0']]
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t2_0, 'a 0.0 2.0']],
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t2_0, 'b 0.0 2.0']]
     ], app._results(t2_0))
     
     # now skip (aggregate result)
@@ -421,12 +421,12 @@ class SwitchTest < Test::Unit::TestCase
       ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']]]
     ], app._results(t0_0))
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t2_0, 'a 0.0 2.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t2_0, 'b 0.0 2.0']]
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t2_0, 'a 0.0 2.0']],
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t2_0, 'b 0.0 2.0']]
     ], app._results(t2_0))
   end
   

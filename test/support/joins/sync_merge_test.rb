@@ -159,8 +159,8 @@ class SyncMergeTest < Test::Unit::TestCase
     m1_0 = ExpAudit[[nil, ''],[t1_0, '1.0']]
 
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [AuditExpand.new(0), '0.0'], [t2_0,'0.0 2.0']],
-      ExpAudit[ExpMerge[m0_0,m1_0], [AuditExpand.new(1), '1.0'], [t2_0,'1.0 2.0']]
+      ExpAudit[ExpMerge[m0_0,m1_0], [AuditIterate.new(0), '0.0'], [t2_0,'0.0 2.0']],
+      ExpAudit[ExpMerge[m0_0,m1_0], [AuditIterate.new(1), '1.0'], [t2_0,'1.0 2.0']]
     ], app._results(t2_0))
   end
   

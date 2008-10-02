@@ -136,10 +136,10 @@ class MergeTest < Test::Unit::TestCase
     }, runlist
 
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(0), 'a 0.0'],[t2_0, 'a 0.0 2.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditExpand.new(1), 'b 0.0'],[t2_0, 'b 0.0 2.0']],
-      ExpAudit[[nil,['c', 'd']],[t1_0,['c 1.0', 'd 1.0']],[AuditExpand.new(0), 'c 1.0'],[t2_0, 'c 1.0 2.0']],
-      ExpAudit[[nil,['c', 'd']],[t1_0,['c 1.0', 'd 1.0']],[AuditExpand.new(1), 'd 1.0'],[t2_0, 'd 1.0 2.0']]
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t2_0, 'a 0.0 2.0']],
+      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t2_0, 'b 0.0 2.0']],
+      ExpAudit[[nil,['c', 'd']],[t1_0,['c 1.0', 'd 1.0']],[AuditIterate.new(0), 'c 1.0'],[t2_0, 'c 1.0 2.0']],
+      ExpAudit[[nil,['c', 'd']],[t1_0,['c 1.0', 'd 1.0']],[AuditIterate.new(1), 'd 1.0'],[t2_0, 'd 1.0 2.0']]
     ], app._results(t2_0))
   end
   

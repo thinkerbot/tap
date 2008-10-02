@@ -2,21 +2,15 @@ require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/test/script_test'
 
 class RapTest < Test::Unit::TestCase
-  acts_as_script_test :directories => {}
+  acts_as_script_test
 
   TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/rap")
 
   def setup
     super
-    FileUtils.mkdir_p(method_root.root)
-    FileUtils.touch(method_root.filepath(:root, 'tap.yml'))
-    FileUtils.touch(method_root.filepath(:root, 'Rakefile'))
-  end
-
-  def teardown
-    FileUtils.rm(method_root.filepath(:root, 'tap.yml'))
-    FileUtils.rm(method_root.filepath(:root, 'Rakefile'))
-    super
+    make_test_directories
+    FileUtils.touch(method_root.filepath(:output, 'tap.yml'))
+    FileUtils.touch(method_root.filepath(:output, 'Rakefile'))
   end
 
   def default_command_path
@@ -24,7 +18,7 @@ class RapTest < Test::Unit::TestCase
   end
 
   def test_rap_help_with_no_declarations
-    script_test do |cmd|
+    script_test(method_root[:output]) do |cmd|
       cmd.check "Prints help and summary for rap", %Q{
 % #{cmd}
 usage: rap taskname {options} [args]
@@ -51,7 +45,7 @@ usage: rap taskname {options} [args]
   end
   
   def test_rap_help_with_only_declarations
-    File.open(method_root.filepath(:root, 'Tapfile'), 'w') do |file|
+    File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
       file << %q{
 module RapTest
   extend Tap::Declarations
@@ -71,13 +65,13 @@ end
 }
     end
     
-    script_test do |cmd|
+    script_test(method_root[:output]) do |cmd|
       cmd.check "Prints summary of declarations", %Q{
 % #{cmd}
 usage: rap taskname {options} [args]
 
 ===  tap tasks ===
-test_rap_help_with_only_declarations:
+output:
   tasc_with_doc     # tasc summary
   tasc_without_doc
   task_with_doc     # task summary
@@ -121,7 +115,7 @@ usage: tap run -- rap_test/task_without_doc
   end
   
   def test_rap_help_for_tasks_with_args
-    File.open(method_root.filepath(:root, 'Tapfile'), 'w') do |file|
+    File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
       file << %q{
 module RapTest
   extend Tap::Declarations
@@ -138,7 +132,7 @@ end
 }
     end
 
-    script_test do |cmd|
+    script_test(method_root[:output]) do |cmd|
       cmd.check "Prints help for declaration", %Q{
 % #{cmd} tasc_with_no_block --help
 :...:
@@ -173,7 +167,7 @@ usage: tap run -- rap_test/task_with_args
   end
   
   def test_rap_help_for_tasks_with_arg_names
-    File.open(method_root.filepath(:root, 'Tapfile'), 'w') do |file|
+    File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
       file << %q{
 module RapTest
   extend Tap::Declarations
@@ -188,7 +182,7 @@ end
 }
     end
 
-    script_test do |cmd|
+    script_test(method_root[:output]) do |cmd|
       cmd.check "Prints help for declaration", %Q{
 % #{cmd} tasc_with_arg --help
 :...:
