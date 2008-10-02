@@ -3,6 +3,10 @@ require 'tap/support/templater'
 
 class TemplaterTest < Test::Unit::TestCase
   include Tap::Support
+  acts_as_subset_test
+  
+  condition(:ruby_1_8) { RUBY_VERSION =~ /^1.8/ }
+  condition(:ruby_1_9) { RUBY_VERSION =~ /^1.9/ }
   
   def test_documentation
     t = Templater.new( "key: <%= value %>")
@@ -13,7 +17,8 @@ class TemplaterTest < Test::Unit::TestCase
     assert_equal "key: another", t.build
     
     e = ERB.new("<%= 1 + 2 %>")
-    assert_equal("_erbout = ''; _erbout.concat(( 1 + 2 ).to_s); _erbout", e.src)
+    condition_test(:ruby_1_8) { assert_equal("_erbout = ''; _erbout.concat(( 1 + 2 ).to_s); _erbout", e.src) }
+    condition_test(:ruby_1_9) { assert_equal("#coding:US-ASCII\n_erbout = ''; _erbout.concat(( 1 + 2 ).to_s); _erbout", e.src) }
     
     template = %Q{
 # Un-nested content

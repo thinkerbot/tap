@@ -3,12 +3,6 @@ require 'rubygems'
 require File.dirname(__FILE__) + '/../lib/tap'
 require 'tap/test'
 
-# Apply version-specific patches
-case RUBY_VERSION
-when /^1.9/
-  require 'tap/patches/ruby19/backtrace_filter'
-end
-
 unless defined?(ObjectWithExecute)
   class ObjectWithExecute
     def execute(input)

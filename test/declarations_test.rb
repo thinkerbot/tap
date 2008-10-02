@@ -128,14 +128,14 @@ class DeclarationsTest < Test::Unit::TestCase
   
   module Nest
     extend Tap::Declarations
-    c = tasc(:sample) {}
+    c = tasc(:nested_sample) {}
   end
  
   def test_declarations_nest_constant
-    const = tasc(:sample)
-    assert_equal "DeclarationsTest::Sample", const.to_s
+    const = tasc(:nested_sample)
+    assert_equal "DeclarationsTest::NestedSample", const.to_s
     
-    assert Nest.const_defined?("Sample")
+    assert Nest.const_defined?("NestedSample")
   end
   
   def test_declarations_are_not_nested_for_rap

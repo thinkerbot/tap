@@ -16,7 +16,7 @@ module Tap
       
       attr_reader :stepwise, :run_block
       
-      NIL_VALIDATION = lambda {}
+      NIL_VALIDATION = lambda {|*args|}
       
       def initialize(command_path=nil, stepwise=false, &run_block)
         @command_path = command_path

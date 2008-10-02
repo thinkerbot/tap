@@ -197,20 +197,20 @@ module Tap
           # the appropriate objects to add the fragment to a
           # comment
           def categorize(fragment, indent) # :nodoc:
-             case
-             when fragment == indent
-               # empty comment line
-               yield [""]
-               yield []
-             when indent.empty?
-               # continuation line
-               yield fragment.rstrip
-             else 
-               # indented line
-               yield [fragment.rstrip]
-               yield []
-             end
-           end
+            case
+            when fragment == indent
+              # empty comment line
+              yield [""]
+              yield []
+            when indent.empty?
+              # continuation line
+              yield fragment.rstrip
+            else 
+              # indented line
+              yield [fragment.rstrip]
+              yield []
+            end
+          end
         end
     
         # An array of comment fragments organized into 

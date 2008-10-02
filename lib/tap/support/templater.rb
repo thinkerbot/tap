@@ -124,8 +124,10 @@ module Tap
       # ERB with a trim_mode of "<>".
       def initialize(template, attributes={})
         @template = case template
-        when ERB 
-          if template.instance_variable_get(:@src).index('_erbout =') != 0
+        when ERB
+          # matching w/wo the coding effectively checks @src
+          # across ruby versions (encoding appears in 1.9)
+          if template.instance_variable_get(:@src) !~ /^(#coding:US-ASCII\n)?_erbout =/
             raise ArgumentError, "Templater does not work with ERB templates where eoutvar != '_erbout'"
           end
           template

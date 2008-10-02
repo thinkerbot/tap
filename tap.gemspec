@@ -66,10 +66,6 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/task/templates/test.erb
     lib/tap/generator/manifest.rb
     lib/tap/patches/optparse/summarize.rb
-    lib/tap/patches/rake/rake_test_loader.rb
-    lib/tap/patches/rake/testtask.rb
-    lib/tap/patches/ruby19/backtrace_filter.rb
-    lib/tap/patches/ruby19/parsedate.rb
     lib/tap/root.rb
     lib/tap/spec.rb
     lib/tap/spec/adapter.rb

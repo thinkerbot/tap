@@ -1,11 +1,5 @@
 autoload(:YAML, 'yaml')                   # expensive to load
 
-# Apply version-specific patches
-case RUBY_VERSION
-when /^1.9/
-  $: << File.expand_path(File.dirname(__FILE__) + "/tap/patches/ruby19")
-end
-
 $:.unshift File.expand_path(File.dirname(__FILE__))
 
 require 'tap/constants'
@@ -14,8 +8,3 @@ require 'tap/constants'
 require 'tap/exe'
 require 'tap/task'
 require 'tap/file_task'
-
-# Apply platform-specific patches
-# case RUBY_PLATFORM
-# when 'java' 
-# end

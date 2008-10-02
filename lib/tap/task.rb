@@ -353,7 +353,8 @@ module Tap
       
       def dependency(name, dependency_class, *args)
         depends_on(dependency_class, *args)
-
+        
+        undef_method(name) if method_defined?(name)
         define_method(name) do
           index = app.dependencies.index(dependency_class.instance, args)
           app.dependencies.resolve([index])
@@ -388,6 +389,11 @@ module Tap
         case configs
         when Hash
           # hash configs are simply added as default configurations
+          configs.keys.each do |key|
+            undef_method(key) if method_defined?(key)
+            undef_method("#{key}=") if method_defined?("#{key}=")
+          end
+          
           attr_accessor(*configs.keys)
           configs.each_pair do |key, value|
             configurations.add(key, value)
@@ -410,7 +416,8 @@ module Tap
       end
       
       def define_process(block)
-        send(:define_method, :process, &block)
+        undef_method(:process) if method_defined?(:process)
+        define_method(:process, &block)
       end
     end
     

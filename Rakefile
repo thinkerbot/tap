@@ -5,7 +5,6 @@ require 'rake/gempackagetask'
 
 $:.unshift File.expand_path("#{File.dirname(__FILE__)}/lib")
 require 'tap/constants'
-require 'tap/patches/rake/testtask.rb'
 
 desc "Compiles tap into a single rb script"
 task :compile do
