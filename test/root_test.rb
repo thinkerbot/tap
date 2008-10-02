@@ -219,8 +219,8 @@ class RootTest < Test::Unit::TestCase
     assert File.exists?(filepath) 
     assert File.file?(filepath)
     begin
-      assert_raise(RuntimeError) { Tap::Root.chdir(filepath) {} }
-      assert_raise(RuntimeError) { Tap::Root.chdir(filepath) {} }
+      assert_raise(ArgumentError) { Tap::Root.chdir(filepath) {} }
+      assert_raise(ArgumentError) { Tap::Root.chdir(filepath) {} }
     ensure
       Dir.chdir(pwd)
     end

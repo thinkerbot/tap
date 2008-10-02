@@ -132,7 +132,7 @@ module Tap
           if !File.exists?(dir) && mkdir
             FileUtils.mkdir_p(dir)
           else
-            raise "not a directory: #{dir}"
+            raise ArgumentError, "not a directory: #{dir}"
           end
         end
         

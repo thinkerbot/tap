@@ -1,4 +1,4 @@
-require "#{File.dirname(__FILE__)}/../tap"
+require File.dirname(__FILE__) + "/../tap"
 autoload(:OpenStruct, 'ostruct')
 
 module Tap

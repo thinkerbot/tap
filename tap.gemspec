@@ -67,9 +67,9 @@ Gem::Specification.new do |s|
     lib/tap/generator/manifest.rb
     lib/tap/patches/optparse/summarize.rb
     lib/tap/root.rb
-    lib/tap/spec.rb
-    lib/tap/spec/adapter.rb
-    lib/tap/spec/inheritable_class_test_root.rb
+    #lib/tap/spec.rb
+    #lib/tap/spec/adapter.rb
+    #lib/tap/spec/inheritable_class_test_root.rb
     lib/tap/support/aggregator.rb
     lib/tap/support/assignments.rb
     lib/tap/support/audit.rb

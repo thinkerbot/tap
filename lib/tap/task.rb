@@ -531,15 +531,6 @@ module Tap
       # TODO - add a task identifier?
       app.log(action, msg, level)
     end
-
-    # Raises a TerminateError if app.state == State::TERMINATE.
-    # check_terminate may be called at any time to provide a 
-    # breakpoint in long-running processes.
-    def check_terminate
-      if app.state == App::State::TERMINATE
-        raise App::TerminateError.new
-      end
-    end
     
     # Returns self.name
     def to_s
