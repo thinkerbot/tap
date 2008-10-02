@@ -126,6 +126,8 @@ module Tap
       # mkdir is specified. chdir raises an error for non-existant 
       # directories, as well as non-directory inputs.
       def chdir(dir, mkdir=false, &block)
+        dir = File.expand_path(dir)
+        
         unless File.directory?(dir)
           if !File.exists?(dir) && mkdir
             FileUtils.mkdir_p(dir)

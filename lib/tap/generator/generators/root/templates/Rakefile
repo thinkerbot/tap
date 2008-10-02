@@ -4,7 +4,6 @@ require 'rake/rdoctask'
 require 'rake/gempackagetask'
 
 require 'tap/constants'
-require 'tap/patches/rake/testtask.rb'
 
 #
 # Gem specification
