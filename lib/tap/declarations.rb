@@ -22,6 +22,47 @@ module Tap
       end
     end
     
+    module TaskSubclass
+      def set(name, configs, dependencies, &block)
+        # set default name
+        self.default_name = name.underscore
+        
+        # enhance configurations
+        case configs
+        when Hash
+          # hash configs are simply added as default configurations
+          configs.keys.each do |key|
+            undef_method(key) if method_defined?(key)
+            undef_method("#{key}=") if method_defined?("#{key}=")
+          end
+
+          attr_accessor(*configs.keys)
+          configs.each_pair do |key, value|
+            configurations.add(key, value)
+          end
+          public(*configs.keys)
+        when Array
+          # array configs define configuration methods
+          configs.each do |method, key, value, opts, config_block| 
+            send(method, key, value, opts, &config_block)
+          end
+        else 
+          raise ArgumentError, "cannot define configurations from: #{configs}"
+        end
+        
+        # enhance dependencies
+        dependencies.each do |name, dependency_class, args|
+          dependency(name, dependency_class, *(args ? args : []))
+        end
+        
+        # define process method
+        if block
+          undef_method(:process) if method_defined?(:process)
+          define_method(:process, &block)
+        end
+      end
+    end
+    
     module TaskSingleton
       def new(*args)
         @instance ||= super
@@ -73,12 +114,12 @@ module Tap
         end
       end
         
-      declare(Tap::Task, name, configs, dependencies, arg_names, &block)
+      declare(name, configs, dependencies, arg_names, &block)
     end
     
     def task(*args, &block)
       name, configs, dependencies, arg_names = resolve_args(args)
-      task_class = declare(Tap::Task, name, configs, dependencies, arg_names) do |*inputs|
+      task_class = declare(name, configs, dependencies, arg_names) do |*inputs|
         # collect inputs to make a rakish-args object
         args = {}
         arg_names.each do |arg_name|
@@ -158,7 +199,7 @@ module Tap
           # note this will prevent lookup from other envs.
           dependency = dependency.to_s.split(/:+/).join("/").camelize
           lookup, const = env.manifest(:tasks).find {|lookup, const| const.name == dependency }
-          dependency = const ? const.constantize : declare(Tap::Task, dependency)
+          dependency = const ? const.constantize : declare(dependency)
         end
   
         if dependency.ancestors.include?(Tap::Task)
@@ -171,12 +212,17 @@ module Tap
       [task_name, configs, needs, arg_names]
     end
     
-    def declare(klass, name, configs={}, dependencies=[], arg_names=[], &block)
+    def declare(name, configs={}, dependencies=[], arg_names=[], &block)
       # nest the constant name
       name = File.join(declaration_base, name.to_s)
       
-      # generate the subclass
-      subclass = klass.subclass(name, configs, dependencies, &block)
+      # Generate the nesting constants as subclasses of Tap::Task
+      # (this allows namespaces with the same name as a task)
+      subclass, constants = name.to_s.constants_split
+      constants.each {|const| subclass = subclass.const_set(const, Class.new(Tap::Task))}
+      
+      subclass.extend TaskSubclass
+      subclass.set(subclass.to_s, configs, dependencies, &block)
       
       # register documentation
       caller[1] =~ Lazydoc::CALLER_REGEXP

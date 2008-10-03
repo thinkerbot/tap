@@ -187,40 +187,7 @@ module Tap
       def instance
         @instance ||= new
       end
-      
-      # Generates or updates the specified subclass of self.
-      def subclass(const_name, configs={}, dependencies=[], options={}, &block)
-        #
-        # Lookup or create the subclass constant. 
-        #
-        
-        current, constants = const_name.to_s.constants_split
-        subclass = if constants.empty?
-          # The constant exists; validate the constant is a subclass of self.
-          unless current.kind_of?(Class) && current.ancestors.include?(self)
-            raise ArgumentError, "#{current} is already defined and is not a subclass of #{self}!"
-          end
-          current
-        else
-          # Generate the nesting module
-          subclass_const = constants.pop
-          constants.each {|const| current = current.const_set(const, Class.new(self))}
 
-          # Create and set the subclass constant
-          current.const_set(subclass_const, Class.new(self))
-        end
-        
-        #
-        # Define the subclass
-        #
-        
-        subclass.define_configurations(configs)
-        subclass.define_dependencies(dependencies)
-        subclass.define_process(block) if block_given?
-        subclass.default_name = subclass.to_s.underscore
-        subclass
-      end
-      
       # Parses the argv into an instance of self and an array of arguments (implicitly
       # to be enqued to the instance and run by app).  Yields a help string to the
       # block when the argv indicates 'help'.
@@ -383,41 +350,6 @@ module Tap
         public(name, "#{name}=")
         
         configurations.add(name, config, :reader => nil, :writer => nil)
-      end
-      
-      def define_configurations(configs)
-        case configs
-        when Hash
-          # hash configs are simply added as default configurations
-          configs.keys.each do |key|
-            undef_method(key) if method_defined?(key)
-            undef_method("#{key}=") if method_defined?("#{key}=")
-          end
-          
-          attr_accessor(*configs.keys)
-          configs.each_pair do |key, value|
-            configurations.add(key, value)
-          end
-          public(*configs.keys)
-        when Array
-          # array configs define configuration methods
-          configs.each do |method, key, value, opts, config_block| 
-            send(method, key, value, opts, &config_block)
-          end
-        else 
-          raise ArgumentError, "cannot define configurations from: #{configs}"
-        end
-      end
-      
-      def define_dependencies(dependencies)
-        dependencies.each do |name, dependency_class, args|
-          dependency(name, dependency_class, *(args ? args : []))
-        end if dependencies
-      end
-      
-      def define_process(block)
-        undef_method(:process) if method_defined?(:process)
-        define_method(:process, &block)
       end
     end
     
