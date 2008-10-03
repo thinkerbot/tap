@@ -88,6 +88,23 @@ class RakeCheck < Test::Unit::TestCase
     assert_equal({:four => '1', :five => '2'}, arg_hash_a)
     assert_equal({:four => '1', :five => '2'}, arg_hash_b)
   end
+  
+  def test_rake_task_declarations_with_namespace
+    str = ""
+    task(:p) { str << 'a' }
+
+    namespace :p do
+      task(:q) { str << 'b' }
+    end
+
+    c = task(:r => [:p, 'p:q'])
+    task(:r) { str << 'c' }
+    task(:r) { str << '!' }
+    
+    ARGV << 'r'
+    Rake.application.run
+    assert_equal "abc!", str
+  end
 end
 
 # Resolve the arguments for a task/rule.

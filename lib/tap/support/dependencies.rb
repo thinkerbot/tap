@@ -1,14 +1,8 @@
 module Tap
   module Support
     
-    # Dependable encapsulates the module-level methods facilitating 
-    # dependencies in Executable.
+    # Dependencies tracks Executable dependencies and results.
     class Dependencies
-      def initialize
-        @registry = []
-        @results = []
-        @resolve_stack = []
-      end
       
       # An array of registered [instance, argv] pairs.
       attr_reader :registry
@@ -16,6 +10,12 @@ module Tap
       # An array of results matching the registry, produced 
       # during dependency resolution by instance._execute(*argv).
       attr_reader :results
+      
+      def initialize
+        @registry = []
+        @results = []
+        @resolve_stack = []
+      end
       
       # Clears all registered dependencies and results.  
       def clear
@@ -47,8 +47,8 @@ module Tap
       
       # Resolves the instance-argv pairs at the specified indicies by calling 
       # instance._execute(*argv).  Results are collected in results; a pair is 
-      # only resolved if an existing result does not exist and an error is
-      # raised if circular dependencies are detected. Returns self.
+      # only resolved if an existing result does not exist.  An error is
+      # raised if circular dependencies are detected.  Returns self.
       def resolve(indicies)
         indicies.each do |index|
           next if resolved?(index)
@@ -70,7 +70,7 @@ module Tap
       end
       
       # Returns true if the results at the specified index are non-nil (note 
-      # that Dependable expects instance-argv pairs to resolve to an Audit; 
+      # that Dependencies expects instance-argv pairs to resolve to an Audit; 
       # the current value of the Audit may, of course, be nil).
       def resolved?(index)
         results[index] != nil

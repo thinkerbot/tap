@@ -204,7 +204,7 @@ module Tap
         else
           # Generate the nesting module
           subclass_const = constants.pop
-          constants.each {|const| current = current.const_set(const, Module.new)}
+          constants.each {|const| current = current.const_set(const, Class.new(self))}
 
           # Create and set the subclass constant
           current.const_set(subclass_const, Class.new(self))

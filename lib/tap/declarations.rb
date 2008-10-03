@@ -44,7 +44,7 @@ module Tap
     end
     
     def env
-      Declarations.env
+      @env ||= Declarations.env
     end
     
     attr_accessor :declaration_base
@@ -111,18 +111,10 @@ module Tap
     end
     
     def namespace(name, &block)
-      name = name.to_s
-      const = File.join(declaration_base, name).camelize
-      const.try_constantize do |const_name|
-        base = case declaration_base
-        when "" then Object
-        else declaration_base.camelize.constantize
-        end
-        
-        m = base.const_set(name.camelize, Module.new)
-        m.extend Tap::Declarations
-        m.module_eval(&block)
-      end
+      current_base = declaration_base
+      @declaration_base = File.join(current_base, name.to_s.underscore)
+      yield
+      @declaration_base = current_base
     end
     
     def desc(str)
@@ -164,8 +156,8 @@ module Tap
         unless dependency.kind_of?(Class)
           # converts dependencies like 'update:session'
           # note this will prevent lookup from other envs.
-          dependency = dependency.to_s.split(/:+/).join("/")
-          const = env.find(:tasks, dependency.to_s)
+          dependency = dependency.to_s.split(/:+/).join("/").camelize
+          lookup, const = env.manifest(:tasks).find {|lookup, const| const.name == dependency }
           dependency = const ? const.constantize : declare(Tap::Task, dependency)
         end
   

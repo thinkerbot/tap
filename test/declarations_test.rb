@@ -6,7 +6,7 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def setup
     @declaration_base = "DeclarationsTest"
-    @env = Tap::Env.instance_for(File.dirname(__FILE__))
+    @env = Tap::Env.new(:load_paths => [], :command_paths => [], :generator_paths => [])
   end
   
   #
@@ -290,7 +290,7 @@ class DeclarationsTest < Test::Unit::TestCase
     b = task(:b => [:a])  {|t| runlist << t }
     c = task(:c => :b)  {|t| runlist << t }
     
-    c._execute
+    c.execute
     assert_equal [a,b,c], runlist
   end
   
@@ -354,5 +354,41 @@ class DeclarationsTest < Test::Unit::TestCase
     q1.process('1','2','3','4','5')
     assert_equal({}, arg_hash_a)
     assert_equal({}, arg_hash_b)
+  end
+  
+  def test_task_declarations_with_namespace
+    str = ""
+    task(:p) { str << 'a' }
+
+    namespace :p do
+      task(:q) { str << 'b' }
+    end
+
+    c = task(:r => [:p, 'p:q'])
+    task(:r) { str << 'c' }
+    task(:r) { str << '!' }
+    
+    c.execute
+    assert_equal "abc!", str
+  end
+  
+  def test_task_declarations_with_same_name_namespaces
+    str = ""
+    task(:aa) { str << 'a1' }
+
+    namespace :aa do
+      task(:bb) { str << 'b1' }
+    end
+    
+    namespace :bb do
+      task(:aa) { str << 'a2' }
+    end
+    
+    task(:bb) { str << 'b2' }
+    
+    cc = task(:cc => ['aa', 'aa:bb', 'bb:aa', 'bb'])
+
+    cc.execute
+    assert_equal "a1b1a2b2", str
   end
 end
