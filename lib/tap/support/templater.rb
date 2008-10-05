@@ -62,10 +62,15 @@ module Tap
         # yamlize converts the object to YAML (using to_yaml), omitting
         # the header and final newline:
         #
-      	#   {'key' => 'value'}.to_yaml           # => "--- \nkey: value\n"
-      	#   yamlize {'key' => 'value'}           # => "key: value"
+        #   {'key' => 'value'}.to_yaml           # => "--- \nkey: value\n"
+        #   yamlize {'key' => 'value'}           # => "key: value"
         def yamlize(object)
           object == nil ? "~" : YAML.dump(object)[4...-1].strip
+        end
+        
+        # Comments out the string.
+        def comment(str)
+          str.split("\n").collect {|line| "# #{line}" }.join("\n")
         end
         
         # Nest the return of the block in the nesting lines.

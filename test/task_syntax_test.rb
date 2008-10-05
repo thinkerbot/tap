@@ -53,7 +53,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
 
   def test_block_with_no_input
     was_in_block = false
-    t = Tap::Task.new do |task|
+    t = Tap::Task.intern do |task|
       was_in_block = true
     end
 
@@ -98,7 +98,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
 
   def test_block_with_one_input
     runlist = []
-    t = Tap::Task.new do |task, input|
+    t = Tap::Task.intern do |task, input|
       runlist << input
     end
 
@@ -146,7 +146,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
   
   def test_block_with_multiple_inputs
     runlist = []
-    t = Tap::Task.new do |task, a, b|
+    t = Tap::Task.intern do |task, a, b|
       runlist << [a,b]
     end
   
@@ -193,7 +193,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
 
   def test_block_with_arbitrary_inputs
     runlist = []
-    t = Tap::Task.new do |task, *args|
+    t = Tap::Task.intern do |task, *args|
       runlist << args
     end
 
@@ -244,7 +244,7 @@ class TaskSyntaxTest < Test::Unit::TestCase
   
   def test_block_with_mixed_arbitrary_inputs
     runlist = []
-    t = Tap::Task.new do |task, a, b, *args|
+    t = Tap::Task.intern do |task, a, b, *args|
       runlist << [a, b, args]
     end
 

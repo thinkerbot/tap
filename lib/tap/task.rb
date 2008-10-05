@@ -1,5 +1,7 @@
 require 'tap/support/executable'
 require 'tap/support/lazydoc/method'
+require 'tap/support/lazydoc/definition'
+require 'tap/support/intern'
 autoload(:OptionParser, 'optparse')
 
 module Tap
@@ -161,21 +163,14 @@ module Tap
     include Support::Executable
     
     class << self
-      # Returns the default name for the class: to_s.underscore
-      attr_accessor :default_name
-
       # Returns class dependencies
       attr_reader :dependencies
       
-      def inherited(child)
-        unless child.instance_variable_defined?(:@source_file)
-          caller.first =~ Support::Lazydoc::CALLER_REGEXP
-          child.instance_variable_set(:@source_file, File.expand_path($1)) 
-        end
-
-        child.instance_variable_set(:@default_name, child.to_s.underscore)
-        child.instance_variable_set(:@dependencies, dependencies.dup)
-        super
+      # Returns the default name for the class: to_s.underscore
+      attr_writer :default_name
+      
+      def default_name
+        @default_name ||= to_s.underscore
       end
       
       #--
@@ -187,7 +182,36 @@ module Tap
       def instance
         @instance ||= new
       end
+      
+      def inherited(child)
+        unless child.instance_variable_defined?(:@source_file)
+          caller.first =~ Support::Lazydoc::CALLER_REGEXP
+          child.instance_variable_set(:@source_file, File.expand_path($1)) 
+        end
 
+        child.instance_variable_set(:@dependencies, dependencies.dup)
+        super
+      end
+      
+      def intern(*args, &block)
+        instance = new(*args)
+        instance.extend Support::Intern
+        instance.process_block = block
+        instance
+      end
+      
+      def subclass(configs={}, default_name=nil, &block)
+        subclass = Class.new(self)
+        subclass.default_name = default_name == nil ? nil : default_name.to_s
+        
+        configs.each_pair do |key, value|
+          subclass.config(key, value)
+        end
+        
+        subclass.send(:define_method, :process, &block) if block
+        subclass
+      end
+      
       # Parses the argv into an instance of self and an array of arguments (implicitly
       # to be enqued to the instance and run by app).  Yields a help string to the
       # block when the argv indicates 'help'.
@@ -331,25 +355,111 @@ module Tap
         public(name)
       end
       
-      def define(name, klass=Tap::Task, config=klass.configurations.to_hash, &block)
+      # Defines a task subclass with the specified configurations and process block.
+      # During initialization the subclass is instantiated and made accessible 
+      # through a reader by the specified name.  
+      #
+      # Defined tasks may be configured during initialization, through config, or 
+      # directly through the instance; in effect you get tasks with nested configs 
+      # which greatly facilitates workflows.  Indeed, defined tasks are often 
+      # joined in the workflow method.
+      #
+      #   class AddALetter < Tap::Task
+      #     config :letter, 'a'
+      #     def process(input); input << letter; end
+      #   end
+      #
+      #   class AlphabetSoup < Tap::Task
+      #     define :a, AddALetter, {:letter => 'a'}
+      #     define :b, AddALetter, {:letter => 'b'}
+      #     define :c, AddALetter, {:letter => 'c'}
+      #
+      #     def workflow
+      #       a.sequence(b, c)
+      #     end
+      # 
+      #     def process
+      #       a.execute("")
+      #     end
+      #   end
+      #
+      #   AlphabetSoup.new.process            # => 'abc'
+      #
+      #   i = AlphabetSoup.new(:a => {:letter => 'x'}, :b => {:letter => 'y'}, :c => {:letter => 'z'})
+      #   i.process                           # => 'xyz'
+      #
+      #   i.config[:a] = {:letter => 'p'}
+      #   i.config[:b][:letter] = 'q'
+      #   i.c.letter = 'r'
+      #   i.process                           # => 'pqr'
+      #
+      # ==== Usage
+      #
+      # Define is basically the equivalent of:
+      #
+      #   class Sample < Tap::Task
+      #     Name = baseclass.subclass(config, &block)
+      #     
+      #     # accesses an instance of Name
+      #     attr_reader :name
+      #
+      #     # register name as a config, but with a
+      #     # non-standard reader and writer
+      #     config :name, {}, {:reader => :name_config, :writer => :name_config=}.merge(options)
+      #
+      #     # reader for name.config
+      #     def name_config; ...; end
+      #
+      #     # reconfigures name with input
+      #     def name_config=(input); ...; end
+      #
+      #     def initialize(*args)
+      #       super
+      #       @name = Name.new(config[:name])
+      #     end
+      #   end
+      #
+      # Note the following:
+      # * define will set a constant like name.camelize
+      # * the block defines the process method in the subclass
+      # * three methods are created by define: name, name_config, name_config=
+      #
+      def define(name, baseclass=Tap::Task, config={}, options={}, &block)
+        # define the subclass
+        const_name = options.delete(:const_name) || name.to_s.camelize
+        subclass = const_set(const_name, baseclass.subclass(config, name, &block))
+        
+        # define methods
         instance_var = "@#{name}".to_sym
+        reader = (options[:reader] ||= "#{name}_config".to_sym)
+        writer = (options[:writer] ||= "#{name}_config=".to_sym)
         
-        define_method(name) do |*args|
-          raise ArgumentError, "wrong number of arguments (#{args.length} for 1)" if args.length > 1
-          
-          instance_name = args[0] || name
-          instance_variable_set(instance_var, {}) unless instance_variable_defined?(instance_var)
-          instance_variable_get(instance_var)[instance_name] ||= config_task(instance_name, klass, &block)
+        attr_reader name
+        
+        define_method(reader) do
+          # return the config for the instance
+          instance_variable_get(instance_var).config
         end
         
-        define_method("#{name}=") do |input|
-          input = {name => input} unless input.kind_of?(Hash)
-          instance_variable_set(instance_var, input)
+        define_method(writer) do |value|
+          # initialize or reconfigure the instance of subclass
+          if instance_variable_defined?(instance_var) 
+            instance_variable_get(instance_var).reconfigure(value)
+          else
+            instance_variable_set(instance_var, subclass.new(value))
+          end
+        end
+        public(name, reader, writer)
+        
+        # add the configuration
+        if options[:desc] == nil
+          caller[0] =~ Support::Lazydoc::CALLER_REGEXP
+          desc = Support::Lazydoc.register($1, $3.to_i - 1, Support::Lazydoc::Definition)
+          desc.subclass = subclass
+          options[:desc] = desc
         end
         
-        public(name, "#{name}=")
-        
-        configurations.add(name, config, :reader => nil, :writer => nil)
+        configurations.add(name, subclass.configurations.instance_config, options)
       end
     end
     
@@ -364,20 +474,15 @@ module Tap
     # Currently names may be any object.  Audit makes use of name
     # via to_s, as does app when figuring configuration filepaths. 
     attr_accessor :name
-    
-    # The task block provided during initialization.  
-    attr_reader :task_block
 
     # Initializes a new instance and associated batch objects.  Batch
     # objects will be initialized for each configuration template 
     # specified by app.each_config_template(config_file) where 
     # config_file = app.config_filepath(name).  
-    def initialize(config={}, name=nil, app=App.instance, &task_block)
+    def initialize(config={}, name=nil, app=App.instance)
       super()
 
       @name = name || self.class.default_name
-      @task_block = (task_block == nil ? default_task_block : task_block)
-      
       @app = app
       @_method_name = :execute_with_callbacks
       @on_complete_block = nil
@@ -385,8 +490,10 @@ module Tap
       @batch = [self]
       
       case config
-      when Support::InstanceConfiguration 
-        @config = config
+      when Support::InstanceConfiguration
+        # update is prudent to ensure all configs have an input
+        # (and hence, all configs will be initialized)
+        @config = config.update(self.class.configurations)
         config.bind(self)
       else 
         initialize_config(config)
@@ -433,29 +540,9 @@ module Tap
     #   t.app.run
     #   t.app.results(t)         # => [[2,1], [4,3]]
     #
-    # By default process passes self and the input(s) to the task_block   
-    # provided during initialization.  In this case the task block dictates  
-    # the number of arguments enq should receive.  Simply returns the inputs
-    # if no task_block is set.
-    #
-    #   # two arguments in addition to task are specified
-    #   # so this Task must be enqued with two inputs...
-    #   t = Task.new {|task, a, b| [b,a] }
-    #   t.enq(1,2).enq(3,4)
-    #   t.app.run
-    #   t.app.results(t)         # => [[2,1], [4,3]]
-    #
+    # By default, process simply returns the inputs.
     def process(*inputs)
-      return inputs if task_block == nil
-      inputs.unshift(self)
-      
-      arity = task_block.arity
-      n = inputs.length
-      unless n == arity || (arity < 0 && (-1-n) <= arity) 
-        raise ArgumentError.new("wrong number of arguments (#{n} for #{arity})")
-      end
-      
-      task_block.call(*inputs)
+      inputs
     end
     
     # Logs the inputs to the application logger (via app.log)
@@ -476,12 +563,7 @@ module Tap
     end
     
     protected
-    
-    # Hook to set a default task block.  By default, nil.
-    def default_task_block
-      nil
-    end
-    
+
     # Hook to define a workflow for defined tasks.
     def workflow
     end

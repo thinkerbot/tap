@@ -41,7 +41,7 @@ class AppTest < Test::Unit::TestCase
   #
 
   def test_app_documentation
-    t1 = Task.new {|task, input| input += 1 }
+    t1 = Task.intern {|task, input| input += 1 }
     t1.enq(0)
     app.enq(t1, 1)
   
@@ -52,7 +52,7 @@ class AppTest < Test::Unit::TestCase
     
     app.aggregator.clear
   
-    t2 = Task.new {|task, input| input += 10 }
+    t2 = Task.intern {|task, input| input += 10 }
     t1.on_complete {|_result| t2.enq(_result) }
   
     t1.enq 0
@@ -65,8 +65,8 @@ class AppTest < Test::Unit::TestCase
     ########
     
     array = []
-    t1 = Task.new {|task, *inputs| array << inputs }
-    t2 = Task.new {|task, *inputs| array << inputs }
+    t1 = Task.intern {|task, *inputs| array << inputs }
+    t2 = Task.intern {|task, *inputs| array << inputs }
   
     t1.depends_on(t2,1,2,3)
     t1.enq(4,5,6)
@@ -80,8 +80,8 @@ class AppTest < Test::Unit::TestCase
     
     ########
   
-    t1 = Task.new  {|task, input| input += 1 }
-    t2 = Task.new  {|task, input| input += 10 }
+    t1 = Task.intern  {|task, input| input += 1 }
+    t2 = Task.intern  {|task, input| input += 10 }
     
     t1.batch_with(t2)
     t1.enq 0
@@ -104,10 +104,10 @@ class AppTest < Test::Unit::TestCase
     
     ########
   
-    t1 = Tap::Task.new {|task, input| input += 1 }
+    t1 = Tap::Task.intern {|task, input| input += 1 }
     t1.name = "add_one"
   
-    t2 = Tap::Task.new {|task, input| input += 5 }
+    t2 = Tap::Task.intern {|task, input| input += 5 }
     t2.name = "add_five"
   
     t1.on_complete do |_result|
@@ -236,7 +236,7 @@ o-[add_five] 8
   #
 
   def test_run_single_task
-    t = Task.new(&add_one)
+    t = Task.intern(&add_one)
     t.enq 1
     app.run
 
@@ -245,9 +245,9 @@ o-[add_five] 8
   end
   
   def test_run_executes_each_task_in_queue_in_order
-    Task.new(&echo).enq 1
-    Task.new(&echo).enq 2
-    Task.new(&echo).enq 3
+    Task.intern(&echo).enq 1
+    Task.intern(&echo).enq 2
+    Task.intern(&echo).enq 3
     
     app.run
 
@@ -257,7 +257,7 @@ o-[add_five] 8
   def test_run_returns_self_when_running
     queue_before = nil
     queue_after = nil
-    t1 = Task.new do |task| 
+    t1 = Task.intern do |task| 
       queue_before = app.queue.to_a
       app.run
       queue_after = app.queue.to_a
@@ -339,7 +339,7 @@ o-[add_five] 8
   #
 
   def test_run_batched_task
-    t1 = Task.new do |task, input|
+    t1 = Task.intern do |task, input|
       input = input + [task.batch_index]
       runlist << input
       input
@@ -362,7 +362,7 @@ o-[add_five] 8
   end
    
   def test_run_batched_task_with_existing_audit_trails
-    t1 = Task.new do |task, input|
+    t1 = Task.intern do |task, input|
       input = input + [task.batch_index]
       runlist << input
       input
@@ -405,8 +405,8 @@ o-[add_five] 8
   #
   
   def test_results_documentation
-    t1 = Task.new  {|task, input| input += 1 }
-    t2 = Task.new  {|task, input| input += 10 }
+    t1 = Task.intern {|task, input| input += 1 }
+    t2 = Task.intern {|task, input| input += 10 }
     t3 = t2.initialize_batch_obj
     
     t1.enq(0)
@@ -429,7 +429,7 @@ o-[add_five] 8
   end
   
   def test_results_for_various_objects
-    t1 = Task.new {|task, input| input}
+    t1 = Task.intern {|task, input| input}
 
     t1.enq({:key => 'value'})
     t1.enq([1,2,3])
@@ -452,7 +452,7 @@ o-[add_five] 8
   end
   
   def test_unhandled_exception_is_logged_by_default
-    task = Task.new {|t| raise "error"}
+    task = Task.intern {|t| raise "error"}
      
     string = set_stringio_logger
     task.enq
@@ -463,7 +463,7 @@ o-[add_five] 8
   
   def test_terminate_errors_are_ignored
     was_in_block = false
-    task = Task.new do |t| 
+    task = Task.intern do |t| 
       was_in_block = true
       raise Tap::App::TerminateError
       flunk "should have been terminated"

@@ -47,11 +47,19 @@ module Tap
         @class_config = class_config
       end
       
+      def update(class_config=self.class_config)
+        class_config.each_pair do |key, config|
+          self[key] ||= config.default
+        end
+        self
+      end
+      
       # Binds self to the specified receiver.  Mapped keys are
       # removed from store and sent to their writer method on 
       # receiver.
       def bind(receiver)
-        raise ArgumentError.new("receiver cannot be nil") if receiver == nil
+        raise "already bound to: #{@receiver}" if bound?
+        raise ArgumentError, "receiver cannot be nil" if receiver == nil
         
         class_config.each_pair do |key, config|
           receiver.send(config.writer, store.delete(key)) if config.writer
@@ -136,6 +144,19 @@ module Tap
           hash[key] = self[key]
         end if bound?
         hash
+      end
+      
+      def to_yaml(opts)
+        hash = {}
+        store.each_pair do |key, value|
+          hash[key.to_s] = value
+        end
+        
+        class_config.each_pair do |key, config|
+          hash[key.to_s] = bound? ? self[key] : config.default
+        end
+        
+        hash.to_yaml(opts)
       end
       
       # Overrides default inspect to show the to_hash values.

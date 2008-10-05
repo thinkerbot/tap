@@ -16,7 +16,7 @@ module Tap
   # access application-wide resources like the logger.  Additionally, task
   # enque command are forwarded to App#enq:
   #
-  #   t1 = Task.new {|task, input| input += 1 }
+  #   t1 = Task.intern {|task, input| input += 1 }
   #   t1.enq(0)
   #   app.enq(t1, 1)
   #
@@ -31,7 +31,7 @@ module Tap
   #   # clear the previous results
   #   app.aggregator.clear
   #
-  #   t2 = Task.new {|task, input| input += 10 }
+  #   t2 = Task.intern {|task, input| input += 10 }
   #   t1.on_complete {|_result| t2.enq(_result) }
   #
   #   t1.enq 0
@@ -52,8 +52,8 @@ module Tap
   # given set of inputs).
   #
   #   array = []
-  #   t1 = Task.new {|task, *inputs| array << inputs }
-  #   t2 = Task.new {|task, *inputs| array << inputs }
+  #   t1 = Task.intern {|task, *inputs| array << inputs }
+  #   t2 = Task.intern {|task, *inputs| array << inputs }
   #
   #   t1.depends_on(t2,1,2,3)
   #   t1.enq(4,5,6)
@@ -72,8 +72,8 @@ module Tap
   # Tasks can be batched, allowing the same input to be enqued to multiple 
   # tasks at once.
   #
-  #   t1 = Task.new  {|task, input| input += 1 }
-  #   t2 = Task.new  {|task, input| input += 10 }
+  #   t1 = Task.intern  {|task, input| input += 1 }
+  #   t2 = Task.intern  {|task, input| input += 10 }
   #
   #   t1.batch_with(t2)
   #   t1.enq 0
@@ -105,10 +105,10 @@ module Tap
   # to add one to an input until the result is 3, then adds five more with the 
   # 'add_five' method.  The final result should always be 8.  
   #
-  #   t1 = Tap::Task.new {|task, input| input += 1 }
+  #   t1 = Tap::Task.intern {|task, input| input += 1 }
   #   t1.name = "add_one"
   #
-  #   t2 = Tap::Task.new {|task, input| input += 5 }
+  #   t2 = Tap::Task.intern {|task, input| input += 5 }
   #   t2.name = "add_five"
   #
   #   t1.on_complete do |_result|
@@ -372,8 +372,8 @@ module Tap
     # Returns all aggregated results for the specified tasks.  Results are
     # joined into a single array.  Arrays of tasks are allowed as inputs.    
     #
-    #   t1 = Task.new  {|task, input| input += 1 }
-    #   t2 = Task.new  {|task, input| input += 10 }
+    #   t1 = Task.intern  {|task, input| input += 1 }
+    #   t2 = Task.intern  {|task, input| input += 10 }
     #   t3 = t2.initialize_batch_obj
     #
     #   t1.enq(0)

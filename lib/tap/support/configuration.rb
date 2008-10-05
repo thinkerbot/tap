@@ -63,7 +63,7 @@ module Tap
       # Numeric, and responds_to?(:dup)).
       def default=(value)
         @duplicable = case value
-        when nil, true, false, Symbol, Numeric then false
+        when nil, true, false, Symbol, Numeric, Method then false
         else value.respond_to?(:dup)
         end
         

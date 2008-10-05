@@ -21,7 +21,7 @@ module Tap
   #   # this file will be backed up and restored
   #   File.open("file.txt", "w") {|f| f << "original content"}
   #  
-  #   t = FileTask.new do |task|
+  #   t = FileTask.intern do |task|
   #     task.mkdir("some/dir")                         # marked for rollback
   #     task.prepare("file.txt", "path/to/file.txt")   # marked for rollback
   #
@@ -66,7 +66,7 @@ module Tap
     # error, defaults to the class rollback_on_error
     config :rollback_on_error, true, &c.switch   # rollback changes on error
     
-    def initialize(config={}, name=nil, app=App.instance, &task_block)
+    def initialize(config={}, name=nil, app=App.instance)
       super
       
       @backed_up_files = {}

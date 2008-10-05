@@ -67,9 +67,9 @@ class TaskTest < Test::Unit::TestCase
     
     ###
     app = Tap::App.instance
-    t1 = Tap::Task.new(:key => 'one') do |task, input| 
-      input + task.config[:key]
-    end
+    t1 = Tap::Task.subclass(:key => 'one') do |input| 
+      input + config[:key]
+    end.new
     assert_equal [t1], t1.batch
   
     t2 = t1.initialize_batch_obj(:key => 'two')
@@ -217,115 +217,185 @@ class TaskTest < Test::Unit::TestCase
   # Task.define test
   #
   
-  class Define < Tap::Task
-    BLOCK = lambda {}
-    
-    define :tap_task
-    define :task_with_block, &BLOCK
-    define :file_task, Tap::FileTask
-  end
-  
-  # getter
-  
-  def test_define_task_makes_task_initializer
-    t = Define.new
-    assert t.respond_to?(:tap_task)
-    assert_equal Tap::Task, t.tap_task.class
-  end
-  
-  def test_define_task_returns_the_same_named_task_across_multiple_calls
-    t = Define.new
-    t1 = t.tap_task
-    assert_equal t1.object_id, t.tap_task.object_id
-    
-    t2 = t.tap_task('alt')
-    assert_equal t2.object_id, t.tap_task('alt').object_id
-  end
-  
-  def test_define_task_sets_task_in_instance_variable_by_name
-    t = Define.new
-    t1 = t.tap_task
-    t2 = t.tap_task('alt')
-    assert_equal({:tap_task => t1, 'alt' => t2}, t.instance_variable_get(:@tap_task))
+  class AddALetter < Tap::Task
+    config :letter, 'a'
+    def process(input); input << letter; end
   end
 
-  def test_defined_tasks_are_named_with_input_or_method_name_by_default
-    t = Define.new
-    assert_equal :tap_task, t.tap_task.name
-    assert_equal 'alt', t.tap_task('alt').name
+  class AlphabetSoup < Tap::Task
+    define :a, AddALetter, {:letter => 'a'}
+    define :b, AddALetter, {:letter => 'b'}
+    define :c, AddALetter, {:letter => 'c'}
+
+    def workflow
+      a.sequence(b, c)
+    end
+
+    def process
+      a.execute("")
+    end
   end
   
-  def test_defined_tasks_utilize_configurations_by_the_same_name
-    t = Define.new(:tap_task => {:key => 'value'})
-    assert_equal({:key => 'value'}, t.tap_task.config)
+  def test_define_documentation
+    assert_equal 'abc', AlphabetSoup.new.process
+
+    i = AlphabetSoup.new(:a => {:letter => 'x'}, :b => {:letter => 'y'}, :c => {:letter => 'z'})
+    assert_equal 'xyz', i.process
+
+    i.config[:a] = {:letter => 'p'}
+    i.config[:b][:letter] = 'q'
+    i.c.letter = 'r'
+    assert_equal 'pqr', i.process
+  end
+  
+  class Define < Tap::Task
+    define :define_task, Tap::Task, {:key => 'value'} do
+      "result"
+    end
     
-    t.config['alt'] = {:key => 'another'}
-    assert_equal({:key => 'another'}, t.tap_task('alt').config)
-  end
-  
-  def test_initialization_of_a_task_using_non_hash_or_nil_configs_raises_error
-    t = Define.new :int => 2, :str => 'str', :hash => {}, :nil => nil
+    config :key, 'define value'
     
-    assert_nothing_raised { t.tap_task(:hash) }
-    assert_nothing_raised { t.tap_task(:nil) }
-    assert_nothing_raised { t.tap_task(:non_existant) }
-    assert_raise(ArgumentError) { t.tap_task(:int) }
-    assert_raise(ArgumentError) { t.tap_task(:str) }
+    def process
+      'define result'
+    end
   end
   
-  def test_initialization_initializes_class_using_block
-    t = Define.new
+  def test_define_subclasses_task_class_with_name_configs_and_block
+    assert Define.const_defined?(:DefineTask)
+    assert_equal Tap::Task, Define::DefineTask.superclass
     
-    t1 = t.tap_task
-    assert_equal Tap::Task, t1.class
-    assert_equal nil, t1.task_block
+    define_task = Define::DefineTask.new
+    assert_equal 'define_task', define_task.name
+    assert_equal({:key => 'value'}, define_task.config.to_hash)
+    assert_equal "result", define_task.process
+  end
+  
+  def test_define_creates_reader_initialized_to_subclass
+    t = Define.new
+    assert t.respond_to?(:define_task)
+    assert_equal Define::DefineTask,  t.define_task.class
     
-    t2 = t.task_with_block
-    assert_equal Tap::Task, t2.class
-    assert_equal Define::BLOCK, t2.task_block
+    assert_equal 'define_task', t.define_task.name
+    assert_equal({:key => 'value'}, t.define_task.config.to_hash)
+    assert_equal "result", t.define_task.process
+  end
+  
+  def test_define_creates_instance_config_reader_for_task
+    t = Define.new
+    assert t.respond_to?(:define_task_config)
+    assert_equal t.define_task.config, t.define_task_config
+  end
+  
+  def test_define_creates_instance_config_writer_for_task
+    t = Define.new
+    assert t.respond_to?(:define_task_config=)
+    assert_equal({:key => 'value'}, t.define_task.config.to_hash)
     
-    t3 = t.file_task
-    assert_equal Tap::FileTask, t3.class
-    assert_equal nil, t3.task_block
+    t.define_task_config = {:key => 'one'}
+    assert_equal({:key => 'one'}, t.define_task.config.to_hash)
   end
   
-  def test_initialization_of_different_declarations_using_the_same_name_does_not_raise_an_error
-    t = Define.new
-    t.tap_task(:name)
+  def test_define_adds_config_by_name_to_configurations
+    assert Define.configurations.key?(:define_task)
+    config = Define.configurations[:define_task]
     
-    assert_nothing_raised { t.tap_task(:name) }
-    assert_nothing_raised { t.task_with_block(:name) }
-    assert_nothing_raised { t.file_task(:name) }
+    assert_equal :define_task_config, config.reader
+    assert_equal :define_task_config=, config.writer
+    assert_equal Tap::Support::InstanceConfiguration, config.default.class
+    assert_equal Define::DefineTask.configurations, config.default.class_config
   end
   
-  def test_configurations_for_defined_task_may_not_be_set_through_config
+  def test_instance_is_initialized_with_configs_by_the_same_name
+    t = Define.new :define_task => {:key => 'one'}
+    assert_equal({:key => 'one'}, t.define_task.config.to_hash)
+  end
+  
+  def test_modification_of_configs_adjusts_instance_configs_and_vice_versa
     t = Define.new
-    t.config[:tap_task] = {:key => 'value'}
-    t1 = t.tap_task
+    assert_equal({:key => 'value'}, t.define_task.config.to_hash)
     
-    assert_equal({:key => 'value'}, t1.config)
-    t.config[:tap_task][:key] = 'VALUE'
-    assert_equal({:key => 'value'}, t1.config)
+    t.config[:define_task][:key] = 'zero'
+    assert_equal({:key => 'zero'}, t.define_task.config.to_hash)
+    
+    t.config[:define_task]['key'] = 'one'
+    assert_equal({:key => 'one'}, t.define_task.config.to_hash)
+    
+    t.config[:define_task] = {:key => 'two'}
+    assert_equal({:key => 'two'}, t.define_task.config.to_hash)
+    
+    t.config[:define_task] = {'key' => 'three'}
+    assert_equal({:key => 'three'}, t.define_task.config.to_hash)
+    
+    t.define_task.key = "two"
+    assert_equal({:key => 'two'}, t.config[:define_task])
+    
+    t.define_task.reconfigure(:key => 'one')
+    assert_equal({:key => 'one'}, t.config[:define_task])
+    
+    t.define_task.config[:key] = 'zero'
+    assert_equal({:key => 'zero'}, t.config[:define_task])
   end
   
-  # setter
-  
-  def test_define_task_makes_task_setter
-    t = Define.new
-    assert t.respond_to?(:tap_task=)
+  class NestedDefine < Tap::Task
+    define :nested_define_task, Define
+    
+    config :key, 'nested define value'
+    
+    def process
+      'nested define result'
+    end
   end
   
-  def test_define_task_setter_sets_instance_variable_if_hash
-    t = Define.new
-    t.tap_task = {:key => 'value'}
-    assert_equal({:key => 'value'}, t.instance_variable_get(:@tap_task))
+  def test_nested_defined_tasks_initialize_properly
+    t = NestedDefine.new
+    
+    assert_equal NestedDefine::NestedDefineTask, t.nested_define_task.class
+    assert_equal Define, t.nested_define_task.class.superclass
+    
+    assert_equal Define::DefineTask, t.nested_define_task.define_task.class
+    assert_equal Tap::Task, t.nested_define_task.define_task.class.superclass
+    
+    assert_equal({
+      :key => 'nested define value', 
+      :nested_define_task => t.nested_define_task.config
+    }, t.config.to_hash)
+    
+    assert_equal({
+      :key => 'define value', 
+      :define_task => t.nested_define_task.define_task.config
+    }, t.nested_define_task.config.to_hash)
+    
+    assert_equal({
+      :key => 'value'
+    }, t.nested_define_task.define_task.config.to_hash)
+    
+    assert_equal 'nested define result', t.process
+    assert_equal 'define result', t.nested_define_task.process
+    assert_equal 'result', t.nested_define_task.define_task.process
   end
   
-  def test_define_task_setter_sets_input_by_name_in_instane_variable_if_input_is_not_a_hash
-    t = Define.new
-    t.tap_task = 'value'
-    assert_equal({:tap_task => 'value'}, t.instance_variable_get(:@tap_task))
-    assert_equal 'value', t.tap_task
+  def test_nested_defined_tasks_allow_nested_configuration
+    t = NestedDefine.new :key => 'zero', :nested_define_task => {:key => 'one', :define_task => {:key => 'two'}}
+    
+    assert_equal({
+      :key => 'zero', 
+      :nested_define_task => t.nested_define_task.config
+    }, t.config.to_hash)
+    
+    assert_equal({
+      :key => 'one', 
+      :define_task => t.nested_define_task.define_task.config
+    }, t.nested_define_task.config.to_hash)
+    
+    assert_equal({
+      :key => 'two'
+    }, t.nested_define_task.define_task.config.to_hash)
+    
+    t.config[:nested_define_task][:define_task][:key] = 'three'
+    assert_equal({:key => 'three'}, t.nested_define_task.define_task.config.to_hash)
+    
+    t.config[:nested_define_task] = {:define_task => {:key => 'four'}}
+    assert_equal({:key => 'four'}, t.nested_define_task.define_task.config.to_hash)
   end
   
   #
@@ -336,7 +406,6 @@ class TaskTest < Test::Unit::TestCase
     assert_equal App.instance, t.app
     assert_equal({}, t.config)
     assert_equal [t], t.batch
-    assert_nil t.task_block
     assert_equal "tap/task", t.name
   end
   
@@ -344,11 +413,10 @@ class TaskTest < Test::Unit::TestCase
     app = App.new
     block = lambda {}
     
-    t = Task.new({:key => 'value'}, "name", app, &block) 
+    t = Task.new({:key => 'value'}, "name", app) 
     assert_equal "name", t.name
     assert_equal({:key => 'value'}, t.config)
     assert_equal app, t.app
-    assert_equal block, t.task_block
   end
 
   def test_task_init_speed
@@ -356,6 +424,14 @@ class TaskTest < Test::Unit::TestCase
       x.report("10k") { 10000.times { Task.new } }
       x.report("10k {}") { 10000.times { Task.new {} } }
       x.report("10k ({},name) {}") { 10000.times { Task.new({},'name') {} } }
+    end
+  end
+  
+  def test_task_subclass_speed
+    benchmark_test(20) do |x|
+      x.report("1k") { 1000.times { Task.subclass } }
+      x.report("1k n,c") { 1000.times { Task.subclass({:key => 'value'}, name) } }
+      x.report("1k block") { 1000.times { Task.subclass() {} } }
     end
   end
 
@@ -428,28 +504,10 @@ class TaskTest < Test::Unit::TestCase
     t.enq(1,2).enq(3,4)
     t.app.run
     assert_equal [[2,1], [4,3]], t.app.results(t)
-
-    t = Task.new {|task, a, b| [b,a] }
-    t.enq(1,2).enq(3,4)
-    t.app.run
-    assert_equal [[2,1], [4,3]], t.app.results(t)
   end
   
-  def test_process_calls_task_block_with_input
-    b = lambda do |task, input|
-      runlist << input
-      input += 1
-    end
-    t = Task.new(&b)
-  
-    assert_equal b, t.task_block
-    assert_equal 2, t.process(1)
-    assert_equal [1], runlist
-  end
-  
-  def test_process_returns_inputs_if_task_block_is_not_set
+  def test_process_returns_inputs
     t = Task.new
-    assert_nil t.task_block
     assert_equal [1,2,3], t.process(1,2,3)
   end
   

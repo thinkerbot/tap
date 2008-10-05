@@ -57,7 +57,7 @@ class FileTaskTest < Test::Unit::TestCase
     FileUtils.mkdir_p( method_root.filepath(:output) )
     
     File.open(file_one, "w") {|f| f << "original content"}
-    t = Tap::FileTask.new do |task|
+    t = Tap::FileTask.intern do |task|
       task.mkdir(dir)                      
       task.prepare([file_one, file_two]) 
       
@@ -539,7 +539,7 @@ class FileTaskTest < Test::Unit::TestCase
     dir_one = method_root.filepath(:output, "path/to/dir")
     dir_two = method_root.filepath(:output, "path/to/another")
 
-    t = Tap::FileTask.new do |task, inputs|
+    t = Tap::FileTask.intern do |task, inputs|
       assert !File.exists?(method_root.filepath(:output, "path"))  
 
       task.mkdir(dir_one)             
@@ -748,7 +748,7 @@ class FileTaskTest < Test::Unit::TestCase
     FileUtils.mkdir_p( method_root.filepath(:output) )
 
     File.open(file_one, "w") {|f| f << "original content"}
-    t = Tap::FileTask.new do |task, inputs|
+    t = Tap::FileTask.intern do |task, inputs|
       assert !File.exists?(method_root.filepath(:output, "path"))
 
       # backup... prepare parent dirs... prepare for restore     
@@ -945,7 +945,7 @@ class FileTaskTest < Test::Unit::TestCase
     backup_file = method_root.filepath(:output, "backup/file.txt")
 
     touch_file(existing_file, "original content")
-    @t = Tap::FileTask.new do |task, input|
+    @t = Tap::FileTask.intern do |task, input|
       task.prepare([existing_file, non_existant_file]) 
 
       block.call if block_given?
@@ -1015,7 +1015,7 @@ class FileTaskTest < Test::Unit::TestCase
 
     touch_file(existing_file, "original content")
     count = 0
-    @t = Tap::FileTask.new do |task, input|
+    @t = Tap::FileTask.intern do |task, input|
       if count > 0
         count = 2
         raise "error" 
@@ -1070,7 +1070,7 @@ class FileTaskTest < Test::Unit::TestCase
       method_root.filepath(:output, "path/to/non/existing/file#{n}.txt")
     end
 
-    @t = Tap::FileTask.new do |task, input|
+    @t = Tap::FileTask.intern do |task, input|
       task.prepare(existing_files + non_existant_files) 
       block.call if block_given?
     end

@@ -284,7 +284,7 @@ class TapTestTest < Test::Unit::TestCase
   #
   
   def test_assert_files
-    t = Tap::FileTask.new do |task, input_file, output_file|
+    t = Tap::FileTask.intern do |task, input_file, output_file|
       task.prepare(output_file)
       File.open(output_file, "wb") {|f| f << "#{File.read(input_file)}content"}
       output_file
