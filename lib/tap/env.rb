@@ -584,7 +584,7 @@ module Tap
 <% entries.each do |name, const| %>
   <%= name.ljust(width) %>
 <% end %>},
-      
+
       :tasks => %Q{<% if count > 1 %>
 <%= env_name %>:
 <% end %>
@@ -594,45 +594,62 @@ module Tap
 <% end %>}
     }
     
-    def summarize(name, template=TEMPLATES[name], target="")
-      unless block_given?
-        count = 0
-        width = 10
-        return summarize(name, template, target) do |templater, share|
-          count += 1
-          templater.entries.each do |name, entry|
-            width = name.length if width < name.length
-          end
-          
-          share[:count] = count
-          share[:width] = width
-        end
+    def summarize(name, template=TEMPLATES[name])
+      count = 0
+      width = 10
+      
+      env_names = {}
+      manifest(:envs, true).minimize.each do |env_name, env|
+        env_names[env] = env_name
       end
       
-      share = {}
-      templaters = []
-      manifest(:envs, true).minimize.each do |(env_name, env)|
+      inspect(template) do |templater, share|
+        env = templater.env
         entries = env.manifest(name, true).minimize
-        next if entries.empty?
+        next(false) if entries.empty?
         
-        templater = Support::Templater.new(template,
-          :env_name => env_name, 
-          :env => env, 
-          :entries => entries)
-          
-        yield(templater, share)
-        templaters << templater
+        templater.env_name = env_names[env]
+        templater.entries = entries
+        
+        count += 1
+        entries.each do |entry_name, entry|
+          width = entry_name.length if width < entry_name.length
+        end
+        
+        share[:count] = count
+        share[:width] = width
+        true
+      end
+    end
+    
+    def inspect(template=nil) # :yields: templater, attrs
+      return "#<#{self.class}:#{object_id} root='#{root.root}'>" if template == nil
+      
+      attrs = {}
+      collect do |env|
+        templater = Support::Templater.new(template, :env => env)
+        block_given? ? (yield(templater, attrs) ? templater : nil) : templater
+      end.compact.collect do |templater|
+        templater.build(attrs)
+      end.join
+    end
+    
+    def recursive_inspect(template=nil, *args) # :yields: templater, attrs
+      return "#<#{self.class}:#{object_id} root='#{root.root}'>" if template == nil
+      
+      attrs = {}
+      templaters = []
+      recursive_each(*args) do |env, *args|
+        templater = Support::Templater.new(template, :env => env)
+        next_args = block_given? ? yield(templater, attrs, *args) : args
+        templaters << templater if next_args
+        
+        next_args
       end
       
-      templaters.each do |templater|
-        target << templater.build(share)
-      end
-   
-      target
-    end
-
-    def inspect
-      "#<#{self.class}:#{object_id} root='#{root.root}'>"
+      templaters.collect do |templater|
+        templater.build(attrs)
+      end.join
     end
     
     protected
