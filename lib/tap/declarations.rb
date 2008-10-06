@@ -159,14 +159,14 @@ module Tap
     end
     
     def desc(str)
-      self.current_desc = Lazydoc::Comment.new
-      self.current_desc.subject = str
+      @current_desc = Lazydoc::Comment.new
+      @current_desc.subject = str
     end
     
     protected
     
     # Resolve the arguments for a task/rule.  Returns a triplet of
-    # [task_name, configs, prerequisites, arg_name_list].
+    # [task_name, configs, prerequisites, arg_name_list, ].
     #
     # From Rake 0.8.3
     # Changes:
@@ -199,7 +199,7 @@ module Tap
           # note this will prevent lookup from other envs.
           dependency = dependency.to_s.split(/:+/).join("/").camelize
           lookup, const = env.manifest(:tasks).find {|lookup, const| const.name == dependency }
-          dependency = const ? const.constantize : declare(dependency)
+          dependency = const ? const.constantize : without_desc { declare(dependency) }
         end
   
         if dependency.ancestors.include?(Tap::Task)
@@ -210,6 +210,15 @@ module Tap
       end
       
       [task_name, configs, needs, arg_names]
+    end
+    
+    def without_desc
+      desc = @current_desc
+      @current_desc = nil
+      result = yield
+      
+      @current_desc = desc
+      result
     end
     
     def declare(name, configs={}, dependencies=[], arg_names=[], &block)
@@ -229,7 +238,6 @@ module Tap
       subclass.source_file = File.expand_path($1)
       lazydoc = subclass.lazydoc(false)
       lazydoc[subclass.to_s]['manifest'] = current_desc || lazydoc.register($3.to_i - 1, Lazydoc::Declaration)
-      self.current_desc = nil
       
       if arg_names
         comment = Lazydoc::Comment.new
@@ -242,10 +250,15 @@ module Tap
         subclass.instance.depends_on(dependency.instance, *args)
       end
       
-      manifest = env.manifest(:tasks).build
-      const_name = subclass.to_s
-      unless manifest.entries.find {|lookup, const| const.name == const_name }
-        manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name, lazydoc.source_file)]
+      if current_desc
+        manifest = env.manifest(:tasks).build
+        const_name = subclass.to_s
+        
+        unless manifest.entries.find {|lookup, const| const.name == const_name }
+          manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name, lazydoc.source_file)]
+        end
+        
+        @current_desc = nil
       end
       
       subclass

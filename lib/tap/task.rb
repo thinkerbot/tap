@@ -594,11 +594,5 @@ module Tap
       result
     end
     
-    def config_task(name, klass=Tap::Task, &block)
-      configs = config[name] || {}
-      raise ArgumentError, "config '#{name}' is not a hash" unless configs.kind_of?(Hash)
-      klass.new(configs, name, &block)
-    end
-    
   end
 end
