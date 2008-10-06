@@ -159,8 +159,8 @@ module Tap
     end
     
     def desc(str)
-      @current_desc = Lazydoc::Comment.new
-      @current_desc.subject = str
+      self.current_desc = Lazydoc::Comment.new
+      current_desc.subject = str
     end
     
     protected
@@ -213,11 +213,11 @@ module Tap
     end
     
     def without_desc
-      desc = @current_desc
-      @current_desc = nil
+      desc = current_desc
+      self.current_desc = nil
       result = yield
       
-      @current_desc = desc
+      self.current_desc = desc
       result
     end
     
@@ -249,18 +249,15 @@ module Tap
       subclass.dependencies.each do |dependency, args|
         subclass.instance.depends_on(dependency.instance, *args)
       end
+
+      manifest = env.manifest(:tasks).build
+      const_name = subclass.to_s
       
-      if current_desc
-        manifest = env.manifest(:tasks).build
-        const_name = subclass.to_s
-        
-        unless manifest.entries.find {|lookup, const| const.name == const_name }
-          manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name, lazydoc.source_file)]
-        end
-        
-        @current_desc = nil
+      unless manifest.entries.find {|lookup, const| const.name == const_name }
+        manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name, lazydoc.source_file)]
       end
       
+      self.current_desc = nil
       subclass
     end
   end

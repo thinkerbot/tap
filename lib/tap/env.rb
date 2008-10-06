@@ -1,6 +1,5 @@
 require 'tap/support/manifest'
 require 'tap/support/constant'
-require 'tap/support/summary'
 require 'tap/support/gems'
 
 module Tap
@@ -578,18 +577,54 @@ module Tap
       end
     end
     
-    def summary(name)
-      summary = Support::Summary.new
-      manifest(:envs, true).minimize.each do |(key, env)|
-       summary.add(key, env, env.manifest(name, true).minimize)
-      end
-      summary
-    end
+    TEMPLATES = {
+      :commands => %Q{<% if envs.length > 1 %>
+<%= env_name %>:
+<% end %>
+<% entries.each do |name, const| %>
+  <%= name.ljust(width) %>
+<% end %>},
+      
+      :tasks => %Q{<% if envs.length > 1 %>
+<%= env_name %>:
+<% end %>
+<% entries.each do |name, const| %>
+<%   desc = const.document[const.name]['manifest'] %>
+  <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
+<% end %>}
+    }
     
-    def summarize(name, &block)
-      lines = summary(name).lines(&block)
-      lines << "=== no #{name} found" if lines.empty?
-      lines.join("\n")
+    def summarize(name, template=nil, target="")
+      template ||= TEMPLATES[name]
+      
+      env_width = 10     # the length of the longest env_key
+      width = 10         # the length of the longest key
+      
+      envs = []
+      manifest(:envs, true).minimize.each do |(env_name, env)|
+        entries = env.manifest(name, true).minimize
+        next if entries.empty?
+        
+        env_width = env_name.length if env_width < env_name.length
+        entries.each do |(entry_name, entry)|
+          width = entry_name.length if width < entry_name.length
+        end
+        envs << [env_name, env, entries]
+      end
+      
+      templater = Support::Templater.new(template, 
+        :envs => envs,
+        :env_width => env_width, 
+        :width => width)
+      envs.each do |(env_name, env, entries)|
+        templater.env_name = env_name
+        templater.env = env
+        templater.entries = entries
+        
+        target << templater.build
+      end
+   
+      target
     end
 
     def inspect

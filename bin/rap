@@ -70,11 +70,7 @@ begin
     puts Tap::Support::Lazydoc.usage(__FILE__)
     puts
     puts "===  tap tasks ==="
-    str = env.summarize(:tasks) do |const| 
-      const.document.resolve
-      const.document[const.name]['manifest'].subject
-    end
-    puts str
+    puts env.summarize(:tasks)
     puts
     puts "=== rake tasks ==="
     Tap::Tasks::Rake.new.enq('-T')
