@@ -67,10 +67,24 @@ begin
   
   case ARGV[0]
   when '--help', nil, '-T'
+    rap_template = %Q{<% if count > 1 && !entries.empty? %>
+<%= env_name %>:
+<% end %>
+<% entries.each do |name, const| %>
+<%   desc = if const.require_path == nil # should be a declaration %>
+<%     desc = const.constantize.lazydoc[const.name]['manifest'].subject %>
+<%     next if desc.empty? %>
+<%     desc %>
+<%   else %>
+<%     const.document[const.name]['manifest'] %>
+<%   end %>
+  <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
+<% end %>}
+
     puts Tap::Support::Lazydoc.usage(__FILE__)
     puts
     puts "===  tap tasks ==="
-    puts env.summarize(:tasks)
+    puts env.summarize(:tasks, rap_template)
     puts
     puts "=== rake tasks ==="
     Tap::Tasks::Rake.new.enq('-T')

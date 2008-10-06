@@ -34,7 +34,7 @@ module Tap
       # will be a duplicate of the current object but with a new name and/or 
       # configurations.
       def initialize_batch_obj(*args)
-        super().extend Intern
+        super(*args).extend Intern
       end
       
     end

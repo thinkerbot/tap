@@ -578,14 +578,14 @@ module Tap
     end
     
     TEMPLATES = {
-      :commands => %Q{<% if envs.length > 1 %>
+      :commands => %Q{<% if count > 1 %>
 <%= env_name %>:
 <% end %>
 <% entries.each do |name, const| %>
   <%= name.ljust(width) %>
 <% end %>},
       
-      :tasks => %Q{<% if envs.length > 1 %>
+      :tasks => %Q{<% if count > 1 %>
 <%= env_name %>:
 <% end %>
 <% entries.each do |name, const| %>
@@ -594,34 +594,38 @@ module Tap
 <% end %>}
     }
     
-    def summarize(name, template=nil, target="")
-      template ||= TEMPLATES[name]
+    def summarize(name, template=TEMPLATES[name], target="")
+      unless block_given?
+        count = 0
+        width = 10
+        return summarize(name, template, target) do |templater, share|
+          count += 1
+          templater.entries.each do |name, entry|
+            width = name.length if width < name.length
+          end
+          
+          share[:count] = count
+          share[:width] = width
+        end
+      end
       
-      env_width = 10     # the length of the longest env_key
-      width = 10         # the length of the longest key
-      
-      envs = []
+      share = {}
+      templaters = []
       manifest(:envs, true).minimize.each do |(env_name, env)|
         entries = env.manifest(name, true).minimize
         next if entries.empty?
         
-        env_width = env_name.length if env_width < env_name.length
-        entries.each do |(entry_name, entry)|
-          width = entry_name.length if width < entry_name.length
-        end
-        envs << [env_name, env, entries]
+        templater = Support::Templater.new(template,
+          :env_name => env_name, 
+          :env => env, 
+          :entries => entries)
+          
+        yield(templater, share)
+        templaters << templater
       end
       
-      templater = Support::Templater.new(template, 
-        :envs => envs,
-        :env_width => env_width, 
-        :width => width)
-      envs.each do |(env_name, env, entries)|
-        templater.env_name = env_name
-        templater.env = env
-        templater.entries = entries
-        
-        target << templater.build
+      templaters.each do |templater|
+        target << templater.build(share)
       end
    
       target

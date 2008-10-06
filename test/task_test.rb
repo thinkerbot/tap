@@ -67,9 +67,9 @@ class TaskTest < Test::Unit::TestCase
     
     ###
     app = Tap::App.instance
-    t1 = Tap::Task.subclass(:key => 'one') do |input| 
-      input + config[:key]
-    end.new
+    t1 = Tap::Task.intern(:key => 'one') do |task, input| 
+      input + task.config[:key]
+    end
     assert_equal [t1], t1.batch
   
     t2 = t1.initialize_batch_obj(:key => 'two')
@@ -150,12 +150,12 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_depends_on_raises_error_if_dependency_class_does_not_respond_to_instance
-    assert_raise(ArgumentError) { DependentClass.depends_on(Object) }
-    assert_raise(ArgumentError) { DependentClass.depends_on(Object.new) }
+    assert_raise(ArgumentError) { DependentClass.send(:depends_on, Object) }
+    assert_raise(ArgumentError) { DependentClass.send(:depends_on, Object.new) }
   end
   
   def test_depends_on_returns_self
-    assert_equal DependentClass, DependentClass.depends_on(DependencyClass)
+    assert_equal DependentClass, DependentClass.send(:depends_on, DependencyClass)
   end
   
   class DependentDupClass < Tap::Task
@@ -427,14 +427,6 @@ class TaskTest < Test::Unit::TestCase
     end
   end
   
-  def test_task_subclass_speed
-    benchmark_test(20) do |x|
-      x.report("1k") { 1000.times { Task.subclass } }
-      x.report("1k n,c") { 1000.times { Task.subclass({:key => 'value'}, name) } }
-      x.report("1k block") { 1000.times { Task.subclass() {} } }
-    end
-  end
-
   def test_app_is_initialized_to_App_instance_by_default
     assert_equal Tap::App.instance, Task.new.app
   end

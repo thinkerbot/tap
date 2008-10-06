@@ -108,7 +108,7 @@ module Tap
   # parent task, although they can be manually assembled using Task.batch.
   #
   #   app = Tap::App.instance
-  #   t1 = Tap::Task.new(:key => 'one') do |task, input| 
+  #   t1 = Tap::Task.intern(:key => 'one') do |task, input| 
   #     input + task.config[:key]
   #   end
   #   t1.batch               # => [t1]
@@ -170,6 +170,10 @@ module Tap
       attr_writer :default_name
       
       def default_name
+        # lazy-setting default_name like this (rather than
+        # within inherited, for example) is an optimization
+        # since many subclass operations end up setting
+        # default_name themselves.
         @default_name ||= to_s.underscore
       end
       
@@ -198,18 +202,6 @@ module Tap
         instance.extend Support::Intern
         instance.process_block = block
         instance
-      end
-      
-      def subclass(configs={}, default_name=nil, &block)
-        subclass = Class.new(self)
-        subclass.default_name = default_name == nil ? nil : default_name.to_s
-        
-        configs.each_pair do |key, value|
-          subclass.config(key, value)
-        end
-        
-        subclass.send(:define_method, :process, &block) if block
-        subclass
       end
       
       # Parses the argv into an instance of self and an array of arguments (implicitly
@@ -329,6 +321,8 @@ module Tap
         Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
       end
       
+      protected
+      
       # Sets a class-level dependency.  When task class B depends_on another task 
       # class A, instances of B are initialized to depend on A.instance, with the
       # specified arguments.  Returns self.
@@ -339,8 +333,6 @@ module Tap
         (dependencies << [dependency_class, args]).uniq!
         self
       end
-      
-      protected
       
       def dependency(name, dependency_class, *args)
         depends_on(dependency_class, *args)
@@ -424,10 +416,19 @@ module Tap
       # * the block defines the process method in the subclass
       # * three methods are created by define: name, name_config, name_config=
       #
-      def define(name, baseclass=Tap::Task, config={}, options={}, &block)
+      def define(name, baseclass=Tap::Task, configs={}, options={}, &block)
         # define the subclass
         const_name = options.delete(:const_name) || name.to_s.camelize
-        subclass = const_set(const_name, baseclass.subclass(config, name, &block))
+        subclass = const_set(const_name, Class.new(baseclass))
+        subclass.default_name = name.to_s
+        
+        configs.each_pair do |key, value|
+          subclass.send(:config, key, value)
+        end
+        
+        if block_given?
+          subclass.send(:define_method, :process, &block)
+        end
         
         # define methods
         instance_var = "@#{name}".to_sym

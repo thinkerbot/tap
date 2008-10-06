@@ -177,7 +177,11 @@ module Tap
       
       # Build the template.  All methods of self will be 
       # accessible in the template.
-      def build
+      def build(attrs={})
+        attrs.each_pair do |key, value|
+          send("#{key}=", value)
+        end
+        
         @template.result(binding)
         @_erbout
       end

@@ -22,47 +22,6 @@ module Tap
       end
     end
     
-    module TaskSubclass
-      def set(name, configs, dependencies, &block)
-        # set default name
-        self.default_name = name.underscore
-        
-        # enhance configurations
-        case configs
-        when Hash
-          # hash configs are simply added as default configurations
-          configs.keys.each do |key|
-            undef_method(key) if method_defined?(key)
-            undef_method("#{key}=") if method_defined?("#{key}=")
-          end
-
-          attr_accessor(*configs.keys)
-          configs.each_pair do |key, value|
-            configurations.add(key, value)
-          end
-          public(*configs.keys)
-        when Array
-          # array configs define configuration methods
-          configs.each do |method, key, value, opts, config_block| 
-            send(method, key, value, opts, &config_block)
-          end
-        else 
-          raise ArgumentError, "cannot define configurations from: #{configs}"
-        end
-        
-        # enhance dependencies
-        dependencies.each do |name, dependency_class, args|
-          dependency(name, dependency_class, *(args ? args : []))
-        end
-        
-        # define process method
-        if block
-          undef_method(:process) if method_defined?(:process)
-          define_method(:process, &block)
-        end
-      end
-    end
-    
     module TaskSingleton
       def new(*args)
         @instance ||= super
@@ -114,12 +73,12 @@ module Tap
         end
       end
         
-      declare(name, configs, dependencies, arg_names, &block)
+      register_doc(declare(name, configs, dependencies, &block), arg_names)
     end
     
     def task(*args, &block)
       name, configs, dependencies, arg_names = resolve_args(args)
-      task_class = declare(name, configs, dependencies, arg_names) do |*inputs|
+      task_class = declare(name, configs, dependencies) do |*inputs|
         # collect inputs to make a rakish-args object
         args = {}
         arg_names.each do |arg_name|
@@ -139,6 +98,7 @@ module Tap
         
         nil
       end
+      register_doc(task_class, arg_names)
       
       # add the block to the task
       unless task_class.const_defined?(:BLOCKS)
@@ -189,76 +149,82 @@ module Tap
       
       needs = needs.respond_to?(:to_ary) ? needs.to_ary : [needs]
       needs = needs.compact.collect do |need|
-        dependency, argv = case need
-        when Array then need
-        else [need, []]
-        end
+        dependency, argv = need
         
         unless dependency.kind_of?(Class)
           # converts dependencies like 'update:session'
           # note this will prevent lookup from other envs.
-          dependency = dependency.to_s.split(/:+/).join("/").camelize
-          lookup, const = env.manifest(:tasks).find {|lookup, const| const.name == dependency }
-          dependency = const ? const.constantize : without_desc { declare(dependency) }
+          dependency_name = dependency.to_s.split(/:+/).join("/").camelize
+          lookup, const = env.manifest(:tasks).find {|name, const| const.name == dependency_name }
+          
+          dependency = const ? const.constantize : declare(dependency_name)
         end
   
-        if dependency.ancestors.include?(Tap::Task)
-          [File.basename(dependency.default_name), dependency, argv]
-        else
+        unless dependency.ancestors.include?(Tap::Task)
           raise ArgumentError, "malformed dependency declaration: #{need}"
         end
+        
+        [dependency, argv || []]
       end
       
       [task_name, configs, needs, arg_names]
     end
     
-    def without_desc
-      desc = current_desc
-      self.current_desc = nil
-      result = yield
-      
-      self.current_desc = desc
-      result
-    end
-    
-    def declare(name, configs={}, dependencies=[], arg_names=[], &block)
+    def declare(name, configs={}, dependencies=[], &block)
       # nest the constant name
       name = File.join(declaration_base, name.to_s)
       
       # Generate the nesting constants as subclasses of Tap::Task
       # (this allows namespaces with the same name as a task)
       subclass, constants = name.to_s.constants_split
-      constants.each {|const| subclass = subclass.const_set(const, Class.new(Tap::Task))}
+      constants.each {|const| subclass = subclass.const_set(const, Class.new(Tap::Task)) }
+
+      # enhance the subclass
+      configs.each_pair do |key, value|
+        subclass.send(:config, key, value)
+      end
       
-      subclass.extend TaskSubclass
-      subclass.set(subclass.to_s, configs, dependencies, &block)
+      dependencies.each do |dependency, argv|
+        name = File.basename(dependency.default_name)
+        subclass.send(:dependency, name, dependency, *argv)
+      end
       
-      # register documentation
-      caller[1] =~ Lazydoc::CALLER_REGEXP
-      subclass.source_file = File.expand_path($1)
-      lazydoc = subclass.lazydoc(false)
-      lazydoc[subclass.to_s]['manifest'] = current_desc || lazydoc.register($3.to_i - 1, Lazydoc::Declaration)
-      
-      if arg_names
-        comment = Lazydoc::Comment.new
-        comment.subject = arg_names.join(' ')
-        lazydoc[subclass.to_s]['args'] = comment
+      if block_given?
+        subclass.send(:define_method, :process, &block)
       end
       
       # update any dependencies in instance
-      subclass.dependencies.each do |dependency, args|
-        subclass.instance.depends_on(dependency.instance, *args)
+      subclass.dependencies.each do |dependency, argv|
+        subclass.instance.depends_on(dependency.instance, *argv)
       end
-
+      
+      # register the subclass in the manifest
       manifest = env.manifest(:tasks).build
       const_name = subclass.to_s
       
       unless manifest.entries.find {|lookup, const| const.name == const_name }
-        manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name, lazydoc.source_file)]
+        manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name)]
+      end
+
+      subclass
+    end
+    
+    def register_doc(task_class, arg_names)
+      
+      # register documentation
+      caller[1] =~ Lazydoc::CALLER_REGEXP
+      task_class.source_file = File.expand_path($1)
+      lazydoc = task_class.lazydoc(false)
+      lazydoc[task_class.to_s]['manifest'] = current_desc || lazydoc.register($3.to_i - 1, Lazydoc::Declaration)
+      
+      if arg_names
+        comment = Lazydoc::Comment.new
+        comment.subject = arg_names.join(' ')
+        lazydoc[task_class.to_s]['args'] = comment
       end
       
       self.current_desc = nil
-      subclass
+      task_class
     end
   end
   

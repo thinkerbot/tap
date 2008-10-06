@@ -44,7 +44,7 @@ usage: rap taskname {options} [args]
     end
   end
   
-  def test_rap_help_with_only_declarations
+  def test_rap_help_with_declarations
     File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
       file << %q{
 module RapTest
@@ -61,6 +61,9 @@ module RapTest
   task :task_with_doc
   
   task :task_without_doc
+  
+  desc "desc"
+  task(:task_with_desc)
 end
 }
     end
@@ -73,9 +76,8 @@ usage: rap taskname {options} [args]
 ===  tap tasks ===
 output:
   tasc_with_doc     # tasc summary
-  tasc_without_doc
   task_with_doc     # task summary
-  task_without_doc
+  task_with_desc    # desc
 tap:
   dump              # the default dump task
   load              # the default load task

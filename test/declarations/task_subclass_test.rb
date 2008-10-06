@@ -1,7 +1,7 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/declarations'
 
-class TaskSubclassTest < Test::Unit::TestCase
+class TaskSubclassTest #< Test::Unit::TestCase
 
   attr_accessor :subclass
   
