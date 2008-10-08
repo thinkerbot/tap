@@ -244,8 +244,9 @@ module Tap
         
         # instantiate and reconfigure globals
         globals.each do |node|
-          task, args = tasks[node]
+          task, args = tasks.delete(node)
           task.class.instance.reconfigure(task.config.to_hash)
+          task.enq(*args)
         end
 
         # build the workflow
