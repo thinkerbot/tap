@@ -22,9 +22,11 @@ module Tap
       end
     end
     
-    module TaskSingleton
+    module Rakish
       def new(*args)
         @instance ||= super
+        @instance.app.dependencies.register(@instance)
+        @instance
       end
     end
     
@@ -51,34 +53,9 @@ module Tap
     
     attr_accessor :current_desc
     
-    def tasc(*args, &block)
-      name, configs, dependencies, arg_names = resolve_args(args)
-      
-      # do a little dance to anticipate
-      # arg_names if none are provided
-      if arg_names.empty?
-        if block_given?
-          arity = block.arity
-          case 
-          when arity > 0
-            arg_names = Array.new(arity, "INPUT")
-          when arity < 0
-            arg_names = Array.new(-1 * arity - 1, "INPUT")
-            arg_names << "INPUTS..."
-          end
-        else
-          # indicates no block was provided,
-          # no args comment is set.
-          arg_names = nil
-        end
-      end
-        
-      register_doc(declare(name, configs, dependencies, &block), arg_names)
-    end
-    
     def task(*args, &block)
-      name, configs, dependencies, arg_names = resolve_args(args)
-      task_class = declare(name, configs, dependencies) do |*inputs|
+      const_name, configs, dependencies, arg_names = resolve_args(args)
+      task_class = declare(const_name, configs, dependencies) do |*inputs|
         # collect inputs to make a rakish-args object
         args = {}
         arg_names.each do |arg_name|
@@ -105,9 +82,6 @@ module Tap
         task_class.const_set(:BLOCKS, [])
       end
       task_class::BLOCKS << block unless block == nil
-      
-      # ensure the task has only one instance
-      task_class.extend TaskSingleton
       task_class.instance
     end
     
@@ -125,10 +99,10 @@ module Tap
     
     protected
     
-    # Resolve the arguments for a task/rule.  Returns a triplet of
-    # [task_name, configs, prerequisites, arg_name_list, ].
+    # Resolve the arguments for a task/rule.  Returns an array of
+    # [task_name, configs, needs, arg_names].
     #
-    # From Rake 0.8.3
+    # Adapted from Rake 0.8.3
     # Changes:
     # - no :needs support for the trailing Hash (which is now config)
     def resolve_args(args)
@@ -149,43 +123,45 @@ module Tap
       
       needs = needs.respond_to?(:to_ary) ? needs.to_ary : [needs]
       needs = needs.compact.collect do |need|
- 
         unless need.kind_of?(Class)
-          # converts dependencies like 'update:session'
-          # note this will prevent lookup from other envs.
-          name = need.to_s.split(/:+/).join("/").camelize
-          lookup, const = env.manifest(:tasks).find {|lookup, const| const.name == name }
-          
-          need = const ? const.constantize : declare(name)
+          need = const_name(need).try_constantize do |const_name|
+            declare(const_name)
+          end
         end
   
         unless need.ancestors.include?(Tap::Task)
-          raise ArgumentError, "malformed dependency declaration: #{need}"
+          raise ArgumentError, "not a task: #{need}"
         end
         
         need
       end
       
-      [task_name, configs, needs, arg_names]
+      [const_name(task_name), configs, needs, arg_names]
     end
     
-    def declare(name, configs={}, dependencies=[], &block)
-      # nest the constant name
-      name = File.join(declaration_base, name.to_s)
+    def const_name(name)
+      # nest and make the name camelizeable
+      File.join(declaration_base, name.to_s.underscore).tr(":", "/").camelize
+    end
+    
+    def declare(const_name, configs={}, dependencies=[], &block)
+      # generate the subclass
+      subclass, constants = const_name.constants_split
+      constants.each do |const|
+        # nesting Tasks into Tasks is required for
+        # namespaces with the same name as a task
+        subclass = subclass.const_set(const, Class.new(Tap::Task))
+      end
       
-      # Generate the nesting constants as subclasses of Tap::Task
-      # (this allows namespaces with the same name as a task)
-      subclass, constants = name.to_s.constants_split
-      constants.each {|const| subclass = subclass.const_set(const, Class.new(Tap::Task)) }
-
-      # enhance the subclass
+      subclass.extend Rakish
+      
       configs.each_pair do |key, value|
         subclass.send(:config, key, value)
       end
       
       dependencies.each do |dependency|
-        name = File.basename(dependency.default_name)
-        subclass.send(:depends_on, name, dependency)
+        dependency_name = File.basename(dependency.default_name)
+        subclass.send(:depends_on, dependency_name, dependency)
       end
       
       if block_given?
@@ -199,10 +175,8 @@ module Tap
       
       # register the subclass in the manifest
       manifest = env.manifest(:tasks).build
-      const_name = subclass.to_s
-      
       unless manifest.entries.find {|lookup, const| const.name == const_name }
-        manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name)]
+        manifest.entries << [subclass.to_s.underscore, Tap::Support::Constant.new(const_name)]
       end
 
       subclass

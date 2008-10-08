@@ -1,73 +1,108 @@
 require File.join(File.dirname(__FILE__), 'functional_helper')
+require 'tap/declarations'
+require 'stringio'
 
 class Functional::DeclarationsTest < Test::Unit::TestCase
+  extend Tap::Declarations
   
-  Tap.tasc(:A) { "result" }
+  attr_reader :trace
   
-  def test_a_simple_declarations
+  def setup
+    @current_stdout = $stdout
+    @trace = ""
+    $stdout = StringIO.new(@trace)
+  end
+  
+  def teardown
+    $stdout = @current_stdout
+  end
+  
+  task(:A) { print "result" }
+  
+  def test_declarations_subclass_Task
     assert_equal Tap::Task, A.superclass
-    assert_equal "result", A.new.process
+    assert_equal("functional/declarations_test/a", A.default_name)
+  end
+  
+  def test_declarations_are_singletons
+    assert_equal A.instance, A.new
+    assert_equal A.instance, A.new
+  end
+  
+  def test_declarations_add_action_to_subclass
+    assert_equal nil, A.instance.execute
+    assert_equal "result", trace
   end
   
   ###########################
   
-  Tap.tasc(:B, :key => 'value') { config }
+  task(:B, :key => 'value')
   
-  def test_a_simple_declaration_with_configurations
-    assert_equal({:key => 'value'}, B.new.process)
-    assert_equal({:key => 'value', :additional => 'config'}, B.new(:additional => 'config').process)
+  def test_declaration_adds_configs_to_subclass
+    assert_equal({:key => 'value'}, B.configurations.to_hash)
+  end
+  
+  task(:C, :one => 1)
+  task(:C, :two => 2)
+  
+  def test_configs_may_be_added_in_multiple_calls
+    assert_equal({:one => 1, :two => 2}, C.configurations.to_hash)
   end
   
   ###########################
   
-  Tap.tasc(:C0) { 'result' }
-  Tap.tasc(:C1 => [:C0]) { c0 }
+  task(:D1 => [:D0])
   
-  def test_a_declaration_with_dependencies
-    assert_equal("c0", C0.default_name)
-    assert_equal("result", C1.new.process)
-    assert_equal(C1.new.process.object_id, C1.new.process.object_id)
-  end
- 
-  ########################### 
-  
-  Tap.tasc(:D1 => [:D0]) { d0 }
-  
-  def test_undefined_dependencies_are_created
+  def test_declaration_declares_new_dependencies
     assert_equal Tap::Task, D0.superclass
-    assert_equal([], D0.new.process)
-    assert_equal([], D1.new.process)
+    assert_equal("functional/declarations_test/d0", D0.default_name)
+  end
+  
+  def test_declaration_adds_dependencies
+    assert_equal [D0], D1.dependencies
+  end
+   
+  ########################### 
+  
+  task(:E2 => :E0)
+  task(:E2 => :E1)
+  
+  def test_dependencies_may_be_added_in_multiple_calls
+    assert_equal [E0, E1], E2.dependencies
   end
   
   ########################### 
   
-  Tap.tasc(:E) { [dependencies.length, config] }
-  Tap.tasc(:E, :key => 'value')
-  Tap.tasc(:E, :another => 'value')
-  Tap.tasc(:E => [:E1])
-  Tap.tasc(:E => [:E1])
-  Tap.tasc(:E => [:E2])
+  task(:F) { print "0" }
+  task(:F) { print "1" }
+  task(:F) { print "2" }
   
-  def test_dependencies_allow_extension_and_redefinition_of_classes
-    assert_equal [2, {:key => 'value', :another => 'value'}], E.new.process
+  def test_actions_may_be_added_in_multiple_calls
+    F.instance.execute
+    assert_equal "012", trace
+  end
+
+  ###########################
+  
+  namespace(:G) do
+    task(:G)
+  end
+  
+  def test_namespaces_nest_a_task
+    assert_equal Tap::Task, G::G.superclass
+    assert_equal("functional/declarations_test/g/g", G::G.default_name)
   end
   
   ###########################
   
-  Tap.tasc(:F0) {|*args| args }
-  Tap.tasc(:F => [[:F0,[1,2,3]]]) { f0 }
-  
-  def test_dependencies_with_argv
-    assert_equal [1,2,3], F.new.process
+  task(:H)
+  namespace(:I) do
+    task(:J => 'H')
   end
+  task(:K => ['J', 'I:J', 'H'])
   
-  ###########################
-  
-  Tap.tasc(:G0) {|*args| args }
-  Tap.tasc(:G1) { "result" }
-  Tap.tasc({:G => [[:G0,[1,2,3]], :G1, :G2]}, {:key => 'value'}) { [g0, g1, g2, config] }
-  
-  def test_a_complicated_declaration
-    assert_equal [[1,2,3], "result", [], {:key => 'value'}], G.new.process
+  def test_namespaces_are_resolved_in_dependencies
+    assert_equal [J, I::J, H], K.dependencies
+    assert_equal [H], I::J.dependencies
   end
 end

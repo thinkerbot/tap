@@ -28,11 +28,9 @@ class DependencyTest < Test::Unit::TestCase
   # extend tests
   #
   
-  def test_extend_sets_on_complete_block_to_set__result
+  def test__execute_sets__result
     m = SimpleExecutable.new
-    assert m.on_complete_block == nil
     m.extend Dependency
-    assert m.on_complete_block != nil
     
     assert_equal nil, m._result
     m._execute

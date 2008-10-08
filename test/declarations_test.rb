@@ -10,120 +10,24 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   #
-  # tasc declaration
-  #
-  
-  def test_tasc_generates_subclass_of_Task_by_name
-    assert !DeclarationsTest.const_defined?(:Tasc0)
-    klass = tasc(:tasc0)
-    assert_equal DeclarationsTest::Tasc0, klass
-    assert_equal Tap::Task, klass.superclass
-  end
-  
-  def test_multiple_calls_to_tasc_with_the_same_name_return_same_class
-    klass_a = tasc(:tasc1)
-    klass_b = tasc(:tasc1)
-    assert_equal klass_a, klass_b
-  end
-  
-  def test_tasc_subclass_is_assigned_configurations
-    tasc(:tasc2, {:key => 'value'})
-    assert_equal({:key => 'value'}, Tasc2.configurations.to_hash)
-  end
-  
-  def test_tasc_subclass_sets_block_as_process
-    was_in_block = false
-    tasc(:tasc3) do
-      was_in_block = true
-    end
-    
-    assert !was_in_block
-    Tasc3.new.process
-    assert was_in_block
-  end
-  
-  def test_tasc_subclass_sets_dependencies_using_initial_hash_if_given
-    tasc(:tasc4 => Tap::Task)
-    assert_equal [Tap::Task], Tasc4.dependencies
-    
-    tasc(:tasc5 => [Tap::Task, Tap::FileTask])
-    assert_equal [Tap::Task, Tap::FileTask], Tasc5.dependencies
-  end
-  
-  def test_tasc_sym_dependencies_are_resolved_into_tasks_using_declare
-    tasc(:tasc7 => :tasc6)
-    assert_equal [Tasc6], Tasc7.dependencies
-  end
-  
-  def test_tasc_dependencies_may_be_added_in_multiple_calls
-    tasc(:tasc10 => :tasc8)
-    tasc(:tasc10 => :tasc9)
-  
-    assert_equal [Tasc8, Tasc9], Tasc10.dependencies
-  end
-  
-  def test_tasc_does_not_add_duplicate_dependencies
-    tasc(:tasc12 => [:tasc11])
-    tasc(:tasc12 => [:tasc11])
-    tasc(:tasc12 => [:tasc11, :tasc11])
-    
-    assert_equal [Tasc11], Tasc12.dependencies
-  end
-  
-  def test_tasc_registers_documentation
-    # ::desc summary
-    # a multiline
-    # comment
-    tasc(:tasc13)
-    
-    Tap::Support::Lazydoc[__FILE__].resolved = false
-    assert_equal Tap::Support::Lazydoc::Declaration, Tasc13.manifest.class
-    assert_equal "summary", Tasc13.manifest.subject
-    assert_equal "a multiline comment", Tasc13.manifest.to_s
-    
-    # a comment with no
-    # description
-    tasc(:tasc14)
-    
-    Tap::Support::Lazydoc[__FILE__].resolved = false
-    assert_equal "", Tasc14.manifest.subject
-    assert_equal "a comment with no description", Tasc14.manifest.to_s
-  end
-  
-  def test_multiple_calls_to_tasc_reassigns_documentation
-    # ::desc summary
-    # comment
-    tasc(:tasc15)
-    
-    # ::desc new summary
-    # new comment
-    tasc(:tasc15)
-    
-    Tap::Support::Lazydoc[__FILE__].resolved = false
-    assert_equal Tap::Support::Lazydoc::Declaration, Tasc15.manifest.class
-    assert_equal "new summary", Tasc15.manifest.subject
-    assert_equal "new comment", Tasc15.manifest.to_s
-  end
-  
-  #
-  # tasc nesting
+  # task nesting
   #
   
   module Nest
     extend Tap::Declarations
-    c = tasc(:nested_sample) {}
+    task(:nested_sample)
   end
    
   def test_declarations_nest_constant
-    const = tasc(:nested_sample)
-    assert_equal "DeclarationsTest::NestedSample", const.to_s
+    t = task(:nested_sample)
+    assert_equal "DeclarationsTest::NestedSample", t.class.to_s
     
     assert Nest.const_defined?("NestedSample")
   end
   
   def test_declarations_are_not_nested_for_rap
-    const = Tap.tasc(:sample_declaration)
-    assert_equal "SampleDeclaration", const.to_s
+    t = Tap.task(:sample_declaration)
+    assert_equal "SampleDeclaration", t.class.to_s
   end
   
   #

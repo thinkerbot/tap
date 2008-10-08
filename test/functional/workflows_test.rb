@@ -57,7 +57,7 @@ class Functional::WorkflowsTest < Test::Unit::TestCase
   def test_workflow
     a.enq("")
     app.run
-    assert_equal ["abc.c..", "abcab.c.."], app.results(c2)
+    assert_equal ["abcab.c..", "abc.c.."], app.results(c2)
   end
   
   def test_workflow_with_batched_b
@@ -67,12 +67,12 @@ class Functional::WorkflowsTest < Test::Unit::TestCase
     a.enq("")
     app.run
     assert_equal [
-      "ab(0)c.c..",
-      "ab(1)c.c..",
-      "ab(2)c.c..",
       "ab(0)cab.c..",
+      "ab(0)c.c..",
       "ab(1)cab.c..",
-      "ab(2)cab.c.."
+      "ab(1)c.c..",
+      "ab(2)cab.c..",
+      "ab(2)c.c.."
     ], app.results(c2)
   end
   
@@ -94,7 +94,10 @@ class Functional::WorkflowsTest < Test::Unit::TestCase
     
     a.enq("1:")
     app.run
-    assert_equal ["1:abc.c..", "1:abcab.c.."], app.results(c2)
+    assert_equal [
+      "1:abcab.c..",
+      "1:abc.c.."
+    ], app.results(c2)
     assert_equal "CC.BC..B.A", runlist.join('')
     
     # implictly the dependencies are resolved twice, but
@@ -102,7 +105,12 @@ class Functional::WorkflowsTest < Test::Unit::TestCase
     
     a.enq("2:")
     app.run
-    assert_equal ["1:abc.c..", "1:abcab.c..", "2:abc.c..", "2:abcab.c.."], app.results(c2)
+    assert_equal [
+      "1:abcab.c..", 
+      "1:abc.c..", 
+      "2:abcab.c..",
+      "2:abc.c.."
+    ], app.results(c2)
     assert_equal "CC.BC..B.A", runlist.join('')
   end
 end

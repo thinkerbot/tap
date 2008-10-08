@@ -50,12 +50,6 @@ usage: rap taskname {options} [args]
 module RapTest
   extend Tap::Declarations
   
-  # ::desc tasc summary
-  # long description
-  tasc :tasc_with_doc
-  
-  tasc :tasc_without_doc
-  
   # ::desc task summary
   # long description
   task :task_with_doc
@@ -63,7 +57,7 @@ module RapTest
   task :task_without_doc
   
   desc "desc"
-  task(:task_with_desc)
+  task :task_with_desc
 end
 }
     end
@@ -75,7 +69,6 @@ usage: rap taskname {options} [args]
 
 ===  tap tasks ===
 output:
-  tasc_with_doc     # tasc summary
   task_with_doc     # task summary
   task_with_desc    # desc
 tap:
@@ -88,18 +81,6 @@ tap:
 }
 
       cmd.check "Prints help for declaration", %Q{
-% #{cmd} tasc_with_doc --help
-RapTest::TascWithDoc -- tasc summary
---------------------------------------------------------------------------------
-  long description
---------------------------------------------------------------------------------
-usage: tap run -- rap_test/tasc_with_doc 
-:...:
-% #{cmd} tasc_without_doc --help
-RapTest::TascWithoutDoc
-
-usage: tap run -- rap_test/tasc_without_doc 
-:...:
 % #{cmd} task_with_doc --help
 RapTest::TaskWithDoc -- task summary
 --------------------------------------------------------------------------------
@@ -112,7 +93,11 @@ RapTest::TaskWithoutDoc
 
 usage: tap run -- rap_test/task_without_doc 
 :...:
-}
+% #{cmd} task_with_desc --help
+RapTest::TaskWithDesc -- desc
+
+usage: tap run -- rap_test/task_with_desc 
+:...:}
     end
   end
   
@@ -122,12 +107,6 @@ usage: tap run -- rap_test/task_without_doc
 module RapTest
   extend Tap::Declarations
 
-  tasc(:tasc_with_no_block)
-  tasc(:tasc_with_no_args) {}
-  tasc(:tasc_with_arg) {|arg|}
-  tasc(:tasc_with_args) {|one, two|}
-  tasc(:tasc_with_splat) {|arg, *splat|}
-  
   task(:task_without_args) {}
   task(:task_with_args) {|task, args|}
 end
@@ -136,26 +115,6 @@ end
 
     script_test(method_root[:output]) do |cmd|
       cmd.check "Prints help for declaration", %Q{
-% #{cmd} tasc_with_no_block --help
-:...:
-usage: tap run -- rap_test/tasc_with_no_block 
-:...:
-% #{cmd} tasc_with_no_args --help
-:...:
-usage: tap run -- rap_test/tasc_with_no_args INPUTS...
-:...:
-% #{cmd} tasc_with_arg --help
-:...:
-usage: tap run -- rap_test/tasc_with_arg INPUT
-:...:
-% #{cmd} tasc_with_args --help
-:...:
-usage: tap run -- rap_test/tasc_with_args INPUT INPUT
-:...:
-% #{cmd} tasc_with_splat --help
-:...:
-usage: tap run -- rap_test/tasc_with_splat INPUT INPUTS...
-:...:
 % #{cmd} task_without_args --help
 :...:
 usage: tap run -- rap_test/task_without_args 
@@ -173,11 +132,7 @@ usage: tap run -- rap_test/task_with_args
       file << %q{
 module RapTest
   extend Tap::Declarations
-
-  tasc(:tasc_with_arg, :a) {|arg|}
-  tasc(:tasc_with_args, :a, :b) {|one, two|}
-  tasc(:tasc_with_splat, :a, 'b...') {|arg, *splat|}
-
+  
   task(:task_without_args, :a, :b) {}
   task(:task_with_args, :a, :b) {|task, one, two|}
 end
@@ -186,18 +141,6 @@ end
 
     script_test(method_root[:output]) do |cmd|
       cmd.check "Prints help for declaration", %Q{
-% #{cmd} tasc_with_arg --help
-:...:
-usage: tap run -- rap_test/tasc_with_arg a
-:...:
-% #{cmd} tasc_with_args --help
-:...:
-usage: tap run -- rap_test/tasc_with_args a b
-:...:
-% #{cmd} tasc_with_splat --help
-:...:
-usage: tap run -- rap_test/tasc_with_splat a b...
-:...:
 % #{cmd} task_without_args --help
 :...:
 usage: tap run -- rap_test/task_without_args a b

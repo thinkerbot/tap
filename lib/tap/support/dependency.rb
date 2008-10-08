@@ -7,9 +7,6 @@ module Tap
       
       def self.extended(base)
         base.instance_variable_set(:@_result, nil)
-        base.on_complete do |_result|
-          base._result = _result
-        end
       end
       
       # Conditional _execute; only calls _method_name if
@@ -19,7 +16,7 @@ module Tap
       # Returns _result.
       def _execute(*args)
         app.dependencies.resolve(self) do
-          super
+          @_result = super
         end unless resolved?
         _result
       end
