@@ -28,8 +28,5 @@ class RapTutorialTest < Test::Unit::TestCase
     assert c == C.instance
     assert_equal Tap::Task, C.superclass
 
-    A.instance.execute
-    B::A.instance.execute
-    assert_equal 'abc!ab', str
   end
 end

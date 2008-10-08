@@ -49,6 +49,4 @@ However some important differences distinguish Rap from Rake.  The main differen
   c == C.instance               # => true
   C.superclass                  # => Tap::Task
   
-  A.instance.execute
-  B::A.instance.execute
-  str                           # => 'abc!ab'
+

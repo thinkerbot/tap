@@ -66,17 +66,17 @@ class AppTest < Test::Unit::TestCase
     
     array = []
     t1 = Task.intern {|task, *inputs| array << inputs }
-    t2 = Task.intern {|task, *inputs| array << inputs }
+    t2 = Task.intern {|task| array << task }
   
-    t1.depends_on(t2,1,2,3)
+    t1.depends_on(t2)
     t1.enq(4,5,6)
   
     app.run
-    assert_equal [[1,2,3], [4,5,6]], array
+    assert_equal [t2, [4,5,6]], array
    
     t1.enq(7,8)
     app.run
-    assert_equal [[1,2,3], [4,5,6], [7,8]], array
+    assert_equal [t2, [4,5,6], [7,8]], array
     
     ########
   

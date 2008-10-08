@@ -206,35 +206,32 @@ module Tap
       # _execute, using resolve_dependencies.  
       #
       # Dependencies are registered with app (see App#dependencies).
-      def depends_on(dependency, *inputs)
-        index = unbatched_depends_on(dependency, *inputs)
+      def depends_on(dependency)
         batch.each do |e| 
-          e.dependencies << index unless e.dependencies.include?(index)
+          e.unbatched_depends_on(dependency)
         end
-        index
+        self
       end
       
       # Like depends_on, but only adds the dependency to self.
-      def unbatched_depends_on(dependency, *inputs)
-        raise ArgumentError, "not an Executable: #{dependency}" unless dependency.kind_of?(Executable)
+      def unbatched_depends_on(dependency)
         raise ArgumentError, "cannot depend on self" if dependency == self
         
-        index = app.dependencies.register(dependency, inputs)
-        dependencies << index unless dependencies.include?(index)
-        index
+        app.dependencies.register(dependency)
+        dependencies << dependency unless dependencies.include?(dependency)
+        self
       end
       
-      # Resolves dependencies by calling dependency._execute with
-      # the dependency arguments.  (See Dependencies#resolve).
+      # Resolves dependencies.  (See Dependency#resolve).
       def resolve_dependencies
-        app.dependencies.resolve(dependencies)
+        dependencies.each {|dependency| dependency.resolve }
         self
       end
       
       # Resets dependencies so they will be re-resolved on
-      # resolve_dependencies. (See Dependencies#reset).
+      # resolve_dependencies. (See Dependency#reset).
       def reset_dependencies
-        app.dependencies.reset(dependencies)
+        dependencies.each {|dependency| dependency.reset }
         self
       end
       

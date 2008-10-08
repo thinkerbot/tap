@@ -177,10 +177,6 @@ module Tap
         @default_name ||= to_s.underscore
       end
       
-      #--
-      # use with caution... should reset dependencies?
-      attr_writer :instance
-      
       # Returns an instance of self; the instance is a kind of 'global'
       # instance used in class-level dependencies.  See depends_on.
       def instance
@@ -326,25 +322,20 @@ module Tap
       # Sets a class-level dependency.  When task class B depends_on another task 
       # class A, instances of B are initialized to depend on A.instance, with the
       # specified arguments.  Returns self.
-      def depends_on(dependency_class, *args)
-        unless dependency_class.respond_to?(:instance)
-          raise ArgumentError, "dependency_class does not respond to instance: #{dependency_class}"
+      def depends_on(name, dependency_class)
+        unless dependencies.include?(dependency_class)
+          dependencies << dependency_class
         end
-        (dependencies << [dependency_class, args]).uniq!
-        self
-      end
-      
-      def dependency(name, dependency_class, *args)
-        depends_on(dependency_class, *args)
         
-        undef_method(name) if method_defined?(name)
+        # returns the resolved result of the dependency
         define_method(name) do
-          index = app.dependencies.index(dependency_class.instance, args)
-          app.dependencies.resolve([index])
-          app.dependencies.results[index]._current
+          instance = dependency_class.instance
+          instance.resolve
+          instance._result._current
         end
         
         public(name)
+        self
       end
       
       # Defines a task subclass with the specified configurations and process block.
@@ -500,8 +491,8 @@ module Tap
         initialize_config(config)
       end
       
-      self.class.dependencies.each do |task_class, args|
-        depends_on(task_class.instance, *args)
+      self.class.dependencies.each do |dependency_class|
+        depends_on(dependency_class.instance)
       end
       
       workflow

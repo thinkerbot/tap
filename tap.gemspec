@@ -67,9 +67,6 @@ Gem::Specification.new do |s|
     lib/tap/generator/manifest.rb
     lib/tap/patches/optparse/summarize.rb
     lib/tap/root.rb
-    #lib/tap/spec.rb
-    #lib/tap/spec/adapter.rb
-    #lib/tap/spec/inheritable_class_test_root.rb
     lib/tap/support/aggregator.rb
     lib/tap/support/assignments.rb
     lib/tap/support/audit.rb
@@ -81,12 +78,14 @@ Gem::Specification.new do |s|
     lib/tap/support/constant.rb
     lib/tap/support/constant_utils.rb
     lib/tap/support/dependencies.rb
+    lib/tap/support/dependency.rb
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
     lib/tap/support/gems/rake.rb
     lib/tap/support/gems/rack.rb
     lib/tap/support/gems.rb
     lib/tap/support/instance_configuration.rb
+    lib/tap/support/intern.rb
     lib/tap/support/join.rb
     lib/tap/support/joins.rb
     lib/tap/support/joins/fork.rb
@@ -98,6 +97,7 @@ Gem::Specification.new do |s|
     lib/tap/support/lazydoc.rb
     lib/tap/support/lazydoc/comment.rb
     lib/tap/support/lazydoc/config.rb
+    lib/tap/support/lazydoc/definition.rb
     lib/tap/support/lazydoc/document.rb
     lib/tap/support/lazydoc/method.rb
     lib/tap/support/manifest.rb
@@ -108,7 +108,6 @@ Gem::Specification.new do |s|
     lib/tap/support/tdoc.rb
     lib/tap/support/tdoc/tdoc_html_generator.rb
     lib/tap/support/tdoc/tdoc_html_template.rb
-    lib/tap/support/summary.rb
     lib/tap/support/templater.rb
     lib/tap/support/validation.rb
     lib/tap/support/versions.rb

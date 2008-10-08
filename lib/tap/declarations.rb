@@ -149,22 +149,21 @@ module Tap
       
       needs = needs.respond_to?(:to_ary) ? needs.to_ary : [needs]
       needs = needs.compact.collect do |need|
-        dependency, argv = need
-        
-        unless dependency.kind_of?(Class)
+ 
+        unless need.kind_of?(Class)
           # converts dependencies like 'update:session'
           # note this will prevent lookup from other envs.
-          dependency_name = dependency.to_s.split(/:+/).join("/").camelize
-          lookup, const = env.manifest(:tasks).find {|name, const| const.name == dependency_name }
+          name = need.to_s.split(/:+/).join("/").camelize
+          lookup, const = env.manifest(:tasks).find {|lookup, const| const.name == name }
           
-          dependency = const ? const.constantize : declare(dependency_name)
+          need = const ? const.constantize : declare(name)
         end
   
-        unless dependency.ancestors.include?(Tap::Task)
+        unless need.ancestors.include?(Tap::Task)
           raise ArgumentError, "malformed dependency declaration: #{need}"
         end
         
-        [dependency, argv || []]
+        need
       end
       
       [task_name, configs, needs, arg_names]
@@ -184,9 +183,9 @@ module Tap
         subclass.send(:config, key, value)
       end
       
-      dependencies.each do |dependency, argv|
+      dependencies.each do |dependency|
         name = File.basename(dependency.default_name)
-        subclass.send(:dependency, name, dependency, *argv)
+        subclass.send(:depends_on, name, dependency)
       end
       
       if block_given?
@@ -194,8 +193,8 @@ module Tap
       end
       
       # update any dependencies in instance
-      subclass.dependencies.each do |dependency, argv|
-        subclass.instance.depends_on(dependency.instance, *argv)
+      subclass.dependencies.each do |dependency|
+        subclass.instance.depends_on(dependency.instance)
       end
       
       # register the subclass in the manifest

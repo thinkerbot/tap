@@ -134,83 +134,69 @@ class TaskTest < Test::Unit::TestCase
   # Task.depends_on test
   #
   
-  class DependencyClass < Tap::Task
+  class DependencyClassOne < Tap::Task
+    def process; 1; end
+  end
+  
+  class DependencyClassTwo < Tap::Task
+    def process; 2; end
   end
   
   class DependentClass < Tap::Task
-    depends_on DependencyClass
-    depends_on DependencyClass, 1,2,3
+    depends_on :one, DependencyClassOne
+    depends_on :two, DependencyClassTwo
   end
   
-  def test_depends_on_adds_dependency_class_with_args_to_dependencies
-    assert_equal [
-      [DependencyClass, []], 
-      [DependencyClass, [1,2,3]]
-    ], DependentClass.dependencies
-  end
-  
-  def test_depends_on_raises_error_if_dependency_class_does_not_respond_to_instance
-    assert_raise(ArgumentError) { DependentClass.send(:depends_on, Object) }
-    assert_raise(ArgumentError) { DependentClass.send(:depends_on, Object.new) }
+  def test_depends_on_adds_dependency_class_to_dependencies
+    assert_equal [DependencyClassOne, DependencyClassTwo], DependentClass.dependencies
   end
   
   def test_depends_on_returns_self
-    assert_equal DependentClass, DependentClass.send(:depends_on, DependencyClass)
+    assert_equal DependentClass, DependentClass.send(:depends_on, :one, DependencyClassOne)
   end
   
   class DependentDupClass < Tap::Task
-    depends_on DependencyClass
-    depends_on DependencyClass, 1,2,3
-    
-    depends_on DependencyClass
-    depends_on DependencyClass, 1,2,3
+    depends_on :one, DependencyClassOne
+    depends_on :one, DependencyClassOne
   end
   
-  def test_depends_on_removes_duplicates
-    assert_equal [
-      [DependencyClass, []], 
-      [DependencyClass, [1,2,3]]
-    ], DependentDupClass.dependencies
+  def test_depends_on_does_not_add_duplicates
+    assert_equal [DependencyClassOne], DependentDupClass.dependencies
   end
   
   class DependentParentClass < Tap::Task
-    depends_on DependencyClass
+    depends_on :one, DependencyClassOne
   end
   
   class DependentSubClass < DependentParentClass
-    depends_on DependencyClass, 1,2,3
+    depends_on :two, DependencyClassTwo
   end
   
   def test_dependencies_are_inherited_down_but_not_up
-    assert_equal [
-      [DependencyClass, []]
-    ], DependentParentClass.dependencies
+    assert_equal [DependencyClassOne], DependentParentClass.dependencies
+    assert_equal [DependencyClassOne, DependencyClassTwo], DependentSubClass.dependencies
+  end
+  
+  def test_depends_on_makes_a_reader_for_the_results_of_the_dependency
+    d = DependentClass.new
+    d.reset_dependencies
     
-    assert_equal [
-      [DependencyClass, []], 
-      [DependencyClass, [1,2,3]]
-    ], DependentSubClass.dependencies
-  end
-
-  #
-  # Task.dependency test
-  #
-  
-  class DependenyDeclaration < Tap::Task
-    dependency :dep, DependencyClass, 1,2,3
-  end
-  
-  def test_dependency_makes_a_reader_for_the_results_of_the_dependency
-    d = DependenyDeclaration.new
-    assert d.respond_to?(:dep)
+    assert d.respond_to?(:one)
+    assert d.respond_to?(:two)
     
     d.resolve_dependencies
-    assert_equal [1,2,3], d.dep
+    
+    assert_equal 1, d.one
+    assert_equal 2, d.two
   end
   
-  def test_dependency_reader_resolves_dependencies_if_needed
-    d = DependenyDeclaration.new
-    assert_equal [1,2,3], d.dep
+  def test_depends_on_reader_resolves_dependencies_if_needed
+    d = DependentClass.new
+    d.reset_dependencies
+    
+    assert_equal [false, false], d.dependencies.collect {|dep| dep.resolved? }
+    assert_equal 1, d.one
+    assert_equal [true, false], d.dependencies.collect {|dep| dep.resolved? }
   end
   
   #
@@ -521,38 +507,4 @@ class TaskTest < Test::Unit::TestCase
     assert_equal 'name', t.to_s
   end
   
-  #
-  # dependency resolution test
-  #
-  
-  class DependencyResolutionClass < Tap::Task
-    attr_reader :resolution_arguments
-    
-    def initialize
-      super()
-      @resolution_arguments = []
-    end
-    
-    def process(*inputs)
-      @resolution_arguments << inputs
-    end
-  end
-  
-  class DependentResolutionClass < Tap::Task
-    depends_on DependencyResolutionClass
-    depends_on DependencyResolutionClass, 1,2,3
-  end
-  
-  def test_dependencies_are_resolved_only_once_per_argument_set
-    d = DependentResolutionClass.new
-    dependency = DependencyResolutionClass.instance
-    
-    assert_equal [], dependency.resolution_arguments
-    d._execute 
-    assert_equal [[], [1,2,3]], dependency.resolution_arguments
-    
-    d._execute 
-    assert_equal [[], [1,2,3]], dependency.resolution_arguments
-  end
-
 end

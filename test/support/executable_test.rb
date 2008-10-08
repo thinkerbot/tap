@@ -409,103 +409,81 @@ class ExecutableTest < Test::Unit::TestCase
   # depends_on test
   #
   
-  class Dependency
-    attr_reader :resolve_arguments
-    
+  class DependencyTrace
     def initialize(trace=[])
-      @resolve_arguments = []
       @trace = trace
-      Tap::Support::Executable.initialize(self, :resolve)
+      Tap::Support::Executable.initialize(self, :trace)
     end
     
-    def resolve(*args)
+    def trace(*args)
       @trace << self
-      @resolve_arguments << args
       args.join(",")
     end
   end
   
-  def test_depends_on_registers_dependency_with_Executable_and_adds_index_to_dependencies
-    app.dependencies.registry << [:a, []]
+  def test_depends_on_pushes_dependency_onto_dependencies
+    m.dependencies << nil
+    
+    d1 = DependencyTrace.new
+    m.depends_on(d1)
+    assert_equal [nil, d1], m.dependencies
+  end
   
-    d1 = Dependency.new
-    d2 = Dependency.new
+  def test_depends_on_does_not_add_duplicates
+    d1 = DependencyTrace.new
+    m.dependencies << d1
     
     m.depends_on(d1)
-    m.depends_on(d2, 1,2,3)
-    
-    assert_equal [[:a, []], [d1, []], [d2, [1,2,3]]], app.dependencies.registry
-    assert_equal [1,2], m.dependencies
+    assert_equal [d1], m.dependencies
   end
   
-  def test_depends_on_returns_index_of_dependency
-    d1 = Dependency.new
-    d2 = Dependency.new
+  def test_depends_on_extends_dependency_with_Dependency
+    d1 = DependencyTrace.new
+    assert !d1.kind_of?(Dependency)
     
-    assert_equal 0, m.depends_on(d1)
-    assert_equal 1, m.depends_on(d2, 1,2,3)
-    
-    assert_equal [[d1, []], [d2, [1,2,3]]], app.dependencies.registry
-  end
-  
-  def test_depends_on_raises_error_for_non_Executable_dependencies
-    assert_raise(ArgumentError) { m.depends_on nil }
-    assert_raise(ArgumentError) { m.depends_on Object.new }
+    m.depends_on(d1)
+    assert d1.kind_of?(Dependency)
   end
   
   def test_depends_on_raises_error_for_self_as_dependency
     assert_raise(ArgumentError) { m.depends_on m }
   end
   
-  def test_depends_on_removes_duplicate_dependencies
-    d = Dependency.new
-  
-    m.depends_on d
-    m.depends_on d, 1,2,3
-    
-    m.depends_on d
-    m.depends_on d, 1,2,3
-    
-    assert_equal 2, m.dependencies.length
-  end
-  
   #
   # resolve_dependencies test
   #
   
-  def test_resolve_dependencies_calls_execute_with_args_for_each_dependency
-    d = Dependency.new
-  
-    m.depends_on d
-    m.depends_on d, 1,2,3
+  def test_resolve_dependencies_resolves_each_dependency
+    trace = []
+    d1 = DependencyTrace.new trace
+    d2 = DependencyTrace.new trace
+    
+    m.depends_on d1
+    m.depends_on d2
+    
+    assert !d1.resolved?
+    assert !d2.resolved?
     
     m.resolve_dependencies
-    assert_equal [[], [1,2,3]], d.resolve_arguments
+    
+    assert d1.resolved?
+    assert d2.resolved?
+    assert_equal [d1, d2], trace
   end
   
-  def test_resolve_dependencies_recollects_dependencies_as_audited_dependency_results
-    d = Dependency.new
-  
-    m.depends_on d
-    m.depends_on d, 1,2,3
+  def test_resolve_dependencies_does_not_resolve_dependencies_once_they_are_resolved
+    trace = []
+    d1 = DependencyTrace.new trace
+    d2 = DependencyTrace.new trace
+    
+    m.depends_on d1
+    m.depends_on d2
     
     m.resolve_dependencies
-    
-    assert_equal 2, m.dependencies.length
-    assert_equal ["", "1,2,3"], m.dependencies.collect {|index| app.dependencies.results[index]._current }
-  end
-  
-  def test_resolve_dependencies_does_not_re_execute_resolved_dependencies
-    d = Dependency.new
-  
-    m.depends_on d
-    m.depends_on d, 1,2,3
+    assert_equal [d1, d2], trace
     
     m.resolve_dependencies
-    assert_equal [[], [1,2,3]], d.resolve_arguments
-    
-    m.resolve_dependencies
-    assert_equal [[], [1,2,3]], d.resolve_arguments
+    assert_equal [d1, d2], trace
   end
   
   def test_resolve_dependencies_returns_self
@@ -515,9 +493,9 @@ class ExecutableTest < Test::Unit::TestCase
   def test_resolve_resolves_nested_dependencies
     resolve_trace = []
     
-    a = Dependency.new resolve_trace
-    b = Dependency.new resolve_trace
-    c = Dependency.new resolve_trace
+    a = DependencyTrace.new resolve_trace
+    b = DependencyTrace.new resolve_trace
+    c = DependencyTrace.new resolve_trace
     
     m.depends_on(a)
     a.depends_on(b)
@@ -528,8 +506,8 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   def test_resolve_raises_error_for_circular_dependencies
-    a = Dependency.new
-    b = Dependency.new
+    a = DependencyTrace.new
+    b = DependencyTrace.new
   
     m.depends_on(a)
     a.depends_on(b)
@@ -544,21 +522,23 @@ class ExecutableTest < Test::Unit::TestCase
   # reset_dependencies
   #
   
-  def test_reset_dependencies_allows_dependencies_to_be_re_invoked
-    d = Dependency.new
-  
-    m.depends_on d
-    m.depends_on d, 1,2,3
+  def test_reset_dependencies_allows_dependencies_to_be_re_resolved
+    trace = []
+    d1 = DependencyTrace.new trace
+    d2 = DependencyTrace.new trace
+    
+    m.depends_on d1
+    m.depends_on d2
     
     m.resolve_dependencies
-    assert_equal [[], [1,2,3]], d.resolve_arguments
+    assert_equal [d1, d2], trace
     
     m.resolve_dependencies
-    assert_equal [[], [1,2,3]], d.resolve_arguments
+    assert_equal [d1, d2], trace
     
     m.reset_dependencies
     m.resolve_dependencies
-    assert_equal [[], [1,2,3], [], [1,2,3]], d.resolve_arguments
+    assert_equal [d1, d2, d1, d2], trace
   end
   
   def test_reset_dependencies_returns_self

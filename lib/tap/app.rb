@@ -48,24 +48,23 @@ module Tap
   #
   # Tasks allow the construction of dependency-based workflows as well; tasks
   # may be set to depend on other tasks such that the dependent task only 
-  # executes after the dependencies have been resolved (ie executed with a
-  # given set of inputs).
+  # executes after the dependencies have been resolved.
   #
   #   array = []
   #   t1 = Task.intern {|task, *inputs| array << inputs }
-  #   t2 = Task.intern {|task, *inputs| array << inputs }
+  #   t2 = Task.intern {|task| array << self }
   #
-  #   t1.depends_on(t2,1,2,3)
+  #   t1.depends_on(t2)
   #   t1.enq(4,5,6)
   #
   #   app.run
-  #   array                          # => [[1,2,3], [4,5,6]]
+  #   array                          # => [t2, [4,5,6]]
   #
   # Once a dependency is resolved, it will not execute again:
   #
   #   t1.enq(7,8)
   #   app.run
-  #   array                          # => [[1,2,3], [4,5,6], [7,8]]
+  #   array                          # => [t2, [4,5,6], [7,8]]
   #
   # ==== Batching
   #
