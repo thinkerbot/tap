@@ -177,8 +177,9 @@ module Tap
       
       # register the subclass in the manifest
       manifest = env.manifest(:tasks).build
+      const_name = subclass.to_s
       unless manifest.entries.find {|lookup, const| const.name == const_name }
-        manifest.entries << [subclass.to_s.underscore, Tap::Support::Constant.new(const_name)]
+        manifest.entries << [const_name.underscore, Tap::Support::Constant.new(const_name)]
       end
 
       subclass

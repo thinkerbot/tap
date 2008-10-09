@@ -11,8 +11,7 @@ begin
   $DEBUG = true if ARGV.delete('-d-')
   env = Tap::Exe.instantiate
   env.unshift(Tap::Declarations.env)
-  
-  # add the DEFAULT_TASK_FILE if it exists
+
   task_file = File.expand_path('Tapfile')
   if File.exists?(task_file)
     env.loads.unshift(task_file)
@@ -72,9 +71,9 @@ begin
 <% end %>
 <% entries.each do |name, const| %>
 <%   desc = if const.require_path == nil # should be a declaration %>
-<%     desc = const.constantize.lazydoc[const.name]['manifest'].subject %>
-<%     next if desc.empty? %>
-<%     desc %>
+<%     manifest = const.constantize.lazydoc[const.name]['manifest'] %>
+<%     next if manifest == nil || manifest.subject.empty? %>
+<%     manifest.subject %>
 <%   else %>
 <%     const.document[const.name]['manifest'] %>
 <%   end %>
