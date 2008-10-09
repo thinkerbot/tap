@@ -1,5 +1,13 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 
+class Goodnight < Tap::Task
+  config :message, 'goodnight'           # a goodnight message
+
+  def process(obj)
+    "#{message} #{obj}"
+  end
+end
+
 class QuickstartTest < Test::Unit::TestCase 
   acts_as_script_test
 
@@ -71,32 +79,59 @@ hello world
     end
   end
   
-  def test_hard_and_soft_workflows
-    script_test(method_root[:output]) do |cmd|
-      File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
-        file << %q{
-extend Tap::Declarations
+  def test_goodnight_class_definition
+    assert_equal({:message => 'goodnight'}, Goodnight.configurations.to_hash)
 
-# hard coded
-a = task(:a) { print 'a' }
-b = task(:b) { print 'b' }
-c = task(:c) { puts 'c' }
-a.sequence(b, c)
+    goodnight = Goodnight.new
+    assert_equal 'goodnight', goodnight.message
+    assert_equal 'goodnight moon', goodnight.process('moon')
 
-# soft coded
-task(:x) { print 'x' }
-task(:y) { print 'y' }
-task(:z) { puts 'z' }}
-      end
+    hello = Goodnight.new(:message => 'hello')
+    assert_equal 'hello', hello.message
+    assert_equal 'hello world', hello.process('world')
+    
+    hello.sequence(goodnight)
+    hello.execute('world')
 
-      cmd.check "workflows", %Q{
-% #{cmd} a
-abc
-% #{cmd} x --: y --: z
-xyz
-% #{cmd} x -- y -- z --0:1:2
-xyz
+    app = Tap::App.instance
+    assert_equal(["goodnight hello world"], app.results(goodnight))
+
+    audit = app._results(goodnight)[0]
+    assert_equal "goodnight hello world", audit._current
+    expected = %Q{
+o-[] "world"
+o-[goodnight] "hello world"
+o-[goodnight] "goodnight hello world"
 }
-    end
+    assert_equal expected, "\n#{audit._to_s}"
   end
+  
+#   def test_hard_and_soft_workflows
+#     script_test(method_root[:output]) do |cmd|
+#       File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
+#         file << %q{
+# extend Tap::Declarations
+# 
+# # hard coded
+# a = task(:a) { print 'a' }
+# b = task(:b) { print 'b' }
+# c = task(:c) { puts 'c' }
+# a.sequence(b, c)
+# 
+# # soft coded
+# task(:x) { print 'x' }
+# task(:y) { print 'y' }
+# task(:z) { puts 'z' }}
+#       end
+# 
+#       cmd.check "workflows", %Q{
+# % #{cmd} a
+# abc
+# % #{cmd} x --: y --: z
+# xyz
+# % #{cmd} x -- y -- z --0:1:2
+# xyz
+# }
+#     end
+#   end
 end

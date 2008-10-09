@@ -20,7 +20,7 @@ module Tap::Generator::Generators
   #
   class RootGenerator < Tap::Generator::Base
     
-    config :config_file, false, &c.switch   # create a tap.yml file
+    config :config_file, true, &c.switch   # create a tap.yml file
     config :tapfile, false, &c.switch       # create a tapfile
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
