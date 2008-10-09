@@ -124,8 +124,9 @@ module Tap
       needs = needs.respond_to?(:to_ary) ? needs.to_ary : [needs]
       needs = needs.compact.collect do |need|
         unless need.kind_of?(Class)
-          need = const_name(need).try_constantize do |const_name|
-            declare(const_name)
+          name = normalize_name(need).camelize
+          need = name.try_constantize do |nested_const|
+            declare(name)
           end
         end
   
@@ -136,15 +137,16 @@ module Tap
         need
       end
       
-      [const_name(task_name), configs, needs, arg_names]
+      [normalize_name(task_name), configs, needs, arg_names]
     end
     
-    def const_name(name)
-      # nest and make the name camelizeable
-      File.join(declaration_base, name.to_s.underscore).tr(":", "/").camelize
+    def normalize_name(name)
+      name.to_s.underscore.tr(":", "/")
     end
     
-    def declare(const_name, configs={}, dependencies=[], &block)
+    def declare(name, configs={}, dependencies=[], &block)
+      const_name = File.join(declaration_base, name).camelize
+      
       # generate the subclass
       subclass, constants = const_name.constants_split
       constants.each do |const|

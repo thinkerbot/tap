@@ -261,4 +261,25 @@ class DeclarationsTest < Test::Unit::TestCase
     cc.execute
     assert_equal "a1b1a2b2", str
   end
+  
+  def test_namespaces_are_a_less_crazy_than_rake
+    arr = []
+    Tap.task(:outer1) { arr << 'outer1' }
+    Tap.task(:outer2) { arr << 'outer2' }
+    
+    Tap.namespace :nest do
+      Tap.task(:inner1 => :outer1) { arr << 'inner1' }
+      
+      # outer2 defined in nest
+      Tap.task(:inner2 => :outer2) { arr << 'inner2' }
+      Tap.task(:outer2) { arr << 'inner3' }
+    end
+    
+    ::Nest::Inner1.instance.execute
+    ::Nest::Inner2.instance.execute
+    
+    # this is the rake output
+    #assert_equal ["outer1", "inner1", "inner3", "inner2"], arr
+    assert_equal ["outer1", "inner1", "outer2", "inner2"], arr
+  end
 end

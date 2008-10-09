@@ -105,20 +105,22 @@ class RakeCheck < Test::Unit::TestCase
     Rake.application.run
     assert_equal "abc!", str
   end
+  
+  def test_namespaces_are_a_bit_crazy
+    arr = []
+    task(:outer1) { arr << 'outer1' }
+    task(:outer2) { arr << 'outer2' }
+    
+    namespace :nest do
+      task(:inner1 => :outer1) { arr << 'inner1' }
+      
+      # outer2 defined in nest
+      task(:inner2 => :outer2) { arr << 'inner2' }
+      task(:outer2) { arr << 'inner3' }
+    end
+    
+    ARGV << 'nest:inner1' << 'nest:inner2'
+    Rake.application.run
+    assert_equal ["outer1", "inner1", "inner3", "inner2"], arr
+  end
 end
-
-# Resolve the arguments for a task/rule.
-# def resolve_args(args)
-#   case args
-#   when Hash
-#     fail "Too Many Task Names: #{args.keys.join(' ')}" if args.size > 1
-#     fail "No Task Name Given" if args.size < 1
-#     task_name = args.keys[0]
-#     deps = args[task_name]
-#     deps = [deps] if (String===deps) || (Regexp===deps) || (Proc===deps)
-#   else
-#     task_name = args
-#     deps = []
-#   end
-#   [task_name, deps]
-# end

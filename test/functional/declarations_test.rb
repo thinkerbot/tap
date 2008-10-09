@@ -95,14 +95,33 @@ class Functional::DeclarationsTest < Test::Unit::TestCase
   
   ###########################
   
-  task(:H)
-  namespace(:I) do
-    task(:J => 'H')
+  Tap.task(:existant)
+  Tap.namespace(:nest) do
+    # reference an existant, non-nested task
+    Tap.task(:existant => 'existant')
+    
+    # reference a non-existant nested task
+    Tap.task(:existant => 'non_existant')
   end
-  task(:K => ['J', 'I:J', 'H'])
+  
+  Tap.task(:ref => 'existant')
+  Tap.task(:ref => 'non_existant')
+  Tap.task(:ref => 'nest:existant')
+  Tap.task(:ref => 'nest:non_existant_task')
+  Tap.task(:ref => 'non_existant_nest:non_existant_task')
   
   def test_namespaces_are_resolved_in_dependencies
-    assert_equal [J, I::J, H], K.dependencies
-    assert_equal [H], I::J.dependencies
+    assert_equal [
+      Existant, 
+      NonExistant, 
+      Nest::Existant, 
+      Nest::NonExistantTask, 
+      NonExistantNest::NonExistantTask
+    ], Ref.dependencies
+    
+    assert_equal [
+      Existant, 
+      Nest::NonExistant
+    ], Nest::Existant.dependencies
   end
 end

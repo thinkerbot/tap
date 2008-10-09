@@ -24,9 +24,14 @@ class FunctionalTask < Tap::Task
 end
 
 class DependencyTask < Tap::Task
-  def process(runlist)
-    log name, runlist.join("")
-    runlist << name
+  def initialize(runlist, *args)
+    super(*args)
+    @runlist = runlist
+  end
+  
+  def process
+    log name, @runlist.join("")
+    @runlist << name
   end
 end
 
@@ -78,19 +83,19 @@ class Functional::WorkflowsTest < Test::Unit::TestCase
   
   def test_workflow_with_dependencies
     runlist = []
-    a_  = DependencyTask.new({}, 'A', app)
-    b_  = DependencyTask.new({}, 'B', app)
-    b1_ = DependencyTask.new({}, 'B.', app)
-    c_  = DependencyTask.new({}, 'C', app)
-    c1_ = DependencyTask.new({}, 'C.', app)
-    c2_ = DependencyTask.new({}, 'C..', app)
+    a_  = DependencyTask.new(runlist, {}, 'A', app)
+    b_  = DependencyTask.new(runlist, {}, 'B', app)
+    b1_ = DependencyTask.new(runlist, {}, 'B.', app)
+    c_  = DependencyTask.new(runlist, {}, 'C', app)
+    c1_ = DependencyTask.new(runlist, {}, 'C.', app)
+    c2_ = DependencyTask.new(runlist, {}, 'C..', app)
     
-    a.depends_on(a_, runlist)
-    a_.depends_on(b_, runlist)
-    a_.depends_on(b1_, runlist)
-    b_.depends_on(c_, runlist)
-    b_.depends_on(c1_, runlist)
-    b1_.depends_on(c2_, runlist)
+    a.depends_on(a_)
+    a_.depends_on(b_)
+    a_.depends_on(b1_)
+    b_.depends_on(c_)
+    b_.depends_on(c1_)
+    b1_.depends_on(c2_)
     
     a.enq("1:")
     app.run
