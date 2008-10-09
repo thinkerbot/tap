@@ -4,7 +4,7 @@ require 'tap/generator/destroy'
 env = Tap::Env.instance
 
 if ARGV.empty? || ARGV == ['-T']
-  puts env.summarize(:generators) {|const| const.document[const.name]['generator'] }
+  puts env.summarize(:generators)
   exit
 end
 

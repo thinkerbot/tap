@@ -591,6 +591,14 @@ module Tap
 <% entries.each do |name, const| %>
 <%   desc = const.document[const.name]['manifest'] %>
   <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
+<% end %>},
+
+      :generators => %Q{<% if count > 1 %>
+<%= env_name %>:
+<% end %>
+<% entries.each do |name, const| %>
+<%   desc = const.document[const.name]['generator'] %>
+  <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
 <% end %>}
     }
     
