@@ -1,33 +1,41 @@
-= Quick Start Tutorial
+= Tap (Task Application)
 
-=== Basic Usage
+Tap is a framework for creating configurable, distributable tasks and workflows.  Although scalable for complex workflows, at it simplest tap works as a supercharged rake.  Using the rap executable, you can declare and run tasks using a syntax almost identical to rake, but with added support for configurations and documentation.  
 
-Begin by creating a tap directory structure:
+Going beyond rap, tap offers:
 
-  % tap generate root sample
-  % cd sample
+* task classes
+* imperative workflows
+* generators
+* testing
+* distribution of task libraries as gems
+
+== Quickstart
+
+If you've used rake, tap will be easy to pick up.  To get started, make a Tapfile with a simple task declaration:
+
+  [Tapfile]
+    
+  # ::desc your basic goodnight moon task
+  # Says goodnight with a configurable message.
+  Tap.task(:goodnight, :obj, :message => 'goodnight') do |task, args|
+    puts "#{task.message} #{args.obj}\n"
+  end
   
-Comes with a task:
+Now from the command line:
 
-  % tap run -T
-  sample:
-    goodnight   # your basic goodnight moon task
-  tap:
-    dump        # the default dump task
-    rake        # run rake tasks
-
-Test the task:
- 
-  % rake test 
+  % rap goodnight moon
+  goodnight moon
   
-Get help for the task:
-
-  % tap run -- goodnight --help
+  % rap goodnight world --message hello
+  hello world
+  
+  % rap goodnight --help
   Goodnight -- your basic goodnight moon task
   --------------------------------------------------------------------------------
-    Prints the input with a configurable message.
+    Says goodnight with a configurable message.
   --------------------------------------------------------------------------------
-  usage: tap run -- goodnight INPUT
+  usage: tap run -- goodnight obj
 
   configurations:
           --message MESSAGE
@@ -36,202 +44,379 @@ Get help for the task:
       -h, --help                       Print this help
           --name NAME                  Specify a name
           --use FILE                   Loads inputs from file
+  
+Just like that you have a command-line application with inputs, configuration, and documentation.  The declaration syntax is obviously similar to rake; configurations are new, but declarations use the same task-block style as rake, and handle inputs the same.  Other rake constructs are also available.  Here is a similar goodnight task, with dependencies, rake-style.
 
-Run the task:
-
-  % tap run -- goodnight moon
-    I[23:22:19]          goodnight moon
+  [Tapfile]
+  
+  # make the declarations available everywhere
+  # (normally they're accessed via Tap, as above)
+  extend Tap::Declarations
+  
+  namespace :example do
+    task(:say, :message) do |task, args|
+      print(args.message || 'goodnight')
+    end
     
-Run the task, setting the 'message' configuration:
-  
-  % tap run -- goodnight moon --message hello
-    I[23:22:46]              hello moon
-  
-Run multiple tasks, or in this case the same task twice:
-
-  % tap run -- goodnight moon -- goodnight opus
-    I[23:23:06]          goodnight moon
-    I[23:23:06]          goodnight opus
-
-Same as above, but now dump the results to a file:
-
-  % tap run -- goodnight moon -- goodnight opus --+ dump output.yml
-    I[23:23:26]          goodnight moon
-    I[23:23:26]          goodnight opus
-    I[23:23:26]               dump output.yml
-
-The dump file contents look like this:
-
-  # audit:
-  # o-[] "opus"
-  # o-[goodnight] "goodnight opus"
-  # 
-  # o-[] "moon"
-  # o-[goodnight] "goodnight moon"
-  # 
-  # date: 2008-08-05 23:23:26
-  --- 
-  goodnight (2769410): 
-  - goodnight opus
-  goodnight (2780180): 
-  - goodnight moon
-
-The comments at the beginning are an audit trace of the run.  In this case two 
-separate tasks were run sequentially, hence you can see each task, the task inputs, 
-and the task results as separate units.  A YAML hash follows the audit with the 
-aggregated task results, keyed by the task name and object id.  Since the results 
-are represented as a hash, the order of the tasks sometimes gets scrambled, as in 
-this case.
-
-=== Task Declaration
-
-Tap provides a declaration syntax a-la rake, accessible through the Tap module to 
-prevent conflicts with rake.  Declarations can get put in any <tt>.rb</tt> file 
-under the lib directory or in <tt>tapfile.rb</tt>.
-
-  [tapfile.rb]
-  # Goodnight::manifest your basic goodnight moon task
-  # Prints the input with a configurable message.
-
-  Tap.task('goodnight', :message => 'goodnight') do |task, name|
-     task.log task.message, name
-     "#{task.message} #{name}"
-  end
-
-The declaration makes a task class based on the name (ie namespaces are naturally
-supported by names like <tt>'nested/task'</tt>).  The classes are ready for use in 
-scripts:
-
-  require 'tapfile'
-  Goodnight.new.process('moon')       # => 'goodnight moon'
-
-And from the command line, as above.
-
-=== Task Definition
-
-Sometimes you need more than a block to define a task.  Generate a task:
-
-  % tap generate task hello
-
-Navigate to and open the <tt>lib/hello.rb</tt> file.  Inside you can see the class 
-definition.  Notice configurations are mapped to methods, and the task documentation 
-is located in the comments.  Let's change it up a bit:
-
-  [lib/hello.rb]
-  # Hello::manifest your basic hello world task
-  #
-  # Prints hello to a number of things with a configurable, 
-  # reversible message.
-  #
-  class Hello < Tap::Task
-
-    config :message, 'hello'               # a greeting
-    config :reverse, false, &c.flag        # reverses the message
-
-    def process(*names)
-      names.collect do |name|
-        log(reverse ? message.reverse : message, name)
-        "#{message} #{name}"
-      end
+    desc "your basic goodnight moon task"
+    task({:goodnight => :say}, :obj) do |task, args|
+      puts " #{args.obj}\n"
     end
   end
 
-The new configurations and documentation are immediately available:
+And now from the command line: 
 
-  % tap run -- hello --help
-  Hello -- your basic hello world task
+  % rap goodnight moon
+  goodnight moon
+  
+  % rap goodnight world --* say hello
+  hello world
+
+Unlike rake, rap inputs are written out for each task while individual tasks are delimited by a modified double-dash (in this case --*, more on this later).  Aside from that, you can see rap is basically a supercharged rake... rake with configurations, simpler inputs, and extended documentation.  In addition, rap runs rake.  Directly substitute rap for rake on the command line and your tasks should run as normal.
+
+However, supercharging rake isn't the point of Tap.  Declarative tasks bridge the gap between rake and tap, but tap itself is a more general task framework.  To get at the other features like imperative workflows, testing, and distribution, we have to go beyond rap and take a look at what declarations do.
+
+Spoiler: task declarations make subclasses of Tap::Task. 
+
+== Beyond Rap
+
+Going back to the first example, lets take a look at how a declaration maps to a class definition:
+
+  [Tapfile]
+  
+  # ::desc your basic goodnight moon task
+  # Says goodnight with a configurable message.
+  Tap.task(:goodnight, :obj, :message => 'goodnight') do
+    puts "#{task.message} #{args.obj}\n"
+  end
+  
+Here is a corresponding class definition:
+
+  [Tapfile]
+  
+  # Goodnight::manifest your basic goodnight moon task
+  # Says goodnight with a configurable message.
+  class Goodnight < Tap::Task
+    config :message, 'goodnight'
+
+    def process(obj)
+      "#{message} #{obj}"
+    end
+  end
+
+Simple enough.  The name corresponds to the class, configurations (and dependencies, although they aren't show) are written out individually, and the block corresponds to process.  There are a few subtle differences, however, especially relating to process... but for the moment lets gloss over them and see how Goodnight works.
+
+  Goodnight.configurations.to_hash         # => {:message => 'goodnight'}
+  
+  goodnight = Goodnight.new
+  goodnight.message                        # => 'goodnight'
+  goodnight.process('moon')                # => 'goodnight moon'
+  
+  hello = Goodnight.new(:message => 'hello')
+  hello.message                            # => 'hello'
+  hello.process('world')                   # => 'hello world'
+
+When it comes time to make a workflow, instances may be joined using a variety of methods (sequence, fork, switch, merge, and sync_merge are supported by default).  To run a workflow, use execute.  The results of one task will be passed as the inputs of the next task and the final results collected by the underlying Tap::App.
+
+  hello.sequence(goodnight)
+  hello.execute('world')
+
+  app = Tap::App.instance
+  app.results(goodnight)                   # => ["goodnight hello world"]
+
+If you think about what's going on the result makes sense.  The hello task modifies 'world' to make 'hello world' and that becomes the input to the goodnight task.  Tracking logic through two tasks isn't tough, but for many tasks it can be complex.  To help out, all workflows are audited.
+
+  audit = app._results(goodnight)[0]
+  audit._current                           # => "goodnight hello world"
+  
+  "\n#{audit._to_s}"
+  # => %Q{
+  # o-[] "world"
+  # o-[goodnight] "hello world"
+  # o-[goodnight] "goodnight hello world"
+  # }
+  
+Ah!  Now the workflow is clear.  The same workflow may be built from the command line using --:, the sequence delimiter:
+
+  % rap goodnight world --message hello --: goodnight --+ dump
+  # audit:
+  # o-[] "world"
+  # o-[goodnight] "hello world"
+  # o-[goodnight] "goodnight hello world"
+  # 
+  # date: 2008-10-09 11:21:08
+  --- 
+  goodnight (2724600): 
+  - goodnight hello world
+
+Task declarations cannot pass inputs like this; they're second-class citizens for imperative workflows.  What's more, declarations simply can't do all the things possible in a class definitions.  In a class definition, for example, variable inputs and inputs with defaults may be specified for process.  Configurations can be documented, and they support validation/transformation blocks.  A set of standard blocks are available through +c+, an alias for the Tap::Support::Validation module.
+
+  [Tapfile]
+  
+  # Goodnight::manifest a fancy goodnight moon task
+  # Says goodnight with a configurable message.
+  class Goodnight < Tap::Task
+    config :message, 'goodnight'           # a goodnight message
+    config :reverse, false, &c.switch      # reverses the message
+    config :n, 1, &c.integer               # repeats message n times
+    
+    def process(*objects)
+      print "#{reverse == true ? message.reverse : message} " * n
+      puts objects.join(', ')
+      puts
+    end
+  end
+
+Now from the command line:
+  
+  % rap goodnight moon
+  goodnight moon
+  
+  % rap goodnight moon mittens "little toy boat"
+  goodnight moon, mittens, little toy boat
+  
+  % rap goodnight world --message hello --reverse --n 3 
+  olleh olleh olleh world
+  
+  % rap goodnight --help
+  Goodnight -- a fancy goodnight moon task
   --------------------------------------------------------------------------------
-    Prints hello to a number of things with a configurable, reversible message.
+    Says goodnight with a configurable message.
   --------------------------------------------------------------------------------
-  usage: tap run -- hello NAMES...
+  usage: tap run -- goodnight OBJECTS...
 
   configurations:
-          --message MESSAGE            a greeting
-          --reverse                    reverses the message
+          --message MESSAGE            a goodnight message
+          --[no-]reverse               reverses the message
+          --n N                        repeats message n times
 
   options:
       -h, --help                       Print this help
           --name NAME                  Specify a name
           --use FILE                   Loads inputs from file
 
-And the task is ready to go:
+By the outputs you can surmise the string configurations are transformed into the proper objects.  In addition, take a quick look at the documentation.  Configurations now have documentation and reverse is a switch!  The rich mapping of a class declaration to the command line allows tasks to act as an script interface, not unlike OptionParser (surprise, tap uses OptionParser).  
 
-  % tap run -- hello moon lamp 'little toy boat'
-    I[23:29:26]              hello moon
-    I[23:29:26]              hello lamp
-    I[23:29:26]              hello little toy boat
+For example this is a stand-alone goodnight script:
 
-  % tap run -- hello mittens --reverse
-    I[23:29:53]              olleh mittens
-
-Now lets use the previous results; they get loaded and added to the end of the inputs:
-
-  % tap run -- hello --use output.yml
-    I[23:31:32]              hello goodnight moon
-    I[23:31:32]              hello goodnight opus
+  [goodnight]
   
-=== Config Files
-
-So say you wanted static configs for a task.  Make a configuration file:
-
-  % tap generate config goodnight
-        
-Set the configurations here and they get used by the task:
-
-  [config/goodnight.yml]
-  ###############################################################################
-  # Goodnight configuration
-  ###############################################################################
-
-  message: good evening
+  #!/usr/bin/env ruby
   
-As can be seen here:
+  require 'rubygems'
+  require 'tap'
+
+  # Goodnight::manifest a goodnight moon script
+  # Says goodnight with a configurable message.
+  class Goodnight < Tap::Task
+    config :message, 'goodnight'
+
+    def process(obj)
+      puts "#{message} #{obj}\n"
+    end
+  end
+
+  instance, args = Goodnight.parse!(ARGV)
+  instance.execute(*args)
+  
+Now, from the command line:
+
+  % ./goodnight moon
+  goodnight moon
+  
+  % ./goodnight --help
+  ...
+  
+The use of tasks on the command line does not involve magic.  Tasks are normal, predictable objects.  Task classes subclass normally, instances don't need rap, or a Tapfile.  Until you use one of the Tap executables to run them in a particular context, tasks constructed by class definitions are normal parts of a library which may be tested and distributed as usual.
+
+== Tap
+
+Beyond rap is tap.  The tap executable is more verbose than rap for running tasks, but it is more capable, scalable, and logically pure.  The easiest way to get a feel for tap is to see it in action.
+
+Tap comes with a number of commands but we'll focus on generate to make, test, and package a task library.  Begin by creating a tap directory structure and a task:
+
+  % tap generate root sample
+  % cd sample
+  % tap generate task goodnight
+
+Take a look at the task files an you find something like this:
+
+  [lib/goodnight.rb]
+  
+  # Goodnight::manifest <replace with manifest summary>
+  # <replace with command line description>
+
+  # Goodnight Documentation
+  class Goodnight < Tap::Task
+
+    # <config file documentation>
+    config :message, 'goodnight'           # a sample config
+  
+    def process(name)
+      log message, name
+      "#{message} #{name}"
+    end
+  end 
+
+  [test/goodnight_test.rb]
+  
+  require File.join(File.dirname(__FILE__), 'tap_test_helper.rb') 
+  require 'goodnight'
+
+  class GoodnightTest < Test::Unit::TestCase
+    acts_as_tap_test 
+
+    def test_goodnight
+      task = Goodnight.new :message => "goodnight"
+
+      # a simple test
+      assert_equal({:message  => 'goodnight'}, task.config)
+      assert_equal "goodnight moon", task.process("moon")
+
+      # a more complex test
+      task.enq("moon")
+      app.run
+
+      assert_equal ["goodnight moon"], app.results(task)
+      assert_audit_equal ExpAudit[[nil, "moon"], [task, "goodnight moon"]], app._results(task)[0]
+    end
+  end
+
+Run the test:
+
+  % rap test
+
+Run the task:
 
   % tap run -- goodnight moon
-    I[23:40:39]       good evening moon
+    I[23:22:19]          goodnight moon
 
-If you need to run a task with multiple sets of configurations, simply define an 
-array of configurations in the config file:
+Ok, good enough.  Lets share it.  Print the current gemspec manifest:
+
+  % rap print_manifest
+  true  README
+        Rakefile
+        lib/goodnight.rb
+        sample.gemspec
+        tap.yml
+        test/goodnight_test.rb
+  true  test/tap_test_helper.rb
+  true  test/tap_test_suite.rb
   
-  [config/goodnight.yml]
-  - message: good afternoon
-  - message: good evening
-  - message: goodnight
+As you can see, this needs an update.  Open up sample.gemspec and fix the manifest... all you really need is tap.yml and the task file.
 
+  [sample.gemspec]
+  
+  Gem::Specification.new do |s|
+    s.name = "sample"
+    s.version = "0.0.1"
+    s.platform = Gem::Platform::RUBY
+    s.summary = "sample"
+    s.require_path = "lib"
+    s.add_dependency("tap", "~> 0.10.8")
+    s.files = %W{
+      lib/goodnight.rb
+      tap.yml
+    }
+  end
+
+Now package the gem and install it (gem may require sudo):
+
+  % rap gem
+  % gem install pkg/sample-0.0.1.gem
+  
+Now you can say goodnight anywhere, using 'tap run' or rap:
+
+  % cd ~/Desktop
   % tap run -- goodnight moon
-    I[23:42:46]     good afternoon moon
-    I[23:42:46]       good evening moon
-    I[23:42:46]          goodnight moon
+  goodnight moon
+  % rap goodnight opus
+  goodnight opus
 
-The --name option sets the config file used:
+And that is that.
 
-  % tap run -- goodnight moon --name no_config_file
-    I[23:43:20]          goodnight moon
+== Quick Reference
 
-=== Tap Configuration
+==== declarations
 
-Tap itself is highly configurable.  Say you think the run syntax is unnecessarily 
-verbose; you can make command aliases to shorten it.  Open the <tt>tap.yml</tt> 
-file in your root directory and set the following:
+The basic syntax of a task declaration:
 
-  [tap.yml]
-  alias:
-    --: [run, --]
-    -T: [run, -T]
+  # == A task declaration
+  # name::           the name of the task, either alone or as the
+  #                  key of a {key => dependencies} hash
+  # dependencies::   an array of task names (optional)
+  # arg_names::      an array of argument names (optional)
+  # configurations:: a hash of {key => default} pairs (optional)
 
-Now:
+  task({name => [dependencies...]}, arg_names..., {configurations}) do |task, args|
+    # arguments are available through args:
+    args.arg_name
+    
+    # configurations are available through task
+    task.key
+  end
+  
+  # == A namespace declaration
+  namespace(name) { task ... }
+  
+  # == Simple documentation 
+  desc "description"
+  task ...
+  
+  # == Extended documentation
+  
+  # ::desc description
+  # Extended documentation may span multiple lines, and 
+  # supports
+  #
+  #   code indentation
+  #   like this.
+  #
+  # Lines are justified and wrapped on the command line.
+  task ...
 
-  % tap -- hello world
-    I[23:43:59]              hello world
+==== workflows
 
-  % tap -T
-  sample:
-    goodnight   # your basic goodnight moon task
-    hello       # your basic hello world task
-  tap:
-    dump        # the default dump task
-    rake        # run rake tasks
+The basic syntax for an imperative workflow uses double-dash delimiters to separate individual tasks, and modified delimiters to specify joins for the tasks:
 
-Global configurations can go in the <tt>~/.tap.yml</tt> file.  Using configurations,
-you can specify directory aliases, options, gems, and even additional paths to load 
-as if they were gems.
+  % rap x
+  % rap x --: y --: z
+  % rap x -- y -- z --0:1:2
+  
+In the modified delimiters, numbers indicate which tasks participate in a join while punctuation indicates a join type.  In the second example, the numbers are implicitly added for the preceding and following task.  A variety of joins are supported:
+
+  delimiter  function         syntax                 example        meaning 
+  --         delimits tasks                          a -- b -- c    enques/configures tasks a, b, c
+  --:        sequence         source:target          --0:1:2        sequence a, b, c
+  --[]       fork             source[targets...]     --0[1,2]       fork a to (b,c)
+  --{}       merge            target{sources...}     --2{0,1}       merge (a,b) to c
+  --()       sync_merge       target(sources...)     --2(0,1)       synchronize merge (a,b) to c
+  --*        dependency                              --* a          enques/configures the dependency instance for a
+
+==== rake v rap v tap
+
+In rap, pains were taken to make Tap task behave like Rake task.  As in Rake, the instances produced by Tap task are singletons and they can be extended with additional actions, dependencies, and configurations.  What's more, they're insular.  The inputs from one task are not passed to the next task in a workflow.  Lastly, like rake, declaration tasks only run once.  However, these features are rap-specific... in general a single task may be run multiple times, for instance in a looping workflow.  The major exception are instances used in a dependency-based workflow; these tasks only execute once.
+
+A few syntactical differences between rake and rap must to be noted, as they can cause errors if you try to migrate rake tasks to tap.  Tap declarations:
+
+* do not support :needs as a way to specify dependencies
+* handle namespace lookups different is some cases
+
+This will declare a needs configuration with the default value :another, not a task which depends on another:
+
+  Tap.task :name, :needs => :another
+
+Within a namespace, task will look for a literal match to the dependency first.  If it doesn't find one, it will declare it within the namespace.  Tasks obviously are always nested.  Hence, in this example the nested task depends on the non-nested task.  
+
+  task :outer { print 'non-nested' }
+  namespace :nest do
+    task :inner => :outer { puts 'was executed' }
+    task :outer { print 'nested' }
+  end
+  
+By contrast, rake always uses a match within a namespace first.  Hence if you run these tasks by rap and rake, you get different results:
+
+  % rap nest/inner
+  non-nested was executed
+  % rake nest:inner
+  nested was executed
