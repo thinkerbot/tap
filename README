@@ -5,21 +5,22 @@ A framework for creating configurable, distributable tasks and workflows.
 == Description
 
 Tap tasks are designed to be easy to test, subclass, use in scripts, and run 
-from the command line.  Tap provides methods to generate and utilize config 
-files, join tasks into workflows, as well as dump and reuse results.  Task 
-libraries are readily shared as gems.  Check out the links for tutorials, 
-development, and bug tracking.
+from the command line.  Tap provides methods to join tasks into imperative 
+and dependecy-based workflows, utilize static config files, as well as dump 
+and reuse results.  Task libraries are readily shared as gems.  
+
+Check out these links for tutorials, development, and bug tracking.
 
 * {Tutorial}[link:files/doc/Tutorial.html], {Class}[link:files/doc/Class%20Reference.html] and {Command}[link:files/doc/Command%20Reference.html] Reference
 * Website[http://tap.rubyforge.org]
-* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/overview]
+* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
 * Github[http://github.com/bahuvrihi/tap/tree/master]
 * {Google Group}[http://groups.google.com/group/ruby-on-tap]
 
-=== Additional Notes:
+=== Features
 
 - Tap and Rake[http://rake.rubyforge.org/] are targeted at different problems, 
-  but play well together. See Tap::Tasks::Rake to use rake tasks in tap.
+  but play well together. See the {Tutorial}[link:files/doc/Tutorial.html].
 - Tap is tested on MRI (the standard Ruby interpreter, versions 1.8.6 and 
   1.9.0) and JRuby[http://jruby.codehaus.org/].
 
@@ -46,6 +47,7 @@ Tap pulls documentation out of task classes to generate manifests:
       goodnight   # your basic goodnight moon task
     tap:
       dump        # the default dump task
+      load        # the default load task
       rake        # run rake tasks  
 
 And help:
@@ -66,39 +68,24 @@ And help:
           --use FILE                   Loads inputs from file
 
 
-Tasks are immediately available to run:
+Tasks are immediately available to run through tap or rap:
 
   % tap run -- goodnight moon
     I[00:09:55]          goodnight moon
   
-
-  % tap run -- goodnight moon --message hello
+  % rap goodnight moon --message hello
     I[00:10:01]              hello moon
-  
-Tap comes with generators and allows distribution of task libraries as gems.  
-This can be illustrated by installing the 
-{sample_tasks}[http://tap.rubyforge.org/sample_tasks] gem:
 
-  % gem install sample_tasks
-  % tap run -T
-  sample:
-    goodnight   # your basic goodnight moon task
-  sample_tasks:
-    concat      # concatenate files with formatting
-    copy        # copies files
-    grep        # search for lines matching a pattern
-    print_tree  # print a directory tree
-  tap:
-    dump        # the default dump task
-    rake        # run rake tasks
+Tap comes with generators. To get started:
+
+  % tap generate root sample
+  % cd sample
+  % tap generate task goodnight
+  % rap goodnight moon
 
 === Bugs/Known Issues
 
 - Some inconsequential tests on JRuby fail due to bugs in JRuby itself.
-- Several patches are required so that Tap runs properly on MRI 1.9.0.  These   
-  will likely resolve themselves as 1.9.0 becomes stable.
-- Despite the talk of workflows, the Workflow class should still be considered
-  in progress.  Tasks themselves are stable.
 
 == Installation
 

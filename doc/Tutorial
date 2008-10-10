@@ -2,14 +2,6 @@
 
 Tap is a framework for creating configurable, distributable tasks and workflows.  Although scalable for complex workflows, at it simplest tap works as a supercharged rake.  Using the rap executable, you can declare and run tasks using a syntax almost identical to rake, but with added support for configurations and documentation.  
 
-Going beyond rap, tap offers:
-
-* task classes
-* imperative workflows
-* generators
-* testing
-* distribution of task libraries as gems
-
 == Quickstart
 
 If you've used rake, tap will be easy to pick up.  To get started, make a Tapfile with a simple task declaration:
@@ -45,7 +37,9 @@ Now from the command line:
           --name NAME                  Specify a name
           --use FILE                   Loads inputs from file
   
-Just like that you have a command-line application with inputs, configuration, and documentation.  The declaration syntax is obviously similar to rake; configurations are new, but declarations use the same task-block style as rake, and handle inputs the same.  Other rake constructs are also available.  Here is a similar goodnight task, with dependencies, rake-style.
+Just like that you have a command-line application with inputs, configuration, and documentation.  
+
+The declaration syntax is obviously similar to rake; configurations are new, but the task-block style is the same, as are inputs.  Other rake constructs are available.  Here is a similar goodnight task using dependencies, rake-style.
 
   [Tapfile]
   
@@ -72,11 +66,11 @@ And now from the command line:
   % rap goodnight world --* say hello
   hello world
 
-Unlike rake, rap inputs are written out for each task while individual tasks are delimited by a modified double-dash (in this case --*, more on this later).  Aside from that, you can see rap is basically a supercharged rake... rake with configurations, simpler inputs, and extended documentation.  In addition, rap runs rake.  Directly substitute rap for rake on the command line and your tasks should run as normal.
+Unlike rake, rap inputs are written out individually and tasks are delimited by a modified double-dash (in this case --*, more on this later).  Aside from that, you can see rap is basically a supercharged rake.  Furthermore, rap runs rake.  Directly substitute rap for rake on the command line and your tasks should run as normal.
 
-However, supercharging rake isn't the point of Tap.  Declarative tasks bridge the gap between rake and tap, but tap itself is a more general task framework.  To get at the other features like imperative workflows, testing, and distribution, we have to go beyond rap and take a look at what declarations do.
+However, supercharging rake isn't the point of Tap.  Declarations bridge the gap between rake and tap, but tap itself is a more general framework.  To get at the other features like imperative workflows, testing, and distribution, we have to go beyond rap and take a look at what declarations do.
 
-Spoiler: task declarations make subclasses of Tap::Task. 
+Spoiler: declarations make subclasses of Tap::Task. 
 
 == Beyond Rap
 
@@ -116,7 +110,9 @@ Simple enough.  The name corresponds to the class, configurations (and dependenc
   hello.message                            # => 'hello'
   hello.process('world')                   # => 'hello world'
 
-When it comes time to make a workflow, instances may be joined using a variety of methods (sequence, fork, switch, merge, and sync_merge are supported by default).  To run a workflow, use execute.  The results of one task will be passed as the inputs of the next task and the final results collected by the underlying Tap::App.
+Totally straightforward.  Goodnight stores the default configurations, each instance has accessors to the configurations, and the defaults may be overridden.  Process, as you would expect, is an ordinary method.
+
+When it comes time to make a workflow, instances may be joined using a variety of methods ({sequence}[link:classes/Tap/Support/Joins/Sequence.html], {fork}[link:classes/Tap/Support/Joins/Fork.html], {switch}[link:classes/Tap/Support/Joins/Switch.html], {merge}[link:classes/Tap/Support/Joins/Merge.html], and {sync_merge}[link:classes/Tap/Support/Joins/SyncMerge.html] are supported by default).  To run a workflow, use execute.  The results of one task will be passed as the inputs of the next task and the final results collected by the underlying Tap::App.
 
   hello.sequence(goodnight)
   hello.execute('world')
@@ -136,7 +132,7 @@ If you think about what's going on the result makes sense.  The hello task modif
   # o-[goodnight] "goodnight hello world"
   # }
   
-Ah!  Now the workflow is clear.  The same workflow may be built from the command line using --:, the sequence delimiter:
+Now the workflow is clear.  The same workflow may be built from the command line using --:, the sequence delimiter:
 
   % rap goodnight world --message hello --: goodnight --+ dump
   # audit:
@@ -149,7 +145,7 @@ Ah!  Now the workflow is clear.  The same workflow may be built from the command
   goodnight (2724600): 
   - goodnight hello world
 
-Task declarations cannot pass inputs like this; they're second-class citizens for imperative workflows.  What's more, declarations simply can't do all the things possible in a class definitions.  In a class definition, for example, variable inputs and inputs with defaults may be specified for process.  Configurations can be documented, and they support validation/transformation blocks.  A set of standard blocks are available through +c+, an alias for the Tap::Support::Validation module.
+Task declarations cannot pass inputs like this; they're second-class citizens for imperative workflows.  What's more, declarations can't do all the things possible in a class definition.  Class definitions, for example, allow variable inputs and inputs with defaults, configurations can be documented, and they support validation/transformation blocks.  A set of standard blocks are available through +c+, an alias for the Tap::Support::Validation module.
 
   [Tapfile]
   
@@ -195,7 +191,7 @@ Now from the command line:
           --name NAME                  Specify a name
           --use FILE                   Loads inputs from file
 
-By the outputs you can surmise the string configurations are transformed into the proper objects.  In addition, take a quick look at the documentation.  Configurations now have documentation and reverse is a switch!  The rich mapping of a class declaration to the command line allows tasks to act as an script interface, not unlike OptionParser (surprise, tap uses OptionParser).  
+By the outputs you can see the command line configurations are transformed into the proper objects by the time process gets called.  In addition, take a quick look at the documentation.  Configurations now have documentation and reverse is a switch!  The rich mapping of a class declaration to the command line allows tasks to act as an script interface, not unlike {OptionParser}[http://www.ruby-doc.org/stdlib/libdoc/optparse/rdoc/classes/OptionParser.html] (surprise, tap uses OptionParser).  
 
 For example this is a stand-alone goodnight script:
 
@@ -227,7 +223,7 @@ Now, from the command line:
   % ./goodnight --help
   ...
   
-The use of tasks on the command line does not involve magic.  Tasks are normal, predictable objects.  Task classes subclass normally, instances don't need rap, or a Tapfile.  Until you use one of the Tap executables to run them in a particular context, tasks constructed by class definitions are normal parts of a library which may be tested and distributed as usual.
+The use of tasks on the command line does not involve magic.  Tasks are normal, predictable objects which the rap (and tap) executable makes available in a particular context.  Beyond rap, task classes may be subclassed, tested, and distributed as usual.
 
 == Tap
 
