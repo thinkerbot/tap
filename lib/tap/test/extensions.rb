@@ -8,7 +8,8 @@ module Tap
     autoload(:FileTest, 'tap/test/file_test')
     autoload(:TapTest, 'tap/test/tap_test')
     autoload(:ScriptTest, 'tap/test/script_test')
-
+    autoload(:Utils, 'tap/test/utils')
+    
     module Extensions
       def acts_as_subset_test
         include Tap::Test::SubsetTest
