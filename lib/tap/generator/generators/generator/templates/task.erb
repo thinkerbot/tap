@@ -8,7 +8,7 @@ class <%= const.const_name %> < Tap::Generator::Base
   
   # The generator will receive the inputs on the command line, and
   # m, a Manifest object that records the actions of this method.
-  def manifest(m, input)
+  def manifest(m, *inputs)
 
     # make a directory
     # m.directory path
@@ -21,7 +21,7 @@ class <%= const.const_name %> < Tap::Generator::Base
     # template a file in the templates directory using ERB.
     # The (key, value) pairs will be available in the 
     # template as local variables.
-    # m.template path, "template_path.erb", :key => 'value'
+    m.template "<%= const.const_name.underscore %>_file.txt", "template_file.erb", :key => 'value'
 
   end
 end <% module_nest(const.nesting, '  ') { target } end %>

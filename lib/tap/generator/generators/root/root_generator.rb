@@ -5,14 +5,14 @@ module Tap::Generator::Generators
   # :startdoc::generator a basic tap directory structure
   #
   # Generates a tap root directory structure.  Use the switches to 
-  # generate a tapfile and/or a tap config file:
+  # generate a Tapfile and/or a tap config file:
   #
   #   root
   #   |- Rakefile
   #   |- lib
   #   |- sample.gemspec
   #   |- tap.yml
-  #   |- tapfile.rb
+  #   |- Tapfile
   #   `- test
   #       |- tap_test_helper.rb
   #       |- tap_test_suite.rb
@@ -21,7 +21,7 @@ module Tap::Generator::Generators
   class RootGenerator < Tap::Generator::Base
     
     config :config_file, true, &c.switch   # create a tap.yml file
-    config :tapfile, false, &c.switch       # create a tapfile
+    config :tapfile, false, &c.switch      # create a tapfile
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
     def manifest(m, root, project_name=nil)
@@ -35,15 +35,15 @@ module Tap::Generator::Generators
         case
         when File.directory?(source)
           m.directory r[target]
+          next
         when target == 'gemspec'
           m.template r[project_name + '.gemspec'], source, :project_name => project_name, :tapfile => tapfile, :config_file => config_file
-        when target =~ /tapfile/
+          next
+        when target =~ /tapfile/i
           next unless tapfile
-          target = (target == 'tapfile' ? r['tapfile.rb'] : r[target])
-          m.template target, source, :project_name => project_name
-        else
-          m.template r[target], source, :project_name => project_name
         end
+        
+        m.template r[target], source, :project_name => project_name
       end
       
       m.file(r['tap.yml']) do |file|

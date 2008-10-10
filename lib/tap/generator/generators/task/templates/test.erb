@@ -12,9 +12,7 @@ class <%= const.name %>Test < Test::Unit::TestCase
     assert_equal "goodnight moon", task.process("moon")
     
     # a more complex test
-    task.enq("moon")
-    app.run
-    
+    task.execute("moon")
     assert_equal ["goodnight moon"], app.results(task)
     assert_audit_equal ExpAudit[[nil, "moon"], [task, "goodnight moon"]], app._results(task)[0]
   end

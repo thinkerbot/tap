@@ -60,10 +60,6 @@ module Tap
         raise NotImplementedError
       end
       
-      def prepare(target, options={})
-        raise NotImplementedError
-      end
-      
       def directories(root, targets, options={})
         directory(root)
         targets.each do |target|

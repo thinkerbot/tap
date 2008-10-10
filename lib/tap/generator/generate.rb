@@ -17,30 +17,35 @@ module Tap
       end
     
       def file(target, options={})
-        prepare(target, options) do |path|
-          File.open(path, "wb") {|file| yield(file) if block_given? }
+        source_file = Tempfile.new('generate')
+        yield(source_file) if block_given?
+        source_file.close
+        
+        source = source_file.path
+        target = File.expand_path(target, target_dir)
+        
+        copy_file = case
+        when !File.exists?(target)
+          log_relative :create, target
+          true
+        when FileUtils.cmp(source, target)
+          log_relative :exists, target
+          false
+        when force_file_collision?(target)
+          log_relative :force, target
+          true
+        else
+          log_relative :skip, target
+          false
+        end
+        
+        if copy_file && !pretend
+          file_task.prepare(target) 
+          FileUtils.mv(source, target)
         end
       end
       
-      def prepare(target, options={})
-        target = File.expand_path(target, target_dir)
-        
-        case
-        when !File.exists?(target)
-          log_relative :create, target
-          # should check for identical...
-        when force_file_collision?(target)
-          log_relative :force, target
-        else
-          log_relative :skip, target
-          return
-        end
-        
-        unless pretend
-          file_task.prepare(target) 
-          yield(target)
-        end
-      end
+      protected
       
       # Ask the user interactively whether to force collision.
       def force_file_collision?(target)

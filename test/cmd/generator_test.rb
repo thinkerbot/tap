@@ -14,11 +14,21 @@ class GeneratorTest < Test::Unit::TestCase
     script_test(method_root[:output]) do |cmd|
       cmd.check "Generates a root directory", 
       "% #{cmd} generate root ." do |result|
-        assert File.exists?(method_root.filepath(:output, 'lib'))
-        assert File.exists?(method_root.filepath(:output, 'test'))
-        assert File.exists?(method_root.filepath(:output, 'test/tap_test_helper.rb'))
-        assert File.exists?(method_root.filepath(:output, 'test/tap_test_suite.rb'))
-        assert File.exists?(method_root.filepath(:output, 'Rakefile'))
+        
+        expected = %w{
+          lib
+          output.gemspec
+          Rakefile
+          README
+          tap.yml
+          test
+          test/tap_test_helper.rb
+          test/tap_test_suite.rb
+        }.collect do |path|
+          method_root.filepath(:output, path)
+        end
+        
+        assert_equal expected, method_root.glob(:output)
       end
       
       # cmd.check " generate task", "Prints task generator doc"

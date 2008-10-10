@@ -2,18 +2,26 @@ module Tap::Generator::Generators
   
   # :startdoc::generator a generator task and test
   #
-  # Generates a new Tap::Generator::Base.
+  # Generates a new generator.
   class GeneratorGenerator < Tap::Generator::Base
-
+    
     def manifest(m, const_name)
       const = Constant.new(const_name.camelize)
+      dir= File.join('lib', const.path)
       
-      generator_path = app.filepath('lib', "#{const.path}")
-      m.directory generator_path
-      m.template File.join(generator_path, const.basename + '.rb'), "task.erb", :const => const
-      m.directory File.join(generator_path, const.basename)
-
-      const
+      # make the directory
+      m.directory app.filepath(dir)
+      
+      # make the generator
+      m.template app.filepath(dir, const.basename + '_generator.rb'), "task.erb", :const => const
+      
+      # make the templates directory
+      m.directory app.filepath(dir, 'templates')
+      m.file app.filepath(dir, 'templates', 'template_file.erb') do |file|
+        file.puts "# A sample template file."
+        file.puts "key: <%= key %>"
+      end
+      
     end
   end
 end

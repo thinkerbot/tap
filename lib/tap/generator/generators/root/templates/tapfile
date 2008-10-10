@@ -1,8 +1,11 @@
-require 'tap'
+require 'tap/declarations'
 
-# Goodnight::manifest your basic goodnight moon task
-# Prints the input with a configurable message.
-Tap.tasc('goodnight', :message => 'goodnight') do |name|
-  log message, name
-  "#{message} #{name}"
+module <%= project_name.camelize %>
+  extend Tap::Declarations
+  
+  # ::desc your basic goodnight moon task
+  # Says goodnight with a configurable message.
+  task(:goodnight, :obj, :message => 'goodnight') do |task, args|
+    puts "#{task.message} #{args.obj}"
+  end
 end

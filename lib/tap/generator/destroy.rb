@@ -21,10 +21,6 @@ module Tap
       end
       
       def file(target, options={})
-        prepare(target, options)
-      end
-      
-      def prepare(target, options={})
         target = File.expand_path(target, target_dir)
         
         if File.exists?(target)
