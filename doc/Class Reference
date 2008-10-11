@@ -2,7 +2,7 @@
 
 Working up from the ground is useful to get a sense for how Tap does what it does.  This reference goes through the modules and classes that build up a task application: Tasks, Apps, and Envs.
 
-== Tasks (Tap::Task, Tap::Workflow)
+== Tasks
 
 ==== Methods
 
@@ -14,15 +14,9 @@ Tasks begin with methods, simply a block of code.
 
 http://tap.rubyforge.org/images/Executable.png
 
-Executable extends objects allowing them to be enqued and run by an App.  Executable objects specify a method that gets called upon execution; in essence Executable wraps this method and adds workflow behaviors like auditing and an <tt>on_complete</tt> block.
+Executable extends objects allowing them to be used in workflows, enqued, and run by an App.  Executable objects specify a method that gets called upon execution; in essence Executable wraps this method and adds workflow support for dependencies, joins, batches, and auditing.  Any method may be made executable, and so any method can participate in a workflow (see Object#_method).
 
-Tasks are constructed such that <tt>execute</tt> is their executable method.  Task#execute simply provides hooks before and after forwarding control to the <tt>process</tt> method.  Hence <tt>process</tt> is the standard method overridden in subclasses of Task.
-
-==== Tap::Support::Batchable
-
-http://tap.rubyforge.org/images/Batchable.png
-
-Tasks can be assembled into batches that all enque at the same time and share the same <tt>on_complete</tt> block.  This behavior is very powerful, allowing workflow logic to be defined once but executed under multiple conditions.  Task includes the Batchable module to facilitate batching.
+Tasks are constructed such that <tt>process</tt> is the executable method (actually execute_with_callbacks is used to wrap process with before/after execute callbacks, but effectively this is the case).  Hence <tt>process</tt> is the standard method overridden in Task subclasses.
 
 ==== Tap::Support::Configurable
 
@@ -95,13 +89,9 @@ Validation blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes 
 
 http://tap.rubyforge.org/images/Lazydoc.png
 
-Ah lazydoc.  Lazydoc fits into the space between live code and code documentation.  Lazydoc can scan a file (code or not) and pull out documentation into the object space where it can be utilized.  Lazydoc uses a key-value syntax that is both invalid Ruby and easily hidden in RDoc.  Looks like this:
+Ah lazydoc.  Lazydoc fits into the space between live code and code documentation.  Lazydoc can scan a file (code or not) and pull documentation into the object space where it can be utilized.  Lazydoc uses a key-value syntax like this:
 
   # ::key value
-
-Try the former line without the comment and a syntax error results.  In RDoc, the syntax doesn't interfere with any of the standard documentation conventions and can be hidden with the use of a <tt>:startdoc:</tt> attribute (an extra space is added to <tt>:startdoc:</tt> so the line isn't actually hidden in this document):
-
-  # :start doc::key value
 
 Lazydoc parses a constant name, the key, the value, and any comment following the value until a non-comment line or an end key.  For example:
 
@@ -126,7 +116,7 @@ Lazydoc parses a constant name, the key, the value, and any comment following th
   lazydoc['Name::Space']['key'].to_s           # => "This documentation gets parsed."
   lazydoc['Name::Space']['another'].subject    # => "another value"
 
-Furthermore, Lazydoc allows living code to register lines that should get documented.  These lines are parsed to echo what happens in RDoc.
+Furthermore, Lazydoc can register specific lines for documentation.  These lines are parsed to echo what happens in RDoc.
 
   [another_lazydoc_file.rb]
   # documentation
@@ -145,7 +135,7 @@ Furthermore, Lazydoc allows living code to register lines that should get docume
 
 Tap uses Lazydoc to indicate when a file contains a Task (<tt>::manifest</tt>) or a generator (<tt>::generator</tt>), and for config documentation.  Tap::Env uses this information to facilitate lookup and instantiation of task classes.  
 
-One note: when no constant name is specified for a Lazydoc key, it gets treated as a default for the whole file. 
+When no constant name is specified for a Lazydoc key, Env uses a constant based on the file name.
 
   [lib/sample/task.rb]
   # ::manifest sample task description
@@ -160,67 +150,67 @@ However, the best practice is to include the namespace explicitly.
 
 http://tap.rubyforge.org/images/Task.png
 
-Running a task through the tap executable instantiates a task class, configures it, enques it, and runs a Tap::App to get the inputs to the <tt>process</tt> method.  Tasks do not have to be used this way; they are perfectly capable as objects in free-standing scripts.
+Running a task from the command line using tap (or rap) instantiates a task, configures it, enques it, and runs an App to pass inputs to the <tt>process</tt> method.  Tasks do not have to be used this way; they are perfectly capable as objects in free-standing scripts.
 
-Task instances can take a block that acts as a stand-in for <tt>process</tt>:
+Task instances may be interned with a block that acts as a stand-in for <tt>process</tt>:
 
-  t = Tap::Task.new {|task| 1 + 2 }
+  t = Tap::Task.intern {|task| 1 + 2 }
   t.process                # => 3
 
-  t = Tap::Task.new {|task, x, y| x + y }
+  t = Tap::Task.intern {|task, x, y| x + y }
   t.process(1, 2)          # => 3
- 
-Tasks can be configured:
 
-  t1 = Tap::Task.new(:key => 'one') {|task, input| "#{input}:#{task.config[:key]}"}
-  t1.process('str')        # => "str:one"
-  
-And batched:
+Tasks can be configured,
 
-  t2 = t1.initialize_batch_obj(:key => 'two')
+  runlist = []
+  t1 = Tap::Task.intern(:key => 'one') do |task, input| 
+    runlist << task
+    "#{input}:#{task.config[:key]}"
+  end
+
+joined into dependency-based workflows,
+
+  t0 = Tap::Task.intern {|task| runlist << task }
+  t1.depends_on(t0)
+
+imperative workflows,
+
+  t2 = Tap::Task.intern do |task, input|
+    runlist << task
+    "#{input}:two"
+  end
+  t1.sequence(t2)
+
+and batched.
+
   t3 = t1.initialize_batch_obj(:key => 'three')
-
-  t1.batch                 # => [t1, t2, t3]
-
-Batched tasks enque together, and therefore run sequentially with the same inputs:
-
-  app = Tap::App.instance
-  app.enq(t1, 'str')
-  app.queue.to_a           # => [[t1, ['str']], [t2, ['str']], [t3, ['str']]]
-  app.run
-
-  app.results(t1)          # => ["str:one"]
-  app.results(t2)          # => ["str:two"]
-  app.results(t3)          # => ["str:three"]
-
-Also, as a consequence of Task being Executable, the results have audit trails.  In the audit trail, the tasks are identified by name (by default the name the underscored class name):
-
-  t1.name = 'task one'
-  t2.name = 'task two'
-  t3.name = 'task three'
+  t1.batch                 # => [t1, t3]
   
-  app._results(t1,t2,t3).collect do |_result|
+Batched tasks enque together, and therefore execute sequentially with the same inputs. Results are aggregated into the underlying Tap::App.
+
+  t1.execute('input')
+  runlist                  # => [t0, t1, t2, t3, t2]
+  
+  app = Tap::App.instance
+  app.results(t2)          # => ["input:one:two", "input:three:two"]
+
+Tracking the evolution of a result through a workflow can get complex; Tap audits workflows to help.  In the audit trail, the tasks are identified by name.  Lets set the names of the tasks and take a look at the audit trails of the t2 results:
+
+  t1.name = 'un'
+  t2.name = 'deux'
+  t3.name = 'trois'
+  
+  app._results(t2).collect do |_result|
     _result.to_s
   end.join("---\n")
   # => 
-  # o-[] 1
-  # o-[task one] "str:one"
+  # o-[] "input"
+  # o-[un] "input:one"
+  # o-[deux] "input:one:two"
   # ---
-  # o-[] 1
-  # o-[task two] "str:two"
-  # ---
-  # o-[] 1
-  # o-[task three] "str:three"
-  
-Task instances can be joined into workflows.  The workflow model used by Tap is very simple; when a task completes it calls its <tt>on_complete</tt> block to enque the next task (or tasks) in the workflow.  Arbitrary workflow logic is allowed since there are no restrictions on what the <tt>on_complete</tt> block does.  If a task has no <tt>on_complete</tt> block, App collects the unhandled results (as shown above) so they can be handled somewhere else.  See below for more details.
-
-=== Tap::Workflow
-
-http://tap.rubyforge.org/images/Workflow.png
-
-Workflows are not Tasks but are constructed with the same modules as Task and work very similarly Tasks.  Workflows have a <tt>workflow</tt> method which defines the entry and exit points for the workflow; there can be 1+ entry points and 0+ exit points.  The enque method for a workflow enques all it's entry points, and when the <tt>on_complete</tt> block is set for a workflow, it is set for all exit points.
-
-Like Tasks, Workflows can be configured, enqued, used in workflows, and subclassed.
+  # o-[] "input"
+  # o-[trois] "input:three"
+  # o-[deux] "input:three:two"
 
 == Apps
 
@@ -235,7 +225,7 @@ A Root represents the base of a directory structure. Roots allow you to alias di
   root['config']                                 # => '/path/to/root/config'
   root.filepath('config', 'sample.yml')          # => '/path/to/root/config/sampl.yml'
 
-While simple, this ability to reference files using aliases is useful, powerful, and forms the basis of the Tap execution environment.
+While simple, this ability to alias paths is useful, powerful, and forms the basis of the Tap execution environment.
 
 ==== Tap::Support::ExecutableQueue
 
@@ -243,16 +233,19 @@ http://tap.rubyforge.org/images/ExecutableQueue.png
 
 Apps coordinate the execution of tasks through a queue.  The queue is just a stack of Executable objects, basically methods, and the inputs to those methods; during a run the enqued methods are sequentially executed with the inputs.
 
+==== Tap::Support::Dependencies
+
+Dependencies coordinate the registration and resolution of dependencies, which may be shared across multiple tasks.
+
 ==== Tap::Support::Audit
 
-Tap tracks inputs as they are modified by various tasks, again through Executable.  At the end of a run, any individual result can be tracked back to it's original value with references to the source of each change in the value (ie the task or Executable).  This auditing can be very useful when workflows diverge, as they often do.
+Tap tracks inputs as they are modified by various tasks, again through Executable.  At the end of a run, any individual result can be tracked back to it's original value with references to the source of each change (ie the task).  This auditing can be very useful when workflows diverge, as they often do.
 
 Auditing is largely invisible except in <tt>on_complete</tt> blocks.  <tt>on_complete</tt> blocks receive the audited results so that this information can be used, as needed, to make decisions.  
 
-    t = Task.new
-    t.on_complete do |_result|      # _result is an Audit instance
-      _result._current              # the current value
-      _result._original             # the original value
+    Task.new.on_complete do |_result|            # _result is an Audit instance
+      _result._current                           # the current value
+      _result._original                          # the original value
     end
 
 To help indicate when a result is actually a result and when it is an audit, Tap uses a convention whereby a leading underscore signals auditing is involved.
@@ -265,65 +258,32 @@ When a task completes, it executes it's <tt>on_complete</tt> block to handle the
 
 http://tap.rubyforge.org/images/App.png
 
-Instances of Tap::App coordinate the execution of tasks.  Apps are basically a subclass of Root with an ExecutableQueue and Aggregator.  Task initialization requires an App, which is by default Tap::App.instance.  Tasks use their app for logging, checks, and to enque themselves.  Normally a script will only need and use a single instance (often Tap::App.instance), but there is no reason why multiple instances could not be used.  
+Instances of Tap::App coordinate the execution of tasks.  Apps are basically a subclass of Root with an ExecutableQueue, Dependencies, and an Aggregator.  Task initialization requires an App, which is by default Tap::App.instance.  Tasks use their app for logging, dependency-resolution, checks, and to enque themselves.  Normally a script will only need and use a single instance (often Tap::App.instance), but there is no reason why multiple instances could not be used.  
 
   log = StringIO.new
   app = Tap::App.instance
   app.logger = Logger.new(log)
   
-  t = Tap::Task.new
+  t = Tap::Task.intern {|task, *inputs| inputs }
   t.log 'action', 'to app'
   log.string                 # =>  "  I[15:21:23]             action  to app\n"
   
   t.enq(1)
   t.enq(2,3)
+  
   app.queue.to_a             # => [[t, [1]], [t, [2,3]]
-  
-Apps also coordinate the creation of standard workflow patterns like sequence, fork, and merge.  These methods set <tt>on_complete</tt> blocks for the input tasks.
-
-  t1 = Tap.task('t1') {|t| 'hellO'}
-  t2 = Tap.task('t2') {|t, input| input + ' woRld' }
-  t3 = Tap.task('t3') {|t, input| input.downcase }
-  t4 = Tap.task('t4') {|t, input| input.upcase }
-  t5 = Tap.task('t5') {|t, input| input + "!" }
-  
-  # sequence t1, t2
-  app.sequence(t1, t2)
-  
-  # fork t2 results to t3 and t4
-  app.fork(t2, t3, t4)
-  
-  # unsynchronized merge of t3 and t4 into t5
-  app.merge(t5, t3, t4)
-  
-  app.enq(t1)
   app.run
+  app.results(t)             # => [[1], [2,3]]
   
-  app.results(t5)       # => ["hello world!", "HELLO WORLD!"]
+As shown, apps also aggregate results for tasks, which is important for workflows.
 
-As shown above, aggregated results may be accessed by task through the <tt>results</tt> method. To access the audited results, use <tt>_results</tt>:
-
-  app._results(t5).collect do |_result|
-    _result.to_s
-  end.join("---\n")
-  # =>
-  # o-[t1] "hellO"
-  # o-[t2] "hellO woRld"
-  # o-[t3] "hello world"
-  # o-[t5] "hello world!"
-  # ----
-  # o-[t1] "hellO"
-  # o-[t2] "hellO woRld"
-  # o-[t4] "HELLO WORLD"
-  # o-[t5] "HELLO WORLD!"
-  
 == Envs 
 
 ==== Tap::Env
 
 http://tap.rubyforge.org/images/Env.png
 
-Environments are still under construction.  Basically a wrapper for a Root, Envs define methods to generate manifests for a type of file-based resource (tasks, generators, etc).  Furthermore they provide methods to uniquely identify the resource by path or, more specifically, minimized base paths.  In this directory structure:
+Basically a wrapper for a Root, Envs define methods to generate manifests for a type of file-based resource (tasks, generators, etc).  Furthermore they provide methods to uniquely identify the resource by path or, more specifically, minimized base paths.  In this directory structure:
 
   path
   `- to
@@ -344,10 +304,61 @@ Envs facilitate mapping the minimal path, which might be provided by the command
 
 http://tap.rubyforge.org/images/Nested-Env.png
 
-To prevent conflicts between similarly-named resources under two Envs, Env allows selection of Envs, also by minimized paths.  At present this is difficult to illustrate in a code snippit.
+To prevent conflicts between similarly-named resources under two Envs, Env allows selection of Envs, also by minimized paths.  Say you installed the 'sample_tasks' gem.
 
---
-==== Run Env
+  % tap manifest
+  --------------------------------------------------------------------------------
+  Desktop:           (/Users/username/Desktop)
+  --------------------------------------------------------------------------------
+  sample_tasks:      (/Library/Ruby/Gems/1.8/gems/sample_tasks-0.10.0)
+    tasks
+      concat         (lib/tap/tasks/concat.rb)
+      copy           (lib/tap/tasks/copy.rb)
+      grep           (lib/tap/tasks/grep.rb)
+      print_tree     (lib/tap/tasks/print_tree.rb)
+  --------------------------------------------------------------------------------
+  tap:               (/Library/Ruby/Gems/1.8/gems/tap-0.10.8)
+    generators
+      command        (lib/tap/generator/generators/command/command_generator.rb)
+      config         (lib/tap/generator/generators/config/config_generator.rb)
+      file_task      (lib/tap/generator/generators/file_task/file_task_generator.rb)
+      generator      (lib/tap/generator/generators/generator/generator_generator.rb)
+      root           (lib/tap/generator/generators/root/root_generator.rb)
+      task           (lib/tap/generator/generators/task/task_generator.rb)
+    commands
+      console        (cmd/console.rb)
+      destroy        (cmd/destroy.rb)
+      generate       (cmd/generate.rb)
+      manifest       (cmd/manifest.rb)
+      run            (cmd/run.rb)
+      server         (cmd/server.rb)
+    tasks
+      dump           (lib/tap/tasks/dump.rb)
+      load           (lib/tap/tasks/load.rb)
+      rake           (lib/tap/tasks/rake.rb)
+  --------------------------------------------------------------------------------
+
+  Desktop
+  |- sample_tasks 
+  `- tap 
+
+In this printout of the manifest, you can see the resources available to tap on the Desktop (none), in the sample_tasks gem, and in tap itself.  Since there aren't any conflicts among tasks, the minipath of any of the tasks is sufficient for identification:
+
+  % tap run -- print_tree
+  % tap run -- dump
+  
+If there were a conflict, you'd have to specify the environment minipath like:
+
+  % tap run -- sample_tasks:print_tree
+  % tap run -- tap:dump
+  
+Note the same rules apply for rap:
+
+  % rap print_tree
+  % rap tap:dump
+
+==== Tap::Exe
+
 http://tap.rubyforge.org/images/Run-Env.png
-++
 
+The tap (and rap) executable environment.  Tap::Exe adds several configurations (ex before/after) which only get loaded for the present directory, and methods for building and executing workflows from command line inputs.  Tap::Exe is a singleton, and is special because it wraps Tap::App.
