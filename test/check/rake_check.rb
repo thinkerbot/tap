@@ -52,6 +52,9 @@ class RakeCheck < Test::Unit::TestCase
   def test_rake_args_declaration_with_too_few_args_uses_nil
     arg_hash = nil
     y = task(:y, :one, :two, :three) do |t, args|
+      args.one
+      args.two
+      args.three
       arg_hash = args.to_hash
     end
     

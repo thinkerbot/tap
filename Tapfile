@@ -16,11 +16,3 @@ class Check < Tap::FileTask
     end
   end
 end
-
-module Tapfile
-  extend Tap::Declarations
-  
-  task :say_hello do
-    puts "hello"
-  end
-end

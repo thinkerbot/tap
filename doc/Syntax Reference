@@ -1,0 +1,109 @@
+= Syntax Reference
+
+A task declaration:
+
+  # name::           the name of the task, either alone or as the
+  #                  key of a {key => dependencies} hash
+  # dependencies::   an array of task names (optional)
+  # arg_names::      an array of argument names (optional)
+  # configurations:: a hash of {key => default} pairs (optional)
+
+  task({name => [dependencies...]}, arg_names..., {configurations}) do |task, args|
+    # arguments are available through args:
+    args.arg_name
+    
+    # configurations are available through task
+    task.key
+  end
+
+A namespace declaration:
+
+  namespace(name) { task ... }
+ 
+Simple documentation:
+ 
+  desc "description"
+  task ...
+  
+Extended documentation:
+  
+  # ::desc description
+  # Extended documentation may span multiple lines, and 
+  # supports
+  #
+  #   code indentation
+  #   like this.
+  #
+  # Lines are justified and wrapped on the command line.
+  task ...
+
+Pains were taken to make task declarations for rap work the similar to rake tasks.  In both cases (noting that in general, beyond rap, task classes are not limited in these ways):
+
+* tasks are singleton instances that may be extended across multiple declarations
+* tasks do not pass inputs from one task to the next
+* tasks only execute once
+
+A few syntactical differences between rake and rap must to be noted, as they can cause errors if you try to migrate rake tasks to tap.  Tap declarations.
+
+==== no needs
+
+Tasks do not support :needs as a way to specify dependencies.  For instance, this will declare a ':needs' configuration with the default value ':another', not a task which depends on another:
+
+  Tap.task :name, :needs => :another
+
+==== immediate namespace lookup
+
+Within a namespace, task will look for a literal match to the dependency first.  If it doesn't find one, it will declare it within the namespace; one way or the other the dependency is resolved immediately.  Hence, in this example the nested task depends on the non-nested task.  
+
+  task :outer { print 'non-nested' }
+  namespace :nest do
+    task :inner => :outer { puts 'was executed' }
+    task :outer { print 'nested' }
+  end
+  
+By contrast, rake waits to resolve dependencies and so will always use a match within a namespace in preference to a literal match.  For these tasks rap and rake produce different results:
+
+  % rap nest/inner
+  non-nested was executed
+  % rake nest:inner
+  nested was executed
+
+==== command line syntax
+
+Rap uses a different command line syntax than rake.  Basically, rap uses double-dash delimiters to separate individual tasks, and modified delimiters to specify joins for the tasks.  These both specify three tasks (x,y,z) that are joined in a sequence:
+
+  % rap x --: y --: z
+  % rap x -- y -- z --0:1:2
+  
+In the modified delimiters, numbers indicate which tasks participate in a join while punctuation indicates a join type.  In the second example, the numbers are implicitly added for the preceding and following task.  A variety of joins are supported:
+
+  delimiter  function         syntax                 example        meaning 
+  --         delimits tasks                          a -- b -- c    enques/configures tasks a, b, c
+  --:        sequence         source:target          --0:1:2        sequence a, b, c
+  --[]       fork             source[targets...]     --0[1,2]       fork a to (b,c)
+  --{}       merge            target{sources...}     --2{0,1}       merge (a,b) to c
+  --()       sync_merge       target(sources...)     --2(0,1)       synchronize merge (a,b) to c
+  --*        dependency                              --* a          enques/configures the dependency instance for a
+  
+Inputs may be specified between delimiters:
+
+  % rap x 1 2 3 --: y 3 4 --: z 5 6 7
+
+As may be configurations, in a variety of formats:
+
+  % rap x 1 2 3 -k v --: y 3 4 --key value --: z 5 6 7 --key=value
+
+This syntax is the same for the tap executable... rap is mostly an alias for the command 'tap run --'.   The only exception occurs when the specified task can't be found within tap, either as a task declaration or a full class.  Unknown tasks are implicitly run as a Tap::Tasks::Rake task, which causes the task to be run as if by rake.  These are the same:
+
+Run a rake task with inputs and an ENV config:
+
+  % rake task_name[1,2,3] key=value
+
+Explicitly run a Tap::Tasks::Rake task using the same inputs:
+
+  % rap rake task_name[1,2,3] key=value
+  
+Implicitly run the Tap::Tasks::Rake task:
+
+  % rap task_name[1,2,3] key=value
+

@@ -17,9 +17,10 @@ Gem::Specification.new do |s|
     README
     MIT-LICENSE
     History
-    doc/Tutorial
     doc/Class\sReference
-    doc/Command\sReference}
+    doc/Command\sReference
+    doc/Syntax\sReference
+    doc/Tutorial}
   
   s.files = %W{
     cgi/run.rb
