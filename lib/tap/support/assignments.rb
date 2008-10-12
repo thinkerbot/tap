@@ -5,13 +5,11 @@ module Tap
     # which values are assigned to a particular key.  A value may only 
     # be assigned to one key at a time.  
     #
-    # Assignments tracks the order in which keys are declared, and the
+    # Assignments tracks the order of key declaration, and the
     # order in which values are assigned to a key.  This behavior is
-    # used by ClassConfiguration to track the order in which configurations  
-    # are assigned to a class; the order, in turn, is used in the formation
+    # used by ClassConfiguration to track the order of configurations  
+    # in a class; the order, in turn, is used in the formation
     # of config files, command line documentation, etc.
-    #
-    # === Example
     #
     #   a = Assignments.new
     #   a.assign(:one, 'one')
@@ -35,6 +33,9 @@ module Tap
     class Assignments
       include Enumerable
       
+      # Generates a new Assignments using the parent array of
+      # [key, values] pairs.  Uses parent.array if parent is
+      # an Assignments, or [] if parent is nil.
       def initialize(parent=nil)
         existing_array = case parent
         when Assignments then parent.array
@@ -139,7 +140,7 @@ module Tap
         nil
       end
 
-      # Yields each key, value pair in the order in which
+      # Yields each [key, value] pair in the order in which
       # the keys were declared. Keys with no values are 
       # skipped.
       def each
@@ -148,7 +149,7 @@ module Tap
         end
       end
       
-      # Yields each key, values pair in the order in which
+      # Yields each [key, values] pair in the order in which
       # the keys were declared.
       def each_pair
         array.each do |key, values|
@@ -156,7 +157,7 @@ module Tap
         end
       end
       
-      # Returns the [key, values] as an array
+      # Returns self as an array
       def to_a
         array.collect {|key, values| [key, values.dup] }
       end
@@ -164,7 +165,7 @@ module Tap
       protected
       
       # An array of [key, values] arrays tracking the 
-      # key and order in which values were assigned. 
+      # order in which values are assigned. 
       attr_reader :array
       
     end

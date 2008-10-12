@@ -10,22 +10,6 @@ module Tap
       end
     end
     
-    # Marks a split in an Audit trail
-    class AuditSplit
-      attr_reader :block
-      def initialize(block) @block = block end
-      
-      # True if another is an AuditSplit with the same block.
-      def ==(another)
-        another.kind_of?(AuditSplit) && another.block == block
-      end
-      
-      # Returns '_split' to indicate a split in an audit trail.
-      def to_s
-        "_split"
-      end
-    end
-    
     # Marks the expansion of an Audit trail
     class AuditIterate
       attr_reader :index
@@ -36,25 +20,24 @@ module Tap
         another.kind_of?(AuditIterate) && another.index == index
       end
       
-      # Returns '_iterate(index)' to indicate an iteration of
-      # outputs in an audit trail.
+      # Returns a string like '_iterate(<index>)'.
       def to_s
         "_iterate(#{index})"
       end
     end
 
-    # Audit provides a way to track the values (inputs and results) passed
-    # among tasks or, more generally, any Executable method.  Audits allow 
-    # you to track inputs as they make their way through a workflow, and 
-    # have great utility in debugging and record keeping. 
+    # Audit provides a way to track the values (inputs and results) passed among 
+    # tasks or, more generally, any Executable.  Audits allow you to track inputs
+    # as they make their way through a workflow, and have great utility in 
+    # debugging and record keeping. 
     #
-    # During execution, the group of inputs for a task are used to initialize 
-    # an Audit.  These inputs mark the begining of an audit trail; every 
-    # task that processes them (including the first) adds to the trail by 
-    # recording it's result using itself as the 'source' of the result.
+    # During execution, the inputs to a task are used to initialize an Audit.
+    # These inputs are the original value of the audit and mark the begining 
+    # of an audit trail; every task adds to the trail by recording it's result
+    # and itself as the 'source' of the result.
     #
-    # Since Audits are meant to be fairly general structures, they can take 
-    # any object as a source, so for illustration lets use some symbols:
+    # Audits can take any object as a source, so for illustration lets use some
+    # symbols:
     #   
     #   # initialize a new audit
     #   a = Audit.new(1, nil)
@@ -63,8 +46,8 @@ module Tap
     #   a._record(:A, 2)
     #   a._record(:B, 3)
     #
-    # Now you can pull up the source and value trails, as well as 
-    # information like the current and original values:
+    # Now you can pull up the source and value trails, as well as the current
+    # and original values:
     #
     #   a._source_trail      # => [nil, :A, :B]
     #   a._value_trail       # => [1, 2, 3]
@@ -75,9 +58,9 @@ module Tap
     #   a._current           # => 3
     #   a._current_source    # => :B
     #
-    # Merges are supported by using an array of the merging trails (internally
-    # an AuditMerge) as the source, and an array of the merging values as the 
-    # initial value.  
+    # Merges are supported by using an array of the merged trails (actually
+    # an AuditMerge) as the source, and an array of the merged values as the 
+    # original value.  
     #
     #   b = Audit.new(10, nil)
     #   b._record(:C, 11)
@@ -96,9 +79,9 @@ module Tap
     #   c._value_trail       # => [ [[1,2,3], [10, 11, 12]], "a string value", {'a' => 'hash value'}, ['an', 'array', 'value']]
     #
     # Audit supports forks by duplicating the source and value trails.  Forks
-    # can be developed independently.  Importantly, Audits are forked during 
-    # a merge; notice the additional record in +a+ doesn't change the source 
-    # trail for +c+:
+    # can be developed independently.  Audits are also forked during a merge; 
+    # notice the additional record in 'a' doesn't change the source trail for
+    # 'c':
     #
     #   a1 = a._fork
     #
@@ -114,23 +97,23 @@ module Tap
     # to help gain access, as well as a printing method to visualize the
     # audit trail:
     #
-    #   [c._to_s]
-    #   o-[] 1
-    #   o-[A] 2
-    #   o-[B] 3
-    #   | 
-    #   | o-[] 10
-    #   | o-[C] 11
-    #   | o-[D] 12
-    #   | | 
-    #   `-`-o-[E] "a string value"
-    #       o-[F] {"a"=>"hash value"}
-    #       o-[G] ["an", "array", "value"]
+    #   c._to_s
+    #   # =>
+    #   # o-[] 1
+    #   # o-[A] 2
+    #   # o-[B] 3
+    #   # | 
+    #   # | o-[] 10
+    #   # | o-[C] 11
+    #   # | o-[D] 12
+    #   # | | 
+    #   # `-`-o-[E] "a string value"
+    #   #     o-[F] {"a"=>"hash value"}
+    #   #     o-[G] ["an", "array", "value"]
     #
     # In practice, tasks are recored as sources. Thus source trails can be used  
     # to access task configurations and other information that may be useful 
-    # when creating reports or making workflow decisions (ex: raise an 
-    # error after looping to a given task too many times). 
+    # when creating reports or making workflow decisions. 
     #
     #--
     # TODO:
@@ -156,9 +139,9 @@ module Tap
       class << self
 
         # Creates a new Audit by merging the input audits. The value of the new 
-        # Audit will be an array of the _current values of the audits.  The source 
-        # will be an AuditMerge whose values are forks of the audits. Non-Audit 
-        # sources can be provided; they are initialized to Audits before merging.
+        # Audit will be an array of the _current values of the inputs.  The source 
+        # will be an AuditMerge whose values are forks of the inputs. Non-Audit 
+        # sources may be provided; they are initialized to Audits before merging.
         #
         #   a = Audit.new
         #   a._record(:a, 'a')
@@ -194,9 +177,9 @@ module Tap
       # An array of the values in self
       attr_reader :_values
       
-      # An arbitrary constant used to identify when no inputs have been
-      # provided to Audit.new.  (nil itself cannot be used as nil is a 
-      # valid initial value for an audit trail)
+      # An arbitrary object used to identify when no inputs have been
+      # provided to Audit.new.  (nil cannot be used since nil is a valid 
+      # initial value)
       AUDIT_NIL = Object.new
       
       # A new audit takes a value and/or source.  A nil source is typically given
@@ -283,7 +266,7 @@ module Tap
       end
       
       # Produces a new Audit with duplicate sources and values, suitable for
-      # separate development along a separate path.
+      # independent development.
       def _fork
         a = Audit.new
         a._sources = _sources.dup
@@ -291,14 +274,12 @@ module Tap
         a
       end
 
-      # _forks self and records the next value as [<return from block>, AuditSplit.new(block)] 
-      def _split(&block) # :yields: _current
-        _fork._record(AuditSplit.new(block), yield(_current))
-      end
-      
-      # _forks self for each member in _current.  Records the next value as
-      # [item, AuditIterate.new(<index of item>)].  Raises an error if _current 
-      # does not respond to each.
+      # Produces a fork of self for each item in the current value (_current).
+      # Iterate is useful for developing each item of (say) an array along 
+      # different paths.
+      # 
+      # Records the next value of each fork as [item, AuditIterate.new(<index of item>)].  
+      # Raises an error if _current does not respond to each.
       def _iterate
         expanded = []
         _current.each do |value|

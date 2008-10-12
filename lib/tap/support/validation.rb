@@ -438,10 +438,11 @@ module Tap
         TIME
       end
       
-      TIME = lambda do |input|
+      time_block = lambda do |input|
         input = Time.parse(input) if input.kind_of?(String)
         validate(input, [Time])
       end
+      TIME = time_block
       
       # Same as time but allows nil:
       #
@@ -454,7 +455,7 @@ module Tap
         TIME_OR_NIL
       end
       
-      TIME_OR_NIL = lambda do |input|
+      time_or_nil_block = lambda do |input|
         input = case input
         when nil, '~' then nil
         when String then Time.parse(input)
@@ -462,7 +463,9 @@ module Tap
         end
         
         validate(input, [Time, nil])
-      end
+      end 
+      TIME_OR_NIL = time_or_nil_block
+      
     end
   end
 end

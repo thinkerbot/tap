@@ -5,20 +5,29 @@ require 'tap/support/configuration'
 module Tap
   module Support
     
-    # ClassConfiguration tracks and handles the class configurations defined in a 
-    # Configurable class.
+    # ClassConfiguration tracks configurations defined by a Configurable class.
     class ClassConfiguration
       include Enumerable
       
-      # The class receiving new configurations
+      config_templates_dir = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates"
+
+      # The path to the :doc template (see inspect)
+      DOC_TEMPLATE_PATH = File.join(config_templates_dir, 'doc.erb')
+
+      # The path to the :nodoc template (see inspect)
+      NODOC_TEMPLATE_PATH = File.join(config_templates_dir, 'nodoc.erb')
+      
+      # The Configurable class receiving new configurations
       attr_reader :receiver
 
-      # Tracks the assignment of the config keys to receivers
+      # An Assignments tracking the assignment of config keys to receivers
       attr_reader :assignments
       
-      # A map of (key, config) pairs.
+      # A map of [key, Configuration] pairs
       attr_reader :map
-
+      
+      # Generates a new ClassConfiguration for the receiver.  If a parent is 
+      # provided, configurations will be inherited from it.
       def initialize(receiver, parent=nil)
         @receiver = receiver
         
@@ -34,9 +43,9 @@ module Tap
         end
       end
 
-      # Initializes a Configuration using the inputs and sets it in self
-      # using name as a key, overriding the current config by that name,
-      # if it exists.  Returns the new config.
+      # Initializes a Configuration using the inputs and sets using name 
+      # as a key.  Any existing config by the same name is overridden. 
+      # Returns the new config.
       def add(name, default=nil, attributes={})
         self[name] = Configuration.new(name.to_sym, default, attributes)
       end
@@ -46,12 +55,12 @@ module Tap
         self[key] = nil
       end
       
-      # Gets the configuration specified by key.  The key is symbolized.
+      # Gets the config specified by key.  The key is symbolized.
       def [](key)
         map[key.to_sym]  
       end
       
-      # Assigns the configuration to key.  A nil config unassigns the
+      # Assigns the config to key.  A nil config unassigns the
       # configuration key.  The key is symbolized.
       def []=(key, config)
         key = key.to_sym
@@ -91,7 +100,7 @@ module Tap
       end
       
       # Calls block once for each [receiver, key, config] in self, 
-      # passing those elements as parameters, in the order in
+      # passing those elements as parameters in the order in
       # which they were assigned.  
       def each
         assignments.each do |receiver, key|
@@ -100,7 +109,7 @@ module Tap
       end
       
       # Calls block once for each [key, config] pair in self, 
-      # passing those elements as parameters, in the order in
+      # passing those elements as parameters in the order in
       # which they were assigned.
       def each_pair
         assignments.each do |receiver, key|
@@ -114,7 +123,7 @@ module Tap
         InstanceConfiguration.new(self, receiver, store)
       end
       
-      # Returns a hash of the (key, config.default) values in self.
+      # Returns a hash of the [key, config.default] pairs in self.
       def to_hash
         hash = {}
         each_pair {|key, config| hash[key] = config.default }
@@ -130,36 +139,16 @@ module Tap
         code_comments
       end
       
-      # The path to the :doc template (see format_str)
-      DOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/doc.erb"
-      
-      # The path to the :nodoc template (see format_str)
-      NODOC_TEMPLATE_PATH = File.expand_path File.dirname(__FILE__) + "/../generator/generators/config/templates/nodoc.erb"
-
-      # Formats the configurations using the specified template.  Two default
-      # templates are defined, <tt>:doc</tt> and <tt>:nodoc</tt>.  These map 
-      # to the contents of DOC_TEMPLATE_PATH and NODOC_TEMPLATE_PATH and 
-      # correspond to the documented and undocumented config generator templates.
+      # Inspects the configurations using the specified template.  Templates
+      # are used for format each [receiver, configurations] pair in self.
+      # See DEFAULT_TEMPLATE as a model.  The results of each template cycle
+      # are pushed to target.
       #
-      # == Custom Templates
-      #
-      # format_str initializes a Templater which formats each [receiver, configurations] 
-      # pair in turn, and puts the output to the target using <tt><<</tt>.   The 
-      # templater is assigned the following attributes for use in formatting:
-      #
-      # receiver:: The receiver
-      # configurations:: An array of configurations and associated comments
-      # 
-      # In the template these can be accessed as any ERB locals, for example:
-      #
-      #   <%= receiver.to_s %>
-      #   <% configurations.each do |key, config, comment| %>
-      #   ...
-      #   <% end %>
-      #
-      # The input template may be a String or an ERB; either may be used to 
-      # initialize the templater.
-      def format_str(template=:doc, target="")
+      # Two default templates are defined, <tt>:doc</tt> and <tt>:nodoc</tt>.
+      # These map to the contents of DOC_TEMPLATE_PATH and NODOC_TEMPLATE_PATH
+      # and correspond to the documented and undocumented 
+      # Tap::Generator::Generators::ConfigGenerator templates.
+      def inspect(template=:doc, target="")
         Lazydoc.resolve_comments(code_comments)
         
         template = case template

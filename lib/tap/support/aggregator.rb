@@ -2,9 +2,22 @@ module Tap
   module Support
   
     # Aggregator allows thread-safe collection of Audits, organized
-    # by Audit#_current_source.    
+    # by Audit#_current_source.
+    #
+    #   a = Audit.new
+    #   a._record(:src, 'a')
+    # 
+    #   b = Audit.new
+    #   b._record(:src, 'b')
+    #
+    #   agg = Aggregator.new
+    #   agg.store(a)
+    #   agg.store(b)
+    #   agg.retrieve(:src)             # => [a, b]
+    #
     class Aggregator < Monitor
-
+      
+      # Creates a new Aggregator.
       def initialize
         super
         clear
@@ -35,7 +48,7 @@ module Tap
         synchronize { hash[source] }
       end
       
-      # Retreives all audits for the input sources, joined into an array.
+      # Retreives all audits for the input sources, joined as an array.
       def retrieve_all(*sources)
         synchronize do
           sources.collect {|src| hash[src] }.flatten.compact

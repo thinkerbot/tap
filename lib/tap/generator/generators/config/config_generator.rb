@@ -18,7 +18,7 @@ module Tap::Generator::Generators
       
       m.directory app['config']
       m.file app.filepath('config', config_name + '.yml') do |file|
-        task_class.configurations.format_str((doc ? :doc : :nodoc), file)
+        task_class.configurations.inspect((doc ? :doc : :nodoc), file)
       end
     end
     

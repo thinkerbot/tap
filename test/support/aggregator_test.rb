@@ -11,6 +11,19 @@ class AggregatorTest < Test::Unit::TestCase
     @aggregator = Aggregator.new
   end
   
+  def test_aggregator_documentation
+    a = Audit.new
+    a._record(:src, 'a')
+
+    b = Audit.new
+    b._record(:src, 'b')
+
+    agg = Aggregator.new
+    agg.store(a)
+    agg.store(b)
+    assert_equal [a, b], agg.retrieve(:src)
+  end
+  
   #
   # store test
   #

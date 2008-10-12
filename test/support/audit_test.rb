@@ -297,22 +297,6 @@ o-[B] 3
   end
   
   #
-  # split tests
-  #
-  
-  def test_split_forks_and_records_result_yielding_to_current
-    block = lambda { |current| current += 'ar' }
-    c = a._split(&block)
-    
-    assert_equal [:a, :b, :c, AuditSplit.new(block)], c._sources
-    assert_equal ['a', 'b', 'c', 'car'], c._values
-  end
-  
-  def test_split_raises_error_if_no_block_given
-    assert_raise(LocalJumpError) { a._split }
-  end
-  
-  #
   # iterate tests
   #
   
