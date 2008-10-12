@@ -21,7 +21,7 @@ module Tap
     #   c.config.class         # => InstanceConfiguration
     #   c.config               # => {:one => 'one', :two => 'two', :three => 'three'}
     #
-    # The <tt>config</tt> object acts as a kind of forwarding hash; declared configurations
+    # The <tt>config</tt> object acts as a forwarding hash; declared configurations
     # map to accessors while undeclared configurations are stored internally:
     #
     #   c.config[:one] = 'ONE'
@@ -33,8 +33,8 @@ module Tap
     #   c.config[:undeclared] = 'value'
     #   c.config.store         # => {:undeclared => 'value'}
     #
-    # The writer method for a configuration can be modified by providing a block to config.  
-    # The Validation module provides a number of common validation and string-transform 
+    # The writer for a configuration can be defined by providing a block to config.  
+    # The Validation module provides a number of common validation/transform 
     # blocks which can be accessed through the class method 'c':
     #
     #   class SubClass < ConfigClass
@@ -55,21 +55,21 @@ module Tap
     #   s.two = nil            # !> ValidationError
     #   s.two = 'str'          # !> ValidationError
     #
-    # As shown above, configurations are inherited from the parent and can be
+    # As shown above, configurations are inherited from the parent and may be
     # overridden in subclasses.  See ConfigurableClass for more details.
     #
     module Configurable
       
       # Extends including classes with ConfigurableClass
-      def self.included(mod)
+      def self.included(mod) # :nodoc:
         mod.extend Support::ConfigurableClass if mod.kind_of?(Class)
       end
       
-      # The instance configurations for self
+      # An InstanceConfiguration with configurations for self
       attr_reader :config
       
-      # Reconfigures self with the given configuration overrides.  Only
-      # the specified configs are modified.  Override keys are symbolized.
+      # Reconfigures self with the given overrides.  Only the specified configs
+      # are modified.  Keys are symbolized.
       #
       # Returns self.
       def reconfigure(overrides={})
@@ -81,9 +81,9 @@ module Tap
         self
       end
       
-      # Reinitializes config with a copy of orig.config (this assures
-      # that duplicates have their own copy of configurations, 
-      # separate from the original object).
+      # Reinitializes configurations in the copy such that
+      # the new object has it's own set of configurations,
+      # separate from the original object.
       def initialize_copy(orig)
         super
         initialize_config(orig.config)
@@ -91,9 +91,8 @@ module Tap
       
       protected
       
-      # Initializes config to an InstanceConfiguration specific for self.
-      # Default config values are assigned or overridden if specified in
-      # overrides. Override keys are symbolized.
+      # Initializes config to an InstanceConfiguration. Default config values 
+      # are overridden as specified by overrides. Keys are symbolized.
       def initialize_config(overrides={})
         class_config = self.class.configurations
         @config = class_config.instance_config

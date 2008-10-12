@@ -7,9 +7,9 @@ module Tap
   module Support
     autoload(:Templater, 'tap/support/templater')
     
-    # ConfigurableClass encapsulates class methods used to declare class configurations. 
-    # When configurations are declared using the config method, ConfigurableClass 
-    # generates accessors in the class, much like attr_accessor.  
+    # ConfigurableClass defines class methods used by a Configurable class to
+    # declare configurations.  In addition to registering key-value pairs,
+    # these methods generate readers and writers, much like attr_accessor.  
     #
     #   class ConfigurableClass
     #     extend ConfigurableClass
@@ -22,31 +22,6 @@ module Tap
     #   c.respond_to?('one')                       # => true
     #   c.respond_to?('one=')                      # => true
     # 
-    # If a block is given, the block will be used to create the writer method
-    # for the config.  Used in this manner, config defines a <tt>config_key=</tt> method 
-    # wherein <tt>@config_key</tt> will be set to the return value of the block.
-    #
-    #   class AnotherConfigurableClass
-    #     extend ConfigurableClass
-    #     config(:one, 'one') {|value| value.upcase }
-    #   end
-    #
-    #   ac = AnotherConfigurableClass.new
-    #   ac.one = 'value'
-    #   ac.one               # => 'VALUE'
-    #
-    # The block has class-context in this case.  To have instance-context, use the
-    # config_attr method which defines the writer method using the block directly.
-    #
-    #   class YetAnotherConfigurableClass
-    #     extend ConfigurableClass
-    #     config_attr(:one, 'one') {|value| @one = value.reverse }
-    #   end
-    #
-    #   ac = YetAnotherConfigurableClass.new
-    #   ac.one = 'value'
-    #   ac.one               # => 'eulav'
-    #
     module ConfigurableClass
       include Tap::Support::LazyAttributes
       
@@ -54,7 +29,7 @@ module Tap
       attr_reader :configurations
 
       # Sets the source_file for base and initializes base.configurations.
-      def self.extended(base)
+      def self.extended(base) # :nodoc:
         caller.each_with_index do |line, index|
           case line
           when /\/configurable.rb/ then next
@@ -70,7 +45,7 @@ module Tap
       # When subclassed, the parent.configurations are duplicated and passed to 
       # the child class where they can be extended/modified without affecting
       # the configurations of the parent class.
-      def inherited(child)
+      def inherited(child) # :nodoc:
         unless child.instance_variable_defined?(:@source_file)
           caller.first =~ Lazydoc::CALLER_REGEXP
           child.instance_variable_set(:@source_file, File.expand_path($1)) 
@@ -80,6 +55,7 @@ module Tap
         super
       end
       
+      # Returns the lazydoc for self.
       def lazydoc(resolve=true)
         Lazydoc.resolve_comments(configurations.code_comments) if resolve
         super

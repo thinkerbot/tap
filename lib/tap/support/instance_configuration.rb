@@ -47,6 +47,11 @@ module Tap
         @class_config = class_config
       end
       
+      # Updates self to ensure that each class_config key
+      # has a value in self; the config.default value is
+      # set if a value does not already exist.
+      #
+      # Returns self.
       def update(class_config=self.class_config)
         class_config.each_pair do |key, config|
           self[key] ||= config.default
@@ -96,7 +101,7 @@ module Tap
       
       # Associates the value the key.  If bound? and the key
       # is a class_config key, then the value will be forwarded
-      # to the class_config.writer method on the receiver.
+      # to the config.writer method on the receiver.
       def []=(key, value)
         case 
         when bound? && config = class_config.map[key.to_sym]
@@ -107,7 +112,7 @@ module Tap
       
       # Retrieves the value corresponding to the key. If bound? 
       # and the key is a class_config key, then the value is
-      # obtained from the :key method on the receiver.
+      # obtained from the config.reader method on the receiver.
       def [](key)
         case 
         when bound? && config = class_config.map[key.to_sym]

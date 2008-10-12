@@ -9,14 +9,14 @@ module Tap
     #   c = Combinator.new [1,2], [3,4]
     #   c.to_a            # => [[1,3], [1,4], [2,3], [2,4]]
     #
-    # Combinators can take any object that responds to :each as an
+    # Combinators can take any object that responds to each as an
     # input set; normally arrays are used.
     #
     # === Implementation
     #
     # Combinator iteratively combines each element from the first set (a)
     # with each element from the second set (b).  When more than two sets
-    # are given, the Combinator bundles all but the first set into a new 
+    # are given, the second and remaining sets are bundled into a
     # Combinator, which then acts as the second set.
     #
     #   c = Combinator.new [1,2], [3,4], [5,6]
@@ -35,14 +35,14 @@ module Tap
     class Combinator
       include Enumerable
       
-      # The first set.
+      # The first set
       attr_reader :a
       
-      # The second set.
+      # The second set
       attr_reader :b
 
-      # Creates a new Combinator.  Input sets must be an Array, or nil.
-      # Within the Array any objects are allowed for combination.
+      # Creates a new Combinator.  Each input must respond
+      # to each, or be nil.
       def initialize(*sets)
         @a = make_set(sets.shift)
         @b = make_set(*sets)
@@ -71,7 +71,7 @@ module Tap
       end
 
       # Passes each combination as an array to the input block.
-      def each
+      def each # :yields: combination
         case
         when !(@a.empty? || @b.empty?)
           @a.each do |a|

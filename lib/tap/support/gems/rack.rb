@@ -12,6 +12,8 @@ module Tap
         end
       end
       
+      # = UNDER CONSTRUCTION
+      # Support for a Tap::Server, built on {Rack}[http://rack.rubyforge.org/].
       module Rack
         
         attr_accessor :handler

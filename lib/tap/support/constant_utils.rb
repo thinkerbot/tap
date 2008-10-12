@@ -2,10 +2,12 @@ module Tap
   module Support
     
     # ConstantUtils provides methods for transforming strings into constants.
+    # ConstUtils is automatically included in String.
+    #
     # Several methods are directly taken from or based heavily on the
     # ActiveSupport {Inflections}[http://api.rubyonrails.org/classes/ActiveSupport/CoreExtensions/String/Inflections.html]
-    # module and should not cause conflicts if ActiveSupport is loaded
-    # alongside Tap.
+    # module.  ConstantUtils should not cause conflicts if ActiveSupport is
+    # loaded alongside Tap.
     #
     # ActiveSupport is distributed with an MIT-LICENSE:
     #
@@ -51,7 +53,7 @@ module Tap
       end
       
       # constantize tries to find a declared constant with the name specified 
-      # by self. It raises a NameError when the name is not in CamelCase 
+      # by self. Raises a NameError when the name is not in CamelCase 
       # or is not initialized.  
       def constantize
         case RUBY_VERSION
@@ -115,7 +117,7 @@ module Tap
 
       protected
 
-      def const_name
+      def const_name # :nodoc:
         unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ self
           raise NameError, "#{inspect} is not a valid constant name!"
         end
@@ -124,4 +126,8 @@ module Tap
       
     end
   end
+end
+
+class String # :nodoc:
+  include Tap::Support::ConstantUtils
 end

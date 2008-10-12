@@ -2,6 +2,9 @@ require 'rubygems'
 
 module Tap
   module Support
+    
+    # Methods for working with {RubyGems}[http://www.rubygems.org/] 
+    # and other gems frequently used by Tap.
     module Gems
       module_function
 
@@ -23,6 +26,9 @@ module Tap
         Gem.loaded_specs[name]
       end
       
+      # Selects gem specs for which the block returns true.  If
+      # latest is specified, only the latest version of each
+      # gem will be passed to the block.
       def select_gems(latest=true)
         index = latest ?
           Gem.source_index.latest_specs :

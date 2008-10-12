@@ -6,7 +6,7 @@ module Tap
     # Executable wraps objects to make them executable by App.
     module Executable
       
-      # The App receiving self during enq.
+      # The App receiving self during enq
       attr_reader :app
       
       # The method called during _execute
@@ -18,7 +18,7 @@ module Tap
       # An array of dependency indicies that will be resolved on _execute
       attr_reader :dependencies
       
-      # The batch for self.
+      # The batch for self
       attr_reader :batch
       
       public
@@ -192,7 +192,7 @@ module Tap
         Joins::SyncMerge.join(self, sources, &block)
       end
 
-      # Sets a choice workflow pattern for self.  When _execute completes, 
+      # Sets a switch workflow pattern for self.  When _execute completes, 
       # switch yields the audited result to the block which should return
       # the index of the target to enque with the results. No target will 
       # be enqued if the index is false or nil; an error is raised if no 
@@ -203,9 +203,7 @@ module Tap
       
       # Adds the dependency to each member in batch (and implicitly self).
       # The dependency will be resolved with the input arguments during 
-      # _execute, using resolve_dependencies.  
-      #
-      # Dependencies are registered with app (see App#dependencies).
+      # _execute, using resolve_dependencies.
       def depends_on(dependency)
         batch.each do |e| 
           e.unbatched_depends_on(dependency)
@@ -222,7 +220,7 @@ module Tap
         self
       end
       
-      # Resolves dependencies.  (See Dependency#resolve).
+      # Resolves dependencies. (See Dependency#resolve).
       def resolve_dependencies
         dependencies.each {|dependency| dependency.resolve }
         self

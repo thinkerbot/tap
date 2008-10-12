@@ -1,18 +1,30 @@
 require 'tap/support/constant_utils'
-class String # :nodoc:
-  include Tap::Support::ConstantUtils
-end
 
 module Tap
   module Support
+    
+    # A Constant serves as a placeholder for an actual constant, sort of like 
+    # autoload.  Use the constantize method to retrieve the actual constant; 
+    # if it doesn't exist, constantize requires require_path and tries again.
+    #
+    #   Object.const_defined?(:Net)                      # => false
+    #   $".include?('net/http')                          # => false
+    #
+    #   http = Constant.new('Net::HTTP', 'net/http')
+    #   http.constantize                                 # => Net::HTTP
+    #   $".include?('net/http')                          # => true
+    #
     class Constant
       
-      # The camelized name for self.
+      # The constant name
       attr_reader :name
       
-      # The path to load to initialize the constant name.
+      # The path to load to initialize a missing constant
       attr_reader :require_path
-  
+      
+      # Initializes a new Constant with the specified constant
+      # name and require_path.  The name should be a valid
+      # constant name.
       def initialize(name, require_path=nil)
         @name = name
         @require_path = require_path
@@ -48,9 +60,9 @@ module Tap
         @nesting_depth ||= nesting.split(/::/).length
       end
   
-      # Returns the document for require_path, if set, or nil otherwise.
+      # Returns the Lazydoc document for require_path.
       def document
-        require_path ? Support::Lazydoc[require_path] : nil 
+        require_path ? Lazydoc[require_path] : nil 
       end
       
       # True if another is a Constant with the same name
@@ -63,8 +75,9 @@ module Tap
       
       # Looks up and returns the constant indicated by name.
       # If the constant cannot be found, the constantize
-      # requires require_path and tries again.  Raises an
-      # NameError if the constant cannot be found.
+      # requires require_path and tries again.  
+      #
+      # Raises a NameError if the constant cannot be found.
       def constantize
         name.try_constantize do |const_name|
           require require_path if require_path

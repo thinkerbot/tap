@@ -1,11 +1,14 @@
 module Tap
   module Support
+    
+    # Constrains an Executable to only _execute once, and provides several
+    # methods making the Executable behave like a Dependency.
     module Dependency
       
-      # The audited result of self.
+      # The audited result of self
       attr_accessor :_result
       
-      def self.extended(base)
+      def self.extended(base) # :nodoc:
         base.instance_variable_set(:@_result, nil)
       end
       

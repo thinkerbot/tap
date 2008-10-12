@@ -71,7 +71,7 @@ module Tap
       
       protected
       
-      attr_accessor :queue
+      attr_accessor :queue # :nodoc:
       
       # Checks if the input method is extended with Executable
       def check_method(method) # :nodoc:
