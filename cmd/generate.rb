@@ -3,7 +3,7 @@ require 'tap/generator/generate'
 
 env = Tap::Env.instance
 
-if ARGV.empty? || ARGV == ['-T']
+if ARGV.empty? || ARGV == ['--help']
   puts env.summarize(:generators)
   exit
 end

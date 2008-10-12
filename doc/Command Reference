@@ -1,125 +1,18 @@
 = Command Reference
 
-The <tt>tap</tt> executable is the gateway for the execution of tasks.  To get help for tap, type:
+Tap comes with two executables: tap (a gateway application) and rap (a shortcut for running tasks).  The syntax for running tasks via 'tap run' and rap is covered in the {Syntax Reference}[link:files/doc/Syntax%20Reference.html]; this reference covers all of the other tap commands.  For help on the command line, type:
 
   % tap --help
-  
-<tt>tap</tt> sets up the execution environment from <tt>tap.yml</tt>, if it exists, and passes control to the specified command.  Command help can be obtained using:
 
-  % tap [command] --help
+==== configuration
 
-This reference covers the commands: run, console, generate, destroy
+Tap sets up the local execution environment from 'tap.yml', if it exists.  The config file is, as the extension implies, a YAML file and will be automatically created by the root generator.  Naturally, you can create it yourself.  See Tap::Env and Tap::Exe for a list of the available configurations.
 
-=== tap run
+In addition, default configurations may be specified in the global configuration file '~/.tap.yml', where '~' is evaluated as Gem.user_home.
 
-Run configures, enqueues, and executes tasks.  Run has a rich syntax allowing the specification of any number of tasks with configurations and inputs, but simplifies under most circumstances.  Several examples illustrate the key points:
+== tap console
 
-  % tap run sample/task 
-  % tap run -- sample/task --key=value input_one -- another/task input_two
-  
-The second statement specifies two tasks with inputs, and specifies a configuration for sample/task.  As can be seen, run separates tasks using a double-dash, the standard option break.  Options for the run command can be specified before the first option break.
-
-  % tap run --debug -- sample/task --key=value
-  
-Here run receives the <tt>--debug</tt> option and sample/task receives the <tt>--key=value</tt> option.  NOTE: it's always a good idea to include the first option break to formally signify when configuration of run stops.  Otherwise you may be confused when the following commands both produce the help for run:
-
-  % tap run --help
-  % tap run sample/task --help
-
-Inputs work the same way.  For example:
-
-  % tap run -- sample/task --key=value one -- another/task two three
-  
-Specifies the following:
-
-  t1 = Sample::Task.new(:key => 'value')
-  t1.enq('one')
-  
-  t2 = Another::Task.new
-  t2.enq('two', 'three') 
-  
-Any number of tasks, configurations, and inputs may be specified in this way.
-
-==== Task Lookup
-
-Tap can find and run tasks from multiple environments, for instance from multiple gems.  Tap provides a compact way to specify which task to run in the event of a name conflict.  The actual process involves minimizing the path to the environment and the relative path to the task file, but from the command line all of the details are hidden:
-
-  % tap run -T
-  one:
-    sample/task      # some sample task
-    another/task     # another task
-  two:
-    sample/task      # a conflicting sample task
-
-In this situation, these commands run the 'one' sample/task:
-
-  % tap run -- sample/task
-  % tap run -- one:sample/task
-
-While this runs the 'two' sample/task:
-
-  % tap run -- two::sample/task
-
-Additionally, base-fragments of the minimized paths can be specified (if laziness strikes); they will be resolved in order from top to bottom within the specified environment.
-
-Runs the 'one' sample/task:
-
-  % tap run -- task
-
-Runs the 'two' sample/task:
-
-  % tap run -- two::task
-
-The full minimized path must be specified for another/task:
-
-  % tap run -- another/task
-  % tap run -- one:another/task
-
-==== Rounds
-
-Run allows specification of a number of rounds of tasks.  All tasks in a round are run to completion before the next round begins.  Rounds are specified by adding '+' characters after the double-dash task break.
-
-  % tap run -- round_one_task --+ round_two_task
-
-Tasks may be added to rounds in any order.  This is equivalent to the last:
-
-  % tap run --+ round_two_task -- round_one_task 
-
-Rounds are particularly useful for dump tasks; add a dump task as a final round to capture all results from previous rounds:
-
-  % tap run -- task -- task --+ dump
-
-==== YAML inputs
-
-Non-string inputs can be provided through run.  If an input begins with "---\n" then it is loaded as YAML into an object before being passed to a task. The syntax can be a lot to type, but is very handy to have around.  The following enques sample/task with a hash input, {'number' => 1}.  
-
-On *nix, just hit enter to get the next line:
-
-  % tap run -- sample/task '---
-  > number: 1'
-
-On Windows, you need to pull some tricks to get newlines into your argument. Cleverly use a caret to ignore the next line feed:
-
-  % tap run -- sample/task '---^
-  More?
-  More? number: 1'
-  
-Notice that pressing enter <em>every other line</em> is what actually puts the "\n" into the  parameter.  Keep using carets to enter more lines. The syntax on Windows isn't exactly pretty, and it only works with a caveat: the latest execution script generated by rubygems (tap.bat) re-processes inputs to tap before executing the command for real.  I haven't found a workaround short of invoking tap from ruby itself:
-
-  % ruby C:/ruby/bin/tap run -- sample/task '---^
-  More?
-  More? number: 1'
-
-In these cases, consider putting the inputs into a file and load them to the command line with the <tt>--use</tt> option:
-
-  [inputs.yml]
-  number: 1
-
-  % tap run -- sample/task --use inputs.yml
-
-=== tap console
-
-Console opens an irb session with Tap loaded and configured using <tt>tap.yml</tt>.  Console defines variables 'app' and 'env' referencing Tap::App.instance and Tap::Env.instance, for easy access.
+Console opens an irb session after loading the tap environment.  Console defines variables 'app' and 'env' referencing Tap::App.instance and Tap::Env.instance, for easy access.
 
   % tap console
   irb(main):001:0> app.log(:hello)
@@ -127,20 +20,16 @@ Console opens an irb session with Tap loaded and configured using <tt>tap.yml</t
   => true
   irb(main):002:0>
 
-=== tap generate/destroy
+== tap generate/destroy
 
-Generate and destory launch generator scripts, similar to those in Rails.  By default Tap provides generators for:
+Generate and destory launch generator scripts, similar to those in {Rails}[http://www.rubyonrails.org/].  By default Tap provides generators for:
 
-{root}[link:classes/Tap/Generator/Generators/RootGenerator.html]:: the basic Tap directory structure
-{task}[link:classes/Tap/Generator/Generators/TaskGenerator.html]:: a Tap::Task and test
-{file_task}[link:classes/Tap/Generator/Generators/FileTaskGenerator.html]:: a Tap::FileTask and test
-{config}[link:classes/Tap/Generator/Generators/ConfigGenerator.html]:: a yaml config file for the specified task 
 {command}[link:classes/Tap/Generator/Generators/CommandGenerator.html]:: a new command
-
---
+{config}[link:classes/Tap/Generator/Generators/ConfigGenerator.html]:: a static config file for the specified task
+{file_task}[link:classes/Tap/Generator/Generators/FileTaskGenerator.html]:: a file task and test
 {generator}[link:classes/Tap/Generator/GeneratorseneratorGenerator.html]:: a new generator
-{workflow}[link:classes/Tap/Generator/Generators/Workflow/WorkflowGenerator.html]:: a Tap::Workflow and test
-++
+{root}[link:classes/Tap/Generator/Generators/RootGenerator.html]:: the basic directory structure
+{task}[link:classes/Tap/Generator/Generators/TaskGenerator.html]:: a task class and test
 
 For example:
 
@@ -151,3 +40,67 @@ For example:
   % tap destroy config sample_task
   % tap destroy task sample_task
   % tap destroy root .
+
+Each generator works a little differently.  For help:
+
+  % tap generate --help
+  % tap generate <generator> --help
+  
+== tap manifest
+
+Manifest prints a list of all resources (commands, tasks, generators, etc) available to tap.  Environments are listed in the same order as they are searched, and at the end a tree diagram is printed showing how the environments are nested.
+
+  % tap manifest
+  --------------------------------------------------------------------------------
+  Desktop:           (/Users/username/Desktop)
+  --------------------------------------------------------------------------------
+  tap:               (/Library/Ruby/Gems/1.8/gems/tap-0.10.8)
+    generators
+      command        (lib/tap/generator/generators/command/command_generator.rb)
+      config         (lib/tap/generator/generators/config/config_generator.rb)
+      file_task      (lib/tap/generator/generators/file_task/file_task_generator.rb)
+      generator      (lib/tap/generator/generators/generator/generator_generator.rb)
+      root           (lib/tap/generator/generators/root/root_generator.rb)
+      task           (lib/tap/generator/generators/task/task_generator.rb)
+    commands
+      console        (cmd/console.rb)
+      destroy        (cmd/destroy.rb)
+      generate       (cmd/generate.rb)
+      manifest       (cmd/manifest.rb)
+      run            (cmd/run.rb)
+      server         (cmd/server.rb)
+    tasks
+      dump           (lib/tap/tasks/dump.rb)
+      load           (lib/tap/tasks/load.rb)
+      rake           (lib/tap/tasks/rake.rb)
+  --------------------------------------------------------------------------------
+
+  Desktop
+  `- tap
+
+== tap run
+
+Run configures, enqueues, and executes tasks.  Run has a rich syntax allowing the specification of any number of tasks with configurations and inputs, but simplifies under most circumstances.  The run syntax is detailed in the {Syntax Reference}[link:files/doc/Syntax%20Reference.html], but a couple examples illustrate the key points:
+
+  % tap run sample/task 
+  % tap run -- sample/task --key=value input_one -- another/task input_two
+
+The second statement specifies two tasks with inputs, and specifies a configuration for sample/task.  As can be seen, run separates tasks using a double-dash, the standard option break.  Options for the run command can be specified before the first break.
+
+  % tap run --debug -- sample/task --key=value
+
+Here run receives the <tt>--debug</tt> option and sample/task receives the <tt>--key=value</tt> option.  Inputs work the same way.  For example:
+
+  % tap run -- sample/task --key=value one -- another/task two three
+
+Specifies the following:
+
+  Sample::Task.new(:key => 'value').enq('one')
+  Another::Task.new.enq('two', 'three') 
+
+Any number of tasks, configurations, and inputs may be specified in this way.
+
+--
+== tap server
+
+An experimental local server for tap tasks.

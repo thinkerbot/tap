@@ -1,5 +1,13 @@
 = Syntax Reference
 
+Tap uses several domain-specific languages to declare tasks and workflows.  This is a reference for:
+
+* task declarations
+* class definitions
+* workflows
+
+== Task Declarations
+
 A task declaration:
 
   # name::           the name of the task, either alone or as the
@@ -8,7 +16,7 @@ A task declaration:
   # arg_names::      an array of argument names (optional)
   # configurations:: a hash of {key => default} pairs (optional)
 
-  task({name => [dependencies...]}, arg_names..., {configurations}) do |task, args|
+  task({<name> => [<dependencies...>]}, <arg_names...>, {<configs>}) do |task, args|
     # arguments are available through args:
     args.arg_name
     
@@ -18,7 +26,7 @@ A task declaration:
 
 A namespace declaration:
 
-  namespace(name) { task ... }
+  namespace(<name>) { task ... }
  
 Simple documentation:
  
@@ -68,14 +76,81 @@ By contrast, rake waits to resolve dependencies and so will always use a match w
   % rake nest:inner
   nested was executed
 
-==== command line syntax
+== Task Classes
 
-Rap uses a different command line syntax than rake.  Basically, rap uses double-dash delimiters to separate individual tasks, and modified delimiters to specify joins for the tasks.  These both specify three tasks (x,y,z) that are joined in a sequence:
+This is a verbose prototype for Tap::Task subclasses:
+
+  # <ClassName>::manifest summary description
+  #
+  # Extended documentation...
+  #
+  class ClassName < Tap::Task
+    
+    # Sets up a configuration and makes the 'key' and 'key=' accessors.
+    # 
+    # This documentation appears in static config files, and in RDoc.
+    #
+    config :key, 'default value' do |value|  # config summary
+      "the config is set to the return value"
+    end 
+    
+    # Subclasses BaseClass with the specified configs, using the block
+    # to override process.
+    #
+    # Also creates the methods 'name', 'name_config', 'name_config='.  
+    # The first will access an instance-specific instance of the 
+    # subclass, the other two are accessors for the instance configs.
+    # 
+    # Primarily used in conjunction with workflow.
+    #
+    define :name, <BaseClass>, {<configs>} do |*args|
+      # this is the process block
+    end
+    
+    # Causes each instance to depend on DependencyClass.instance.
+    #
+    # Also defines a reader 'name' which will access the results
+    # of the dependency.
+    depends_on :name, <DependencyClass>
+    
+    def process(*args)
+      # the method defining what this task does 
+    end
+    
+    protected
+
+    def workflow
+      # a hook to setup joins between various tasks used
+      # by the current instance.  workflow is called
+      # during initialize
+    end
+
+    def before_execute() 
+      # a hook to execute code before process
+      # (only works in workflows)
+    end
+  
+    def after_execute()
+      # a hook to execute code after process
+      # (only works in workflows)
+    end
+
+    def on_execute_error(err)
+      # a hook to handle errors during process
+      # (only works in workflows)
+    end
+  end
+
+== Workflows
+
+Tap has a special syntax used for specifying workflows.  The syntax works both as text and as YAML; the 'tap run' command and rap both use it to specify which tasks to execute.  Basically, the syntax uses double-dash delimiters to separate argument vectors for individual tasks, and modified delimiters to specify joins for the tasks.  
+
+These both specify three tasks (x,y,z) that joined in a sequence:
 
   % rap x --: y --: z
   % rap x -- y -- z --0:1:2
   
-In the modified delimiters, numbers indicate which tasks participate in a join while punctuation indicates a join type.  In the second example, the numbers are implicitly added for the preceding and following task.  A variety of joins are supported:
+The modified delimiters use numbers to indicate which tasks participate in a join while punctuation indicates the join type.  In the first example, the numbers are implicitly added for the preceding and following task.  A variety of joins are supported:
 
   delimiter  function         syntax                 example        meaning 
   --         delimits tasks                          a -- b -- c    enques/configures tasks a, b, c
@@ -87,11 +162,111 @@ In the modified delimiters, numbers indicate which tasks participate in a join w
   
 Inputs may be specified between delimiters:
 
-  % rap x 1 2 3 --: y 3 4 --: z 5 6 7
+  % rap x alpha beta --: y gamma --: z delta
 
 As may be configurations, in a variety of formats:
 
-  % rap x 1 2 3 -k v --: y 3 4 --key value --: z 5 6 7 --key=value
+  % rap x alpha beta -k --: y gamma --key value --: z delta --key=value
+  
+These are the corresponding argument vectors and join:
+
+  ['x', 'alpha', 'beta', '-k']
+  ['y', 'gamma', '--key', 'value']
+  ['z', 'delta', '--key=value']
+  0:1:2
+
+This is how it would look as YAML:
+
+  - - x
+    - alpha
+    - beta
+    - -k
+  - - y
+    - gamma
+    - key: value
+  - - z
+    - delta
+    - --key=value
+  - 0:1:2
+
+==== Task Lookup
+
+Tap can find and run tasks from multiple environments, for instance from multiple gems.  Tap provides a compact way to specify which task to run in the event of a name conflict.  The actual process involves minimizing the path to the environment and the relative path to the task file, but from the command line all of the details are hidden:
+
+  % tap run -T
+  one:
+    sample/task      # some sample task
+    another/task     # another task
+  two:
+    sample/task      # a conflicting sample task
+
+In this situation, these commands run the 'one' sample/task:
+
+  % tap run -- sample/task
+  % tap run -- one:sample/task
+
+While this runs the 'two' sample/task:
+
+  % tap run -- two::sample/task
+
+Additionally, base-fragments of the minimized paths can be specified (if laziness strikes); they will be resolved in order from top to bottom within the specified environment.
+
+Runs the 'one' sample/task:
+
+  % tap run -- task
+
+Runs the 'two' sample/task:
+
+  % tap run -- two::task
+
+The full minimized path must be specified for another/task:
+
+  % tap run -- another/task
+  % tap run -- one:another/task
+
+==== Rounds
+
+Run allows specification of a number of rounds of tasks.  All tasks in a round are run to completion before the next round begins.  Rounds are specified by adding '+' characters after the double-dash task break.
+
+  % tap run -- round_one_task --+ round_two_task
+
+Tasks may be added to rounds in any order.  This is equivalent to the last:
+
+  % tap run --+ round_two_task -- round_one_task 
+
+Rounds are particularly useful for dump tasks; add a dump task as a final round to capture all results from previous rounds:
+
+  % tap run -- task -- task --+ dump
+
+==== YAML inputs
+
+Non-string inputs can be provided through run.  If an input begins with "---\n" then it is loaded as YAML into an object before being passed to a task. The syntax can be a lot to type, but is very handy to have around.  The following enques sample/task with a hash input, {'number' => 1}.  
+
+On *nix, just hit enter to get the next line:
+
+  % tap run -- sample/task '---
+  > number: 1'
+
+On Windows, you need to pull some tricks to get newlines into your argument. Cleverly use a caret to ignore the next line feed:
+
+  % tap run -- sample/task '---^
+  More?
+  More? number: 1'
+
+Notice that pressing enter <em>every other line</em> is what actually puts the "\n" into the  parameter.  Keep using carets to enter more lines. The syntax on Windows isn't exactly pretty, and it only works with a caveat: the latest execution script generated by rubygems (tap.bat) re-processes inputs to tap before executing the command for real.  I haven't found a workaround short of invoking tap from ruby itself:
+
+  % ruby C:/ruby/bin/tap run -- sample/task '---^
+  More?
+  More? number: 1'
+
+In these cases, consider putting the inputs into a file and load them to the command line with the <tt>--use</tt> option:
+
+  [inputs.yml]
+  number: 1
+
+  % tap run -- sample/task --use inputs.yml
+  
+=== rap
 
 This syntax is the same for the tap executable... rap is mostly an alias for the command 'tap run --'.   The only exception occurs when the specified task can't be found within tap, either as a task declaration or a full class.  Unknown tasks are implicitly run as a Tap::Tasks::Rake task, which causes the task to be run as if by rake.  These are the same:
 

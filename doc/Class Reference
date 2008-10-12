@@ -87,8 +87,6 @@ Validation blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes 
 
 ==== Tap::Support::Lazydoc
 
-http://tap.rubyforge.org/images/Lazydoc.png
-
 Ah lazydoc.  Lazydoc fits into the space between live code and code documentation.  Lazydoc can scan a file (code or not) and pull documentation into the object space where it can be utilized.  Lazydoc uses a key-value syntax like this:
 
   # ::key value
