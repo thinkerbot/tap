@@ -11,7 +11,7 @@ and reuse results.  Task libraries are readily shared as gems.
 
 Check out these links for tutorials, development, and bug tracking.
 
-* {Tutorial}[link:files/doc/Tutorial.html], {Class}[link:files/doc/Class%20Reference.html] and {Command}[link:files/doc/Command%20Reference.html] Reference
+* {Tutorial}[link:files/doc/Tutorial.html], {Class}[link:files/doc/Class%20Reference.html], {Command}[link:files/doc/Command%20Reference.html], and {Syntax}[link:files/doc/Syntax%20Reference.html] References
 * Website[http://tap.rubyforge.org]
 * Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
 * Github[http://github.com/bahuvrihi/tap/tree/master]

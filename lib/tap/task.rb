@@ -279,10 +279,7 @@ module Tap
         end
         obj.reconfigure(path_configs).reconfigure(argv_config)
         
-        # recollect arguments
-        argv = (argv + use_args).collect {|str| str =~ /\A---\s*\n/ ? YAML.load(str) : str }
-
-        [obj, argv]
+        [obj, (argv + use_args)]
       end
       
       def execute(argv=ARGV)

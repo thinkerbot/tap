@@ -243,10 +243,18 @@ module Tap
         end
         
         # instantiate and reconfigure globals
+        instances = []
         globals.each do |node|
           task, args = tasks.delete(node)
-          task.class.instance.reconfigure(task.config.to_hash)
-          task.enq(*args)
+          instance = task.class.instance
+          
+          if instances.include?(instance)
+            raise "global specified multple times: #{instance}"
+          end
+          
+          instance.reconfigure(task.config.to_hash)
+          instance.enq(*args)
+          instances << instance
         end
 
         # build the workflow

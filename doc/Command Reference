@@ -4,7 +4,7 @@ Tap comes with two executables: tap (a gateway application) and rap (a shortcut 
 
   % tap --help
 
-==== configuration
+=== configuration
 
 Tap sets up the local execution environment from 'tap.yml', if it exists.  The config file is, as the extension implies, a YAML file and will be automatically created by the root generator.  Naturally, you can create it yourself.  See Tap::Env and Tap::Exe for a list of the available configurations.
 
