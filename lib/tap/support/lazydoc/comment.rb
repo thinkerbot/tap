@@ -29,7 +29,7 @@ module Tap
       #
       # Comments may be initialized to the subject line and then resolved later:
       #
-      #   document = %Q{
+      #   doc = %Q{
       #   module Sample
       #     # this is the content of the comment
       #     # for method_one
@@ -42,18 +42,18 @@ module Tap
       #     end
       #   end}
       #
-      #   c1 = Comment.new(4).resolve(lines)
+      #   c1 = Comment.new(4).resolve(doc)
       #   c1.subject     # => "  def method_one"
       #   c1.content     # => [["this is the content of the comment", "for method_one"]]
       #
-      #   c2 = Comment.new(9).resolve(lines)
+      #   c2 = Comment.new(9).resolve(doc)
       #   c2.subject     # => "  def method_two"
       #   c2.content     # => [["this is the content of the comment", "for method_two"]]
       # 
       # A Regexp (or Proc) may be used in place of a line number; during resolve,
       # the lines will be scanned and the first matching line will be used.
       #
-      #   c3 = Comment.new(/def method_two/).resolve(lines)
+      #   c3 = Comment.new(/def method_two/).resolve(doc)
       #   c3.subject     # => "  def method_two"
       #   c3.content     # => [["this is the content of the comment", "for method_two"]]
       #

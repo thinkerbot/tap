@@ -31,7 +31,7 @@ this is the subject
     ["content may stretch across", "multiple lines"]]
     assert_equal expected, c.content
   
-    document = %Q{
+    doc = %Q{
 module Sample
   # this is the content of the comment
   # for method_one
@@ -44,15 +44,15 @@ module Sample
   end
 end}
   
-    c1 = Comment.new(4).resolve(lines)
+    c1 = Comment.new(4).resolve(doc)
     assert_equal "  def method_one", c1.subject
     assert_equal [["this is the content of the comment", "for method_one"]], c1.content
   
-    c2 = Comment.new(9).resolve(lines)
+    c2 = Comment.new(9).resolve(doc)
     assert_equal "  def method_two", c2.subject
     assert_equal [["this is the content of the comment", "for method_two"]], c2.content
     
-    c3 = Comment.new(/def method_two/).resolve(lines)
+    c3 = Comment.new(/def method_two/).resolve(doc)
     assert_equal "  def method_two", c3.subject
     assert_equal [["this is the content of the comment", "for method_two"]], c3.content
   end
