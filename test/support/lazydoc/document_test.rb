@@ -12,6 +12,24 @@ class DocumentTest < Test::Unit::TestCase
   end
   
   #
+  # documentation test
+  #
+  
+  def test_documentation
+    tempfile = Tempfile.new('document_test')
+    tempfile << %Q{
+# KeyWithConst::key value a
+# ::key value b
+}
+    tempfile.close
+    
+    doc = Document.new(tempfile.path, 'DefaultConst')
+    doc.resolve
+    assert_equal 'value a', doc['KeyWithConst']['key'].value
+    assert_equal 'value b', doc['DefaultConst']['key'].value
+  end
+  
+  #
   # initialize test
   #
 

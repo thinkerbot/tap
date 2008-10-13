@@ -8,9 +8,9 @@ module Tap
     # documentation, constant attributes and code comments.  To illustrate, 
     # consider the following:
     #
-    #   # Sample::key <this is the subject line>
-    #   # a constant attribute content string that
-    #   # can span multiple lines...
+    #   # Sample::key <value>
+    #   # This is the comment content.  A content
+    #   # string can span multiple lines...
     #   #
     #   #   code.is_allowed
     #   #   much.as_in RDoc
@@ -35,12 +35,12 @@ module Tap
     # Lazydoc::Comment.
     #
     #   comment = Sample::key
-    #   comment.subject       
-    #   # => "<this is the subject line>"
+    #   comment.value       
+    #   # => "<value>"
     #
     #   comment.content       
     #   # => [
-    #   # ["a constant attribute content string that", "can span multiple lines..."],
+    #   # ["This is the comment content.  A content", "string can span multiple lines..."],
     #   # [""],
     #   # ["  code.is_allowed"],
     #   # ["  much.as_in RDoc"],
@@ -50,9 +50,9 @@ module Tap
     #   "\n#{'.' * 30}\n" + comment.wrap(30) + "\n#{'.' * 30}\n"
     #   # => %q{
     #   # ..............................
-    #   # a constant attribute content
-    #   # string that can span multiple
-    #   # lines...
+    #   # This is the comment content.
+    #   # A content string can span
+    #   # multiple lines...
     #   # 
     #   #   code.is_allowed
     #   #   much.as_in RDoc
@@ -91,17 +91,17 @@ module Tap
     #   # Const::Name::k@y
     #
     # Lazydoc parses a Lazydoc::Comment for each constant attribute by using the 
-    # remainder of the line as a subject and scanning down for content.  Scanning
-    # continues until a non-comment line, an end key, or a new attribute is 
-    # reached; the comment is then stored by constant name and key.
+    # remainder of the line as a value (ie subject) and scanning down for content.
+    # Scanning continues until a non-comment line, an end key, or a new attribute
+    # is reached; the comment is then stored by constant name and key.
     #
     #   str = %Q{
-    #   # Const::Name::key subject for key
+    #   # Const::Name::key value for key
     #   # comment for key
     #   # parsed until a 
     #   # non-comment line
     #
-    #   # Const::Name::another subject for another
+    #   # Const::Name::another value for another
     #   # comment for another
     #   # parsed to an end key
     #   # Const::Name::another-
@@ -112,11 +112,11 @@ module Tap
     #   doc = Lazydoc::Document.new
     #   doc.resolve(str)
     #
-    #   doc.to_hash {|comment| [comment.subject, comment.to_s] } 
+    #   doc.to_hash {|comment| [comment.value, comment.to_s] } 
     #   # => {
     #   # 'Const::Name' => {
-    #   #   'key' =>     ['subject for key', 'comment for key parsed until a non-comment line'],
-    #   #   'another' => ['subject for another', 'comment for another parsed to an end key']}
+    #   #   'key' =>     ['value for key', 'comment for key parsed until a non-comment line'],
+    #   #   'another' => ['value for another', 'comment for another parsed to an end key']}
     #   # }
     #
     # Constant attributes are only parsed from commented lines.  To turn off
@@ -128,12 +128,12 @@ module Tap
     #   # :::-
     #   # Const::Name::not_parsed
     #   # :::+
-    #   # Const::Name::parsed subject
+    #   # Const::Name::parsed value
     #   }
     #
     #   doc = Lazydoc::Document.new
     #   doc.resolve(str)
-    #   doc.to_hash {|comment| comment.subject }   # => {'Const::Name' => {'parsed' => 'subject'}}
+    #   doc.to_hash {|comment| comment.value }   # => {'Const::Name' => {'parsed' => 'value'}}
     #
     # To hide attributes from RDoc, make use of the RDoc <tt>:startdoc:</tt> 
     # document modifier like this (note that spaces are added to prevent RDoc
@@ -173,8 +173,8 @@ module Tap
     # === Code Comments
     # Code comments are lines registered for parsing if and when a Lazydoc gets 
     # resolved. Unlike constant attributes, the registered line is the comment
-    # subject and contents are parsed up from it (basically mimicking the 
-    # behavior of RDoc).
+    # subject (ie value) and contents are parsed up from it (basically mimicking
+    # the behavior of RDoc).
     #
     #   str = %Q{
     #   # comment lines for

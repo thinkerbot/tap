@@ -86,6 +86,8 @@ Tap comes with generators. To get started:
 === Bugs/Known Issues
 
 - Some inconsequential tests on JRuby fail due to bugs in JRuby itself.
+- Joins, Parser, and Schema require additional documentation and may be
+  internally reworked.  The workflow syntax should remain the same.
 
 == Installation
 

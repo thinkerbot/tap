@@ -4,31 +4,30 @@ module Tap
   module Support 
     module Lazydoc
       # Comment represents a code comment parsed by Lazydoc.  Comments consist
-      # of a subject and the content of the comment which normally break down
-      # like this:
+      # of a subject and content.
       #   
       #   sample_comment = %Q{
-      #   # this is the content of the comment
+      #   # this is the content
       #   #
-      #   # which may stretch across
+      #   # content may stretch across
       #   # multiple lines
       #   this is the subject
       #   }
       #   
-      # The subject of a comment is the first non-comment line following the
-      # content, and the content is an array of comment fragments organized 
-      # by line as they would be printed in an output:
+      # Normally the subject is the first non-comment line following the content,
+      # although in some cases the subject will be manually set to something else
+      # (as in a Lazydoc constant attribute). The content is an array of comment
+      # fragments organized by line:
       #
       #   c = Comment.parse(sample_comment)
       #   c.subject      # => "this is the subject"
       #   c.content      
       #   # => [
-      #   # ["this is the content of the comment"], 
+      #   # ["this is the content"], 
       #   # [""], 
-      #   # ["which may stretch across", "multiple lines"]]
+      #   # ["content may stretch across", "multiple lines"]]
       #
-      # When pulling comments out of a document, comments may be initialized
-      # to the line of the subject and then resolved using the document:
+      # Comments may be initialized to the subject line and then resolved later:
       #
       #   document = %Q{
       #   module Sample
@@ -43,10 +42,6 @@ module Tap
       #     end
       #   end}
       #
-      #   # resolve will split the document, but 
-      #   # splitting once beforehand is more efficient
-      #   lines = document.split(/\r?\n/)
-      #
       #   c1 = Comment.new(4).resolve(lines)
       #   c1.subject     # => "  def method_one"
       #   c1.content     # => [["this is the content of the comment", "for method_one"]]
@@ -54,15 +49,20 @@ module Tap
       #   c2 = Comment.new(9).resolve(lines)
       #   c2.subject     # => "  def method_two"
       #   c2.content     # => [["this is the content of the comment", "for method_two"]]
-      #   
+      # 
+      # A Regexp (or Proc) may be used in place of a line number; during resolve,
+      # the lines will be scanned and the first matching line will be used.
+      #
+      #   c3 = Comment.new(/def method_two/).resolve(lines)
+      #   c3.subject     # => "  def method_two"
+      #   c3.content     # => [["this is the content of the comment", "for method_two"]]
+      #
       class Comment
     
         class << self
       
-          # Parses the input string into a comment, stopping at end_regexp
-          # or the first non-comment line.  Also parses the next non-comment
-          # line as the comment subject.  Takes a string or a StringScanner
-          # and returns the new comment.
+          # Parses the input string into a comment.  Takes a string or a 
+          # StringScanner and returns the comment.
           #
           #   comment_string = %Q{
           #   # comments spanning multiple
@@ -73,8 +73,7 @@ module Tap
           #   #    
           #   this is the subject line
           #
-          #   # this line is not parsed as it
-          #   # is after a non-comment line
+          #   # this line is not parsed
           #   }
           #
           #   c = Comment.parse(comment_string)
@@ -137,8 +136,9 @@ module Tap
         
           # Scan determines if and how to add a line fragment to a comment and
           # yields the appropriate fragments to the block.  Returns true if
-          # fragments are yielded and false otherwise.  A comment's content 
-          # may be built from an array of lines using scan like so:
+          # fragments are yielded and false otherwise.  
+          #
+          # Content may be built from an array of lines using scan like so:
           #
           #   lines = [
           #     "# comments spanning multiple",
@@ -154,7 +154,6 @@ module Tap
           #   c = Comment.new
           #   lines.each do |line|
           #     break unless Comment.scan(line) do |fragment|
-          #       # c.unshift will also work if building in reverse
           #       c.push(fragment)  
           #     end
           #   end
@@ -213,27 +212,34 @@ module Tap
           end
         end
     
-        # An array of comment fragments organized into 
-        # lines as they would be printed in an output.
-        # Ex: [["fragments", "of line", "one"], 
-        #      ["fragments", "of line", "two"]]
+        # An array of comment fragments organized into lines
         attr_reader :content
     
         # The subject of the comment (normally set to the next 
         # non-comment line after the content ends; ie the line 
-        # that would receive the comment in RDoc documentation).
+        # that would receive the comment in RDoc documentation)
         attr_accessor :subject
       
         # Returns the line number for the subject line, if known.
         # Although normally an integer, line_number may be
         # set to a Regexp or Proc to dynamically determine
-        # itself during resolve.
+        # the subject line during resolve
         attr_accessor :line_number
       
         def initialize(line_number=nil)
           @content = []
           @subject = nil
           @line_number = line_number
+        end
+        
+        # Alias for subject
+        def value
+          subject
+        end
+        
+        # Alias for subject=
+        def value=(value)
+          self.subject = value
         end
 
         # Pushes the fragment onto the last line array of content.  If the
@@ -379,13 +385,11 @@ module Tap
         #   c.subject     # => "  def method_one"
         #   c.content     # => [["this is the content of the comment", "for method_one"]]
         #
-        # Notes:
-        # - resolve is a good hook for post-processing in subclasses
-        # - lines may be an array or a string; string inputs are split
-        #   into lines along newline boundaries.
+        # Lines may be an array or a string; string inputs are split into an
+        # array along newline boundaries.
         #
-        # === late-evaluation line numbers
-        # The line_number used by resolve may be determined directly from
+        # === dynamic line numbers
+        # The line_number used by resolve may be determined dynamically from
         # lines by setting line_number to a Regexp and Proc. In the case
         # of a Regexp, the first line matching the regexp is used:
         #
@@ -404,7 +408,7 @@ module Tap
         #   c.subject     # => "  def method_two"
         #   c.content     # => [["this is the content of the comment", "for method_two"]]
         #
-        # As shown in the examples, in both cases the late-evaluation 
+        # As shown in the examples, in both cases the dynamically determined
         # line_number overwrites the Regexp or Proc.
         def resolve(lines)
           lines = lines.split(/\r?\n/) if lines.kind_of?(String)

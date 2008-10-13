@@ -2,6 +2,21 @@ require 'tap/support/lazydoc'
 
 module Tap
   module Support
+    
+    # LazyAttributes adds methods to declare class-level accessors
+    # for Lazydoc attributes.  The source_file for the class must
+    # be set manually.
+    #
+    #   # ConstName::key value
+    #   class ConstName
+    #     extend LazyAttributes
+    #
+    #     self.source_file = __FILE__
+    #     lazy_attr :key
+    #   end
+    #
+    #   ConstName::key.subject           # => 'value'
+    # 
     module LazyAttributes
       
       # The source_file for self.  Must be set independently.
@@ -21,7 +36,7 @@ module Tap
       
       private
       
-      def get_lazy_attr(attribute)
+      def get_lazy_attr(attribute) # :nodoc:
         lazydoc[self.to_s][attribute] ||= Lazydoc::Comment.new
       end
       

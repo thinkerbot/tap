@@ -3,24 +3,38 @@ require 'tap/support/lazydoc/comment'
 module Tap
   module Support
     module Lazydoc
+      
+      # A Document tracks constant attributes and code comments for a particular
+      # source file.  Documents may be assigned a default_const_name to be used
+      # when a constant attribute does not specify a constant.
+      #
+      #   # KeyWithConst::key value a
+      #   # ::key value b
+      #
+      #   doc = Document.new(__FILE__, 'DefaultConst')
+      #   doc.resolve
+      #   doc['KeyWithConst']['key'].value      # => 'value a'
+      #   doc['DefaultConst']['key'].value      # => 'value b'
+      #
       class Document
-        # The source file for self, used during resolve.
+        
+        # The source file for self, used during resolve
         attr_reader :source_file
       
         # An array of Comment objects identifying lines 
-        # resolved or to-be-resolved for self.
+        # resolved or to-be-resolved
         attr_reader :comments
       
-        # A hash of (const_name, attributes) pairs tracking the constant 
+        # A hash of [const_name, attributes] pairs tracking the constant 
         # attributes resolved or to-be-resolved for self.  Attributes
-        # are hashes of (key, comment) pairs.
+        # are hashes of [key, comment] pairs.
         attr_reader :const_attrs
       
         # The default constant name used when no constant name
-        # is specified for a constant attribute.
+        # is specified for a constant attribute
         attr_reader :default_const_name
       
-        # Flag indicating whether or not self has been resolved.
+        # Flag indicating whether or not self has been resolved
         attr_accessor :resolved
       
         def initialize(source_file=nil, default_const_name='')
@@ -50,9 +64,8 @@ module Tap
         end
       
         # Sets the default_const_name for self.  Any const_attrs assigned to 
-        # the previous default_const_name will be removed from const_attrs 
-        # and merged with any const_attrs already assigned to the new 
-        # default_const_name.
+        # the previous default will be removed and merged with those already 
+        # assigned to the new default.
         def default_const_name=(const_name)
           self[const_name].merge!(const_attrs.delete(@default_const_name) || {})
           @default_const_name = const_name
@@ -72,9 +85,12 @@ module Tap
           end
           names
         end
-
-        # Register the specified line number to self.  Returns a 
-        # comment_class instance corresponding to the line.
+        
+        # Register the specified line number to self.  Register
+        # may take an integer or a regexp for late-evaluation.
+        # See Comment#resolve for more details.
+        # 
+        # Returns a comment_class instance corresponding to the line.
         def register(line_number, comment_class=Comment)
           comment = comments.find {|c| c.class == comment_class && c.line_number == line_number }
         
@@ -85,11 +101,19 @@ module Tap
         
           comment
         end
-      
+        
+        # Registers a regexp matching methods by the specified
+        # name.
         def register_method(method, comment_class=Comment)
           register(/^\s*def\s+#{method}(\W|$)/, comment_class)
         end
       
+        # Scans str for constant attributes and adds them to to self.  Code
+        # comments are also resolved against str.  If no str is specified,
+        # the contents of source_file are used instead.
+        #
+        # Resolve does nothing if resolved == true.  Returns true if str
+        # was resolved, or false otherwise.
         def resolve(str=nil)
           return(false) if resolved
         

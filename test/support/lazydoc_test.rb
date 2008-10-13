@@ -19,9 +19,9 @@ end
 
 # used in documentation test below
 
-# Sample::key <this is the subject line>
-# a constant attribute content string that
-# can span multiple lines...
+# Sample::key <value>
+# This is the comment content.  A content
+# string can span multiple lines...
 #
 #   code.is_allowed
 #   much.as_in RDoc
@@ -78,10 +78,10 @@ class LazydocTest < Test::Unit::TestCase
   
   def test_documentation 
     comment = Sample::key
-    assert_equal "<this is the subject line>", comment.subject
+    assert_equal "<value>", comment.subject
          
     expected = [
-    ["a constant attribute content string that", "can span multiple lines..."],
+    ["This is the comment content.  A content", "string can span multiple lines..."],
     [""],
     ["  code.is_allowed"],
     ["  much.as_in RDoc"],
@@ -91,9 +91,9 @@ class LazydocTest < Test::Unit::TestCase
     
     expected = %q{
 ..............................
-a constant attribute content
-string that can span multiple
-lines...
+This is the comment content.
+A content string can span
+multiple lines...
 
   code.is_allowed
   much.as_in RDoc
@@ -114,12 +114,12 @@ key
     assert_equal [["comment content for a code comment", "may similarly span multiple lines"]], comment.content
   
     str = %Q{
-# Const::Name::key subject for key
+# Const::Name::key value for key
 # comment for key
 # parsed until a 
 # non-comment line
 
-# Const::Name::another subject for another
+# Const::Name::another value for another
 # comment for another
 # parsed to an end key
 # Const::Name::another-
@@ -131,10 +131,10 @@ key
     doc.resolve(str)
     
     expected = {'Const::Name' => {
-     'key' =>     ['subject for key', 'comment for key parsed until a non-comment line'],
-     'another' => ['subject for another', 'comment for another parsed to an end key']
+     'key' =>     ['value for key', 'comment for key parsed until a non-comment line'],
+     'another' => ['value for another', 'comment for another parsed to an end key']
     }}
-    assert_equal expected, doc.to_hash {|c| [c.subject, c.to_s] } 
+    assert_equal expected, doc.to_hash {|c| [c.value, c.to_s] } 
   
     str = %Q{
 Const::Name::not_parsed
@@ -142,12 +142,12 @@ Const::Name::not_parsed
 # :::-
 # Const::Name::not_parsed
 # :::+
-# Const::Name::parsed subject
+# Const::Name::parsed value
 }
   
     doc = Lazydoc::Document.new
     doc.resolve(str)
-    assert_equal({'Const::Name' => {'parsed' => 'subject'}}, doc.to_hash {|c| c.subject })
+    assert_equal({'Const::Name' => {'parsed' => 'value'}}, doc.to_hash {|c| c.value })
   
     str = %Q{
 # comment lines for

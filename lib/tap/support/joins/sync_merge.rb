@@ -4,6 +4,10 @@ module Tap
     
     module Joins
       
+      # SyncMerge passes the collected results of the sources to the target. The
+      # results will not be passed until results from all of the sources are 
+      # available; results are passed in one group.  Similarly, a collision 
+      # results if a single source completes twice before the group.
       class SyncMerge < ReverseJoin
         def join(target, sources)
 

@@ -2,6 +2,7 @@ module Tap
   module Support
     module Joins
       
+      # A Fork join passes the results of source to each of the targets.
       class Fork < Join
         def join(source, targets)
           complete(source) do |_result|

@@ -1,7 +1,9 @@
 module Tap
   module Support
     module Joins
-
+      
+      # A Switch join allows a block to determine which target from
+      # set of targets will receive the results of the source.
       class Switch < Join
         def join(source, targets)
           complete(source) do |_result| 

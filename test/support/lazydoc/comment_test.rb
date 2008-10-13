@@ -16,9 +16,9 @@ class CommentTest < Test::Unit::TestCase
   
   def test_class_documentation
     sample_comment = %Q{
-# this is the content of the comment
+# this is the content
 #
-# which may stretch across
+# content may stretch across
 # multiple lines
 this is the subject
 }
@@ -26,9 +26,9 @@ this is the subject
     c = Comment.parse(sample_comment)
     assert_equal "this is the subject", c.subject
     expected = [
-    ["this is the content of the comment"], 
+    ["this is the content"], 
     [""], 
-    ["which may stretch across", "multiple lines"]]
+    ["content may stretch across", "multiple lines"]]
     assert_equal expected, c.content
   
     document = %Q{
@@ -44,8 +44,6 @@ module Sample
   end
 end}
   
-    lines = document.split(/\r?\n/)
-  
     c1 = Comment.new(4).resolve(lines)
     assert_equal "  def method_one", c1.subject
     assert_equal [["this is the content of the comment", "for method_one"]], c1.content
@@ -53,6 +51,10 @@ end}
     c2 = Comment.new(9).resolve(lines)
     assert_equal "  def method_two", c2.subject
     assert_equal [["this is the content of the comment", "for method_two"]], c2.content
+    
+    c3 = Comment.new(/def method_two/).resolve(lines)
+    assert_equal "  def method_two", c3.subject
+    assert_equal [["this is the content of the comment", "for method_two"]], c3.content
   end
   
   #
@@ -69,8 +71,7 @@ end}
 #    
 this is the subject line
 
-# this line is not parsed as it
-# is after a non-comment line
+# this line is not parsed
 }
   
     c = Comment.parse(comment_string)
