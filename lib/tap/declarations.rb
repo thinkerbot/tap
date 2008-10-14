@@ -125,7 +125,7 @@ module Tap
       needs = needs.compact.collect do |need|
         unless need.kind_of?(Class)
           name = normalize_name(need).camelize
-          need = name.try_constantize do |nested_const|
+          need = Support::Constant.try_constantize(name) do |nested_const|
             declare(name)
           end
         end
@@ -148,7 +148,7 @@ module Tap
       const_name = File.join(declaration_base, name).camelize
       
       # generate the subclass
-      subclass, constants = const_name.constants_split
+      subclass, constants = Support::Constant.split(const_name)
       constants.each do |const|
         # nesting Tasks into Tasks is required for
         # namespaces with the same name as a task

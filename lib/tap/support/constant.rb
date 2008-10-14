@@ -1,4 +1,4 @@
-require 'tap/support/constant_utils'
+require 'tap/support/string_ext'
 
 module Tap
   module Support
@@ -15,6 +15,80 @@ module Tap
     #   $".include?('net/http')                          # => true
     #
     class Constant
+      class << self
+        
+        # constantize tries to find a declared constant with the name specified 
+        # by self. Raises a NameError when the name is not in CamelCase 
+        # or is not initialized.  
+        def constantize(const_name)
+          normalize(const_name).split("::").inject(Object) do |current, const|
+            const = const.to_sym
+            unless const_is_defined?(current, const)
+              raise NameError.new("uninitialized constant #{const_name}", const) 
+            end
+            current.const_get(const)
+          end
+        end
+        
+        # Tries to constantize self; if a NameError is raised, try_constantize
+        # passes control to the block.  Control is only passed if the NameError
+        # is for one of the constants in self.
+        def try_constantize(const_name)
+          begin
+            constantize(const_name)
+          rescue(NameError)
+            error_name = $!.name.to_s
+            
+            normal_const_name = normalize(const_name)
+            missing_const = normal_const_name.split(/::/).inject(Object) do |current, const|
+              if const_is_defined?(current, const)
+                current.const_get(const) 
+              else 
+                break(const)
+              end
+            end
+
+            # check that the error_name is the first missing constant
+            raise $! unless missing_const == error_name
+            yield(normal_const_name)
+          end
+        end
+        
+        def split(str)
+          camel_cased_word = str.camelize
+          unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ camel_cased_word
+            raise NameError, "#{camel_cased_word.inspect} is not a valid constant name!"
+          end
+
+          constants = $1.split(/::/)
+          current = Object
+          while !constants.empty?
+            break unless const_is_defined?(current, constants[0])
+            current = current.const_get(constants.shift)
+          end
+
+          [current, constants]
+        end
+        
+        def normalize(const_name)
+          unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ const_name
+            raise NameError, "#{const_name.inspect} is not a valid constant name!"
+          end
+          $1
+        end
+        
+        private
+        case RUBY_VERSION
+        when /^1.9/
+          def const_is_defined?(const, name) # :nodoc:
+            const.const_defined?(name, false)
+          end
+        else
+          def const_is_defined?(const, name) # :nodoc:
+            const.const_defined?(name)
+          end
+        end
+      end
       
       # The constant name
       attr_reader :name
@@ -79,9 +153,9 @@ module Tap
       #
       # Raises a NameError if the constant cannot be found.
       def constantize
-        name.try_constantize do |const_name|
+        Constant.try_constantize(name) do |const_name|
           require require_path if require_path
-          name.constantize
+          Constant.constantize(name)
         end
       end
       

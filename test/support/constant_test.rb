@@ -1,6 +1,12 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/support/constant'
 
+# used in tests
+module ConstantNest
+  module NestedConst
+  end
+end
+
 class ConstantTest < Test::Unit::TestCase
   include Tap::Support
   
@@ -9,6 +15,48 @@ class ConstantTest < Test::Unit::TestCase
   def setup
     @c = Constant.new('ConstName')
     @nested = Constant.new('Nested::Sample::ConstName')
+  end
+  
+  #
+  # try_constantize test
+  #
+  
+  def test_try_constantize_constantizes_or_yields_to_block
+    was_in_block = false
+    assert Object.const_defined?("String")
+    assert_equal String, Constant.try_constantize("String") { was_in_block = true; "res" }
+    assert !was_in_block
+    
+    was_in_block = false
+    assert !Object.const_defined?("NonAConstant")
+    assert_equal "res", Constant.try_constantize("NonAConstant") { was_in_block = true; "res" }
+    assert was_in_block
+  end
+  
+  #
+  # split test
+  #
+  
+  def test_split_splits_string_from_the_first_existing_constant
+    assert Object.const_defined?("ConstantNest")
+    assert_equal [ConstantNest, []], Constant.split("ConstantNest")
+    
+    assert ConstantNest.const_defined?("NestedConst")
+    assert_equal [ConstantNest::NestedConst, []], Constant.split("ConstantNest::NestedConst")
+    
+    assert !ConstantNest::NestedConst.const_defined?("NonExistant")
+    assert_equal [ConstantNest::NestedConst, ["NonExistant"]], Constant.split("ConstantNest::NestedConst::NonExistant")
+    assert_equal [ConstantNest::NestedConst, ["NonExistant", "Const"]], Constant.split("ConstantNest::NestedConst::NonExistant::Const")
+    
+    assert_equal [Object, []], Constant.split("Object")
+    assert_equal [ConstantNest, []], Constant.split("Object::ConstantNest")
+    assert_equal [ConstantNest::NestedConst, []], Constant.split("Object::ConstantNest::NestedConst")
+    assert_equal [ConstantNest::NestedConst, ["NonExistant"]], Constant.split("Object::ConstantNest::NestedConst::NonExistant")
+    assert_equal [ConstantNest::NestedConst, ["NonExistant", "Const"]], Constant.split("Object::ConstantNest::NestedConst::NonExistant::Const")
+  end
+  
+  def test_split_camelizes_first
+    assert_equal [ConstantNest, []], Constant.split("object/constant_nest")
   end
   
   #
