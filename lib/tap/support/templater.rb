@@ -122,6 +122,12 @@ module Tap
         end
       end
       
+      class << self
+        def build(template,  attributes={})
+          new(template, attributes).build
+        end
+      end
+      
       include Utils
       
       # Initialized a new Templater.  An ERB or String may be provided as the

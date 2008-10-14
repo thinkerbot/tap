@@ -51,7 +51,7 @@ module Tap
             res.write begin
               yield(res)
             rescue
-              template(DEFAULT_ERROR_TEMPLATE, rack_env, :error => $!)
+              render(DEFAULT_ERROR_TEMPLATE, rack_env, :error => $!)
             end
           end
         end
@@ -105,11 +105,11 @@ module Tap
                 Support::Lazydoc[path].resolved = false
               end
             end
-            template_response('index.erb', rack_env)
+            render_response('index.erb', rack_env)
             
           else
             # handle all other requests as errors
-            template_response('404', rack_env)
+            render_response('404', rack_env)
             
           end
         end
@@ -179,14 +179,26 @@ module Tap
         # Generates a [status, headers, body] response using the first existing
         # template matching path (as determined by Env#search_path) and the
         # specified rack_env.
-        def template_response(path, rack_env)
+        def render_response(path, rack_env)
           path = search_path(:template, path) {|file| File.file?(file) }
           response(rack_env) do 
-            path ? template(File.read(path), rack_env) : raise("no such template: #{path}")
+            path ? render(File.read(path), rack_env) : raise("no such template: #{path}")
           end
         end
         
         protected
+        
+        module Render
+          def renderer(path)
+            template = env.search_path(:template, path) {|file| File.file?(file) }
+            raise("no such template: #{path}") if template == nil
+            Tap::Support::Templater.new(File.read(template), marshal_dump).extend(Render)
+          end
+          
+          def render(path, attrs={})
+            renderer(path).build(attrs)
+          end
+        end
         
         # Builds the specified template using the rack_env and additional
         # attributes. The rack_env is partitioned into rack-related and 
@@ -200,7 +212,7 @@ module Tap
         #   rack     the rack-related hash
         #
         # Plus the attributes.
-        def template(template, rack_env, attributes={}) # :nodoc:
+        def render(template, rack_env, attributes={}) # :nodoc:
           # partition and sort the env variables into
           # cgi and rack variables.
           rack, cgi = rack_env.to_a.partition do |(key, value)|
@@ -214,7 +226,7 @@ module Tap
             end
           end
 
-          Templater.new( template , {:env => self, :cgi => cgi, :rack => rack}.merge(attributes) ).build
+          Templater.new( template , {:env => self, :cgi => cgi, :rack => rack}.merge(attributes) ).extend(Render).build
         end
         
         # Executes block with ENV set to the specified hash.

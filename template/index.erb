@@ -1,42 +1,49 @@
-<html>
-<head>
-	<title>Tap::Manifest</title>
-</head>
-<body>
-	<h1><a href="<%= Tap::WEBSITE %>">Tap (<ins>T</ins>ask <ins>Ap</ins>plication) <%= Tap::VERSION %> </a></h1>
-
-<% server.manifest(:envs, true).minimize.each do |(env_key, env)|
-	 cgi_manifest = env.manifest(:cgis, true).minimize
-	 task_manifest = env.manifest(:tasks, true).minimize 
-	 next if cgi_manifest.empty? && task_manifest.empty? %>
-	<h2><%= env_key %></h2>
-
-	<% unless cgi_manifest.empty? %>
-	<ul>
-		<% cgi_manifest.each do |(cgi_key, path)| 
-			lazydoc = Tap::Support::Lazydoc[path] 
-			lazydoc.resolve
-			summary = lazydoc.default_attributes['summary']
-			%>	
-		<li><a href="<%= cgi_key %>"><%= cgi_key %></a>: <%= summary %></li>
-		<% end %>
-	</ul>
-	<% end %>
-
-	<% unless task_manifest.empty? %>
-	<ul>
-		<% task_manifest.each do |(task_key, const)| 
-			lazydoc = Tap::Support::Lazydoc[const.require_path] 
-			lazydoc.resolve
-			summary = lazydoc[const.name]['manifest']
-			summary = summary.subject if summary.kind_of?(Tap::Support::Comment)
-			%>	
-		<li><a href="run?task=<%= task_key %>"><%= const.name %></a> <%= summary %></li>
-		<% end %>
-	</ul>
-	<% end %>
+<% env_names = {} %>
+<% env.manifest(:envs, true).minimize.each do |name, environment| %>
+<%   env_names[environment] = name %>
 <% end %>
 
-	<a href="index?refresh=true">Refresh</a>
+<html>
+<title>Tap::Manifest</title>
+<html>
+<body>
+
+<div id="branding">
+  <h1><a href="<%= Tap::WEBSITE %>">Tap (<ins>T</ins>ask <ins>Ap</ins>plication) <%= Tap::VERSION %> </a></h1>
+</div>
+
+<div id="content_main">
+<dl id="envs" class="manifest">
+<% env.each do |current| %>
+  <dt class="key"><%= env_names[current] %> (<%= current.root.root %>)</dt>
+  <dd class="value">
+<%   manifest_keys = (Tap::Env.manifests.keys + current.manifests.keys).uniq %>
+<%   manifest_keys -= [:envs] %>
+<%   manifest_keys.each do |key| %>
+<%     manifest = current.manifest(key, true) %>
+<%     next if manifest.empty? %>
+    <dl id="manifests" class="manifest">
+    <dt class="key"><%= key %></dt>
+    <dd class="value">
+      <ol>
+<%     manifest.each do |(name, path)| %>
+<%       path = path.kind_of?(Tap::Support::Constant) ? path.require_path : path %>
+        <li><%= name %> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
+<%     end %>
+      </ol>
+    </dd>
+    </dl>
+<%   end %>
+  </dd>
+<% end %>
+  </dl>
+</div>
+
+<div id="nav">
+  <ul>
+    <li><a href="index?refresh=true">Refresh</a></li>
+  </ul>
+</div>
+
 </body>
 </html>

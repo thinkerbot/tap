@@ -29,7 +29,11 @@ module Tap
         #   Constant.constantize('Non::Existant') { ConstName }   # => ConstName
         #
         def constantize(const_name, base=Object) # :yields: base, missing_const_names
-          constants = arrayify(const_name)
+          unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ const_name
+            raise NameError, "#{const_name.inspect} is not a valid constant name!"
+          end
+          
+          constants = $1.split(/::/)
           while !constants.empty?
             unless const_is_defined?(base, constants[0])
               if block_given? 
@@ -44,15 +48,6 @@ module Tap
         end
         
         private
-        
-        # helper method. checks a constant name is valid
-        # and splits it into an array of constant names.
-        def arrayify(const_name) # :nodoc:
-          unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ const_name
-            raise NameError, "#{const_name.inspect} is not a valid constant name!"
-          end
-          $1.split(/::/)
-        end
         
         # helper method.  Determines if a constant named
         # name is defined in const.  The implementation
