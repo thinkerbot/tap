@@ -1,30 +1,16 @@
 <html>
 <head>
-  <link rel="stylesheet" type="text/css" href="/stylesheets/run.css" />
-  <script src="/javascripts/prototype.js"></script>
-  <script src="/javascripts/run.js"></script>
+
 </head>
 <body>
-  <form name="workflow" action="run" method="post">
-  <input id="action" name="action" type="hidden" value="run">
-  
-  <textarea class="workflow" name="workflow"><%= yamlize(workflow) %></textarea>
-    
-<%= server.cgi_template('run/task_manifest', :name => 'tasc') %>
-
-  <ul class="actions">
-    <li class="add"><a href="javascript:$('action').value='add';document.workflow.submit();" >Add</a></li>
-    <li class="remove"><a href="javascript:$('action').value='remove';document.workflow.submit();">Remove</a></li>
-  </ul>
-
-  <div class="tasks" id="tasks">
-<% tasks.each_with_index do |attributes, index| %>
-<%= server.cgi_template('run/task', attributes.merge(:index => index)) %><% end %>
-  </div>
-  
-  <!-- As with add/remove, the action must be set by submit in case the for is 
-  left in a non-run state (as by using the back button and re-submitting)-->
-  <input type="submit" value="run" onclick="$('action').value='run'">
-  </form>
+<form enctype="multipart/form-data" method="post" action="run">
+  <input name="0[]">a</input>
+  <input name="0[]">b</input>
+  <input name="0[]">c</input>
+  <input name="1[]">x</input>
+  <input name="1[]">y</input>
+  <input name="1[]">z</input>
+  <input id="submit" type="submit" value="Submit" />
+</form>
 </body>
 </html>

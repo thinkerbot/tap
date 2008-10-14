@@ -109,7 +109,7 @@ module Tap
             
           else
             # handle all other requests as errors
-            render_response('404', rack_env)
+            render_response('404.erb', rack_env)
             
           end
         end
@@ -180,13 +180,23 @@ module Tap
         # template matching path (as determined by Env#search_path) and the
         # specified rack_env.
         def render_response(path, rack_env)
-          path = search_path(:template, path) {|file| File.file?(file) }
+          # partition and sort the env variables into
+          # cgi and rack variables.
+          rack, cgi = rack_env.to_a.partition do |(key, value)|
+            key =~ /^rack/
+          end.collect do |part|
+            part.sort_by do |key, value|
+              key
+            end.inject({}) do |hash, (key,value)|
+              hash[key] = value
+              hash
+            end
+          end
+          
           response(rack_env) do 
-            path ? render(File.read(path), rack_env) : raise("no such template: #{path}")
+            render(path, {:env => self, :cgi => cgi, :rack => rack})
           end
         end
-        
-        protected
         
         module Render
           def renderer(path)
@@ -212,22 +222,14 @@ module Tap
         #   rack     the rack-related hash
         #
         # Plus the attributes.
-        def render(template, rack_env, attributes={}) # :nodoc:
-          # partition and sort the env variables into
-          # cgi and rack variables.
-          rack, cgi = rack_env.to_a.partition do |(key, value)|
-            key =~ /^rack/
-          end.collect do |part|
-            part.sort_by do |key, value|
-              key
-            end.inject({}) do |hash, (key,value)|
-              hash[key] = value
-              hash
-            end
-          end
+        def render(path, attributes={}) # :nodoc:
+          path = search_path(:template, path) {|file| File.file?(file) }
+          raise("no such template: #{path}") if path == nil
 
-          Templater.new( template , {:env => self, :cgi => cgi, :rack => rack}.merge(attributes) ).extend(Render).build
+          Templater.new( File.read(path) , attributes).extend(Render).build
         end
+        
+        protected
         
         # Executes block with ENV set to the specified hash.
         # Non-string values in hash are skipped.
