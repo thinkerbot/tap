@@ -167,6 +167,7 @@ module Tap
       end
       
       if block_given?
+        subclass.send(:undef_method, :process) if subclass.method_defined?(:process)
         subclass.send(:define_method, :process, &block)
       end
       
