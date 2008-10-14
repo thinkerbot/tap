@@ -2,8 +2,11 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/support/constant'
 
 # used in tests
+module ConstName
+end
+
 module ConstantNest
-  module NestedConst
+  module ConstName
   end
 end
 
@@ -18,45 +21,66 @@ class ConstantTest < Test::Unit::TestCase
   end
   
   #
-  # try_constantize test
+  # constantize test
   #
   
-  def test_try_constantize_constantizes_or_yields_to_block
+  def test_constantize_documentation
+    assert_equal ConstName, Constant.constantize('ConstName')
+    assert_equal(ConstName, Constant.constantize('Non::Existant') { ConstName })
+  end
+  
+  def test_constantize_returns_the_existing_constant
+    # ::ConstName
+    assert_equal ConstName, Constant.constantize("ConstName")
+    assert_equal ConstName, Constant.constantize("::ConstName")
+    assert_equal ConstName, Constant.constantize("Object::ConstName")
+    
+    # ConstantNest::ConstName
+    assert_equal ConstantNest::ConstName, Constant.constantize("ConstantNest::ConstName")
+    assert_equal ConstantNest::ConstName, Constant.constantize("::ConstantNest::ConstName")
+    assert_equal ConstantNest::ConstName, Constant.constantize("Object::ConstantNest::ConstName")
+  end
+  
+  def test_constantize_starts_looking_for_the_constant_under_base
+    assert_equal ConstantNest::ConstName, Constant.constantize("ConstName", ConstantNest)
+    assert_equal ConstantNest::ConstName, Constant.constantize("::ConstName", ConstantNest)
+  end
+  
+  def test_constantize_raise_error_for_invalid_constant_names
+    assert_raise(NameError) { Constant.constantize("") }
+    assert_raise(NameError) { Constant.constantize("::") }
+    assert_raise(NameError) { Constant.constantize("const_name") }
+  end
+  
+  def test_constantize_raises_error_if_constant_does_not_exist
+    assert_raise(NameError) { Constant.constantize("Non::Existant") }
+    assert_raise(NameError) { Constant.constantize("::Non::Existant") }
+    assert_raise(NameError) { Constant.constantize("ConstName", ConstName) }
+    assert_raise(NameError) { Constant.constantize("::ConstName", ConstName) }
+    assert_raise(NameError) { Constant.constantize("Object::ConstName", ConstName) }
+  end
+  
+  def test_constantize_yields_current_base_and_missing_constant_names_to_the_block
     was_in_block = false
-    assert Object.const_defined?("String")
-    assert_equal String, Constant.try_constantize("String") { was_in_block = true; "res" }
-    assert !was_in_block
+    Constant.constantize("Non::Existant") do |base, const_names|
+      assert_equal Object, base
+      assert_equal ["Non", "Existant"], const_names
+      was_in_block = true
+    end
+    assert was_in_block
     
     was_in_block = false
-    assert !Object.const_defined?("NonAConstant")
-    assert_equal "res", Constant.try_constantize("NonAConstant") { was_in_block = true; "res" }
+    Constant.constantize("ConstName::Non::Existant") do |base, const_names|
+      assert_equal ConstName, base
+      assert_equal ["Non", "Existant"], const_names
+      was_in_block = true
+    end
     assert was_in_block
   end
   
-  #
-  # split test
-  #
-  
-  def test_split_splits_string_from_the_first_existing_constant
-    assert Object.const_defined?("ConstantNest")
-    assert_equal [ConstantNest, []], Constant.split("ConstantNest")
-    
-    assert ConstantNest.const_defined?("NestedConst")
-    assert_equal [ConstantNest::NestedConst, []], Constant.split("ConstantNest::NestedConst")
-    
-    assert !ConstantNest::NestedConst.const_defined?("NonExistant")
-    assert_equal [ConstantNest::NestedConst, ["NonExistant"]], Constant.split("ConstantNest::NestedConst::NonExistant")
-    assert_equal [ConstantNest::NestedConst, ["NonExistant", "Const"]], Constant.split("ConstantNest::NestedConst::NonExistant::Const")
-    
-    assert_equal [Object, []], Constant.split("Object")
-    assert_equal [ConstantNest, []], Constant.split("Object::ConstantNest")
-    assert_equal [ConstantNest::NestedConst, []], Constant.split("Object::ConstantNest::NestedConst")
-    assert_equal [ConstantNest::NestedConst, ["NonExistant"]], Constant.split("Object::ConstantNest::NestedConst::NonExistant")
-    assert_equal [ConstantNest::NestedConst, ["NonExistant", "Const"]], Constant.split("Object::ConstantNest::NestedConst::NonExistant::Const")
-  end
-  
-  def test_split_camelizes_first
-    assert_equal [ConstantNest, []], Constant.split("object/constant_nest")
+  def test_constantize_returns_return_value_of_block_when_yielding_to_the_block
+    assert_equal(ConstName, Constant.constantize("ConstName") { false })
+    assert_equal(false, Constant.constantize("Non::Existant") { false })
   end
   
   #

@@ -4,8 +4,7 @@ module Tap
     # StringExt provides two common string transformations, camelize and
     # underscore. StringExt is automatically included in String.
     #
-    # These methods and several methods in Constant are based
-    # on (or directly taken from) the ActiveSupport {Inflections}[http://api.rubyonrails.org/classes/ActiveSupport/CoreExtensions/String/Inflections.html]
+    # Both methods are directly taken from the ActiveSupport {Inflections}[http://api.rubyonrails.org/classes/ActiveSupport/CoreExtensions/String/Inflections.html]
     # module.  StringExt should not cause conflicts if ActiveSupport is
     # loaded alongside Tap.
     #

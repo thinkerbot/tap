@@ -125,7 +125,7 @@ module Tap
       needs = needs.compact.collect do |need|
         unless need.kind_of?(Class)
           name = normalize_name(need).camelize
-          need = Support::Constant.try_constantize(name) do |nested_const|
+          need = Support::Constant.constantize(name) do |base, constants|
             declare(name)
           end
         end
@@ -148,13 +148,15 @@ module Tap
       const_name = File.join(declaration_base, name).camelize
       
       # generate the subclass
-      subclass, constants = Support::Constant.split(const_name)
-      constants.each do |const|
-        # nesting Tasks into Tasks is required for
-        # namespaces with the same name as a task
-        subclass = subclass.const_set(const, Class.new(Tap::Task))
+      subclass = Support::Constant.constantize(const_name) do |base, constants|
+        constants.each do |const|
+          # nesting Tasks into Tasks is required for
+          # namespaces with the same name as a task
+          base = base.const_set(const, Class.new(Tap::Task))
+        end
+        base
       end
-      
+
       subclass.extend Rakish
       
       configs.each_pair do |key, value|

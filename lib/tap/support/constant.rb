@@ -17,67 +17,47 @@ module Tap
     class Constant
       class << self
         
-        # constantize tries to find a declared constant with the name specified 
-        # by self. Raises a NameError when the name is not in CamelCase 
-        # or is not initialized.  
-        def constantize(const_name)
-          normalize(const_name).split("::").inject(Object) do |current, const|
-            const = const.to_sym
-            unless const_is_defined?(current, const)
-              raise NameError.new("uninitialized constant #{const_name}", const) 
-            end
-            current.const_get(const)
-          end
-        end
-        
-        # Tries to constantize self; if a NameError is raised, try_constantize
-        # passes control to the block.  Control is only passed if the NameError
-        # is for one of the constants in self.
-        def try_constantize(const_name)
-          begin
-            constantize(const_name)
-          rescue(NameError)
-            error_name = $!.name.to_s
-            
-            normal_const_name = normalize(const_name)
-            missing_const = normal_const_name.split(/::/).inject(Object) do |current, const|
-              if const_is_defined?(current, const)
-                current.const_get(const) 
-              else 
-                break(const)
+        # Tries to find a declared constant under base with the specified
+        # const_name.  When a constant is missing, constantize yields
+        # the current base and any non-existant constant names the block,
+        # if given, or raises a NameError.  The block is expected 
+        # to return the proper constant.
+        #
+        #   module ConstName; end
+        #
+        #   Constant.constantize('ConstName')                     # => ConstName
+        #   Constant.constantize('Non::Existant') { ConstName }   # => ConstName
+        #
+        def constantize(const_name, base=Object) # :yields: base, missing_const_names
+          constants = arrayify(const_name)
+          while !constants.empty?
+            unless const_is_defined?(base, constants[0])
+              if block_given? 
+                return yield(base, constants)
+              else
+                raise NameError.new("uninitialized constant #{const_name}", constants[0]) 
               end
             end
-
-            # check that the error_name is the first missing constant
-            raise $! unless missing_const == error_name
-            yield(normal_const_name)
+            base = base.const_get(constants.shift)
           end
-        end
-        
-        def split(str)
-          camel_cased_word = str.camelize
-          unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ camel_cased_word
-            raise NameError, "#{camel_cased_word.inspect} is not a valid constant name!"
-          end
-
-          constants = $1.split(/::/)
-          current = Object
-          while !constants.empty?
-            break unless const_is_defined?(current, constants[0])
-            current = current.const_get(constants.shift)
-          end
-
-          [current, constants]
-        end
-        
-        def normalize(const_name)
-          unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ const_name
-            raise NameError, "#{const_name.inspect} is not a valid constant name!"
-          end
-          $1
+          base
         end
         
         private
+        
+        # helper method. checks a constant name is valid
+        # and splits it into an array of constant names.
+        def arrayify(const_name) # :nodoc:
+          unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ const_name
+            raise NameError, "#{const_name.inspect} is not a valid constant name!"
+          end
+          $1.split(/::/)
+        end
+        
+        # helper method.  Determines if a constant named
+        # name is defined in const.  The implementation
+        # (annoyingly) has to be different for ruby 1.9
+        # due to changes in the API.
         case RUBY_VERSION
         when /^1.9/
           def const_is_defined?(const, name) # :nodoc:
@@ -153,7 +133,7 @@ module Tap
       #
       # Raises a NameError if the constant cannot be found.
       def constantize
-        Constant.try_constantize(name) do |const_name|
+        Constant.constantize(name) do
           require require_path if require_path
           Constant.constantize(name)
         end
