@@ -561,6 +561,30 @@ module Tap
       nil
     end
     
+    # Searches each env for the first existing file or directory at 
+    # env.root.filepath(dir, path).  Paths are expanded, and search_path
+    # checks to make sure the file is, in fact, relative to env.root[dir].
+    # An optional block may be used to check the file; the file will only
+    # be returned if the block returns true.
+    #
+    # Returns nil if no file can be found.
+    def search_path(dir, path)
+      each do |env|
+        directory = env.root.filepath(dir)
+        file = env.root.filepath(dir, path)
+        
+        # check the file is relative to the
+        # directory, and that the file exists.
+        if file.rindex(directory, 0) == 0 && 
+          File.exists?(file) && 
+          (!block_given? || yield(file))
+          return file
+        end
+      end
+      
+      nil
+    end
+    
     def reset(name, &block)
       each do |env|
         env.manifests[name].each(&block)

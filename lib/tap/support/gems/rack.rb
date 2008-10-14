@@ -2,6 +2,10 @@ require 'rack'
 require 'cgi'
 require 'yaml'
 
+# in a future release, it looks like this will be changed
+require 'rack/file'
+#require 'rack/mime'
+
 module Tap
   module Support
     module Gems
@@ -14,107 +18,15 @@ module Tap
       
       # = UNDER CONSTRUCTION
       # Support for a Tap::Server, built on {Rack}[http://rack.rubyforge.org/].
+      #
+      # Tap::Support::Gems::Rack is intended to extend a Tap::Env
       module Rack
         
+        # The handler for the server (ex Rack::Handler::WEBrick)
         attr_accessor :handler
         
-        def call(env)
-          path = env['PATH_INFO']
-          
-          case 
-          when public_page = known_path(:public, path)
-            # serve named static pages
-            response(env) { File.read(public_page) }
-            
-          when cgi_page = search(:cgis, path)
-            # serve cgis relative to a cgi path
-            run_cgi(cgi_page, env)
-
-          when path == "/" || path == "/index"
-            # serve up the homepage
-            if env["QUERY_STRING"] == "refresh=true"
-              reset(:cgis) do |key, path|
-                Support::Lazydoc[path].resolved = false
-              end
-            end
-            template_response('index', env)
-            
-          when config[:development] && template_page = known_path(:template, path)
-            response(env) { template(File.read(template_page), env) }
-            
-          else
-            # handle all other requests as errors
-            template_response('404', env)
-            
-          end
-        end
-        
-        def known_path(dir, path)
-          each do |env|
-            directory = env.root.filepath(dir)
-            file = env.root.filepath(dir, path)
-            
-            if file != directory && file.index(directory) == 0 && File.exists?(file)
-              return file
-            end
-          end
-          
-          nil
-        end
-
-        #--
-        # Runs a cgi and returns an array as demanded by rack.
-        def run_cgi(cgi_path, env)
-          current_input = $stdin
-          current_output = $stdout
-          
-          cgi_input = env['rack.input']
-          cgi_output = StringIO.new("")
-
-          begin
-            $stdin = cgi_input
-            $stdout = cgi_output
-
-            with_env(env) { load(cgi_path) }
-
-            # collect the headers and body from the cgi output
-            headers, body = cgi_output.string.split(/\r?\n\r?\n/, 2)
-
-            raise "missing headers from: #{cgi_path}" if headers == nil
-            body = "" if body == nil
-
-            headers = headers.split(/\r?\n/).inject({}) do |hash, line|
-              key, value = line.split(/:/, 2)
-              hash[key] = value
-              hash
-            end
-
-            [headers.delete('Status') || 200, headers, body]
-          rescue(Exception)
-            # when an error occurs, return a standard cgi error with backtrace
-            [500, {'Content-Type' => 'text/plain'}, %Q{#{$!.class}: #{$!.message}\n#{$!.backtrace.join("\n")}}]
-          ensure
-            $stdin = current_input
-            $stdout = current_output
-          end
-        end
-
-        # Executes block with ENV set to the specified hash.  Non-string env variables are not set.
-        def with_env(env)
-          current_env = {}
-          ENV.each_pair {|key, value| current_env[key] = value }
-
-          begin
-            ENV.clear
-            env.each_pair {|key, value| ENV[key] = value if value.kind_of?(String)}
-             
-            yield
-          ensure
-            ENV.clear
-            current_env.each_pair {|key, value| ENV[key] = value }
-          end
-        end
-
+        # The default error template used by response
+        # when an error occurs.
         DEFAULT_ERROR_TEMPLATE = %Q{
 <html>
 <body>
@@ -129,25 +41,169 @@ module Tap
 </html>     
 }
 
-        def response(env)
+        # Creates a [status, headers, body] response using the result of the
+        # block as the body.  The status and headers the defaults for 
+        # {Rack::Response}[http://rack.rubyforge.org/doc/classes/Rack/Response.html].
+        # If an error occurs, a default error message is generated using the
+        # DEFAULT_ERROR_TEMPLATE.
+        def response(rack_env)
           ::Rack::Response.new.finish do |res|
             res.write begin
               yield(res)
             rescue
-              template(DEFAULT_ERROR_TEMPLATE, env, :error => $!)
+              template(DEFAULT_ERROR_TEMPLATE, rack_env, :error => $!)
             end
           end
         end
         
-        def cgi_template(name, attributes={})
-          path = root.filepath(:template, "#{name}.erb")
-          Templater.new( File.read(path), {:server => self}.merge(attributes) ).build
+        # The {Rack}[http://rack.rubyforge.org/doc/] interface method.  Call
+        # routesrequests (with preference) to:
+        # * static pages
+        # * cgi scripts
+        # * default responses
+        #
+        # === Static pages
+        # Static pages may be served from any env in self.  A static page is
+        # served if a file with the request path exists under the 'public'
+        # directory for any env.
+        #
+        # Envs are searched in order, using the Env#search_path method.
+        #
+        # === CGI scripts
+        # Like static pages, cgi scripts may be served from any env in self.  
+        # Scripts are discovered using a search of the cgi manifest.  See
+        # cgi_response for more details.
+        #
+        # === Default responses
+        # The default response is path-dependent:
+        # 
+        #   path            action
+        #   /, /index       render the manifest.
+        #   all others      render a 404 response
+        #
+        # The manifest may be refreshed by setting a query string:
+        # 
+        #   /?refresh=true
+        #   /index?refresh=true
+        #
+        def call(rack_env)
+          path = rack_env['PATH_INFO']
+          
+          case 
+          when static_path = search_path(:public, path) {|file| File.file?(file) }
+            # serve named static pages
+            file_response(static_path, rack_env)
+            
+          when cgi_path = search(:cgis, path)
+            # serve cgis
+            cgi_response(cgi_path, rack_env)
+
+          when path == "/" || path == "/index"
+            # serve up the homepage
+            if rack_env["QUERY_STRING"] == "refresh=true"
+              reset(:cgis) do |key, path|
+                Support::Lazydoc[path].resolved = false
+              end
+            end
+            template_response('index.erb', rack_env)
+            
+          else
+            # handle all other requests as errors
+            template_response('404', rack_env)
+            
+          end
+        end
+        
+        # Generates a [status, headers, body] response for the specified file.
+        # Patterned after {Rack::File#._call}[http://rack.rubyforge.org/doc/classes/Rack/File.html].
+        def file_response(path, rack_env)
+          response(rack_env) do |res|
+            content = File.read(path)
+            res.headers.merge!(
+              "Last-Modified" => File.mtime(path).httpdate,
+              "Content-Type" => Rack::File::MIME_TYPES[File.extname(path)] || "text/plain", # Rack::Mime.mime_type(File.extname(path), 'text/plain'), 
+              "Content-Length" => content.size.to_s)
+            
+            content
+          end
         end
 
-        def template(template, env, attributes={})
+        # Generates a [status, headers, body] response for the specified cgi.
+        # The cgi will be run with ENV set as specified in rack_env.
+        def cgi_response(cgi_path, rack_env)
+          
+          # setup standard ios for capture
+          current_input = $stdin
+          current_output = $stdout
+          
+          cgi_input = rack_env['rack.input']
+          cgi_output = StringIO.new("")
+
+          begin
+            $stdin = cgi_input
+            $stdout = cgi_output
+            
+            # run the cgi
+            with_ENV(rack_env) { load(cgi_path) }
+
+            # collect the headers and body from the output
+            headers, body = cgi_output.string.split(/\r?\n\r?\n/, 2)
+
+            raise "missing headers from: #{cgi_path}" if headers == nil
+            body = "" if body == nil
+
+            headers = headers.split(/\r?\n/).inject({}) do |hash, line|
+              key, value = line.split(/:/, 2)
+              hash[key] = value
+              hash
+            end
+
+            # generate the response
+            [headers.delete('Status') || 200, headers, body]
+            
+          rescue(Exception)
+            # when an error occurs, return a standard cgi error with backtrace
+            [500, {'Content-Type' => 'text/plain'}, %Q{#{$!.class}: #{$!.message}\n#{$!.backtrace.join("\n")}}]
+            
+          ensure
+            $stdin = current_input
+            $stdout = current_output
+          end
+        end
+        
+        # def cgi_template(name, attributes={})
+        #   path = root.filepath(:template, "#{name}.erb")
+        #   Templater.new( File.read(path), {:server => self}.merge(attributes) ).build
+        # end
+        
+        # Generates a [status, headers, body] response using the first existing
+        # template matching path (as determined by Env#search_path) and the
+        # specified rack_env.
+        def template_response(path, rack_env)
+          path = search_path(:template, path) {|file| File.file?(file) }
+          response(rack_env) do 
+            path ? template(File.read(path), rack_env) : raise("no such template: #{path}")
+          end
+        end
+        
+        protected
+        
+        # Builds the specified template using the rack_env and additional
+        # attributes. The rack_env is partitioned into rack-related and 
+        # cgi-related hashes (all rack_env entries where the key starts
+        # with 'rack' are rack-related, the others are cgi-related).
+        #
+        # The template is built with the following standard locals:
+        #
+        #   server   self
+        #   cgi      the cgi-related hash
+        #   rack     the rack-related hash
+        #
+        # Plus the attributes.
+        def template(template, rack_env, attributes={}) # :nodoc:
           # partition and sort the env variables into
           # cgi and rack variables.
-          rack, cgi = env.to_a.partition do |(key, value)|
+          rack, cgi = rack_env.to_a.partition do |(key, value)|
             key =~ /^rack/
           end.collect do |part|
             part.sort_by do |key, value|
@@ -158,13 +214,26 @@ module Tap
             end
           end
 
-          Templater.new( template , {:server => self, :env => env, :cgi => cgi, :rack => rack}.merge(attributes) ).build
+          Templater.new( template , {:env => self, :cgi => cgi, :rack => rack}.merge(attributes) ).build
         end
         
-        def template_response(name, env)
-          path = known_path(:template, "#{name}.erb")
-          response(env) { template(File.read(path), env) }
+        # Executes block with ENV set to the specified hash.
+        # Non-string values in hash are skipped.
+        def with_ENV(hash) # :nodoc:
+          current_env = {}
+          ENV.each_pair {|key, value| current_env[key] = value }
+
+          begin
+            ENV.clear
+            hash.each_pair {|key, value| ENV[key] = value if value.kind_of?(String)}
+             
+            yield
+          ensure
+            ENV.clear
+            current_env.each_pair {|key, value| ENV[key] = value }
+          end
         end
+        
       end
     end
   end
