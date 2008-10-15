@@ -260,37 +260,6 @@ class ParserUtilsTest < Test::Unit::TestCase
   end
   
   #
-  # ARGH_KEY test
-  #
-  
-  def test_ARGH_KEY_regexp
-    r = ARGH_KEY
-    
-    assert "0" =~ r
-    assert_equal ['0', nil, nil], [$1, $3, $4]
-    
-    assert "0[0]" =~ r
-    assert_equal ['0', '0', nil], [$1, $3, $4]
-    
-    assert "0[0][]" =~ r
-    assert_equal ['0', '0', '[]'], [$1, $3, $4]
-    
-    assert "10" =~ r
-    assert_equal ['10', nil, nil], [$1, $3, $4]
-    
-    assert "10[100]" =~ r
-    assert_equal ['10', '100', nil], [$1, $3, $4]
-    
-    assert "10[100][]" =~ r
-    assert_equal ['10', '100', '[]'], [$1, $3, $4]
-    
-    # non-matching
-    assert "abc" !~ r
-    assert "0[]" !~ r
-    assert "[0]" !~ r
-  end
-  
-  #
   # parse_indicies test
   #
   
@@ -400,32 +369,27 @@ class ParserUtilsTest < Test::Unit::TestCase
   #
   
   def test_parse_argh_documentation
-    argh = {'0[0]' => ['a', 'b', 'c'], '1[1]' => ['x', 'y', 'z']}
-    assert_equal ['--', 'a', 'b', 'c', '--', 'x', 'y', 'z'], parse_argh(argh)
-  end
-  
-  def test_parse_argh
     argh = {
-      # sequence
-      '0[0]' => ['a', 'b'], 
-      '0[1]' => ['c'],
-      '0[2]' => ['d', 'e', 'f'],
-      
-      # skip to task, skip to index
-      '2[1]' => ['x', 'y', 'z'],
-      
-      # key only
-      '3' => ['p', 'q']
+      0 => {
+        0 => 'a',
+        1 => ['b', 'c']},
+      1 => 'z'
     }
+    assert_equal ['--', 'a', 'b', 'c', '--', 'z'], parse_argh(argh)
     
-    result = parse_argh(argh)
-    assert_equal %w{-- a b c d e f -- -- x y z -- p q}, result
+    argh = {
+      '0' => {
+        '0' => 'a',
+        '1' => ['b', 'c']},
+      '1' => ['--:', 'z']
+    }
+    assert_equal ['--', 'a', 'b', 'c', '--:', 'z'], parse_argh(argh)
   end
   
-  def test_parse_argh_preserves_indicies_using_breaks
+  def test_parse_argh_adds_breaks
     argh = {
-      '0[0]' => ['a', 'b', 'c'], 
-      '2[1]' => ['x', 'y', 'z']
+      '0' => ['a', 'b', 'c'], 
+      '2' => ['x', 'y', 'z'],
     }
     
     result = parse_argh(argh)
@@ -434,44 +398,46 @@ class ParserUtilsTest < Test::Unit::TestCase
   
   def test_parse_argh_preserves_breaks
     argh = {
-      '0[0]' => ['a', 'b', 'c'],
-      '1[0]' => ['--'], 
-      '2[1]' => ['x', 'y', 'z'],
+      '0' => ['--', 'a', 'b', 'c'],
+      '1' => ['--'], 
+      '2' => ['--:', 'x', 'y', 'z'],
       '3' => ['--0:2']
     }
     
     result = parse_argh(argh)
-    assert_equal %w{-- a b c -- -- x y z --0:2}, result
+    assert_equal %w{-- a b c -- --: x y z --0:2}, result
   end
   
-  def test_parse_argh_with_multi_arg_break_raises_error
-    argh = {'0[0]' => ['--', 'a', 'b', 'c']}
-    assert_raise(ArgumentError) { parse_argh(argh) }
-  end
-  
-  class IoMock
-    def initialize(str)
-      @str = str
-    end
+  def test_parse_argh_collapses_and_compacts_hashes_by_index
+    argh = {
+      '0' => {
+        '0' => ['a', 'b'],
+        '1' => ['c'],
+        '2' => ['d', 'e', 'f'],
+        '10' => [],
+        '50' => [nil, nil],
+        '100' => ['g'],
+        '200' => ['h', nil, 'i', nil, 'j']}
+    }
     
-    def read
-      @str
-    end
+    result = parse_argh(argh)
+    assert_equal %w{-- a b c d e f g h i j}, result
   end
   
-  def test_parse_argh_reads_value_that_respond_to_read
-    a = IoMock.new "x"
-    b = IoMock.new "y"
-    c = IoMock.new "z"
+  def test_argh_values_need_not_be_arrays
+    argh = {
+      '0' => {
+        '0' => 'a',
+        '1' => 'b',
+        '2' => nil,
+        '3' => 'c'},
+
+      '2' => nil,
+      '3' => 'z'
+    }
     
-    argh = {'0[0]' => [a, b, c]}
-    assert_equal ['--', 'x', 'y', 'z'], parse_argh(argh)
-  end
-  
-  def test_parse_argh_shellword_splits_values_for_keys_ending_in_brackets
-    abc = IoMock.new "a b c"
-    argh = {'0[0][]' => [abc, 'x "y z"']}
-    assert_equal ['--', 'a', 'b', 'c', 'x', 'y z'], parse_argh(argh)
+    result = parse_argh(argh)
+    assert_equal %w{-- a b c -- -- -- z}, result
   end
 end
 
@@ -725,10 +691,13 @@ class ParserTest < Test::Unit::TestCase
   
   def test_parse_converts_hash_argvs_to_arrays_using_parse_argh
     argh = {
-      '0[0]' => ['a', 'a1', 'a2'],
-      '0[1][]' => ['--key value --another "another value"'],
-      '1[0]' => ['b', 'b1'],
-      '2[0]' => ['c'],
+      '0' => {
+        '0' => ['a', 'a1', 'a2'],
+        '1' => ['--key', 'value', '--another', 'another value']},
+      '1' => {
+        '0' => ['b', 'b1']},
+      '2' => {
+        '0' => ['c']},
       '3' => ['--+2[0,1,2]'],
       '4' => ['--0:1:2']
     }

@@ -5,14 +5,15 @@
 <body>
 <form enctype="multipart/form-data" method="post" action="run">
   <!-- each task/join gets an index -->
-  <input name="0[0]" value="a" />
-  <input name="0[1]" type="hidden" value="--b" />
+  <input name="schema[0][0]" value="a" />
+  <input name="schema[0][1]" type="hidden" value="--b" />
 
-  <input name="200"  value="--0:1" />
-  
-  <textarea name="0[5][]" >blah blah blah</textarea>
-  <input name="0[5]" value="c" />
-
+  <input name="schema[10]"  value="--0:1" />
+  <textarea name="schema[0][5]-" >blah blah blah</textarea>
+  <textarea name="schema[0][5]-" >blah a blah</textarea>
+  <textarea name="schema[3]" >blah blah blah</textarea>
+  <input name="schema[0][6]" value="c" />
+  <input name="schema[11]"  value="--2[3,4]" />
 
   <input id="submit" type="submit" value="Submit" />
 </form>

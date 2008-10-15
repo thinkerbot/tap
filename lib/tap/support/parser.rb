@@ -150,14 +150,6 @@ module Tap
         # A break regexp using "()"
         SYNC_MERGE = bracket_regexp("(", ")")
 
-        # Matches argument hash key.  After the match:
-        #
-        #   $1:: main index
-        #   $3:: secondary index or nil
-        #   $4:: non-nil for shellowords flag
-        #
-        ARGH_KEY =  /^(\d+)(\[(\d+)\](\[\])?)?$/
-
         # Parses an indicies str along commas, and collects the indicies
         # as integers. Ex:
         #
@@ -255,71 +247,53 @@ module Tap
           options
         end
         
-        # Parses an argument hash into an array.  An argument hash has special
-        # keys which indicate where array values are inserted into the final
-        # argv.  The syntax is mighty odd, but serves a purpose: parse_argh
-        # is designed to convert inputs from an html form into an argv.
+        # Parses an arg hash into a schema argv.  An arg hash is a hash
+        # using numeric keys to specify the [row][col] in a two-dimensional
+        # array where a set of values should go.  Breaks are added between
+        # rows (if necessary) and the array is collapsed to yield the
+        # argv:
         #
-        # === Syntax
-        # The basic key syntax is 'row[col]' which indicates where in a
-        # two-dimensional array the values are inserted.  Values should be
-        # an array of strings.
+        #   argh = {
+        #     0 => {
+        #       0 => 'a',
+        #       1 => ['b', 'c']},
+        #     1 => 'z'
+        #   }
+        #   parse_argh(argh)    # => ['--', 'a', 'b', 'c', '--', 'z']
+        # 
+        # Non-numeric keys are converted to integers using to_i and
+        # existing breaks (such as workflow breaks) occuring at the
+        # start of a row are preseved.
         #
-        # The idea is that the array of strings is located first by a task
-        # vector (row), and then by index in the vector (col).  After all
-        # values are properly located, the whole array is flattened and
-        # compacted to yield the final argv.
+        #   argh = {
+        #     '0' => {
+        #       '0' => 'a',
+        #       '1' => ['b', 'c']},
+        #     '1' => ['--:', 'z']
+        #   }
+        #   parse_argh(argh)    # => ['--', 'a', 'b', 'c', '--:', 'z']
         #
-        #   argh = {'0[0]' => ['a', 'b', 'c'], '1[1]' => ['x', 'y', 'z']}
-        #   parse_argh(argh)     # => ['--', 'a', 'b', 'c', '--', 'x', 'y', 'z']
-        #
-        # ==== Special Cases
-        # Nomally values are an array of strings, but multipart data will
-        # often return an array of IO objects (tempfiles, perhaps) instead
-        # of strings.  Values are read into strings if they respond_to?(:read).
-        #
-        # If a key ends with an additional '[]' (ex '0[0][]'), then each
-        # value is parsed into an array using Shellwords.  This allows many
-        # inputs to be specified in a single value, for instance from a
-        # textarea.
-        #
-        # The col part of the key is optional; if a collision occurs (as
-        # when you specify keys '0', '0[n]', '0[n][]'), new values are
-        # concatenated with existing values.  Note, however, that the order
-        # of arguments in a collision becomes unpredictable as they depend
-        # on the hash order of the colliding keys.
-        #
-        # Breaks are allowed, but only as single arguments.
-        def parse_argh(hash)
-          argv = []
-          hash.each_pair do |key, values|
-            raise "unknown key: #{key}" unless key =~ ARGH_KEY
-            values.collect! do |value|
-              value = value.read if value.respond_to?(:read)
-              $4 ? Shellwords.shellwords(value) : value
+        def parse_argh(argh)
+          rows = []
+          argh.each_pair do |row, values|
+            if values.kind_of?(Hash)
+              arry =  []
+              values.each_pair {|col, value| arry[col.to_i] = value }
+              values = arry
             end
-            
-            args = argv[$1.to_i] ||= []
-            args = args[$3.to_i] ||= [] if $3
-            
-            args.concat values
+
+            rows[row.to_i] = values
           end
           
-          argv.collect do |args| 
-            args = (args ? args.flatten : [])
-            
-            if args.empty? || args[0] !~ BREAK
-              # not a break
-              args.unshift '--'
-            else
-              # check the break only has one arg
-              unless args.length == 1
-                raise ArgumentError, "break with multiple args: #{args.inspect}"
-              end
+          argv = []
+          rows.each do |row|
+            row = [row].flatten.compact
+            if row.empty? || row[0] !~ BREAK
+              argv << '--'
             end
-            
-            args
-          end.flatten.compact
+            argv.concat row
+          end
+          argv
         end
       end
       
