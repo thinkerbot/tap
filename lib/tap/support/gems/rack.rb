@@ -1,6 +1,4 @@
 require 'rack'
-require 'cgi'
-require 'yaml'
 
 # in a future release, it looks like this will be changed
 require 'rack/file'
@@ -97,7 +95,11 @@ module Tap
           when cgi_path = search(:cgis, path)
             # serve cgis
             cgi_response(cgi_path, rack_env)
-
+            
+          # when task_path = search(:tasks, path)
+          #   # serve tasks
+          #   cgi_response('task', rack_env)
+            
           when path == "/" || path == "/index"
             # serve up the homepage
             if rack_env["QUERY_STRING"] == "refresh=true"

@@ -4,12 +4,16 @@
 </head>
 <body>
 <form enctype="multipart/form-data" method="post" action="run">
-  <input name="0[]">a</input>
-  <input name="0[]">b</input>
-  <input name="0[]">c</input>
-  <input name="1[]">x</input>
-  <input name="1[]">y</input>
-  <input name="1[]">z</input>
+  <!-- each task/join gets an index -->
+  <input name="0[0]" value="a" />
+  <input name="0[1]" type="hidden" value="--b" />
+
+  <input name="200"  value="--0:1" />
+  
+  <textarea name="0[5][]" >blah blah blah</textarea>
+  <input name="0[5]" value="c" />
+
+
   <input id="submit" type="submit" value="Submit" />
 </form>
 </body>
