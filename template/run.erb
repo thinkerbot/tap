@@ -1,51 +1,24 @@
 <html>
 <head>
-
+  <!-- <link rel="stylesheet" type="text/css" href="/stylesheets/run.css" /> -->
+  <script src="/javascripts/prototype.js"></script>
+  <script src="/javascripts/run.js"></script>
 </head>
 <body>
 <form enctype="multipart/form-data" method="post" action="run">
-  <ol>
-  <li>
-<% lazydoc = tasc.lazydoc[tasc.to_s] %>
-    <span class="class"><%= tasc %></span>: 
-    <span class="summary"><%= lazydoc['manifest'].subject %></span>
-    <pre><%= lazydoc['manifest'].to_s %></pre>
-    
-    <!-- should be set in the background -->
-    <input name="schema[0][0]" type="hidden" value="<%= tasc.to_s.underscore %>" />
-    
-    <ul>
-    <li class="config">
-     <input class="key" name="schema[0][2]" type="hidden" value="--name" />
-     <input class="value" name="schema[0][2]" value="<%= tasc.default_name %>" />
-     <span class="name">Name</span>
-    </li>
-
-    <!-- inputs -->
-<% lazydoc['args'].subject.split(',').each do |arg| %>
-<%   key, default = arg.split('=', 2) %>
-    <li class="input">
-<%   if key =~ /\.{3}$/ %>
-    <input class="value" name="schema[0][1]%w" value="<%= default %>" />
-<%   else %>
-    <input class="value" name="schema[0][1]" value="<%= default %>" />
-<%   end %>
-    <span class="name"><%= key %></span>
-    </li>
+  <ol id="schema">
+<% index = 0 %>
+<% tascs.each do |tasc| %>
+<%= render('run/task.erb', :tasc => tasc, :index => index ) %> 
+<% index += 1 %>
 <% end %>
-
-    <!-- configurations -->
-<% tasc.configurations.each do |receiver, key, config| %>
-    <li class="config">
-    <input class="key" name="schema[0][2]" type="hidden" value="--<%= key %>" />
-    <input class="value" name="schema[0][2]" value="<%= config.default %>" />
-    <span class="name"><%= key %></span>:
-    <span class="desc"><%= config.desc.to_str %></span>
-    </li>
-<% end %>
-    </ul>
-  </li>
   </ol>
+  <ul class="controls">
+    <li><%= render('run/manifest.erb') %></li>
+    <li><a href="javascript:Tap.Run.add('schema');">add</a></li>
+    <li><a href="javascript:Tap.Run.remove('schema');">remove</a></li>
+    <li><a href="javascript:Tap.Run.update('schema');">update</a></li>
+  </ul>
   <input id="submit" type="submit" value="Submit" />
 </form>
 </body>

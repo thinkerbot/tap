@@ -1,24 +1,33 @@
-<div class="task" id="task_<%= index %>">
-  <input class="selector" type="checkbox" name="<%= index %>[selected]" value="<%= index %>">
-<%= server.cgi_template('run/task_manifest', :name => "#{index}[tasc]", :default => tasc) %>
-  
-  <input class="name" type="text" name="<%= index %>[name]" value="<%= tasc.default_name %>">
+  <li id="task_<%= index %>" class="task">
+<% lazydoc = tasc.lazydoc[tasc.to_s] %>
+    <span class="class"><%= tasc %></span>: 
+    <span class="summary"><%= lazydoc['manifest'].subject %></span>
+    <pre><%= lazydoc['manifest'].to_s %></pre>
+    
+    <!-- should be set in the background -->
+    <input name="schema[<%= index %>][0]" type="hidden" value="<%= tasc.to_s.underscore %>" />
+    
+    <ul>
+    <li class="config">
+     <input class="key" name="schema[<%= index %>][2]" type="hidden" value="--name" />
+     <input class="value" name="schema[<%= index %>][2]" value="<%= tasc.default_name %>" />
+     <span class="name">Name</span>
+    </li>
 
-  <!-- documentation -->
-  <pre id="documentation_<%= index %>" class="documentation"><%= tasc.manifest.wrap %></pre>
-
-  <!-- configuration -->
-  <!-- TODO: merge config with class configurations -->
-  <textarea class="config" name="<%= index %>[config]"><%= config.kind_of?(String) ? config : yamlize(config) %></textarea>
-
-  <!-- inputs -->
-  <textarea class="inputs" name="<%= index %>[inputs]"><%= inputs.kind_of?(String) ? inputs : yamlize(inputs) %></textarea>
-
-  <!-- controls -->
-  <ul class="controls" id="controls_<%= index %>">
-  <li class="reset"><a href="">Reset</a></li>
-  <li class="preview"><a href="">Preview</a></li>
-  <li class="edit"><a href="">Edit</a></li>
-	<li class="help"><a href="">Help</a></li>
-  </ul>
-</div>
+    <!-- inputs -->
+    <li class="input">
+    <input class="value" name="schema[<%= index %>][1]%w" value="<%= default %>" />
+    <span class="name"><%= lazydoc['args'].subject %></span>
+    </li>
+    
+    <!-- configurations -->
+<% tasc.configurations.each do |receiver, key, config| %>
+    <li class="config">
+    <input class="key" name="schema[<%= index %>][2]" type="hidden" value="--<%= key %>" />
+    <input class="value" name="schema[<%= index %>][2]" value="<%= config.default %>" />
+    <span class="name"><%= key %></span>:
+    <span class="desc"><%= config.desc.to_str %></span>
+    </li>
+<% end %>
+    </ul>
+  </li>

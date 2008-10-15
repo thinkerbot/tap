@@ -2,10 +2,10 @@
 <% env.manifest(:envs, true).minimize.each do |name, environment| %>
 <%   env_names[environment] = name %>
 <% end %>
-
 <html>
-<title>Tap::Manifest</title>
-<html>
+<head>
+  <title>Tap::Manifest</title>
+</head>
 <body>
 
 <div id="branding">

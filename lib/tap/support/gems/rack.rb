@@ -1,4 +1,5 @@
 require 'rack'
+require 'yaml'
 
 # in a future release, it looks like this will be changed
 require 'rack/file'
@@ -49,7 +50,7 @@ module Tap
             res.write begin
               yield(res)
             rescue
-              render(DEFAULT_ERROR_TEMPLATE, rack_env, :error => $!)
+              template(DEFAULT_ERROR_TEMPLATE, env_attrs(rack_env).merge(:error => $!))
             end
           end
         end
@@ -123,7 +124,7 @@ module Tap
             content = File.read(path)
             res.headers.merge!(
               "Last-Modified" => File.mtime(path).httpdate,
-              "Content-Type" => Rack::File::MIME_TYPES[File.extname(path)] || "text/plain", # Rack::Mime.mime_type(File.extname(path), 'text/plain'), 
+              "Content-Type" => ::Rack::File::MIME_TYPES[File.extname(path)] || "text/plain", # Rack::Mime.mime_type(File.extname(path), 'text/plain'), 
               "Content-Length" => content.size.to_s)
             
             content
@@ -196,7 +197,7 @@ module Tap
           end
           
           response(rack_env) do 
-            render(path, {:env => self, :cgi => cgi, :rack => rack})
+            render(path, env_attrs(rack_env))
           end
         end
         
@@ -228,7 +229,28 @@ module Tap
           path = search_path(:template, path) {|file| File.file?(file) }
           raise("no such template: #{path}") if path == nil
 
-          Templater.new( File.read(path) , attributes).extend(Render).build
+          template(File.read(path) , attributes)
+        end
+        
+        def env_attrs(rack_env)
+          # partition and sort the env variables into
+          # cgi and rack variables.
+          rack, cgi = rack_env.to_a.partition do |(key, value)|
+            key =~ /^rack/
+          end.collect do |part|
+            part.sort_by do |key, value|
+              key
+            end.inject({}) do |hash, (key,value)|
+              hash[key] = value
+              hash
+            end
+          end
+          
+          {:env => self, :cgi => cgi, :rack => rack}
+        end
+        
+        def template(template, attributes={}) # :nodoc:
+          Templater.new(template, attributes).extend(Render).build
         end
         
         protected

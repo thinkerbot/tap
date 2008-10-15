@@ -1,0 +1,10 @@
+<select id="manifest" class="manifest">
+  <option value="">(none)</option>
+<% env.manifest(:envs, true).minimize.each do |(env_key, env)| %>
+<%   task_manifest = env.manifest(:tasks, true).minimize %>
+<%   next if task_manifest.empty? %>
+<%   task_manifest.each do |(task_key, const)| %>
+  <option value="<%= env_key %>:<%= task_key %>"><%= env_key %>:<%= task_key %></option>
+<%   end %>
+<% end %>
+</select>

@@ -9,15 +9,30 @@ require "#{File.dirname(__FILE__)}/../vendor/url_encoded_pair_parser"
 
 env = Tap::Env.instance
 
-# Sample::manifest summary
-#
-# A longer description of the
-# Sample Task.
-class Sample < Tap::Task
-  config :one, '1' # the one config
-  config :two, '2'
-  
-  def process(one, two, *three)
+module Tap
+  module Support
+    module Server
+      module_function
+      
+      def pair_parse(params)
+        pairs = {}
+        params.each_pair do |key, values|
+          key = key.chomp("%w") if key =~ /%w$/
+
+          slot = pairs[key] ||= []
+          values.each do |value|
+            value = value.respond_to?(:read) ? value.read : value
+            if $~ 
+              slot.concat(Shellwords.shellwords(value))
+            else 
+              slot << value
+            end
+          end
+        end
+
+        UrlEncodedPairParser.new(pairs).result   
+      end
+    end
   end
 end
 
@@ -25,27 +40,26 @@ cgi = CGI.new("html3")  # add HTML generation methods
 cgi.out() do
   case cgi.request_method
   when /GET/i
-    env.render('run.erb', :env => env, :tasc => Sample )
-
+    env.render('run.erb', :env => env, :tascs => [] )
+    
   when /POST/i
-    cgi.pre do
-      pairs = {}
-      cgi.params.each_pair do |key, values|
-        key = key.chomp("%w") if key =~ /%w$/
-
-        slot = pairs[key] ||= []
-        values.each do |value|
-          value = value.respond_to?(:read) ? value.read : value
-          if $~ 
-            slot.concat(Shellwords.shellwords(value))
-          else 
-            slot << value
-          end
-        end
-      end
+    action = cgi.params['action'][0]
+    case action
+    when 'add'
+      index = cgi.params['index'][0].to_i - 1
+      cgi.params['selected_tasks'].collect do |task|
+        index += 1
+        tasc = env.search(:tasks, task).constantize
+        env.render('run/task.erb', :tasc => tasc, :index => index )
+      end.join("\n")
       
-      argh = UrlEncodedPairParser.new(pairs).result
-      Tap::Support::Schema.parse(argh['schema']).dump.to_yaml
+    when 'remove'
+    when 'update'
+    else
+      cgi.pre do
+        argh = Tap::Support::Server.pair_parse(cgi.params)
+        Tap::Support::Schema.parse(argh['schema']).dump.to_yaml
+      end
     end
   else 
     raise ArgumentError, "unhandled request method: #{cgi.request_method}"
