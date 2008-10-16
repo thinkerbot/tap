@@ -133,19 +133,6 @@ module Tap
       
       protected
       
-      # Defines a config that raises an error if set when the 
-      # instance is active.  static_config MUST take a block
-      # and raises an error if a block is not given.
-      def static_config(key, value=nil, &block)
-        raise ArgumentError.new("active config requires block") unless block_given?
-        
-        instance_variable = "@#{key}".to_sym
-        config_attr(key, value) do |input|
-          check_configurable
-          instance_variable_set(instance_variable, block.call(input))
-        end
-      end
-      
       # Defines a config that collects the input into a unique,
       # compact array where each member has been resolved using
       # root[].  In short, ['lib', nil, 'lib', 'alt] becomes
@@ -527,33 +514,33 @@ module Tap
     end
     
     # Returns the first value in the specified manifest where the key
-    # mini-matches the input pattern.  See Tap::Root.minimal_match? 
+    # mini-matches the input.  See Tap::Root.minimal_match? 
     # for details on mini-matching.
-    def find(name, pattern, value_only=true)
-      return nil unless entry = manifest(name)[pattern]
+    def find(name, key, value_only=true)
+      return nil unless entry = manifest(name)[key]
       value_only ? entry[1] : entry
     end
     
     # Like find, but searches across all envs for the matching value.
-    # An env pattern can be provided in pattern, to select a single
+    # An env may be specified in key to select a single
     # env to search.
     #
     # The :envs manifest cannot be searched; use find instead.
-    def search(name, pattern, value_only=true)
+    def search(name, key, value_only=true)
       if name == :envs
         raise ArgumentError, "cannot search the :envs manifest; use find instead" 
       end
       
-      envs = case pattern
+      envs = case key
       when /^(.*):([^:]+)$/
-        env_pattern = $1
-        pattern = $2
-        find(:envs, env_pattern)
+        env_key = $1
+        key = $2
+        find(:envs, env_key)
       else manifest(:envs).values
       end
       
       envs.each do |env|
-        if result = env.find(name, pattern, value_only)
+        if result = env.find(name, key, value_only)
           return result
         end
       end if envs
