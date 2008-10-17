@@ -13,11 +13,14 @@ module Tap
       # next when building the manifest.
       attr_reader :path_index
       
+      attr_reader :path_root_index
+      
       attr_reader :const_attr
       
       def initialize(paths, const_attr)
         @paths = paths
         @const_attr = const_attr
+        @path_root_index = 0
         @path_index = 0
         super([])
       end
@@ -27,31 +30,33 @@ module Tap
       def paths=(paths)
         @entries = []
         @paths = paths
+        @path_root_index = 0
         @path_index = 0
       end
       
       # Clears entries and sets the path_index to zero.
       def reset
         super
+        @path_root_index = 0
         @path_index = 0
       end
       
-      # Iterates over each (key, value) entry in self, dynamically 
-      # identifying entries from search_paths if necessary.  New 
-      # entries are identifed using the each_for method.
       def each
         entries.each do |entry|
           yield(entry)
         end
         
-        # unresolved_paths = paths[path_index, paths.length - path_index]
-        # count off root_path_index and path_index
-        paths.each do |(path_root, paths)|
-          paths.each do |path|
+        paths[path_root_index, paths.length - path_root_index].each do |(path_root, paths)|
+          paths[path_index, paths.length - path_index].each do |path|
             new_entries = resolve(path_root, path) - entries
             entries.concat(new_entries)
+            
+            @path_index += 1
             new_entries.each {|entry| yield(entry) }
           end
+          
+          @path_root_index += 1
+          @path_index  = 0
         end
       end
       

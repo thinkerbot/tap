@@ -1,25 +1,7 @@
-require 'tap/root'
+require 'tap/support/manifestable'
 
 module Tap
   module Support
-    module Manifestable
-      include Enumerable
-      
-      def minimap
-        Root.mini_map(self) {|entry| minikey(entry) }
-      end
-
-      def minimatch(key)
-        find {|entry| Root.minimal_match?(minikey(entry), key) }
-      end
-      
-      protected
-      
-      def minikey(entry)
-        entry
-      end
-    end
-    
     class Manifest
       class << self
         def normalize(key)
@@ -62,31 +44,22 @@ module Tap
         entries.each {|entry| yield(entry) }
       end
       
-      # def inspect
-      #   lines = ["", "search paths:"]
-      #   paths.each_with_index do |path, index|
-      #     indent = (index == path_index ? "* " : "  ")
-      #     lines << (indent + path.inspect)
-      #   end
-      #   
-      #   lines << ""
-      #   lines << "mini-entries:"
-      #   minimize.each do |mini, value| 
-      #     lines << "  #{mini}: #{value.inspect}"
-      #   end
-      #   lines << ""
-      #   
-      #   "#{self.class}:#{object_id} #{lines.join("\n")}"
-      # end
+      def [](key)
+        minimatch(key)
+      end
+      
+      def inspect
+        lines = minimap.collect do |mini, value| 
+          "  #{mini}: #{value.inspect}"
+        end
+
+        "#{self.class}:#{object_id}\n#{lines.join("\n")}"
+      end
       
       protected
       
       def minikey(path)
         path.gsub(/\s/, "_").delete(":")
-      end
-      
-      def resolve(path)
-        path
       end
     end
   end

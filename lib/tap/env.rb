@@ -76,6 +76,12 @@ module Tap
       end
       
       def path_manifest(name, paths_key, pattern="**/*.rb", &block)
+        manifest_class = Support::Manifest
+        if block_given?
+          manifest_class = Class.new(manifest_class)
+          manifest_class.module_eval(&block)
+        end
+        
         manifest(name) do |env|
           entries = []
           env.send(paths_key).each do |path_root|
@@ -83,17 +89,23 @@ module Tap
           end
           
           entries = entries.sort_by {|path| File.basename(path) }
-          Support::Manifest.intern(entries, &block)
+          manifest_class.new(entries)
         end
       end
       
       def const_manifest(name, paths_key, const_attr, pattern="**/*.rb", &block)
+        manifest_class = Support::ConstantManifest
+        if block_given?
+          manifest_class = Class.new(manifest_class)
+          manifest_class.module_eval(&block)
+        end
+        
         manifest(name) do |env|
           paths = env.send(paths_key).collect do |path_root|
             [path_root, env.root.glob(path_root, pattern)]
           end
           
-          Support::ConstantManifest.intern(paths, const_attr, &block) 
+          manifest_class.new(paths, const_attr) 
         end
       end
       
@@ -201,8 +213,23 @@ module Tap
     
     const_manifest(:tasks, :load_paths, 'manifest')
     
-    const_manifest(:generators, :generator_paths, 'generator', '**/*_generator.rb') do |manifest, const|
-      const.name.underscore.chomp('_generator')
+    const_manifest(:generators, :generator_paths, 'generator', '**/*_generator.rb') do
+      def minikey(const)
+        const.name.underscore.chomp('_generator')
+      end
+      
+      def resolve(path_root, path)
+        dirname = File.dirname(path)
+        return [] unless File.file?(path) && 
+          "#{File.basename(dirname)}_generator.rb" == File.basename(path) && 
+          document = Support::Lazydoc.scan_doc(path, 'generator')
+
+        relative_path = Root.relative_filepath(path_root, dirname).chomp(File.extname(path))
+        document.default_const_name = "#{relative_path}_generator".camelize
+        document.const_names.collect do |const_name|
+          Support::Constant.new(const_name, path)
+        end
+      end
     end
     
     def initialize(config={}, root=Tap::Root.new, logger=nil)
