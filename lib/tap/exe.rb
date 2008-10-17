@@ -17,7 +17,7 @@ module Tap
         
         # add the default tap instance
         tap = instance_for("#{File.dirname(__FILE__)}/../..")
-        tap.manifest(:tasks).search_paths = tap.root.glob(:lib, "tap/tasks/*").collect do |task_path|
+        tap.tasks.paths = tap.root.glob(:lib, "tap/tasks/*").collect do |task_path|
           [tap.root[:lib], task_path]
         end
         exe.push(tap)

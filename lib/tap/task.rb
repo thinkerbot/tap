@@ -195,8 +195,10 @@ module Tap
       
       def intern(*args, &block)
         instance = new(*args)
-        instance.extend Support::Intern
-        instance.process_block = block
+        if block_given?
+          instance.extend Support::Intern
+          instance.process_block = block
+        end
         instance
       end
       

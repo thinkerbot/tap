@@ -266,6 +266,16 @@ module Tap
           end.compact
         end
       end
+      
+      def mini_map(entries)
+        hash = {}
+        mini_map = entries.collect {|entry| hash[yield(entry)] = [entry] }
+        minimize(hash.keys) do |key, mini_key|
+          hash[key].unshift mini_key
+        end
+
+        mini_map
+      end
 
       # Returns true if the mini_path matches path.  Matching logic
       # reverses that of minimize: 

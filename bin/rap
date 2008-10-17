@@ -15,7 +15,7 @@ begin
   task_file = File.expand_path('Tapfile')
   if File.exists?(task_file)
     env.loads.unshift(task_file)
-    env.manifest(:tasks).search_paths << [Dir.pwd, task_file]
+    env.tasks.paths << [Dir.pwd, [task_file]]
   end
   
 rescue(Tap::Env::ConfigError)

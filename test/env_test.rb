@@ -1,6 +1,6 @@
 require File.join(File.dirname(__FILE__), 'tap_test_helper')
 require 'tap/env'
-#require 'tap/support/dependencies'
+require 'yaml'
 
 class EnvTest < Test::Unit::TestCase
   
@@ -13,7 +13,6 @@ class EnvTest < Test::Unit::TestCase
     
     @current_instance = Tap::Env.instance
     @current_instances = Tap::Env.instances
-    @current_manifests = Tap::Env.manifests.dup
     Tap::Env.send(:class_variable_set, :@@instance, nil)
     Tap::Env.send(:class_variable_set, :@@instances, {})
     
@@ -29,8 +28,7 @@ class EnvTest < Test::Unit::TestCase
     
     Tap::Env.send(:class_variable_set, :@@instance,  @current_instance)
     Tap::Env.send(:class_variable_set, :@@instances, @current_instances)
-    Tap::Env.send(:class_variable_set, :@@manifests, @current_manifests)
-
+    
     $LOAD_PATH.clear
     $LOAD_PATH.concat(@current_load_paths)
   end
@@ -95,48 +93,22 @@ class EnvTest < Test::Unit::TestCase
   # Env#manifest test
   #
 
-  def test_manifest_adds_new_manifest_class_to_manifests_by_name
-    Tap::Env.manifests.clear
+  def test_manifest_adds_method_to_access_manifest_produced_by_block
+    assert !e.respond_to?(:new_manifest)
+    Tap::Env.manifest(:new_manifest) do |env|
+      {:new => 'manifest'}
+    end
     
-    manifest_class = Tap::Env.manifest(:key, "pattern") {|p| }
-    assert_equal({:key => manifest_class}, Tap::Env.manifests)
-    assert_equal(Tap::Support::Manifest, manifest_class.superclass)
-  end
-  
-  def test_new_manifest_class_initializes_search_paths_by_globing_then_sorting_using_env_and_the_pattern
-    manifest_class = Tap::Env.manifest(:key, "**/*.txt") {|p| }
+    assert e.respond_to?(:new_manifest)
+    assert_equal({:new => 'manifest'}, e.new_manifest)
+    assert_equal(e.new_manifest.object_id, e.manifests[:new_manifest].object_id)
     
-    m = manifest_class.new(e)
-    assert_equal e, m.env
-    assert_equal e.root.glob(:root, "**/*.txt").sort_by {|p| File.basename(p) }, m.search_paths
-    assert !e.root.glob(:root, "**/*.txt").empty?
-  end
-  
-  def test_new_manifest_class_prepends_resolved_default_paths_to_search_paths
-    manifest_class = Tap::Env.manifest(:key, ".", [:one, "two.txt"]) {|p| }
+    another = Tap::Env.new({}, root)
+    assert another.respond_to?(:new_manifest)
+    assert_equal({:new => 'manifest'}, another.new_manifest)
+    assert_equal(another.new_manifest.object_id, another.manifests[:new_manifest].object_id)
     
-    e.root[:one, true] = File.expand_path("/resolved/path/to/one.txt")
-    assert_equal [e.root.root], e.root.glob(:root, ".")
-    
-    m = manifest_class.new(e)
-    expected = [
-      File.expand_path("/resolved/path/to/one.txt"), 
-      e.root.filepath(:root, "two.txt"), 
-      e.root.root
-    ].sort_by {|p| File.basename(p) }
-    assert_equal expected, m.search_paths
-  end
-  
-  def test_new_manifest_class_assigns_block_as_entries_for_method
-    results = []
-    manifest_class = Tap::Env.manifest(:key, "pattern") {|p| results << p}
-    
-    m = manifest_class.new(e)
-    m.entries_for("one")
-    m.entries_for("two")
-    m.entries_for("three")
-    
-    assert_equal ["one", "two", "three"], results
+    assert_not_equal another.new_manifest.object_id, e.new_manifest.object_id
   end
   
   #
@@ -787,136 +759,55 @@ a (0)
   end
   
   #
-  # manifest test
-  #
-  
-  class ItemsManifest < Tap::Support::Manifest
-    
-    attr_accessor :search_path_map
-    attr_reader :env
-    
-    def initialize(env)
-      @env = env
-      @search_path_map = {}
-      super(["one", "two", "three"])
-    end
-    
-    def entries_for(search_path)
-      search_path_map[search_path]
-    end
-  end
-
-  def test_manifest_returns_keyed_manifests_item
-    m = ItemsManifest.new(e)
-    e.manifests[:items] = m
-    
-    assert_equal(m, e.manifest(:items))
-  end
-
-  def test_manifest_instantiates_class_manifests_object_with_self_if_needed
-    Tap::Env.manifests[:items] = ItemsManifest
-    
-    m = e.manifest(:items)
-    assert_equal(ItemsManifest, m.class)
-    assert_equal(e, m.env)
-  end
-  
-  def test_manifest_returns_nil_if_no_such_manifest_exists_or_can_be_instantiated
-    assert !Tap::Env.manifests.has_key?(:items)
-    assert !e.manifests.has_key?(:items)
-    assert_raise(RuntimeError) { e.manifest(:items) }
-  end
-  
-  def test_manifest_builds_manifest_if_specified
-    m = ItemsManifest.new(e)
-    m.search_path_map = {"one" => [['one', 1]], "two" => [['two', 2]]}
-    e.manifests[:items] = m
-
-    e.manifest(:items, true)
-    assert m.built?
-    assert_equal([['one', 1], ['two', 2]], m.entries)
-  end
-  
-  #
-  # find test
-  #
-  
-  def test_find_returns_the_first_value_in_manifest_mini_matching_pattern
-    m = ItemsManifest.new(e)
-    [ ["/path/to/one-0.1.0.txt", 1], 
-      ["/path/to/two.txt", 2], 
-      ["/path/to/another/one.txt", 3], 
-      ["/path/to/one-0.2.0.txt", 4]
-    ].each do |entry|
-      m.entries << entry
-    end
-    e.manifests[:items] = m
-    
-    assert_equal 1, e.find(:items, "one")
-    assert_equal 1, e.find(:items, "to/one")
-    assert_equal 1, e.find(:items, "path/to/one")
-    assert_equal 1, e.find(:items, "/path/to/one")
-    assert_equal 1, e.find(:items, "one-0.1.0")
-    assert_equal 1, e.find(:items, "one-0.1.0.txt")
-    
-    assert_equal 2, e.find(:items, "two")
-    assert_equal 3, e.find(:items, "another/one")
-    assert_equal 4, e.find(:items, "one-0.2.0")
-    
-    assert_nil e.find(:items, "/another/path/to/one-0.1.0.txt")
-    assert_nil e.find(:items, "/another/path/to/one")
-    assert_nil e.find(:items, "/path/to")
-    assert_nil e.find(:items, "non_existant")
-  end
-  
-  #
   # search test
   #
   
   def test_search_calls_find_in_each_env_manifest_until_a_matching_value_is_found
+    Tap::Env.manifest(:items) {|env| }
+    
     entries = [ 
-      ["/path/to/one-0.1.0.txt", 1], 
-      ["/path/to/two.txt", 2], 
-      ["/path/to/another/one.txt", 3], 
-      ["/path/to/one-0.2.0.txt", 4]
+      "/path/to/one-0.1.0.txt",
+      "/path/to/two.txt",
+      "/path/to/another/one.txt",
+      "/path/to/one-0.2.0.txt", 
     ]
     
     e1 = Tap::Env.new({}, Tap::Root.new("/path/to/e1"))
-    m1 = ItemsManifest.new(e1)
-    entries.each {|key, value| m1.entries << ["/e1#{key}", "e1_#{value}"] }
+    m1 = Tap::Support::Manifest.new
+    entries.each {|entry| m1.entries << "/e1#{entry}" }
     e1.manifests[:items] = m1
     
     e2 = Tap::Env.new({}, Tap::Root.new("/path/to/e2"))
-    m2 = ItemsManifest.new(e2)
-    entries.each {|key, value| m2.entries << ["/e2#{key}", "e2_#{value}"] }
+    m2 = Tap::Support::Manifest.new
+    entries.each {|entry| m2.entries << "/e2#{entry}" }
     e2.manifests[:items] = m2
     
     e1.push e2
     
-    # echo find tests
-    assert_equal "e1_1", e1.search(:items, "one")
-    assert_equal "e1_1", e1.search(:items, "to/one")
-    assert_equal "e1_1", e1.search(:items, "/path/to/one")
-    assert_equal "e1_1", e1.search(:items, "e1/path/to/one")
-    assert_equal "e1_1", e1.search(:items, "/e1/path/to/one")
-    assert_equal "e1_1", e1.search(:items, "one-0.1.0")
-    assert_equal "e1_1", e1.search(:items, "one-0.1.0.txt")
+    # simple search of e1
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "/path/to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "e1/path/to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "/e1/path/to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "one-0.1.0")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "one-0.1.0.txt")
     
-    assert_equal "e1_2", e1.search(:items, "two")
-    assert_equal "e1_3", e1.search(:items, "another/one")
-    assert_equal "e1_4", e1.search(:items, "one-0.2.0")
+    assert_equal "/e1/path/to/two.txt", e1.search(:items, "two")
+    assert_equal "/e1/path/to/another/one.txt", e1.search(:items, "another/one")
+    assert_equal "/e1/path/to/one-0.2.0.txt", e1.search(:items, "one-0.2.0")
     
     # check e1 searches e2
-    assert_equal "e2_1", e1.search(:items, "/e2/path/to/one")
-    assert_equal "e2_1", e1.search(:items, "/e2/path/to/one-0.1.0")
-    assert_equal "e2_1", e1.search(:items, "/e2/path/to/one-0.1.0.txt")
+    assert_equal "/e2/path/to/one-0.1.0.txt", e1.search(:items, "/e2/path/to/one")
+    assert_equal "/e2/path/to/one-0.1.0.txt", e1.search(:items, "/e2/path/to/one-0.1.0")
+    assert_equal "/e2/path/to/one-0.1.0.txt", e1.search(:items, "/e2/path/to/one-0.1.0.txt")
     
     # check with env pattern
-    assert_equal "e1_1", e1.search(:items, "e1:one")
-    assert_equal "e1_1", e1.search(:items, "/path/to/e1:one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "e1:one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "/path/to/e1:one")
 
-    assert_equal "e2_1", e1.search(:items, "e2:one")
-    assert_equal "e2_1", e1.search(:items, "/path/to/e2:to/one")
+    assert_equal "/e2/path/to/one-0.1.0.txt", e1.search(:items, "e2:one")
+    assert_equal "/e2/path/to/one-0.1.0.txt", e1.search(:items, "/path/to/e2:to/one")
     
     # a variety of nil cases
     assert_nil e1.search(:items, "e3:one")
@@ -926,7 +817,7 @@ a (0)
     assert_nil e1.search(:items, "non_existant")
   end
   
-  def test_search_raises_argument_error_if_attempting_to_search_the_envs_manifest
-    assert_raise(ArgumentError) { e.search(:envs, 'pattern') }
-  end
+  # def test_search_raises_argument_error_if_attempting_to_search_the_envs_manifest
+  #   assert_raise(ArgumentError) { e.search(:envs, 'pattern') }
+  # end
 end

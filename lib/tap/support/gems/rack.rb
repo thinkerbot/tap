@@ -9,10 +9,14 @@ module Tap
   module Support
     module Gems
       
-      Tap::Env.manifest(:cgis, "cgi") do |search_path|
-        Dir.glob(File.join(search_path, "**/*.rb")).collect do |path|
-          ["/" + Tap::Root.relative_filepath(search_path, path), path]
+      Tap::Env.manifest(:cgis) do |env|
+        entries = []
+        env.root.glob(:cgi, "**/*.rb").each do |path|
+          env.root.relative_filepath(:cgi, path)
         end
+        
+        entries = entries.sort_by {|path| File.basename(path) }
+        Support::Manifest.intern(entries) {|path| "/" + path }
       end
       
       # = UNDER CONSTRUCTION

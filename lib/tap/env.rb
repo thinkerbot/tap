@@ -1,5 +1,4 @@
-require 'tap/support/manifest'
-require 'tap/support/constant'
+require 'tap/support/constant_manifest'
 require 'tap/support/gems'
 
 module Tap
@@ -9,7 +8,7 @@ module Tap
   # whenever these configs are reset.
   class Env
     include Support::Configurable
-    include Enumerable
+    include Support::Manifestable
     
     class << self
       
@@ -23,13 +22,6 @@ module Tap
       # to a given path.
       def instances
         @@instances
-      end
-      
-      # A hash of predefined manifest classes that can be initialized
-      # from an env.  These classes are instantiated by instances
-      # of Env, as needed.
-      def manifests
-        @@manifests
       end
       
       # Creates a new Env for the specified path and adds it to Env#instances, or 
@@ -76,50 +68,33 @@ module Tap
         File.expand_path(path)
       end
       
-      def manifest(name, pattern, default_paths=[], &block) # :yields: search_path
-        manifest_class = Class.new(Support::Manifest)
-        manifest_class.send(:define_method, :entries_for, &block) if block_given?
-        manifest_class.send(:attr_reader, :env)
-        manifest_class.send(:define_method, :initialize) do |env|
-          @env = env
-          search_paths = default_paths.collect {|path| env.root[path] }
-          search_paths += env.root.glob(:root, pattern)
-          super search_paths.sort_by {|p| File.basename(p) }
+      def manifest(name, &block) # :yields: env (returns manifest)
+        name = name.to_sym
+        define_method(name) do
+          self.manifests[name] ||= block.call(self)
         end
-        
-        manifests[name] = manifest_class
       end
       
-      #--
-      # To manifest simply requires an glob_<name> method which
-      # yields each (key, path) pair for the manifested object in
-      # a predictable order. 
-      #
-      #--
-      # Alternate implementation would create the manifest for each individual
-      # env, then merge the manifests.  On the plus side, each env would then
-      # carry it's own slice of the manifest without having to recalculate.
-      # On the down side, the merging would have to occur in some separate
-      # method that cannot be defined here.
-      def path_manifest(name, paths_key, pattern, default_paths=[], &block) # :yields: search_path_root, search_path
-        manifest_class = Class.new(Support::Manifest)
-        manifest_class.send(:define_method, :entries_for, &block) if block_given?
-        manifest_class.send(:attr_reader, :env)
-        manifest_class.send(:define_method, :initialize) do |env|
-          @env = env
-          search_paths = default_paths.collect do |path| 
-            [env.root.root, env.root[path]]
+      def path_manifest(name, paths_key, pattern="**/*.rb", &block)
+        manifest(name) do |env|
+          entries = []
+          env.send(paths_key).each do |path_root|
+            entries.concat env.root.glob(path_root, pattern)
           end
           
-          env.send(paths_key).each do |search_path_root|
-            env.root.glob(search_path_root, pattern).each do |search_path|
-              search_paths << [search_path_root, search_path]
-            end
-          end
-          
-          super search_paths.sort_by {|pr, p| File.basename(p) }
+          entries = entries.sort_by {|path| File.basename(path) }
+          Support::Manifest.intern(entries, &block)
         end
-        manifests[name] = manifest_class
+      end
+      
+      def const_manifest(name, paths_key, const_attr, pattern="**/*.rb", &block)
+        manifest(name) do |env|
+          paths = env.send(paths_key).collect do |path_root|
+            [path_root, env.root.glob(path_root, pattern)]
+          end
+          
+          Support::ConstantManifest.intern(paths, const_attr, &block) 
+        end
       end
       
       # Returns the gemspecs for all installed gems with a DEFAULT_CONFIG_FILE. 
@@ -150,17 +125,9 @@ module Tap
       end
     end
     
-    class Manifest < Support::Manifest
-      def initialize(env)
-        super([])
-        @entries = env.collect {|e| [e.root.root, e] }
-      end
-    end
-    
     @@instance = nil
     @@instances = {}
-    @@manifests = {:envs => Manifest}
-    
+
     # The default config file path
     DEFAULT_CONFIG_FILE = "tap.yml"
     
@@ -230,28 +197,12 @@ module Tap
     # Designate paths for discovering generators.  
     path_config :generator_paths, ["lib"]
     
-    path_manifest(:tasks, :load_paths, "**/*.rb") do |load_path, path|
-      next unless File.file?(path) && document = Support::Lazydoc.scan_doc(path, 'manifest')
-      
-      document.default_const_name = env.root.relative_filepath(load_path, path).chomp('.rb').camelize
-      document.const_names.collect do |const_name|
-        [const_name.underscore, Support::Constant.new(const_name, path)]
-      end
-    end
+    path_manifest(:commands, :command_paths) 
     
-    path_manifest(:commands, :command_paths, "**/*.rb") do |command_path, path|
-      File.file?(path) ? [[path, path]] : nil
-    end
+    const_manifest(:tasks, :load_paths, 'manifest')
     
-    path_manifest(:generators, :generator_paths, '**/*_generator.rb') do |generator_path, path|
-      dirname = File.dirname(path)
-      next unless File.file?(path) && "#{File.basename(dirname)}_generator.rb" == File.basename(path)
-      
-      next unless document = Support::Lazydoc.scan_doc(path, 'generator')
-      document.default_const_name = "#{env.root.relative_filepath(generator_path, dirname)}_generator".camelize
-      document.const_names.collect do |const_name|
-        [const_name.underscore.chomp('_generator'), Support::Constant.new(const_name, path)]
-      end
+    const_manifest(:generators, :generator_paths, 'generator', '**/*_generator.rb') do |manifest, const|
+      const.name.underscore.chomp('_generator')
     end
     
     def initialize(config={}, root=Tap::Root.new, logger=nil)
@@ -493,57 +444,26 @@ module Tap
       @active
     end
     
-    # Returns the manifest in manifests by the specified name. Yields
-    # each entry in the manifest to the block, if given, or simply
-    # builds and returns the manifest. 
-    #
-    # If the specified manifest does not exists, the manifest class
-    # in self.class.manifests will be instatiated with self to make
-    # the manifest.  Raises an error if no manifest could be found
-    # or instantiated.
-    def manifest(name, build=false) 
-      manifest = manifests[name] ||= case 
-      when manifests_class = self.class.manifests[name]
-        manifests_class.new(self)
-      else 
-        raise "unknown manifest: #{name}"
-      end
-      
-      manifest.build if build  
-      manifest
-    end
-    
-    # Returns the first value in the specified manifest where the key
-    # mini-matches the input.  See Tap::Root.minimal_match? 
-    # for details on mini-matching.
-    def find(name, key, value_only=true)
-      return nil unless entry = manifest(name)[key]
-      value_only ? entry[1] : entry
-    end
-    
     # Like find, but searches across all envs for the matching value.
     # An env may be specified in key to select a single
     # env to search.
     #
-    # The :envs manifest cannot be searched; use find instead.
-    def search(name, key, value_only=true)
-      if name == :envs
-        raise ArgumentError, "cannot search the :envs manifest; use find instead" 
-      end
+    def search(name, key)
+      envs = self.envs(true)
       
-      envs = case key
-      when /^(.*):([^:]+)$/
-        env_key = $1
-        key = $2
-        find(:envs, env_key)
-      else manifest(:envs).values
+      if key =~ /^(.*):([^:]+)$/
+        env_key, key = $1, $2
+        env = minimatch(env_key)
+        return nil unless env
+        
+        envs = [env]
       end
       
       envs.each do |env|
-        if result = env.find(name, key, value_only)
+        if result = env.send(name).minimatch(key)
           return result
         end
-      end if envs
+      end
       
       nil
     end
@@ -555,38 +475,29 @@ module Tap
     # be returned if the block returns true.
     #
     # Returns nil if no file can be found.
-    def search_path(dir, path)
-      each do |env|
-        directory = env.root.filepath(dir)
-        file = env.root.filepath(dir, path)
-        
-        # check the file is relative to the
-        # directory, and that the file exists.
-        if file.rindex(directory, 0) == 0 && 
-          File.exists?(file) && 
-          (!block_given? || yield(file))
-          return file
-        end
-      end
-      
-      nil
-    end
+    # def search_path(dir, path)
+    #   each do |env|
+    #     directory = env.root.filepath(dir)
+    #     file = env.root.filepath(dir, path)
+    #     
+    #     # check the file is relative to the
+    #     # directory, and that the file exists.
+    #     if file.rindex(directory, 0) == 0 && 
+    #       File.exists?(file) && 
+    #       (!block_given? || yield(file))
+    #       return file
+    #     end
+    #   end
+    #   
+    #   nil
+    # end
     
-    def reset(name, &block)
-      each do |env|
-        env.manifests[name].each(&block)
-        env.manifests[name] = nil
-      end
-    end
-    
-    def constantize(name, *patterns)
-      patterns.collect do |pattern| 
-        case const = search(name, pattern)
-        when Support::Constant then const.constantize
-        else raise "could not constantize: #{pattern} (#{name})" 
-        end
-      end
-    end
+    # def reset(name, &block)
+    #   each do |env|
+    #     env.manifests[name].each(&block)
+    #     env.manifests[name] = nil
+    #   end
+    # end
     
     TEMPLATES = {
       :commands => %Q{<% if count > 1 %>
@@ -618,13 +529,13 @@ module Tap
       width = 10
       
       env_names = {}
-      manifest(:envs, true).minimize.each do |env_name, env|
+      minimap.each do |env_name, env|
         env_names[env] = env_name
       end
       
       inspect(template) do |templater, share|
         env = templater.env
-        entries = env.manifest(name, true).minimize
+        entries = env.send(name).minimap
         next(false) if entries.empty?
         
         templater.env_name = env_names[env]
@@ -672,6 +583,10 @@ module Tap
     end
     
     protected
+    
+    def minikey(env)
+      env.root.root
+    end
     
     # Raises an error if self is already active (and hence, configurations
     # should not be modified)
