@@ -49,7 +49,7 @@ cgi.out() do
       index = cgi.params['index'][0].to_i - 1
       cgi.params['selected_tasks'].collect do |task|
         index += 1
-        tasc = env.search(:tasks, task).constantize
+        tasc = env.tasks.search(task).constantize
         env.render('run/task.erb', :tasc => tasc, :index => index )
       end.join("\n")
       

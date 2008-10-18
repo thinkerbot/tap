@@ -23,8 +23,36 @@ module Tap
       # An array of (key, value) entries in self.
       attr_reader :entries
       
+      attr_reader :env
+      
+      attr_reader :type
+      
       def initialize(entries=[])
         @entries = entries
+        @env = nil
+        @type = nil
+      end
+      
+      def bind(env, type)
+        @env = env
+        @type = type
+        
+        unless env.respond_to?(type)
+          raise ArgumentError, "env does not respond to #{type}"
+        end
+        self
+      end
+      
+      def bound?
+        @env != nil && @type != nil
+      end
+      
+      def build
+        self
+      end
+      
+      def built?
+        true
       end
       
       # True if entries are empty.
@@ -48,12 +76,47 @@ module Tap
         minimatch(key)
       end
       
-      def inspect
+      # Like find, but searches across all envs for the matching value.
+      # An env may be specified in key to select a single
+      # env to search.
+      #
+      def search(key)
+        raise "cannot search unless bound" unless bound?
+        envs = env.envs(true)
+        
+        if key =~ /^(.*):([^:]+)$/
+          env_key, key = $1, $2
+          envs = [env.minimatch(env_key)].compact
+        end
+        
+        envs.each do |env|
+          if result = env.send(type).minimatch(key)
+            return result
+          end
+        end
+        
+        nil
+      end
+      
+      def inspect(build=true)
+        if build && bound?
+          lines = []
+          env.each do |env|
+            manifest = env.send(type).build
+            next if manifest.empty?
+            
+            lines << "== #{env.root.root}"
+            manifest.minimap.each do |mini, value| 
+              lines << "  #{mini}: #{value.inspect}"
+            end
+          end
+          return lines.join("\n")
+        end
+        
         lines = minimap.collect do |mini, value| 
           "  #{mini}: #{value.inspect}"
         end
-
-        "#{self.class}:#{object_id}\n#{lines.join("\n")}"
+        "#{self.class}:#{object_id} (#{bound? ? env.root.root : ''})\n#{lines.join("\n")}"
       end
       
       protected

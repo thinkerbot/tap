@@ -64,7 +64,7 @@ module Tap
       when '', '--help'
         yield
       else
-        if path = search(:commands, command)
+        if path = commands.search(command)
           load path # run the command, if it exists
         else
           puts "Unknown command: '#{command}'"
@@ -76,7 +76,7 @@ module Tap
     def build(argv=ARGV)
       Support::Schema.parse(argv).compact.build(app) do |args|
         task = args.shift
-        const = search(:tasks, task) 
+        const = tasks.search(task) 
         
         task_class = case
         when const then const.constantize 

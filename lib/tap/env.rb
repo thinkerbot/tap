@@ -71,7 +71,7 @@ module Tap
       def manifest(name, &block) # :yields: env (returns manifest)
         name = name.to_sym
         define_method(name) do
-          self.manifests[name] ||= block.call(self)
+          self.manifests[name] ||= block.call(self).bind(self, name)
         end
       end
       
@@ -469,30 +469,6 @@ module Tap
     # Return true if self has been activated.
     def active?
       @active
-    end
-    
-    # Like find, but searches across all envs for the matching value.
-    # An env may be specified in key to select a single
-    # env to search.
-    #
-    def search(name, key)
-      envs = self.envs(true)
-      
-      if key =~ /^(.*):([^:]+)$/
-        env_key, key = $1, $2
-        env = minimatch(env_key)
-        return nil unless env
-        
-        envs = [env]
-      end
-      
-      envs.each do |env|
-        if result = env.send(name).minimatch(key)
-          return result
-        end
-      end
-      
-      nil
     end
     
     # Searches each env for the first existing file or directory at 

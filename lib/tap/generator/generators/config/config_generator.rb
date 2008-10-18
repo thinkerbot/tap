@@ -13,7 +13,7 @@ module Tap::Generator::Generators
     end
 
     def manifest(m, name, config_name=name)
-      const = env.search(:tasks, name) or raise "unknown task: #{name}"
+      const = env.tasks.search(name) or raise "unknown task: #{name}"
       task_class = const.constantize or raise "unknown task: #{name}"
       
       m.directory app['config']

@@ -96,18 +96,16 @@ class EnvTest < Test::Unit::TestCase
   def test_manifest_adds_method_to_access_manifest_produced_by_block
     assert !e.respond_to?(:new_manifest)
     Tap::Env.manifest(:new_manifest) do |env|
-      {:new => 'manifest'}
+      Tap::Support::Manifest.new ['a', 'b', 'c']
     end
     
     assert e.respond_to?(:new_manifest)
-    assert_equal({:new => 'manifest'}, e.new_manifest)
-    assert_equal(e.new_manifest.object_id, e.manifests[:new_manifest].object_id)
-    
+    assert_equal(['a', 'b', 'c'], e.new_manifest.entries)
+
     another = Tap::Env.new({}, root)
     assert another.respond_to?(:new_manifest)
-    assert_equal({:new => 'manifest'}, another.new_manifest)
-    assert_equal(another.new_manifest.object_id, another.manifests[:new_manifest].object_id)
-    
+    assert_equal(['a', 'b', 'c'], another.new_manifest.entries)
+
     assert_not_equal another.new_manifest.object_id, e.new_manifest.object_id
   end
   
@@ -775,46 +773,46 @@ a (0)
     e1 = Tap::Env.new({}, Tap::Root.new("/path/to/e1"))
     m1 = Tap::Support::Manifest.new
     entries.each {|entry| m1.entries << "/e1#{entry}" }
-    e1.manifests[:items] = m1
+    e1.manifests[:items] = m1.bind(e1, :items)
     
     e2 = Tap::Env.new({}, Tap::Root.new("/path/to/e2"))
     m2 = Tap::Support::Manifest.new
     entries.each {|entry| m2.entries << "/e2#{entry}" }
-    e2.manifests[:items] = m2
+    e2.manifests[:items] = m2.bind(e2, :items)
     
     e1.push e2
     
     # simple search of e1
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "/path/to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "e1/path/to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "/e1/path/to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "one-0.1.0")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "one-0.1.0.txt")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("/path/to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("e1/path/to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("/e1/path/to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("one-0.1.0")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("one-0.1.0.txt")
     
-    assert_equal "/e1/path/to/two.txt", e1.search(:items, "two")
-    assert_equal "/e1/path/to/another/one.txt", e1.search(:items, "another/one")
-    assert_equal "/e1/path/to/one-0.2.0.txt", e1.search(:items, "one-0.2.0")
+    assert_equal "/e1/path/to/two.txt", e1.items.search("two")
+    assert_equal "/e1/path/to/another/one.txt", e1.items.search("another/one")
+    assert_equal "/e1/path/to/one-0.2.0.txt", e1.items.search("one-0.2.0")
     
     # check e1 searches e2
-    assert_equal "/e2/path/to/one-0.1.0.txt", e1.search(:items, "/e2/path/to/one")
-    assert_equal "/e2/path/to/one-0.1.0.txt", e1.search(:items, "/e2/path/to/one-0.1.0")
-    assert_equal "/e2/path/to/one-0.1.0.txt", e1.search(:items, "/e2/path/to/one-0.1.0.txt")
+    assert_equal "/e2/path/to/one-0.1.0.txt", e1.items.search("/e2/path/to/one")
+    assert_equal "/e2/path/to/one-0.1.0.txt", e1.items.search("/e2/path/to/one-0.1.0")
+    assert_equal "/e2/path/to/one-0.1.0.txt", e1.items.search("/e2/path/to/one-0.1.0.txt")
     
     # check with env pattern
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "e1:one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.search(:items, "/path/to/e1:one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("e1:one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("/path/to/e1:one")
 
-    assert_equal "/e2/path/to/one-0.1.0.txt", e1.search(:items, "e2:one")
-    assert_equal "/e2/path/to/one-0.1.0.txt", e1.search(:items, "/path/to/e2:to/one")
+    assert_equal "/e2/path/to/one-0.1.0.txt", e1.items.search("e2:one")
+    assert_equal "/e2/path/to/one-0.1.0.txt", e1.items.search("/path/to/e2:to/one")
     
     # a variety of nil cases
-    assert_nil e1.search(:items, "e3:one")
-    assert_nil e1.search(:items, "another/path/to/e1:one")
-    assert_nil e1.search(:items, "/another/path/to/one")
-    assert_nil e1.search(:items, "/path/to")
-    assert_nil e1.search(:items, "non_existant")
+    assert_nil e1.items.search("e3:one")
+    assert_nil e1.items.search("another/path/to/e1:one")
+    assert_nil e1.items.search("/another/path/to/one")
+    assert_nil e1.items.search("/path/to")
+    assert_nil e1.items.search("non_existant")
   end
   
   # def test_search_raises_argument_error_if_attempting_to_search_the_envs_manifest

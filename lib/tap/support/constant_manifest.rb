@@ -41,6 +41,15 @@ module Tap
         @path_index = 0
       end
       
+      def build
+        each {|entry| } unless built?
+        self
+      end
+      
+      def built?
+        path_root_index == paths.length
+      end
+      
       def each
         entries.each do |entry|
           yield(entry)
@@ -57,7 +66,7 @@ module Tap
           
           @path_root_index += 1
           @path_index  = 0
-        end
+        end unless built?
       end
       
       protected

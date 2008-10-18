@@ -9,7 +9,7 @@ if ARGV.empty? || ARGV == ['--help']
 end
 
 name = ARGV.shift
-const = env.search(:generators, name) or raise "unknown generator: #{name}"
+const = env.generators.search(name) or raise "unknown generator: #{name}"
 
 generator_class = const.constantize
 generator, argv = generator_class.parse(ARGV)
