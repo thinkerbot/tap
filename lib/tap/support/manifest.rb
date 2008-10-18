@@ -1,13 +1,17 @@
-require 'tap/support/manifestable'
+require 'tap/support/minimap'
 
 module Tap
   module Support
+    
+    # Manifests store an array of paths and make them available for lookup
+    # by minipath.  Manifests may be bound to a Tap::Env, allowing them
+    # to search for a match across a full environment (including nested
+    # environments).
+    #
+    # A basic Manifest has a number of hooks used by subclasses like 
+    # ConstantManifest to lazily build manifest entries as needed.
     class Manifest
       class << self
-        def normalize(key)
-          key.to_s.downcase.gsub(/\s/, "_").delete(":")
-        end
-        
         def intern(*args, &block)
           instance = new(*args)
           if block_given?
@@ -18,41 +22,70 @@ module Tap
         end
       end
       
-      include Manifestable
+      include Enumerable
+      include Minimap
       
-      # An array of (key, value) entries in self.
+      # An array entries in self.
       attr_reader :entries
       
+      # The bound Tap::Env, or nil.
       attr_reader :env
       
-      attr_reader :type
+      # The reader on Tap::Env accessing manifests
+      # of the same type of entries as self.
+      # reader is set during bind.
+      attr_reader :reader
       
+      # Initializes a new, unbound Manifest.
       def initialize(entries=[])
         @entries = entries
         @env = nil
-        @type = nil
+        @reader = nil
       end
       
-      def bind(env, type)
-        @env = env
-        @type = type
-        
-        unless env.respond_to?(type)
-          raise ArgumentError, "env does not respond to #{type}"
+      # Binds self to an env and reader.  The manifests returned by env.reader
+      # will be used during env-traversal methods like search.  Raises an
+      # error if env does not respond to reader; returns self.
+      def bind(env, reader)
+        if env == nil
+          raise ArgumentError, "env may not be nil" 
         end
+        
+        unless env.respond_to?(reader)
+          raise ArgumentError, "env does not respond to #{reader}"
+        end
+        
+        @env = env
+        @reader = reader
         self
       end
       
-      def bound?
-        @env != nil && @type != nil
+      # Unbinds self from env.  Returns self.
+      def unbind
+        @env = nil
+        @reader = nil
+        self
       end
       
+      # True if the env and reader have been set.
+      def bound?
+        @env != nil && @reader != nil
+      end
+      
+      # A hook for dynamically building entries.  By default build simply
+      # returns self
       def build
         self
       end
       
+      # A hook to flag when self is built.  By default built? returns true.
       def built?
         true
+      end
+      
+      # A hook to reset a build.  By default reset simply returns self.
+      def reset
+        self
       end
       
       # True if entries are empty.
@@ -60,26 +93,16 @@ module Tap
         entries.empty?
       end
       
-      # Clears entries and sets the path_index to zero.
-      def reset
-        @entries.clear
-      end
-      
-      # Iterates over each (key, value) entry in self, dynamically 
-      # identifying entries from paths if necessary.  New 
-      # entries are identifed using the each_for method.
+      # Iterates over each entry entry in self.
       def each
         entries.each {|entry| yield(entry) }
       end
       
+      # Alias for Minimap#minimatch.
       def [](key)
         minimatch(key)
       end
       
-      # Like find, but searches across all envs for the matching value.
-      # An env may be specified in key to select a single
-      # env to search.
-      #
       def search(key)
         raise "cannot search unless bound" unless bound?
         envs = env.envs(true)
@@ -90,7 +113,7 @@ module Tap
         end
         
         envs.each do |env|
-          if result = env.send(type).minimatch(key)
+          if result = env.send(reader).minimatch(key)
             return result
           end
         end
@@ -102,7 +125,7 @@ module Tap
         if build && bound?
           lines = []
           env.each do |env|
-            manifest = env.send(type).build
+            manifest = env.send(reader).build
             next if manifest.empty?
             
             lines << "== #{env.root.root}"
@@ -117,12 +140,6 @@ module Tap
           "  #{mini}: #{value.inspect}"
         end
         "#{self.class}:#{object_id} (#{bound? ? env.root.root : ''})\n#{lines.join("\n")}"
-      end
-      
-      protected
-      
-      def minikey(path)
-        path.gsub(/\s/, "_").delete(":")
       end
     end
   end
