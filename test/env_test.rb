@@ -669,10 +669,10 @@ a (0)
   
   def test_deactivate_clears_manifests
     e.activate
-    e.manifests[:key] = :value
-    assert !e.manifests.empty?
+    e.tasks.entries << "entry"
+    assert !e.tasks.empty?
     e.deactivate
-    assert e.manifests.empty?
+    assert e.tasks.empty?
   end
   
   #
@@ -761,26 +761,20 @@ a (0)
   #
   
   def test_search_calls_find_in_each_env_manifest_until_a_matching_value_is_found
-    Tap::Env.manifest(:items) {|env| }
+    Tap::Env.manifest(:items) {|env| Tap::Support::Manifest.new }
     
-    entries = [ 
-      "/path/to/one-0.1.0.txt",
+    e1 = Tap::Env.new({}, Tap::Root.new("/path/to/e1"))
+    e2 = Tap::Env.new({}, Tap::Root.new("/path/to/e2"))
+    e1.push e2
+    
+    [ "/path/to/one-0.1.0.txt",
       "/path/to/two.txt",
       "/path/to/another/one.txt",
       "/path/to/one-0.2.0.txt", 
-    ]
-    
-    e1 = Tap::Env.new({}, Tap::Root.new("/path/to/e1"))
-    m1 = Tap::Support::Manifest.new
-    entries.each {|entry| m1.entries << "/e1#{entry}" }
-    e1.manifests[:items] = m1.bind(e1, :items)
-    
-    e2 = Tap::Env.new({}, Tap::Root.new("/path/to/e2"))
-    m2 = Tap::Support::Manifest.new
-    entries.each {|entry| m2.entries << "/e2#{entry}" }
-    e2.manifests[:items] = m2.bind(e2, :items)
-    
-    e1.push e2
+    ].each do |entry|
+      e1.items.entries << "/e1#{entry}"
+      e2.items.entries << "/e2#{entry}"
+    end
     
     # simple search of e1
     assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("one")

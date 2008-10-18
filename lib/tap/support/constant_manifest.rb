@@ -3,59 +3,75 @@ require 'tap/support/constant'
 
 module Tap
   module Support
-
+    
+    # ConstantManifest builds a manifest of Constant entries using Lazydoc.  The
+    # idea is that Lazydoc can find files that have resouces of a specific type
+    # (ex tasks) and Constant can reference those resouces so they can be loaded
+    # as necessary. ConstantManifest registers paths so that they may be lazily
+    # scanned as necessary when searching for a specific resource.
+    #
+    #   
+    #
     class ConstantManifest < Support::Manifest
       
-      # An array of paths to identify entries.
-      attr_reader :paths
-      
-      # The index of the search_path that will be searched
-      # next when building the manifest.
-      attr_reader :path_index
-      
-      attr_reader :path_root_index
-      
+      # The constant attribute identifying resources in a file
       attr_reader :const_attr
       
-      def initialize(paths, const_attr)
-        @paths = paths
+      # Registered [root, [paths]] pairs that will be searched
+      # for the const_attr
+      attr_reader :search_paths
+      
+      # The current index of search_paths
+      attr_reader :search_path_index
+      
+      # The current index of paths
+      attr_reader :path_index
+      
+      # Initializes a new ConstantManifest
+      def initialize(const_attr)
         @const_attr = const_attr
-        @path_root_index = 0
+        @search_paths = []
+        @search_path_index = 0
         @path_index = 0
         super([])
       end
       
-      # Sets the paths for self.  Setting paths
-      # clears all entries and puts path_index to zero.
-      def paths=(paths)
-        @entries = []
-        @paths = paths
-        @path_root_index = 0
-        @path_index = 0
+      # Registers the files matching pattern under dir.  Returns self.
+      def register(dir, pattern)
+        search_paths << [dir, Dir.glob(File.join(dir, pattern)).select {|file| File.file?(file) }]
+        self
       end
       
-      # Clears entries and sets the path_index to zero.
-      def reset
-        super
-        @path_root_index = 0
-        @path_index = 0
-      end
-      
+      # Searches all paths for entries and adds them to self.  Returns self.
       def build
         each {|entry| } unless built?
         self
       end
       
+      # True if there are no more paths to search 
+      # (ie search_path_index == search_paths.length)
       def built?
-        path_root_index == paths.length
+        search_path_index == search_paths.length
       end
       
+      # Sets search_path_index and path_index to zero and clears entries.
+      # Returns self.
+      def reset
+        # Support::Lazydoc[path].resolved = false
+        @entries.clear
+        @search_path_index = 0
+        @path_index = 0
+        super
+      end
+      
+      # Yields each entry to the block.  Unless built? is true, each lazily
+      # iterates over search_paths to look for new entries.
       def each
         entries.each do |entry|
           yield(entry)
         end
         
-        paths[path_root_index, paths.length - path_root_index].each do |(path_root, paths)|
+        search_paths[search_path_index, search_paths.length - search_path_index].each do |(path_root, paths)|
           paths[path_index, paths.length - path_index].each do |path|
             new_entries = resolve(path_root, path) - entries
             entries.concat(new_entries)
@@ -64,23 +80,33 @@ module Tap
             new_entries.each {|entry| yield(entry) }
           end
           
-          @path_root_index += 1
-          @path_index  = 0
+          @search_path_index += 1
+          @path_index = 0
         end unless built?
       end
       
       protected
       
-      def minikey(const)
-        const.name.underscore  
+      def minikey(const) # :nodoc:
+        const.path
       end
       
       def resolve(path_root, path)
-        return [] unless File.file?(path) && document = Lazydoc.scan_doc(path, const_attr)
-
-        relative_path = Root.relative_filepath(path_root, path).chomp(File.extname(path))
-        document.default_const_name = relative_path.camelize
-        document.const_names.collect {|const_name| Constant.new(const_name, path)}
+        entries = []
+        if document = Lazydoc.scan_doc(path, const_attr)
+          if document.default_const_name.empty?
+            relative_path = Root.relative_filepath(path_root, path).chomp(File.extname(path))
+            document.default_const_name = relative_path.camelize
+          end
+          
+          document.const_attrs.each_pair do |const_name, attrs|
+            if attrs.has_key?(const_attr)
+              entries << Constant.new(const_name, path)
+            end
+          end
+        end
+        
+        entries
       end
       
     end

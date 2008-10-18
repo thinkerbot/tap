@@ -7,8 +7,9 @@ module Tap
   # Note that gems and env_paths reset envs -- custom modifications to envs will be lost
   # whenever these configs are reset.
   class Env
+    include Enumerable
     include Support::Configurable
-    include Support::Manifestable
+    include Support::Minimap
     
     class << self
       
@@ -115,9 +116,6 @@ module Tap
     # Gets or sets the logger for self
     attr_accessor :logger
     
-    # A hash of the manifests for self.
-    attr_reader :manifests
-    
     # Specify files to require when self is activated.
     config :requires, [], &c.array_or_nil
     
@@ -186,21 +184,24 @@ module Tap
     end
     
     manifest(:tasks) do |env|
-      paths = env.load_paths.collect do |path_root|
-        [path_root, env.root.glob(path_root, '**/*.rb')]
+      tasks = Support::ConstantManifest.new('manifest')
+      env.load_paths.each do |path_root|
+        tasks.register(path_root, '**/*.rb')
       end
-      
-      Support::ConstantManifest.new(paths, 'manifest') 
+      # tasks.cache = env.cache[:tasks]
+      tasks
     end
 
     manifest(:generators) do |env|
-      paths = env.generator_paths.collect do |path_root|
-        [path_root, env.root.glob(path_root, '**/*_generator.rb')]
-      end
-      
-      Support::ConstantManifest.intern(paths, 'generator') do |manifest, const|
+      generators = Support::ConstantManifest.intern('generator') do |manifest, const|
         const.name.underscore.chomp('_generator')
       end
+      
+      env.generator_paths.each do |path_root|
+        generators.register(path_root, '**/*_generator.rb')
+      end
+      # generators.cache = env.cache[:generators]
+      generators
     end
 
     def initialize(config={}, root=Tap::Root.new, logger=nil)
@@ -557,6 +558,9 @@ module Tap
     end
     
     protected
+    
+    # A hash of the manifests for self.
+    attr_reader :manifests
     
     def minikey(env)
       env.root.root

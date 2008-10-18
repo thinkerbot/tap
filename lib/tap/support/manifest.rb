@@ -25,6 +25,15 @@ module Tap
       include Enumerable
       include Minimap
       
+      # Matches a compound manifest search key.  After the match,
+      # if the key is compound then:
+      #
+      #  $1:: env_key
+      #  $4:: key
+      #
+      # If the key is not compound, $4 is nil and $1 is the key.
+      SEARCH_REGEXP = /^(([A-z]:)?.*?)(:(.*))?$/
+      
       # An array entries in self.
       attr_reader :entries
       
@@ -103,15 +112,28 @@ module Tap
         minimatch(key)
       end
       
+      # Search across env.each for the first entry minimatching key.
+      # A single env can be specified for searching using a compound
+      # key where the env_key and the actual key are joined like
+      # 'env_key:key'.  Returns nil if no matching entry is found.
+      #
+      # Search raises an error unless self is bound to an env.
       def search(key)
         raise "cannot search unless bound" unless bound?
-        envs = env.envs(true)
         
-        if key =~ /^(.*):([^:]+)$/
-          env_key, key = $1, $2
-          envs = [env.minimatch(env_key)].compact
+        key =~ SEARCH_REGEXP
+        envs = if $4 != nil
+          # compound key, match for env
+          key = $4
+          [env.minimatch($1)].compact
+        else
+          # not a compound key, search all
+          # envs by iterating env itself
+          env
         end
         
+        # traverse envs looking for the first
+        # manifest entry matching key
         envs.each do |env|
           if result = env.send(reader).minimatch(key)
             return result
@@ -121,8 +143,9 @@ module Tap
         nil
       end
       
-      def inspect(build=true)
-        if build && bound?
+      # Inspects 
+      def inspect(traverse=true)
+        if traverse && bound?
           lines = []
           env.each do |env|
             manifest = env.send(reader).build

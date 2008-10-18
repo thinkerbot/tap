@@ -108,9 +108,9 @@ module Tap
           when path == "/" || path == "/index"
             # serve up the homepage
             if rack_env["QUERY_STRING"] == "refresh=true"
-              reset(:cgis) do |key, path|
-                Support::Lazydoc[path].resolved = false
-              end
+              # reset(:cgis) do |key, path|
+              #   Support::Lazydoc[path].resolved = false
+              # end
             end
             render_response('index.erb', rack_env)
             

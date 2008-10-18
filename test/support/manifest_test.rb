@@ -141,4 +141,53 @@ class ManifestTest < Test::Unit::TestCase
     assert_equal nil, m['non_existant']
   end
 
+  #
+  # SEARCH_REGEXP test
+  #
+  
+  def test_SEARCH_REGEXP_REGEXP
+    r = Manifest::SEARCH_REGEXP
+    
+    # key only
+    assert r =~ "key"
+    assert_equal ["key", nil], [$1, $4]
+    
+    assert r =~ "path/to/key"
+    assert_equal ["path/to/key", nil], [$1, $4]
+    
+    assert r =~ "/path/to/key"
+    assert_equal ["/path/to/key", nil], [$1, $4]
+    
+    assert r =~ "C:/path/to/key"
+    assert_equal ["C:/path/to/key", nil], [$1, $4]
+    
+    assert r =~ 'C:\path\to\key'
+    assert_equal ['C:\path\to\key', nil], [$1, $4]
+    
+    # env_key and key
+    assert r =~ "env_key:key"
+    assert_equal ["env_key", "key"], [$1, $4]
+    
+    assert r =~ "path/to/env_key:path/to/key"
+    assert_equal ["path/to/env_key", "path/to/key"], [$1, $4]
+    
+    assert r =~ "/path/to/env_key:/path/to/key"
+    assert_equal ["/path/to/env_key", "/path/to/key"], [$1, $4]
+    
+    assert r =~ "C:/path/to/env_key:C:/path/to/key"
+    assert_equal ["C:/path/to/env_key", "C:/path/to/key"], [$1, $4]
+    
+    assert r =~ 'C:\path\to\env_key:C:\path\to\key'
+    assert_equal ['C:\path\to\env_key', 'C:\path\to\key'], [$1, $4]
+    
+    assert r =~ "/path/to/env_key:C:/path/to/key"
+    assert_equal ["/path/to/env_key", "C:/path/to/key"], [$1, $4]
+    
+    assert r =~ "C:/path/to/env_key:/path/to/key"
+    assert_equal ["C:/path/to/env_key", "/path/to/key"], [$1, $4]
+  end
+  
+  #
+  # search is tested in env_test
+  #
 end
