@@ -2,7 +2,7 @@ require 'tap/generator/generators/task/task_generator'
 
 module Tap::Generator::Generators
   
-  # :startdoc::generator a file_task and test
+  # Tap::Generator::Generators::FileTaskGenerator::generator a file_task and test
   #
   # Generates a new Tap::FileTask and associated test files.
   class FileTaskGenerator < TaskGenerator

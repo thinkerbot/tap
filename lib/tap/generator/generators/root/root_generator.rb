@@ -2,7 +2,7 @@ require 'tap/root'
 
 module Tap::Generator::Generators
   
-  # :startdoc::generator a basic tap directory structure
+  # Tap::Generator::Generators::RootGenerator::generator a basic tap directory structure
   #
   # Generates a tap root directory structure.  Use the switches to 
   # generate a Tapfile and/or a tap config file:

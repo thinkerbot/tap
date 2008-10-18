@@ -1,6 +1,6 @@
 module Tap::Generator::Generators
   
-  # :startdoc::generator a config file for a task
+  # Tap::Generator::Generators::ConfigGenerator::generator a config file for a task
   # 
   # Generates a new config file for a task.  The configurations, defaults, 
   # and documentation is determined from the task source file.
