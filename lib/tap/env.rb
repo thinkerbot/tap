@@ -450,22 +450,22 @@ module Tap
     # be returned if the block returns true.
     #
     # Returns nil if no file can be found.
-    # def search_path(dir, path)
-    #   each do |env|
-    #     directory = env.root.filepath(dir)
-    #     file = env.root.filepath(dir, path)
-    #     
-    #     # check the file is relative to the
-    #     # directory, and that the file exists.
-    #     if file.rindex(directory, 0) == 0 && 
-    #       File.exists?(file) && 
-    #       (!block_given? || yield(file))
-    #       return file
-    #     end
-    #   end
-    #   
-    #   nil
-    # end
+    def search_path(dir, path)
+      each do |env|
+        directory = env.root.filepath(dir)
+        file = env.root.filepath(dir, path)
+        
+        # check the file is relative to the
+        # directory, and that the file exists.
+        if file.rindex(directory, 0) == 0 && 
+          File.exists?(file) && 
+          (!block_given? || yield(file))
+          return file
+        end
+      end
+      
+      nil
+    end
     
     # def reset(name, &block)
     #   each do |env|
@@ -474,30 +474,28 @@ module Tap
     #   end
     # end
     
-    TEMPLATES = {
-      :commands => %Q{<% if count > 1 %>
+    # 
+    TEMPLATES = {}
+    TEMPLATES[:commands] = %Q{<% if count > 1 %>
 <%= env_name %>:
 <% end %>
 <% entries.each do |name, const| %>
   <%= name.ljust(width) %>
-<% end %>},
-
-      :tasks => %Q{<% if count > 1 %>
+<% end %>}
+    TEMPLATES[:tasks] = %Q{<% if count > 1 %>
 <%= env_name %>:
 <% end %>
 <% entries.each do |name, const| %>
 <%   desc = const.document[const.name]['manifest'] %>
   <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
-<% end %>},
-
-      :generators => %Q{<% if count > 1 %>
+<% end %>}
+    TEMPLATES[:generators] = %Q{<% if count > 1 %>
 <%= env_name %>:
 <% end %>
 <% entries.each do |name, const| %>
 <%   desc = const.document[const.name]['generator'] %>
   <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
 <% end %>}
-    }
     
     def summarize(name, template=TEMPLATES[name])
       count = 0

@@ -2,6 +2,18 @@ require  File.join(File.dirname(__FILE__), 'tap_test_helper')
 require 'tap/task'
 
 # used in documentation test
+class NoInput < Tap::Task
+  def process(); []; end
+end
+
+class OneInput < Tap::Task
+  def process(input); [input]; end
+end
+
+class MixedInputs < Tap::Task
+  def process(a, b, *args); [a,b,args]; end
+end
+
 class ConfiguredTask < Tap::Task
   config :one, 'one'
   config :two, 'two'
@@ -50,39 +62,41 @@ class TaskTest < Test::Unit::TestCase
   #
   
   def test_documentation
+    assert_equal [], NoInput.new.execute
+    assert_equal [:a], OneInput.new.execute(:a)
+    assert_equal [:a, :b, []], MixedInputs.new.execute(:a, :b)
+    assert_equal [:a, :b, [1,2,3]], MixedInputs.new.execute(:a, :b, 1, 2, 3)
+  
+    no_inputs = Task.intern {|task| [] }
+    one_input = Task.intern {|task, input| [input] }
+    mixed_inputs = Task.intern {|task, a, b, *args| [a, b, args] }
+  
+    assert_equal [], no_inputs.execute
+    assert_equal [:a], one_input.execute(:a)
+    assert_equal [:a, :b, []], mixed_inputs.execute(:a, :b)
+    assert_equal [:a, :b, [1,2,3]], mixed_inputs.execute(:a, :b, 1, 2, 3)
+  
+    ####
     t = ConfiguredTask.new
-    assert_equal("configured_task", t.name)
-    assert_equal({:one => 'one', :two => 'two'}, t.config)           
+    assert_equal({:one => 'one', :two => 'two'}, t.config)
+    assert_equal('one', t.one)
+    t.one = 'ONE'
+    assert_equal({:one => 'ONE', :two => 'two'}, t.config)
   
-    t = ValidatingTask.new
-    assert_raise(Support::Validation::ValidationError) { t.string = 1 }
-    assert_raise(Support::Validation::ValidationError) { t.integer = 1.1 }
-  
-    t.integer = "1"
-    assert_equal 1, t.integer
-    
-    t = ConfiguredTask.new({:one => 'ONE', :three => 'three'}, "example")
-    assert_equal "example", t.name
+    t = ConfiguredTask.new(:one => 'ONE', :three => 'three')
     assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, t.config)
-    
-    ###
-    app = Tap::App.instance
-    t1 = Tap::Task.intern(:key => 'one') do |task, input| 
-      input + task.config[:key]
-    end
-    assert_equal [t1], t1.batch
+    assert_equal false, t.respond_to?(:three)
   
-    t2 = t1.initialize_batch_obj(:key => 'two')
-    assert_equal [t1, t2], t1.batch
-    assert_equal [t1, t2], t2.batch
-    
-    t1.enq 't1_by_'
-    t2.enq 't2_by_'
-    app.run
+    ####
+    t = ValidatingTask.new
+    assert_raise(Tap::Support::Validation::ValidationError) { t.string = 1 }
+    assert_raise(Tap::Support::Validation::ValidationError) { t.integer = 1.1 }
+
+    t.integer = "1"
+    assert t.integer == 1
+  end
   
-    assert_equal ["t1_by_one", "t2_by_one"], app.results(t1)
-    assert_equal ["t1_by_two", "t2_by_two"], app.results(t2)
-    
+  def test_hidden_documentation
     ###
     t1 = SubclassTask.new
     t2 = t1.initialize_batch_obj

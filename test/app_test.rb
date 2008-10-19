@@ -37,100 +37,99 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # helpers
+  # documentation test
   #
 
   def test_app_documentation
-    t1 = Task.intern {|task, input| input += 1 }
-    t1.enq(0)
-    app.enq(t1, 1)
+    t0 = Task.intern {|task, input| "#{input}.0" }
+    t0.enq('a')
+    app.enq(t0, 'b')
   
     app.run
-    assert_equal [1, 2], app.results(t1)
+    assert_equal ['a.0', 'b.0'], app.results(t0)
     
-    ########
-    
+    ####
     app.aggregator.clear
   
-    t2 = Task.intern {|task, input| input += 10 }
-    t1.on_complete {|_result| t2.enq(_result) }
-  
-    t1.enq 0
-    t1.enq 10
+    t1 = Task.intern {|task, input| "#{input}.1" }
+    t0.on_complete {|_result| t1.enq(_result) }
+    t0.enq 'c'
   
     app.run
-    assert_equal [], app.results(t1)
-    assert_equal [11, 21], app.results(t2)
+    assert_equal [], app.results(t0)
+    assert_equal ['c.0.1'], app.results(t1)
     
-    ########
+    ####
+    runlist = []
+    t0 = Task.intern {|task| runlist << task }
+    t1 = Task.intern {|task| runlist << task }
+  
+    t0.depends_on(t1)
+    t0.enq
+  
+    app.run
+    assert_equal [t1, t0], runlist
+  
+    t0.enq
+    app.run
+    assert_equal [t1, t0, t0], runlist
     
+    ####
+    t0 = Task.intern  {|task, input| "#{input}.0" }
+    t1 = Task.intern  {|task, input| "#{input}.1" }
+  
+    t0.batch_with(t1)
+    t0.enq 'a'
+    t1.enq 'b'
+  
+    app.run
+    assert_equal ['a.0', 'b.0'], app.results(t0)
+    assert_equal ['a.1', 'b.1'], app.results(t1)
+    
+    ####
     array = []
-    t1 = Task.intern {|task, *inputs| array << inputs }
-    t2 = Task.intern {|task| array << task }
   
-    t1.depends_on(t2)
-    t1.enq(4,5,6)
-  
-    app.run
-    assert_equal [t2, [4,5,6]], array
-   
-    t1.enq(7,8)
-    app.run
-    assert_equal [t2, [4,5,6], [7,8]], array
-    
-    ########
-  
-    t1 = Task.intern  {|task, input| input += 1 }
-    t2 = Task.intern  {|task, input| input += 10 }
-    
-    t1.batch_with(t2)
-    t1.enq 0
-  
-    app.run
-    assert_equal [1], app.results(t1)
-    assert_equal [10], app.results(t2)
-    
-    ########
-  
-    array = []
+    # longhand
     m = array._method(:push)
-     
-    app.enq(m, 1)
+    m.enq(1)
+  
+    # shorthand
     app.mq(array, :push, 2)
   
     assert array.empty?
     app.run
     assert_equal [1, 2], array
     
-    ########
+    ####
+    add_one  = Tap::Task.intern({}, 'add_one')  {|task, input| input += 1 }
+    add_five = Tap::Task.intern({}, 'add_five') {|task, input| input += 5 }
   
-    t1 = Tap::Task.intern {|task, input| input += 1 }
-    t1.name = "add_one"
-  
-    t2 = Tap::Task.intern {|task, input| input += 5 }
-    t2.name = "add_five"
-  
-    t1.on_complete do |_result|
+    add_one.on_complete do |_result|
       # _result is the audit; use the _current method
       # to get the current value in the audit trail
+      current_value = _result._current
   
-      _result._current < 3 ? t1.enq(_result) : t2.enq(_result)
+      if current_value < 3 
+        add_one.enq(_result)
+      else
+        add_five.enq(_result)
+      end
     end
     
-    t1.enq(0)
-    t1.enq(1)
-    t1.enq(2)
+    add_one.enq(0)
+    add_one.enq(1)
+    add_one.enq(2)
   
     app.run
-    assert_equal [8,8,8], app.results(t2)
+    assert_equal [8,8,8], app.results(add_five)
 
-    str = StringIO.new("")
-    app._results(t2).each do |_result|
-      str.puts "How #{_result._original} became #{_result._current}:"
-      str.puts _result._to_s
-      str.puts
+    target = StringIO.new("")
+    app._results(add_five).each do |_result|
+      target.puts "How #{_result._original} became #{_result._current}:"
+      target.puts _result._to_s
+      target.puts
     end
-  
+   
     expected = %Q{
 How 2 became 8:
 o-[] 2
@@ -148,9 +147,9 @@ o-[] 0
 o-[add_one] 1
 o-[add_one] 2
 o-[add_one] 3
-o-[add_five] 8
-}
-    assert_equal expected.strip, str.string.strip
+o-[add_five] 8}.strip
+
+    assert_equal expected, target.string.strip
   end
   
   #
@@ -405,16 +404,17 @@ o-[add_five] 8
   #
   
   def test_results_documentation
-    t1 = Task.intern {|task, input| input += 1 }
-    t2 = Task.intern {|task, input| input += 10 }
-    t3 = t2.initialize_batch_obj
-    
-    t1.enq(0)
-    t2.enq(1)
-    
+    t0 = Task.intern  {|task, input| "#{input}.0" }
+    t1 = Task.intern  {|task, input| "#{input}.1" }
+    t2 = Task.intern  {|task, input| "#{input}.2" }
+    t1.batch_with(t2)
+  
+    t0.enq(0)
+    t1.enq(1)
+  
     app.run
-    assert_equal [1, 11, 11], app.results(t1, t2.batch)
-    assert_equal  [11, 1], app.results(t2, t1)
+    assert_equal ["0.0", "1.1", "1.2"], app.results(t0, t1.batch)
+    assert_equal ["1.1", "0.0"], app.results(t1, t0)
   end
   
   def test_results_returns_current_values_of__results

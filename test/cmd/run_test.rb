@@ -149,8 +149,7 @@ unknown task: --help
       # list
       cmd.match "Run with list syntax", %Q{
 % #{cmd} run -- with_list_config --list 1,2.2,str
-% #{cmd} run -- with_list_config --list=1,2.2,str
-% #{cmd} run -- with_list_config --list \"[1, 2.2, 'str']\"}, 
+% #{cmd} run -- with_list_config --list=1,2.2,str}, 
       /with_list_config \[1, 2.2, "str"\]/
 
       cmd.match "Prints the list config help",

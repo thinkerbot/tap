@@ -6,91 +6,91 @@ require 'tap/support/executable_queue'
 module Tap
   
   # App coordinates the setup and running of tasks, and provides an interface 
-  # to the application directory structure.  App is convenient for use within 
-  # scripts and, with Env, provides the basis for the 'tap' command line 
-  # application.  
+  # to the application directory structure. All tasks have an App (by default
+  # App.instance) through which tasks access access application-wide resources 
+  # like the logger, executable queue, aggregator, and dependencies.
   #
   # === Running Tasks
   #
-  # All tasks have an App (by default App.instance) through which tasks access
-  # access application-wide resources like the logger.  Additionally, task
-  # enque command are forwarded to App#enq:
+  # Task enque command are forwarded to App#enq:
   #
-  #   t1 = Task.intern {|task, input| input += 1 }
-  #   t1.enq(0)
-  #   app.enq(t1, 1)
+  #   t0 = Task.intern {|task, input| "#{input}.0" }
+  #   t0.enq('a')
+  #   app.enq(t0, 'b')
   #
   #   app.run
-  #   app.results(t1)                # => [1, 2]
+  #   app.results(t0)                # => ['a.0', 'b.0']
   #
   # When a task completes, the results will be passed to the task on_complete
   # block, if set, or be collected into an Aggregator (aggregated results may 
-  # be accessed per-task, as shown above); on_complete blocks typically enque
-  # other tasks, allowing the construction of imperative workflows:
+  # be accessed per-task, as shown above); on_complete blocks typically 
+  # execute or enque other tasks, allowing the construction of imperative
+  # workflows:
   #
   #   # clear the previous results
   #   app.aggregator.clear
   #
-  #   t2 = Task.intern {|task, input| input += 10 }
-  #   t1.on_complete {|_result| t2.enq(_result) }
-  #
-  #   t1.enq 0
-  #   t1.enq 10
+  #   t1 = Task.intern {|task, input| "#{input}.1" }
+  #   t0.on_complete {|_result| t1.enq(_result) }
+  #   t0.enq 'c'
   #
   #   app.run
-  #   app.results(t1)                # => []
-  #   app.results(t2)                # => [11, 21]
+  #   app.results(t0)                # => []
+  #   app.results(t1)                # => ['c.0.1']
   #
-  # Here t1 has no results because the on_complete block passed them to t2 in 
+  # Here t0 has no results because the on_complete block passed them to t1 in 
   # a simple sequence.
   #
-  # ==== Dependencies
+  # === Dependencies
   #
-  # Tasks allow the construction of dependency-based workflows as well; tasks
-  # may be set to depend on other tasks such that the dependent task only 
-  # executes after the dependencies have been resolved.
+  # Tasks allow the construction of dependency-based workflows such that a 
+  # dependent task only executes after its dependencies have been resolved.
   #
-  #   array = []
-  #   t1 = Task.intern {|task, *inputs| array << inputs }
-  #   t2 = Task.intern {|task| array << self }
+  #   runlist = []
+  #   t0 = Task.intern {|task| runlist << task }
+  #   t1 = Task.intern {|task| runlist << task }
   #
-  #   t1.depends_on(t2)
-  #   t1.enq(4,5,6)
+  #   t0.depends_on(t1)
+  #   t0.enq
   #
   #   app.run
-  #   array                          # => [t2, [4,5,6]]
+  #   runlist                        # => [t1, t0]
   #
   # Once a dependency is resolved, it will not execute again:
   #
-  #   t1.enq(7,8)
+  #   t0.enq
   #   app.run
-  #   array                          # => [t2, [4,5,6], [7,8]]
+  #   runlist                        # => [t1, t0, t0]
   #
-  # ==== Batching
+  # === Batching
   #
   # Tasks can be batched, allowing the same input to be enqued to multiple 
   # tasks at once.
   #
-  #   t1 = Task.intern  {|task, input| input += 1 }
-  #   t2 = Task.intern  {|task, input| input += 10 }
+  #   t0 = Task.intern  {|task, input| "#{input}.0" }
+  #   t1 = Task.intern  {|task, input| "#{input}.1" }
   #
-  #   t1.batch_with(t2)
-  #   t1.enq 0
+  #   t0.batch_with(t1)
+  #   t0.enq 'a'
+  #   t1.enq 'b'
   #
   #   app.run
-  #   app.results(t1)                # => [1]
-  #   app.results(t2)                # => [10]
+  #   app.results(t0)                # => ['a.0', 'b.0']
+  #   app.results(t1)                # => ['a.1', 'b.1']
   #
-  # ==== Executables
+  # === Executables
   #
-  # App can enque and run any Executable object. One way to initialize an
-  # Executable for a method is to use the Object#_method added by Tap.
-  # The mq (method enq) method generates and enques the method in one step.
+  # App can enque and run any Executable object. Arbitrary methods may be
+  # made into Executables using Object#_method. The mq (method enq) method
+  # generates and enques methods in one step.
   #
   #   array = []
+  #
+  #   # longhand
   #   m = array._method(:push)
-  #    
-  #   app.enq(m, 1)
+  #   m.enq(1)
+  #
+  #   # shorthand
   #   app.mq(array, :push, 2)
   #
   #   array.empty?                   # => true
@@ -100,29 +100,29 @@ module Tap
   # === Auditing
   # 
   # All results are audited to track how a given input evolves during a workflow.
-  # To illustrate auditing, consider a workflow that uses the 'add_one' method 
-  # to add one to an input until the result is 3, then adds five more with the 
-  # 'add_five' method.  The final result should always be 8.  
+  # To illustrate auditing, consider and addition workflow that ends in eights.
   #
-  #   t1 = Tap::Task.intern {|task, input| input += 1 }
-  #   t1.name = "add_one"
+  #   add_one  = Tap::Task.intern({}, 'add_one')  {|task, input| input += 1 }
+  #   add_five = Tap::Task.intern({}, 'add_five') {|task, input| input += 5 }
   #
-  #   t2 = Tap::Task.intern {|task, input| input += 5 }
-  #   t2.name = "add_five"
-  #
-  #   t1.on_complete do |_result|
+  #   add_one.on_complete do |_result|
   #     # _result is the audit; use the _current method
   #     # to get the current value in the audit trail
+  #     current_value = _result._current
   #
-  #     _result._current < 3 ? t1.enq(_result) : t2.enq(_result)
+  #     if current_value < 3 
+  #       add_one.enq(_result)
+  #     else
+  #       add_five.enq(_result)
+  #     end
   #   end
   #   
-  #   t1.enq(0)
-  #   t1.enq(1)
-  #   t1.enq(2)
+  #   add_one.enq(0)
+  #   add_one.enq(1)
+  #   add_one.enq(2)
   #
   #   app.run
-  #   app.results(t2)                # => [8,8,8]
+  #   app.results(add_five)          # => [8,8,8]
   #
   # Although the results are indistinguishable, each achieved the final value
   # through a different series of tasks. With auditing you can see how each 
@@ -130,7 +130,7 @@ module Tap
   #
   #   # app.results returns the actual result values
   #   # app._results returns the audits for these values
-  #   app._results(t2).each do |_result|
+  #   app._results(add_five).each do |_result|
   #     puts "How #{_result._original} became #{_result._current}:"
   #     puts _result._to_s
   #     puts
@@ -257,10 +257,6 @@ module Tap
       name == nil ? nil : filepath('config', "#{name}.yml")
     end
     
-    #
-    # Execution methods
-    #
-    
     # Sets state = State::READY unless the app is running.  Returns self.
     def ready
       @state = State::READY unless state == State::RUN
@@ -337,10 +333,8 @@ module Tap
       "state: #{state} (#{State.state_str(state)}) queue: #{queue.size} results: #{aggregator.size}"
     end
     
-    # Enques the task with the inputs.  If the task is batched, then each 
-    # task in task.batch will be enqued with the inputs.  Returns task.
-    #
-    # An Executable may provided instead of a task.
+    # Enques the task (or Executable) with the inputs.  If the task is batched, 
+    # then each task in task.batch will be enqued with the inputs.  Returns task.
     def enq(task, *inputs)
       case task
       when Tap::Task
@@ -371,16 +365,17 @@ module Tap
     # Returns all aggregated results for the specified tasks.  Results are
     # joined into a single array.  Arrays of tasks are allowed as inputs.    
     #
-    #   t1 = Task.intern  {|task, input| input += 1 }
-    #   t2 = Task.intern  {|task, input| input += 10 }
-    #   t3 = t2.initialize_batch_obj
+    #   t0 = Task.intern  {|task, input| "#{input}.0" }
+    #   t1 = Task.intern  {|task, input| "#{input}.1" }
+    #   t2 = Task.intern  {|task, input| "#{input}.2" }
+    #   t1.batch_with(t2)
     #
-    #   t1.enq(0)
-    #   t2.enq(1)
+    #   t0.enq(0)
+    #   t1.enq(1)
     #
     #   app.run
-    #   app.results(t1, t2.batch)     # => [1, 11, 11]
-    #   app.results(t2, t1)           # => [11, 1]
+    #   app.results(t0, t1.batch)     # => ["0.0", "1.1", "1.2"]
+    #   app.results(t1, t0)           # => ["1.1", "0.0"]
     #
     def results(*tasks)
       _results(tasks).collect {|_result| _result._current}

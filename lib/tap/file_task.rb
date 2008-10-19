@@ -46,7 +46,7 @@ module Tap
   class FileTask < Task
     include Tap::Support::ShellUtils
     
-    # A hash of backup (source, target) pairs, such that the
+    # A hash of backup [source, target] pairs, such that the
     # backed-up files are backed_up_files.keys and the actual
     # backup files are backed_up_files.values.  All filepaths
     # in backed_up_files should be expanded.

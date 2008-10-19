@@ -6,61 +6,47 @@ autoload(:OptionParser, 'optparse')
 
 module Tap
 
-  # Tasks are the basic organizational unit of Tap.  Tasks provide
-  # a standard backbone for creating the working parts of an application
-  # by facilitating configuration, batched execution of methods, and 
-  # documentation.
-  #
-  # The functionality of Task is built from several base modules:
-  # - Tap::Support::Batchable
-  # - Tap::Support::Configurable
-  # - Tap::Support::Executable
-  #
-  # Tap::Workflow is built on the same foundations; the sectons on
-  # configuration and batching apply equally to Workflows as Tasks.
-  #
   # === Task Definition
   #
-  # Tasks are instantiated with a task block; when the task is run
-  # the block gets called with the enqued inputs.  As such, the block
-  # should specify the same number of inputs as you enque (plus the
-  # task itself, which is a standard input).
-  #
-  #   no_inputs = Task.new {|task| }
-  #   one_input = Task.new {|task, input| }
-  #   mixed_inputs = Task.new {|task, a, b, *args| }
-  #
-  #   no_inputs.enq
-  #   one_input.enq(:a)
-  #   mixed_inputs.enq(:a, :b)
-  #   mixed_inputs.enq(:a, :b, 1, 2, 3)
-  #
-  # Subclasses of Task specify executable code by overridding the process 
-  # method. In this case the number of enqued inputs should correspond to
-  # process (passing the task would be redundant).
+  # Tasks specify executable code by overridding the process method in
+  # subclasses. The number of inputs to process corresponds to the inputs
+  # given to execute or enq.
   #
   #   class NoInput < Tap::Task
-  #     def process() end
+  #     def process(); []; end
   #   end
   #
   #   class OneInput < Tap::Task
-  #     def process(input) end
+  #     def process(input); [input]; end
   #   end
   #
   #   class MixedInputs < Tap::Task
-  #     def process(a, b, *args) end
+  #     def process(a, b, *args); [a,b,args]; end
   #   end
   #
-  #   NoInput.new.enq
-  #   OneInput.new.enq(:a)
-  #   MixedInputs.new.enq(:a, :b)
-  #   MixedInputs.new.enq(:a, :b, 1, 2, 3)
+  #   NoInput.new.execute                          # => []
+  #   OneInput.new.execute(:a)                     # => [:a]
+  #   MixedInputs.new.execute(:a, :b)              # => [:a, :b, []]
+  #   MixedInputs.new.execute(:a, :b, 1, 2, 3)     # => [:a, :b, [1,2,3]]
+  #
+  # Tasks may be create with new, or with intern.  Intern overrides
+  # process with a custom block that gets called with the task instance
+  # and the inputs.
+  #
+  #   no_inputs = Task.intern {|task| [] }
+  #   one_input = Task.intern {|task, input| [input] }
+  #   mixed_inputs = Task.intern {|task, a, b, *args| [a, b, args] }
+  #
+  #   no_inputs.execute                             # => []
+  #   one_input.execute(:a)                         # => [:a]
+  #   mixed_inputs.execute(:a, :b)                  # => [:a, :b, []]
+  #   mixed_inputs.execute(:a, :b, 1, 2, 3)         # => [:a, :b, [1,2,3]]
   #
   # === Configuration 
   #
-  # Tasks are configurable.  By default each task will be configured
-  # with the default class configurations, which can be set when the 
-  # class is defined. 
+  # Tasks are configurable.  By default each task will be configured as 
+  # specified in the class definition.  Configurations may be accessed
+  # through config, or through accessors.
   #
   #   class ConfiguredTask < Tap::Task
   #     config :one, 'one'
@@ -68,13 +54,21 @@ module Tap
   #   end
   # 
   #   t = ConfiguredTask.new
-  #   t.name                 # => "configured_task"
-  #   t.config               # => {:one => 'one', :two => 'two'}
+  #   t.config                     # => {:one => 'one', :two => 'two'}
+  #   t.one                        # => 'one'
+  #   t.one = 'ONE'
+  #   t.config                     # => {:one => 'ONE', :two => 'two'}
   #
-  # Configurations can be validated or processed using an optional
-  # block.  Tap::Support::Validation pre-packages several common
-  # validation/processing blocks, and can be accessed through the
-  # class method 'c':
+  # Overrides and even unspecified configurations may be provided during
+  # initialization.  Unspecified configurations do not have accessors.
+  #
+  #   t = ConfiguredTask.new(:one => 'ONE', :three => 'three')
+  #   t.config                     # => {:one => 'ONE', :two => 'two', :three => 'three'}
+  #   t.respond_to?(:three)        # => false
+  #
+  # Configurations can be validated/transformed using an optional block.  
+  # Tap::Support::Validation pre-packages many common blocks which may
+  # be accessed through the class method 'c':
   #
   #   class ValidatingTask < Tap::Task
   #     # string config validated to be a string
@@ -91,42 +85,7 @@ module Tap
   #   t.integer = "1"
   #   t.integer == 1         # => true 
   #
-  # Tasks have a name that gets used in auditing, and as a relative 
-  # filepath to find associated files (for instance config files). 
-  # By default the task name is based on the task class, such that 
-  # Tap::Task has the default name 'tap/task'.  Configurations
-  # and custom names can be provided when a task is initialized.
-  #
-  #   t = ConfiguredTask.new({:one => 'ONE', :three => 'three'}, "example")
-  #   t.name                 # => "example"
-  #   t.config               # => {:one => 'ONE', :two => 'two', :three => 'three'}
-  #
-  # === Batches
-  #  
-  # Tasks can be assembled into batches that enque and execute collectively.
-  # Batched tasks are often alternatively-configured derivatives of one 
-  # parent task, although they can be manually assembled using Task.batch.
-  #
-  #   app = Tap::App.instance
-  #   t1 = Tap::Task.intern(:key => 'one') do |task, input| 
-  #     input + task.config[:key]
-  #   end
-  #   t1.batch               # => [t1]
-  #
-  #   t2 = t1.initialize_batch_obj(:key => 'two')
-  #   t1.batch               # => [t1, t2]
-  #   t2.batch               # => [t1, t2]
-  #   
-  #   t1.enq 't1_by_'
-  #   t2.enq 't2_by_'
-  #   app.run
-  #
-  #   app.results(t1)        # => ["t1_by_one", "t2_by_one"]
-  #   app.results(t2)        # => ["t1_by_two", "t2_by_two"]
-  #
-  # Here the results reflects that t1 and t2 were run in succession with the 
-  # input to t1, and then the input to t2.
-  #
+  #--
   # === Subclassing
   # Tasks can be subclassed normally, with one reminder related to batching.
   #
@@ -166,9 +125,10 @@ module Tap
       # Returns class dependencies
       attr_reader :dependencies
       
-      # Returns the default name for the class: to_s.underscore
+      # Sets the class default_name
       attr_writer :default_name
       
+      # Returns the default name for the class: to_s.underscore
       def default_name
         # lazy-setting default_name like this (rather than
         # within inherited, for example) is an optimization
@@ -183,7 +143,7 @@ module Tap
         @instance ||= new
       end
       
-      def inherited(child)
+      def inherited(child) # :nodoc:
         unless child.instance_variable_defined?(:@source_file)
           caller.first =~ Support::Lazydoc::CALLER_REGEXP
           child.instance_variable_set(:@source_file, File.expand_path($1)) 
@@ -193,7 +153,12 @@ module Tap
         super
       end
       
-      def intern(*args, &block)
+      # Instantiates a new task with the input arguments and overrides
+      # process with the block.  The block will be called with the 
+      # instance, plus any inputs.
+      #
+      # Simply instantiates a new task if no block is given.
+      def intern(*args, &block) # :yields: task, inputs...
         instance = new(*args)
         if block_given?
           instance.extend Support::Intern
@@ -202,10 +167,9 @@ module Tap
         instance
       end
       
-      # Parses the argv into an instance of self and an array of arguments (implicitly
-      # to be enqued to the instance and run by app).  Yields a help string to the
-      # block when the argv indicates 'help'.
-      #
+      # Parses the argv into an instance of self and an array of arguments 
+      # (implicitly to be enqued to the instance).  Yields a help string to
+      # the block when the argv indicates 'help'.
       def parse(argv=ARGV, app=Tap::App.instance, &block) # :yields: help_str
         parse!(argv.dup, &block)
       end
@@ -284,6 +248,9 @@ module Tap
         [obj, (argv + use_args)]
       end
       
+      # A convenience method to parse the argv and execute the instance
+      # with the remaining arguments.  If 'help' is specified in the argv, 
+      # execute prints the help and exits.
       def execute(argv=ARGV)
         instance, args = parse(ARGV) do |help|
           puts help
@@ -292,7 +259,8 @@ module Tap
 
         instance.execute(*args)
       end
-
+      
+      # Returns the class lazydoc, resolving if specified.
       def lazydoc(resolve=true)
         lazydoc = super(false)
         lazydoc[self.to_s]['args'] ||= lazydoc.register_method(:process, Support::Lazydoc::Method)
@@ -312,6 +280,7 @@ module Tap
 <% end %>
 
 }
+      # Returns the class help.
       def help
         Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
       end
@@ -466,10 +435,7 @@ module Tap
     # via to_s, as does app when figuring configuration filepaths. 
     attr_accessor :name
 
-    # Initializes a new instance and associated batch objects.  Batch
-    # objects will be initialized for each configuration template 
-    # specified by app.each_config_template(config_file) where 
-    # config_file = app.config_filepath(name).  
+    # Initializes a new Task.
     def initialize(config={}, name=nil, app=App.instance)
       super()
 
@@ -497,20 +463,19 @@ module Tap
       workflow
     end
     
-    # Creates a new batched object and adds the object to batch. The batched object 
-    # will be a duplicate of the current object but with a new name and/or 
-    # configurations.
+    # Creates a new batched object and adds the object to batch. The batched
+    # object will be a duplicate of the current object but with a new name 
+    # and/or configurations.
     def initialize_batch_obj(overrides={}, name=nil)
       obj = super().reconfigure(overrides)
       obj.name = name if name
       obj 
     end
 
-    # Executes self with the given inputs.  Execute provides hooks for subclasses
-    # to insert standard execution code: before_execute, on_execute_error,
-    # and after_execute.  Override any/all of these methods as needed.
-    #
-    # Execute passes the inputs to process and returns the result.
+    # Execute passes the inputs to process and returns the result.  Execute 
+    # provides hooks for subclasses to insert standard execution code: 
+    # before_execute, on_execute_error, and after_execute.  Override any/all 
+    # of these methods as needed.
     def execute(*inputs)  
       _execute(*inputs)._current
     end
@@ -518,7 +483,7 @@ module Tap
     # The method for processing inputs into outputs.  Override this method in
     # subclasses to provide class-specific process logic.  The number of 
     # arguments specified by process corresponds to the number of arguments
-    # the task should have when enqued.  
+    # the task should have when enqued or executed.  
     #
     #   class TaskWithTwoInputs < Tap::Task
     #     def process(a, b)
@@ -573,7 +538,8 @@ module Tap
     
     private
     
-    def execute_with_callbacks(*inputs)  
+    # execute_with_callbacks is the method called by _execute
+    def execute_with_callbacks(*inputs) # :nodoc:
       before_execute
       begin
         result = process(*inputs)
