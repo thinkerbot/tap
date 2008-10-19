@@ -89,5 +89,6 @@ end
 end
 
 Rake.application.extend Tap::Support::Gems::Rake
-Tap::Env.manifests[:rakefiles] = Tap::Support::Gems::RakeManifest
-
+Tap::Env.manifest(:rakefiles) do |env|
+  Tap::Support::Gems::RakeManifest.new(env)
+end

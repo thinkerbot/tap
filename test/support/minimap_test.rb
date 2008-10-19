@@ -13,7 +13,7 @@ class MinimapTest < Test::Unit::TestCase
     end
   end
   
-  def test_minimap_documentation
+  def test_documentation
     paths = %w{
       path/to/file-0.1.0.txt 
       path/to/file-0.2.0.txt

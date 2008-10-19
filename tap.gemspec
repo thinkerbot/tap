@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "0.10.8"
+  s.version = "0.11.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -29,7 +29,6 @@ Gem::Specification.new do |s|
     cmd/generate.rb
     cmd/manifest.rb
     cmd/run.rb
-    cmd/server.rb
     doc/Tutorial
     doc/Class\sReference
     doc/Command\sReference
@@ -84,7 +83,6 @@ Gem::Specification.new do |s|
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
     lib/tap/support/gems/rake.rb
-    lib/tap/support/gems/rack.rb
     lib/tap/support/gems.rb
     lib/tap/support/instance_configuration.rb
     lib/tap/support/intern.rb
@@ -133,8 +131,5 @@ Gem::Specification.new do |s|
     lib/tap/test/utils.rb
     lib/tap/test.rb
     lib/tap.rb
-    template/404.erb
-    template/index.erb
-    vendor/url_encoded_pair_parser.rb
     }
 end
