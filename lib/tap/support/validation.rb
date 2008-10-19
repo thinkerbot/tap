@@ -4,9 +4,9 @@ module Tap
   module Support
     
     # Validation generates blocks for common validations and transformations of 
-    # configurations set through Configurable.  In general these blocks allow
-    # configurations to be set to objects of a particular class, or to a string
-    # that can be loaded as YAML into such an object.
+    # configurations set through Configurable.  In general these blocks load
+    # string inputs as YAML and valdiate the results; non-string inputs are
+    # simply validated.
     #
     #   integer = Validation.integer
     #   integer.class             # => Proc
@@ -23,7 +23,6 @@ module Tap
     #
     # This syntax plays well with RDoc, which otherwise gets jacked 
     # when you do it all in one step.
-    #++
     module Validation
       
       # Raised when Validation blocks fail.
@@ -204,9 +203,11 @@ module Tap
       def boolean(); BOOLEAN; end
       BOOLEAN = yamlize_and_check(true, false, nil)
       
+      # Same as boolean.
       def switch(); SWITCH; end
       SWITCH = yamlize_and_check(true, false, nil)
       
+      # Same as boolean.
       def flag(); FLAG; end
       FLAG = yamlize_and_check(true, false, nil)
 
@@ -229,13 +230,20 @@ module Tap
       def array_or_nil(); ARRAY_OR_NIL; end
       ARRAY_OR_NIL = yamlize_and_check(Array, nil)
       
+      # Returns a block that checks the input is an array.
+      # If the input is a string the string is split along
+      # commas and each value yamlized into an array.
+      #
+      #   list.class                # => Proc
+      #   list.call([1,2,3])        # => [1,2,3]
+      #   list.call('1,2,3')        # => [1,2,3]
+      #   list.call('str')          # => ['str']
+      #   list.call(nil)            # => ValidationError
+      #
       def list(); LIST; end
       list_block = lambda do |input|
         if input.kind_of?(String)
-          input = case processed_input = yamlize(input)
-          when Array then processed_input
-          else input.split(/,/).collect {|arg| yamlize(arg) }
-          end
+          input = input.split(/,/).collect {|arg| yamlize(arg) }
         end
         
         validate(input, [Array])

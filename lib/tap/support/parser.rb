@@ -4,6 +4,8 @@ autoload(:Shellwords, 'shellwords')
 module Tap
   module Support
     
+    # == Syntax
+    #
     # ==== Round Assignment
     # Tasks can be defined and set to a round using the following:
     #
@@ -23,7 +25,7 @@ module Tap
     # ==== Workflow Assignment
     # All simple workflow patterns except switch can be specified within
     # the parse syntax (switch is the exception because there is no good
-    # way to define a block from an array).  
+    # way to define the switch block).  
     #
     #   break      pattern       source(s)      target(s)
     #   --:        sequence      last           next
@@ -40,7 +42,7 @@ module Tap
     #   --(2,3,4)     last.sync_merge(2,3,4)
     #
     # Note how all of the bracketed styles behave similarly; they are
-    # parsed with essentially the same code, only reversing the source
+    # parsed with essentially the same code, but reverse the source
     # and target in the case of merges.
     #
     # Here a and b are sequenced inline.  Task c is assigned to no 
@@ -401,10 +403,10 @@ module Tap
       protected
       
       # The index of the node currently being parsed.
-      attr_accessor :current_index
+      attr_accessor :current_index # :nodoc:
       
       # Returns current_index-1, or raises an error if current_index < 1.
-      def previous_index
+      def previous_index # :nodoc:
         raise ArgumentError, 'there is no previous index' if current_index < 1
         current_index - 1
       end

@@ -5,15 +5,13 @@ module Tap
     class Node
       
       # An array of arguments used to instantiate
-      # the node, and to specify arguments enqued
-      # to the instance (when the node is directly
-      # enqued to a round... see input)
+      # the node
       attr_accessor :argv
       
       # The input or source for the node.  Inputs
-      # may be a Join, nil, or an Integer (indicating
-      # the node should be enqued to a round, with 
-      # inputs as specified in argv).
+      # may be a Join, nil, or an Integer.  An 
+      # Integer input indicates that the node should 
+      # be enqued to a round using argv as inputs.
       attr_accessor :input
       
       # The output for the node. Output may be a

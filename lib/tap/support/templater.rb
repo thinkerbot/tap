@@ -5,10 +5,9 @@ module Tap
   module Support
     
     # Templater is a convenience class for creating ERB templates.  As
-    # an OpenStruct, attributes can be assigned/unassigned at will to
-    # a Templater.  When the template is built, all the method of 
-    # Templater (and hence all the assigned attributes) are available
-    # in the template.
+    # a subclass of OpenStruct, attributes can be assigned/unassigned
+    # directly.  When the template is built, all the method of 
+    # Templater (and hence all the assigned attributes) are available.
     #
     #   t = Templater.new( "key: <%= value %>")
     #   t.value = "default"
@@ -23,16 +22,14 @@ module Tap
     #
     # Templater hooks into the ERB templating mechanism by providing itself 
     # as the ERB output target (_erbout).  ERB concatenates each line of an 
-    # ERB template to _erbout, as can be seen when you look at the src code 
-    # evaluated by ERB:
+    # ERB template to _erbout, as can be seen here:
     #
     #   e = ERB.new("<%= 1 + 2 %>")
     #   e.src                   # => "_erbout = ''; _erbout.concat(( 1 + 2 ).to_s); _erbout"
     #
-    # By setting itself as _erbout, instances of Templater can redirect the 
-    # output to a temporary target which can then be used in string 
-    # transformations.  For example, redirection allows indentation of 
-    # nested content:
+    # By setting itself as _erbout, instances of Templater can redirect 
+    # output to a temporary target and perform string transformations.  
+    # For example, redirection allows indentation of nested content:
     #
     #   template = %Q{
     #   # Un-nested content

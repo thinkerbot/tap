@@ -450,6 +450,27 @@ class ParserTest < Test::Unit::TestCase
     @parser = Parser.new  
   end
 
+  def test_parse_documentation
+    schema = Parser.new("a -- b --+ c -- d -- e --+3[4]").schema
+    assert_equal [[0,1,3],[2], nil, [4]], schema.rounds(true)
+
+    schema = Parser.new("a --: b -- c --1:2i").schema
+    assert_equal [["a"], ["b"], ["c"], []], schema.argvs
+    assert_equal [[:sequence,0,[1],{}], [:sequence,1,[2],{:iterate => true}]], schema.joins(true)
+  
+    schema = Parser.new("a -- b --* global_name --config for --global").schema
+    assert_equal [2], schema.globals(true)
+  
+    schema = Parser.new("a -- b -- c").schema
+    assert_equal [["a"], ["b"], ["c"]], schema.argvs
+  
+    schema = Parser.new("a -. -- b .- -- c").schema
+    assert_equal [["a", "--", "b"], ["c"]], schema.argvs
+  
+    schema = Parser.new("a -- b --- c").schema
+    assert_equal [["a"], ["b"]], schema.argvs
+  end
+  
   #
   # tasks tests
   #
@@ -629,27 +650,6 @@ class ParserTest < Test::Unit::TestCase
   #
   # parse tests
   #
-  
-  def test_parse_documentation
-    schema = Parser.new("a -- b --+ c -- d -- e --+3[4]").schema
-    assert_equal [[0,1,3],[2], nil, [4]], schema.rounds(true)
-
-    schema = Parser.new("a --: b -- c --1:2i").schema
-    assert_equal [["a"], ["b"], ["c"], []], schema.argvs
-    assert_equal [[:sequence,0,[1],{}], [:sequence,1,[2],{:iterate => true}]], schema.joins(true)
-  
-    schema = Parser.new("a -- b --* global_name --config for --global").schema
-    assert_equal [2], schema.globals(true)
-  
-    schema = Parser.new("a -- b -- c").schema
-    assert_equal [["a"], ["b"], ["c"]], schema.argvs
-  
-    schema = Parser.new("a -. -- b .- -- c").schema
-    assert_equal [["a", "--", "b"], ["c"]], schema.argvs
-  
-    schema = Parser.new("a -- b --- c").schema
-    assert_equal [["a"], ["b"]], schema.argvs
-  end
   
   def test_parse
     schema = Parser.new([

@@ -59,7 +59,7 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/root/root_generator.rb
     lib/tap/generator/generators/root/templates/README
     lib/tap/generator/generators/root/templates/Rakefile
-    lib/tap/generator/generators/root/templates/Tapfile
+    lib/tap/generator/generators/root/templates/tapfile
     lib/tap/generator/generators/root/templates/gemspec
     lib/tap/generator/generators/root/templates/test/tap_test_helper.rb
     lib/tap/generator/generators/root/templates/test/tap_test_suite.rb
@@ -78,7 +78,7 @@ Gem::Specification.new do |s|
     lib/tap/support/configurable_class.rb
     lib/tap/support/configuration.rb
     lib/tap/support/constant.rb
-    lib/tap/support/constant_utils.rb
+    lib/tap/support/constant_manifest.rb
     lib/tap/support/dependencies.rb
     lib/tap/support/dependency.rb
     lib/tap/support/executable.rb
@@ -103,10 +103,12 @@ Gem::Specification.new do |s|
     lib/tap/support/lazydoc/document.rb
     lib/tap/support/lazydoc/method.rb
     lib/tap/support/manifest.rb
+    lib/tap/support/minimap.rb
     lib/tap/support/node.rb
     lib/tap/support/parser.rb
     lib/tap/support/schema.rb
     lib/tap/support/shell_utils.rb
+    lib/tap/support/string_ext.rb
     lib/tap/support/tdoc.rb
     lib/tap/support/tdoc/tdoc_html_generator.rb
     lib/tap/support/tdoc/tdoc_html_template.rb

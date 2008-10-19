@@ -84,7 +84,7 @@ module Tap
     # Now execute the rake task like:
     #
     #   % rake rdoc
-    #
+    #--
     # === Implementation
     # RDoc is a beast to utilize in a non-standard way. One way to make RDoc parse unexpected
     # flags like 'config' or 'config_attr' is to use the '--accessor' option (see 'rdoc --help' or 
@@ -134,7 +134,7 @@ module Tap
     
       # Encasulates information about the configuration.  Designed to be utilized
       # by the TDocHTMLGenerator as similarly as possible to standard attributes.
-      class ConfigAttr < RDoc::Attr
+      class ConfigAttr < RDoc::Attr # :nodoc:
         # Contains the actual declaration for the config attribute. ex:  "c [:key, 'value']      # comment"
         attr_accessor :config_declaration, :default
         

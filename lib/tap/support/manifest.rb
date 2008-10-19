@@ -3,15 +3,19 @@ require 'tap/support/minimap'
 module Tap
   module Support
     
-    # Manifests store an array of paths and make them available for lookup
-    # by minipath.  Manifests may be bound to a Tap::Env, allowing them
-    # to search for a match across a full environment (including nested
-    # environments).
+    # Stores an array of paths and makes them available for lookup by
+    # minipath.  Manifests may be bound to a Tap::Env, allowing searches
+    # across a full environment (including nested environments).
     #
-    # A basic Manifest has a number of hooks used by subclasses like 
-    # ConstantManifest to lazily build manifest entries as needed.
+    # Manifest has a number of hooks used by subclasses like 
+    # ConstantManifest to lazily add entries as needed.
     class Manifest
       class << self
+        
+        # Interns a new manifest, overriding the minikey
+        # method with the block (the minikey method converts
+        # entries to the path used during minimap and 
+        # minimatch lookup, see Minimap).
         def intern(*args, &block)
           instance = new(*args)
           if block_given?
@@ -40,9 +44,8 @@ module Tap
       # The bound Tap::Env, or nil.
       attr_reader :env
       
-      # The reader on Tap::Env accessing manifests
-      # of the same type of entries as self.
-      # reader is set during bind.
+      # The reader on Tap::Env accessing manifests of the
+      # same type as self. reader is set during bind.
       attr_reader :reader
       
       # Initializes a new, unbound Manifest.
@@ -53,8 +56,8 @@ module Tap
       end
       
       # Binds self to an env and reader.  The manifests returned by env.reader
-      # will be used during env-traversal methods like search.  Raises an
-      # error if env does not respond to reader; returns self.
+      # will be used during traversal methods like search.  Raises an error if
+      # env does not respond to reader; returns self.
       def bind(env, reader)
         if env == nil
           raise ArgumentError, "env may not be nil" 
@@ -113,11 +116,10 @@ module Tap
       end
       
       # Search across env.each for the first entry minimatching key.
-      # A single env can be specified for searching using a compound
-      # key where the env_key and the actual key are joined like
+      # A single env can be specified by using a compound key like
       # 'env_key:key'.  Returns nil if no matching entry is found.
       #
-      # Search raises an error unless self is bound to an env.
+      # Search raises an error unless bound?
       def search(key)
         raise "cannot search unless bound" unless bound?
         
@@ -143,7 +145,6 @@ module Tap
         nil
       end
       
-      # Inspects 
       def inspect(traverse=true)
         if traverse && bound?
           lines = []
