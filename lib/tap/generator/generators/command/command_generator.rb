@@ -1,6 +1,6 @@
 module Tap::Generator::Generators
   
-  # Tap::Generator::Generators::CommandGenerator::generator a new tap command
+  # :startdoc: Tap::Generator::Generators::CommandGenerator::generator a new tap command
   #
   # Generates a new tap command under the cmd directory. The  
   # new command can be run from the command line using:

@@ -1,6 +1,6 @@
 module Tap::Generator::Generators
   
-  # Tap::Generator::Generators::TaskGenerator::generator a task and test
+  # :startdoc: Tap::Generator::Generators::TaskGenerator::generator a task and test
   #
   # Generates a new Tap::Task and an associated test file.
   class TaskGenerator < Tap::Generator::Base

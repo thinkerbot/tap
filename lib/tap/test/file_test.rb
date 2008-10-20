@@ -384,7 +384,7 @@ module Tap
           end
         
           # get output files from the block, expand and sort
-          output_files = [block.call(input_files)].flatten.collect do |output_file| 
+          output_files = [*block.call(input_files)].collect do |output_file| 
             File.expand_path(output_file)
           end.sort
         

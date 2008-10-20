@@ -471,14 +471,6 @@ module Tap
       obj.name = name if name
       obj 
     end
-
-    # Execute passes the inputs to process and returns the result.  Execute 
-    # provides hooks for subclasses to insert standard execution code: 
-    # before_execute, on_execute_error, and after_execute.  Override any/all 
-    # of these methods as needed.
-    def execute(*inputs)  
-      _execute(*inputs)._current
-    end
     
     # The method for processing inputs into outputs.  Override this method in
     # subclasses to provide class-specific process logic.  The number of 

@@ -21,6 +21,23 @@ module Tap
       
         attr_accessor :env
        
+        def enq_top_level(app)
+          # takes the place of rake.top_level
+          if options.show_tasks
+            display_tasks_and_comments
+            exit
+          elsif options.show_prereqs
+            display_prerequisites
+            exit
+          else
+            top_level_tasks.each do |task_string|
+              name, args = parse_task_string(task_string)
+              task = self[name]
+              app.mq(task, :invoke, *args)
+            end
+          end  
+        end
+        
         def collect_tasks(*args)
           # a little song and dance for compliance with
           # rake pre- and post-0.8.2

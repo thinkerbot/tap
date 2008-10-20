@@ -539,7 +539,7 @@ class FileTaskTest < Test::Unit::TestCase
     dir_one = method_root.filepath(:output, "path/to/dir")
     dir_two = method_root.filepath(:output, "path/to/another")
 
-    t = Tap::FileTask.intern do |task, inputs|
+    t = Tap::FileTask.intern do |task|
       assert !File.exists?(method_root.filepath(:output, "path"))  
 
       task.mkdir(dir_one)             
@@ -552,7 +552,7 @@ class FileTaskTest < Test::Unit::TestCase
     end
 
     begin
-      t.execute(nil)
+      t.execute
       flunk "no error raised"
     rescue
       assert_equal "error!", $!.message     
@@ -748,7 +748,7 @@ class FileTaskTest < Test::Unit::TestCase
     FileUtils.mkdir_p( method_root.filepath(:output) )
 
     File.open(file_one, "w") {|f| f << "original content"}
-    t = Tap::FileTask.intern do |task, inputs|
+    t = Tap::FileTask.intern do |task|
       assert !File.exists?(method_root.filepath(:output, "path"))
 
       # backup... prepare parent dirs... prepare for restore     
@@ -761,7 +761,7 @@ class FileTaskTest < Test::Unit::TestCase
     end
 
     begin
-      t.execute(nil)
+      t.execute
       flunk "no error raised"
     rescue
       assert_equal "error!", $!.message
@@ -945,7 +945,7 @@ class FileTaskTest < Test::Unit::TestCase
     backup_file = method_root.filepath(:output, "backup/file.txt")
 
     touch_file(existing_file, "original content")
-    @t = Tap::FileTask.intern do |task, input|
+    @t = Tap::FileTask.intern do |task|
       task.prepare([existing_file, non_existant_file]) 
 
       block.call if block_given?
@@ -965,7 +965,7 @@ class FileTaskTest < Test::Unit::TestCase
       assert File.exists?(backup_file)
       assert_equal "original content", File.read(backup_file)
     end
-    t.execute(nil)
+    t.execute
   end
 
   def test_execute_restores_backups_and_removes_added_files_on_error
@@ -975,7 +975,7 @@ class FileTaskTest < Test::Unit::TestCase
       raise "error"
     end
 
-    assert_raise(RuntimeError) { t.execute(nil)  }
+    assert_raise(RuntimeError) { t.execute  }
 
     # check the existing file was restored
     assert was_in_execute
@@ -995,7 +995,7 @@ class FileTaskTest < Test::Unit::TestCase
     end
 
     t.rollback_on_error = false
-    assert_raise(RuntimeError) { t.execute(nil)  }
+    assert_raise(RuntimeError) { t.execute  }
 
     # check the existing file was NOT restored
     assert was_in_execute
@@ -1015,7 +1015,7 @@ class FileTaskTest < Test::Unit::TestCase
 
     touch_file(existing_file, "original content")
     count = 0
-    @t = Tap::FileTask.intern do |task, input|
+    @t = Tap::FileTask.intern do |task|
       if count > 0
         count = 2
         raise "error" 
@@ -1032,7 +1032,7 @@ class FileTaskTest < Test::Unit::TestCase
 
     # assert !t.cleanup_after_execute
 
-    assert_nothing_raised { t.execute(nil)  }
+    assert_nothing_raised { t.execute }
     assert_equal 1, count
     assert File.exists?(existing_file)
     assert_equal "new content", File.read(existing_file)   
@@ -1040,7 +1040,7 @@ class FileTaskTest < Test::Unit::TestCase
     assert File.exists?(backup_file)
     assert_equal "original content", File.read(backup_file)   
 
-    assert_raise(RuntimeError) { t.execute(nil)  }
+    assert_raise(RuntimeError) { t.execute }
 
     # check the existing file was NOT restored
     assert_equal 2, count
@@ -1070,7 +1070,7 @@ class FileTaskTest < Test::Unit::TestCase
       method_root.filepath(:output, "path/to/non/existing/file#{n}.txt")
     end
 
-    @t = Tap::FileTask.intern do |task, input|
+    @t = Tap::FileTask.intern do |task|
       task.prepare(existing_files + non_existant_files) 
       block.call if block_given?
     end
@@ -1089,7 +1089,7 @@ class FileTaskTest < Test::Unit::TestCase
         assert File.exists?(File.dirname(file))
       end
     end
-    t.execute(nil)
+    t.execute
   end
 
   def test_execute_restore_and_removal_with_multiple_files
@@ -1103,7 +1103,7 @@ class FileTaskTest < Test::Unit::TestCase
     end
 
     assert !File.exists?(method_root.filepath(:output, 'backup'))
-    assert_raise(RuntimeError) { t.execute(nil) }
+    assert_raise(RuntimeError) { t.execute }
 
     # check existing files were restored, made files and backups removed.
     assert was_in_execute

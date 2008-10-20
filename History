@@ -1,3 +1,15 @@
+== 0.11.0 / 2008-10-20
+
+Significant update to Tap with many internal reworks.
+Major changes include:
+
+* Addition of Parser/Schema
+* Addition of rap and task declarations
+* Removal of Workflow in preference of workflow
+  definitions within Task
+* Refactoring of Test modules
+* Expanded/updated documentation
+
 == 0.10.1 / 2008-08-21
 
 Update of Tap with a few improvements to manifests

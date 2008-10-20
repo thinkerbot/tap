@@ -86,8 +86,6 @@ Going back to the first example, lets take a look at how a task declaration maps
   
 Here is a corresponding class:
 
-  [Tapfile]
-  
   # Goodnight::manifest your basic goodnight moon task
   # Says goodnight with a configurable message.
   class Goodnight < Tap::Task
@@ -259,7 +257,7 @@ Run the test:
 
 Run the task:
 
-  % tap run -- goodnight moon
+  % rap goodnight moon
     I[23:22:19]          goodnight moon
 
 Ok, lets share it.  Print the current gemspec manifest:
@@ -269,7 +267,7 @@ Ok, lets share it.  Print the current gemspec manifest:
         Rakefile
         lib/goodnight.rb
         sample.gemspec
-        tap.yml
+  true  tap.yml
         test/goodnight_test.rb
   true  test/tap_test_helper.rb
   true  test/tap_test_suite.rb

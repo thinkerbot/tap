@@ -276,6 +276,12 @@ module Tap
         audit
       end
       
+      # Calls _execute with the inputs and returns the un-audited result.
+      # Execute is not a batched method.
+      def execute(*inputs)
+        _execute(*inputs)._current
+      end
+      
       # Raises a TerminateError if app.state == State::TERMINATE.
       # check_terminate may be called at any time to provide a 
       # breakpoint in long-running processes.

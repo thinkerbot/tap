@@ -32,6 +32,10 @@ Instances of a Configurable class have a <tt>config</tt> method accessing a {Ins
     config :key, 'value' do |input|
       input.upcase
     end
+    
+    def initialize
+      initialize_config
+    end
   end
 
 Is basically the same as:
@@ -112,7 +116,7 @@ Lazydoc parses a constant name, the key, the value, and any comment following th
   lazydoc.resolve
 
   lazydoc['Name::Space']['key'].to_s           # => "This documentation gets parsed."
-  lazydoc['Name::Space']['another'].subject    # => "another value"
+  lazydoc['Name::Space']['another'].value      # => "another value"
 
 Furthermore, Lazydoc can register specific lines for documentation.  These lines are parsed to echo what happens in RDoc.
 
@@ -186,10 +190,12 @@ and batched.
   
 Batched tasks enque together, and therefore execute sequentially with the same inputs. Results are aggregated into the underlying Tap::App.
 
-  t1.execute('input')
-  runlist                  # => [t0, t1, t2, t3, t2]
+  t1.enq('input')
   
   app = Tap::App.instance
+  app.run
+  
+  runlist                  # => [t0, t1, t2, t3, t2]
   app.results(t2)          # => ["input:one:two", "input:three:two"]
 
 Tracking the evolution of a result through a workflow can get complex; Tap audits workflows to help.  In the audit trail, the tasks are identified by name.  Lets set the names of the tasks and take a look at the audit trails of the t2 results:
@@ -199,7 +205,7 @@ Tracking the evolution of a result through a workflow can get complex; Tap audit
   t3.name = 'trois'
   
   app._results(t2).collect do |_result|
-    _result.to_s
+    _result._to_s
   end.join("---\n")
   # => 
   # o-[] "input"
@@ -221,7 +227,7 @@ A Root represents the base of a directory structure. Roots allow you to alias di
   root = Tap::Root.new '/path/to/root'
   root.root                                      # => '/path/to/root'
   root['config']                                 # => '/path/to/root/config'
-  root.filepath('config', 'sample.yml')          # => '/path/to/root/config/sampl.yml'
+  root.filepath('config', 'sample.yml')          # => '/path/to/root/config/sample.yml'
 
 While simple, this ability to alias paths is useful, powerful, and forms the basis of the Tap execution environment.
 
@@ -261,15 +267,18 @@ Instances of Tap::App coordinate the execution of tasks.  Apps are basically a s
   log = StringIO.new
   app = Tap::App.instance
   app.logger = Logger.new(log)
+  app.logger.formatter = lambda do |severity, time, progname, msg|
+    "  %s %s: %s\n" % [severity[0,1], progname, msg]
+  end
   
   t = Tap::Task.intern {|task, *inputs| inputs }
   t.log 'action', 'to app'
-  log.string                 # =>  "  I[15:21:23]             action  to app\n"
+  log.string                 # =>  "  I action: to app\n"
   
   t.enq(1)
   t.enq(2,3)
   
-  app.queue.to_a             # => [[t, [1]], [t, [2,3]]
+  app.queue.to_a             # => [[t, [1]], [t, [2,3]]]
   app.run
   app.results(t)             # => [[1], [2,3]]
   

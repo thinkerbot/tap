@@ -68,7 +68,6 @@ Manifest prints a list of all resources (commands, tasks, generators, etc) avail
       generate       (cmd/generate.rb)
       manifest       (cmd/manifest.rb)
       run            (cmd/run.rb)
-      server         (cmd/server.rb)
     tasks
       dump           (lib/tap/tasks/dump.rb)
       load           (lib/tap/tasks/load.rb)

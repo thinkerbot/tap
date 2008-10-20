@@ -1,6 +1,6 @@
 module Tap::Generator::Generators
   
-  # Tap::Generator::Generators::GeneratorGenerator::generator a generator task and test
+  # :startdoc: Tap::Generator::Generators::GeneratorGenerator::generator a generator task and test
   #
   # Generates a new generator.
   class GeneratorGenerator < Tap::Generator::Base
