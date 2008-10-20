@@ -282,7 +282,7 @@ As you can see, this needs an update to include the task file.  Open up sample.g
     s.platform = Gem::Platform::RUBY
     s.summary = "sample"
     s.require_path = "lib"
-    s.add_dependency("tap", "~> 0.10.8")
+    s.add_dependency("tap", ">= 0.11")
     s.files = %W{
       lib/goodnight.rb
       tap.yml

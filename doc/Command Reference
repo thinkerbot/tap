@@ -27,7 +27,7 @@ Generate and destory launch generator scripts, similar to those in {Rails}[http:
 {command}[link:classes/Tap/Generator/Generators/CommandGenerator.html]:: a new command
 {config}[link:classes/Tap/Generator/Generators/ConfigGenerator.html]:: a static config file for the specified task
 {file_task}[link:classes/Tap/Generator/Generators/FileTaskGenerator.html]:: a file task and test
-{generator}[link:classes/Tap/Generator/GeneratorseneratorGenerator.html]:: a new generator
+{generator}[link:classes/Tap/Generator/Generators/GeneratorGenerator.html]:: a new generator
 {root}[link:classes/Tap/Generator/Generators/RootGenerator.html]:: the basic directory structure
 {task}[link:classes/Tap/Generator/Generators/TaskGenerator.html]:: a task class and test
 

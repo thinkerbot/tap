@@ -166,9 +166,9 @@ o-[deux] "input:three:two"
   
   def test_root
     root = Tap::Root.new '/path/to/root'
-    assert_equal '/path/to/root', root.root
-    assert_equal '/path/to/root/config', root['config']
-    assert_equal '/path/to/root/config/sample.yml', root.filepath('config', 'sample.yml')
+    assert_equal File.expand_path('/path/to/root'), root.root
+    assert_equal File.expand_path('/path/to/root/config'), root['config']
+    assert_equal File.expand_path('/path/to/root/config/sample.yml'), root.filepath('config', 'sample.yml')
   end
   
   #

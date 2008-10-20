@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.test_file = "test/tap_test_suite.rb"
   #s.rubyforge_project = "<%= project_name %>"
   #s.has_rdoc = true
-  s.add_dependency("tap", "~> <%= Tap::VERSION %>")
+  s.add_dependency("tap", "= <%= Tap::VERSION %>")
   
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{
