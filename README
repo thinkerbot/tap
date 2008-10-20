@@ -28,6 +28,8 @@ Check out these links for tutorials, development, and bug tracking.
 
 A simple task illustrates the usage of tap:
 
+  [lib/goodnight.rb]
+  
   # Goodnight::manifest your basic goodnight moon task
   # Says goodnight with a configurable message.
   class Goodnight < Tap::Task
