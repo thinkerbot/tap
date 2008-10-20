@@ -75,7 +75,7 @@ before line two
 #{TAP_HELP}
 Error in after script.
 (eval):1: compile error
-(eval):1: syntax error, unexpected tIDENTIFIER, expecting $end
+(eval):1: syntax error:...:
 puts "after line one" puts "after line two"
                           ^
 }
@@ -88,7 +88,7 @@ puts "after line one" puts "after line two"
 % #{cmd} --help
 Error in before script.
 (eval):1: compile error
-(eval):1: syntax error, unexpected tIDENTIFIER, expecting $end
+(eval):1: syntax error:...:
 puts "before line one" puts "before line two"
                            ^
 after line one

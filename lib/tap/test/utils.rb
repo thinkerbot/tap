@@ -60,7 +60,7 @@ module Tap
       #  # !> DereferenceError
       #
       def reference_map(source_dir, reference_dir, pattern='**/*.ref')
-        Dir.glob(File.join(source_dir, pattern)).collect do |source|
+        Dir.glob(File.join(source_dir, pattern)).sort.collect do |source|
           # use the path specified in the source file
           relative_path = File.read(source).gsub(/#.*$/, "").strip
           

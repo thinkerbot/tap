@@ -26,11 +26,11 @@ class UtilsTest < Test::Unit::TestCase
   
   def test_reference_map_returns_a_list_of_ref_files_under_source_dir_mapped_to_ref_dir
     assert_equal([
-      [method_path("input/one.txt.ref"), method_path("ref/one.txt")],
-      [method_path("input/two.ref"), method_path("ref/two")],
       [method_path("input/nested/one.txt.ref"), method_path("ref/nested/one.txt")],
-      [method_path("input/nested/two.ref"), method_path("ref/nested/two")]
-    ].sort, reference_map(method_path('input'), method_path('ref')).sort)
+      [method_path("input/nested/two.ref"), method_path("ref/nested/two")],
+      [method_path("input/one.txt.ref"), method_path("ref/one.txt")],
+      [method_path("input/two.ref"), method_path("ref/two")]
+    ], reference_map(method_path('input'), method_path('ref')))
   end
   
   def test_reference_map_maps_using_path_named_in_file_if_present

@@ -35,7 +35,8 @@ module Tap
       
       # Registers the files matching pattern under dir.  Returns self.
       def register(dir, pattern)
-        search_paths << [dir, Dir.glob(File.join(dir, pattern)).select {|file| File.file?(file) }]
+        paths = Dir.glob(File.join(dir, pattern)).select {|file| File.file?(file) }
+        search_paths << [dir, paths.sort]
         self
       end
       

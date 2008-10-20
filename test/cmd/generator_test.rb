@@ -28,7 +28,7 @@ class GeneratorTest < Test::Unit::TestCase
           method_root.filepath(:output, path)
         end
         
-        assert_equal expected, method_root.glob(:output)
+        assert_equal expected.sort, method_root.glob(:output).sort
       end
       
       # cmd.check " generate task", "Prints task generator doc"

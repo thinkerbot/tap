@@ -1,4 +1,5 @@
 require 'test/unit'
+require 'tap/test'
 require 'tap/test/subset_test'
 
 class SubsetTestTest < Test::Unit::TestCase
