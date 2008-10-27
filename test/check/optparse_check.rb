@@ -33,4 +33,32 @@ class OptparseCheck < Test::Unit::TestCase
     assert_equal [["a", "1"], ["b", "2"], ["ccc", "three"]], values
   end
   
+  def test_option_parser_allows_and_overlooks_non_string_arguments
+    values = []
+    opts = OptionParser.new do |opts|
+      opts.on("--opt OPTION", "option") do |value|
+        values << value
+      end
+    end
+    
+    argv = ["one", :two, [3], "--opt", "value", {:four => 4}]
+    opts.parse!(argv)
+    
+    assert_equal ["one", :two, [3], {:four => 4}], argv
+    assert_equal ["value"], values
+  end
+  
+  def test_option_parser_does_not_allow_non_string_values
+    values = []
+    opts = OptionParser.new do |opts|
+      opts.on("--opt OPTION", "option") do |value|
+        values << value
+      end
+    end
+    
+    assert_raise(TypeError) { opts.parse!(["one", "--opt", :two]) }
+    assert_raise(TypeError) { opts.parse!(["one", "--opt", 2]) }
+    
+    assert_equal [], values
+  end
 end

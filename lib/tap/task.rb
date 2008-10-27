@@ -196,7 +196,8 @@ module Tap
         opts.separator "options:"
 
         opts.on_tail("-h", "--help", "Print this help") do
-          opts.banner = "#{help}usage: tap run -- #{to_s.underscore} #{args.subject}"
+          prg = $0 =~ /tap/ ? 'tap run --' : 'rap'
+          opts.banner = "#{help}usage: #{prg} #{to_s.underscore} #{args.subject}"
           if block_given? 
             yield(opts.to_s)
           else

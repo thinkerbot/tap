@@ -2,8 +2,14 @@ require File.dirname(__FILE__) + "/../tap"
 autoload(:OpenStruct, 'ostruct')
 
 module Tap
+  #--
+  # more thought needs to go into extending Tap with Declarations
+  # and there should be some discussion on why include works at
+  # the top level (for main/Object) while extend should be used
+  # in all other cases.
   module Declarations
     Lazydoc = Tap::Support::Lazydoc
+    include Tap::Support::ShellUtils
     
     module Lazydoc
       class Declaration < Comment
@@ -49,9 +55,17 @@ module Tap
       @env ||= Declarations.env
     end
     
-    attr_accessor :declaration_base
+    attr_writer :declaration_base
     
-    attr_accessor :current_desc
+    def declaration_base
+      @declaration_base ||= ''
+    end
+    
+    attr_writer :current_desc
+    
+    def current_desc
+      @current_desc ||= nil
+    end
     
     def task(*args, &block)
       const_name, configs, dependencies, arg_names = resolve_args(args)
