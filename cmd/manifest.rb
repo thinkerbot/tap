@@ -27,8 +27,8 @@ end.parse!(ARGV)
 
 env = Tap::Env.instance
 env_names = {}
-env.manifest(:envs, true).minimize.each do |name, environment|
-  env_names[environment] = name
+env.minimap.each do |env_name, environment|
+  env_names[environment] = env_name
 end
 
 filter = case
@@ -57,15 +57,13 @@ width = 10
 summary = env.inspect(template) do |templater, share|
   current = templater.env
   next unless filter.include?(current)
-  
-  manifest_keys = (Tap::Env.manifests.keys + current.manifests.keys).uniq 
-  manifests = manifest_keys.collect do |name|
-    next if name == :envs
+
+  manifests = []
+  [:commands, :generators, :tasks].each do |name|
+    manifest = current.send(name)
+    next if manifest.build.empty?
     
-    manifest = current.manifest(name, true)
-    next if manifest.empty?
-    
-    entries = manifest.minimize.collect do |(entry, path)|
+    entries = manifest.minimap.collect do |(entry, path)|
       path = case path
       when Tap::Support::Constant then path.require_path
       else path
@@ -75,7 +73,7 @@ summary = env.inspect(template) do |templater, share|
       [entry, current.root.relative_filepath(:root, path) || path]
     end
     
-    [name, entries]
+    manifests << [name, entries]
   end
   templater.manifests = manifests.compact
   templater.env_name = env_names[current]

@@ -15,7 +15,7 @@ module Tap
             end
           end
 
-          @subject = args.join(', ')
+          @subject = args.join(' ')
           self
         end
       end
