@@ -204,19 +204,22 @@ module Tap
       # Adds the dependency to each member in batch (and implicitly self).
       # The dependency will be resolved with the input arguments during 
       # _execute, using resolve_dependencies.
-      def depends_on(dependency)
+      def depends_on(*dependencies)
         batch.each do |e| 
-          e.unbatched_depends_on(dependency)
+          e.unbatched_depends_on(*dependencies)
         end
         self
       end
       
       # Like depends_on, but only adds the dependency to self.
-      def unbatched_depends_on(dependency)
-        raise ArgumentError, "cannot depend on self" if dependency == self
+      def unbatched_depends_on(*dependencies)
+        raise ArgumentError, "cannot depend on self" if dependencies.include?(self)
         
-        app.dependencies.register(dependency)
-        dependencies << dependency unless dependencies.include?(dependency)
+        dependencies.each do |dependency|
+          app.dependencies.register(dependency)
+          self.dependencies << dependency unless self.dependencies.include?(dependency)
+        end
+        
         self
       end
       
