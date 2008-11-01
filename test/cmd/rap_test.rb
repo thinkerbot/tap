@@ -100,48 +100,6 @@ usage: rap rap_test/task_with_desc
 :...:}
     end
   end
-  
-  def test_rap_help_for_definition
-    File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
-      file << %q{
-# TaskDefinition::manifest task summary
-# Extended documentation
-class TaskDefinition < Tap::Task
-  config :key, 'value'  # key config
-  
-  def process(a, b, *c)
-  end
-end
-
-class HiddenTaskDefinition < Tap::Task
-end
-}
-    end
-
-    script_test(method_root[:output]) do |cmd|
-      cmd.check "Prints summary of declarations", %Q{
-% #{cmd}
-usage: rap taskname {options} [args]
-
-===  tap tasks ===
-output:
-  task_definition  # task summary
-tap:
-:...:}
-
-      cmd.check "Prints help for declaration", %Q{
-% #{cmd} task_definition --help
-TaskDefinition -- task summary
---------------------------------------------------------------------------------
-  Extended documentation
---------------------------------------------------------------------------------
-usage: rap task_definition A B C...
-:...:
-configurations:
-        --key KEY                    key config
-:...:}
-    end
-  end
     
   def test_rap_help_for_tasks_with_args
     File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
@@ -175,49 +133,6 @@ usage: rap rap_test/task_without_arg_names A B
 % #{cmd} task_with_arg_names --help
 :...:
 usage: rap rap_test/task_with_arg_names A B
-:...:
-}
-    end
-  end
-  
-  def test_rap_with_declarations_and_definitions
-    File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
-      file << %q{
-include Tap::Declarations
-
-desc "declaration"
-task(:task_declaration, :input) {|task, args| puts args.input }
-
-# TaskDefinition::manifest definition
-class TaskDefinition < Tap::Task
-  def process(input)
-    puts input
-  end
-end
-}
-    end
-
-    script_test(method_root[:output]) do |cmd|
-      cmd.check "Prints help for declaration", %Q{
-% #{cmd} task_declaration yo
-yo
-% #{cmd} task_declaration --help
-TaskDeclaration -- declaration
-
-usage: rap task_declaration INPUT
-:...:
-% #{cmd} task_definition yo
-yo
-% #{cmd} task_definition --help
-TaskDefinition -- definition
-
-usage: rap task_definition INPUT
-:...:
-% #{cmd} -T
-:...:
-output:
-  task_declaration  # declaration
-  task_definition   # definition
 :...:
 }
     end

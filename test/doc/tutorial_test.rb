@@ -95,7 +95,8 @@ hello world
   
   def test_goodnight_with_validations
     script_test(method_root[:output]) do |cmd|
-      File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
+      FileUtils.mkdir(method_root.filepath(:output, 'lib'))
+      File.open(method_root.filepath(:output, 'lib/goodnight.rb'), 'w') do |file|
         file << %q{
 # Goodnight::manifest a fancy goodnight moon task
 # Says goodnight with a configurable message.

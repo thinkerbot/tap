@@ -110,7 +110,7 @@ Simple enough; the name corresponds to the class, configurations (and dependenci
 
 Totally straightforward.  Goodnight stores the default configurations, each instance has accessors to the configurations, and the defaults may be overridden during initialization, or later.  Class definitions allow validation/transformation blocks to be specified for configurations.  These blocks process inputs (ex the string inputs from the command line), quite literally defining the writer for a configuration accessor.  A set of standard blocks are available through +c+, an alias for the Tap::Support::Validation module.
 
-  [Tapfile]
+  [lib/goodnight.rb]
   
   # Goodnight::manifest a fancy goodnight moon task
   # Says goodnight with a configurable message.

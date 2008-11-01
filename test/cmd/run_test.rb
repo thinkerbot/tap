@@ -77,6 +77,11 @@ options:
     -h, --help                       Print this help
         --name NAME                  Specify a name
         --use FILE                   Loads inputs from file
+% #{cmd} run -- sample_with_splat --help
+SampleWithSplat
+
+usage: tap run -- sample_with_splat A B C...
+:...:
 }
 
       cmd.check "help for unknown task",  %Q{

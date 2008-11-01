@@ -17,7 +17,6 @@ begin
     next unless File.file?(task_file)
     
     env.loads.unshift(task_file)
-    env.tasks.register(Dir.pwd, File.basename(task_file))
   end
   
 rescue(Tap::Env::ConfigError)
