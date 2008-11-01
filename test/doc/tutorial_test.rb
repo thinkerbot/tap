@@ -3,10 +3,10 @@ require File.join(File.dirname(__FILE__), '../tap_test_helper')
 class TutorialTest < Test::Unit::TestCase 
   acts_as_script_test
 
-  TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/rap")
+  RAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/rap")
 
   def default_command_path
-    %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
+    %Q{ruby "#{RAP_EXECUTABLE_PATH}"}
   end
   
   def test_declaration
@@ -30,7 +30,7 @@ Goodnight -- your basic goodnight moon task
 --------------------------------------------------------------------------------
   Says goodnight with a configurable message.
 --------------------------------------------------------------------------------
-usage: tap run -- goodnight obj
+usage: rap goodnight OBJ
 
 configurations:
         --message MESSAGE
@@ -128,7 +128,7 @@ Goodnight -- a fancy goodnight moon task
 --------------------------------------------------------------------------------
   Says goodnight with a configurable message.
 --------------------------------------------------------------------------------
-usage: tap run -- goodnight OBJECTS...
+usage: rap goodnight OBJECTS...
 
 configurations:
         --message MESSAGE            a goodnight message

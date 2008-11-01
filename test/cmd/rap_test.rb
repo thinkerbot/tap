@@ -4,7 +4,7 @@ require 'tap/test/script_test'
 class RapTest < Test::Unit::TestCase
   acts_as_script_test
 
-  TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/rap")
+  RAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/rap")
 
   def setup
     super
@@ -14,7 +14,7 @@ class RapTest < Test::Unit::TestCase
   end
 
   def default_command_path
-    %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
+    %Q{ruby "#{RAP_EXECUTABLE_PATH}"}
   end
 
   def test_rap_help_with_no_declarations
@@ -86,21 +86,63 @@ RapTest::TaskWithDoc -- task summary
 --------------------------------------------------------------------------------
   long description
 --------------------------------------------------------------------------------
-usage: tap run -- rap_test/task_with_doc 
+usage: rap rap_test/task_with_doc 
 :...:
 % #{cmd} task_without_doc --help
 RapTest::TaskWithoutDoc
 
-usage: tap run -- rap_test/task_without_doc 
+usage: rap rap_test/task_without_doc 
 :...:
 % #{cmd} task_with_desc --help
 RapTest::TaskWithDesc -- desc
 
-usage: tap run -- rap_test/task_with_desc 
+usage: rap rap_test/task_with_desc 
 :...:}
     end
   end
   
+  def test_rap_help_for_definition
+    File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
+      file << %q{
+# TaskDefinition::manifest task summary
+# Extended documentation
+class TaskDefinition < Tap::Task
+  config :key, 'value'  # key config
+  
+  def process(a, b, *c)
+  end
+end
+
+class HiddenTaskDefinition < Tap::Task
+end
+}
+    end
+
+    script_test(method_root[:output]) do |cmd|
+      cmd.check "Prints summary of declarations", %Q{
+% #{cmd}
+usage: rap taskname {options} [args]
+
+===  tap tasks ===
+output:
+  task_definition  # task summary
+tap:
+:...:}
+
+      cmd.check "Prints help for declaration", %Q{
+% #{cmd} task_definition --help
+TaskDefinition -- task summary
+--------------------------------------------------------------------------------
+  Extended documentation
+--------------------------------------------------------------------------------
+usage: rap task_definition A B C...
+:...:
+configurations:
+        --key KEY                    key config
+:...:}
+    end
+  end
+    
   def test_rap_help_for_tasks_with_args
     File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
       file << %q{
@@ -109,6 +151,9 @@ module RapTest
 
   task(:task_without_args) {}
   task(:task_with_args) {|task, args|}
+  
+  task(:task_without_arg_names, :a, :b)
+  task(:task_with_arg_names, :a, :b) 
 end
 }
     end
@@ -117,39 +162,99 @@ end
       cmd.check "Prints help for declaration", %Q{
 % #{cmd} task_without_args --help
 :...:
-usage: tap run -- rap_test/task_without_args 
+usage: rap rap_test/task_without_args 
 :...:
 % #{cmd} task_with_args --help
 :...:
-usage: tap run -- rap_test/task_with_args 
+usage: rap rap_test/task_with_args 
+:...:
+% #{cmd} task_without_arg_names --help
+:...:
+usage: rap rap_test/task_without_arg_names A B
+:...:
+% #{cmd} task_with_arg_names --help
+:...:
+usage: rap rap_test/task_with_arg_names A B
 :...:
 }
     end
   end
   
-  def test_rap_help_for_tasks_with_arg_names
+  def test_rap_with_declarations_and_definitions
     File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
       file << %q{
-module RapTest
-  extend Tap::Declarations
-  
-  task(:task_without_args, :a, :b) {}
-  task(:task_with_args, :a, :b) {|task, one, two|}
+include Tap::Declarations
+
+desc "declaration"
+task(:task_declaration, :input) {|task, args| puts args.input }
+
+# TaskDefinition::manifest definition
+class TaskDefinition < Tap::Task
+  def process(input)
+    puts input
+  end
 end
 }
     end
 
     script_test(method_root[:output]) do |cmd|
       cmd.check "Prints help for declaration", %Q{
-% #{cmd} task_without_args --help
+% #{cmd} task_declaration yo
+yo
+% #{cmd} task_declaration --help
+TaskDeclaration -- declaration
+
+usage: rap task_declaration INPUT
 :...:
-usage: tap run -- rap_test/task_without_args a b
+% #{cmd} task_definition yo
+yo
+% #{cmd} task_definition --help
+TaskDefinition -- definition
+
+usage: rap task_definition INPUT
 :...:
-% #{cmd} task_with_args --help
+% #{cmd} -T
 :...:
-usage: tap run -- rap_test/task_with_args a b
+output:
+  task_declaration  # declaration
+  task_definition   # definition
 :...:
 }
     end
   end
+  
+  def test_rap_uses_rap_and_tapfiles
+    [ 
+    ['Tapfile'],
+    ['rapfile.rb'],
+    ['tapfile.rb', 'Rapfile']].each do |paths|
+      Tap::Test::Utils.clear_dir(method_root[:output])
+      make_test_directories
+      
+      manifests = []
+      paths.each do |path|
+        basename = File.basename(path).chomp('.rb').underscore
+        File.open(method_root.filepath(:output, path), 'w') do |file|
+          manifests << "  task_#{basename}  # #{path}"
+          file << %Q{
+include Tap::Declarations
+
+desc "#{path}"
+task(:task_#{basename})
+}
+        end
+      end
+      
+      script_test(method_root[:output]) do |cmd|
+        cmd.check "Prints help for declaration", %Q{
+% #{cmd} -T
+:...:
+output:
+#{manifests.join("\n")}
+:...:
+}
+      end
+    end
+  end
+  
 end

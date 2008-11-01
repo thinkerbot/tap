@@ -29,17 +29,17 @@ module Tap
         lazydoc
       end
       
-      # Creates a lazy attribute reader for the specified attribute.
+      # Creates a lazy attribute accessor for the specified attribute.
       def lazy_attr(key, attribute=key)
-        instance_eval %Q{def #{key}; @#{key} ||= get_lazy_attr('#{attribute}'); end}
+        instance_eval %Q{
+        def #{key}
+          lazydoc[to_s]['#{attribute}'] ||= Lazydoc::Comment.new
+        end
+
+        def #{key}=(comment)
+          Lazydoc[source_file][to_s]['#{attribute}'] = comment
+        end}
       end
-      
-      private
-      
-      def get_lazy_attr(attribute) # :nodoc:
-        lazydoc[self.to_s][attribute] ||= Lazydoc::Comment.new
-      end
-      
     end 
   end
 end

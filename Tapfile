@@ -1,9 +1,4 @@
-require 'tap/declarations'
-
-# Note to self:
-# Check will not be picked up by 'ruby bin/tap -T'
-# since the search paths for tap_root are pre-set
-# by Tap::Exe.
+include Tap::Declarations
 
 # Check::manifest run checks
 class Check < Tap::FileTask
@@ -15,4 +10,9 @@ class Check < Tap::FileTask
       sh "ruby -w '#{check_file}'"
     end
   end
+end
+
+desc "hello moon"
+task :hello_moon do 
+  puts "hello moon"
 end

@@ -27,7 +27,7 @@ Now from the command line:
   --------------------------------------------------------------------------------
     Says goodnight with a configurable message.
   --------------------------------------------------------------------------------
-  usage: tap run -- goodnight obj
+  usage: rap goodnight OBJ
 
   configurations:
           --message MESSAGE
@@ -154,7 +154,7 @@ Now from the command line:
   --------------------------------------------------------------------------------
     Says goodnight with a configurable message.
   --------------------------------------------------------------------------------
-  usage: tap run -- goodnight OBJECTS...
+  usage: rap goodnight OBJECTS...
 
   configurations:
           --message MESSAGE            a goodnight message

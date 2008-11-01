@@ -71,7 +71,7 @@ module Tap
         
         search_paths[search_path_index, search_paths.length - search_path_index].each do |(path_root, paths)|
           paths[path_index, paths.length - path_index].each do |path|
-            new_entries = resolve(path_root, path) - entries
+            new_entries = resolve(path_root, path)
             entries.concat(new_entries)
             
             @path_index += 1
@@ -95,17 +95,24 @@ module Tap
       # filepath from path_root to path.
       def resolve(path_root, path)
         entries = []
-        if document = Lazydoc.scan_doc(path, const_attr)
-          if document.default_const_name.empty?
-            relative_path = Root.relative_filepath(path_root, path).chomp(File.extname(path))
-            document.default_const_name = relative_path.camelize
-          end
-          
-          document.const_attrs.each_pair do |const_name, attrs|
-            if attrs.has_key?(const_attr)
-              entries << Constant.new(const_name, path)
+        lazydoc = nil
+        
+        Lazydoc.scan(File.read(path), const_attr) do |const_name, attr_key, comment|
+          if lazydoc == nil
+            lazydoc = Lazydoc[path]
+            
+            if lazydoc.default_const_name.empty?
+              relative_path = Root.relative_filepath(path_root, path).chomp(File.extname(path))
+              lazydoc.default_const_name = relative_path.camelize
             end
           end
+          
+          if const_name.empty? 
+            const_name = lazydoc.default_const_name
+          end
+          
+          lazydoc[const_name][attr_key] = comment
+          entries << Constant.new(const_name, path)
         end
         
         entries

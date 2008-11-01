@@ -13,11 +13,14 @@ module Tap
     
     module Lazydoc
       class Declaration < Comment
+        attr_accessor :desc
+        
         def resolve(lines)
           super
           
           @subject = case
-          when content.empty? || content[0][0].to_s !~ /^::desc(.*)/ then ""
+          when content.empty? || content[0][0].to_s !~ /^::desc(.*)/
+            desc.to_s
           else
             content[0].shift
             $1.strip
@@ -48,11 +51,11 @@ module Tap
     end
     
     def self.env
-      @env ||= Tap::Env.new(:load_paths => [], :command_paths => [], :generator_paths => [])
+      @env ||= Tap::Env.instance_for(Dir.pwd)
     end
     
-    def env
-      @env ||= Declarations.env
+    def declaration_env
+      @declaration_env ||= Declarations.env
     end
     
     attr_writer :declaration_base
@@ -107,8 +110,7 @@ module Tap
     end
     
     def desc(str)
-      self.current_desc = Lazydoc::Comment.new
-      current_desc.subject = str
+      self.current_desc = str
     end
     
     protected
@@ -193,12 +195,12 @@ module Tap
       end
       
       # register the subclass in the manifest
-      manifest = env.tasks
+      manifest = declaration_env.tasks
       const_name = subclass.to_s
-      unless manifest.find {|const| const.name == const_name }
+      unless manifest.entries.any? {|const| const.const_name == const_name }
         manifest.entries << Tap::Support::Constant.new(const_name)
       end
-
+      
       subclass
     end
     
@@ -207,16 +209,18 @@ module Tap
       # register documentation
       caller[1] =~ Lazydoc::CALLER_REGEXP
       task_class.source_file = File.expand_path($1)
-      lazydoc = task_class.lazydoc(false)
-      lazydoc[task_class.to_s]['manifest'] = current_desc || lazydoc.register($3.to_i - 1, Lazydoc::Declaration)
+      manifest = task_class.lazydoc(false).register($3.to_i - 1, Lazydoc::Declaration)
+      manifest.desc = current_desc
+      task_class.manifest = manifest
+      
+      self.current_desc = nil
       
       if arg_names
         comment = Lazydoc::Comment.new
-        comment.subject = arg_names.join(' ')
-        lazydoc[task_class.to_s]['args'] = comment
+        comment.subject = arg_names.collect {|name| name.to_s.upcase }.join(' ')
+        task_class.args = comment
       end
-      
-      self.current_desc = nil
+
       task_class
     end
   end
