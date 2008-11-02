@@ -45,7 +45,7 @@ The declaration syntax is obviously similar to rake; configurations are new but 
   
   # make the declarations available everywhere
   # (normally they're accessed via Tap, as above)
-  extend Tap::Declarations
+  include Tap::Declarations
   
   namespace :example do
     task(:say, :message) do |task, args|

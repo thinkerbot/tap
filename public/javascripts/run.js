@@ -7,16 +7,19 @@ Tap.Run = {
     // Determine the total number of tasks
     tasks = document.getElementsByClassName('task');
 
-    // Determine the indicies of selected tasks
-    selected_tasks = []
-    // for (i=0;i<tasks.length;i++) {
-    //   selector = task[i]
-    //   // if(selector.checked) selected_tasks.push(selector.value);
-    // };
-    
+    // Determine the indicies of source and target tasks
+    sources = []
+    targets = []
+    for (i=0;i<tasks.length;i++) {
+      source = task[i].getElementById('source[]' + i);
+      if(source.checked) sources.push(i);
+      
+      target = task[i].getElementById('source_' + i);
+      if(target.checked) targets.push(i);
+    };
+
     // Determine the currently selected tasc
-    selected_task = document.getElementById('manifest').value;
-    if (selected_task != "") selected_tasks.push(selected_task);
+    tasc = document.getElementById('tasc').value;
     
     new Ajax.Updater(id, '/run', { 
       method: 'post', 
@@ -24,7 +27,9 @@ Tap.Run = {
       parameters: {
         action: 'add',
         index: tasks.length,
-        selected_tasks: selected_tasks
+        sources: sources,
+        targets: targets,
+        tasc: tasc
       } 
     });
   },

@@ -40,26 +40,33 @@ cgi = CGI.new("html3")  # add HTML generation methods
 cgi.out() do
   case cgi.request_method
   when /GET/i
-    env.render('run.erb', :env => env, :tascs => [] )
+    tascs = cgi.params['tasc'].collect do |name|
+      env.tasks.search(name).constantize
+    end
     
+    env.render('run.erb', :env => env, :tascs => tascs )
+
   when /POST/i
     action = cgi.params['action'][0]
     case action
     when 'add'
       index = cgi.params['index'][0].to_i - 1
-      cgi.params['selected_tasks'].collect do |task|
+      sources = cgi.params['sources'].flatten.collect {|source| source.to_i }
+      targets = cgi.params['targets'].flatten.collect {|target| target.to_i }
+      
+      cgi.params['tasc'].collect do |name|
         index += 1
-        tasc = env.tasks.search(task).constantize
+        targets << index
+        tasc = env.tasks.search(name).constantize
         env.render('run/task.erb', :tasc => tasc, :index => index )
       end.join("\n")
-      
+    
     when 'remove'
     when 'update'
     else
-      cgi.pre do
-        argh = Tap::Support::Server.pair_parse(cgi.params)
-        Tap::Support::Schema.parse(argh['schema']).dump.to_yaml
-      end
+      raise ArgumentError, "unknown POST action: #{action}"
+      # argh = Tap::Support::Server.pair_parse(cgi.params)
+      # Tap::Support::Schema.parse(argh['schema']).dump.to_yaml
     end
   else 
     raise ArgumentError, "unhandled request method: #{cgi.request_method}"

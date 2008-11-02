@@ -48,7 +48,7 @@ options:
       File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
         file << %q{
 # make the declarations available everywhere
-extend Tap::Declarations
+include Tap::Declarations
 
 namespace :example do
   task(:say, :message) do |task, args|

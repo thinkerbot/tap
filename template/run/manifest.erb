@@ -1,10 +1,8 @@
-<select id="manifest" class="manifest">
+<select id="tasc" class="manifest">
   <option value="">(none)</option>
-<% env.manifest(:envs, true).minimize.each do |(env_key, env)| %>
-<%   task_manifest = env.manifest(:tasks, true).minimize %>
-<%   next if task_manifest.empty? %>
-<%   task_manifest.each do |(task_key, const)| %>
-  <option value="<%= env_key %>:<%= task_key %>"><%= env_key %>:<%= task_key %></option>
+<% env.minimap.each do |(env_name, env)| %>
+<%   env.tasks.build.minimap.each do |(name, const)| %>
+  <option value="<%= env_name %>:<%= name %>"><%= env_name %>:<%= name %></option>
 <%   end %>
 <% end %>
 </select>

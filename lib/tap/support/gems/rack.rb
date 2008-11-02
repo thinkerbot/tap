@@ -10,13 +10,10 @@ module Tap
     module Gems
       
       Tap::Env.manifest(:cgis) do |env|
-        entries = []
-        env.root.glob(:cgi, "**/*.rb").each do |path|
-          env.root.relative_filepath(:cgi, path)
+        entries = env.root.glob(:cgi, "**/*.rb").sort_by {|path| File.basename(path) }
+        Support::Manifest.intern(entries) do |manifest, path|
+          "/" + manifest.env.root.relative_filepath(:cgi, path)
         end
-        
-        entries = entries.sort_by {|path| File.basename(path) }
-        Support::Manifest.intern(entries) {|path| "/" + path }
       end
       
       # = UNDER CONSTRUCTION
@@ -97,7 +94,7 @@ module Tap
             # serve named static pages
             file_response(static_path, rack_env)
             
-          when cgi_path = search(:cgis, path)
+          when cgi_path = cgis.search(path)
             # serve cgis
             cgi_response(cgi_path, rack_env)
             

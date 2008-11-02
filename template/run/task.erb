@@ -1,8 +1,14 @@
   <li id="task_<%= index %>" class="task">
-<% lazydoc = tasc.lazydoc[tasc.to_s] %>
+    <!-- controls -->
+    <ul>
+      <li><input id="source_<%= index %>" class="source" name="source[<%= index %>]" type="checkbox" /></li>
+      <li><input id="target_<%= index %>" class="target" name="target[<%= index %>]" type="checkbox" /></li>
+    </ul>
+    
+<% lazydoc = tasc.lazydoc[tasc.to_s] %>    
     <span class="class"><%= tasc %></span>: 
     <span class="summary"><%= lazydoc['manifest'].subject %></span>
-    <pre><%= lazydoc['manifest'].to_s %></pre>
+    <pre><%= lazydoc['manifest'].wrap %></pre>
     
     <!-- should be set in the background -->
     <input name="schema[<%= index %>][0]" type="hidden" value="<%= tasc.to_s.underscore %>" />

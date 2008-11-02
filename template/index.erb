@@ -1,5 +1,5 @@
 <% env_names = {} %>
-<% env.manifest(:envs, true).minimize.each do |name, environment| %>
+<% env.minimap.each do |name, environment| %>
 <%   env_names[environment] = name %>
 <% end %>
 <html>
@@ -17,23 +17,30 @@
 <% env.each do |current| %>
   <dt class="key"><%= env_names[current] %> (<%= current.root.root %>)</dt>
   <dd class="value">
-<%   manifest_keys = (Tap::Env.manifests.keys + current.manifests.keys).uniq %>
-<%   manifest_keys -= [:envs] %>
-<%   manifest_keys.each do |key| %>
-<%     manifest = current.manifest(key, true) %>
-<%     next if manifest.empty? %>
     <dl id="manifests" class="manifest">
-    <dt class="key"><%= key %></dt>
+      
+    <!-- cgis manifest -->
+    <dt class="key">cgis</dt>
     <dd class="value">
       <ol>
-<%     manifest.each do |(name, path)| %>
-<%       path = path.kind_of?(Tap::Support::Constant) ? path.require_path : path %>
-        <li><%= name %> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
-<%     end %>
+<%   current.cgis.build.minimap.each do |(name, obj)| %>
+<%     path = obj.kind_of?(Tap::Support::Constant) ? obj.require_path : name %>
+      <li><a href="<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
+<%   end %>
+      </ol>
+    </dd>
+    
+    <!-- tasks manifest -->
+    <dt class="key">tasks</dt>
+    <dd class="value">
+      <ol>
+<%   current.tasks.build.minimap.each do |(name, obj)| %>
+<%     path = obj.kind_of?(Tap::Support::Constant) ? obj.require_path : name %>
+      <li><a href="<%= env_names[env] %>%3Arun?tasc=<%= env_names[env] %>%3A<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
+<%   end %>
       </ol>
     </dd>
     </dl>
-<%   end %>
   </dd>
 <% end %>
   </dl>
