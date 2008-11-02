@@ -74,7 +74,8 @@ module Tap
     end
 
     def build(argv=ARGV)
-      Support::Schema.parse(argv).compact.build(app) do |args|
+      schema = argv.kind_of?(Support::Schema) ? argv : Support::Schema.parse(argv)
+      schema.compact.build(app) do |args|
         task = args.shift
         const = tasks.search(task) 
         

@@ -1,0 +1,50 @@
+<% argv = node.argv %>
+<% tasc_identifier = argv.shift %>
+<% tasc = env.tasks.search(tasc_identifier).constantize %>
+<% task, args = tasc.parse(argv) %>
+<% lazydoc = tasc.lazydoc[tasc.to_s] %>
+  <li id="node_<%= index %>" class="node">
+    <!-- controls -->
+    <ul>
+      <li><input id="source_checkbox_<%= index %>" class="source_checkbox" name="source" value="<%= index %>" type="checkbox" /></li>
+      <li><input id="target_checkbox_<%= index %>" class="target_checkbox" name="target" value="<%= index %>" type="checkbox" /></li>
+    </ul>
+
+    <span class="class"><%= tasc %></span>: 
+    <span class="summary"><%= lazydoc['manifest'].subject %></span>
+    <pre><%= lazydoc['manifest'].wrap %></pre>
+    
+    <!-- tasc identifier -->
+    <input name="nodes[<%= index %>][0]" type="hidden" value="<%= tasc_identifier %>" />
+    
+    <ul>
+    <!-- inputs -->
+    <li class="input">
+<% args.collect! {|arg| arg =~ /\s/ ? "'#{arg}'" : arg} %>
+    <input class="value" name="nodes[<%= index %>][1]%w" value="<%= args.join(' ') %>" />
+    <span class="name"><%= lazydoc['args'].subject %></span>
+    </li>
+    
+    <!-- configurations -->
+<% tasc.configurations.each do |receiver, key, config| %>
+    <li class="config">
+    <input class="key" name="nodes[<%= index %>][2]" type="hidden" value="--<%= key.to_s.gsub('_', '-') %>" />
+    <input class="value" name="nodes[<%= index %>][2]" value="<%= task.config[key] %>" />
+    <span class="name"><%= key %></span>:
+    <span class="desc"><%= config.desc.to_str %></span>
+    </li>
+<% end %>
+
+    <!-- options -->
+    <li class="options">
+     <input class="key" name="nodes[<%= index %>][2]" type="hidden" value="--name" />
+     <input class="value" name="nodes[<%= index %>][2]" value="<%= task.name %>" />
+     <span class="name">Name</span>
+    </li>
+    
+    <!-- <li class="options">
+     <input class="globalize" name="nodes[<%= index %>][2]" type="checkbox" value="--*<%= index %>" />
+     <span class="name">Globalize</span>
+    </li> -->
+    </ul>
+  </li>

@@ -259,7 +259,7 @@ module Tap
 
         # build the workflow
         joins.each_pair do |join, (source_node, target_nodes)|
-          raise "unassigned join: #{join}" if source_node == nil
+          raise "unassigned join: #{join}" if source_node == nil || target_nodes.empty?
 
           targets = target_nodes.collect do |target_node|
             tasks[target_node][0]

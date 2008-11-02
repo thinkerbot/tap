@@ -4,29 +4,37 @@ var Tap = {
 
 Tap.Run = {
   add: function(id) {
-    // Determine the total number of tasks
-    tasks = document.getElementsByClassName('task');
+    // Determine the total number of nodes
+    nodes = document.getElementById(id).getElementsByClassName('node');
 
-    // Determine the indicies of source and target tasks
+    // Determine the indicies of source and target nodes
     sources = []
     targets = []
-    for (i=0;i<tasks.length;i++) {
-      source = task[i].getElementById('source[]' + i);
-      if(source.checked) sources.push(i);
+    for (i=0;i<nodes.length;i++) {
+      source = nodes[i].getElementsByClassName('source_checkbox')[0];
+      if(source.checked) {
+        source.checked = false;
+        sources.push(i);
+      };
       
-      target = task[i].getElementById('source_' + i);
-      if(target.checked) targets.push(i);
+      target = nodes[i].getElementsByClassName('target_checkbox')[0];
+      if(target.checked) {
+        target.checked = false;
+        targets.push(i);
+      };
     };
 
     // Determine the currently selected tasc
-    tasc = document.getElementById('tasc').value;
+    tasc_manifest = document.getElementById('tasc_manifest');
+    tasc = tasc_manifest.value;
+    tasc_manifest.value = ""
     
     new Ajax.Updater(id, '/run', { 
       method: 'post', 
       insertion: Insertion.Bottom,
       parameters: {
         action: 'add',
-        index: tasks.length,
+        index: nodes.length,
         sources: sources,
         targets: targets,
         tasc: tasc
@@ -38,7 +46,9 @@ Tap.Run = {
     alert('remove');
   },
 
-  update: function() {
-    alert('update');
+  update: function(id) {
+    form = document.getElementById(id);
+    form.method = "get";
+    form.submit();
   },
 };

@@ -671,6 +671,22 @@ class ParserTest < Test::Unit::TestCase
       [:sequence, 0, [1], {}],
       [:sequence, 1, [2], {}]
     ], schema.joins(true)
+    
+    assert_equal [3], schema.globals(true)
+  end
+  
+  def test_schema_is_clear_after_compact
+    schema = Parser.new(%w{a -- b -- c --0:1 --1:2}).schema.compact
+    
+    assert_equal [["a"],["b"],["c"]], schema.argvs
+    
+    assert_equal [[0]], schema.rounds(true)
+    assert_equal [
+      [:sequence, 0, [1], {}],
+      [:sequence, 1, [2], {}]
+    ], schema.joins(true)
+    
+    assert_equal [], schema.globals(true)
   end
   
   def test_parse_splits_string_argv_using_shellwords

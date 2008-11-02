@@ -233,6 +233,20 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   #
+  # build test
+  #
+  
+  # def test_build_raises_error_for_join_with_unassigned_source
+  #   schema.set(Join, nil, [1,2])
+  #   assert_raise(RuntimeError) { schema.build }
+  # end
+  # 
+  # def test_build_raises_error_for_join_with_unassigned_targets
+  #   schema.set(Join, 0, [])
+  #   assert_raise(RuntimeError) { schema.build }
+  # end
+  
+  #
   # dump/to_s test
   #
   

@@ -5,21 +5,27 @@
   <script src="/javascripts/run.js"></script>
 </head>
 <body>
-<form enctype="multipart/form-data" method="post" action="run">
+<form id="run-form" enctype="multipart/form-data" method="post" action="run">
   <ol id="schema">
 <% index = 0 %>
-<% tascs.each do |tasc| %>
-<%= render('run/task.erb', :tasc => tasc, :index => index ) %> 
+<% schema.nodes.each do |node| %>
+<%= render('run/node.erb', :env => env, :node => node, :index => index ) %> 
 <% index += 1 %>
+<% end %>
+<% schema.rounds(true).each do |round| %>
+<%= render('run/round.erb', :env => env, :round => round) %> 
+<% end %>
+<% schema.send(:each_join_str) do |join| %>
+<%= render('run/join.erb', :env => env, :join => join) %> 
 <% end %>
   </ol>
   <ul class="controls">
     <li><%= render('run/manifest.erb') %></li>
     <li><a href="javascript:Tap.Run.add('schema');">add</a></li>
     <li><a href="javascript:Tap.Run.remove('schema');">remove</a></li>
-    <li><a href="javascript:Tap.Run.update('schema');">update</a></li>
+    <li><a href="javascript:Tap.Run.update('run-form');">update</a></li>
   </ul>
-  <input id="submit" type="submit" value="Submit" />
+  <input id="submit-form" type="submit" value="Submit" />
 </form>
 </body>
 </html>
