@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.default_executable = "tap"
   s.has_rdoc = true
   s.rdoc_options << '--title' << 'Tap - Task Application' << '--main' << 'README' 
-  
+   
   s.extra_rdoc_files = %W{
     README
     MIT-LICENSE

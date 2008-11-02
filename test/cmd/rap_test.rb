@@ -101,6 +101,36 @@ usage: rap rap_test/task_with_desc
     end
   end
     
+  def test_rap_help_with_duplicate_nested_declarations
+    File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
+      file << %q{
+include Tap::Declarations
+
+desc "first desc"
+task :task
+
+namespace :sample do
+  desc "first desc"
+  task :task
+
+  desc "second desc"
+  task :task
+end
+}
+    end
+
+    script_test(method_root[:output]) do |cmd|
+      cmd.check "Prints proper description", %Q{
+% #{cmd}
+:...:
+output:
+  task         # first desc
+  sample/task  # second desc
+:...:
+}
+    end
+  end
+      
   def test_rap_help_for_tasks_with_args
     File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
       file << %q{

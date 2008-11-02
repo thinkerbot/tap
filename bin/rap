@@ -73,12 +73,12 @@ begin
 <% entries.each do |name, const| %>
 <%   desc = if const.require_path == nil # should be a declaration %>
 <%     manifest = const.constantize.manifest %>
-<%     next if manifest == nil || manifest.subject.empty? %>
+<%     next if manifest == nil || manifest.subject.to_s.empty? %>
 <%     manifest %>
 <%   else %>
 <%     const.document[const.name]['manifest'] %>
 <%   end %>
-<%   desc = desc.subject if desc.kind_of?(Tap::Support::Lazydoc::Comment) %>
+<%   desc = desc.subject.to_s if desc.kind_of?(Tap::Support::Lazydoc::Comment) %>
   <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
 <% end %>}
 
