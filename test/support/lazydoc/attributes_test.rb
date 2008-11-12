@@ -1,13 +1,16 @@
-require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/support/lazy_attributes'
+require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require 'tap/support/lazydoc/attributes'
 
-class LazyAttributesTest < Test::Unit::TestCase
+class AttributesTest < Test::Unit::TestCase
   include Tap::Support
   
-  # LazyAttributesTest::LazyClass::lazy subject
+  # AttributesTest::LazyClass::lazy subject
   # comment
   class LazyClass
-    extend Tap::Support::LazyAttributes
+    class << self
+      include Tap::Support::Lazydoc::Attributes
+    end
+    
     self.source_file = __FILE__
     
     lazy_attr :lazy
@@ -28,7 +31,8 @@ class LazyAttributesTest < Test::Unit::TestCase
     assert_equal Lazydoc::Comment, LazyClass.unknown.class
     assert_equal nil, LazyClass.unknown.subject
     
-    comment = Lazydoc[__FILE__]['LazyAttributesTest::LazyClass']['unknown']
+    comment = Lazydoc[__FILE__]['AttributesTest::LazyClass']['unknown']
+    assert !comment.nil?
     assert_equal comment, LazyClass.unknown
   end
 end

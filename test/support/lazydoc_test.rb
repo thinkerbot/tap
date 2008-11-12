@@ -30,7 +30,7 @@ end
 # line, the next constant attribute,
 # or an end key
 class Sample
-  extend Tap::Support::LazyAttributes
+  extend Tap::Support::Lazydoc::Attributes
   self.source_file = __FILE__
   
   lazy_attr :key

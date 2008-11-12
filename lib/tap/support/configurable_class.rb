@@ -1,6 +1,6 @@
 require 'tap/support/class_configuration'
 require 'tap/support/validation'
-require 'tap/support/lazy_attributes'
+require 'tap/support/lazydoc/attributes'
 require 'tap/support/lazydoc/config'
 
 module Tap
@@ -23,7 +23,7 @@ module Tap
     #   c.respond_to?('one=')                      # => true
     # 
     module ConfigurableClass
-      include Tap::Support::LazyAttributes
+      include Lazydoc::Attributes
       
       # A ClassConfiguration holding the class configurations.
       attr_reader :configurations
