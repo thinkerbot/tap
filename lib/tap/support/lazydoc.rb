@@ -4,7 +4,7 @@ module Tap
   module Support
     
     # Lazydoc lazily pulls documentation out of source files and makes it
-    # available through LazyAttributes.  Lazydoc can find two types of 
+    # available through Attributes.  Lazydoc can find two types of 
     # documentation, constant attributes and code comments.  To illustrate, 
     # consider the following:
     #
@@ -19,7 +19,7 @@ module Tap
     #   # line, the next constant attribute,
     #   # or an end key
     #   class Sample
-    #     extend Tap::Support::LazyAttributes
+    #     extend Tap::Support::Lazydoc::Attributes
     #     self.source_file = __FILE__
     #
     #     lazy_attr :key

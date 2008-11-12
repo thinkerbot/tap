@@ -1,5 +1,3 @@
-require 'rubygems'
-
 require File.dirname(__FILE__) + '/../lib/tap'
 require 'tap/test'
 
