@@ -130,7 +130,7 @@ module Tap
         end
         
         # clear out the output folder if it exists, unless flagged otherwise
-        unless env("KEEP_OUTPUTS") || (!@test_passed && env("KEEP_FAILURES"))
+        unless env("KEEP_OUTPUTS") || (!passed? && env("KEEP_FAILURES"))
           begin
              Utils.clear_dir(method_root[:output])
           rescue
