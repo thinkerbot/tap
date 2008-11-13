@@ -153,6 +153,12 @@ Rake::TestTask.new(:test) do |t|
   t.warning = true
 end
 
+desc "Run specs."
+task(:spec) do
+  specs = Dir.glob('specs/*_spec.rb')
+  sh('ruby', "-w", "-I", "lib", "-e", "ARGV.each {|spec| load spec}", *specs)
+end
+  
 namespace :test do
   desc 'Run functional tests.'
   task(:functional) do
