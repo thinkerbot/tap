@@ -147,8 +147,7 @@ class FileTestTest < Test::Unit::TestCase
     setup_file :input, "two.txt", "file two"
     setup_file :expected, "one.txt", "processed file one"
     
-    failed = false
-    begin
+    assert_raise(Test::Unit::AssertionFailedError) do
       assert_files do |input_files|
         input_files.collect do |input_file|
           target = method_root.filepath(:output, File.basename(input_file))
@@ -159,11 +158,7 @@ class FileTestTest < Test::Unit::TestCase
           target
         end
       end
-    rescue
-      failed = true 
     end
-    
-    assert failed
   end
   
   def test_assert_files_fails_for_missing_output_file
@@ -172,8 +167,7 @@ class FileTestTest < Test::Unit::TestCase
     setup_file :expected, "one.txt", "processed file one"
     setup_file :expected, "two.txt", "processed file two"
      
-    failed = false
-    begin
+    assert_raise(Test::Unit::AssertionFailedError) do
       assert_files do |input_files|
         input_files.collect do |input_file|
           target = method_root.filepath(:output, File.basename(input_file))
@@ -184,11 +178,7 @@ class FileTestTest < Test::Unit::TestCase
           target
         end.first
       end
-    rescue
-      failed = true 
     end
-    
-    assert failed
   end
   
   def test_assert_files_fails_for_different_content
@@ -197,8 +187,7 @@ class FileTestTest < Test::Unit::TestCase
     setup_file :expected, "one.txt", "processed file FLUNK"
     setup_file :expected, "two.txt", "processed file two"
     
-    failed = false
-    begin
+    assert_raise(Test::Unit::AssertionFailedError) do
       assert_files do |input_files|
         input_files.collect do |input_file|
           target = method_root.filepath(:output, File.basename(input_file))
@@ -209,11 +198,7 @@ class FileTestTest < Test::Unit::TestCase
           target
         end
       end
-    rescue
-      failed = true 
     end
-    
-    assert failed
   end
   
   def test_assert_files_fails_for_no_expected_files
@@ -221,17 +206,13 @@ class FileTestTest < Test::Unit::TestCase
     setup_file :input, "two.txt", "file two"
    
     was_in_block = false
-    failed = false
-    begin
+    assert_raise(Test::Unit::AssertionFailedError) do
       assert_files do |input_files| 
         was_in_block = true
         []
       end
-    rescue
-      failed = true 
     end
-    
-    assert failed
+
     assert !was_in_block
   end
   

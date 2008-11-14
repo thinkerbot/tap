@@ -57,8 +57,7 @@ describe "FileTest under RSpec" do
   end
   
   it "should fail for missing expected file" do
-    failed = false
-    begin
+    assert_raises(MiniTest::Assertion) do
       assert_files do |input_files|
         input_files.collect do |input_file|
           target = method_root.filepath(:output, File.basename(input_file))
@@ -69,16 +68,11 @@ describe "FileTest under RSpec" do
           target
         end
       end
-    rescue
-      failed = true 
     end
-    
-    failed.must_equal true
   end
   
   it "should fail for missing output file" do
-    failed = false
-    begin
+    assert_raises(MiniTest::Assertion) do
       assert_files do |input_files|
         input_files.collect do |input_file|
           target = method_root.filepath(:output, File.basename(input_file))
@@ -89,16 +83,11 @@ describe "FileTest under RSpec" do
           target
         end.first
       end
-    rescue
-      failed = true 
     end
-    
-    failed.must_equal true
   end
   
   it "should fail for different content" do
-    failed = false
-    begin
+    assert_raises(MiniTest::Assertion) do
       assert_files do |input_files|
         input_files.collect do |input_file|
           target = method_root.filepath(:output, File.basename(input_file))
@@ -109,26 +98,18 @@ describe "FileTest under RSpec" do
           target
         end
       end
-    rescue
-      failed = true 
     end
-    
-    failed.must_equal true
   end
   
   it "should fail for no expected files" do
     was_in_block = false
-    failed = false
-    begin
+    assert_raises(MiniTest::Assertion) do
       assert_files do |input_files| 
         was_in_block = true
         []
       end
-    rescue
-      failed = true 
     end
     
-    failed.must_equal true
     was_in_block.must_equal false
   end
   

@@ -92,15 +92,10 @@ class TapTestTest < Test::Unit::TestCase
     eb = ExpAudit[[:c, "c"], [:d, "d"]]
     e = ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]]
   
-    flunked = false
-    begin
+    exception = assert_raise(Test::Unit::AssertionFailedError) do
       assert_audit_equal(e, c)
-    rescue
-      assert $!.message =~ /unequal record 0:0:1\./
-      flunked = true
     end
-    
-    assert flunked
+    assert exception.message =~ /unequal record 0:0:1\./
     
     assert_equal ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]], e
     assert_equal ExpMerge[ea, eb], e[0]
@@ -116,14 +111,12 @@ class TapTestTest < Test::Unit::TestCase
     e = ExpAudit[[nil, nil], [:a, 'a'], [:b, 'b']]
     assert_audit_equal(e, a) 
     
-    begin
+    exception = assert_raise(Test::Unit::AssertionFailedError) do
       e = ExpAudit[[nil, nil], [:a, 'FLUNK'], [:b, 'b']]
       assert_audit_equal(e, a)
-      
-      flunk "audits should not have been equal"
-    rescue
-      assert_equal "unequal record 1.\n<[:a, \"FLUNK\"]> expected but was\n<[:a, \"a\"]>.", $!.message
     end
+    
+    assert_equal "unequal record 1.\n<[:a, \"FLUNK\"]> expected but was\n<[:a, \"a\"]>.", exception.message
   end
   
   def test_assert_audit_equal_with_procs
@@ -137,17 +130,15 @@ class TapTestTest < Test::Unit::TestCase
       lambda {|source, value| source == :b && value == 'b'}]
     assert_audit_equal(e, a) 
     
-    begin
+    exception = assert_raise(Test::Unit::AssertionFailedError) do
       e = ExpAudit[
         lambda {|source, value| source == nil && value == nil}, 
         lambda {|source, value| source == :a && value == 'FLUNK'}, 
         lambda {|source, value| source == :b && value == 'b'}]
       assert_audit_equal(e, a)
-      
-      flunk "audits should not have been equal"
-    rescue
-      assert_equal "unconfirmed record 1.\n<false> is not true.", $!.message
     end
+    
+    assert_equal "unconfirmed record 1.\n<false> is not true.", exception.message
   end
   
   def test_assert_audit_equal_for_merge
@@ -169,15 +160,14 @@ class TapTestTest < Test::Unit::TestCase
   
     assert_audit_equal(e, c)
     
-    begin
+    exception = assert_raise(Test::Unit::AssertionFailedError) do
       ea = ExpAudit[[nil, nil], [:a, "FLUNK"], [:b, "b"]]
       eb = ExpAudit[[nil, nil], [:c, "c"], [:d, "d"]]
       e = ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]]
       assert_audit_equal(e, c)
-      flunk "audits should not have been equal"
-    rescue
-      assert_equal "unequal record 0:0:1.\n<[:a, \"FLUNK\"]> expected but was\n<[:a, \"a\"]>.", $!.message
     end
+    
+    assert_equal "unequal record 0:0:1.\n<[:a, \"FLUNK\"]> expected but was\n<[:a, \"a\"]>.", exception.message
   end
   
   def new_audit(letter, n=0)
@@ -214,7 +204,7 @@ class TapTestTest < Test::Unit::TestCase
     eg = ExpAudit[ExpMerge[ec, ef], [:g, 'g1']]
     assert_audit_equal(eg, g)
     
-    begin
+    exception = assert_raise(Test::Unit::AssertionFailedError) do
       ea = ExpAudit[[nil, nil], [:a, 'a1']]
       eb = ExpAudit[[nil, nil], [:b, 'b1']]
       ec = ExpAudit[ExpMerge[ea, eb], lambda {|source, value| source == :c && value == 'c1'}]
@@ -228,20 +218,19 @@ class TapTestTest < Test::Unit::TestCase
 
       eg = ExpAudit[ExpMerge[ec, ef], [:g, 'g1']]
       assert_audit_equal(eg, g)
-    rescue
-      assert_equal "unconfirmed record 0:1:0:2:0.\n<false> is not true.", $!.message
     end
+    
+    assert_equal "unconfirmed record 0:1:0:2:0.\n<false> is not true.", exception.message
   end
   
   def test_assert_audit_equal_flunks_for_empty_merge
     ea = ExpAudit[ExpMerge[], [:a, 'a1']]
     a = new_audit(:a, 1)
-    begin
+    exception = assert_raise(Test::Unit::AssertionFailedError) do
       assert_audit_equal(ea, a)
-      flunk "audits should not have been equal"
-    rescue
-      assert_equal "empty merge 0.", $!.message
     end
+    
+    assert_equal "empty merge 0.", exception.message
   end
   
   # TODO -- test length check for assert_audit_equal
