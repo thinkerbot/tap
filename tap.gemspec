@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "0.11.1"
+  s.version = "0.11.2"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -69,6 +69,7 @@ Gem::Specification.new do |s|
     lib/tap/generator/manifest.rb
     lib/tap/patches/optparse/summarize.rb
     lib/tap/root.rb
+    lib/tap/spec.rb
     lib/tap/support/aggregator.rb
     lib/tap/support/assignments.rb
     lib/tap/support/audit.rb
@@ -83,6 +84,7 @@ Gem::Specification.new do |s|
     lib/tap/support/dependency.rb
     lib/tap/support/executable.rb
     lib/tap/support/executable_queue.rb
+    lib/tap/support/gems/rack.rb
     lib/tap/support/gems/rake.rb
     lib/tap/support/gems.rb
     lib/tap/support/instance_configuration.rb
@@ -94,8 +96,8 @@ Gem::Specification.new do |s|
     lib/tap/support/joins/sequence.rb
     lib/tap/support/joins/switch.rb
     lib/tap/support/joins/sync_merge.rb
-    lib/tap/support/lazy_attributes.rb
     lib/tap/support/lazydoc.rb
+    lib/tap/support/lazydoc/attributes.rb
     lib/tap/support/lazydoc/comment.rb
     lib/tap/support/lazydoc/config.rb
     lib/tap/support/lazydoc/definition.rb
