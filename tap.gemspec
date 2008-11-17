@@ -29,6 +29,7 @@ Gem::Specification.new do |s|
     cmd/destroy.rb
     cmd/generate.rb
     cmd/manifest.rb
+    cmd/server.rb
     cmd/run.rb
     doc/Tutorial
     doc/Class\sReference
@@ -134,5 +135,16 @@ Gem::Specification.new do |s|
     lib/tap/test/utils.rb
     lib/tap/test.rb
     lib/tap.rb
+    public/javascripts/prototype.js
+    public/javascripts/run.js
+    public/stylesheets/run.css
+    template/404.erb
+    template/index.erb
+    template/run.erb
+    template/run/join.erb
+    template/run/manifest.erb
+    template/run/node.erb
+    template/run/round.erb
+    vendor/url_encoded_pair_parser.rb
     }
 end
