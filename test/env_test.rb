@@ -154,7 +154,7 @@ class EnvTest < Test::Unit::TestCase
   #
   
   def test_env_is_configurable
-    assert e.kind_of?(Tap::Support::Configurable)
+    assert e.kind_of?(Configurable)
   end
   
   #

@@ -89,8 +89,8 @@ class TaskTest < Test::Unit::TestCase
   
     ####
     t = ValidatingTask.new
-    assert_raise(Tap::Support::Validation::ValidationError) { t.string = 1 }
-    assert_raise(Tap::Support::Validation::ValidationError) { t.integer = 1.1 }
+    assert_raise(Configurable::Validation::ValidationError) { t.string = 1 }
+    assert_raise(Configurable::Validation::ValidationError) { t.integer = 1.1 }
 
     t.integer = "1"
     assert t.integer == 1
@@ -280,29 +280,14 @@ class TaskTest < Test::Unit::TestCase
     assert_equal "result", t.define_task.process
   end
   
-  def test_define_creates_instance_config_reader_for_task
-    t = Define.new
-    assert t.respond_to?(:define_task_config)
-    assert_equal t.define_task.config, t.define_task_config
-  end
-  
-  def test_define_creates_instance_config_writer_for_task
-    t = Define.new
-    assert t.respond_to?(:define_task_config=)
-    assert_equal({:key => 'value'}, t.define_task.config.to_hash)
-    
-    t.define_task_config = {:key => 'one'}
-    assert_equal({:key => 'one'}, t.define_task.config.to_hash)
-  end
-  
   def test_define_adds_config_by_name_to_configurations
     assert Define.configurations.key?(:define_task)
     config = Define.configurations[:define_task]
     
     assert_equal :define_task_config, config.reader
     assert_equal :define_task_config=, config.writer
-    assert_equal Tap::Support::InstanceConfiguration, config.default.class
-    assert_equal Define::DefineTask.configurations, config.default.class_config
+    assert_equal Configurable::DelegateHash, config.default.class
+    assert_equal Define::DefineTask.configurations, config.default.delegates
   end
   
   def test_instance_is_initialized_with_configs_by_the_same_name
@@ -439,14 +424,14 @@ class TaskTest < Test::Unit::TestCase
     assert_equal App.instance, t1.app
   end
 
-  def test_instance_configs_are_bound_to_self
-    ic = Sample.configurations.instance_config
-    assert !ic.bound?
+  def test_initialize_binds_delegate_hashes_to_self
+    dhash = Configurable::DelegateHash.new
+    assert !dhash.bound?
     
-    s = Sample.new(ic)
-    assert ic.bound?
-    assert_equal s, ic.receiver
-    assert_equal ic, s.config
+    s = Sample.new(dhash)
+    assert dhash.bound?
+    assert_equal s, dhash.receiver
+    assert_equal dhash, s.config
   end
   
   def test_name_is_set_to_class_default_name_unless_specified

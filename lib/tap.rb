@@ -2,6 +2,7 @@ autoload(:YAML, 'yaml')                   # expensive to load
 
 $:.unshift File.expand_path(File.dirname(__FILE__))
 
+require 'rubygems'
 require 'tap/constants'
 
 # require in order...

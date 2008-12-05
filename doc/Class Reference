@@ -18,7 +18,7 @@ Executable extends objects allowing them to be used in workflows, enqued, and ru
 
 Tasks are constructed such that <tt>process</tt> is the executable method (actually execute_with_callbacks is used to wrap process with before/after execute callbacks, but effectively this is the case).  Hence <tt>process</tt> is the standard method overridden in Task subclasses.
 
-==== Tap::Support::Configurable
+==== Configurable
 
 http://tap.rubyforge.org/images/Configurable.png
 
@@ -27,7 +27,7 @@ Configurable allows declaration of class configurations.  Configurable classes h
 Instances of a Configurable class have a <tt>config</tt> method accessing a {InstanceConfiguration}[link:classes/Tap/Support/InstanceConfiguration.html] object.  The instance configuration acts like a forwarding hash; read and write operations for declared configs get forwarded to class methods while undeclared configs are stored directly.  The writer for a config may be defined through a block provided during config declaration.  For instance:
 
   class ConfigClass
-    include Tap::Support::Configurable
+    include Configurable
 
     config :key, 'value' do |input|
       input.upcase
@@ -65,12 +65,12 @@ As you can see here:
 
 This setup is both fast and convenient.  
 
-==== Tap::Support::Validation
+==== Configurable::Validation
 
 When configurations are set from the command line, the writer method will inevitably receive a string, whereas configurations set within code can receive any type of object.  The {Validation}[link:classes/Tap/Support/Validation.html] module provides standard blocks for validating and transforming inputs, accessible through the <tt>c</tt> method (ex: <tt>c.integer</tt> or <tt>c.regexp</tt>).  These blocks (generally) load string inputs as YAML and validate that the result is the correct class; non-string inputs are simply validated.
 
   class ValidatingClass
-    include Tap::Support::Configurable
+    include Configurable
 
     config :int, 1, &c.integer                 # assures the input is an integer
     config :int_or_nil, 1, &c.integer_or_nil   # integer or nil only
@@ -89,7 +89,7 @@ When configurations are set from the command line, the writer method will inevit
 
 Validation blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes a config into a flag on the command line.
 
-==== Tap::Support::Lazydoc
+==== Lazydoc
 
 Ah lazydoc.  Lazydoc fits into the space between live code and code documentation.  Lazydoc can scan a file (code or not) and pull documentation into the object space where it can be utilized.  Lazydoc uses a key-value syntax like this:
 
@@ -112,7 +112,7 @@ Lazydoc parses a constant name, the key, the value, and any comment following th
 
   require 'tap'
 
-  lazydoc = Tap::Support::Lazydoc[__FILE__]
+  lazydoc = Lazydoc[__FILE__]
   lazydoc.resolve
 
   lazydoc['Name::Space']['key'].to_s           # => "This documentation gets parsed."
@@ -128,7 +128,7 @@ Furthermore, Lazydoc can register specific lines for documentation.  These lines
 
   require 'tap'
 
-  lazydoc = Tap::Support::Lazydoc[__FILE__]
+  lazydoc = Lazydoc[__FILE__]
   code_comment = lazydoc.register(2)
   lazydoc.resolve
   

@@ -8,26 +8,23 @@ module Tap
   # the top level (for main/Object) while extend should be used
   # in all other cases.
   module Declarations
-    Lazydoc = Tap::Support::Lazydoc
     include Tap::Support::ShellUtils
     
-    module Lazydoc
-      class Declaration < Comment
-        attr_accessor :desc
+    class Declaration < Lazydoc::Comment
+      attr_accessor :desc
+      
+      def resolve(lines)
+        super
         
-        def resolve(lines)
-          super
-          
-          @subject = case
-          when content.empty? || content[0][0].to_s !~ /^::desc(.*)/
-            desc.to_s
-          else
-            content[0].shift
-            $1.strip
-          end
-          
-          self
+        @subject = case
+        when content.empty? || content[0][0].to_s !~ /^::desc(.*)/
+          desc.to_s
+        else
+          content[0].shift
+          $1.strip
         end
+        
+        self
       end
     end
     
@@ -176,7 +173,7 @@ module Tap
       subclass.extend Rakish
       
       configs.each_pair do |key, value|
-        subclass.send(:config, key, value)
+        subclass.send(:config, key, value, :desc => "")
       end
       
       dependencies.each do |dependency|
@@ -209,7 +206,7 @@ module Tap
       # register documentation
       caller[1] =~ Lazydoc::CALLER_REGEXP
       task_class.source_file = File.expand_path($1)
-      manifest = task_class.lazydoc(false).register($3.to_i - 1, Lazydoc::Declaration)
+      manifest = task_class.lazydoc(false).register($3.to_i - 1, Declaration)
       manifest.desc = current_desc
       task_class.manifest = manifest
       

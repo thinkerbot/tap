@@ -1,5 +1,5 @@
+require 'configurable'
 require 'tap/support/versions'
-require 'tap/support/configurable'
 autoload(:FileUtils, 'fileutils')
 
 module Tap
@@ -407,10 +407,10 @@ module Tap
       end
       
     end
-  
+    
+    include Configurable
     include Support::Versions
-    include Support::Configurable
-
+    
     # The root directory.
     config_attr(:root, '.', :writer => false)
     
@@ -432,7 +432,7 @@ module Tap
     # and no aliased directories or absolute paths are specified.  
     def initialize(root=Dir.pwd, directories={}, absolute_paths={})
       assign_paths(root, directories, absolute_paths)
-      @config = self.class.configurations.instance_config(self)
+      @config = DelegateHash.new(self.class.configurations, {}, self)
     end
     
     # Sets the root directory. All paths are reassigned accordingly.

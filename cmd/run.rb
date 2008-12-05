@@ -13,24 +13,22 @@ app = Tap::App.instance
 #
 
 dump = false
-OptionParser.new do |opts|
+ConfigParser.new do |opts|
   opts.separator ""
   opts.separator "configurations:"
   
-  Tap::App.configurations.each do |receiver, key, config|
-    next if receiver == Tap::Root
-    
-    opts.on(*config.to_optparse_argv) do |value|
-      app.send(config.writer, value)
-    end
+  keys = Tap::App.configurations.keys - Tap::Root.configurations.keys
+  keys.sort_by {|key| key.to_s }.each do |key|
+    config = Tap::App.configurations[key]
+    opts.define(key, config.default, config.attributes)
   end
  
   opts.separator ""
   opts.separator "options:"
-
+ 
   opts.on("-h", "--help", "Show this message") do
-    opts.banner = Tap::Support::Lazydoc.usage(__FILE__)
     Tap::App.lazydoc.resolve
+    puts Lazydoc.usage(__FILE__)
     puts opts
     exit
   end

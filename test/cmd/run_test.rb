@@ -159,7 +159,7 @@ unknown task: --help
 
       cmd.match "Prints the list config help",
       "% #{cmd} run -- with_list_config --help", 
-      /--list a,b,c                 a list config/
+      /--list A,B,C                 a list config/
 
       # array
       cmd.match "Run with array syntax",

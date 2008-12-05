@@ -98,8 +98,6 @@ Here is a corresponding class:
 
 Simple enough; the name corresponds to the class, configurations (and dependencies, although they aren't show) are written out individually, and the block corresponds to process.  There are a few differences, especially relating to process, but for the moment lets gloss over them and see how Goodnight works.
 
-  Goodnight.configurations.to_hash         # => {:message => 'goodnight'}
-  
   goodnight = Goodnight.new
   goodnight.message                        # => 'goodnight'
   goodnight.process('moon')                # => 'goodnight moon'
@@ -108,7 +106,7 @@ Simple enough; the name corresponds to the class, configurations (and dependenci
   hello.message                            # => 'hello'
   hello.process('world')                   # => 'hello world'
 
-Totally straightforward.  Goodnight stores the default configurations, each instance has accessors to the configurations, and the defaults may be overridden during initialization, or later.  Class definitions allow validation/transformation blocks to be specified for configurations.  These blocks process inputs (ex the string inputs from the command line), quite literally defining the writer for a configuration accessor.  A set of standard blocks are available through +c+, an alias for the Tap::Support::Validation module.
+Totally straightforward.  Goodnight stores the default configurations, each instance has accessors to the configurations, and the defaults may be overridden during initialization, or later.  Class definitions allow validation/transformation blocks to be specified for configurations.  These blocks process inputs (ex the string inputs from the command line), quite literally defining the writer for a configuration accessor.  A set of standard blocks are available through +c+, an alias for the Configurable::Validation module.
 
   [lib/goodnight.rb]
   

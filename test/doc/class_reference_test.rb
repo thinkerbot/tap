@@ -14,7 +14,7 @@ class ClassReferenceTest < Test::Unit::TestCase
   #
   
   class ConfigClass
-    include Tap::Support::Configurable
+    include Configurable
     
     config :key, 'value' do |input|
       input.upcase
@@ -41,7 +41,7 @@ class ClassReferenceTest < Test::Unit::TestCase
   #
   
   class ValidatingClass
-    include Tap::Support::Configurable
+    include Configurable
 
     config :int, 1, &c.integer                 # assures the input is an integer
     config :int_or_nil, 1, &c.integer_or_nil   # integer or nil only
@@ -57,7 +57,7 @@ class ClassReferenceTest < Test::Unit::TestCase
     vc.array = "[1, 2, 3]"
     assert_equal [1, 2, 3], vc.array
 
-    assert_raise(Tap::Support::Validation::ValidationError) { vc.array = "string" }
+    assert_raise(Configurable::Validation::ValidationError) { vc.array = "string" }
   end
   
   #
@@ -81,7 +81,7 @@ class ClassReferenceTest < Test::Unit::TestCase
 }
     end
 
-    lazydoc = Tap::Support::Lazydoc[lazydoc_file]
+    lazydoc = Lazydoc[lazydoc_file]
     lazydoc.resolve
 
     assert_equal "This documentation gets parsed.", lazydoc['Name::Space']['key'].to_s
@@ -96,7 +96,7 @@ end
 }
     end
     
-    lazydoc = Tap::Support::Lazydoc[another_lazydoc_file]
+    lazydoc = Lazydoc[another_lazydoc_file]
     code_comment = lazydoc.register(2)
     lazydoc.resolve
 

@@ -78,11 +78,11 @@ begin
 <%   else %>
 <%     const.document[const.name]['manifest'] %>
 <%   end %>
-<%   desc = desc.subject.to_s if desc.kind_of?(Tap::Support::Lazydoc::Comment) %>
+<%   desc = desc.subject.to_s if desc.kind_of?(Lazydoc::Comment) %>
   <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
 <% end %>}
 
-    puts Tap::Support::Lazydoc.usage(__FILE__)
+    puts Lazydoc.usage(__FILE__)
     puts
     puts "===  tap tasks ==="
     puts env.summarize(:tasks, rap_template)

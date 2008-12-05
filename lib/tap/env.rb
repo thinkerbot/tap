@@ -8,7 +8,7 @@ module Tap
   # whenever these configs are reset.
   class Env
     include Enumerable
-    include Support::Configurable
+    include Configurable
     include Support::Minimap
     
     class << self
@@ -375,9 +375,8 @@ module Tap
       
       # freeze array configs like load_paths
       config.each_pair do |key, value|
-        case value
-        when Array then value.freeze
-        end
+        next unless value.kind_of?(Array)
+        value.freeze
       end
       
       # activate nested envs
@@ -418,17 +417,15 @@ module Tap
         $LOAD_PATH.delete(path)
       end
 
-      # unfreeze array configs by duplicating
-      self.config.class_config.each_pair do |key, value|
-        value = send(key)
-        case value
-        when Array then instance_variable_set("@#{key}", value.dup)
-        end
-      end
-      
       @active = false
       @manifests.clear
       @@instance = nil if @@instance == self
+      
+      # unfreeze array configs by duplicating
+      config.each_pair do |key, value|
+        next unless value.kind_of?(Array)
+        instance_variable_set("@#{key}", value.dup)
+      end
       
       # dectivate nested envs
       envs.reverse_each do |env|

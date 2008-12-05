@@ -59,7 +59,7 @@ end
 begin
   env.activate
   env.execute(ARGV) do
-    puts Tap::Support::Lazydoc.usage(__FILE__)
+    puts Lazydoc.usage(__FILE__)
     puts
     puts "available commands:"
     puts env.summarize(:commands)

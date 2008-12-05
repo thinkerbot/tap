@@ -50,7 +50,7 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def test_task_subclass_is_assigned_configurations
     task(:task2, {:key => 'value'})
-    assert_equal({:key => 'value'}, Task2.configurations.to_hash)
+    assert_equal({:key => 'value'}, Task2.new.config.to_hash)
   end
   
   def test_task_subclass_runs_block_during_process
@@ -98,8 +98,8 @@ class DeclarationsTest < Test::Unit::TestCase
     # comment
     task(:task13)
 
-    Tap::Support::Lazydoc[__FILE__].resolved = false
-    assert_equal Tap::Support::Lazydoc::Declaration, Task13.manifest.class
+    Lazydoc[__FILE__].resolved = false
+    assert_equal Tap::Declarations::Declaration, Task13.manifest.class
     assert_equal "summary", Task13.manifest.subject
     assert_equal "a multiline comment", Task13.manifest.to_s
 
@@ -107,7 +107,7 @@ class DeclarationsTest < Test::Unit::TestCase
     # description
     task(:task14)
 
-    Tap::Support::Lazydoc[__FILE__].resolved = false
+    Lazydoc[__FILE__].resolved = false
     assert_equal "", Task14.manifest.subject
     assert_equal "a comment with no description", Task14.manifest.to_s
   end
@@ -121,8 +121,8 @@ class DeclarationsTest < Test::Unit::TestCase
     # new comment
     task(:task15)
 
-    Tap::Support::Lazydoc[__FILE__].resolved = false
-    assert_equal Tap::Support::Lazydoc::Declaration, Task15.manifest.class
+    Lazydoc[__FILE__].resolved = false
+    assert_equal Tap::Declarations::Declaration, Task15.manifest.class
     assert_equal "new summary", Task15.manifest.subject
     assert_equal "new comment", Task15.manifest.to_s
   end

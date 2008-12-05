@@ -82,8 +82,6 @@ hello world
   end
   
   def test_goodnight_class_definition
-    assert_equal({:message => 'goodnight'}, Goodnight.configurations.to_hash)
-    
     goodnight = Goodnight.new
     assert_equal 'goodnight', goodnight.message
     assert_equal 'goodnight moon', goodnight.process('moon')

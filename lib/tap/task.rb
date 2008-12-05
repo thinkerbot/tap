@@ -1,11 +1,12 @@
 require 'tap/support/executable'
-require 'tap/support/lazydoc/method'
-require 'tap/support/lazydoc/definition'
 require 'tap/support/intern'
-autoload(:OptionParser, 'optparse')
+autoload(:ConfigParser, 'config_parser')
 
 module Tap
-
+  module Support
+    autoload(:Templater, 'tap/support/templater')
+  end
+  
   # === Task Definition
   #
   # Tasks specify executable code by overridding the process method in
@@ -67,7 +68,7 @@ module Tap
   #   t.respond_to?(:three)        # => false
   #
   # Configurations can be validated/transformed using an optional block.  
-  # Tap::Support::Validation pre-packages many common blocks which may
+  # Configurable::Validation pre-packages many common blocks which may
   # be accessed through the class method 'c':
   #
   #   class ValidatingTask < Tap::Task
@@ -118,7 +119,7 @@ module Tap
   #   t1.array.object_id == t2.array.object_id     # => false
   #
   class Task
-    include Support::Configurable
+    include Configurable
     include Support::Executable
     
     class << self
@@ -145,7 +146,7 @@ module Tap
       
       def inherited(child) # :nodoc:
         unless child.instance_variable_defined?(:@source_file)
-          caller.first =~ Support::Lazydoc::CALLER_REGEXP
+          caller[0] =~ Lazydoc::CALLER_REGEXP
           child.instance_variable_set(:@source_file, File.expand_path($1)) 
         end
 
@@ -174,59 +175,69 @@ module Tap
         parse!(argv.dup, &block)
       end
       
-      # Same as parse, but removes switches destructively. 
+      # Same as parse, but removes switches destructively.
       def parse!(argv=ARGV, app=Tap::App.instance) # :yields: help_str
-        opts = OptionParser.new
-
+        opts = ConfigParser.new
+ 
         # Add configurations
         argv_config = {}
         unless configurations.empty?
           opts.separator ""
           opts.separator "configurations:"
         end
-
-        configurations.each do |receiver, key, config|
-          opts.on(*config.to_optparse_argv) do |value|
-            argv_config[key] = value
-          end
+ 
+        configurations.each_pair do |key, config|
+          opts.define(key, config.default, config.attributes)
         end
-
+ 
         # Add options on_tail, giving priority to configurations
         opts.separator ""
         opts.separator "options:"
-
-        opts.on_tail("-h", "--help", "Print this help") do
+ 
+        opts.on("-h", "--help", "Print this help") do
           prg = case $0
           when /rap$/ then 'rap'
           else 'tap run --'
           end
           
-          opts.banner = "#{help}usage: #{prg} #{to_s.underscore} #{args.subject}"
-          if block_given? 
+          arguments = if args.kind_of?(Lazydoc::Method)
+            args.arguments.collect do |arg|
+              case arg 
+              when /^&/ then nil 
+              when /^\*/ then arg[1..-1] + "..." 
+              else arg 
+              end.upcase
+            end.join(' ')
+          else
+            args.subject
+          end
+          
+          puts "#{help}usage: #{prg} #{to_s.underscore} #{arguments}"
+          if block_given?
             yield(opts.to_s)
           else
             puts opts
             exit
           end
         end
-
+ 
         # Add option for name
         name = default_name
-        opts.on_tail('--name NAME', /^[^-].*/, 'Specify a name') do |value|
+        opts.on('--name NAME', 'Specify a name') do |value|
           name = value
         end
-
+ 
         # Add option to add args
         use_args = []
-        opts.on_tail('--use FILE', /^[^-].*/, 'Loads inputs from file') do |value|
+        opts.on('--use FILE', 'Loads inputs from file') do |value|
           obj = YAML.load_file(value)
           case obj
-          when Hash 
+          when Hash
             obj.values.each do |array|
               # error if value isn't an array
               use_args.concat(array)
             end
-          when Array 
+          when Array
             use_args.concat(obj)
           else
             use_args << obj
@@ -234,8 +245,8 @@ module Tap
         end
         
         # parse the argv
-        opts.parse!(argv)
-        
+        argv = opts.parse!(argv)
+  
         # build and reconfigure the instance and any associated
         # batch objects as specified in the file configurations
         obj = new({}, name, app)
@@ -248,7 +259,7 @@ module Tap
           end
           path_configs = path_configs[0]
         end
-        obj.reconfigure(path_configs).reconfigure(argv_config)
+        obj.reconfigure(path_configs).reconfigure(opts.config)
         
         [obj, (argv + use_args)]
       end
@@ -268,7 +279,7 @@ module Tap
       # Returns the class lazydoc, resolving if specified.
       def lazydoc(resolve=true)
         lazydoc = super(false)
-        lazydoc[self.to_s]['args'] ||= lazydoc.register_method(:process, Support::Lazydoc::Method)
+        lazydoc[self.to_s]['args'] ||= lazydoc.register_method(:process)
         super
       end
 
@@ -394,37 +405,15 @@ module Tap
           subclass.send(:define_method, :process, &block)
         end
         
-        # define methods
-        instance_var = "@#{name}".to_sym
-        reader = (options[:reader] ||= "#{name}_config".to_sym)
-        writer = (options[:writer] ||= "#{name}_config=".to_sym)
-        
-        attr_reader name
-        
-        define_method(reader) do
-          # return the config for the instance
-          instance_variable_get(instance_var).config
-        end
-        
-        define_method(writer) do |value|
-          # initialize or reconfigure the instance of subclass
-          if instance_variable_defined?(instance_var) 
-            instance_variable_get(instance_var).reconfigure(value)
-          else
-            instance_variable_set(instance_var, subclass.new(value))
-          end
-        end
-        public(name, reader, writer)
-        
         # add the configuration
         if options[:desc] == nil
-          caller[0] =~ Support::Lazydoc::CALLER_REGEXP
-          desc = Support::Lazydoc.register($1, $3.to_i - 1, Support::Lazydoc::Definition)
-          desc.subclass = subclass
+          caller[0] =~ Lazydoc::CALLER_REGEXP
+          desc = Lazydoc.register($1, $3.to_i - 1)#, Lazydoc::Definition)
+          #desc.subclass = subclass
           options[:desc] = desc
         end
         
-        configurations.add(name, subclass.configurations.instance_config, options)
+        nest(name, subclass, options) {|overrides| subclass.new(overrides) }
       end
     end
     
@@ -452,11 +441,10 @@ module Tap
       @batch = [self]
       
       case config
-      when Support::InstanceConfiguration
+      when DelegateHash
         # update is prudent to ensure all configs have an input
         # (and hence, all configs will be initialized)
-        @config = config.update(self.class.configurations)
-        config.bind(self)
+        @config = config.update.bind(self)
       else 
         initialize_config(config)
       end
