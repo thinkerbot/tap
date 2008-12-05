@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "0.11.2"
+  s.version = "0.12.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -68,17 +68,11 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/task/templates/task.erb
     lib/tap/generator/generators/task/templates/test.erb
     lib/tap/generator/manifest.rb
-    lib/tap/patches/optparse/summarize.rb
     lib/tap/root.rb
     lib/tap/spec.rb
     lib/tap/support/aggregator.rb
-    lib/tap/support/assignments.rb
     lib/tap/support/audit.rb
-    lib/tap/support/class_configuration.rb
     lib/tap/support/combinator.rb
-    lib/tap/support/configurable.rb
-    lib/tap/support/configurable_class.rb
-    lib/tap/support/configuration.rb
     lib/tap/support/constant.rb
     lib/tap/support/constant_manifest.rb
     lib/tap/support/dependencies.rb
@@ -88,7 +82,6 @@ Gem::Specification.new do |s|
     lib/tap/support/gems/rack.rb
     lib/tap/support/gems/rake.rb
     lib/tap/support/gems.rb
-    lib/tap/support/instance_configuration.rb
     lib/tap/support/intern.rb
     lib/tap/support/join.rb
     lib/tap/support/joins.rb
@@ -97,13 +90,6 @@ Gem::Specification.new do |s|
     lib/tap/support/joins/sequence.rb
     lib/tap/support/joins/switch.rb
     lib/tap/support/joins/sync_merge.rb
-    lib/tap/support/lazydoc.rb
-    lib/tap/support/lazydoc/attributes.rb
-    lib/tap/support/lazydoc/comment.rb
-    lib/tap/support/lazydoc/config.rb
-    lib/tap/support/lazydoc/definition.rb
-    lib/tap/support/lazydoc/document.rb
-    lib/tap/support/lazydoc/method.rb
     lib/tap/support/manifest.rb
     lib/tap/support/minimap.rb
     lib/tap/support/node.rb
@@ -115,7 +101,6 @@ Gem::Specification.new do |s|
     lib/tap/support/tdoc/tdoc_html_generator.rb
     lib/tap/support/tdoc/tdoc_html_template.rb
     lib/tap/support/templater.rb
-    lib/tap/support/validation.rb
     lib/tap/support/versions.rb
     lib/tap/task.rb
     lib/tap/tasks/dump.rb
