@@ -47,7 +47,7 @@ module Tap
         
         begin
           root = path_or_root.kind_of?(Root) ? path_or_root : Root.new(File.dirname(path))
-          config = default_config.merge(load_config(path))
+          config = default_config.merge(load_file(path))
           
           # note the assignment of env to instances MUST occur before
           # reconfigure to prevent infinite looping
@@ -101,6 +101,14 @@ module Tap
           check_configurable
           instance_variable_set(instance_variable, [*input].compact.collect {|path| root[path]}.uniq)
         end
+      end
+      
+      # helper to load path as YAML.  load_file returns a hash if the path
+      # loads to nil or false (as happens for empty files)
+      def load_file(path) # :nodoc:
+        # the last check prevents YAML from auto-loading itself for empty files
+        return {} if path == nil || !File.file?(path) || File.size(path) == 0
+        YAML.load_file(path) || {}
       end
     end
     

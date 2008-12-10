@@ -173,8 +173,8 @@ module Tap
       
       # Parses the argv into an instance of self and an array of arguments 
       # (implicitly to be enqued to the instance).
-      def parse(argv=ARGV, app=Tap::App.instance, &block)
-        parse!(argv.dup, &block)
+      def parse(argv=ARGV, app=Tap::App.instance)
+        parse!(argv.dup)
       end
       
       # Same as parse, but removes switches destructively.
@@ -218,19 +218,8 @@ module Tap
  
         # Add option to add args
         use_args = []
-        opts.on('--use FILE', 'Loads inputs from file') do |value|
-          obj = YAML.load_file(value)
-          case obj
-          when Hash
-            obj.values.each do |array|
-              # error if value isn't an array
-              use_args.concat(array)
-            end
-          when Array
-            use_args.concat(obj)
-          else
-            use_args << obj
-          end
+        opts.on('--use FILE', 'Loads inputs from file') do |path|
+          load_args(path, use_args)
         end
         
         # parse the argv
@@ -244,7 +233,7 @@ module Tap
           path_configs.each_with_index do |path_config, i|
             next if i == 0
             batch_obj = obj.initialize_batch_obj(path_config, "#{name}_#{i}")
-            batch_obj.reconfigure(argv_config)
+            batch_obj.reconfigure(opts.config)
           end
           path_configs = path_configs[0]
         end
@@ -257,11 +246,7 @@ module Tap
       # with the remaining arguments.  If 'help' is specified in the argv, 
       # execute prints the help and exits.
       def execute(argv=ARGV)
-        instance, args = parse(ARGV) do |help|
-          puts help
-          exit
-        end
-
+        instance, args = parse(ARGV)
         instance.execute(*args)
       end
       
@@ -288,6 +273,73 @@ module Tap
       # Returns the class help.
       def help
         Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
+      end
+      
+      # Loads the contents of path as YAML. Returns an empty hash if the path
+      # is empty, does not exist, or is not a file.
+      def load_config(path, recursive=true)
+        base = load_file(path)
+        
+        if recursive
+          # determine the files/dirs to load recursively
+          # and add them to paths by key (ie the base
+          # name of the path, minus any extname)
+          paths = {}
+          files, dirs = Dir.glob("#{path.chomp(File.extname(path))}/*").partition do |sub_path|
+            File.file?(sub_path)
+          end
+
+          # directories are added to paths first so they can be
+          # overridden by the files (appropriate since the file
+          # will recursively load the directory if it exists)
+          dirs.each do |dir|
+            paths[File.basename(dir)] = dir
+          end
+
+          # when adding files, check that no two files map to
+          # the same key (ex a.yml, a.yaml).
+          files.each do |filepath|
+            key = File.basename(filepath).chomp(File.extname(filepath))
+            if existing = paths[key]
+              if File.file?(existing)
+                confict = [File.basename(paths[key]), File.basename(filepath)].sort
+                raise "multiple files load the same key: #{confict.inspect}"
+              end
+            end
+
+            paths[key] = filepath
+          end
+
+          # recursively load each file and reverse merge
+          # the result into the base
+          paths.each_pair do |key, recursive_path|
+            value = nil
+            each_hash_in(base) do |hash|
+              unless hash.has_key?(key)
+                hash[key] = (value ||= load_config(recursive_path, true))
+              end
+            end
+          end
+        end
+
+        base
+      end
+      
+      # hook for loading arguments from a file specified in --use
+      def load_args(path, argv=[])
+        obj = load_file(path)
+        case obj
+        when Hash
+          obj.values.each do |array|
+            # error if value isn't an array
+            argv.concat(array)
+          end
+        when Array
+          argv.concat(obj)
+        else
+          argv << obj
+        end
+        argv
       end
       
       protected
@@ -403,6 +455,31 @@ module Tap
         end
         
         nest(name, subclass, options) {|overrides| subclass.new(overrides) }
+      end
+      
+      private
+      
+      # helper for load_config.  yields each hash in the collection (ie each
+      # member of an Array, or the collection if it is a hash). returns
+      # the collection.
+      def each_hash_in(collection) # :nodoc:
+        case collection
+        when Hash then yield(collection)
+        when Array
+          collection.each do |hash|
+            yield(hash) if hash.kind_of?(Hash)
+          end
+        end
+
+        collection
+      end
+      
+      # helper to load path as YAML.  load_file returns a hash if the path
+      # loads to nil or false (as happens for empty files)
+      def load_file(path) # :nodoc:
+        # the last check prevents YAML from auto-loading itself for empty files
+        return {} if path == nil || !File.file?(path) || File.size(path) == 0
+        YAML.load_file(path) || {}
       end
     end
     
