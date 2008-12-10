@@ -219,26 +219,27 @@ module Tap
         # Add option to add args
         use_args = []
         opts.on('--use FILE', 'Loads inputs from file') do |path|
-          load_args(path, use_args)
+          use(path, use_args)
         end
         
         # parse the argv
         argv = opts.parse!(argv)
-  
+        config = load(app.config_filepath(name))
+        
         # build and reconfigure the instance and any associated
         # batch objects as specified in the file configurations
         obj = new({}, name, app)
-        path_configs = load_config(app.config_filepath(name))
-        if path_configs.kind_of?(Array)
-          path_configs.each_with_index do |path_config, i|
+        
+        if config.kind_of?(Array)
+          config.each_with_index do |batch_config, i|
             next if i == 0
-            batch_obj = obj.initialize_batch_obj(path_config, "#{name}_#{i}")
+            batch_obj = obj.initialize_batch_obj(batch_config, "#{name}_#{i}")
             batch_obj.reconfigure(opts.config)
           end
-          path_configs = path_configs[0]
-        end
-        obj.reconfigure(path_configs).reconfigure(opts.config)
-        
+          config = config[0]
+        end        
+        obj.reconfigure(config).reconfigure(opts.config)
+
         [obj, (argv + use_args)]
       end
       
@@ -275,9 +276,10 @@ module Tap
         Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
       end
       
-      # Loads the contents of path as YAML. Returns an empty hash if the path
-      # is empty, does not exist, or is not a file.
-      def load_config(path, recursive=true)
+      # Recursively loads path into a nested configuration file. Recursive
+      # loading works like this:
+      #
+      def load(path, recursive=true)
         base = load_file(path)
         
         if recursive
@@ -316,7 +318,7 @@ module Tap
             value = nil
             each_hash_in(base) do |hash|
               unless hash.has_key?(key)
-                hash[key] = (value ||= load_config(recursive_path, true))
+                hash[key] = (value ||= load(recursive_path, true))
               end
             end
           end
@@ -326,7 +328,7 @@ module Tap
       end
       
       # hook for loading arguments from a file specified in --use
-      def load_args(path, argv=[])
+      def use(path, argv=ARGV)
         obj = load_file(path)
         case obj
         when Hash

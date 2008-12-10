@@ -137,7 +137,7 @@ class TaskTest < Test::Unit::TestCase
   end
 
   #
-  # Task.load_config test
+  # Task.load test
   #
   
   def prepare(path, obj=nil)
@@ -148,38 +148,38 @@ class TaskTest < Test::Unit::TestCase
     path
   end
   
-  def test_load_config_returns_empty_array_for_non_existant_file
+  def test_load_returns_empty_array_for_non_existant_file
     path = method_root.filepath("non_existant.yml")
     assert !File.exists?(path)
-    assert_equal({}, Task.load_config(path))
+    assert_equal({}, Task.load(path))
   end
   
-  def test_load_config_returns_empty_array_for_empty_file
+  def test_load_returns_empty_array_for_empty_file
     path = method_tempfile("non_existant.yml") {}
     
     assert File.exists?(path)
     assert_equal "", File.read(path)
-    assert_equal({}, Task.load_config(path))
+    assert_equal({}, Task.load(path))
   end
   
-  def test_load_config_loads_existing_files_as_yaml
+  def test_load_loads_existing_files_as_yaml
     path = method_tempfile("file.yml") {|file| file << {'key' => 'value'}.to_yaml }
-    assert_equal({'key' => 'value'}, Task.load_config(path))
+    assert_equal({'key' => 'value'}, Task.load(path))
     
     path = method_tempfile("file.yml") {|file| file << [1,2].to_yaml }
-    assert_equal([1,2], Task.load_config(path))
+    assert_equal([1,2], Task.load(path))
   end
   
-  def test_load_config_recursively_loads_files
+  def test_load_recursively_loads_files
     path = prepare("a.yml", {'key' => 'a value'})
            prepare("a/b.yml", 'b value')
            prepare("a/c.yml", 'c value')
     
     a = {'key' => 'a value', 'b' => 'b value', 'c' => 'c value'}
-    assert_equal(a, Task.load_config(path))
+    assert_equal(a, Task.load(path))
   end
   
-  def test_load_config_recursively_loads_directories
+  def test_load_recursively_loads_directories
     path = prepare("a.yml", {'key' => 'value'})
            prepare("a/b/c.yml", 'c value')
            prepare("a/c/d.yml", 'd value')
@@ -189,7 +189,7 @@ class TaskTest < Test::Unit::TestCase
        'b' => {'c' => 'c value'},
        'c' => {'d' => 'd value'}
     }
-    assert_equal(a, Task.load_config(path))
+    assert_equal(a, Task.load(path))
   end
   
   def test_recursive_loading_with_files_and_directories
@@ -204,7 +204,7 @@ class TaskTest < Test::Unit::TestCase
     b = {'key' => 'b value', 'c' => 'c value'}
     a = {'key' => 'a value', 'b' => b, 'd' => d}
     
-    assert_equal(a, Task.load_config(path))
+    assert_equal(a, Task.load(path))
   end
   
   def test_recursive_loading_sets_value_for_each_hash_in_a_parent_array
@@ -215,7 +215,7 @@ class TaskTest < Test::Unit::TestCase
       {'key' => 'one', 'b' => 'b value'},
       {'key' => 'two', 'b' => 'b value'}]
             
-    assert_equal(a, Task.load_config(path))
+    assert_equal(a, Task.load(path))
   end
   
   def test_recursive_loading_with_files_and_directories_and_arrays
@@ -236,7 +236,7 @@ class TaskTest < Test::Unit::TestCase
       {'key' => 'a one', 'b' => b, 'd' => d},
       {'key' => 'a two', 'b' => b, 'd' => d}]
     
-    assert_equal(a, Task.load_config(path))
+    assert_equal(a, Task.load(path))
   end
   
   def test_recursive_loading_does_not_override_values_set_in_parent
@@ -250,23 +250,23 @@ class TaskTest < Test::Unit::TestCase
       'c' => 'recursive value'
     }
     
-    assert_equal(a, Task.load_config(path))
+    assert_equal(a, Task.load(path))
   end
   
-  def test_load_config_does_not_recursively_load_over_single_values
+  def test_load_does_not_recursively_load_over_single_values
     path = prepare("a.yml", 'single value')
            prepare("a/b.yml", 'b value')
     
-    assert_equal('single value', Task.load_config(path))
+    assert_equal('single value', Task.load(path))
   end
   
-  def test_load_config_does_not_recusively_load_unless_specified
+  def test_load_does_not_recusively_load_unless_specified
     path = prepare("a.yml", {'key' => 'a value'})
            prepare("a/b.yml", {'key' => 'ab value'})
            
     a = {'key' => 'a value'}
             
-    assert_equal(a, Task.load_config(path, false))
+    assert_equal(a, Task.load(path, false))
   end
   
   def test_recursive_loading_raises_error_when_two_files_map_to_the_same_value
@@ -274,8 +274,37 @@ class TaskTest < Test::Unit::TestCase
     one = prepare("a/b.yml", 'one')
     two = prepare("a/b.yaml", 'two')
            
-    e = assert_raise(RuntimeError) { Task.load_config(path) }
+    e = assert_raise(RuntimeError) { Task.load(path) }
     assert_equal "multiple files load the same key: [\"b.yaml\", \"b.yml\"]", e.message
+  end
+  
+  #
+  # Task.use test
+  #
+  
+  def test_use_returns_argv
+    argv = []
+    assert_equal argv.object_id, Task.use("path.yml", argv).object_id
+  end
+  
+  def test_use_loads_path_as_YAML_and_concatenates_array_results_to_argv
+    path = prepare("path.yml", [1,2,3])
+    assert_equal [0,1,2,3], Task.use(path, [0])
+  end
+  
+  def test_use_loads_path_as_YAML_and_concatenates_hash_values_to_argv
+    path = prepare("path.yml", {:one => [1,2], :two => [3]})
+    assert_equal [0,1,2,3], Task.use(path, [0]).sort
+  end
+  
+  def test_use_loads_path_as_YAML_and_pushes_non_hash_non_array_values_onto_argv
+    path = prepare("path.yml", "string")
+    assert_equal [0,"string"], Task.use(path, [0])
+  end
+  
+  def test_use_does_nothing_if_path_does_not_exist
+    assert !File.exists?("path.yml")
+    assert_equal [], Task.use("path.yml", [])
   end
   
   #
