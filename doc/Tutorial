@@ -106,7 +106,7 @@ Simple enough; the name corresponds to the class, configurations (and dependenci
   hello.message                            # => 'hello'
   hello.process('world')                   # => 'hello world'
 
-Totally straightforward.  Goodnight stores the default configurations, each instance has accessors to the configurations, and the defaults may be overridden during initialization, or later.  Class definitions allow validation/transformation blocks to be specified for configurations.  These blocks process inputs (ex the string inputs from the command line), quite literally defining the writer for a configuration accessor.  A set of standard blocks are available through +c+, an alias for the Configurable::Validation module.
+Totally straightforward.  Goodnight stores the default configurations, each instance has accessors to the configurations, and the defaults may be overridden during initialization, or later.  Class definitions allow validation/transformation blocks to be specified for configurations.  These blocks process inputs (ex the string inputs from the command line), quite literally defining the writer for a configuration accessor.  A set of standard blocks are available through +c+, an alias for the {Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html] module.
 
   [lib/goodnight.rb]
   
@@ -164,9 +164,9 @@ Now from the command line:
           --name NAME                  Specify a name
           --use FILE                   Loads inputs from file
 
-Take a quick look at the documentation.  Class definitions can also map documentation and, in some cases, metadata to the command line; the configurations now have comments and reverse is a switch!  Rich mapping allows tasks to act as an script interface, not unlike {OptionParser}[http://www.ruby-doc.org/stdlib/libdoc/optparse/rdoc/classes/OptionParser.html] (surprise, tap uses OptionParser).
+Take a quick look at the documentation.  Class definitions map documentation and, in some cases, metadata to the command line; the configurations now have comments and reverse is a switch!  Rich mapping allows tasks to act as an script interface, not unlike {OptionParser}[http://www.ruby-doc.org/stdlib/libdoc/optparse/rdoc/classes/OptionParser.html] (check out the {Configurable}[http://tap.rubyforge.org/configurable/] gem and specifically {ConfigParser}[http://tap.rubyforge.org/configurable/classes/ConfigParser.html] for more details).
 
-For example this is a stand-alone goodnight script:
+This is a stand-alone goodnight script:
 
   [goodnight]
   
@@ -206,7 +206,7 @@ Tap comes with two executables, rap and tap.  The tap executable is more verbose
   % cd sample
   % tap generate task goodnight
 
-Take a look at the task files an you find something like this:
+Take a look at the task files and you find something like this:
 
   [lib/goodnight.rb]
   

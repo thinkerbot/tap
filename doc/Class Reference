@@ -18,14 +18,12 @@ Executable extends objects allowing them to be used in workflows, enqued, and ru
 
 Tasks are constructed such that <tt>process</tt> is the executable method (actually execute_with_callbacks is used to wrap process with before/after execute callbacks, but effectively this is the case).  Hence <tt>process</tt> is the standard method overridden in Task subclasses.
 
-==== Configurable
+==== {Configurable}[http://tap.rubyforge.org/configurable/]
 
 http://tap.rubyforge.org/images/Configurable.png
 
-Configurable allows declaration of class configurations.  Configurable classes have a <tt>configurations</tt> method accessing a {ClassConfiguration}[link:classes/Tap/Support/ClassConfiguration.html] which holds all declared configs, their default values, and metadata for transforming configurations into command line options (for example).  
-
-Instances of a Configurable class have a <tt>config</tt> method accessing a {InstanceConfiguration}[link:classes/Tap/Support/InstanceConfiguration.html] object.  The instance configuration acts like a forwarding hash; read and write operations for declared configs get forwarded to class methods while undeclared configs are stored directly.  The writer for a config may be defined through a block provided during config declaration.  For instance:
-
+Tap uses the {Configurable}[http://tap.rubyforge.org/configurable/] module to declare class configurations and make them available in for use in contexts like the command line.  Configurations essentially consist of a reader, writer, and default value, but they may additionally be accessed through a hash-like config object.  For instance:
+  
   class ConfigClass
     include Configurable
 
@@ -52,7 +50,7 @@ Is basically the same as:
     end
   end
 
-As you can see here:
+And as you can see here:
 
   c = ConfigClass.new
   c.key                       # => 'VALUE'
@@ -65,9 +63,9 @@ As you can see here:
 
 This setup is both fast and convenient.  
 
-==== Configurable::Validation
+==== {Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]
 
-When configurations are set from the command line, the writer method will inevitably receive a string, whereas configurations set within code can receive any type of object.  The {Validation}[link:classes/Tap/Support/Validation.html] module provides standard blocks for validating and transforming inputs, accessible through the <tt>c</tt> method (ex: <tt>c.integer</tt> or <tt>c.regexp</tt>).  These blocks (generally) load string inputs as YAML and validate that the result is the correct class; non-string inputs are simply validated.
+When configurations are set from the command line, the writer method inevitably receives a string, even though a non-string input may be desired.  The {Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html] module provides standard blocks for validating and transforming inputs, accessible through the <tt>c</tt> method (ex: <tt>c.integer</tt> or <tt>c.regexp</tt>).  These blocks (generally) load string inputs as YAML and validate that the result is the correct class; non-string inputs are simply validated.
 
   class ValidatingClass
     include Configurable
@@ -89,9 +87,9 @@ When configurations are set from the command line, the writer method will inevit
 
 Validation blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes a config into a flag on the command line.
 
-==== Lazydoc
+==== {Lazydoc}[http://tap.rubyforge.org/lazydoc]
 
-Ah lazydoc.  Lazydoc fits into the space between live code and code documentation.  Lazydoc can scan a file (code or not) and pull documentation into the object space where it can be utilized.  Lazydoc uses a key-value syntax like this:
+Ah lazydoc.  {Lazydoc}[http://tap.rubyforge.org/lazydoc] fits into the space between live code and code documentation.  Lazydoc can scan a file (code or not) and pull documentation into the object space where it can be utilized.  Lazydoc uses a key-value syntax like this:
 
   # ::key value
 
@@ -146,7 +144,7 @@ When no constant name is specified for a Lazydoc key, Env uses a constant based 
   # If more than one task is defined in this file, or if Sample::Task
   # is not defined by loading this file, Tap will run into trouble.
 
-However, the best practice is to include the namespace explicitly.
+However, the best practice is to include the namespace explicitly.  See the {Lazydoc}[http://tap.rubyforge.org/lazydoc] documentation for more information.
 
 === Tap::Task
 
