@@ -177,18 +177,7 @@ module Tap
       
       # Same as parse, but removes switches destructively.
       def parse!(argv=ARGV, app=Tap::App.instance) # :yields: help_str
-        opts = ConfigParser.new
- 
-        # Add configurations
-        argv_config = {}
-        unless configurations.empty?
-          opts.separator ""
-          opts.separator "configurations:"
-        end
- 
-        configurations.each_pair do |key, config|
-          opts.define(key, config.default, config.attributes)
-        end
+        opts = parser
  
         # Add options on_tail, giving priority to configurations
         opts.separator ""
@@ -213,6 +202,11 @@ module Tap
           end
           
           puts "#{help}usage: #{prg} #{to_s.underscore} #{arguments}"
+          unless configurations.empty?
+            puts ""
+            puts "configurations:"
+          end
+          
           if block_given?
             yield(opts.to_s)
           else

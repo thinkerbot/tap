@@ -11,6 +11,7 @@ Gem::Specification.new do |s|
   s.bindir = "bin"
   s.executables = ["tap", "rap"]
   s.default_executable = "tap"
+  s.add_dependency("configurable", ">= 0.2.0")
   s.has_rdoc = true
   s.rdoc_options << '--title' << 'Tap - Task Application' << '--main' << 'README' 
    
