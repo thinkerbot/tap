@@ -7,12 +7,12 @@
 # handle options
 #
 
-OptionParser.new do |opts|
+ConfigParser.new do |opts|
   opts.separator ""
   opts.separator "options:"
 
   opts.on("-h", "--help", "Show this message") do
-    opts.banner = Lazydoc.usage(__FILE__)
+    puts Lazydoc.usage(__FILE__)
     puts opts
     exit
   end

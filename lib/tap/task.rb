@@ -68,8 +68,8 @@ module Tap
   #   t.respond_to?(:three)        # => false
   #
   # Configurations can be validated/transformed using an optional block.  
-  # Configurable::Validation pre-packages many common blocks which may
-  # be accessed through the class method 'c':
+  # Many common blocks are pre-packaged and may be accessed through the
+  # class method 'c':
   #
   #   class ValidatingTask < Tap::Task
   #     # string config validated to be a string
@@ -85,6 +85,9 @@ module Tap
   #
   #   t.integer = "1"
   #   t.integer == 1         # => true 
+  #
+  # See the {Configurable}[http://tap.rubyforge.org/configurable/]
+  # documentation for more information.
   #
   #--
   # === Subclassing

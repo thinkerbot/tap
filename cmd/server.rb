@@ -11,22 +11,22 @@ env = Tap::Env.instance
 # handle options
 #
 options = {:Port => 8080}
-OptionParser.new do |opts|
+ConfigParser.new do |opts|
   
   opts.separator ""
   opts.separator "options:"
 
   opts.on("-h", "--help", "Show this message") do
-    opts.banner = Tap::Support::TDoc.usage(__FILE__)
+    puts Lazydoc.usage(__FILE__)
     puts opts
     exit
   end
   
-  opts.on("-p", "--port PORT", Integer, "Specifies the port (default #{options[:Port]})") do |value|
-    options[:Port] = value
+  opts.on("-p", "--port PORT", "Specifies the port (default 8080)") do |value|
+    options[:Port] = value.to_i
   end
   
-  opts.on("-d", "--development", Integer, "Specifies development mode") do
+  opts.on("-d", "--development", "Specifies development mode") do
     env.config[:development] = true
   end
   

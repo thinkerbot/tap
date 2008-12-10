@@ -18,7 +18,9 @@ ConfigParser.new do |opts|
   opts.separator "configurations:"
   
   keys = Tap::App.configurations.keys - Tap::Root.configurations.keys
-  keys.sort_by {|key| key.to_s }.each do |key|
+  keys.sort_by do |key|
+    Tap::App.configurations[key].attributes[:declaration_order] || 0
+  end.each do |key|
     config = Tap::App.configurations[key]
     opts.define(key, config.default, config.attributes)
   end
