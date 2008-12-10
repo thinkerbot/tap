@@ -172,17 +172,17 @@ module Tap
       end
       
       # Parses the argv into an instance of self and an array of arguments 
-      # (implicitly to be enqued to the instance).  Yields a help string to
-      # the block when the argv indicates 'help'.
-      def parse(argv=ARGV, app=Tap::App.instance, &block) # :yields: help_str
+      # (implicitly to be enqued to the instance).
+      def parse(argv=ARGV, app=Tap::App.instance, &block)
         parse!(argv.dup, &block)
       end
       
       # Same as parse, but removes switches destructively.
-      def parse!(argv=ARGV, app=Tap::App.instance) # :yields: help_str
-        opts = parser
- 
-        # Add options on_tail, giving priority to configurations
+      def parse!(argv=ARGV, app=Tap::App.instance)
+        opts = ConfigParser.new
+        opts.separator "configurations:"
+        opts.add(configurations)
+        
         opts.separator ""
         opts.separator "options:"
  
@@ -205,17 +205,9 @@ module Tap
           end
           
           puts "#{help}usage: #{prg} #{to_s.underscore} #{arguments}"
-          unless configurations.empty?
-            puts ""
-            puts "configurations:"
-          end
-          
-          if block_given?
-            yield(opts.to_s)
-          else
-            puts opts
-            exit
-          end
+          puts          
+          puts opts
+          exit
         end
  
         # Add option for name
