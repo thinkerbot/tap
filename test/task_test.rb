@@ -292,14 +292,12 @@ class TaskTest < Test::Unit::TestCase
     assert_equal [0,1,2,3], Task.use(path, [0])
   end
   
-  def test_use_loads_path_as_YAML_and_concatenates_hash_values_to_argv
-    path = prepare("path.yml", {:one => [1,2], :two => [3]})
-    assert_equal [0,1,2,3], Task.use(path, [0]).sort
-  end
-  
   def test_use_loads_path_as_YAML_and_pushes_non_hash_non_array_values_onto_argv
     path = prepare("path.yml", "string")
     assert_equal [0,"string"], Task.use(path, [0])
+    
+    path = prepare("path.yml", {:key => 'value'})
+    assert_equal [0,{:key => 'value'}], Task.use(path, [0])
   end
   
   def test_use_does_nothing_if_path_does_not_exist

@@ -106,9 +106,7 @@ module Tap
       # helper to load path as YAML.  load_file returns a hash if the path
       # loads to nil or false (as happens for empty files)
       def load_file(path) # :nodoc:
-        # the last check prevents YAML from auto-loading itself for empty files
-        return {} if path == nil || !File.file?(path) || File.size(path) == 0
-        YAML.load_file(path) || {}
+        Root.trivial?(path) ? {} : (YAML.load_file(path) || {})
       end
     end
     

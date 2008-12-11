@@ -185,7 +185,8 @@ module Tap
         
         opts.separator ""
         opts.separator "options:"
- 
+        
+        # Add option to print help
         opts.on("-h", "--help", "Print this help") do
           prg = case $0
           when /rap$/ then 'rap'
@@ -210,7 +211,7 @@ module Tap
           exit
         end
  
-        # Add option for name
+        # Add option to specify a config file
         name = default_name
         opts.on('--name NAME', 'Specify a name') do |value|
           name = value
@@ -222,24 +223,21 @@ module Tap
           use(path, use_args)
         end
         
-        # parse the argv
-        argv = opts.parse!(argv)
-        config = load(app.config_filepath(name))
-        
         # build and reconfigure the instance and any associated
         # batch objects as specified in the file configurations
-        obj = new({}, name, app)
+        argv = opts.parse!(argv)
+        configs = load(app.config_filepath(name))
+        configs = [configs] unless configs.kind_of?(Array)
         
-        if config.kind_of?(Array)
-          config.each_with_index do |batch_config, i|
-            next if i == 0
-            batch_obj = obj.initialize_batch_obj(batch_config, "#{name}_#{i}")
-            batch_obj.reconfigure(opts.config)
-          end
-          config = config[0]
+        obj = new(configs.shift, name, app)
+        configs.each do |config|
+          obj.initialize_batch_obj(config, "#{name}_#{obj.batch.length}")
         end        
-        obj.reconfigure(config).reconfigure(opts.config)
 
+        obj.batch.each do |batch_obj|
+          batch_obj.reconfigure(opts.config)
+        end
+        
         [obj, (argv + use_args)]
       end
       
@@ -280,7 +278,7 @@ module Tap
       # loading works like this:
       #
       def load(path, recursive=true)
-        base = load_file(path)
+        base = Root.trivial?(path) ? {} : (YAML.load_file(path) || {})
         
         if recursive
           # determine the files/dirs to load recursively
@@ -327,20 +325,15 @@ module Tap
         base
       end
       
-      # hook for loading arguments from a file specified in --use
+      # Loads the contents of path onto argv.
       def use(path, argv=ARGV)
-        obj = load_file(path)
+        obj = Root.trivial?(path) ? [] : (YAML.load_file(path) || [])
+        
         case obj
-        when Hash
-          obj.values.each do |array|
-            # error if value isn't an array
-            argv.concat(array)
-          end
-        when Array
-          argv.concat(obj)
-        else
-          argv << obj
+        when Array then argv.concat(obj)
+        else argv << obj
         end
+        
         argv
       end
       
@@ -474,14 +467,6 @@ module Tap
         end
 
         collection
-      end
-      
-      # helper to load path as YAML.  load_file returns a hash if the path
-      # loads to nil or false (as happens for empty files)
-      def load_file(path) # :nodoc:
-        # the last check prevents YAML from auto-loading itself for empty files
-        return {} if path == nil || !File.file?(path) || File.size(path) == 0
-        YAML.load_file(path) || {}
       end
     end
     

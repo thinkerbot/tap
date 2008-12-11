@@ -138,6 +138,12 @@ module Tap
         Dir.chdir(dir, &block)
       end
       
+      # Trivial indicates when a path does not have content to load.  Returns true 
+      # if the file at path is empty, non-existant, a directory, or nil.
+      def trivial?(path)
+        path == nil || !File.file?(path) || File.size(path) == 0
+      end
+      
       # The path root type indicating windows, *nix, or some unknown
       # style of filepaths (:win, :nix, :unknown).
       def path_root_type

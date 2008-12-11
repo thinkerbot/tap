@@ -252,6 +252,36 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
+  # Tap::Root trivial? test
+  #
+  
+  def test_trivial_returns_true_for_nil_path
+    assert_equal true, Tap::Root.trivial?(nil)
+  end
+  
+  def test_trivial_returns_true_for_non_existant_path
+    assert !File.exists?("non-existant-file.txt")
+    assert_equal true, Tap::Root.trivial?("non-existant-file.txt")
+  end
+  
+  def test_trivial_returns_true_for_directory
+    path = File.dirname(__FILE__)
+    assert File.directory?(path)
+    assert_equal true, Tap::Root.trivial?(path)
+  end
+  
+  def test_trivial_returns_true_for_empty_files
+    path = File.join(root_dir, "file.txt")
+    assert File.exists?(path)
+    assert_equal 0, File.size(path)
+    assert_equal true, Tap::Root.trivial?(path)
+  end
+  
+  def test_trivial_returns_false_for_non_empty_files
+    assert_equal false, Tap::Root.trivial?(__FILE__)
+  end
+  
+  #
   # Tap::Root path_root_type test
   #
   
