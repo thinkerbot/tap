@@ -193,19 +193,7 @@ module Tap
           else 'tap run --'
           end
           
-          arguments = if args.kind_of?(Lazydoc::Method)
-            args.arguments.collect do |arg|
-              case arg 
-              when /^&/ then nil 
-              when /^\*/ then arg[1..-1] + "..." 
-              else arg 
-              end.upcase
-            end.join(' ')
-          else
-            args.subject
-          end
-          
-          puts "#{help}usage: #{prg} #{to_s.underscore} #{arguments}"
+          puts "#{help}usage: #{prg} #{to_s.underscore} #{args}"
           puts          
           puts opts
           exit
@@ -252,7 +240,7 @@ module Tap
       # Returns the class lazydoc, resolving if specified.
       def lazydoc(resolve=true)
         lazydoc = super(false)
-        lazydoc[self.to_s]['args'] ||= lazydoc.register_method(:process)
+        lazydoc[self.to_s]['args'] ||= lazydoc.register_method(:process, Lazydoc::Arguments)
         super
       end
 

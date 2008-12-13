@@ -113,7 +113,7 @@ Lazydoc parses a constant name, the key, the value, and any comment following th
   lazydoc = Lazydoc[__FILE__]
   lazydoc.resolve
 
-  lazydoc['Name::Space']['key'].to_s           # => "This documentation gets parsed."
+  lazydoc['Name::Space']['key'].comment        # => "This documentation gets parsed."
   lazydoc['Name::Space']['another'].value      # => "another value"
 
 Furthermore, Lazydoc can register specific lines for documentation.  These lines are parsed to echo what happens in RDoc.

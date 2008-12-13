@@ -1,6 +1,7 @@
 require 'tap/root'
 
 module Tap::Generator::Generators
+  autoload(:ConfigGenerator, 'tap/generator/generators/config/config_generator')
   
   # :startdoc: Tap::Generator::Generators::RootGenerator::generator a basic tap directory structure
   #
@@ -46,16 +47,12 @@ module Tap::Generator::Generators
         m.template r[target], source, :project_name => project_name
       end
       
-      m.file(r['tap.yml']) do |file|
-       Tap::App.configurations.inspect(:doc, file) do |templater|
-         next unless templater.receiver == Tap::Root
-          
-         templater.configurations.each do |(key, config)| 
-           config.default = nil if key.to_s == 'root'
-         end
-       end
-       Tap::Env.configurations.inspect(:doc, file)
+     ConfigGenerator.new(:doc => true).dump(m, r['tap'], Tap::App.configurations) do |configs|
+        configs.each do |(key, config)|
+          config.default = nil if key.to_s == 'root'
+        end
       end if config_file
     end
+    
   end
 end

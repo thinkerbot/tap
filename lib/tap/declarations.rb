@@ -13,7 +13,7 @@ module Tap
     class Declaration < Lazydoc::Comment
       attr_accessor :desc
       
-      def resolve(lines)
+      def resolve(lines=nil)
         super
         
         @subject = case
@@ -213,8 +213,8 @@ module Tap
       self.current_desc = nil
       
       if arg_names
-        comment = Lazydoc::Comment.new
-        comment.subject = arg_names.collect {|name| name.to_s.upcase }.join(' ')
+        comment = Lazydoc::Arguments.new
+        arg_names.each {|name| comment.arguments << name.to_s }
         task_class.args = comment
       end
 

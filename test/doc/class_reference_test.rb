@@ -84,7 +84,7 @@ class ClassReferenceTest < Test::Unit::TestCase
     lazydoc = Lazydoc[lazydoc_file]
     lazydoc.resolve
 
-    assert_equal "This documentation gets parsed.", lazydoc['Name::Space']['key'].to_s
+    assert_equal "This documentation gets parsed.", lazydoc['Name::Space']['key'].comment
     assert_equal "another value", lazydoc['Name::Space']['another'].value
     
     ####
