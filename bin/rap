@@ -73,12 +73,11 @@ begin
 <% entries.each do |name, const| %>
 <%   desc = if const.require_path == nil # should be a declaration %>
 <%     manifest = const.constantize.manifest %>
-<%     next if manifest == nil || manifest.subject.to_s.empty? %>
+<%     next if manifest == nil || manifest.empty? %>
 <%     manifest %>
 <%   else %>
 <%     const.document[const.name]['manifest'] %>
 <%   end %>
-<%   desc = desc.subject.to_s if desc.kind_of?(Lazydoc::Comment) %>
   <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
 <% end %>}
 

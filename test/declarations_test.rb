@@ -100,16 +100,16 @@ class DeclarationsTest < Test::Unit::TestCase
 
     Lazydoc[__FILE__].resolved = false
     assert_equal Tap::Declarations::Declaration, Task13.manifest.class
-    assert_equal "summary", Task13.manifest.subject
-    assert_equal "a multiline comment", Task13.manifest.to_s
+    assert_equal "summary", Task13.manifest.to_s
+    assert_equal "a multiline comment", Task13.manifest.comment
 
     # a comment with no
     # description
     task(:task14)
 
     Lazydoc[__FILE__].resolved = false
-    assert_equal "", Task14.manifest.subject
-    assert_equal "a comment with no description", Task14.manifest.to_s
+    assert_equal "", Task14.manifest.to_s
+    assert_equal "a comment with no description", Task14.manifest.comment
   end
 
   def test_multiple_calls_to_task_reassigns_documentation
@@ -123,8 +123,8 @@ class DeclarationsTest < Test::Unit::TestCase
 
     Lazydoc[__FILE__].resolved = false
     assert_equal Tap::Declarations::Declaration, Task15.manifest.class
-    assert_equal "new summary", Task15.manifest.subject
-    assert_equal "new comment", Task15.manifest.to_s
+    assert_equal "new summary", Task15.manifest.to_s
+    assert_equal "new comment", Task15.manifest.comment
   end
 
   #

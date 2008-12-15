@@ -13,18 +13,18 @@ module Tap
     class Declaration < Lazydoc::Comment
       attr_accessor :desc
       
-      def resolve(lines=nil)
-        super
-        
-        @subject = case
-        when content.empty? || content[0][0].to_s !~ /^::desc(.*)/
-          desc.to_s
+      def prepend(line)
+        if line =~ /::desc\s+(.*?)\s*$/
+          self.desc = $1
+          false
         else
-          content[0].shift
-          $1.strip
+          super
         end
-        
-        self
+      end
+      
+      def to_s
+        resolve
+        desc.to_s
       end
     end
     

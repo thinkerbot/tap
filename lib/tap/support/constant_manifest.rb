@@ -97,7 +97,7 @@ module Tap
         entries = []
         lazydoc = nil
         
-        Lazydoc.scan(File.read(path), const_attr) do |const_name, attr_key, comment|
+        Lazydoc::Document.scan(File.read(path), const_attr) do |const_name, key, value|
           if lazydoc == nil
             lazydoc = Lazydoc[path]
             
@@ -111,7 +111,10 @@ module Tap
             const_name = lazydoc.default_const_name
           end
           
-          lazydoc[const_name][attr_key] = comment
+          comment = Lazydoc::Subject.new(nil, lazydoc)
+          comment.value = value
+          
+          lazydoc[const_name][key] = comment
           entries << Constant.new(const_name, path)
         end
         

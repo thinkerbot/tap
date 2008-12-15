@@ -453,8 +453,8 @@ class TaskTest < Test::Unit::TestCase
     assert Define.configurations.key?(:define_task)
     config = Define.configurations[:define_task]
     
-    assert_equal :define_task_config, config.reader
-    assert_equal :define_task_config=, config.writer
+    assert_equal :define_task_config_reader, config.reader
+    assert_equal :define_task_config_writer, config.writer
     assert_equal Configurable::DelegateHash, config.default.class
     assert_equal Define::DefineTask.configurations, config.default.delegates
   end

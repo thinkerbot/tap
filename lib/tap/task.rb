@@ -152,7 +152,9 @@ module Tap
           caller[0] =~ Lazydoc::CALLER_REGEXP
           child.instance_variable_set(:@source_file, File.expand_path($1)) 
         end
-
+        
+        lazydoc = child.lazydoc(false)
+        lazydoc.comments << child.const_attrs['args'] = lazydoc.register_method(:process, Lazydoc::Arguments)
         child.instance_variable_set(:@dependencies, dependencies.dup)
         super
       end
@@ -236,21 +238,15 @@ module Tap
         instance, args = parse(ARGV)
         instance.execute(*args)
       end
-      
-      # Returns the class lazydoc, resolving if specified.
-      def lazydoc(resolve=true)
-        lazydoc = super(false)
-        lazydoc[self.to_s]['args'] ||= lazydoc.register_method(:process, Lazydoc::Arguments)
-        super
-      end
 
       DEFAULT_HELP_TEMPLATE = %Q{<% manifest = task_class.manifest %>
-<%= task_class %><%= manifest.subject.to_s.strip.empty? ? '' : ' -- ' %><%= manifest.subject %>
+<%= task_class %><%= manifest.empty? ? '' : ' -- ' %><%= manifest.to_s %>
 
-<% unless manifest.empty? %>
+<% desc = manifest.kind_of?(Lazydoc::Comment) ? manifest.wrap(77, 2, nil) : [] %>
+<% unless desc.empty? %>
 <%= '-' * 80 %>
 
-<% manifest.wrap(77, 2, nil).each do |line| %>
+<% desc.each do |line| %>
   <%= line %>
 <% end %>
 <%= '-' * 80 %>
@@ -462,7 +458,13 @@ module Tap
     instance_variable_set(:@default_name, 'tap/task')
     instance_variable_set(:@dependencies, [])
     lazy_attr :manifest
-    lazy_attr :args
+    
+
+    lazy_register :args, :process, Lazydoc::Arguments
+    # def self.args
+    #    comment = const_attrs['args'] || const_attrs[:args]
+    #    comment.kind_of?(Lazydoc::Comment) ? comment.resolve : comment
+    #  end
     
     # The name of self.
     #--
