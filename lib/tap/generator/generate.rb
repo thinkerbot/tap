@@ -6,7 +6,7 @@ module Tap
       end
   
       def directory(target, options={})
-        target = File.expand_path(target, target_dir)
+        target = File.expand_path(target)
         
         if File.exists?(target)
           log_relative :exists, target
@@ -22,7 +22,7 @@ module Tap
         source_file.close
         
         source = source_file.path
-        target = File.expand_path(target, target_dir)
+        target = File.expand_path(target)
         
         copy_file = case
         when !File.exists?(target)

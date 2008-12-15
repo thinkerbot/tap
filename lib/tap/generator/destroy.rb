@@ -6,7 +6,7 @@ module Tap
       end
       
       def directory(target, options={})
-        target = File.expand_path(target, target_dir)
+        target = File.expand_path(target)
         
         case
         when !File.exists?(target)
@@ -21,7 +21,7 @@ module Tap
       end
       
       def file(target, options={})
-        target = File.expand_path(target, target_dir)
+        target = File.expand_path(target)
         
         if File.exists?(target)
           log_relative :rm, target
