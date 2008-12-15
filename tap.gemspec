@@ -98,9 +98,6 @@ Gem::Specification.new do |s|
     lib/tap/support/schema.rb
     lib/tap/support/shell_utils.rb
     lib/tap/support/string_ext.rb
-    lib/tap/support/tdoc.rb
-    lib/tap/support/tdoc/tdoc_html_generator.rb
-    lib/tap/support/tdoc/tdoc_html_template.rb
     lib/tap/support/templater.rb
     lib/tap/support/versions.rb
     lib/tap/task.rb

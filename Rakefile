@@ -100,9 +100,9 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   files.delete_if {|file| file =~ /generators\/.*\/templates/ }
   rdoc.rdoc_files.include( files )
   
-  require 'tap/support/tdoc'
-  rdoc.template = 'tap/support/tdoc/tdoc_html_template' 
-  rdoc.options << '--fmt' << 'tdoc'
+  require 'cdoc'
+  rdoc.template = 'cdoc/cdoc_html_template' 
+  rdoc.options << '--fmt' << 'cdoc'
 end
 
 desc "Publish RDoc to RubyForge"
