@@ -95,26 +95,19 @@ module Tap
       # filepath from path_root to path.
       def resolve(path_root, path)
         entries = []
-        lazydoc = nil
+        document = nil
         
         Lazydoc::Document.scan(File.read(path), const_attr) do |const_name, key, value|
-          if lazydoc == nil
-            lazydoc = Lazydoc[path]
-            
-            if lazydoc.default_const_name.empty?
-              relative_path = Root.relative_filepath(path_root, path).chomp(File.extname(path))
-              lazydoc.default_const_name = relative_path.camelize
-            end
+          if document == nil
+            relative_path = Root.relative_filepath(path_root, path).chomp(File.extname(path))
+            document = Lazydoc.register_file(path, relative_path.camelize)
           end
           
-          if const_name.empty? 
-            const_name = lazydoc.default_const_name
-          end
-          
-          comment = Lazydoc::Subject.new(nil, lazydoc)
+          const_name = document.default_const_name if const_name.empty? 
+          comment = Lazydoc::Subject.new(nil, document)
           comment.value = value
           
-          lazydoc[const_name][key] = comment
+          document[const_name][key] = comment
           entries << Constant.new(const_name, path)
         end
         

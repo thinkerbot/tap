@@ -153,8 +153,6 @@ module Tap
           child.instance_variable_set(:@source_file, File.expand_path($1)) 
         end
         
-        lazydoc = child.lazydoc(false)
-        lazydoc.comments << child.const_attrs['args'] = lazydoc.register_method(:process, Lazydoc::Arguments)
         child.instance_variable_set(:@dependencies, dependencies.dup)
         super
       end
@@ -253,6 +251,7 @@ module Tap
 <% end %>
 
 }
+      
       # Returns the class help.
       def help
         Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
@@ -457,14 +456,10 @@ module Tap
     instance_variable_set(:@source_file, __FILE__)
     instance_variable_set(:@default_name, 'tap/task')
     instance_variable_set(:@dependencies, [])
-    lazy_attr :manifest
     
-
-    lazy_register :args, :process, Lazydoc::Arguments
-    # def self.args
-    #    comment = const_attrs['args'] || const_attrs[:args]
-    #    comment.kind_of?(Lazydoc::Comment) ? comment.resolve : comment
-    #  end
+    lazy_attr :manifest
+    lazy_attr :args, :process
+    lazy_register :process, Lazydoc::Arguments
     
     # The name of self.
     #--

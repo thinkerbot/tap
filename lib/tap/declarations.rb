@@ -206,7 +206,7 @@ module Tap
       # register documentation
       caller[1] =~ Lazydoc::CALLER_REGEXP
       task_class.source_file = File.expand_path($1)
-      manifest = task_class.lazydoc(false).register($3.to_i - 1, Declaration)
+      manifest = task_class.lazydoc.register($3.to_i - 1, Declaration)
       manifest.desc = current_desc
       task_class.manifest = manifest
       
