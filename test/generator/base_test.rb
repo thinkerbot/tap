@@ -95,7 +95,7 @@ class BaseTest < Test::Unit::TestCase
   end
   
   def test_template_calls_file_with_target_and_prints_source_templated_with_args
-    source = prepare('source') do |file|
+    source = method_root.prepare('source') do |file|
       file << "<%= key %> was templated"
     end
     

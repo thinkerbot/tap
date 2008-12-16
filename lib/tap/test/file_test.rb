@@ -90,16 +90,6 @@ module Tap
       # 
       # Override as necessary in subclasses.
       def cleanup
-        # preserved = [method_root[:input], method_root[:expected]]
-        # 
-        # Dir.glob(method_root.root + "/*").each do |path|
-        #   case
-        #   when preserved.include?(path) then next
-        #   when File.file?(path) then FileUtils.rm(path)
-        #   else Utils.clear_dir(path)
-        #   end
-        # end
-        
         Utils.clear_dir(method_root[:output])
         Utils.try_remove_dir(method_root.root)
       end
@@ -135,18 +125,6 @@ module Tap
       # Returns method_name as a string (Ruby 1.9 symbolizes method_name)
       def method_name_str
         method_name.to_s
-      end
-      
-      # Prepares the input path by making the parent directory for path.
-      # If a block is given, a file is created at path and passed to the
-      # block so that content may be put to it.  Returns path.
-      def prepare(path, &block)
-        path = method_root[path]
-        
-        dirname = File.dirname(path)
-        FileUtils.mkdir_p(dirname) unless File.exists?(dirname)
-        File.open(path, "w", &block) if block_given?
-        path
       end
       
       # Runs a file-based test that compares files created by the block with
@@ -322,8 +300,6 @@ module Tap
       private
       
       def transform_test(block, options={}) # :yields: expected_files, output_files
-        make_test_directories
-        
         options = default_assert_files_options.merge(options)
         input_dir = options[:input_dir]
         output_dir = options[:output_dir] 

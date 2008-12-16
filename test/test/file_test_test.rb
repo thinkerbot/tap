@@ -33,85 +33,6 @@ class FileTestTest < Test::Unit::TestCase
   end
   
   #
-  # make_test_directories test
-  #
-  
-  def test_make_test_directories 
-    root = File.expand_path( __FILE__.chomp("_test.rb")  + "/test_make_test_directories")
-    begin
-      assert_equal root, method_root[:root]
-      assert_equal({
-          :input => 'input', 
-          :output => 'output', 
-          :expected => 'expected'}, method_root.directories)
-      
-      method_root.directories.values.each do |dir|
-        assert !File.exists?(method_root[dir]), dir
-      end
-      
-      make_test_directories
-   
-      method_root.directories.values.each do |dir|
-        assert File.exists?(method_root[dir]), dir
-      end
-    ensure
-      FileUtils.rm_r root if File.exists?(root)
-    end
-  end
-
-  #
-  # method_tempfile test
-  #
-  
-  def test_method_tempfile_adds_index_to_path_starting_at_method_tempfiles_length_and_skipping_existing_files
-    make_test_directories
-
-    method_tempfiles << nil
-    FileUtils.touch(method_root.filepath(:output, 'file.2.txt'))
-    
-    filepath1 = method_tempfile('file.txt')
-    assert_equal method_root.filepath(:output, "file.1.txt"), filepath1
-    
-    filepath3 = method_tempfile('file.txt')
-    assert_equal method_root.filepath(:output, "file.3.txt"), filepath3
-
-    assert_equal [nil, filepath1, filepath3], method_tempfiles
-  end
-  
-  def test_method_tempfile_works_for_directory_paths
-    make_test_directories
-
-    method_tempfiles << nil
-    FileUtils.touch(method_root.filepath(:output, 'file.2'))
-    
-    filepath1 = method_tempfile('file')
-    assert_equal method_root.filepath(:output, "file.1"), filepath1
-    
-    filepath3 = method_tempfile('file')
-    assert_equal method_root.filepath(:output, "file.3"), filepath3
-
-    assert_equal [nil, filepath1, filepath3], method_tempfiles
-  end
-  
-  def test_method_tempfile_does_not_create_file_unless_block_is_given
-    make_test_directories
-    output_root = method_root[:output]
-    
-    filepath0 = method_tempfile('file.txt')
-    assert !File.exists?(filepath0)
-    
-    filepath1 = method_tempfile('file.txt') {|file| file << "content" }
-    assert File.exists?(filepath1)
-    assert_equal "content", File.read(filepath1)
-  end
-  
-  def test_method_tempfile_creates_parent_dir_if_it_does_not_exist
-    assert !File.exists?(method_root.filepath(:output, 'dir'))
-    method_tempfile('dir/file.txt')
-    assert File.exists?(method_root.filepath(:output, 'dir'))
-  end
-  
-  #
   # assert_files
   #
   
@@ -132,12 +53,10 @@ class FileTestTest < Test::Unit::TestCase
     
     assert_files do |input_files|
       input_files.collect do |input_file|
-        target = method_root.filepath(:output, File.basename(input_file))
-        File.open(target, "w") do |file|
+        method_root.prepare(:output, File.basename(input_file)) do |file|
           file << "processed "
           file << File.read(input_file)
         end
-        target
       end
     end
   end
@@ -150,12 +69,10 @@ class FileTestTest < Test::Unit::TestCase
     assert_raise(Test::Unit::AssertionFailedError) do
       assert_files do |input_files|
         input_files.collect do |input_file|
-          target = method_root.filepath(:output, File.basename(input_file))
-          File.open(target, "w") do |file|
+          method_root.prepare(:output, File.basename(input_file)) do |file|
             file << "processed "
             file << File.read(input_file)
           end
-          target
         end
       end
     end
@@ -170,12 +87,10 @@ class FileTestTest < Test::Unit::TestCase
     assert_raise(Test::Unit::AssertionFailedError) do
       assert_files do |input_files|
         input_files.collect do |input_file|
-          target = method_root.filepath(:output, File.basename(input_file))
-          File.open(target, "w") do |file|
+          method_root.prepare(:output, File.basename(input_file)) do |file|
             file << "processed "
             file << File.read(input_file)
           end
-          target
         end.first
       end
     end
@@ -190,12 +105,10 @@ class FileTestTest < Test::Unit::TestCase
     assert_raise(Test::Unit::AssertionFailedError) do
       assert_files do |input_files|
         input_files.collect do |input_file|
-          target = method_root.filepath(:output, File.basename(input_file))
-          File.open(target, "w") do |file|
+          method_root.prepare(:output, File.basename(input_file)) do |file|
             file << "processed "
             file << File.read(input_file)
           end
-          target
         end
       end
     end
@@ -240,12 +153,10 @@ class FileTestTest < Test::Unit::TestCase
     
     assert_files :reference_dir => method_root[:ref] do |input_files|
       input_files.collect do |input_file|
-        target = method_root.filepath(:output, File.basename(input_file))
-        File.open(target, "w") do |file|
+        method_root.prepare(:output, File.basename(input_file)) do |file|
           file << "processed "
           file << File.read(input_file)
         end
-        target
       end
     end
   end

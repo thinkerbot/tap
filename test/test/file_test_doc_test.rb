@@ -31,15 +31,11 @@ class FileTestDocTest < Test::Unit::TestCase
     # are the same (see the documentation for the 
     # simplest use of assert_files)
     
-    expected_file = method_root.filepath(:expected, 'output.txt')
-    File.open(expected_file, 'w') {|file| file << 'expected output' }
+    expected_file = method_root.prepare(:expected, 'output.txt') {|file| file << 'expected output' }
 
     # passes
     assert_files do 
-      output_file = method_root.filepath(:output, 'output.txt')
-      File.open(output_file, 'w') {|file| file << 'expected output' }
-
-      output_file
+      method_root.prepare(:output, 'output.txt') {|file| file << 'expected output' }
     end 
   end
   
@@ -47,13 +43,9 @@ class FileTestDocTest < Test::Unit::TestCase
     assert_files do |input_files|
       input_files.collect do |filepath|
         input = File.read(filepath)
-        output_file = method_root.filepath(:output, File.basename(filepath))
-  
-        File.open(output_file, "w") do |f|
+        method_root.prepare(:output, File.basename(filepath)) do |f|
           f << input.gsub(/input/, "output")
         end 
-        
-        output_file
       end
     end
   end

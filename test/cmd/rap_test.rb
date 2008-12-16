@@ -8,8 +8,8 @@ class RapTest < Test::Unit::TestCase
 
   def setup
     super
-    prepare('tap.yml') {}
-    prepare('Rakefile') {}
+    method_root.prepare('tap.yml') {}
+    method_root.prepare('Rakefile') {}
   end
   
   def cleanup
@@ -48,7 +48,7 @@ usage: rap taskname {options} [args]
   end
   
   def test_rap_help_with_declarations
-    prepare('Tapfile') do |file|
+    method_root.prepare('Tapfile') do |file|
       file << %q{
 module RapTest
   extend Tap::Declarations
@@ -105,7 +105,7 @@ usage: rap rap_test/task_with_desc
   end
     
   def test_rap_help_with_duplicate_nested_declarations
-    prepare('Tapfile') do |file|
+    method_root.prepare('Tapfile') do |file|
       file << %q{
 include Tap::Declarations
 
@@ -135,7 +135,7 @@ test_rap_help_with_duplicate_nested_declarations:
   end
       
   def test_rap_help_for_tasks_with_args
-    prepare('Tapfile') do |file|
+    method_root.prepare('Tapfile') do |file|
       file << %q{
 module RapTest
   extend Tap::Declarations
@@ -177,12 +177,12 @@ usage: rap rap_test/task_with_arg_names A B
     ['rapfile.rb'],
     ['tapfile.rb', 'Rapfile']].each do |paths|
       Tap::Test::Utils.clear_dir(method_root.root)
-      prepare('tap.yml') {}
+      method_root.prepare('tap.yml') {}
       
       manifests = []
       paths.each do |path|
         basename = File.basename(path).chomp('.rb').underscore
-        prepare(path) do |file|
+        method_root.prepare(path) do |file|
           manifests << "  task_#{basename}  # #{path}"
           file << %Q{
 include Tap::Declarations

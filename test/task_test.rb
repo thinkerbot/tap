@@ -145,7 +145,7 @@ class TaskTest < Test::Unit::TestCase
   #
   
   def prepare_yaml(path, obj)
-    prepare(path) {|file| file << obj.to_yaml }
+    method_root.prepare(path) {|file| file << obj.to_yaml }
   end
   
   def test_load_returns_empty_array_for_non_existant_file
@@ -155,7 +155,7 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_load_returns_empty_array_for_empty_file
-    path = prepare("non_existant.yml") {}
+    path = method_root.prepare("non_existant.yml") {}
     
     assert File.exists?(path)
     assert_equal "", File.read(path)

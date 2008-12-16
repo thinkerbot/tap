@@ -65,7 +65,7 @@ class ClassReferenceTest < Test::Unit::TestCase
   #
   
   def test_lazydoc
-    lazydoc_file = method_tempfile('lazydoc') do |file|
+    lazydoc_file = method_root.prepare(:output, 'one') do |file|
       file << %Q{
 # Name::Space::key value
 # 
@@ -88,7 +88,7 @@ class ClassReferenceTest < Test::Unit::TestCase
     assert_equal "another value", lazydoc['Name::Space']['another'].value
     
     ####
-    another_lazydoc_file = method_tempfile('lazydoc') do |file|
+    another_lazydoc_file = method_root.prepare(:output, 'two') do |file|
       file << %Q{# documentation
 # for the method
 def method
