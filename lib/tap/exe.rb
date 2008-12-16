@@ -68,7 +68,7 @@ module Tap
           load path # run the command, if it exists
         else
           puts "Unknown command: '#{command}'"
-          puts "Type 'tap help' for usage information."
+          puts "Type 'tap --help' for usage information."
         end
       end
     end

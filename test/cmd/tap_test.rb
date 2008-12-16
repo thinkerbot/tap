@@ -53,6 +53,16 @@ version #{Tap::VERSION} -- http://tap.rubyforge.org
     end
   end
   
+  def test_tap_with_unknown_command
+    script_test do |cmd|
+      cmd.check "Prints help for the executable", %Q{
+% #{cmd} unknown
+Unknown command: 'unknown'
+Type 'tap --help' for usage information.
+}
+    end
+  end
+  
   def test_tap_with_before_and_after_script
     script_test do |cmd|
       cmd.check "Prints help with scripts", %Q{

@@ -87,7 +87,7 @@ class GenerateTest < Test::Unit::TestCase
     end
     
     assert File.exists?(target)
-    assert_equal "", File.read(target)
+    assert_equal "content", File.read(target)
     assert_equal [[:create, target]], log
   end
   
