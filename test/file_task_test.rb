@@ -251,11 +251,9 @@ class FileTaskTest < Test::Unit::TestCase
     of1 = ctr.filepath(:root, 'old_file_one.txt')
     of2 = ctr.filepath(:root, 'old_file_two.txt')
 
-    nf1 = method_tempfile('new_file_one.txt')
-    File.open(nf1, "w") {|file| file << output_str}
+    nf1 = prepare('output/new_file_one.txt') {|file| file << output_str}
 
-    nf2 = method_tempfile('new_file_two.txt')
-    File.open(nf2, "w") {|file| file << output_str}
+    nf2 = prepare('output/new_file_two.txt') {|file| file << output_str}
 
     [of1, of2, nf1, nf2]
   end

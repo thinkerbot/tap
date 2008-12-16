@@ -84,20 +84,24 @@ module Tap
         cleanup
       end
       
-      # Cleans up the method_root.root directory by removing all files and
-      # directories, except method_root[:input] and method_root[:output].
-      #
+      # Cleans up the method_root.root directory by removing the 
+      # method_root[:output] directory.  The root directory will
+      # also be removed if it is empty.
+      # 
       # Override as necessary in subclasses.
       def cleanup
-        preserved = [method_root[:input], method_root[:expected]]
+        # preserved = [method_root[:input], method_root[:expected]]
+        # 
+        # Dir.glob(method_root.root + "/*").each do |path|
+        #   case
+        #   when preserved.include?(path) then next
+        #   when File.file?(path) then FileUtils.rm(path)
+        #   else Utils.clear_dir(path)
+        #   end
+        # end
         
-        method_root.glob("*").each do |path|
-          case
-          when preserved.include?(path) then next
-          when File.file?(path) then FileUtils.rm(path)
-          else clear_dir(dir)
-          end
-        end
+        Utils.clear_dir(method_root[:output])
+        Utils.try_remove_dir(method_root.root)
       end
     
       # Calls cleanup unless flagged otherwise by an ENV variable. To prevent
@@ -124,6 +128,8 @@ module Tap
             raise("cleanup failure: #{$!.message}")
           end
         end
+        
+        Utils.try_remove_dir(ctr.root)
       end 
       
       # Returns method_name as a string (Ruby 1.9 symbolizes method_name)
@@ -135,6 +141,8 @@ module Tap
       # If a block is given, a file is created at path and passed to the
       # block so that content may be put to it.  Returns path.
       def prepare(path, &block)
+        path = method_root[path]
+        
         dirname = File.dirname(path)
         FileUtils.mkdir_p(dirname) unless File.exists?(dirname)
         File.open(path, "w", &block) if block_given?

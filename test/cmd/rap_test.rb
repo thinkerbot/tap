@@ -8,9 +8,12 @@ class RapTest < Test::Unit::TestCase
 
   def setup
     super
-    make_test_directories
-    FileUtils.touch(method_root.filepath(:output, 'tap.yml'))
-    FileUtils.touch(method_root.filepath(:output, 'Rakefile'))
+    prepare('tap.yml') {}
+    prepare('Rakefile') {}
+  end
+  
+  def cleanup
+    Tap::Test::Utils.clear_dir(method_root.root)
   end
 
   def default_command_path
@@ -18,7 +21,7 @@ class RapTest < Test::Unit::TestCase
   end
 
   def test_rap_help_with_no_declarations
-    script_test(method_root[:output]) do |cmd|
+    script_test do |cmd|
       cmd.check "Prints help and summary for rap", %Q{
 % #{cmd}
 usage: rap taskname {options} [args]
@@ -45,7 +48,7 @@ usage: rap taskname {options} [args]
   end
   
   def test_rap_help_with_declarations
-    File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
+    prepare('Tapfile') do |file|
       file << %q{
 module RapTest
   extend Tap::Declarations
@@ -62,13 +65,13 @@ end
 }
     end
     
-    script_test(method_root[:output]) do |cmd|
+    script_test do |cmd|
       cmd.check "Prints summary of declarations", %Q{
 % #{cmd}
 usage: rap taskname {options} [args]
 
 ===  tap tasks ===
-output:
+test_rap_help_with_declarations:
   task_with_doc     # task summary
   task_with_desc    # desc
 tap:
@@ -102,7 +105,7 @@ usage: rap rap_test/task_with_desc
   end
     
   def test_rap_help_with_duplicate_nested_declarations
-    File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
+    prepare('Tapfile') do |file|
       file << %q{
 include Tap::Declarations
 
@@ -119,11 +122,11 @@ end
 }
     end
 
-    script_test(method_root[:output]) do |cmd|
+    script_test do |cmd|
       cmd.check "Prints proper description", %Q{
 % #{cmd}
 :...:
-output:
+test_rap_help_with_duplicate_nested_declarations:
   task         # first desc
   sample/task  # second desc
 :...:
@@ -132,7 +135,7 @@ output:
   end
       
   def test_rap_help_for_tasks_with_args
-    File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
+    prepare('Tapfile') do |file|
       file << %q{
 module RapTest
   extend Tap::Declarations
@@ -146,7 +149,7 @@ end
 }
     end
 
-    script_test(method_root[:output]) do |cmd|
+    script_test do |cmd|
       cmd.check "Prints help for declaration", %Q{
 % #{cmd} task_without_args --help
 :...:
@@ -173,13 +176,13 @@ usage: rap rap_test/task_with_arg_names A B
     ['Tapfile'],
     ['rapfile.rb'],
     ['tapfile.rb', 'Rapfile']].each do |paths|
-      Tap::Test::Utils.clear_dir(method_root[:output])
-      make_test_directories
+      Tap::Test::Utils.clear_dir(method_root.root)
+      prepare('tap.yml') {}
       
       manifests = []
       paths.each do |path|
         basename = File.basename(path).chomp('.rb').underscore
-        File.open(method_root.filepath(:output, path), 'w') do |file|
+        prepare(path) do |file|
           manifests << "  task_#{basename}  # #{path}"
           file << %Q{
 include Tap::Declarations
@@ -190,16 +193,15 @@ task(:task_#{basename})
         end
       end
       
-      script_test(method_root[:output]) do |cmd|
+      script_test do |cmd|
         cmd.check "Prints help for declaration", %Q{
 % #{cmd} -T
 :...:
-output:
+test_rap_uses_rap_and_tapfiles:
 #{manifests.join("\n")}
 :...:
 }
       end
     end
   end
-  
 end

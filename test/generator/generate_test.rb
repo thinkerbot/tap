@@ -15,6 +15,10 @@ class GenerateTest < Test::Unit::TestCase
     super
   end
   
+  def cleanup
+    Tap::Test::Utils.clear_dir(method_root.root)
+  end
+  
   def log_relative(*args)
     log << args
   end

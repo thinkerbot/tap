@@ -12,6 +12,10 @@ class BaseTest < Test::Unit::TestCase
     super
   end
   
+  def cleanup
+    Tap::Test::Utils.clear_dir(method_root.root)
+  end
+  
   #
   # initialize test
   #
@@ -91,7 +95,7 @@ class BaseTest < Test::Unit::TestCase
   end
   
   def test_template_calls_file_with_target_and_prints_source_templated_with_args
-    source = method_tempfile('source') do |file|
+    source = prepare('source') do |file|
       file << "<%= key %> was templated"
     end
     

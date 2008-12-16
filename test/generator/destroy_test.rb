@@ -15,6 +15,10 @@ class DestroyTest < Test::Unit::TestCase
     super
   end
   
+  def cleanup
+    Tap::Test::Utils.clear_dir(method_root.root)
+  end
+  
   def log_relative(*args)
     log << args
   end
@@ -66,7 +70,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_directory_logs_non_directory_targets
-    target = method_tempfile('file') {}
+    target = prepare('file') {}
     assert File.file?(target)
 
     directory(target)
@@ -75,7 +79,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_directory_logs_non_empty_directories
-    file = method_tempfile('file') {}
+    file = prepare('file') {}
     target = File.dirname(file)
 
     directory(target)
@@ -88,7 +92,7 @@ class DestroyTest < Test::Unit::TestCase
   #
   
   def test_file_removes_target_and_logs_removal
-    target = method_tempfile('file') {}
+    target = prepare('file') {}
     assert File.file?(target)
     
     file(target)
@@ -99,7 +103,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_file_removal_is_only_logged_on_pretend
-    target = method_tempfile('file') {}
+    target = prepare('file') {}
     assert File.file?(target)
     
     self.pretend = true
@@ -110,7 +114,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_file_logs_non_existant_targets
-    target = method_tempfile('file')
+    target = prepare('file')
     assert !File.exists?(target)
 
     file(target)
@@ -118,7 +122,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_file_logs_non_file_targets
-    file = method_tempfile('file') {}
+    file = prepare('file') {}
     target = File.dirname(file)
     assert File.directory?(target)
 
