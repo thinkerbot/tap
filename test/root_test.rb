@@ -252,6 +252,34 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
+  # Tap::Root prepare test
+  #
+  
+  def test_prepares_makes_parent_directory_of_path
+    path = root_dir + '/non/existant/path'
+    assert !File.exists?(root_dir + '/non')
+    begin
+      assert_equal path, Tap::Root.prepare(path)
+      assert !File.exists?(path)
+      assert File.exists?(File.dirname(path))
+    ensure
+      FileUtils.rm_r(root_dir + '/non') if File.exists?(root_dir + '/non')
+    end
+  end
+  
+  def test_prepare_creates_file_and_passes_it_to_block_if_given
+    path = root_dir + '/non/existant/path'
+    assert !File.exists?(root_dir + '/non')
+    begin
+      assert_equal path, Tap::Root.prepare(path) {|file| file << "content" }
+      assert File.exists?(path)
+      assert_equal "content", File.read(path)
+    ensure
+      FileUtils.rm_r(root_dir + '/non') if File.exists?(root_dir + '/non')
+    end
+  end
+  
+  #
   # Tap::Root trivial? test
   #
   
@@ -1018,6 +1046,22 @@ class RootTest < Test::Unit::TestCase
     expected = [File.join(root_dir, 'versions/file-0.1.2.yml')]
     
     assert_equal expected, tr.vglob(:versions, "file.yml", "0.1.2", "0.1.*")
+  end
+  
+  #
+  # prepare test
+  #
+  
+  def test_prepares_makes_a_filepath_from_the_inputs_and_prepares_it
+    path = root_dir + '/non/existant/path'
+    assert !File.exists?(root_dir + '/non')
+    begin
+      assert_equal path, tr.prepare('non', 'existant', 'path') {|file| file << "content"}
+      assert File.exists?(path)
+      assert_equal "content", File.read(path)
+    ensure
+      FileUtils.rm_r(root_dir + '/non') if File.exists?(root_dir + '/non')
+    end
   end
   
   #

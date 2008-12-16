@@ -138,6 +138,19 @@ module Tap
         Dir.chdir(dir, &block)
       end
       
+      # Prepares the input path by making the parent directory for path.
+      # If a block is given, a file is created at path and passed to it;
+      # in this way files with non-existant parent directories are readily
+      # made.
+      #
+      # Returns path.
+      def prepare(path, &block)
+        dirname = File.dirname(path)
+        FileUtils.mkdir_p(dirname) unless File.exists?(dirname)
+        File.open(path, "w", &block) if block_given?
+        path
+      end
+      
       # Trivial indicates when a path does not have content to load.  Returns true 
       # if the file at path is empty, non-existant, a directory, or nil.
       def trivial?(path)
@@ -575,6 +588,12 @@ module Tap
     # chdirs to the specified directory using Root.chdir.
     def chdir(dir, mkdir=false, &block)
       Root.chdir(self[dir], mkdir, &block)
+    end
+    
+    # Constructs a path from the inputs (using filepath) and prepares it using
+    # Root.prepare.  Returns the path.
+    def prepare(dir, *filename, &block)
+      Root.prepare(filepath(dir, *filename), &block)
     end
     
     private
