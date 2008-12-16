@@ -23,8 +23,16 @@ module Tap
       # 'path/to/name/templates' for 'path/to/name/name_generator.rb'
       attr_accessor :template_dir
       
+      # The IO used to pull prompt inputs.  By default $stdin
+      attr_accessor :prompt_in
+      
+      # The IO used to prompt users for input.  By default $stdout
+      attr_accessor :prompt_out
+      
       def initialize(*args)
         super
+        @prompt_in = $stdin
+        @prompt_out = $stdout
         @template_dir = File.dirname(self.class.source_file) + '/templates'
       end
       

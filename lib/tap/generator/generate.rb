@@ -1,21 +1,37 @@
 module Tap
-  module Generator 
+  module Generator
+    
+    # A mixin defining how to run manifest actions.
     module Generate
+      
+      # Iterates over the actions in order.
       def iterate(actions)
         actions.each {|action| yield(action) }
       end
-  
+      
+      # Creates the target directory if it doesn't exist.  When pretend is
+      # true, creation is logged but does not actually happen.
+      #
+      # No options currently affect the behavior of this method.
       def directory(target, options={})
         target = File.expand_path(target)
         
-        if File.exists?(target)
+        case
+        when File.exists?(target)
           log_relative :exists, target
         else
           log_relative :create, target
           file_task.mkdir(target) unless pretend
         end
       end
-    
+      
+      # Creates the target file; content may be added to the file by providing
+      # block.  If the target file already exists, the new and existing content
+      # is compared and the user will be prompted for how to handle collisions.
+      # All activity is logged.  When pretend is true, creation is logged but
+      # does not actually happen.
+      #
+      # No options currently affect the behavior of this method.
       def file(target, options={})
         source_file = Tempfile.new('generate')
         yield(source_file) if block_given?
@@ -52,15 +68,15 @@ module Tap
         return false if skip
         return true if force
         
-        $stdout.print "overwrite #{target}? [Ynaiq] "
-        $stdout.flush
-        case $stdin.gets
+        prompt_out.print "overwrite #{target}? [Ynaiq] "
+        prompt_out.flush
+        case prompt_in.gets
         when /a/i
           self.force = true
         when /i/i
           self.skip = true
         when /q/i
-          $stdout.puts "aborting #{name}"
+          prompt_out.puts "aborting #{name}"
           raise SystemExit
         when /n/i then false
         when /y/i then true
