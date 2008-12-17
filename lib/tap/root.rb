@@ -76,7 +76,7 @@ module Tap
         # use dir.length + 1 to remove a leading '/'.   If dir.length + 1 >= expanded.length 
         # as in: relative_filepath('/path', '/path') then the first arg returns nil, and an 
         # empty string is returned
-        expanded_path[( expanded_dir.chomp("/").length + 1)..-1] || ""
+        expanded_path[(expanded_dir.chomp("/").length + 1)..-1] || ""
       end
       
       # Generates a target filepath translated from the source_dir to 
@@ -90,6 +90,16 @@ module Tap
           raise ArgumentError, "\n#{path}\nis not relative to:\n#{source_dir}"
         end
         File.join(target_dir, relative_path)
+      end
+      
+      # Returns the path, exchanging the extension with extname.  Extname
+      # may optionally omit the leading period.
+      #
+      #   Root.exchange('path/to/file.txt', '.html')  # => 'path/to/file.html'
+      #   Root.exchange('path/to/file.txt', 'rb')     # => 'path/to/file.rb'
+      #
+      def exchange(path, extname)
+        "#{path.chomp(File.extname(path))}#{extname[0] == ?. ? '' : '.'}#{extname}"
       end
     
       # Lists all unique paths matching the input glob patterns.  
@@ -151,12 +161,6 @@ module Tap
         path
       end
       
-      # Trivial indicates when a path does not have content to load.  Returns true 
-      # if the file at path is empty, non-existant, a directory, or nil.
-      def trivial?(path)
-        path == nil || !File.file?(path) || File.size(path) == 0
-      end
-      
       # The path root type indicating windows, *nix, or some unknown
       # style of filepaths (:win, :nix, :unknown).
       def path_root_type
@@ -173,19 +177,19 @@ module Tap
       # If root_type == :win returns true if the path matches 
       # WIN_ROOT_PATTERN.
       #
-      #   Root.expanded_path?('C:/path')  # => true
-      #   Root.expanded_path?('c:/path')  # => true
-      #   Root.expanded_path?('D:/path')  # => true
-      #   Root.expanded_path?('path')     # => false
+      #   Root.expanded?('C:/path')  # => true
+      #   Root.expanded?('c:/path')  # => true
+      #   Root.expanded?('D:/path')  # => true
+      #   Root.expanded?('path')     # => false
       #
       # If root_type == :nix, then expanded? returns true if 
       # the path begins with '/'.
       #
-      #   Root.expanded_path?('/path')  # => true
-      #   Root.expanded_path?('path')   # => false
+      #   Root.expanded?('/path')  # => true
+      #   Root.expanded?('path')   # => false
       #
-      # Otherwise expanded_path? always returns nil.
-      def expanded_path?(path, root_type=path_root_type)
+      # Otherwise expanded? always returns nil.
+      def expanded?(path, root_type=path_root_type)
         case root_type
         when :win 
           path =~ WIN_ROOT_PATTERN ? true : false
@@ -194,6 +198,17 @@ module Tap
         else
           nil
         end
+      end
+      
+      # Trivial indicates when a path does not have content to load.  Returns
+      # true if the file at path is empty, non-existant, a directory, or nil.
+      def trivial?(path)
+        path == nil || !File.file?(path) || File.size(path) == 0
+      end
+      
+      # Empty indicates when dir has no files, does not exist, or is nil.
+      def empty?(dir)
+        dir == nil || !File.exists?(dir) || (Dir.entries(dir) - ['.', '..']).empty?
       end
       
       # Minimizes a set of paths to the set of shortest basepaths that unqiuely 
@@ -546,7 +561,7 @@ module Tap
       return path unless path == nil
       
       dir = dir.to_s 
-      Root.expanded_path?(dir) ? dir : File.expand_path(File.join(root, dir))
+      Root.expanded?(dir) ? dir : File.expand_path(File.join(root, dir))
     end
     
     # Constructs expanded filepaths relative to the path of the specified alias. 

@@ -101,6 +101,15 @@ class RootTest < Test::Unit::TestCase
   def test_translate_raises_error_if_path_is_not_relative_to_source_dir
     assert_raise(ArgumentError) { Tap::Root.translate("/path/to/file.txt", "/not_path", "/another/path") }
   end
+  
+  #
+  # Tap::Root exchange test
+  #
+  
+  def test_class_exchange_documentation
+    assert_equal 'path/to/file.html', Tap::Root.exchange('path/to/file.txt', '.html')
+    assert_equal 'path/to/file.rb', Tap::Root.exchange('path/to/file.txt', 'rb')
+  end
 
   #
   # Tap::Root glob test
@@ -255,7 +264,7 @@ class RootTest < Test::Unit::TestCase
   # Tap::Root prepare test
   #
   
-  def test_prepares_makes_parent_directory_of_path
+  def test_class_prepares_makes_parent_directory_of_path
     path = root_dir + '/non/existant/path'
     assert !File.exists?(root_dir + '/non')
     begin
@@ -267,7 +276,7 @@ class RootTest < Test::Unit::TestCase
     end
   end
   
-  def test_prepare_creates_file_and_passes_it_to_block_if_given
+  def test_class_prepare_creates_file_and_passes_it_to_block_if_given
     path = root_dir + '/non/existant/path'
     assert !File.exists?(root_dir + '/non')
     begin
@@ -277,6 +286,51 @@ class RootTest < Test::Unit::TestCase
     ensure
       FileUtils.rm_r(root_dir + '/non') if File.exists?(root_dir + '/non')
     end
+  end
+  
+  #
+  # Tap::Root path_root_type test
+  #
+  
+  def test_path_root_type
+    case
+    when self.class.match_platform?("mswin")
+      assert_equal :win, Tap::Root.path_root_type
+    when File.expand_path(".")[0] == ?/
+      assert_equal :nix, Tap::Root.path_root_type
+    else
+      assert_equal :unknown, Tap::Root.path_root_type
+    end
+  end
+  
+  #
+  # Tap::Root expanded? test
+  #
+
+  def test_expanded_documentation
+    assert Tap::Root.expanded?("C:/path", :win)
+    assert Tap::Root.expanded?("c:/path", :win)
+    assert Tap::Root.expanded?("D:/path", :win)
+    assert !Tap::Root.expanded?("path", :win)
+
+    assert Tap::Root.expanded?('/path', :nix)
+    assert !Tap::Root.expanded?('path', :nix)
+  end
+  
+  def test_expanded
+    assert Tap::Root.expanded?("C:/path", :win)
+    assert Tap::Root.expanded?("c:/path", :win)
+    assert Tap::Root.expanded?("D:/path", :win)
+    assert !Tap::Root.expanded?("/path", :win)
+    assert !Tap::Root.expanded?("path", :win)
+
+    assert Tap::Root.expanded?("/path", :nix)
+    assert !Tap::Root.expanded?("C:/path", :nix)
+    assert !Tap::Root.expanded?("path", :nix)
+    
+    assert_nil Tap::Root.expanded?("C:/path", :other)
+    assert_nil Tap::Root.expanded?("/path", :other)
+    assert_nil Tap::Root.expanded?("path", :other)
   end
   
   #
@@ -310,48 +364,63 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
-  # Tap::Root path_root_type test
+  # Tap::Root empty? test
   #
   
-  def test_path_root_type
-    case
-    when self.class.match_platform?("mswin")
-      assert_equal :win, Tap::Root.path_root_type
-    when File.expand_path(".")[0] == ?/
-      assert_equal :nix, Tap::Root.path_root_type
-    else
-      assert_equal :unknown, Tap::Root.path_root_type
+  def test_empty_returns_true_if_the_directory_has_no_files_or_does_not_exist
+    dir = root_dir + '/dir'
+    assert !File.exists?(dir)
+    assert Tap::Root.empty?(dir)
+    
+    begin
+      FileUtils.mkdir(dir) 
+      assert Tap::Root.empty?(dir)
+    ensure
+      FileUtils.rm_r(dir) if File.exists?(dir)
     end
   end
   
-  #
-  # Tap::Root.expaned_path? test
-  #
-
-  def test_expanded_path_documentation
-    assert Tap::Root.expanded_path?("C:/path", :win)
-    assert Tap::Root.expanded_path?("c:/path", :win)
-    assert Tap::Root.expanded_path?("D:/path", :win)
-    assert !Tap::Root.expanded_path?("path", :win)
-
-    assert Tap::Root.expanded_path?('/path', :nix)
-    assert !Tap::Root.expanded_path?('path', :nix)
+  def test_empty_detects_files
+    dir = root_dir + '/dir'
+    begin
+      FileUtils.mkdir(dir) 
+      assert Tap::Root.empty?(dir)
+      
+      FileUtils.touch(dir + '/file.txt')
+      assert !Tap::Root.empty?(dir)
+    ensure
+      FileUtils.rm_r(dir) if File.exists?(dir)
+    end
   end
   
-  def test_expanded_path
-    assert Tap::Root.expanded_path?("C:/path", :win)
-    assert Tap::Root.expanded_path?("c:/path", :win)
-    assert Tap::Root.expanded_path?("D:/path", :win)
-    assert !Tap::Root.expanded_path?("/path", :win)
-    assert !Tap::Root.expanded_path?("path", :win)
-
-    assert Tap::Root.expanded_path?("/path", :nix)
-    assert !Tap::Root.expanded_path?("C:/path", :nix)
-    assert !Tap::Root.expanded_path?("path", :nix)
-    
-    assert_nil Tap::Root.expanded_path?("C:/path", :other)
-    assert_nil Tap::Root.expanded_path?("/path", :other)
-    assert_nil Tap::Root.expanded_path?("path", :other)
+  def test_empty_detects_hidden_files
+    dir = root_dir + '/dir'
+    begin
+      FileUtils.mkdir(dir) 
+      assert Tap::Root.empty?(dir)
+      
+      FileUtils.touch(dir + '/.hidden_file')
+      assert !Tap::Root.empty?(dir)
+    ensure
+      FileUtils.rm_r(dir) if File.exists?(dir)
+    end
+  end
+  
+  def test_empty_detects_folders
+    dir = root_dir + '/dir'
+    begin
+      FileUtils.mkdir(dir) 
+      assert Tap::Root.empty?(dir)
+      
+      FileUtils.mkdir(dir + '/sub_dir')
+      assert !Tap::Root.empty?(dir)
+    ensure
+      FileUtils.rm_r(dir) if File.exists?(dir)
+    end
+  end
+  
+  def test_empty_returns_true_for_nil
+    assert Tap::Root.empty?(nil)
   end
   
   #
