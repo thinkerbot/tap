@@ -3,17 +3,14 @@ require 'tap/test/script_test'
 
 class RapTest < Test::Unit::TestCase
   acts_as_script_test
-
+  cleanup_dirs << :root
+  
   RAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/rap")
 
   def setup
     super
     method_root.prepare('tap.yml') {}
     method_root.prepare('Rakefile') {}
-  end
-  
-  def cleanup
-    Tap::Test::Utils.clear_dir(method_root.root)
   end
 
   def default_command_path

@@ -64,6 +64,7 @@ module Tap
       def self.included(base)
         super
         base.extend FileTestClass
+        base.cleanup_dirs = [:output, :tmp]
       end
       
       # Convenience method to access the class_test_root.
@@ -90,7 +91,9 @@ module Tap
       # 
       # Override as necessary in subclasses.
       def cleanup
-        Utils.clear_dir(method_root[:output])
+        self.class.cleanup_dirs.each do |dir|
+          Utils.clear_dir(method_root[dir])
+        end
         Utils.try_remove_dir(method_root.root)
       end
     

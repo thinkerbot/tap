@@ -13,10 +13,6 @@ class ConstantManifestTest < Test::Unit::TestCase
     @m = ConstantManifest.new('attr')
   end
   
-  def cleanup
-    Tap::Test::Utils.clear_dir(method_root.root)
-  end
-  
   #
   # initialize test
   #
@@ -34,17 +30,17 @@ class ConstantManifestTest < Test::Unit::TestCase
   #
   
   def test_register_globs_for_files_under_dir_and_adds_these_to_search_paths
-    a = method_root.prepare('a.txt') {}
-    b = method_root.prepare('b.txt') {}
-    c = method_root.prepare('c.rb') {}
+    a = method_root.prepare(:tmp, 'a.txt') {}
+    b = method_root.prepare(:tmp, 'b.txt') {}
+    c = method_root.prepare(:tmp, 'c.rb') {}
 
-    m.register(method_root.root, "*.txt")
-    assert_equal [[method_root.root, [a,b]]], m.search_paths
+    m.register(method_root[:tmp], "*.txt")
+    assert_equal [[method_root[:tmp], [a,b]]], m.search_paths
     
-    m.register(method_root.root, "*.rb")
+    m.register(method_root[:tmp], "*.rb")
     assert_equal [
-      [method_root.root, [a,b]],
-      [method_root.root, [c]]
+      [method_root[:tmp], [a,b]],
+      [method_root[:tmp], [c]]
     ], m.search_paths
   end
   
@@ -57,21 +53,21 @@ class ConstantManifestTest < Test::Unit::TestCase
   #
   
   def test_build_searches_for_constants_with_const_attr_along_paths
-    a = method_root.prepare('a.txt') {|file| file << "# A::attr" }
-    b = method_root.prepare('b.txt') {|file| file << "# B::attr\n# Nested::B::attr" }
-    c = method_root.prepare('c.txt') {|file| file << "# C::another" }
+    a = method_root.prepare(:tmp, 'a.txt') {|file| file << "# A::attr" }
+    b = method_root.prepare(:tmp, 'b.txt') {|file| file << "# B::attr\n# Nested::B::attr" }
+    c = method_root.prepare(:tmp, 'c.txt') {|file| file << "# C::another" }
     
-    m.register(method_root.root, "*.txt")
+    m.register(method_root[:tmp], "*.txt")
     m.build
     
     assert_equal [["A", a], ["B", b], ["Nested::B", b]], m.entries.collect {|const| [const.name, const.require_path]}
   end
   
   def test_build_infers_default_const_name_from_relative_filepath
-    a = method_root.prepare('a.txt') {|file| file << "# ::attr" }
-    b = method_root.prepare('path/to/b.txt') {|file| file << "# ::attr" }
+    a = method_root.prepare(:tmp, 'a.txt') {|file| file << "# ::attr" }
+    b = method_root.prepare(:tmp, 'path/to/b.txt') {|file| file << "# ::attr" }
     
-    m.register(method_root.root, "**/*.txt")
+    m.register(method_root[:tmp], "**/*.txt")
     m.build
     
     assert_equal [["A", a], ["Path::To::B", b]], m.entries.collect {|const| [const.name, const.require_path]}
@@ -125,10 +121,10 @@ class ConstantManifestTest < Test::Unit::TestCase
   #
   
   def test_each_discovers_constants_with_const_attr_along_paths
-    a = method_root.prepare('a.txt') {|file| file << "# A::attr" }
-    b = method_root.prepare('b.txt') {|file| file << "# B::attr\n# Nested::B::attr" }
-    c = method_root.prepare('c.txt') {|file| file << "# C::another" }
-    m.register(method_root.root, "*.txt")
+    a = method_root.prepare(:tmp, 'a.txt') {|file| file << "# A::attr" }
+    b = method_root.prepare(:tmp, 'b.txt') {|file| file << "# B::attr\n# Nested::B::attr" }
+    c = method_root.prepare(:tmp, 'c.txt') {|file| file << "# C::another" }
+    m.register(method_root[:tmp], "*.txt")
     
     assert m.entries.empty?
     
@@ -140,10 +136,10 @@ class ConstantManifestTest < Test::Unit::TestCase
   end
   
   def test_each_stores_new_entries_before_yielding_to_block
-    a = method_root.prepare('a.txt') {|file| file << "# A::attr" }
-    b = method_root.prepare('b.txt') {|file| file << "# B::attr\n# Nested::B::attr" }
-    c = method_root.prepare('c.txt') {|file| file << "# C::attr" }
-    m.register(method_root.root, "*.txt")
+    a = method_root.prepare(:tmp, 'a.txt') {|file| file << "# A::attr" }
+    b = method_root.prepare(:tmp, 'b.txt') {|file| file << "# B::attr\n# Nested::B::attr" }
+    c = method_root.prepare(:tmp, 'c.txt') {|file| file << "# C::attr" }
+    m.register(method_root[:tmp], "*.txt")
     
     results = []
     last_value = m.each do |const| 
@@ -157,10 +153,10 @@ class ConstantManifestTest < Test::Unit::TestCase
   end
   
   def test_each_does_not_duplicate_entries_on_subsequent_each
-    a = method_root.prepare('a.txt') {|file| file << "# A::attr" }
-    b = method_root.prepare('b.txt') {|file| file << "# B::attr\n# Nested::B::attr" }
-    c = method_root.prepare('c.txt') {|file| file << "# C::attr" }
-    m.register(method_root.root, "*.txt")
+    a = method_root.prepare(:tmp, 'a.txt') {|file| file << "# A::attr" }
+    b = method_root.prepare(:tmp, 'b.txt') {|file| file << "# B::attr\n# Nested::B::attr" }
+    c = method_root.prepare(:tmp, 'c.txt') {|file| file << "# C::attr" }
+    m.register(method_root[:tmp], "*.txt")
 
     results = []
     m.each do |const| 

@@ -247,13 +247,12 @@ class FileTaskTest < Test::Unit::TestCase
   # uptodate tests
   #
 
-  def uptodate_test_setup(output_str='')
+  def uptodate_test_setup
     of1 = ctr.filepath(:root, 'old_file_one.txt')
     of2 = ctr.filepath(:root, 'old_file_two.txt')
 
-    nf1 = method_root.prepare(:output, 'new_file_one.txt') {|file| file << output_str}
-
-    nf2 = method_root.prepare(:output, 'new_file_two.txt') {|file| file << output_str}
+    nf1 = method_root.prepare(:tmp, 'new_file_one.txt') {}
+    nf2 = method_root.prepare(:tmp, 'new_file_two.txt') {}
 
     [of1, of2, nf1, nf2]
   end

@@ -434,9 +434,9 @@ a (0)
   end
   
   def test_reconfigure_recursively_loads_env_paths
-    config_file1 = method_root.prepare('output/one')
-    config_file2 = method_root.prepare('output/two')
-    config_file3 = method_root.prepare('output/three')
+    config_file1 = method_root.prepare(:tmp, 'one')
+    config_file2 = method_root.prepare(:tmp, 'two')
+    config_file3 = method_root.prepare(:tmp, 'three')
     
     File.open(config_file1, "w") do |file| 
       file << {:env_paths => config_file2}.to_yaml
@@ -457,8 +457,8 @@ a (0)
   end
   
   def test_recursive_loading_does_not_infinitely_loop
-    config_file1 = method_root.prepare('output/one')
-    config_file2 = method_root.prepare('output/two')
+    config_file1 = method_root.prepare(:tmp, 'one')
+    config_file2 = method_root.prepare(:tmp, 'two')
     
     File.open(config_file1, "w") do |file| 
       file << {:env_paths => config_file2}.to_yaml

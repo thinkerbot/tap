@@ -4,16 +4,12 @@ require 'tap/generator/base'
 class BaseTest < Test::Unit::TestCase
   include Tap::Generator
   acts_as_file_test
-  
+
   attr_accessor :b
   
   def setup
     @b = Base.new
     super
-  end
-  
-  def cleanup
-    Tap::Test::Utils.clear_dir(method_root.root)
   end
   
   #
@@ -95,7 +91,7 @@ class BaseTest < Test::Unit::TestCase
   end
   
   def test_template_calls_file_with_target_and_prints_source_templated_with_args
-    source = method_root.prepare('source') do |file|
+    source = method_root.prepare(:tmp, 'source') do |file|
       file << "<%= key %> was templated"
     end
     
@@ -115,17 +111,12 @@ class BaseTest < Test::Unit::TestCase
   #
   
   def test_template_files_yields_templates_and_targets
-    a = method_root.filepath(:output, 'a') 
-    b = method_root.filepath(:output, 'b') 
-    c = method_root.filepath(:output, 'c/a') 
-    
-    FileUtils.mkdir_p(File.dirname(c))
-    FileUtils.touch(a)
-    FileUtils.touch(b)
-    FileUtils.touch(c)
-    
+    a = method_root.prepare(:tmp, 'a') {}
+    b = method_root.prepare(:tmp, 'b') {}
+    c = method_root.prepare(:tmp, 'c/a') {} 
+
     base = Base.new
-    base.template_dir = method_root[:output]
+    base.template_dir = method_root[:tmp]
     
     results = []
     base.template_files do |src, target|

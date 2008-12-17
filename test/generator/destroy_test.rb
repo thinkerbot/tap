@@ -15,10 +15,6 @@ class DestroyTest < Test::Unit::TestCase
     super
   end
   
-  def cleanup
-    Tap::Test::Utils.clear_dir(method_root.root)
-  end
-  
   def log_relative(*args)
     log << args
   end
@@ -39,19 +35,19 @@ class DestroyTest < Test::Unit::TestCase
   #
   
   def test_directory_removes_target_and_logs_removal
-    target = method_root.filepath(:output, 'dir')
+    target = method_root.filepath(:tmp, 'dir')
     FileUtils.mkdir_p(target) unless File.exists?(target)
     assert File.exists?(target)
     
     directory(target)
     
     assert !File.exists?(target)
-    assert File.exists?(method_root.filepath(:output))
+    assert File.exists?(method_root.filepath(:tmp))
     assert_equal [[:rm, target]], log
   end
   
   def test_directory_removal_is_only_logged_on_pretend
-    target = method_root.filepath(:output, 'dir')
+    target = method_root.filepath(:tmp, 'dir')
     FileUtils.mkdir_p(target) unless File.exists?(target)
     
     self.pretend = true
@@ -62,7 +58,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_directory_logs_non_existant_targets
-    target = method_root.filepath(:output, 'dir')
+    target = method_root.filepath(:tmp, 'dir')
     assert !File.exists?(target)
 
     directory(target)
@@ -70,7 +66,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_directory_logs_non_directory_targets
-    target = method_root.prepare('file') {}
+    target = method_root.prepare(:tmp, 'file') {}
     assert File.file?(target)
 
     directory(target)
@@ -79,7 +75,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_directory_logs_non_empty_directories
-    file = method_root.prepare('file') {}
+    file = method_root.prepare(:tmp, 'file') {}
     target = File.dirname(file)
 
     directory(target)
@@ -92,7 +88,7 @@ class DestroyTest < Test::Unit::TestCase
   #
   
   def test_file_removes_target_and_logs_removal
-    target = method_root.prepare('file') {}
+    target = method_root.prepare(:tmp, 'file') {}
     assert File.file?(target)
     
     file(target)
@@ -102,7 +98,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_file_removal_is_only_logged_on_pretend
-    target = method_root.prepare('file') {}
+    target = method_root.prepare(:tmp, 'file') {}
     assert File.file?(target)
     
     self.pretend = true
@@ -113,7 +109,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_file_logs_non_existant_targets
-    target = method_root.prepare('file')
+    target = method_root.prepare(:tmp, 'file')
     assert !File.exists?(target)
 
     file(target)
@@ -121,7 +117,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_file_logs_non_file_targets
-    file = method_root.prepare('file') {}
+    file = method_root.prepare(:tmp, 'file') {}
     target = File.dirname(file)
     assert File.directory?(target)
 
@@ -129,5 +125,4 @@ class DestroyTest < Test::Unit::TestCase
     assert File.directory?(target)
     assert_equal [['not a file', target]], log
   end
-  
 end
