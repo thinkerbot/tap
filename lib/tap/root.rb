@@ -206,9 +206,9 @@ module Tap
         path == nil || !File.file?(path) || File.size(path) == 0
       end
       
-      # Empty indicates when dir has no files, does not exist, or is nil.
+      # Empty returns true when dir is an existing directory that has no files.
       def empty?(dir)
-        dir == nil || !File.exists?(dir) || (Dir.entries(dir) - ['.', '..']).empty?
+        File.directory?(dir) && (Dir.entries(dir) - ['.', '..']).empty?
       end
       
       # Minimizes a set of paths to the set of shortest basepaths that unqiuely 

@@ -367,11 +367,9 @@ class RootTest < Test::Unit::TestCase
   # Tap::Root empty? test
   #
   
-  def test_empty_returns_true_if_the_directory_has_no_files_or_does_not_exist
+  def test_empty_returns_true_if_the_directory_exists_and_has_no_files
     dir = root_dir + '/dir'
     assert !File.exists?(dir)
-    assert Tap::Root.empty?(dir)
-    
     begin
       FileUtils.mkdir(dir) 
       assert Tap::Root.empty?(dir)
@@ -380,12 +378,23 @@ class RootTest < Test::Unit::TestCase
     end
   end
   
+  def test_empty_returns_false_if_the_directory_does_not_exist_or_is_a_file
+    dir = root_dir + '/dir'
+    assert !File.exists?(dir)
+    assert !Tap::Root.empty?(dir)
+    begin
+      FileUtils.touch(dir)
+      assert !Tap::Root.empty?(dir)
+    ensure
+      FileUtils.rm(dir) if File.exists?(dir)
+    end
+  end
+  
   def test_empty_detects_files
     dir = root_dir + '/dir'
+    assert !File.exists?(dir)
     begin
       FileUtils.mkdir(dir) 
-      assert Tap::Root.empty?(dir)
-      
       FileUtils.touch(dir + '/file.txt')
       assert !Tap::Root.empty?(dir)
     ensure
@@ -395,10 +404,9 @@ class RootTest < Test::Unit::TestCase
   
   def test_empty_detects_hidden_files
     dir = root_dir + '/dir'
+    assert !File.exists?(dir)
     begin
       FileUtils.mkdir(dir) 
-      assert Tap::Root.empty?(dir)
-      
       FileUtils.touch(dir + '/.hidden_file')
       assert !Tap::Root.empty?(dir)
     ensure
@@ -408,19 +416,14 @@ class RootTest < Test::Unit::TestCase
   
   def test_empty_detects_folders
     dir = root_dir + '/dir'
+    assert !File.exists?(dir)
     begin
-      FileUtils.mkdir(dir) 
-      assert Tap::Root.empty?(dir)
-      
+      FileUtils.mkdir(dir)
       FileUtils.mkdir(dir + '/sub_dir')
       assert !Tap::Root.empty?(dir)
     ensure
       FileUtils.rm_r(dir) if File.exists?(dir)
     end
-  end
-  
-  def test_empty_returns_true_for_nil
-    assert Tap::Root.empty?(nil)
   end
   
   #

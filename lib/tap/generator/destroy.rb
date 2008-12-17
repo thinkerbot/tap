@@ -22,7 +22,7 @@ module Tap
           log_relative :missing, target
         when !File.directory?(target)
           log_relative 'not a directory', target
-        when !file_task.dir_empty?(target)
+        when !Root.empty?(target)
           log_relative 'not empty', target
         else
           log_relative :rm, target
