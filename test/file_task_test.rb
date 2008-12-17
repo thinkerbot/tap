@@ -3,38 +3,14 @@ require 'tap/file_task'
 
 class FileTaskTest < Test::Unit::TestCase
   acts_as_tap_test 
-
+  cleanup_dirs << :backup
+  
   attr_reader :t
 
   def setup
     super
     @t = Tap::FileTask.new
-    app.root = ctr.root
-  end
-
-  def touch_file(path, content=nil)
-    FileUtils.mkdir_p(File.dirname(path))
-    if content
-      File.open(path, "w") {|f| f << content}
-    else
-      FileUtils.touch(path)
-    end
-  end
-
-  def test_touch_file
-    non_existant_file = method_root.filepath(:output, "non_existant_file.txt")
-    assert !File.exists?(non_existant_file)
-    touch_file(non_existant_file)
-    assert File.exists?(non_existant_file)
-    assert File.file?(non_existant_file)
-    assert_equal "", File.read(non_existant_file)
-
-    non_existant_file = method_root.filepath(:output, "non_existant_file2.txt")
-    assert !File.exists?(non_existant_file)
-    touch_file(non_existant_file, "content")
-    assert File.exists?(non_existant_file)
-    assert File.file?(non_existant_file)
-    assert_equal "content", File.read(non_existant_file)
+    app.root = method_root.root
   end
   
   module BackupFile
@@ -45,20 +21,19 @@ class FileTaskTest < Test::Unit::TestCase
     end
   end
   
-
   #
   # doc tests
   #
   
   def test_documentation
-    file_one = method_root.filepath(:output, "file.txt")
-    file_two = method_root.filepath(:output, "path/to/file.txt")
-    dir = method_root.filepath(:output, "some/dir")
-    FileUtils.mkdir_p( method_root.filepath(:output) )
+    file_one = method_root.filepath(:tmp, "file.txt")
+    file_two = method_root.filepath(:tmp, "path/to/file.txt")
+    dir = method_root.filepath(:tmp, "some/dir")
+    FileUtils.mkdir_p(method_root[:tmp])
     
     File.open(file_one, "w") {|f| f << "original content"}
     t = Tap::FileTask.intern do |task|
-      task.mkdir(dir)                      
+      task.mkdir_p(dir)                      
       task.prepare([file_one, file_two]) 
       
       File.open(file_one, "w") {|f| f << "new content"}
@@ -67,97 +42,13 @@ class FileTaskTest < Test::Unit::TestCase
       raise "error!"
     end
   
-    begin
-      assert !File.exists?(dir)        
-      assert !File.exists?(file_two)        
-      t.execute
-      flunk "no error raised"
-    rescue
-      assert_equal "error!", $!.message
-      assert !File.exists?(dir)        
-      assert !File.exists?(file_two) 
-      assert_equal "original content", File.read(file_one)  
-    end
-  end
-
-
-  #
-  # open tests
-  #
-
-  def test_open_doc
-    FileUtils.mkdir_p(method_root.filepath(:output))
-    one_filepath = method_root.filepath(:output, "one.txt")
-    two_filepath = method_root.filepath(:output, "two.txt")
-
-    t.open([one_filepath, two_filepath], "w") do |one, two|
-      one << "one"
-      two << "two"
-    end
-
-    assert_equal "one", File.read(one_filepath)
-    assert_equal "two", File.read(two_filepath)
-
-    #
-    filepath = method_root.filepath(:output, "file.txt")
-    t.open(filepath, "w") do |array|
-      array.first << "content"
-    end
-
-    assert_equal "content", File.read(filepath) 
-  end
-
-  def test_open_opens_each_file
-    FileUtils.mkdir_p(method_root.filepath(:output))
-
-    list = [0, 1].collect do |n| 
-      path = method_root.filepath(:output, "#{n}.txt")
-      File.open(path, "w") {|f| f << n.to_s}
-      path
-    end
-
-    t.open(list) do |files|
-      files.each_with_index do |file, n|
-        assert_equal File, file.class
-        assert_equal n.to_s, file.read
-      end
-    end    
-  end
-
-  def test_open_opens_with_input_mode
-    FileUtils.mkdir_p(method_root.filepath(:output))
-
-    list = [0, 1].collect do |n| 
-      path = method_root.filepath(:output, "#{n}.txt")
-      path
-    end
-
-    t.open(list, "w") do |files|
-      files.each_with_index do |file, n|
-        assert_equal File, file.class
-        file << n.to_s
-      end
-    end  
-
-    list.each_with_index do |file, n|
-      assert_equal n.to_s, File.read(file)
-    end  
-  end
-
-  def test_open_returns_open_files_if_no_block_is_given
-    FileUtils.mkdir_p(method_root.filepath(:output))
-
-    list = [0, 1].collect do |n| 
-      path = method_root.filepath(:output, "#{n}.txt")
-      File.open(path, "w") {|f| f << n.to_s}
-      path
-    end
-
-    t.open(list).each_with_index do |file, n|
-      assert_equal File, file.class
-      assert_equal n.to_s, file.read
-      file.close
-    end
+    assert !File.exists?(dir)        
+    assert !File.exists?(file_two)        
+    e = assert_raise(RuntimeError) { t.execute }
+    assert_equal "error!", e.message
+    assert !File.exists?(dir)        
+    assert !File.exists?(file_two) 
+    assert_equal "original content", File.read(file_one)  
   end
   
   #
@@ -271,7 +162,7 @@ class FileTaskTest < Test::Unit::TestCase
   def test_uptodate
     of1, of2, nf1, nf2 = uptodate_test_setup
 
-    non = ctr.filepath(:output, "non_existant_file.txt")
+    non = ctr.filepath(:tmp, "non_existant_file.txt")
     assert !File.exists?(non)
 
     assert t.uptodate?(nf1)
@@ -288,48 +179,7 @@ class FileTaskTest < Test::Unit::TestCase
     assert !t.uptodate?([nf1, non], of1)
     assert !t.uptodate?([nf1, non], [of1, of2])
   end
-  #   
-  #   def test_uptodate_with_up_to_date_config_file
-  #     t = Tap::FileTask.new "configured"
-  #     
-  #     of1, of2, nf1, nf2 = uptodate_test_setup
-  #   
-  #   non = ctr.filepath(:output, "non_existant_file.txt")
-  #     assert !File.exists?(non)
-  #     
-  #     assert t.uptodate?(nf1)
-  #   assert t.uptodate?(nf1, of1)
-  #   assert t.uptodate?(nf1, [of1, of2])
-  #   assert t.uptodate?(nf1, [of1, of2, non])
-  #   assert t.uptodate?([nf1, nf2], of1)
-  #     assert t.uptodate?([nf1, nf2], [of1, of2])
-  #     
-  #   assert !t.uptodate?(of1, nf1)
-  #   assert !t.uptodate?(of1, [nf1, nf2])
-  #   assert !t.uptodate?(non, nf1)
-  #   assert !t.uptodate?(non, of1)
-  #     assert !t.uptodate?([nf1, non], of1)
-  #     assert !t.uptodate?([nf1, non], [of1, of2])
-  #   end
-  #   
-  #   def test_uptodate_with_out_of_date_config_file
-  #     filepath = ctr.filepath(:config, "configured-0.1.yml")
-  #     assert !File.exists?(filepath)
-  #     begin
-  #       of1, of2, nf1, nf2 = uptodate_test_setup
-  #       FileUtils.touch(filepath)
-  #       t = Tap::FileTask.new "configured-0.1"
-  # 
-  #       assert !t.uptodate?(nf1)
-  #       assert !t.uptodate?(nf1, of1)
-  #       assert !t.uptodate?([nf1, nf2], [of1, of2])
-  #     rescue
-  #       raise $!
-  #     ensure
-  #       FileUtils.rm(filepath) if File.exists?(filepath)
-  #     end
-  #   end
-  # 
+
   def test_uptodate_returns_false_when_force
     of1, of2, nf1, nf2 = uptodate_test_setup
 
@@ -343,51 +193,49 @@ class FileTaskTest < Test::Unit::TestCase
   #
   # backup tests
   #
-
+  
   def test_backup_restore_doc
-    FileUtils.mkdir_p(method_root.filepath(:output))
-    FileUtils.mkdir_p(method_root.filepath(:output))
+    FileUtils.mkdir_p(method_root[:tmp])
 
-    file = method_root.filepath(:output, "file.txt")
+    file = method_root.filepath(:tmp, "file.txt")
     File.open(file, "w") {|f| f << "file content"}
-
+  
     t = Tap::FileTask.new
     t.app[:backup, true] = method_root.filepath(:backup)
     backed_up_file = t.backup(file).first   
-
+  
     assert !File.exists?(file)                     
     assert File.exists?(backed_up_file)            
     assert_equal "file content", File.read(backed_up_file)         
-
+  
     File.open(file, "w") {|f| f << "new content"}
-    t.restore(file)
-
+    t.restore(file, true)
+  
     assert File.exists?(file)                
     assert !File.exists?(backed_up_file)      
     assert_equal "file content", File.read(file)                 
   end
-
+  
   def backup_test_setup
-    existing_file = method_root.filepath(:output, "file.txt")
-    backup_file = method_root.filepath(:output, "backup.txt")
-
-    touch_file(existing_file, "existing content")
+    existing_file = method_root.prepare(:tmp, "file.txt") {|file| file << "existing content" }
+    backup_file = method_root.filepath(:tmp, "backup.txt")
+    
     t.extend BackupFile
     t.backup_file = backup_file
     
     [existing_file, backup_file]  
   end
-
+  
   def test_backup_test_setup
     existing_file, backup_file = backup_test_setup
-
+  
     assert File.exists?(existing_file)
     assert !File.exists?(backup_file)
-
+  
     assert_equal "existing content", File.read(existing_file)
     assert_equal backup_file, t.backup_filepath(existing_file)
   end
-
+  
   def test_backup_moves_filepath_to_backup_filepath
     existing_file, backup_file = backup_test_setup
   
@@ -442,21 +290,18 @@ class FileTaskTest < Test::Unit::TestCase
     existing_file, backup_file = backup_test_setup
     t.backup(existing_file, true)
   
-    assert_raise(RuntimeError) { t.backup(existing_file) }
+    e = assert_raise(RuntimeError) { t.backup(existing_file) }
+    assert_equal "backup for #{existing_file} already exists", e.message
   end
-
+  
   #
   # restore tests
   #
   
-  def test_restore_restores_backed_up_file_to_original_location_as_listed_in_backed_up_files
-    original_file = File.expand_path(method_root.filepath(:output, 'original/file.txt'))
-    backup_file = File.expand_path(method_root.filepath(:output, 'backup/file.txt'))
-
-    FileUtils.mkdir_p( File.dirname(original_file) )
-    touch_file(backup_file)
+  def test_restore_restores_backed_up_file_to_original_location
+    original_file = method_root.filepath(:tmp, 'original/file.txt')
+    backup_file = method_root.prepare(:tmp, 'backup/file.txt') {|file| file << "content" }
     
-    assert File.exists?(File.dirname(original_file))
     assert !File.exists?(original_file)
     assert File.exists?(backup_file)
     
@@ -464,497 +309,321 @@ class FileTaskTest < Test::Unit::TestCase
     t.restore(original_file)
     
     assert File.exists?(original_file)
-    assert !File.exists?(backup_file)
+    assert_equal "content", File.read(original_file)
   end
-
-  def test_restore_creates_dirs_as_needed_to_restore_file
-    original_file = File.expand_path(method_root.filepath(:output, 'original/file.txt'))
-    backup_file = File.expand_path(method_root.filepath(:output, 'backup/file.txt'))
-
-    touch_file(backup_file)
-
-    assert !File.exists?(File.dirname(original_file))
-    assert !File.exists?(original_file)
-    assert File.exists?(backup_file)
-
+  
+  def test_restore_does_not_remove_backed_up_file
+    original_file = method_root.filepath(:tmp, 'original/file.txt')
+    backup_file = method_root.prepare(:tmp, 'backup/file.txt') {|file| file << "content" }
+    
     t.backed_up_files[original_file] = backup_file
     t.restore(original_file)
-
-    assert File.exists?(original_file)
-    assert !File.exists?(backup_file)
+    
+    assert_equal({original_file => backup_file}, t.backed_up_files)
+    assert File.exists?(backup_file)
+    assert_equal "content", File.read(backup_file)
   end
-
+  
+  def test_restore_removes_backed_up_file_if_specified_and_cleans_up_backup_dir
+    original_file = method_root.filepath(:tmp, 'original/file.txt')
+    backup_file = method_root.prepare(:tmp, 'backup/file.txt') {|file| file << "content" }
+    
+    t.backed_up_files[original_file] = backup_file
+    t.restore(original_file, true)
+    
+    assert_equal({}, t.backed_up_files)
+    assert !File.exists?(backup_file)
+    assert !File.exists?(method_root.filepath(:tmp, 'backup'))
+  end
+  
   def test_restore_does_nothing_if_the_input_file_is_not_backed_up
     assert !File.exists?("original_file")
     assert t.backed_up_files.empty?
     assert_equal [], t.restore("original_file")
     assert !File.exists?("original_file")
   end
-
-  def test_restore_removes_backup_dir_using_rmdir
-    original_file = File.expand_path(method_root.filepath(:output, 'original/file.txt'))
-    backup_file = File.expand_path(method_root.filepath(:output, 'backup/file.txt'))
-    backup_dir = File.dirname(backup_file)
-
-    t.mkdir(backup_file)
-    assert File.exists?(backup_dir)
-
-    touch_file(backup_file)
-
-    t.backed_up_files[original_file] = backup_file
-    t.restore(original_file)
-
-    assert !File.exists?(backup_dir)
-  end
-
+  
   def test_restore_acts_on_list_and_returns_restored_files
-    existing_file0 = File.expand_path(method_root.filepath(:output, "file0.txt"))
-    existing_file1 = File.expand_path(method_root.filepath(:output, "file1.txt"))
-    backup_file0 = File.expand_path(method_root.filepath(:output, "backup0.txt"))
-    backup_file1 = File.expand_path(method_root.filepath(:output, "backup1.txt"))
-
-    touch_file(backup_file0)
-    touch_file(backup_file1)
-
+    existing_file0 = method_root.filepath(:tmp, "file0.txt")
+    existing_file1 = method_root.filepath(:tmp, "file1.txt")
+    backup_file0 = method_root.prepare(:tmp, "backup0.txt") {}
+    backup_file1 = method_root.prepare(:tmp, "backup1.txt") {}
+  
     t.backed_up_files[existing_file0] = backup_file0
     t.backed_up_files[existing_file1] = backup_file1
-
+  
     assert !File.exists?(existing_file0)
     assert !File.exists?(existing_file1)
-
+  
     assert_equal [existing_file0, existing_file1], t.restore([existing_file0, existing_file1])
-
+  
     assert File.exists?(existing_file0)
     assert File.exists?(existing_file1)
   end
-
+  
+  #
+  # mkdir_p tests
+  #
+  
+  def test_mkdir_p_creates_parent_dirs_if_they_do_not_exist
+    dir = method_root.filepath(:tmp, 'path/to/dir')
+    assert !File.exists?(method_root[:tmp])
+  
+    t.mkdir_p(dir)
+    assert File.exists?(dir)
+  end
+  
+  def test_mkdir_p_registers_all_added_dirs_in_added_files
+    dir = method_root.filepath(:tmp, 'path/to/dir')
+    assert_equal [], t.added_files
+  
+    t.mkdir_p(dir)
+  
+    expected = [
+      method_root.root,
+      method_root.filepath(:tmp),
+      method_root.filepath(:tmp, 'path'),
+      method_root.filepath(:tmp, 'path/to'),
+      method_root.filepath(:tmp, 'path/to/dir')
+    ]
+    assert_equal expected, t.added_files
+  end
+  
   #
   # mkdir tests
   #
-
-  def test_mkdir_documentation
-    dir_one = method_root.filepath(:output, "path/to/dir")
-    dir_two = method_root.filepath(:output, "path/to/another")
-
-    t = Tap::FileTask.intern do |task|
-      assert !File.exists?(method_root.filepath(:output, "path"))  
-
-      task.mkdir(dir_one)             
-      assert File.exists?(dir_one)           
-
-      FileUtils.mkdir(dir_two)   
-      assert File.exists?(dir_two)    
-
-      raise "error!"
-    end
-
-    begin
-      t.execute
-      flunk "no error raised"
-    rescue
-      assert_equal "error!", $!.message     
-      assert !File.exists?(dir_one)  
-      assert File.exists?(dir_two)    
-    end
-  end
-
+  
   def test_mkdir_creates_dir_if_it_does_not_exist
-    dir = method_root.filepath(:output, 'path/to/non_existant_folder')
-    FileUtils.mkdir_p(File.dirname(dir))
+    FileUtils.mkdir_p(method_root[:tmp])
+    dir = method_root.filepath(:tmp, 'dir')
     assert !File.exists?(dir)
-
+  
     t.mkdir(dir)
     assert File.exists?(dir)
   end
-
-  def test_mkdir_creates_parent_dirs_if_they_do_not_exist
-    dir = method_root.filepath(:output, 'path/to/non_existant_folder')
-    assert !File.exists?(method_root.filepath(:output))
-
-    t.mkdir(dir)
-    assert File.exists?(dir)
-  end
-
-  def test_mkdir_registers_expanded_dir_and_all_non_existing_parent_dirs_in_added_files
-    dir = method_root.filepath(:output, 'path/to/non_existant_folder')
+  
+  def test_mkdir_registers_added_dir_in_added_files
+    FileUtils.mkdir_p(method_root[:tmp])
+    dir = method_root.filepath(:tmp, 'dir')
     assert_equal [], t.added_files
-
-    relative_dir = Tap::Root.relative_filepath(Dir.pwd, dir)
-    assert_not_equal dir, relative_dir
-    assert_equal dir, File.expand_path(relative_dir)
-
-    t.mkdir(relative_dir)
-
-    expected = [
-      method_root.root,
-      method_root.filepath(:output),
-      method_root.filepath(:output, 'path'),
-      method_root.filepath(:output, 'path/to'),
-      method_root.filepath(:output, 'path/to/non_existant_folder')
-    ]
-
-    assert_equal expected, t.added_files
+  
+    t.mkdir(dir)
+  
+    assert_equal [method_root.filepath(:tmp, 'dir')], t.added_files
   end
 
-  def test_mkdir_acts_on_and_returns_list
-    dir = method_root.filepath(:output, 'path')
-    another = method_root.filepath(:output, 'another')
-
-    assert !File.exists?(dir)
-    assert !File.exists?(another)
-
-    assert_equal [dir, another], t.mkdir([dir, another])
-
-    assert File.exists?(dir)
-    assert File.exists?(another)
+  def test_mkdir_acts_on_and_returns_list_of_dirs
+    FileUtils.mkdir_p(method_root[:tmp])
+    one = method_root.filepath(:tmp, 'one')
+    two = method_root.filepath(:tmp, 'two')
+  
+    assert !File.exists?(one)
+    assert !File.exists?(two)
+  
+    assert_equal [one, two], t.mkdir([one, two])
+  
+    assert File.exists?(one)
+    assert File.exists?(two)
   end
-
+  
   #
   # rmdir tests
   #
-
-  def test_rmdir_documentation
-    dir_one = method_root.filepath(:output, 'path')
-    dir_two = method_root.filepath(:output, 'path/to/dir')
-    FileUtils.mkdir_p( method_root.filepath(:output) )
-
-    t = Tap::FileTask.new
-    assert !File.exists?(dir_one)            
-    FileUtils.mkdir(dir_one)         
-
-    t.mkdir(dir_two)           
-    assert File.exists?(dir_two)     
-
-    t.rmdir(dir_two)                
-    assert File.exists?(dir_one)           
-    assert !File.exists?(method_root.filepath(:output, 'path/to'))    
-  end
-
-  def test_rmdir_removes_dir_if_made_by_the_task
-    dir = method_root.filepath(:output, 'path/to/non_existant_folder')
-    existing_dir = method_root.filepath(:output, 'path/to')
-
-    FileUtils.mkdir_p(existing_dir)
-    assert File.exists?(existing_dir)
-    assert !File.exists?(dir)
-
-    t.mkdir(dir)
-    assert File.exists?(dir)
-
-    t.rmdir(dir)
-    assert File.exists?(existing_dir)
-    assert !File.exists?(dir)
-  end
-
-  def test_rmdir_removes_parent_dirs_if_made_by_the_task
-    dir = method_root.filepath(:output, 'path/to/non/existant/folder')
-    root_parent_dir = method_root.filepath(:output, 'path/to')
-    existing_dir = method_root.filepath(:output, 'path')
-
-    FileUtils.mkdir_p(existing_dir)
-    assert File.exists?(existing_dir)
-    assert !File.exists?(root_parent_dir)
-
-    t.mkdir(dir)
-    assert File.exists?(dir)
-
-    t.rmdir(dir)
-    assert File.exists?(existing_dir)
-    assert !File.exists?(root_parent_dir)
-  end
-
-  def test_rmdir_does_not_remove_if_dir_was_not_made_by_task
-    dir = method_root.filepath(:output, 'path/to/non_existant_folder')
-
+  
+  def test_rmdir_removes_dir
+    dir = method_root.filepath(:tmp, 'path/to/dir')
     FileUtils.mkdir_p(dir)
-    assert File.exists?(dir)
 
     t.rmdir(dir)
-    assert File.exists?(dir)
-  end
-
-  def test_rmdir_does_not_remove_if_folder_is_not_empty
-    dir = method_root.filepath(:output, 'path/to/folder')
-    not_empty_dir = method_root.filepath(:output, 'path/to')
-
-    t.mkdir(dir)
-    assert File.exists?(dir)
-
-    touch_file File.join(not_empty_dir, "file.txt")
-
-    t.rmdir(dir)
-    assert File.exists?(not_empty_dir)
     assert !File.exists?(dir)
   end
-
-  def test_rmdir_checks_for_hidden_files_as_well_as_regular_files
-    dir = method_root.filepath(:output, 'path/to/folder')
-    not_empty_dir = method_root.filepath(:output, 'path/to')
-
-    t.mkdir(dir)
-    assert File.exists?(dir)
-
-    touch_file File.join(not_empty_dir, ".hidden_file")
+  
+  def test_rmdir_backs_up_dir
+    dir = method_root.filepath(:tmp, 'path/to/dir')
+    FileUtils.mkdir_p(dir)
 
     t.rmdir(dir)
-    assert File.exists?(not_empty_dir)
     assert !File.exists?(dir)
+    assert t.backed_up_files.has_key?(dir)
+    assert File.directory?(t.backed_up_files[dir])
+    assert Tap::Root.empty?(t.backed_up_files[dir])
   end
+  
+  def test_rmdir_raises_error_if_input_is_not_an_empty_directory
+    file = method_root.prepare(:tmp, 'path/to/file.txt') {}
 
-  def test_rmdir_clears_added_files_of_removed_dirs
-    dir = method_root.filepath(:output, 'path/to/folder')
-
-    FileUtils.mkdir_p(method_root.filepath(:output))
-    assert_equal [], t.added_files
-
-    t.mkdir(dir)
-    assert_equal [
-      File.expand_path(method_root.filepath(:output, 'path')),
-      File.expand_path(method_root.filepath(:output, 'path/to')),
-      File.expand_path(method_root.filepath(:output, 'path/to/folder'))
-    ], t.added_files
-
-    # touch a file so the 'path' folder isn't removed
-    touch_file method_root.filepath(:output, 'path/file.txt')
-
-    t.rmdir(dir)
-    assert_equal [File.expand_path(method_root.filepath(:output, 'path'))], t.added_files
+    e = assert_raise(RuntimeError) { t.rmdir(file) }
+    assert_equal "not an empty directory: #{file}", e.message
+    
+    dir = File.dirname(file)
+    
+    e = assert_raise(RuntimeError) { t.rmdir(dir) }
+    assert_equal "not an empty directory: #{dir}", e.message
+    
+    assert File.exists?(file)
   end
-
-  def test_rmdir_acts_on_and_returns_expanded_list_of_removed_dirs
-    dir = method_root.filepath(:output, 'path')
-    another = method_root.filepath(:output, 'another')
-    not_removed = method_root.filepath(:output, 'not')
-    removed = method_root.filepath(:output, 'not/removed')
-
-    t.mkdir([dir, another, not_removed, removed])
-    # touch a file so the not_removed folder isn't removed
-    touch_file method_root.filepath(:output, 'not/file.txt')
-
-    expected = [dir, another, removed].collect {|d| File.expand_path(d)}
-    assert_equal expected, t.rmdir([dir, another, not_removed, removed])
+  
+  def test_rmdir_acts_on_and_returns_list_of_dirs
+    one = method_root.filepath(:tmp, 'one')
+    two = method_root.filepath(:tmp, 'two')
+    FileUtils.mkdir_p(one)
+    FileUtils.mkdir_p(two)
+  
+    assert_equal [one, two], t.rmdir([one, two])
+    
+    assert !File.exists?(one)
+    assert !File.exists?(two)
   end
-
+  
   #
   # prepare tests
   #
-
+  
   def test_prepare_documentation
-    file_one = method_root.filepath(:output, "file.txt")
-    file_two = method_root.filepath(:output, "path/to/file.txt")
-    FileUtils.mkdir_p( method_root.filepath(:output) )
-
+    file_one = method_root.filepath(:tmp, "file.txt")
+    file_two = method_root.filepath(:tmp, "path/to/file.txt")
+    FileUtils.mkdir_p( method_root[:tmp] )
+  
     File.open(file_one, "w") {|f| f << "original content"}
     t = Tap::FileTask.intern do |task|
-      assert !File.exists?(method_root.filepath(:output, "path"))
-
+      assert !File.exists?(method_root.filepath(:tmp, "path"))
+  
       # backup... prepare parent dirs... prepare for restore     
       task.prepare([file_one, file_two]) 
-
+  
       File.open(file_one, "w") {|f| f << "new content"}
       FileUtils.touch(file_two)
-
+  
       raise "error!"
     end
-
-    begin
-      t.execute
-      flunk "no error raised"
-    rescue
-      assert_equal "error!", $!.message
-      assert File.exists?(file_one)           
-      assert_equal "original content", File.read(file_one) 
-      assert !File.exists?(method_root.filepath(:output, "path"))   
-    end
+  
+    e = assert_raise(RuntimeError) { t.execute }
+    assert_equal "error!", e.message
+    assert File.exists?(file_one)           
+    assert_equal "original content", File.read(file_one) 
+    assert !File.exists?(method_root.filepath(:output, "path"))   
   end
+  
+  def test_prepare_backs_up_existing_files
+    file = method_root.prepare(:tmp, "file.txt") {|file| file << "content" }
 
-  def test_prepare_acts_on_and_returns_list
-    filepath = "file.txt"
-    another = "another.txt"
-    assert_equal [filepath, another], t.prepare([filepath, another])
+    t.prepare(file) 
+
+    assert !File.exists?(file)
+    assert File.exists?(File.dirname(file))
+    assert t.backed_up_files.has_key?(file)
+    assert_equal "content", File.read(t.backed_up_files[file])
   end
-
-  def test_prepare_backs_up_existing_files_and_creates_non_existant_dirs
-    existing_file = method_root.filepath(:output, "path/to/existing/file.txt")
-    backup_file = method_root.filepath(:output, "path/to/existing/file_backup.txt")
-    non_existant_file = method_root.filepath(:output, "path/to/non/existant/file.txt")
-    touch_file(existing_file, "existing content")
-
-    # be sure backup_filepath_leads to output_file for easy cleanup
-    t.extend BackupFile
-    t.backup_file = backup_file
+  
+  def test_prepare_creates_parent_dir_for_non_existant_dirs
+    file = method_root.filepath(:tmp, "path/to/file.txt")
+    assert !File.exists?(File.dirname(file))
     
-    assert File.exists?(existing_file)
-    assert !File.exists?(non_existant_file)
+    t.prepare(file) 
 
-    files = [existing_file, non_existant_file]
-    t.prepare(files) 
-
-    # check neither of the files exist at this point
-    # and the parent dirs all exist
-    files.each do |file|
-      assert !File.exists?(file)
-      assert File.exists?(File.dirname(file))
-    end
-
-    # check the existing file was backed up
-    assert_equal({File.expand_path(existing_file) => backup_file}, t.backed_up_files)
-    assert_equal "existing content", File.read(backup_file)
+    assert !File.exists?(file)
+    assert File.exists?(File.dirname(file))
   end
-
-  def test_prepare_adds_list_to_added_files
-    existing_file = method_root.filepath(:output, "path/to/existing/file.txt")
-    backup_file = method_root.filepath(:output, "path/to/existing/file_backup.txt")
-    non_existant_file = method_root.filepath(:output, "path/to/non/existant/file.txt")
-    touch_file(existing_file)
-
-    # be sure backup_filepath_leads to output_file for easy cleanup
-    t.extend BackupFile
-    t.backup_file = backup_file
-
-    assert_equal([], t.added_files)
-    assert File.exists?(existing_file)
-    assert !File.exists?(non_existant_file)
-    assert !File.exists?(backup_file)
-
-    files = [existing_file, non_existant_file]
-    t.prepare(files)
+  
+  def test_prepare_adds_added_dirs_and_paths_to_added_files
+    file = method_root.filepath(:tmp, "path/to/file.txt")
+    assert !File.exists?(method_root[:tmp])
+    
+    t.prepare(file) 
 
     expected = [
-      method_root.filepath(:output, 'path/to/non'),          # added by mkdir
-      method_root.filepath(:output, 'path/to/non/existant'), # added by mkdir
-      existing_file,                                    # added by prepare
-      non_existant_file                                 # added by prepare
-    ].collect do |dir|
-      File.expand_path(dir)
-    end
-
+      method_root.root,                            # added by mkdir
+      method_root[:tmp],                           # added by mkdir
+      method_root.filepath(:tmp, 'path'),          # added by mkdir
+      method_root.filepath(:tmp, 'path/to'),       # added by mkdir
+      file                                         # added by prepare
+    ]
     assert_equal expected, t.added_files
   end
-
+  
+  def test_prepare_does_not_add_existing_files_to_added_files
+    file = method_root.prepare(:tmp, "existing_file.txt") {}
+    t.prepare(file) 
+    
+    expected = [
+      method_root[:backup],                             # added by backup.mkdir
+      method_root.filepath(:backup, 'tap'),             # added by backup.mkdir
+      method_root.filepath(:backup, 'tap/file_task')    # added by backup.mkdir
+    ]
+    assert_equal expected, t.added_files
+  end
+  
+  def test_prepare_acts_on_and_returns_list
+    one = method_root.filepath(:tmp, "one")
+    two = method_root.filepath(:tmp, "two")
+    assert_equal [one, two], t.prepare([one, two])
+  end
+  
   #
   # rm tests
   #
-
-  def test_rm_documentation
-    dir = method_root.filepath(:output, 'path')
-    file = method_root.filepath(:output, 'path/to/file.txt')
-    FileUtils.mkdir_p( method_root.filepath(:output) )
-
-    t = Tap::FileTask.new
-    assert !File.exists?(dir)            
-    FileUtils.mkdir(dir)         
-
-    t.prepare(file)        
-    FileUtils.touch(file)   
-    assert File.exists?(file)     
-
-    t.rm(file)                
-    assert File.exists?(dir)           
-    assert !File.exists?(method_root.filepath(:output, 'path/to'))    
+  
+  def test_rm_removes_file
+    path = method_root.prepare(:tmp, 'path/to/file.txt') {}
+    t.rm(path)
+    assert !File.exists?(path)
   end
+  
+  def test_rm_backs_up_file
+    path = method_root.prepare(:tmp, 'path/to/file.txt') {|file| file << "content" }
+    t.rm(path)
+    assert !File.exists?(path)
 
-  def test_rm_removes_file_and_parent_dirs_if_made_by_the_task
-    file = method_root.filepath(:output, 'path/to/file.txt')
-    parent_dir = method_root.filepath(:output, 'path/to')
-    existing_dir = method_root.filepath(:output, 'path')
-    FileUtils.mkdir_p existing_dir
-
-    assert File.exists?(existing_dir)
-    assert !File.exists?(file)
-
-    t.prepare file
-    touch_file(file)
-    assert File.exists?(file)
-
-    t.rm(file)
-    assert File.exists?(existing_dir)
-    assert !File.exists?(parent_dir)
-    assert !File.exists?(file)
+    assert t.backed_up_files.has_key?(path)
+    assert_equal "content", File.read(t.backed_up_files[path])
   end
+  
+  def test_rmdir_raises_error_if_input_is_not_an_existing_file
+    path = method_root.filepath(:tmp, 'path/to/file.txt')
 
-  def test_rm_removes_parent_dirs_even_if_file_does_not_exist
-    file = method_root.filepath(:output, 'path/to/file.txt')
-    parent_dir = method_root.filepath(:output, 'path/to')
-    existing_dir = method_root.filepath(:output, 'path')
-    FileUtils.mkdir_p existing_dir
-
-    assert File.exists?(existing_dir)
-    assert !File.exists?(file)
-
-    t.prepare file
-    assert !File.exists?(file)
-
-    t.rm(file)
-    assert File.exists?(existing_dir)
-    assert !File.exists?(parent_dir)
+    e = assert_raise(RuntimeError) { t.rm(path) }
+    assert_equal "not a file: #{path}", e.message
+    
+    FileUtils.mkdir_p(path)
+    
+    e = assert_raise(RuntimeError) { t.rm(path) }
+    assert_equal "not a file: #{path}", e.message
+    
+    assert File.directory?(path)
   end
+  
+  def test_rm_acts_on_and_returns_list_of_files
+    one = method_root.prepare(:tmp, 'one') {}
+    two = method_root.prepare(:tmp, 'two') {}
 
-  def test_rm_does_not_remove_file_if_not_made_by_the_task
-    file = method_root.filepath(:output, 'path/to/file.txt')
-
-    touch_file(file)
-    assert File.exists?(file)
-
-    t.rm(file)
-    assert File.exists?(file)
-  end
-
-  def test_rm_clears_added_files_of_removed_files
-    file0 = method_root.filepath(:output, 'file0.txt')
-    file1 = method_root.filepath(:output, 'file1.txt')
-
-    FileUtils.mkdir_p(method_root.filepath(:output))
-    assert_equal [], t.added_files
-
-    t.prepare([file0,file1])
-    assert_equal [
-      File.expand_path(method_root.filepath(:output, 'file0.txt')),
-      File.expand_path(method_root.filepath(:output, 'file1.txt'))
-    ], t.added_files
-
-    t.rm(file0)
-    assert_equal [File.expand_path(method_root.filepath(:output, 'file1.txt'))], t.added_files
-  end
-
-  def test_rm_acts_on_and_returns_expanded_list_of_removed_files_and_dirs
-    file = method_root.filepath(:output, 'file.txt')
-    another = method_root.filepath(:output, 'another.txt')
-    not_removed = method_root.filepath(:output, 'not')
-    removed = method_root.filepath(:output, 'not/removed.txt')
-
-    t.prepare([file, another, removed])
-    # touch a file so the not_removed folder isn't removed
-    touch_file method_root.filepath(:output, 'not/file.txt')
-
-    expected = [file, another, removed].collect {|f| File.expand_path(f)}
-    assert_equal expected, t.rm([file, another, removed])
+    assert_equal [one, two], t.rm([one, two])
+    
+    assert !File.exists?(one)
+    assert !File.exists?(two)
   end
 
   #
   # execute tests
   #
-
+  
   def setup_execute_test(&block)
-    existing_file = method_root.filepath(:output, "path/to/existing/file.txt")
-    non_existant_dir = method_root.filepath(:output, "path/to/non/existing")
-    non_existant_file = File.join(non_existant_dir, "file.txt")
-    backup_file = method_root.filepath(:output, "backup/file.txt")
-
-    touch_file(existing_file, "original content")
+    existing_file = method_root.prepare(:tmp, "existing_file.txt") {|file| file << "original content" }
+    non_existant_dir = method_root.filepath(:tmp, "non_existing_dir")
+    non_existant_file = method_root.filepath(:tmp, "non_existing_dir/non_existing_file.txt")
+    backup_file = method_root.filepath(:tmp, "backup/file.txt")
+  
     @t = Tap::FileTask.intern do |task|
-      task.prepare([existing_file, non_existant_file]) 
-
+      task.prepare([existing_file, non_existant_file])
       block.call if block_given?
     end
     
     # assure the backup goes where expected
     t.extend BackupFile
     t.backup_file = backup_file
-
+  
     [existing_file, backup_file, non_existant_dir, non_existant_file]
   end
-
+  
   def test_setup_execute_test
     existing_file, backup_file, non_existant_dir, non_existant_file = setup_execute_test do 
       assert !File.exists?(non_existant_file)
@@ -964,16 +633,16 @@ class FileTaskTest < Test::Unit::TestCase
     end
     t.execute
   end
-
+  
   def test_execute_restores_backups_and_removes_added_files_on_error
     was_in_execute = false
     existing_file, backup_file, non_existant_dir, non_existant_file = setup_execute_test do 
       was_in_execute = true
       raise "error"
     end
-
+  
     assert_raise(RuntimeError) { t.execute  }
-
+  
     # check the existing file was restored
     assert was_in_execute
     assert File.exists?(existing_file)
@@ -983,17 +652,17 @@ class FileTaskTest < Test::Unit::TestCase
     assert t.added_files.empty?
     assert t.backed_up_files.empty?
   end
-
+  
   def test_execute_does_not_restore_backups_if_rollback_on_error_is_false
     was_in_execute = false
     existing_file, backup_file, non_existant_dir, non_existant_file = setup_execute_test do
       was_in_execute = true
       raise "error"
     end
-
+  
     t.rollback_on_error = false
     assert_raise(RuntimeError) { t.execute  }
-
+  
     # check the existing file was NOT restored
     assert was_in_execute
     assert !File.exists?(existing_file)
@@ -1003,14 +672,13 @@ class FileTaskTest < Test::Unit::TestCase
     assert !t.added_files.empty?
     assert !t.backed_up_files.empty?
   end
-
-  def test_execute_does_not_rollback_results_from_prior_successful_executions
-    existing_file = method_root.filepath(:output, "path/to/existing/file.txt")
-    non_existant_dir = method_root.filepath(:output, "path/to/non/existing")
-    non_existant_file = File.join(non_existant_dir, "file.txt")
-    backup_file = method_root.filepath(:output, "backup/file.txt")
-
-    touch_file(existing_file, "original content")
+  
+  def test_execute_does_not_rollback_results_from_prior_executions
+    existing_file = method_root.prepare(:tmp, "existing_file.txt") {|file| file << "original content" }
+    non_existant_dir = method_root.filepath(:tmp, "non_existing_dir")
+    non_existant_file = method_root.filepath(:tmp, "non_existing_dir/non_existing_file.txt")
+    backup_file = method_root.filepath(:tmp, "backup/file.txt")
+    
     count = 0
     @t = Tap::FileTask.intern do |task|
       if count > 0
@@ -1019,16 +687,14 @@ class FileTaskTest < Test::Unit::TestCase
       else
         count = 1
         task.prepare([existing_file, non_existant_file]) 
-        touch_file(existing_file, "new content")
+        method_root.prepare(:tmp, "existing_file.txt") {|file| file << "new content" }
       end
     end
-
+  
     # assure the backup goes where expected
     t.extend BackupFile
     t.backup_file = backup_file
-
-    # assert !t.cleanup_after_execute
-
+  
     assert_nothing_raised { t.execute }
     assert_equal 1, count
     assert File.exists?(existing_file)
@@ -1036,9 +702,9 @@ class FileTaskTest < Test::Unit::TestCase
     assert File.exists?(non_existant_dir)
     assert File.exists?(backup_file)
     assert_equal "original content", File.read(backup_file)   
-
+  
     assert_raise(RuntimeError) { t.execute }
-
+  
     # check the existing file was NOT restored
     assert_equal 2, count
     assert File.exists?(existing_file)
@@ -1047,26 +713,24 @@ class FileTaskTest < Test::Unit::TestCase
     assert File.exists?(backup_file)
     assert_equal "original content", File.read(backup_file)   
   end
-
+  
   #
   # test execute with multiple files
   #
-
+  
   def setup_multiple_file_execute_test(&block)
     existing_files = [0,1].collect do |n|
-      path = method_root.filepath(:output, "path/to/existing/file#{n}.txt")
-      touch_file path, n.to_s
-      path
+      method_root.prepare(:output, "path/to/existing/file#{n}.txt") {|file| file << n.to_s }
     end
     
     backup_files = existing_files.collect do |file|
       method_root.filepath(:output, File.basename(file) + "_backup")
     end
-
+  
     non_existant_files =  [0,1].collect do |n|
       method_root.filepath(:output, "path/to/non/existing/file#{n}.txt")
     end
-
+  
     @t = Tap::FileTask.intern do |task|
       task.prepare(existing_files + non_existant_files) 
       block.call if block_given?
@@ -1075,10 +739,10 @@ class FileTaskTest < Test::Unit::TestCase
     # assure the backup goes where expected
     t.extend BackupFile
     t.backup_file = backup_files
-
+  
     [existing_files, non_existant_files]
   end
-
+  
   def test_setup_multiple_file_execute_test
     existing_files, non_existant_files = setup_multiple_file_execute_test do 
       (existing_files + existing_files).each do |file|
@@ -1088,20 +752,20 @@ class FileTaskTest < Test::Unit::TestCase
     end
     t.execute
   end
-
+  
   def test_execute_restore_and_removal_with_multiple_files
     was_in_execute = false
     existing_files, non_existant_files = setup_multiple_file_execute_test do
       was_in_execute = true
       (existing_files + non_existant_files) .each do |file|
-        touch_file file, "new content"
+        method_root.prepare(file) {|f| f << "new content" }
       end
       raise "error"
     end
-
+  
     assert !File.exists?(method_root.filepath(:output, 'backup'))
     assert_raise(RuntimeError) { t.execute }
-
+  
     # check existing files were restored, made files and backups removed.
     assert was_in_execute
     existing_files.each_with_index do |existing_file, n|

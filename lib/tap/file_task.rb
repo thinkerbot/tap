@@ -3,26 +3,16 @@ autoload(:FileUtils, "fileutils")
 
 module Tap
   
-  # FileTask provides methods for creating/modifying files such that you can
-  # rollback changes if an error occurs.
-  #
-  # === Creating Files/Rolling Back Changes
-  #
-  # FileTask tracks which files to roll back using the added_files array
-  # and the backed_up_files hash.  On an execute error, all added files are
-  # removed and then all backed up files (backed_up_files.keys) are restored  
-  # using the corresponding backup files (backed_up_files.values). 
-  # 
-  # For consistency, all filepaths in added_files and backed_up_files should 
-  # be expanded using File.expand_path.  The easiest way to ensure files are
-  # properly set up for rollback is to use prepare before working with files
-  # and to create directories with mkdir.
+  # FileTask is a base class for tasks that work with a file system.  FileTask
+  # tracks changes it makes using added_files, and the backed_up_files hash.
+  # On an execute error, changes made by a FileTask are rolled back to their
+  # original state.
   #
   #   # this file will be backed up and restored
   #   File.open("file.txt", "w") {|f| f << "original content"}
   #  
   #   t = FileTask.intern do |task|
-  #     task.mkdir("some/dir")                         # marked for rollback
+  #     task.mkdir_p("some/dir")                       # marked for rollback
   #     task.prepare("file.txt", "path/to/file.txt")   # marked for rollback
   #
   #     File.open("file.txt", "w") {|f| f << "new content"}
@@ -43,16 +33,21 @@ module Tap
   #     File.read("file.txt")                 # => "original content"
   #   end
   #
+  #--
+  # ==== Backup/Restore
+  # The idea is that the originals are backed up once, and added files/dirs
+  # are recorded.  This is the minimal information to restore the incoming
+  # directory structure... it is meaningless to try to incrementally roll
+  # back, so tracking of individual actions is unnecessary.
   class FileTask < Task
     include Tap::Support::ShellUtils
     
-    # A hash of backup [source, target] pairs, such that the
-    # backed-up files are backed_up_files.keys and the actual
-    # backup files are backed_up_files.values.  All filepaths
-    # in backed_up_files should be expanded.
+    # A hash of backup (source, target) pairs, such that the path to the
+    # original file is the source and the backed-up file is the target.  
+    # All filepaths in backed_up_files should be expanded.
     attr_reader :backed_up_files
     
-    # An array of files added during task execution.  
+    # An array of files/directories added during execution.  
     attr_reader :added_files
  
     # The backup directory, defaults to the class backup_dir
@@ -68,51 +63,15 @@ module Tap
     
     def initialize(config={}, name=nil, app=App.instance)
       super
-      
       @backed_up_files = {}
       @added_files = []
     end
     
+    # Initializes a copy with it's own backed_up_files and added_files.
     def initialize_copy(orig)
       super
       @backed_up_files = {}
       @added_files = []
-    end
-    
-    # A batch File.open method.  If a block is given, each file in the list will be 
-    # opened the open files passed to the block.  Files are automatically closed when 
-    # the block returns.  If no block is given, the open files are returned.
-    #
-    #   t = FileTask.new
-    #   t.open(["one.txt", "two.txt"], "w") do |one, two|
-    #     one << "one"
-    #     two << "two"
-    #   end
-    #
-    #   File.read("one.txt")                 # => "one"
-    #   File.read("two.txt")                 # => "two"
-    #
-    # Note that open normally takes and passes a list (ie an Array).  If you provide
-    # a single argument, it will be translated into an Array, and passed AS AN ARRAY
-    # to the block.
-    #
-    #   t.open("file.txt", "w") do |array|
-    #     array.first << "content"
-    #   end
-    #
-    #   File.read("file.txt")                # => "content"
-    #
-    def open(list, mode="rb")
-      open_files = []
-      begin
-        [list].flatten.map {|path| path.to_str }.each do |filepath| 
-          open_files << File.open(filepath, mode)
-        end
-
-        block_given? ? yield(open_files) : open_files
-      ensure
-        open_files.each {|file| file.close } if block_given?
-      end
     end
     
     # Returns the path, exchanging the extension with extname.  
@@ -130,13 +89,9 @@ module Tap
     # Compare to basename.
     def basepath(path, extname=false)
       case extname
-      when false, nil 
-        path.chomp(File.extname(path))
-      when true
-        path
-      else
-        extname = extname[1, extname.length-1] if extname[0] == ?.
-        "#{path.chomp(File.extname(path))}.#{extname}"
+      when false, nil then path.chomp(File.extname(path))
+      when true then path
+      else Root.exchange(path, extname)
       end
     end
     
@@ -182,12 +137,14 @@ module Tap
       filepath(backup_dir, backup_path)
     end
 
-    # Returns true if all of the targets are up to date relative to all of the listed
-    # sources AND date_reference. Single values or arrays can be provided for both 
-    # targets and sources.
+    # Returns true if all of the targets are up to date relative to all of the
+    # listed sources. Single values or arrays can be provided for both targets
+    # and sources.
     #
-    #---
-    # Returns false (ie 'not up to date') if +force?+ is true.
+    # Returns false (ie 'not up to date') if app.force is true.
+    #
+    #--
+    # TODO: add check vs date reference (ex config_file date)
     def uptodate?(targets, sources=[])
       if app.force
         log_basename(:force, *targets)
@@ -195,9 +152,6 @@ module Tap
       else
         targets = [targets] unless targets.kind_of?(Array)
         sources = [sources] unless sources.kind_of?(Array)
-        
-        # should be able to specify this somehow, externally set
-        # sources << config_file unless config_file == nil
         
         targets.each do |target|
           return false unless FileUtils.uptodate?(target, sources)
@@ -225,173 +179,112 @@ module Tap
     #   File.read(backed_up_file)                # => "file content"
     #
     #   File.open(file, "w") {|f| f << "new content"}
-    #   t.restore(file)
+    #   t.restore(file, true)
     #
     #   File.exists?(file)                       # => true
     #   File.exists?(backed_up_file)             # => false
     #   File.read(file)                          # => "file content"
     #
     def backup(list, backup_using_copy=false)
-      fu_list(list).collect do |filepath|
-        next unless File.exists?(filepath)
+      fu_list(list).collect do |path|
+        next unless File.exists?(path)
         
-        filepath = File.expand_path(filepath)
-        if backed_up_files.include?(filepath)
-          raise "Backup for #{filepath} already exists." 
+        source = File.expand_path(path)
+        if backed_up_files.include?(source)
+          raise "backup for #{source} already exists" 
         end
         
-        target = File.expand_path(backup_filepath(filepath))
-        dir = File.dirname(target)
-        mkdir(dir)
-
+        target = backup_filepath(source)
+        mkdir_p File.dirname(target)
+        
+        log :backup, "#{source} to #{target}", Logger::DEBUG
         if backup_using_copy
-          log :cp, "#{filepath} to #{target}", Logger::DEBUG
-          FileUtils.cp(filepath, target)
+          FileUtils.cp(source, target)
         else
-          log :mv, "#{filepath} to #{target}", Logger::DEBUG
-          FileUtils.mv(filepath, target)
+          FileUtils.mv(source, target)
         end
 
         # track the target for restores
-        backed_up_files[filepath] = target
-        target
-      end
+        backed_up_files[source] = target
+      end.compact
     end
     
     # Restores each file in the input list using the backup file from
     # backed_up_files.  The backup directory is removed if it is empty.
     #  
     # Returns a list of the restored files.
-    #
-    #   file = "file.txt"
-    #   File.open(file, "w") {|f| f << "file content"}
-    #
-    #   t = FileTask.new
-    #   backed_up_file = t.backup(file).first   
-    #       
-    #   File.exists?(file)                       # => true
-    #   File.exists?(backed_up_file)             # => true
-    #   File.read(backed_up_file)                # => "file content"
-    #
-    #   File.open(file, "w") {|f| f << "new content"}
-    #   t.restore(file)
-    #
-    #   File.exists?(file)                       # => true
-    #   File.exists?(backed_up_file)             # => false
-    #   File.read(file)                          # => "file content"
-    #
-    def restore(list)
-      fu_list(list).collect do |filepath|
-        filepath = File.expand_path(filepath)
-        next unless backed_up_files.has_key?(filepath)
-
-        target = backed_up_files.delete(filepath)
+    def restore(list, remove_backup=false)
+      fu_list(list).collect do |path|
+        source = File.expand_path(path)
+        next unless target = backed_up_files[source]
       
-        dir = File.dirname(filepath)
-        mkdir(dir)
+        mkdir_p File.dirname(source)
         
-        log :restore, "#{target} to #{filepath}", Logger::DEBUG
-        FileUtils.mv(target, filepath, :force => true)
-
-        dir = File.dirname(target)
-        rmdir(dir)
+        log :restore, "#{target} to #{source}", Logger::DEBUG
+        if remove_backup
+          FileUtils.mv(target, source, :force => true)
+          backed_up_files.delete(source)
+          cleanup_dir File.dirname(target)
+        else
+          FileUtils.cp(target, source)
+        end
         
-        filepath
+        source
       end.compact
     end
     
-    # Creates the directories in list if they do not exist and adds
-    # them to added_files so they can be removed using rmdir.  Creating
-    # directories in this way causes them to be rolled back upon an
-    # execution error.
-    #
-    # Returns the made directories.
-    #
-    #   t = FileTask.new do |task, inputs|
-    #     File.exists?("path")                  # => false
-    #
-    #     task.mkdir("path/to/dir")             # will be rolled back
-    #     File.exists?("path/to/dir")           # => true
-    #
-    #     FileUtils.mkdir("path/to/another")    # will not be rolled back
-    #     File.exists?("path/to/another")       # => true
-    #
-    #     raise "error!"
-    #   end
-    #
-    #   begin
-    #     t.execute(nil)
-    #   rescue
-    #     $!.message                            # => "error!"
-    #     File.exists?("path/to/dir")           # => false
-    #     File.exists?("path/to/another")       # => true
-    #   end
-    #    
+    # Creates a directory and all its parent directories.  More than one
+    # directory may be provided as a list.  Directories created by mkdir_p
+    # are removed upon an execution error.
+    def mkdir_p(list)
+      fu_list(list).each do |dir|
+        dir = File.expand_path(dir)
+        
+        dirs = []
+        while !File.exists?(dir)
+          dirs.unshift(dir)
+          dir = File.dirname(dir)
+        end
+        
+        mkdir(dirs)
+      end
+    end
+    
+    # Creates one or more directories.  Directories created by mkdir
+    # are removed upon an execution error.
     def mkdir(list)
       fu_list(list).each do |dir|
         dir = File.expand_path(dir)
         
-        make_paths = []
-        while !File.exists?(dir)
-          make_paths << dir
-          dir = File.dirname(dir)
-        end
-      
-        make_paths.reverse_each do |path|
-          log :mkdir, path, Logger::DEBUG 
-          FileUtils.mkdir(path) 
-          added_files << path 
+        unless File.exists?(dir)
+          log :mkdir, dir, Logger::DEBUG
+          FileUtils.mkdir(dir)
+          added_files << dir
         end
       end
     end
     
-    # Removes each directory in the input list, provided the directory is in
-    # added_files and the directory is empty.  When checking if the directory
-    # is empty, rmdir checks for regular files and hidden files.  Removed
-    # directories are removed from added_files.
-    #
-    # Returns a list of the removed directories.
-    #
-    #   t = FileTask.new
-    #   File.exists?("path")                  # => false  
-    #   FileUtils.mkdir("path")               # will not be removed
-    #
-    #   t.mkdir("path/to/dir")           
-    #   File.exists?("path/to/dir")           # => true
-    #
-    #   t.rmdir("path/to/dir")                
-    #   File.exists?("path")                  # => true  
-    #   File.exists?("path/to")               # => false  
-    def rmdir(list) 
-      removed = []
-      fu_list(list).each do |dir|  
+    # Removes one or more directories.  Directories removed by rmdir
+    # are restored upon an execution error.
+    def rmdir(list)
+      fu_list(list).each do |dir|
         dir = File.expand_path(dir)
-      
-        # remove directories and parents until the
-        # directory was not made by the task 
-        while added_files.include?(dir)
-          break unless dir_empty?(dir)
-          
-          if File.exists?(dir)
-            log :rmdir, dir, Logger::DEBUG
-            FileUtils.rmdir(dir) 
-          end
         
-          removed << added_files.delete(dir)
-          dir = File.dirname(dir)
+        unless Root.empty?(dir)
+          raise "not an empty directory: #{dir}"
+        end
+        
+        log :rmdir, dir, Logger::DEBUG
+        if backed_up_files.include?(dir)
+          FileUtils.rmdir(dir)
+        else
+          backup(dir, false)
         end
       end
-      removed
     end
     
-    def dir_empty?(dir)
-      Dir.entries(dir).delete_if {|d| d == "." || d == ".."}.empty?
-    end
-    
-    # Prepares the input list of files by backing them up (if they exist),
-    # ensuring that the parent directory for the file exists, and adding
-    # each file to added_files.  As a result the files can be removed 
-    # using rm, restored using restore, and will be rolled back upon an 
+    # Prepares the input list of files ensuring that the parent directory for
+    # the file exists.  Files prepared in this way will be rolled back upon an 
     # execution error.
     #
     # Returns the prepared files.
@@ -420,63 +313,52 @@ module Tap
     #   end
     #
     def prepare(list, backup_using_copy=false) 
-      list = fu_list(list)
-      existing_files, non_existant_files = list.partition do |filepath| 
-        File.exists?(filepath)
+      list = fu_list(list).collect do |path|
+        raise "not a file: #{path}" if File.directory?(path)
+        File.expand_path(path)
       end
       
-      # backup existing files
-      existing_files.each do |filepath|
-        backup(filepath, backup_using_copy)
+      existing_files, non_existant_files = list.partition do |path|
+        File.exists?(path)
       end
       
-      # ensure the parent directory exists  
+      # backup or remove existing files
+      existing_files.each do |path|
+        if backed_up_files.include?(path)
+          FileUtils.rm(path)
+        else
+          backup(path, backup_using_copy)
+        end
+      end
+      
+      # ensure the parent directory exists
       # for non-existant files 
-      non_existant_files.each do |filepath| 
-        dir = File.dirname(filepath)
-        mkdir(dir)
+      non_existant_files.each do |path|
+        mkdir_p File.dirname(path)
       end
       
-      list.each do |filepath|
-        added_files << File.expand_path(filepath)
-      end
-   
+      added_files.concat(non_existant_files)
+      
       list
     end
     
-    # Removes each file in the input list, provided the file is in added_files.  
-    # The parent directory of each file is removed using rmdir. Removed files 
-    # are removed from added_files.
-    #
-    # Returns the removed files and directories.
-    #
-    #   t = FileTask.new
-    #   File.exists?("path")                  # => false  
-    #   FileUtils.mkdir("path")               # will not be removed
-    #
-    #   t.prepare("path/to/file.txt")          
-    #   FileUtils.touch("path/to/file.txt") 
-    #   File.exists?("path/to/file.txt")      # => true
-    #
-    #   t.rm("path/to/file.txt")               
-    #   File.exists?("path")                  # => true  
-    #   File.exists?("path/to")               # => false
+    # Removes one or more files.  Directories cannot be removed by this method.
+    # Files removed by rm are restored upon an execution error.
     def rm(list) 
-      removed = []
-      fu_list(list).each do |filepath|  
-        filepath = File.expand_path(filepath)
-        next unless added_files.include?(filepath)
+      fu_list(list).each do |path|
+        path = File.expand_path(path)
         
-        # if the file exists, remove it
-        if File.exists?(filepath)
-          log :rm, filepath, Logger::DEBUG
-          FileUtils.rm(filepath, :force => true) 
+        unless File.file?(path)
+          raise "not a file: #{path}"
         end
-
-        removed << added_files.delete(filepath)
-        removed.concat rmdir(File.dirname(filepath))
+        
+        log :rm, path, Logger::DEBUG
+        if backed_up_files.include?(path)
+          FileUtils.rm(path)
+        else
+          backup(path, false)
+        end
       end
-      removed
     end
     
     # Rolls back changes by removing added_files and restoring backed_up_files.
@@ -484,30 +366,29 @@ module Tap
     # but is provided as a separate method for flexibility when needed.
     # Yields errors to the block, which must be provided.
     def rollback # :yields: error
-      added_files.dup.each do |filepath| 
+      original_files = backed_up_files.keys
+      original_files.each do |path|
         begin
-          case
-          when File.file?(filepath)
-            rm(filepath)
-          when File.directory?(filepath)
-            rmdir(filepath)
-          else
-            # assures non-existant files are cleared from added_files
-            # this is automatically done by rm and rmdir for existing files
-            added_files.delete(filepath)
+          restore(path, true)
+        rescue
+          yield $!
+        end
+      end
+      
+      (added_files.uniq - original_files).reverse_each do |path| 
+        begin
+          if File.file?(path)
+            FileUtils.rm(path)
+          elsif File.directory?(path)
+            FileUtils.rmdir(path)
           end
         rescue
           yield $!
         end
       end
-   
-      backed_up_files.keys.each do |filepath|
-        begin
-          restore(filepath)
-        rescue
-          yield $!
-        end
-      end
+      
+      backed_up_files.clear
+      added_files.clear
     end
     
     # Removes backed-up files matching the pattern.
@@ -521,6 +402,14 @@ module Tap
         rm(target)
         backed_up_files.delete(filepath)
       end 
+    end
+    
+    def cleanup_dir(dir)
+      while Root.empty?(dir)
+        log :rmdir, dir, Logger::DEBUG
+        FileUtils.rmdir(dir) 
+        dir = File.dirname(dir)
+      end
     end
     
     # Logs the given action, with the basenames of the input filepaths.  
@@ -560,8 +449,11 @@ module Tap
         raise original_error
       else
         rollback_errors.unshift(original_error)
-        raise Support::RunError.new(rollback_errors)
+        raise RollbackError.new(rollback_errors.join("\n"))
       end
+    end
+    
+    class RollbackError < Exception
     end
     
     # Lifted from FileUtils

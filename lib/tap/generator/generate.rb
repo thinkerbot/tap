@@ -21,7 +21,7 @@ module Tap
           log_relative :exists, target
         else
           log_relative :create, target
-          file_task.mkdir(target) unless pretend
+          file_task.mkdir_p(target) unless pretend
         end
       end
       
