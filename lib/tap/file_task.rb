@@ -260,32 +260,13 @@ module Tap
     # Creates one or more directories.  Directories created by mkdir
     # are removed upon an execution error.
     def mkdir(list)
-      fu_list(list).sort.each do |dir|
-        dir = File.expand_path(dir)
-        
+      fu_list(list).collect do |dir|
+        File.expand_path(dir)
+      end.sort.each do |dir|
         unless File.exists?(dir)
           log :mkdir, dir, Logger::DEBUG
           FileUtils.mkdir(dir)
           added_files << dir
-        end
-      end
-    end
-    
-    # Removes one or more directories.  Directories removed by rmdir
-    # are restored upon an execution error.
-    def rmdir(list)
-      fu_list(list).sort.reverse_each do |dir|
-        dir = File.expand_path(dir)
-        
-        unless Root.empty?(dir)
-          raise "not an empty directory: #{dir}"
-        end
-        
-        log :rmdir, dir, Logger::DEBUG
-        if backed_up_files.include?(dir)
-          FileUtils.rmdir(dir)
-        else
-          backup(dir, false)
         end
       end
     end
@@ -349,6 +330,25 @@ module Tap
       list
     end
     
+    # Removes one or more directories.  Directories removed by rmdir
+    # are restored upon an execution error.
+    def rmdir(list)
+      fu_list(list).collect do |dir|
+        File.expand_path(dir)
+      end.sort.reverse_each do |dir|
+        unless Root.empty?(dir)
+          raise "not an empty directory: #{dir}"
+        end
+        
+        log :rmdir, dir, Logger::DEBUG
+        if backed_up_files.include?(dir)
+          FileUtils.rmdir(dir)
+        else
+          backup(dir, false)
+        end
+      end
+    end
+    
     # Removes one or more files.  Directories cannot be removed by this method.
     # Files removed by rm are restored upon an execution error.
     def rm(list) 
@@ -362,6 +362,23 @@ module Tap
         log :rm, path, Logger::DEBUG
         if backed_up_files.include?(path)
           FileUtils.rm(path)
+        else
+          backup(path, false)
+        end
+      end
+    end
+    
+    # Removes one or more files.  If a directory is provided, it's contents are
+    # removed recursively.  Files and directories removed by rm_r are restored
+    # upon an execution error.
+    def rm_r(list) 
+      fu_list(list).collect do |path|
+        File.expand_path(path)
+      end.sort.reverse_each do |path|
+
+        log :rm_r, path, Logger::DEBUG
+        if backed_up_files.include?(path)
+          FileUtils.rm_r(path)
         else
           backup(path, false)
         end
@@ -389,7 +406,7 @@ module Tap
     # flexibility when needed.
     def rollback # :yields: error
       original_files = backed_up_files.keys
-      original_files.each do |path|
+      original_files.sort.each do |path|
         restore(path, true)
       end
       

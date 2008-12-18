@@ -13,11 +13,13 @@ class FileTaskTest < Test::Unit::TestCase
     app.root = method_root.root
   end
   
+  # simple overrides to backup file to provide a
+  # pre-defined backup file.
   module BackupFile
     attr_accessor :backup_file
     
     def backup_filepath(*args)
-      backup_file.kind_of?(Array) ? backup_file.shift : backup_file
+      backup_file
     end
   end
   
@@ -217,29 +219,12 @@ class FileTaskTest < Test::Unit::TestCase
     assert_equal "file content", File.read(file)                 
   end
   
-  def backup_test_setup
+  def test_backup_moves_file_to_backup_filepath
     existing_file = method_root.prepare(:tmp, "file.txt") {|file| file << "existing content" }
     backup_file = method_root.filepath(:tmp, "backup.txt")
     
     t.extend BackupFile
     t.backup_file = backup_file
-    
-    [existing_file, backup_file]  
-  end
-  
-  def test_backup_test_setup
-    existing_file, backup_file = backup_test_setup
-  
-    assert File.exists?(existing_file)
-    assert !File.exists?(backup_file)
-  
-    assert_equal "existing content", File.read(existing_file)
-    assert_equal backup_file, t.backup_filepath(existing_file)
-  end
-  
-  def test_backup_moves_file_to_backup_filepath
-    existing_file, backup_file = backup_test_setup
-  
     t.backup(existing_file)
   
     assert !File.exists?(existing_file)
@@ -248,8 +233,11 @@ class FileTaskTest < Test::Unit::TestCase
   end
   
   def test_backup_copies_file_to_backup_filepath_if_backup_using_copy_is_true
-    existing_file, backup_file = backup_test_setup
-  
+    existing_file = method_root.prepare(:tmp, "file.txt") {|file| file << "existing content" }
+    backup_file = method_root.filepath(:tmp, "backup.txt")
+    
+    t.extend BackupFile
+    t.backup_file = backup_file
     t.backup(existing_file, true)
   
     assert File.exists?(existing_file)
@@ -258,17 +246,25 @@ class FileTaskTest < Test::Unit::TestCase
   end
   
   def test_backup_registers_source_and_target_in_backed_up_files
-    existing_file, backup_file = backup_test_setup
+    existing_file = method_root.prepare(:tmp, "file.txt") {|file| file << "existing content" }
+    backup_file = method_root.filepath(:tmp, "backup.txt")
     
     assert_equal({}, t.backed_up_files)
+    
+    t.extend BackupFile
+    t.backup_file = backup_file
     t.backup(existing_file)
+    
     assert_equal({existing_file => backup_file}, t.backed_up_files)
   end
   
   def test_backup_expands_paths
-    existing_file, backup_file = backup_test_setup
-    
+    existing_file = method_root.prepare(:tmp, "file.txt") {|file| file << "existing content" }
     relative_path = Tap::Root.relative_filepath(Dir.pwd, existing_file)
+    backup_file = method_root.filepath(:tmp, "backup.txt")
+    
+    t.extend BackupFile
+    t.backup_file = backup_file
     t.backup(relative_path)
   
     assert !File.exists?(existing_file)
@@ -277,13 +273,15 @@ class FileTaskTest < Test::Unit::TestCase
   end
   
   def test_backup_does_nothing_if_file_does_not_exist
-    existing_file, backup_file = backup_test_setup
-    FileUtils.rm(existing_file)
-  
+    existing_file = method_root.filepath(:tmp, "file.txt")
+    backup_file = method_root.filepath(:tmp, "backup.txt")
+    
     assert !File.exists?(existing_file)
     assert !File.exists?(backup_file)
     assert_equal({}, t.backed_up_files)
   
+    t.extend BackupFile
+    t.backup_file = backup_file
     t.backup(existing_file)
   
     assert !File.exists?(existing_file)
@@ -292,7 +290,7 @@ class FileTaskTest < Test::Unit::TestCase
   end
   
   def test_backup_raises_error_if_file_is_already_backed_up
-    existing_file, backup_file = backup_test_setup
+    existing_file = method_root.prepare(:tmp, "file.txt") {|file| file << "existing content" }
     t.backup(existing_file, true)
   
     e = assert_raise(RuntimeError) { t.backup(existing_file) }
@@ -300,11 +298,27 @@ class FileTaskTest < Test::Unit::TestCase
   end
   
   def test_backup_raises_error_if_backup_file_already_exists
-    existing_file, backup_file = backup_test_setup
-    Tap::Root.prepare(backup_file) {}
+    existing_file = method_root.prepare(:tmp, "file.txt") {|file| file << "existing content" }
+    backup_file = method_root.prepare(:tmp, "backup.txt") {}
+    
+    t.extend BackupFile
+    t.backup_file = backup_file
     
     e = assert_raise(RuntimeError) { t.backup(existing_file) }
     assert_equal "backup file already exists: #{backup_file}", e.message
+  end
+  
+  def test_backup_acts_on_list
+    one = method_root.prepare(:tmp, "one.txt") {|file| file << "one content" }
+    two = method_root.prepare(:tmp, "two.txt") {|file| file << "two content" }
+  
+    t.backup([one, two])
+    
+    assert !File.exists?(one)
+    assert !File.exists?(two)
+    
+    assert_equal "one content", File.read(t.backed_up_files[one])
+    assert_equal "two content", File.read(t.backed_up_files[two])
   end
   
   #
@@ -339,46 +353,52 @@ class FileTaskTest < Test::Unit::TestCase
   
   def test_restore_removes_backed_up_file_if_specified_and_cleans_up_backup_dir
     original_file = method_root.filepath(:tmp, 'original/file.txt')
-    backup_file = method_root.prepare(:tmp, 'backup/file.txt') {|file| file << "content" }
+    backup_file = method_root.prepare(:tmp, 'path/to/backup/file.txt') {|file| file << "content" }
     
     t.backed_up_files[original_file] = backup_file
     t.restore(original_file, true)
     
     assert_equal({}, t.backed_up_files)
     assert !File.exists?(backup_file)
-    assert !File.exists?(method_root.filepath(:tmp, 'backup'))
+    assert !File.exists?(method_root.filepath(:tmp, 'path'))
+    assert File.exists?(method_root.filepath(:tmp))
   end
   
   def test_restore_does_nothing_if_the_input_file_is_not_backed_up
     assert !File.exists?("original_file")
     assert t.backed_up_files.empty?
+    
     t.restore("original_file")
+    
     assert !File.exists?("original_file")
   end
   
   def test_restore_acts_on_list
-    existing_file0 = method_root.filepath(:tmp, "file0.txt")
-    existing_file1 = method_root.filepath(:tmp, "file1.txt")
-    backup_file0 = method_root.prepare(:tmp, "backup0.txt") {}
-    backup_file1 = method_root.prepare(:tmp, "backup1.txt") {}
+    one = method_root.filepath(:tmp, "one.txt")
+    two = method_root.filepath(:tmp, "two.txt")
+    backup_one = method_root.prepare(:tmp, "backup_one.txt") {|file| file << "one content"}
+    backup_two = method_root.prepare(:tmp, "backup_two.txt") {|file| file << "two content"}
   
-    t.backed_up_files[existing_file0] = backup_file0
-    t.backed_up_files[existing_file1] = backup_file1
+    t.backed_up_files[one] = backup_one
+    t.backed_up_files[two] = backup_two
   
-    assert !File.exists?(existing_file0)
-    assert !File.exists?(existing_file1)
+    assert !File.exists?(one)
+    assert !File.exists?(two)
   
-    t.restore([existing_file0, existing_file1])
+    t.restore([one, two])
   
-    assert File.exists?(existing_file0)
-    assert File.exists?(existing_file1)
+    assert File.exists?(one)
+    assert File.exists?(two)
+    
+    assert_equal "one content", File.read(one)
+    assert_equal "two content", File.read(two)
   end
   
   #
   # mkdir_p tests
   #
   
-  def test_mkdir_p_creates_parent_dirs_if_they_do_not_exist
+  def test_mkdir_p_creates_dir_and_parent_dirs_if_they_do_not_exist
     dir = method_root.filepath(:tmp, 'path/to/dir')
     assert !File.exists?(method_root[:tmp])
   
@@ -439,53 +459,17 @@ class FileTaskTest < Test::Unit::TestCase
     assert File.exists?(two)
   end
   
-  #
-  # rmdir tests
-  #
-  
-  def test_rmdir_removes_dir
-    dir = method_root.filepath(:tmp, 'path/to/dir')
-    FileUtils.mkdir_p(dir)
-
-    t.rmdir(dir)
-    assert !File.exists?(dir)
-  end
-  
-  def test_rmdir_backs_up_dir
-    dir = method_root.filepath(:tmp, 'path/to/dir')
-    FileUtils.mkdir_p(dir)
-
-    t.rmdir(dir)
-    assert !File.exists?(dir)
-    assert t.backed_up_files.has_key?(dir)
-    assert File.directory?(t.backed_up_files[dir])
-    assert Tap::Root.empty?(t.backed_up_files[dir])
-  end
-  
-  def test_rmdir_raises_error_if_input_is_not_an_empty_directory
-    file = method_root.prepare(:tmp, 'path/to/file.txt') {}
-
-    e = assert_raise(RuntimeError) { t.rmdir(file) }
-    assert_equal "not an empty directory: #{file}", e.message
+  def test_mkdir_correctly_adds_mixed_up_paths
+    FileUtils.mkdir_p(method_root.root)
     
-    dir = File.dirname(file)
+    t.mkdir([
+      Tap::Root.relative_filepath(Dir.pwd, method_root.filepath(:tmp, 'path')),
+      method_root.filepath(:tmp, 'path/to/one'),
+      method_root.filepath(:tmp),
+      method_root.filepath(:tmp, 'path/to')
+    ])
     
-    e = assert_raise(RuntimeError) { t.rmdir(dir) }
-    assert_equal "not an empty directory: #{dir}", e.message
-    
-    assert File.exists?(file)
-  end
-  
-  def test_rmdir_acts_on_list_of_dirs
-    one = method_root.filepath(:tmp, 'one')
-    two = method_root.filepath(:tmp, 'two')
-    FileUtils.mkdir_p(one)
-    FileUtils.mkdir_p(two)
-  
-    t.rmdir([one, two])
-    
-    assert !File.exists?(one)
-    assert !File.exists?(two)
+    assert File.exists?(method_root.filepath(:tmp, 'path/to/one'))
   end
   
   #
@@ -556,6 +540,7 @@ class FileTaskTest < Test::Unit::TestCase
   
   def test_prepare_does_not_add_existing_files_to_added_files
     file = method_root.prepare(:tmp, "existing_file.txt") {}
+    
     t.prepare(file) 
     
     expected = [
@@ -569,10 +554,74 @@ class FileTaskTest < Test::Unit::TestCase
   def test_prepare_acts_on_list
     one = method_root.filepath(:tmp, "one")
     two = method_root.filepath(:tmp, "path/to/two")
+    
     t.prepare([one, two])
     
     assert File.exists?(File.dirname(one))
     assert File.exists?(File.dirname(two))
+  end
+  
+  #
+  # rmdir tests
+  #
+  
+  def test_rmdir_removes_dir
+    dir = method_root.filepath(:tmp, 'path/to/dir')
+    FileUtils.mkdir_p(dir)
+
+    t.rmdir(dir)
+    assert !File.exists?(dir)
+  end
+  
+  def test_rmdir_backs_up_dir
+    dir = method_root.filepath(:tmp, 'path/to/dir')
+    FileUtils.mkdir_p(dir)
+
+    t.rmdir(dir)
+    assert !File.exists?(dir)
+    assert t.backed_up_files.has_key?(dir)
+    assert File.directory?(t.backed_up_files[dir])
+    assert Tap::Root.empty?(t.backed_up_files[dir])
+  end
+  
+  def test_rmdir_raises_error_if_input_is_not_an_empty_directory
+    file = method_root.prepare(:tmp, 'path/to/file.txt') {}
+
+    e = assert_raise(RuntimeError) { t.rmdir(file) }
+    assert_equal "not an empty directory: #{file}", e.message
+    
+    dir = File.dirname(file)
+    
+    e = assert_raise(RuntimeError) { t.rmdir(dir) }
+    assert_equal "not an empty directory: #{dir}", e.message
+    
+    assert File.exists?(file)
+  end
+  
+  def test_rmdir_acts_on_list_of_dirs
+    one = method_root.filepath(:tmp, 'one')
+    two = method_root.filepath(:tmp, 'two')
+    FileUtils.mkdir_p(one)
+    FileUtils.mkdir_p(two)
+  
+    t.rmdir([one, two])
+    
+    assert !File.exists?(one)
+    assert !File.exists?(two)
+  end
+  
+  def test_rmdir_correctly_removes_mixed_up_paths
+    one = method_root.filepath(:tmp, 'path/to/one')
+    FileUtils.mkdir_p(one)
+    
+    t.rmdir([
+      Tap::Root.relative_filepath(Dir.pwd, method_root.filepath(:tmp, 'path')),
+      method_root.filepath(:tmp, 'path/to/one'),
+      method_root.filepath(:tmp),
+      method_root.filepath(:tmp, 'path/to')
+    ])
+    
+    assert !File.exists?(method_root[:tmp])
   end
   
   #
@@ -581,15 +630,30 @@ class FileTaskTest < Test::Unit::TestCase
   
   def test_rm_removes_file
     path = method_root.prepare(:tmp, 'path/to/file.txt') {}
+    
     t.rm(path)
+    
     assert !File.exists?(path)
   end
   
   def test_rm_backs_up_file
     path = method_root.prepare(:tmp, 'path/to/file.txt') {|file| file << "content" }
+    
     t.rm(path)
+    
     assert !File.exists?(path)
-
+    assert t.backed_up_files.has_key?(path)
+    assert_equal "content", File.read(t.backed_up_files[path])
+  end
+  
+  def test_rm_does_not_backup_a_file_twice
+    path = method_root.prepare(:tmp, 'path/to/file.txt') {|file| file << "content" }
+    t.rm(path)
+    
+    Tap::Root.prepare(path) {|file| file << "new content" }
+    t.rm(path)
+    
+    assert !File.exists?(path)
     assert t.backed_up_files.has_key?(path)
     assert_equal "content", File.read(t.backed_up_files[path])
   end
