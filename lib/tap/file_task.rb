@@ -4,61 +4,49 @@ autoload(:FileUtils, "fileutils")
 module Tap
   
   # FileTask is a base class for tasks that work with a file system.  FileTask
-  # tracks changes it makes using added_files, and the backed_up_files hash.
-  # On an execute error, changes made by a FileTask are rolled back to their
-  # original state.
+  # tracks changes it makes so they may be rolled back to their original state.
+  # Rollback automatically occurs on an execute error.
   #
-  #   # this file will be backed up and restored
-  #   File.open("file.txt", "w") {|f| f << "original content"}
+  #   File.open("file.txt", "w") {|file| file << "original content"}
   #  
-  #   t = FileTask.intern do |task|
-  #     task.mkdir_p("some/dir")                       # marked for rollback
-  #     task.prepare("file.txt", "path/to/file.txt")   # marked for rollback
-  #
-  #     File.open("file.txt", "w") {|f| f << "new content"}
-  #     File.touch("path/to/file.txt")
+  #   t = FileTask.intern do |task, raise_error|
+  #     task.mkdir_p("some/dir")              # marked for rollback
+  #     task.prepare("file.txt") do |file|    # marked for rollback
+  #       file << "new content"
+  #     end
   #
   #     # raise an error to start rollback
-  #     raise "error!"
+  #     raise "error!" if raise_error
   #   end
   #
   #   begin
-  #     File.exists?("some/dir")              # => false
-  #     File.exists?("path/to/file.txt")      # => false
-  #     t.execute(nil)
+  #     t.execute(true)
   #   rescue
   #     $!.message                            # => "error!"
   #     File.exists?("some/dir")              # => false
-  #     File.exists?("path/to/file.txt")      # => false
   #     File.read("file.txt")                 # => "original content"
   #   end
   #
-  #--
-  # ==== Backup/Restore
-  # The idea is that the originals are backed up once, and added files/dirs
-  # are recorded.  This is the minimal information to restore the incoming
-  # directory structure... it is meaningless to try to incrementally roll
-  # back, so tracking of individual actions is unnecessary.
+  #   t.execute(false)
+  #   File.exists?("some/dir")                # => true
+  #   File.read("file.txt")                   # => "new content"
+  #
   class FileTask < Task
     include Tap::Support::ShellUtils
     
-    # The backup directory, defaults to the class backup_dir
+    # The backup directory
     config_attr :backup_dir, 'backup'            # the backup directory
     
-    # A timestamp format used to mark backup files, defaults
-    # to the class backup_timestamp
-    config :timestamp, "%Y%m%d_%H%M%S"           # the backup timestamp format
-    
-    # A flag indicating whether or not to rollback changes on
-    # error, defaults to the class rollback_on_error
-    config :rollback_on_error, true, &c.switch   # rollback changes on error
+    # A flag indicating whether or track changes
+    # for rollback on execution error
+    config :enable_rollback, true, &c.switch   # rollback changes on error
     
     def initialize(config={}, name=nil, app=App.instance)
       super
       @actions = []
     end
     
-    # Initializes a copy with it's own backed_up_files and added_files.
+    # Initializes a copy that will rollback independent of self.
     def initialize_copy(orig)
       super
       @actions
@@ -112,18 +100,15 @@ module Tap
       app.filepath(dir, name, *paths)
     end
     
-    # Makes a backup filepath relative to backup_dir by using self.name, the 
-    # basename of filepath plus a timestamp and index. 
+    # Makes a backup filepath relative to backup_dir by using name, the
+    # basename of filepath, and an index. 
     #
-    #   t = FileTask.new({:timestamp => "%Y%m%d"}, 'name')
-    #   t.app['backup', true] = "/backup"
-    #   time = Time.utc(2008,8,8)
-    #
-    #   t.backup_filepath("path/to/file.txt", time)     # => "/backup/name/file_20080808_0.txt"
+    #   t = FileTask.new({:backup_dir => "/backup"}, "name")
+    #   t.backup_filepath("path/to/file.txt", time)     # => "/backup/name/file.0.txt"
     #   
-    def backup_filepath(path, time=Time.now)
+    def backup_filepath(path)
       extname = File.extname(path)
-      backup_path = filepath(backup_dir, "#{File.basename(path).chomp(extname)}_#{time.strftime(timestamp)}")
+      backup_path = filepath(backup_dir, File.basename(path).chomp(extname))
       next_indexed_path(backup_path, 0, extname)
     end
 
@@ -219,31 +204,12 @@ module Tap
       end
     end
     
-    # Prepares the input file by backing up any existing file and ensuring that
-    # the parent directory for the file exists.  If a block is given, the file
-    # is opened and yielded as in File.open.  Prepared files are removed and
-    # the backups restored on rollback.
+    # Prepares the path by backing up any existing file and ensuring that
+    # the parent directory for path exists.  If a block is given, a file
+    # is opened and yielded to it (as in File.open).  Prepared paths are
+    # removed and the backups restored on rollback.
     #
-    # Returns the prepared file.
-    #
-    #   File.open("file.txt", "w") {|f| f << "original content"}
-    #
-    #   t = FileTask.new do |task, inputs|   
-    #     task.prepare("file.txt") {|f| f << "new content"}
-    #     File.read('file.txt')                 # => "new content"
-    #
-    #     raise "error!"
-    #   end
-    #
-    #   begin
-    #     t.execute(nil)
-    #   rescue
-    #     $!.message                            # => "error!"
-    #     File.exists?("file.txt")              # => true
-    #     File.read("file.txt")                 # => "original content"
-    #     File.exists?("path")                  # => false
-    #   end
-    #
+    # Returns the expanded path.
     def prepare(path, backup_using_copy=false) 
       raise "not a file: #{path}" if File.directory?(path)
       path = File.expand_path(path)
@@ -265,8 +231,8 @@ module Tap
       path
     end
     
-    # Removes one or more files.  If a directory is provided, it's contents are
-    # removed recursively.  Files and directories removed by rm_r are restored
+    # Removes a file.  If a directory is provided, it's contents are removed
+    # recursively.  Files and directories removed by rm_r are restored
     # upon an execution error.
     def rm_r(path) 
       path = File.expand_path(path)
@@ -275,8 +241,8 @@ module Tap
       log :rm_r, path, Logger::DEBUG
     end
     
-    # Removes one or more directories.  Directories removed by rmdir
-    # are restored upon an execution error.
+    # Removes an empty directory.  Directories removed by rmdir are restored
+    # upon an execution error.
     def rmdir(dir)
       dir = File.expand_path(dir)
       
@@ -288,7 +254,7 @@ module Tap
       log :rmdir, dir, Logger::DEBUG
     end
     
-    # Removes one or more files.  Directories cannot be removed by this method.
+    # Removes a file.  Directories cannot be removed by this method.
     # Files removed by rm are restored upon an execution error.
     def rm(path) 
       path = File.expand_path(path)
@@ -301,13 +267,30 @@ module Tap
       log :rm, path, Logger::DEBUG
     end
     
+    # Copies source to target.  Files and directories copied by cp are
+    # restored upon an execution error.
     def cp(source, target)
+      target = File.join(target, File.basename(source)) if File.directory?(target)
       prepare(target)
       
       log :cp, "#{source} to #{target}", Logger::DEBUG
       FileUtils.cp(source, target)
     end
     
+    # Copies source to target.  If source is a directory, the contents
+    # are copied recursively.  If target is a directory, copies source
+    # to target/source.  Files and directories copied by cp are restored
+    # upon an execution error.
+    def cp_r(source, target)
+      target = File.join(target, File.basename(source)) if File.directory?(target)
+      prepare(target)
+      
+      log :cp_r, "#{source} to #{target}", Logger::DEBUG
+      FileUtils.cp_r(source, target)
+    end
+    
+    # Moves source to target.  Files and directories moved by mv are
+    # restored upon an execution error.
     def mv(source, target, backup_source=true)
       backup(source, true) if backup_source
       prepare(target)
@@ -316,10 +299,7 @@ module Tap
       FileUtils.mv(source, target)
     end
     
-    # Rolls back changes by restoring backed_up_files and removing added_files.
-    # Rollback is automatically performed on an execute error if 
-    # rollback_on_error == true, but is provided as a separate method for
-    # flexibility when needed.
+    # 
     def rollback(n=actions.length)
       # begin
         while n > 0
@@ -378,14 +358,16 @@ module Tap
     # an execute error.  Collects any errors raised along the way
     # and raises them in a Tap::Support::RunError.
     def on_execute_error(original_error)
-      rollback if rollback_on_error
+      rollback if enable_rollback
       raise original_error
     end
+    
+    private 
     
     # utility method for backup_filepath; increments index until the
     # path base.indexext does not exist.
     def next_indexed_path(base, index, ext) # :nodoc:
-      path = sprintf('%s_%d%s', base, index, ext)
+      path = sprintf('%s.%d%s', base, index, ext)
       File.exists?(path) ? next_indexed_path(base, index + 1, ext) : path
     end
   end

@@ -27,31 +27,29 @@ class FileTaskTest < Test::Unit::TestCase
   # doc tests
   #
   
-  # def test_documentation
-  #   file_one = method_root.filepath(:tmp, "file.txt")
-  #   file_two = method_root.filepath(:tmp, "path/to/file.txt")
-  #   dir = method_root.filepath(:tmp, "some/dir")
-  #   FileUtils.mkdir_p(method_root[:tmp])
-  #   
-  #   File.open(file_one, "w") {|f| f << "original content"}
-  #   t = Tap::FileTask.intern do |task|
-  #     task.mkdir_p(dir)                      
-  #     task.prepare([file_one, file_two]) 
-  #     
-  #     File.open(file_one, "w") {|f| f << "new content"}
-  #     FileUtils.touch(file_two)
-  # 
-  #     raise "error!"
-  #   end
-  # 
-  #   assert !File.exists?(dir)        
-  #   assert !File.exists?(file_two)        
-  #   e = assert_raise(RuntimeError) { t.execute }
-  #   assert_equal "error!", e.message
-  #   assert !File.exists?(dir)        
-  #   assert !File.exists?(file_two) 
-  #   assert_equal "original content", File.read(file_one)  
-  # end
+  def test_documentation
+    path = method_root.prepare(:tmp, "file.txt") {|file| file << "original content"}
+    dir = method_root.prepare(:tmp, "some/dir")
+    
+    t = Tap::FileTask.intern do |task, raise_error|
+      task.mkdir_p(dir)              # marked for rollback
+      task.prepare(path) do |file|    # marked for rollback
+        file << "new content"
+      end
+  
+      # raise an error to start rollback
+      raise "error!" if raise_error
+    end
+  
+    e = assert_raise(RuntimeError) { t.execute(true) }
+    assert_equal "error!", e.message
+    assert_equal false, File.exists?(dir)
+    assert_equal "original content", File.read(path)
+    
+    t.execute(false)
+    assert_equal true, File.exists?(dir)
+    assert_equal "new content", File.read(path)
+  end
   
   #
   # basepath test
@@ -114,28 +112,28 @@ class FileTaskTest < Test::Unit::TestCase
   #
 
   def test_backup_filepath_documentation
-    t = Tap::FileTask.new({:timestamp => "%Y%m%d"}, 'name')
-    t.app['backup', true] = "/backup"
-    time = Time.utc(2008,8,8)
-
-    assert_equal File.expand_path("/backup/name/file_20080808_0.txt"), t.backup_filepath("path/to/file.txt", time)
+    t = Tap::FileTask.new({:backup_dir => "/backup"}, "name")
+    assert_equal File.expand_path("/backup/name/file.0.txt"), t.backup_filepath("path/to/file.txt")
   end
 
   def test_backup_filepath_constructs_filepath_from_backup_dir_name_and_input_basename
     t.backup_dir = 'backup_dir'
-    t.timestamp = "%Y%m%d"
     t.name = "name"
 
-    assert_equal(app.filepath('backup_dir', "name/file_20080808_0.txt"), t.backup_filepath("path/to/file.txt", Time.utc(2008,8,8)))
+    assert_equal app.filepath('backup_dir', "name/file.0.txt"), t.backup_filepath("path/to/file.txt")
   end
 
   def test_backup_dir_can_be_full_path
-    t.timestamp = "%Y%m%d"
     t.backup_dir = File.expand_path('backup')
-
-    assert_equal(File.expand_path("backup/tap/file_task/file_20080808_0.txt"), t.backup_filepath("file.txt", Time.utc(2008,8,8)))
+    assert_equal File.expand_path("backup/tap/file_task/file.0.txt"), t.backup_filepath("file.txt")
   end
-
+  
+  def test_backup_filepath_increments_index_to_next_non_existant_file
+    method_root.prepare(:backup, 'tap/file_task/file.0.txt') {}
+    method_root.prepare(:backup, 'tap/file_task/file.1.txt') {}
+    assert_equal method_root.filepath(:backup, 'tap/file_task/file.2.txt'), t.backup_filepath("file.txt")
+  end
+  
   #
   # uptodate tests
   #
@@ -203,7 +201,6 @@ class FileTaskTest < Test::Unit::TestCase
     File.open(file, "w") {|f| f << "file content"}
   
     t = Tap::FileTask.new
-    t.app[:backup, true] = method_root.filepath(:backup)
     backup_file = t.backup(file)
     
     assert !File.exists?(file)                     
@@ -311,25 +308,6 @@ class FileTaskTest < Test::Unit::TestCase
   # prepare tests
   #
   
-  def test_prepare_documentation
-    file_one = method_root.filepath(:tmp, "file.txt")
-    FileUtils.mkdir_p(method_root[:tmp])
-  
-    File.open(file_one, "w") {|f| f << "original content"}
-    t = Tap::FileTask.intern do |task|   
-      task.prepare(file_one) {|f| f << "new content"}
-      assert_equal "new content", File.read(file_one)
-      
-      raise "error!"
-    end
-  
-    e = assert_raise(RuntimeError) { t.execute }
-    assert_equal "error!", e.message
-    assert File.exists?(file_one)           
-    assert_equal "original content", File.read(file_one) 
-    assert !File.exists?(method_root.filepath(:output, "path"))   
-  end
-  
   def test_prepare_removes_existing_file
     path = method_root.prepare(:tmp, "file.txt") {|file| file << "content" }
     
@@ -375,6 +353,43 @@ class FileTaskTest < Test::Unit::TestCase
     
     t.rollback
     assert !File.exists?(method_root[:tmp])
+  end
+  
+  #
+  # rm_r tests
+  #
+  
+  def test_rm_r_removes_file
+    path = method_root.prepare(:tmp, 'path/to/file.txt') {}
+    
+    t.rm_r(path)
+    
+    assert !File.exists?(path)
+    assert File.exists?(File.dirname(path))
+  end
+  
+  def test_rm_r_removes_dir_recusively
+    path = method_root.prepare(:tmp, 'path/to/file.txt') {}
+    dir = method_root.filepath(:tmp, 'path')
+  
+    t.rm_r(dir)
+    assert !File.exists?(dir)
+    assert File.exists?(method_root[:tmp])
+  end
+  
+  def test_rm_r_may_be_rolled_back
+    one = method_root.prepare(:tmp, 'path/to/one.txt') {|file| file << "one content" }
+    two = method_root.prepare(:tmp, 'dir/to/file.txt') {|file| file << "two content" }
+    
+    t.rm_r(one)
+    t.rm_r(method_root.filepath(:tmp, 'dir'))
+    assert !File.exists?(method_root.filepath(:tmp, 'dir'))
+    assert !File.exists?(one)
+    assert File.exists?(method_root.filepath(:tmp, 'path/to'))
+    
+    t.rollback
+    assert_equal "one content", File.read(one)
+    assert_equal "two content", File.read(two)
   end
   
   #
@@ -454,6 +469,188 @@ class FileTaskTest < Test::Unit::TestCase
   end
   
   #
+  # cp tests
+  #
+  
+  def test_cp_copies_source_to_target
+    source = method_root.prepare(:tmp, 'source/file.txt') {|file| file << "content" }
+    target = method_root.filepath(:tmp, 'target/file.txt')
+    
+    t.cp(source, target)
+    
+    assert_equal "content", File.read(source)
+    assert_equal "content", File.read(target)
+  end
+  
+  def test_cp_copies_source_to_target_source_if_target_is_a_directory
+    source = method_root.prepare(:tmp, 'source/file.txt') {|file| file << "content" }
+    target = method_root.filepath(:tmp, 'target')
+    FileUtils.mkdir(target)
+    
+    t.cp(source, target)
+    
+    assert_equal "content", File.read(source)
+    assert_equal "content", File.read(target + "/file.txt")
+  end
+  
+  def test_cp_may_be_rolled_back
+    source = method_root.prepare(:tmp, 'source/file.txt') {|file| file << "content" }
+    target = method_root.filepath(:tmp, 'target/file.txt')
+    
+    t.cp(source, target)
+    
+    assert_equal "content", File.read(source)
+    assert_equal "content", File.read(target)
+    
+    t.rollback
+    
+    assert_equal "content", File.read(source)
+    assert !File.exists?(target)
+    assert !File.exists?(File.dirname(target))
+  end
+  
+  def test_cp_with_target_dir_may_be_rolled_back
+    source = method_root.prepare(:tmp, 'source/file.txt') {|file| file << "content" }
+    target = method_root.filepath(:tmp, 'target')
+    FileUtils.mkdir(target)
+    
+    t.cp(source, target)
+    
+    assert_equal "content", File.read(source)
+    assert_equal "content", File.read(target + "/file.txt")
+    
+    t.rollback
+    
+    assert_equal "content", File.read(source)
+    assert File.exists?(target)
+    assert !File.exists?(target + "/file.txt")
+  end
+  
+  #
+  # cp_r tests
+  #
+  
+  def test_cp_r_copies_source_to_target
+    source = method_root.prepare(:tmp, 'source/file.txt') {|file| file << "content" }
+    target = method_root.filepath(:tmp, 'target/file.txt')
+    
+    t.cp_r(source, target)
+    
+    assert_equal "content", File.read(source)
+    assert_equal "content", File.read(target)
+  end
+  
+  def test_cp_r_recursively_copies_source_dir_to_target
+    one = method_root.prepare(:tmp, 'source/one.txt') {|file| file << "one content" }
+    two = method_root.prepare(:tmp, 'source/one/two.txt') {|file| file << "two content" }
+    source = File.dirname(one)
+    target = method_root.filepath(:tmp, 'target')
+    
+    t.cp_r(source, target)
+    
+    assert_equal "one content", File.read(one)
+    assert_equal "one content", File.read(method_root.filepath(:tmp, 'target/one.txt'))
+    assert_equal "two content", File.read(two)
+    assert_equal "two content", File.read(method_root.filepath(:tmp, 'target/one/two.txt'))
+  end
+  
+  def test_cp_r_copies_source_to_target_source_if_target_is_a_directory
+    source = method_root.prepare(:tmp, 'source/file.txt') {|file| file << "content" }
+    target = method_root.filepath(:tmp, 'target')
+    FileUtils.mkdir(target)
+    
+    t.cp_r(source, target)
+    
+    assert_equal "content", File.read(source)
+    assert_equal "content", File.read(target + "/file.txt")
+  end
+  
+  def test_cp_r_may_be_rolled_back
+    source = method_root.prepare(:tmp, 'source/file.txt') {|file| file << "content" }
+    target = method_root.filepath(:tmp, 'target/file.txt')
+    
+    t.cp_r(source, target)
+    
+    assert_equal "content", File.read(source)
+    assert_equal "content", File.read(target)
+    
+    t.rollback
+    
+    assert_equal "content", File.read(source)
+    assert !File.exists?(target)
+    assert !File.exists?(File.dirname(target))
+  end
+  
+  def test_cp_r_with_source_dir_may_be_rolled_back
+    one = method_root.prepare(:tmp, 'source/one.txt') {|file| file << "one content" }
+    two = method_root.prepare(:tmp, 'source/one/two.txt') {|file| file << "two content" }
+    source = File.dirname(one)
+    target = method_root.filepath(:tmp, 'target')
+
+    t.cp_r(source, target)
+
+    assert_equal "one content", File.read(one)
+    assert_equal "one content", File.read(method_root.filepath(:tmp, 'target/one.txt'))
+    assert_equal "two content", File.read(two)
+    assert_equal "two content", File.read(method_root.filepath(:tmp, 'target/one/two.txt'))
+    
+    t.rollback
+    
+    assert_equal "one content", File.read(one)
+    assert_equal "two content", File.read(two)
+    assert !File.exists?(target)
+    assert File.exists?(File.dirname(target))
+  end
+  
+  def test_cp_r_with_target_dir_may_be_rolled_back
+    source = method_root.prepare(:tmp, 'source/file.txt') {|file| file << "content" }
+    target = method_root.filepath(:tmp, 'target')
+    FileUtils.mkdir(target)
+    
+    t.cp_r(source, target)
+    
+    assert_equal "content", File.read(source)
+    assert_equal "content", File.read(target + "/file.txt")
+    
+    t.rollback
+    
+    assert_equal "content", File.read(source)
+    assert File.exists?(target)
+    assert !File.exists?(target + "/file.txt")
+  end
+  
+  #
+  # mv tests
+  #
+  
+  def test_mv_moves_source_to_target
+    source = method_root.prepare(:tmp, 'source/file.txt') {|file| file << "content" }
+    target = method_root.filepath(:tmp, 'target/file.txt')
+    
+    t.mv(source, target)
+    
+    assert !File.exists?(source)
+    assert File.exists?(File.dirname(source))
+    assert_equal "content", File.read(target)
+  end
+  
+  def test_mv_may_be_rolled_back
+    source = method_root.prepare(:tmp, 'source/file.txt') {|file| file << "content" }
+    target = method_root.filepath(:tmp, 'target/file.txt')
+    
+    t.mv(source, target)
+    
+    assert !File.exists?(source)
+    assert_equal "content", File.read(target)
+    
+    t.rollback
+    
+    assert_equal "content", File.read(source)
+    assert !File.exists?(target)
+    assert !File.exists?(File.dirname(target))
+  end
+  
+  #
   # rollback test
   #
   
@@ -522,13 +719,13 @@ class FileTaskTest < Test::Unit::TestCase
     assert !File.exists?(non_existant_dir)
   end
   
-  def test_execute_does_not_roll_back_if_rollback_on_error_is_false
+  def test_execute_does_not_roll_back_if_enable_rollback_is_false
     existing_file = method_root.prepare(:tmp, "existing_file.txt") {|file| file << "original content" }
     non_existant_file = method_root.filepath(:tmp, "non_existing_file.txt")
     non_existant_dir = method_root.filepath(:tmp, "path/to/dir")
     
     was_in_execute = false
-    t = Tap::FileTask.intern(:rollback_on_error => false) do |task|
+    t = Tap::FileTask.intern(:enable_rollback => false) do |task|
       task.prepare(existing_file) {|file| file << "new content" }
       task.prepare(non_existant_file) {|file| file << "content" }
       task.mkdir_p(non_existant_dir)
