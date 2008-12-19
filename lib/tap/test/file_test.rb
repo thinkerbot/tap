@@ -25,32 +25,25 @@ module Tap
     #       method_root.root                # => File.join(ctr.root, "/test_something")
     #       method_root[:input]             # => File.join(ctr.root, "/test_something/input")
     #
-    #       # files in the output directory are cleared before
-    #       # and after each test; this passes each time the
+    #       # files in the :output and :tmp directories are cleared
+    #       # before and after each test; this passes each time the
     #       # test is run with no additional cleanup:
     #
-    #       output_file = method_root.filepath(:output, 'sample.txt')
-    #       assert !File.exists?(output_file)
+    #       assert !File.exists?(method_root[:tmp])
     #
-    #       make_test_directories           # makes the input, output, expected directories
-    #       FileUtils.touch(output_file)
-    #
-    #       assert File.exists?(output_file)
+    #       tmp_file = method_root.prepare(:tmp, 'sample.txt') {|file| file << "content" }
+    #       assert_equal "content", File.read(tmp_file)
     #
     #       # the assert_files method compares files produced
     #       # by the block the expected files, ensuring they
     #       # are the same (see the documentation for the 
     #       # simplest use of assert_files)
     #       
-    #       expected_file = method_root.filepath(:expected, 'output.txt')
-    #       File.open(expected_file, 'w') {|file| file << 'expected output' }
+    #       expected_file = method_root.prepare(:expected, 'output.txt') {|file| file << 'expected output' }
     #
     #       # passes
     #       assert_files do 
-    #         output_file = method_root.filepath(:output, 'output.txt')
-    #         File.open(output_file, 'w') {|file| file << 'expected output' }
-    #
-    #         output_file
+    #         method_root.prepare(:output, 'output.txt') {|file| file << 'expected output' }
     #       end 
     #     end
     #   end

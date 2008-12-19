@@ -39,7 +39,7 @@ module Tap
     
     # A flag indicating whether or track changes
     # for rollback on execution error
-    config :enable_rollback, true, &c.switch   # rollback changes on error
+    config :rollback_on_error, true, &c.switch   # rollback changes on error
     
     def initialize(config={}, name=nil, app=App.instance)
       super
@@ -49,7 +49,7 @@ module Tap
     # Initializes a copy that will rollback independent of self.
     def initialize_copy(orig)
       super
-      @actions
+      @actions = []
     end
     
     # Returns the path, exchanging the extension with extname.  
@@ -175,7 +175,7 @@ module Tap
         FileUtils.mv(source, target)
       end
       
-      actions << [:mv, source, target]
+      actions << [:backup, source, target]
       target
     end
     
@@ -222,6 +222,7 @@ module Tap
         # for non-existant files 
         mkdir_p File.dirname(path)
       end
+      log :prepare, path, Logger::DEBUG
       actions << [:make, path]
       
       if block_given?
@@ -299,40 +300,53 @@ module Tap
       FileUtils.mv(source, target)
     end
     
-    # 
-    def rollback(n=actions.length)
-      # begin
-        while n > 0
-          action, source, target = actions.pop
+    # Rolls back any actions capable of being rolled back.  Rollback
+    # is forceful; for instance if you make a folder using mkdir
+    # rollback removes that directory using FileUtils.rm_r.  Any
+    # files added to the folder will be removed even if they were
+    # not added by self.
+    def rollback
+      while !actions.empty?
+        action, source, target = actions.pop
 
-          case action
-          when :make
-            log :rm_r, "#{source}", Logger::DEBUG
-            FileUtils.rm_r(source)
-          when :mv
-            log :mv, "#{target} to #{source}", Logger::DEBUG
-            dir = File.dirname(source)
-            FileUtils.mkdir_p(dir) unless File.exists?(dir)
-            FileUtils.mv(target, source, :force => true)
-          when nil
-            raise "nothing to rollback"
-          else
-            raise "unknown action: #{[action, source, target].inspect}"
-          end
-          
-          n -= 1
+        case action
+        when :make
+          log :rollback, "#{source}", Logger::DEBUG
+          FileUtils.rm_r(source)
+        when :backup
+          log :rollback, "#{target} to #{source}", Logger::DEBUG
+          dir = File.dirname(source)
+          FileUtils.mkdir_p(dir) unless File.exists?(dir)
+          FileUtils.mv(target, source, :force => true)
+        else
+          raise "unknown action: #{[action, source, target].inspect}"
         end
-      # rescue
-      #   print error
-      #   dump to a file for manual restore
-      # end
+      end
     end
     
-    def cleanup
+    # Removes backup files. Cleanup cannot be rolled back and prevents
+    # rollback of actions up to when cleanup is called.  If cleanup_dirs
+    # is true, empty directories containing the backup files will be
+    # removed.
+    def cleanup(cleanup_dirs=true)
       actions.each do |action, source, target|
-        FileUtils.rm_r(target) if target
+        if action == :backup
+          log :cleanup, target, Logger::DEBUG
+          FileUtils.rm_r(target) if File.exists?(target)
+          cleanup_dir(File.dirname(target)) if cleanup_dirs
+        end
       end
       actions.clear
+    end
+    
+    # Removes the directory if empty, and all empty parent directories. This
+    # method cannot be rolled back.
+    def cleanup_dir(dir)
+      while Root.empty?(dir)
+        log :rmdir, dir, Logger::DEBUG
+        FileUtils.rmdir(dir)
+        dir = File.dirname(dir)
+      end
     end
     
     # Logs the given action, with the basenames of the input paths.  
@@ -343,27 +357,25 @@ module Tap
     
     protected
     
-    # A hash of backup (source, target) pairs, such that the path to the
-    # original file is the source and the backed-up file is the target.  
-    # All filepaths in backed_up_files should be expanded.
+    # An array tracking actions (backup, rm, mv, etc) performed by self,
+    # allowing rollback on an execution error.  Not intended to be
+    # modified manually.
     attr_reader :actions
     
-    # Clears added_files and backed_up_files so that  
-    # a failure will not affect previous executions
+    # Clears actions so that a failure will not affect previous executions
     def before_execute
       actions.clear
     end
     
     # Removes made files/dirs and restores backed-up files upon 
-    # an execute error.  Collects any errors raised along the way
-    # and raises them in a Tap::Support::RunError.
+    # an execute error.
     def on_execute_error(original_error)
-      rollback if enable_rollback
+      rollback if rollback_on_error
       raise original_error
     end
     
     private 
-    
+
     # utility method for backup_filepath; increments index until the
     # path base.indexext does not exist.
     def next_indexed_path(base, index, ext) # :nodoc:
