@@ -52,6 +52,23 @@ class FileTaskTest < Test::Unit::TestCase
   end
   
   #
+  # initialize_copy test
+  #
+  
+  def test_duplicates_do_not_rollback_one_another
+    path = method_root.prepare(:tmp, "file.txt") {|file| file << "content"}
+    
+    t.backup(path)
+    assert !File.exists?(path)
+    
+    t.dup.rollback
+    assert !File.exists?(path)
+    
+    t.rollback
+    assert_equal "content", File.read(path)
+  end
+  
+  #
   # basepath test
   #
   
@@ -685,6 +702,91 @@ class FileTaskTest < Test::Unit::TestCase
     assert_equal "d content", File.read(d)
   end
   
+  def test_rollback_for_backups_chasing_a_backup_file
+    a = method_root.prepare(:tmp, 'path/to/a') {|file| file << "content" }
+    
+    b = t.backup(a)
+    c = t.backup(b)
+    
+    FileUtils.rm_r(method_root[:tmp])
+    File.open(b, 'w') {|file| file << "new content"}
+    
+    t.rollback
+    
+    assert !File.exists?(c)
+    assert !File.exists?(b)
+    assert_equal "content", File.read(a)
+  end
+  
+  #
+  # cleanup tests
+  #
+  
+  def test_cleanup_removes_backup_files_and_cleans_up_dirs
+    a = method_root.prepare(:tmp, 'path/to/a') {|file| file << "content" }
+    b = t.backup(a)
+    File.open(a, "w") {|file| file << "new content" }
+    
+    assert_equal "content", File.read(b)
+    assert_equal 0, b.index(method_root[:backup])
+    
+    t.cleanup
+    
+    assert !File.exists?(b)
+    assert !File.exists?(method_root[:backup])
+    assert_equal "new content", File.read(a)
+  end
+  
+  def test_cleanup_ignores_made_files_and_dirs
+    a = method_root.filepath(:tmp, 'path/to/a')
+    b = method_root.filepath(:tmp, 'some/dir')
+    
+    t.prepare(a) {|file| file << "content" }
+    t.mkdir_p(b)
+    t.cleanup
+    
+    assert_equal "content", File.read(a)
+    assert File.exists?(b)
+  end
+  
+  def test_cleanup_does_not_cleanup_dirs_unless_specified
+    a = method_root.prepare(:tmp, 'path/to/a') {|file| file << "content" }
+    b = t.backup(a)
+    
+    t.cleanup(false)
+    
+    assert !File.exists?(b)
+    assert File.exists?(File.dirname(b))
+  end
+  
+  def test_cleanup_prevents_rollback
+    a = method_root.prepare(:tmp, 'path/to/a') {|file| file << "content" }
+    b = t.backup(a)
+    File.open(a, "w") {|file| file << "new content" }
+    
+    t.cleanup
+    t.rollback
+  
+    assert_equal "new content", File.read(a)
+  end
+  
+  #
+  # cleanup_dir tests
+  #
+  
+  def test_cleanup_dir_removes_all_dir_and_empty_parent_dirs
+    dir = method_root.filepath(:tmp, 'path/to/dir')
+    FileUtils.mkdir_p(dir)
+    
+    path = method_root.prepare(:tmp, 'path/file.txt') {}
+    
+    t.cleanup_dir(dir)
+    
+    assert !File.exists?(dir)
+    assert !File.exists?(method_root.filepath(:tmp, 'path/to'))
+    assert File.exists?(method_root.filepath(:tmp, 'path'))
+  end
+  
   #
   # execute tests
   #
@@ -719,13 +821,13 @@ class FileTaskTest < Test::Unit::TestCase
     assert !File.exists?(non_existant_dir)
   end
   
-  def test_execute_does_not_roll_back_if_enable_rollback_is_false
+  def test_execute_does_not_roll_back_if_rollback_on_error_is_false
     existing_file = method_root.prepare(:tmp, "existing_file.txt") {|file| file << "original content" }
     non_existant_file = method_root.filepath(:tmp, "non_existing_file.txt")
     non_existant_dir = method_root.filepath(:tmp, "path/to/dir")
     
     was_in_execute = false
-    t = Tap::FileTask.intern(:enable_rollback => false) do |task|
+    t = Tap::FileTask.intern(:rollback_on_error => false) do |task|
       task.prepare(existing_file) {|file| file << "new content" }
       task.prepare(non_existant_file) {|file| file << "content" }
       task.mkdir_p(non_existant_dir)
