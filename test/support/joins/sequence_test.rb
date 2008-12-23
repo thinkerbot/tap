@@ -11,7 +11,7 @@ class SequenceTest < Test::Unit::TestCase
   
   def test_simple_sequence
     runlist = []
-    t0_0, t1_0 = Tracer.intern(2, app, runlist)
+    t0_0, t1_0 = Tracer.intern(2, runlist)
     
     t0_0.sequence(t1_0)
     t0_0.enq ""
@@ -28,7 +28,7 @@ class SequenceTest < Test::Unit::TestCase
   
   def test_batch_sequence
     runlist = []
-    t0_0, t1_0 = Tracer.intern(2, app, runlist)
+    t0_0, t1_0 = Tracer.intern(2, runlist)
     t0_1 = t0_0.initialize_batch_obj
     t1_1 = t1_0.initialize_batch_obj
     
@@ -56,7 +56,7 @@ class SequenceTest < Test::Unit::TestCase
   
   def test_stack_sequence
     runlist = []
-    t0_0, t1_0 = Tracer.intern(2, app, runlist)
+    t0_0, t1_0 = Tracer.intern(2, runlist)
     
     t0_0.sequence(t1_0, :stack => true)
     t0_0.enq ""
@@ -73,7 +73,7 @@ class SequenceTest < Test::Unit::TestCase
   
   def test_batched_stack_sequence
     runlist = []
-    t0_0, t1_0 = Tracer.intern(2, app, runlist)
+    t0_0, t1_0 = Tracer.intern(2, runlist)
     t0_1 = t0_0.initialize_batch_obj
     t1_1 = t1_0.initialize_batch_obj
     
@@ -99,7 +99,10 @@ class SequenceTest < Test::Unit::TestCase
   
   def test_iterate_sequence
     runlist = []
-    t0_0, t1_0 = Tracer.intern(2, app, runlist)
+    t0_0 = Tracer.new(0, runlist) do |task, input|
+      input.collect {|str| task.mark(str) }
+    end
+    t1_0 = Tracer.new(1, runlist)
   
     t0_0.sequence(t1_0, :iterate => true)
     t0_0.enq ['a', 'b']
@@ -118,7 +121,7 @@ class SequenceTest < Test::Unit::TestCase
   
   def test_unbatched_sequence
     runlist = []
-    t0_0, t1_0 = Tracer.intern(2, app, runlist)
+    t0_0, t1_0 = Tracer.intern(2, runlist)
     t0_1 = t0_0.initialize_batch_obj
     t1_1 = t1_0.initialize_batch_obj
     

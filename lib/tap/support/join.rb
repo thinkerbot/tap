@@ -88,31 +88,43 @@ module Tap
       #   stack        the executable is enqued   the executable is executed
       #   unbatched    only exectuable is enqued  executable.batch is enqued
       #
-      def enq(executable, _results)
-        app = executable.app
-        
-        results = iterate ? _results._iterate : [_results]
-        results.each do |_result|
+      def enq(executable, *_results)
+        unpack(_results) do |_result|
           if stack 
-      
             if unbatched
-              executable.unbatched_enq(_result)
+              executable.unbatched_enq(*_result)
             else
-              executable.enq(_result)
+              executable.enq(*_result)
             end
-      
           else
-      
             if unbatched
-              executable._execute(_result)
+              executable._execute(*_result)
             else
               executable.batch.each do |e|
-                e._execute(_result)
+                e._execute(*_result)
               end
             end
-      
           end
         end
+      end
+      
+      def unpack(_results)
+        if iterate
+          flatten(_results).each {|_result| yield(_result) }
+        else
+          yield(_results)
+        end
+      end
+      
+      def flatten(_results)
+        array = []
+        _results.each do |_result|
+          unless _result.kind_of?(Audit)
+            _result = Audit.new(nil, _result)
+          end
+          array.concat(_result._iterate)
+        end
+        array
       end
     end
     

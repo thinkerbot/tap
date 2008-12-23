@@ -11,7 +11,7 @@ class MergeTest < Test::Unit::TestCase
   
   def test_simple_merge
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
 
     t2_0.merge(t0_0, t1_0)
     t0_0.enq ''
@@ -31,7 +31,7 @@ class MergeTest < Test::Unit::TestCase
   
   def test_batch_merge
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
     t0_1 = t0_0.initialize_batch_obj
     t1_1 = t1_0.initialize_batch_obj
     t2_1 = t2_0.initialize_batch_obj
@@ -69,7 +69,7 @@ class MergeTest < Test::Unit::TestCase
   
   def test_stack_merge
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
 
     t2_0.merge(t0_0, t1_0, :stack => true)
     t0_0.enq ''
@@ -89,7 +89,7 @@ class MergeTest < Test::Unit::TestCase
   
   def test_stack_batch_merge
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
     t0_1 = t0_0.initialize_batch_obj
     t1_1 = t1_0.initialize_batch_obj
     t2_1 = t2_0.initialize_batch_obj
@@ -121,7 +121,13 @@ class MergeTest < Test::Unit::TestCase
   
   def test_iterate_merge
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0 = Tracer.new(0, runlist) do |task, input|
+      input.collect {|str| task.mark(str) }
+    end
+    t1_0 = Tracer.new(1, runlist) do |task, input|
+      input.collect {|str| task.mark(str) }
+    end
+    t2_0 = Tracer.new(2, runlist)
   
     t2_0.merge(t0_0, t1_0, :iterate => true)
     t0_0.enq ['a', 'b']
@@ -145,7 +151,7 @@ class MergeTest < Test::Unit::TestCase
   
   def test_unbatched_merge
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
     t0_1 = t0_0.initialize_batch_obj
     t1_1 = t1_0.initialize_batch_obj
     t2_1 = t2_0.initialize_batch_obj

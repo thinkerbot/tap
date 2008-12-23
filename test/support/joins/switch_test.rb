@@ -7,7 +7,7 @@ class SwitchTest < Test::Unit::TestCase
   
   def test_simple_switch
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
     
     index = nil
     t0_0.switch(t1_0, t2_0) do |_results|
@@ -71,7 +71,7 @@ class SwitchTest < Test::Unit::TestCase
   
   def test_batch_switch
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
     t0_1 = t0_0.initialize_batch_obj
     t1_1 = t1_0.initialize_batch_obj
     t2_1 = t2_0.initialize_batch_obj
@@ -185,7 +185,7 @@ class SwitchTest < Test::Unit::TestCase
   
   def test_stack_switch
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
     
     index = nil
     t0_0.switch(t1_0, t2_0, :stack => true) do |_results|
@@ -254,7 +254,7 @@ class SwitchTest < Test::Unit::TestCase
   
   def test_batched_stack_switch
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
     t0_1 = t0_0.initialize_batch_obj
     t1_1 = t1_0.initialize_batch_obj
     t2_1 = t2_0.initialize_batch_obj
@@ -358,7 +358,11 @@ class SwitchTest < Test::Unit::TestCase
   
   def test_iterate_switch
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0 = Tracer.new(0, runlist) do |task, input|
+      input.collect {|str| task.mark(str) }
+    end
+    t1_0 = Tracer.new(1, runlist)
+    t2_0 = Tracer.new(2, runlist)
     
     index = nil
     t0_0.switch(t1_0, t2_0, :iterate => true) do |_results|
@@ -432,7 +436,7 @@ class SwitchTest < Test::Unit::TestCase
   
   def test_unbatched_switch
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, runlist)
+    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
     t0_1 = t0_0.initialize_batch_obj
     t1_1 = t1_0.initialize_batch_obj
     t2_1 = t2_0.initialize_batch_obj
@@ -522,7 +526,7 @@ class SwitchTest < Test::Unit::TestCase
   end
   
   def test_switch_raises_error_for_out_of_bounds_index
-    t0_0, t1_0, t2_0 = Tracer.intern(3, app, [])
+    t0_0, t1_0, t2_0 = Tracer.intern(3, [])
     t0_0.switch(t1_0, t2_0) do |_results|
       100
     end

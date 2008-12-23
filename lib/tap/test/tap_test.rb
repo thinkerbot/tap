@@ -36,6 +36,45 @@ module Tap
     # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] for documentation of the class methods added by TapTest.
     module TapTest
       
+      class Tracer
+        include Tap::Support::Executable
+
+        class << self
+          def intern(n, runlist, &block)
+            Array.new(n) { |index| new(index, runlist, &block) }
+          end
+        end
+
+        def initialize(index, runlist, &block)
+          @index = index
+          @runlist = runlist
+
+          @app = Tap::App.instance
+          @_method_name = :trace
+          @on_complete_block =nil
+          @dependencies = []
+          @batch = [self]
+          @block = block || lambda {|task, str| task.mark(str) }
+        end
+
+        def id
+          "#{@index}.#{batch_index}"
+        end
+        
+        def mark(input)
+          "#{input} #{id}".strip
+        end
+        
+        def inspect
+          "Tracer(#{@index})"
+        end
+
+        def trace(*inputs)
+          @runlist << id
+          @block.call(self, *inputs)
+        end
+      end
+      
       # Returns the test-method-specific application.
       attr_reader :app
       
@@ -48,42 +87,6 @@ module Tap
         super
         @app = Tap::App.new(app_config)
         Tap::App.instance = @app
-      end
-      
-      class Tracer
-        include Tap::Support::Executable
-
-        class << self
-          def intern(n, app, runlist)
-            Array.new(n) { |index| new(index, app, runlist) }
-          end
-        end
-
-        def initialize(index, app, runlist)
-          @index = index
-          @runlist = runlist
-
-          @app = app
-          @_method_name = :trace
-          @on_complete_block =nil
-          @dependencies = []
-          @batch = [self]
-        end
-
-        def concat(str, id)
-          "#{str} #{id}".strip
-        end
-
-        def trace(trace)
-          id = "#{@index}.#{batch_index}"
-          @runlist << id
-
-          case trace
-          when Array then trace.collect {|str| concat(str, id) }
-          when String then concat(trace, id)
-          else raise "cannot utilize trace: #{trace}"
-          end
-        end
       end
       
       # Asserts that an array of audits are all equal, basically feeding
