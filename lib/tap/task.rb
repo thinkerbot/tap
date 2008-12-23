@@ -334,7 +334,7 @@ module Tap
         define_method(name) do
           instance = dependency_class.instance
           instance.resolve
-          instance._result._current
+          instance._result.value
         end
         
         public(name)

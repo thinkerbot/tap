@@ -33,7 +33,7 @@ module Tap
 
           sources.each_with_index do |source, index|
             complete(source) do |_result|
-              src = _result._current_source
+              src = _result.key
 
               source_index = indicies[src]
               (combinations[src] ||= []).each do |combination|
@@ -43,11 +43,9 @@ module Tap
 
                 combination[source_index] = _result
                 unless combination.include?(nil)
-                  # merge the source audits
-                  _merge_result = Support::Audit.merge(*combination)
 
-                  yield(_merge_result) if block_given?
-                  enq(target, _merge_result)
+                  yield(*combination) if block_given?
+                  enq(target, *combination)
 
                   # reset the group array
                   combination.collect! {|i| nil }

@@ -64,7 +64,7 @@ class CombinatorTest < Test::Unit::TestCase
       [[1], nil, [], [4,5,6], nil]
     ].each do |sets|
       expected = sets.reject {|s| s.nil? || s.empty? }
-      assert_equal expected, Combinator.new(*sets).sets, PP.singleline_pp(sets, "")
+      assert_equal expected, Combinator.new(*sets).sets, sets.inspect
     end
   end
   
@@ -86,7 +86,7 @@ class CombinatorTest < Test::Unit::TestCase
       [[1,2], [3,4], [5,6]] => 8,
       [[1,2], nil, [3,4], [], [5,6]] => 8
     }.each_pair do |sets, expected|
-      assert_equal expected, Combinator.new(*sets).length, PP.singleline_pp(sets, "")
+      assert_equal expected, Combinator.new(*sets).length, sets.inspect
     end
   end
   
@@ -111,7 +111,7 @@ class CombinatorTest < Test::Unit::TestCase
       
       combinations = []
       comb.each { |c| combinations << c }
-      assert_equal expected, combinations, PP.singleline_pp(set, "")
+      assert_equal expected, combinations, set.inspect
     end
   end
   

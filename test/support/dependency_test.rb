@@ -34,7 +34,7 @@ class DependencyTest < Test::Unit::TestCase
     
     assert_equal nil, m._result
     m._execute
-    assert_equal "result", m._result._current
+    assert_equal "result", m._result.value
   end
   
   #
@@ -70,7 +70,7 @@ class DependencyTest < Test::Unit::TestCase
     m.resolve
     
     assert m.resolved?
-    assert_equal "result", m._result._current
+    assert_equal "result", m._result.value
     assert_equal [m], m.trace
   end
   

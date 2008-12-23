@@ -105,9 +105,8 @@ class AppTest < Test::Unit::TestCase
     add_five = Tap::Task.intern({}, 'add_five') {|task, input| input += 5 }
   
     add_one.on_complete do |_result|
-      # _result is the audit; use the _current method
-      # to get the current value in the audit trail
-      current_value = _result._current
+      # _result is the audit
+      current_value = _result.value
   
       if current_value < 3 
         add_one.enq(_result)
@@ -125,7 +124,7 @@ class AppTest < Test::Unit::TestCase
 
     target = StringIO.new("")
     app._results(add_five).each do |_result|
-      target.puts "How #{_result._original} became #{_result._current}:"
+      target.puts "How #{_result._original} became #{_result.value}:"
       target.puts _result._to_s
       target.puts
     end
@@ -239,7 +238,7 @@ o-[add_five] 8}.strip
     t.enq 1
     app.run
 
-    assert_audit_equal(ExpAudit[[nil, 1], [t,2]], app._results(t).first)
+    assert_audit_equal([[nil, 1], [t,2]], app._results(t).first)
     assert_equal [1], runlist
   end
   
@@ -355,8 +354,8 @@ o-[add_five] 8}.strip
     ], runlist
 
     assert_audits_equal([
-      ExpAudit[[nil,[0]],[t1,[0,0]]],
-      ExpAudit[[nil,[0]],[t2,[0,1]]]
+      [[nil,[0]],[t1,[0,0]]],
+      [[nil,[0]],[t2,[0,1]]]
     ], app._results(*t1.batch))
   end
    
@@ -368,7 +367,7 @@ o-[add_five] 8}.strip
     end
     t2 = t1.initialize_batch_obj
 
-    a = Support::Audit.new([0], :a)
+    a = Support::Audit.new(:a, [0])
     t1.enq a
     app.run
 
@@ -379,8 +378,8 @@ o-[add_five] 8}.strip
     ], runlist
 
     assert_audits_equal([
-      ExpAudit[[:a,[0]],[t1,[0,0]]],
-      ExpAudit[[:a,[0]],[t2,[0,1]]]
+      [[:a,[0]],[t1,[0,0]]],
+      [[:a,[0]],[t2,[0,1]]]
     ], app._results(t1.batch))
   end
   
@@ -389,8 +388,8 @@ o-[add_five] 8}.strip
   #
 
   def test__results_returns_audited_results_for_listed_sources
-    a1 = Tap::Support::Audit.new._record(:t1, 1)
-    a2 = Tap::Support::Audit.new._record(:t2, 2)
+    a1 = Tap::Support::Audit.new(:t1, 1)
+    a2 = Tap::Support::Audit.new(:t2, 2)
     
     app.aggregator.store a1
     app.aggregator.store a2
@@ -418,8 +417,8 @@ o-[add_five] 8}.strip
   end
   
   def test_results_returns_current_values_of__results
-    a1 = Tap::Support::Audit.new._record(:t1, 1)
-    a2 = Tap::Support::Audit.new._record(:t2, 2)
+    a1 = Tap::Support::Audit.new(:t1, 1)
+    a2 = Tap::Support::Audit.new(:t2, 2)
     
     app.aggregator.store a1
     app.aggregator.store a2

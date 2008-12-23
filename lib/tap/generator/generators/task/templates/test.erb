@@ -14,6 +14,6 @@ class <%= const.name %>Test < Test::Unit::TestCase
     # a more complex test
     task.execute("moon")
     assert_equal ["goodnight moon"], app.results(task)
-    assert_audit_equal ExpAudit[[nil, "moon"], [task, "goodnight moon"]], app._results(task)[0]
+    assert_audit_equal [[nil, "moon"], [task, "goodnight moon"]], app._results(task)[0]
   end
 end

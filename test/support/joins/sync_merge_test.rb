@@ -23,11 +23,11 @@ class SyncMergeTest < Test::Unit::TestCase
       1.0 2.0
     }, runlist
     
-    m0_0 = ExpAudit[[nil, ''],[t0_0, '0.0']]
-    m1_0 = ExpAudit[[nil, ''],[t1_0, '1.0']]
+    m0_0 = [[nil, ''],[t0_0, '0.0']]
+    m1_0 = [[nil, ''],[t1_0, '1.0']]
 
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]]
+      [[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]]
     ], app._results(t2_0))
   end
   
@@ -54,23 +54,23 @@ class SyncMergeTest < Test::Unit::TestCase
           2.0 2.1
     }, runlist
     
-    m0_0 = ExpAudit[[nil, ''],[t0_0, '0.0']]
-    m0_1 = ExpAudit[[nil, ''],[t0_1, '0.1']]
-    m1_0 = ExpAudit[[nil, ''],[t1_0, '1.0']]
-    m1_1 = ExpAudit[[nil, ''],[t1_1, '1.1']]
+    m0_0 = [[nil, ''],[t0_0, '0.0']]
+    m0_1 = [[nil, ''],[t0_1, '0.1']]
+    m1_0 = [[nil, ''],[t1_0, '1.0']]
+    m1_1 = [[nil, ''],[t1_1, '1.1']]
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_0,['0.1 2.0', '1.0 2.0']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_0,['0.0 2.0', '1.1 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_0,['0.1 2.0', '1.1 2.0']]]
+      [[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]],
+      [[m0_1,m1_0], [t2_0,['0.1 2.0', '1.0 2.0']]],
+      [[m0_0,m1_1], [t2_0,['0.0 2.0', '1.1 2.0']]],
+      [[m0_1,m1_1], [t2_0,['0.1 2.0', '1.1 2.0']]]
     ], app._results(t2_0))
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_1,['0.0 2.1', '1.0 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_1,['0.1 2.1', '1.0 2.1']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_1,['0.0 2.1', '1.1 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_1,['0.1 2.1', '1.1 2.1']]]
+      [[m0_0,m1_0], [t2_1,['0.0 2.1', '1.0 2.1']]],
+      [[m0_1,m1_0], [t2_1,['0.1 2.1', '1.0 2.1']]],
+      [[m0_0,m1_1], [t2_1,['0.0 2.1', '1.1 2.1']]],
+      [[m0_1,m1_1], [t2_1,['0.1 2.1', '1.1 2.1']]]
     ], app._results(t2_1))
   end
   
@@ -88,11 +88,11 @@ class SyncMergeTest < Test::Unit::TestCase
       1.0 2.0
     }, runlist
     
-    m0_0 = ExpAudit[[nil,''],[t0_0,'0.0']]
-    m1_0 = ExpAudit[[nil,''],[t1_0,'1.0']]
+    m0_0 = [[nil,''],[t0_0,'0.0']]
+    m1_0 = [[nil,''],[t1_0,'1.0']]
 
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]]
+      [[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]]
     ], app._results(t2_0))
   end
   
@@ -119,23 +119,23 @@ class SyncMergeTest < Test::Unit::TestCase
           2.0 2.1
     }, runlist
     
-    m0_0 = ExpAudit[[nil, ''],[t0_0, '0.0']]
-    m0_1 = ExpAudit[[nil, ''],[t0_1, '0.1']]
-    m1_0 = ExpAudit[[nil, ''],[t1_0, '1.0']]
-    m1_1 = ExpAudit[[nil, ''],[t1_1, '1.1']]
+    m0_0 = [[nil, ''],[t0_0, '0.0']]
+    m0_1 = [[nil, ''],[t0_1, '0.1']]
+    m1_0 = [[nil, ''],[t1_0, '1.0']]
+    m1_1 = [[nil, ''],[t1_1, '1.1']]
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_0,['0.1 2.0', '1.0 2.0']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_0,['0.0 2.0', '1.1 2.0']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_0,['0.1 2.0', '1.1 2.0']]]
+      [[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]],
+      [[m0_1,m1_0], [t2_0,['0.1 2.0', '1.0 2.0']]],
+      [[m0_0,m1_1], [t2_0,['0.0 2.0', '1.1 2.0']]],
+      [[m0_1,m1_1], [t2_0,['0.1 2.0', '1.1 2.0']]]
     ], app._results(t2_0))
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_1,['0.0 2.1', '1.0 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_0], [t2_1,['0.1 2.1', '1.0 2.1']]],
-      ExpAudit[ExpMerge[m0_0,m1_1], [t2_1,['0.0 2.1', '1.1 2.1']]],
-      ExpAudit[ExpMerge[m0_1,m1_1], [t2_1,['0.1 2.1', '1.1 2.1']]]
+      [[m0_0,m1_0], [t2_1,['0.0 2.1', '1.0 2.1']]],
+      [[m0_1,m1_0], [t2_1,['0.1 2.1', '1.0 2.1']]],
+      [[m0_0,m1_1], [t2_1,['0.0 2.1', '1.1 2.1']]],
+      [[m0_1,m1_1], [t2_1,['0.1 2.1', '1.1 2.1']]]
     ], app._results(t2_1))
   end
   
@@ -155,12 +155,12 @@ class SyncMergeTest < Test::Unit::TestCase
           2.0
     }, runlist
     
-    m0_0 = ExpAudit[[nil, ''],[t0_0, '0.0']]
-    m1_0 = ExpAudit[[nil, ''],[t1_0, '1.0']]
+    m0_0 = [[nil, ''],[t0_0, '0.0']]
+    m1_0 = [[nil, ''],[t1_0, '1.0']]
 
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [AuditIterate.new(0), '0.0'], [t2_0,'0.0 2.0']],
-      ExpAudit[ExpMerge[m0_0,m1_0], [AuditIterate.new(1), '1.0'], [t2_0,'1.0 2.0']]
+      [[m0_0,m1_0], [0, '0.0'], [t2_0,'0.0 2.0']],
+      [[m0_0,m1_0], [1, '1.0'], [t2_0,'1.0 2.0']]
     ], app._results(t2_0))
   end
   
@@ -188,19 +188,19 @@ class SyncMergeTest < Test::Unit::TestCase
       1.1
     }, runlist
     
-    m0_0 = ExpAudit[[nil, ''],[t0_0, '0.0']]
-    m1_0 = ExpAudit[[nil, ''],[t1_0, '1.0']]
+    m0_0 = [[nil, ''],[t0_0, '0.0']]
+    m1_0 = [[nil, ''],[t1_0, '1.0']]
 
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_1, '0.1']]
+      [[nil, ''],[t0_1, '0.1']]
     ], app._results(t0_1))
     
     assert_audits_equal([
-      ExpAudit[ExpMerge[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]]
+      [[m0_0,m1_0], [t2_0,['0.0 2.0', '1.0 2.0']]]
     ], app._results(t2_0))
     
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t1_1, '1.1']]
+      [[nil, ''],[t1_1, '1.1']]
     ], app._results(t1_1))
     
     assert app._results(t2_1).empty?

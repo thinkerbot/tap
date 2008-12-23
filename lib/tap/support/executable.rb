@@ -238,42 +238,21 @@ module Tap
       
       # Auditing method call.  Resolves dependencies, executes _method_name,
       # and sends the audited result to the on_complete_block (if set).
-      #
-      # Audits are initialized in the follwing manner:
-      # no inputs:: Creates a new, empty Audit.  The first value of the audit
-      #             will be the result of call.
-      # one input:: Forks the input if it is an audit, otherwise initializes
-      #             a new audit using the input.
-      # multiple inputs:: Merges the inputs into a new Audit.
-      #
       def _execute(*inputs)
         resolve_dependencies
         
-        audit = case inputs.length
-        when 0 then Audit.new
-        when 1 
-          audit = inputs.first
-          if audit.kind_of?(Audit) 
-            inputs = [audit._current]
-            audit._fork
+        previous = []
+        inputs.collect! do |input| 
+          if input.kind_of?(Audit) 
+            previous << input
+            input.value
           else
-            Audit.new(audit)
-          end 
-        else
-          sources = []
-          inputs.collect! do |input| 
-            if input.kind_of?(Audit) 
-              sources << input._fork
-              input._current
-            else
-              sources << nil
-              input
-            end
+            previous << Audit.new(nil, input)
+            input
           end
-          Audit.new(inputs, sources)
         end
-      
-        audit._record(self, send(_method_name, *inputs))
+         
+        audit = Audit.new(self, send(_method_name, *inputs), previous)
         on_complete_block ? on_complete_block.call(audit) : app.aggregator.store(audit)
         
         audit
@@ -282,7 +261,7 @@ module Tap
       # Calls _execute with the inputs and returns the un-audited result.
       # Execute is not a batched method.
       def execute(*inputs)
-        _execute(*inputs)._current
+        _execute(*inputs).value
       end
       
       # Raises a TerminateError if app.state == State::TERMINATE.

@@ -16,7 +16,7 @@ class Tap::RakeTest < Test::Unit::TestCase
       
       # check the configuration and outputs
       assert_equal({:key  => 'value'}, t.config)
-      assert_audit_equal ExpAudit[[nil, "one"], [t, "one was processed with value"]], app._results(t).first
+      assert_audit_equal [[nil, "one"], [t, "one was processed with value"]], app._results(t).first
 
     end
   end

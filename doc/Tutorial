@@ -245,7 +245,7 @@ Take a look at the task files and you find something like this:
       app.run
 
       assert_equal ["goodnight moon"], app.results(task)
-      assert_audit_equal ExpAudit[[nil, "moon"], [task, "goodnight moon"]], app._results(task)[0]
+      assert_audit_equal [[nil, "moon"], [task, "goodnight moon"]], app._results(task)[0]
     end
   end
 

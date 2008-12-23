@@ -19,6 +19,7 @@ class TestSetupTest < Test::Unit::TestCase
 end
 
 class TapTestTest < Test::Unit::TestCase
+  include Tap::Support
   include TapTestMethods
   acts_as_tap_test 
   
@@ -54,186 +55,40 @@ class TapTestTest < Test::Unit::TestCase
   #
   
   def test_assert_audit_doc
-    a = Tap::Support::Audit.new
-    a._record(:a, 'a')
-    a._record(:b, 'b')
+    a = Audit.new(:a, 'a')
+    b = Audit.new(:b, 'b', a)
   
-    e = ExpAudit[[:a, 'a'], [:b, 'b']]
-    assert_audit_equal(e, a)
-
-    a = Tap::Support::Audit.new
-    a._record(:a, 'a')
-    a._record(:b, 'b')
+    e = [[:a, 'a'], [:b, 'b']]
+    assert_audit_equal(e, b)
   
-    e = ExpAudit[
-         lambda {|source, value| source == :a && value == 'a'},
-        [:b, 'b']]
-    assert_audit_equal(e, a)
+    a = Audit.new(:a, 'a')
+    b = Audit.new(:b, 'b', a)
   
-    a = Tap::Support::Audit.new
-    a._record(:a, 'a')
-    a._record(:b, 'b')
-  
-    b = Tap::Support::Audit.new
-    b._record(:c, 'c')
-    b._record(:d, 'd')
-  
-    c = Tap::Support::Audit.merge(a,b)
-    c._record(:e, 'e')
-    c._record(:f, 'f')
-  
-    ea = ExpAudit[[:a, "a"], [:b, "b"]]
-    eb = ExpAudit[[:c, "c"], [:d, "d"]]
-    e = ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]]
-  
-    assert_audit_equal(e, c)
+    c = Audit.new(:c, 'c')
+    d = Audit.new(:d, 'd', c)
     
-    ea = ExpAudit[[:a, "a"], [:b, "FLUNK"]]
-    eb = ExpAudit[[:c, "c"], [:d, "d"]]
-    e = ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]]
-  
-    exception = assert_raise(Test::Unit::AssertionFailedError) do
-      assert_audit_equal(e, c)
-    end
-    assert exception.message =~ /unequal record 0:0:1\./
+    e = Audit.new(:e, 'e', [b,d])
+    f = Audit.new(:f, 'f', e)
     
-    assert_equal ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]], e
-    assert_equal ExpMerge[ea, eb], e[0]
-    assert_equal ExpAudit[[:a, "a"], [:b, "FLUNK"]], e[0][0]
-    assert_equal [:b, "FLUNK"], e[0][0][1]
+    eb = [[:a, "a"], [:b, "b"]]
+    ed = [[:c, "c"], [:d, "d"]]
+    expected = [[eb, ed], [:e, "e"], [:f, "f"]]
+  
+    assert_audit_equal(expected, f)
   end
   
   def test_assert_audit_equal
-    a = Tap::Support::Audit.new(nil, nil)
-    a._record(:a, 'a')
-    a._record(:b, 'b')
+    a = Audit.new(:a, 'a')
+    b = Audit.new(:b, 'b', a)
     
-    e = ExpAudit[[nil, nil], [:a, 'a'], [:b, 'b']]
-    assert_audit_equal(e, a) 
+    e = [[:a, 'a'], [:b, 'b']]
+    assert_audit_equal(e, b) 
     
-    exception = assert_raise(Test::Unit::AssertionFailedError) do
-      e = ExpAudit[[nil, nil], [:a, 'FLUNK'], [:b, 'b']]
-      assert_audit_equal(e, a)
+    assert_raise(Test::Unit::AssertionFailedError) do
+      e = [[:a, 'FLUNK'], [:b, 'b']]
+      assert_audit_equal(e, b)
     end
-    
-    assert_equal "unequal record 1.\n<[:a, \"FLUNK\"]> expected but was\n<[:a, \"a\"]>.", exception.message
   end
-  
-  def test_assert_audit_equal_with_procs
-    a = Tap::Support::Audit.new(nil, nil)
-    a._record(:a, 'a')
-    a._record(:b, 'b')
-    
-    e = ExpAudit[
-      lambda {|source, value| source == nil && value == nil}, 
-      lambda {|source, value| source == :a && value == 'a'}, 
-      lambda {|source, value| source == :b && value == 'b'}]
-    assert_audit_equal(e, a) 
-    
-    exception = assert_raise(Test::Unit::AssertionFailedError) do
-      e = ExpAudit[
-        lambda {|source, value| source == nil && value == nil}, 
-        lambda {|source, value| source == :a && value == 'FLUNK'}, 
-        lambda {|source, value| source == :b && value == 'b'}]
-      assert_audit_equal(e, a)
-    end
-    
-    assert_equal "unconfirmed record 1.\n<false> is not true.", exception.message
-  end
-  
-  def test_assert_audit_equal_for_merge
-    a = Tap::Support::Audit.new(nil, nil)
-    a._record(:a, 'a')
-    a._record(:b, 'b')
-  
-    b = Tap::Support::Audit.new(nil, nil)
-    b._record(:c, 'c')
-    b._record(:d, 'd')
-    
-    c = Tap::Support::Audit.merge(a,b)
-    c._record(:e, 'e')
-    c._record(:f, 'f')
-    
-    ea = ExpAudit[[nil, nil], [:a, "a"], [:b, "b"]]
-    eb = ExpAudit[[nil, nil], [:c, "c"], [:d, "d"]]
-    e = ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]]
-  
-    assert_audit_equal(e, c)
-    
-    exception = assert_raise(Test::Unit::AssertionFailedError) do
-      ea = ExpAudit[[nil, nil], [:a, "FLUNK"], [:b, "b"]]
-      eb = ExpAudit[[nil, nil], [:c, "c"], [:d, "d"]]
-      e = ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]]
-      assert_audit_equal(e, c)
-    end
-    
-    assert_equal "unequal record 0:0:1.\n<[:a, \"FLUNK\"]> expected but was\n<[:a, \"a\"]>.", exception.message
-  end
-  
-  def new_audit(letter, n=0)
-    a = Tap::Support::Audit.new(nil, nil)
-    1.upto(n) {|i| a._record(letter, "#{letter}#{i}")}
-    a
-  end
-  
-  def test_assert_audit_equal_for_nested_merge_with_procs
-    a = new_audit(:a, 1)
-    b = new_audit(:b, 1)
-    c = Tap::Support::Audit.merge(a,b)
-    1.upto(1) {|i| c._record(:c, "c#{i}")}
-    
-    d = new_audit(:d, 1)
-    e = new_audit(:e, 1)
-    f = Tap::Support::Audit.merge(d, e, 'x1', 'y1', 'z1')
-    1.upto(1) {|i| f._record(:f, "f#{i}")}
-    
-    g = Tap::Support::Audit.merge(c, f)
-    1.upto(1) {|i| g._record(:g, "g#{i}")}
-    
-    ea = ExpAudit[[nil, nil], [:a, 'a1']]
-    eb = ExpAudit[[nil, nil], [:b, 'b1']]
-    ec = ExpAudit[ExpMerge[ea, eb], lambda {|source, value| source == :c && value == 'c1'}]
-    
-    ed = ExpAudit[[nil, nil], [:d, 'd1']]
-    ee = ExpAudit[[nil, nil], [:e, 'e1']]
-    ex1 = ExpAudit[lambda {|source, value| source == nil && value == 'x1'}]
-    ey1 = ExpAudit[[nil, 'y1']]
-    ez1 = ExpAudit[[nil, 'z1']]
-    ef = ExpAudit[ExpMerge[ed, ee, ex1, ey1, ez1], [:f, 'f1']]
-    
-    eg = ExpAudit[ExpMerge[ec, ef], [:g, 'g1']]
-    assert_audit_equal(eg, g)
-    
-    exception = assert_raise(Test::Unit::AssertionFailedError) do
-      ea = ExpAudit[[nil, nil], [:a, 'a1']]
-      eb = ExpAudit[[nil, nil], [:b, 'b1']]
-      ec = ExpAudit[ExpMerge[ea, eb], lambda {|source, value| source == :c && value == 'c1'}]
-
-      ed = ExpAudit[[nil, nil], [:d, 'd1']]
-      ee = ExpAudit[[nil, nil], [:e, 'e1']]
-      ex1 = ExpAudit[lambda {|source, value| source == nil && value == 'FLUNK'}]
-      ey1 = ExpAudit[[nil, 'y1']]
-      ez1 = ExpAudit[[nil, 'z1']]
-      ef = ExpAudit[ExpMerge[ed, ee, ex1, ey1, ez1], [:f, 'f1']]
-
-      eg = ExpAudit[ExpMerge[ec, ef], [:g, 'g1']]
-      assert_audit_equal(eg, g)
-    end
-    
-    assert_equal "unconfirmed record 0:1:0:2:0.\n<false> is not true.", exception.message
-  end
-  
-  def test_assert_audit_equal_flunks_for_empty_merge
-    ea = ExpAudit[ExpMerge[], [:a, 'a1']]
-    a = new_audit(:a, 1)
-    exception = assert_raise(Test::Unit::AssertionFailedError) do
-      assert_audit_equal(ea, a)
-    end
-    
-    assert_equal "empty merge 0.", exception.message
-  end
-  
-  # TODO -- test length check for assert_audit_equal
   
   #
   # with config 

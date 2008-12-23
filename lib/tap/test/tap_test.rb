@@ -50,18 +50,6 @@ module Tap
         Tap::App.instance = @app
       end
       
-      #
-      # audit test methods
-      #
-      
-      # Used to define expected audits in Tap::Test::TapTest#assert_audit_equal
-      class ExpAudit < Array
-      end
-      
-      # Used to define merged audit trails in Tap::Test::TapTest#assert_audit_equal
-      class ExpMerge < Array
-      end
-      
       class Tracer
         include Tap::Support::Executable
 
@@ -100,103 +88,49 @@ module Tap
       
       # Asserts that an array of audits are all equal, basically feeding
       # each pair of audits to assert_audit_equal.
-      def assert_audits_equal(expected, audits)
-        error_msg = "expected <#{audits.length}> audits, but was <#{expected.length}>"
-        Utils.each_pair_with_index(expected, audits, error_msg) do |exp, audit, index|
-          assert_audit_equal(exp, audit, [index])
+      def assert_audits_equal(expected, audits, msg=nil, &block)
+        assert_equal expected.length, audits.length, "expected <#{expected.length}> audits, but was <#{audits.length}>"
+        Utils.each_pair_with_index(expected, audits) do |exp, audit, index|
+          assert_audit_equal(exp, audit, &block)
         end
       end
       
-      # Asserts that an audit is as expected.  The expected audit should
-      # be an ExpAudit (just a subclass of Array) that records the sources
-      # and the values at each step in the audit trail.  Proc objects can
-      # be provided in place of expected records that are hard or impossible 
-      # to provide directly; the Proc will be used to validate the actual
-      # record.  Merges must be marked in the ExpAudit using ExpMerge.
+      # Asserts that an audit trail matches the expected trail.  By default
+      # the expected trail should be composed of [key, value] arrays 
+      # representing each audit, but a block may be provided to collect other
+      # attributes.
       #
       # Simple assertion:
       #
-      #   a = Tap::Support::Audit.new
-      #   a._record(:a, 'a')
-      #   a._record(:b, 'b')
+      #   a = Audit.new(:a, 'a')
+      #   b = Audit.new(:b, 'b', a)
       # 
-      #   e = ExpAudit[[:a, 'a'], [:b, 'b']]
-      #   assert_audit_equal(e, a)
-      # 
-      # Assertion validating a record with a Proc (any number of
-      # records can be validated with a Proc):
-      #
-      #   a = Tap::Support::Audit.new
-      #   a._record(:a, 'a')
-      #   a._record(:b, 'b')
-      # 
-      #   e = ExpAudit[
-      #        lambda {|source, value| source == :a && value == 'a'},
-      #       [:b, 'b']]
-      #   assert_audit_equal(e, a)
+      #   e = [[:a, 'a'], [:b, 'b']]
+      #   assert_audit_equal(e, b)
       #
       # Assertion with merge:
       #
-      #   a = Tap::Support::Audit.new
-      #   a._record(:a, 'a')
-      #   a._record(:b, 'b')
+      #   a = Audit.new(:a, 'a')
+      #   b = Audit.new(:b, 'b', a)
       # 
-      #   b = Tap::Support::Audit.new
-      #   b._record(:c, 'c')
-      #   b._record(:d, 'd')
+      #   c = Audit.new(:c, 'c')
+      #   d = Audit.new(:d, 'd', c)
       # 
-      #   c = Tap::Support::Audit.merge(a,b)
-      #   c._record(:e, 'e')
-      #   c._record(:f, 'f')
+      #   e = Audit.new(:e, 'e')
+      #   f = Audit.new(:f, 'f', [b,d])
       # 
-      #   ea = ExpAudit[[:a, "a"], [:b, "b"]]
-      #   eb = ExpAudit[[:c, "c"], [:d, "d"]]
-      #   e = ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]]
+      #   eb = [[:a, "a"], [:b, "b"]]
+      #   ed = [[:c, "c"], [:d, "d"]]
+      #   e =  [[eb, ed], [:e, "e"], [:f, "f"]]
       # 
       #   assert_audit_equal(e, c)
       #
-      # When assert_audit_equal fails, a string of indicies is provided
-      # to help locate which record was unequal.  For instance in the last
-      # example, say we used:
-      #
-      #   ea = ExpAudit[[:a, "a"], [:b, "FLUNK"]]
-      #   eb = ExpAudit[[:c, "c"], [:d, "d"]]
-      #   e = ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]]
-      #
-      # The failure message will read something like 'unequal record 0:0:1' 
-      # indicating it was e[0][0][1] that failed.  Working through it, 
-      # remembering that ExpAudit and ExpMerge are just subclasses of 
-      # Array:
-      #
-      #   e              # => ExpAudit[ExpMerge[ea, eb], [:e, "e"], [:f, "f"]]
-      #   e[0]           # => ExpMerge[ea, eb]
-      #   e[0][0]        # => ExpAudit[[:a, "a"], [:b, "FLUNK"]]
-      #   e[0][0][1]     # => [:b, "FLUNK"]
-      #
-      def assert_audit_equal(expected, audit, nesting=[])
-        actual = audit._collect_records {|source, value| [source, value]}
-        assert_audit_records_equal(expected, actual, nesting)
+      def assert_audit_equal(expected, audit, msg=nil, &block)
+        block = lambda {|audit| [audit.key, audit.value] } unless block
+        actual = audit._sink_trail(&block)
+        assert_equal(expected, actual, msg)
       end
       
-      def assert_audit_records_equal(expected, actual, nesting=[])
-        assert_equal ExpAudit, expected.class
-        assert_equal expected.length, actual.length, "unequal number of records"
-        
-        expected.each_with_index do |exp_record, i|
-          case exp_record
-          when ExpMerge
-            flunk "empty merge #{(nesting + [i]).join(':')}" if exp_record.empty?
-            exp_record.each_with_index do |exp_audit, j|
-              assert_audit_records_equal(exp_audit, actual[i][j], nesting + [i,j]) 
-            end
-          when Proc
-            assert exp_record.call(*actual[i]), "unconfirmed record #{(nesting + [i]).join(':')}"
-          else
-            assert_equal exp_record, actual[i], "unequal record #{(nesting + [i]).join(':')}"
-          end
-        end
-      end
-
       # The configurations used to initialize self.app
       def app_config
         method_root.config.to_hash.merge(:quiet => true, :debug => true)

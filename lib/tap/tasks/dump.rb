@@ -41,7 +41,7 @@ module Tap
         app.aggregator.to_hash.each_pair do |src, _results|
           next if filter && src.to_s !~ filter
           
-          results["#{src} (#{src.object_id})"] = _results.collect {|_audit| _audit._current }
+          results["#{src} (#{src.object_id})"] = _results.collect {|_audit| _audit.value }
           _results.each {|_audit| trails << _audit._to_s }
         end
       

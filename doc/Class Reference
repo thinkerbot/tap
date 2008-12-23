@@ -246,8 +246,7 @@ Tap tracks inputs as they are modified by various tasks, again through Executabl
 Auditing is largely invisible except in <tt>on_complete</tt> blocks.  <tt>on_complete</tt> blocks receive the audited results so that this information can be used, as needed, to make decisions.  
 
     Task.new.on_complete do |_result|            # _result is an Audit instance
-      _result._current                           # the current value
-      _result._original                          # the original value
+      _result.value                              # the current value
     end
 
 To help indicate when a result is actually a result and when it is an audit, Tap uses a convention whereby a leading underscore signals auditing is involved.

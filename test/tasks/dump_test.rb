@@ -21,9 +21,9 @@ class DumpTest < Test::Unit::TestCase
   def test_dump_to_writes_aggregated_result_to_io_as_yaml
     t = Tap::Task.new({}, "name")
     
-    a = Audit.new._record(t, 1)
+    a = Audit.new(t, 1)
     app.aggregator.store(a)
-    b = Audit.new._record(t, 2)
+    b = Audit.new(t, 2)
     app.aggregator.store(b)
     assert_equal({t => [a,b]}, app.aggregator.to_hash)
     
@@ -36,13 +36,12 @@ name (#{t.object_id}):
   end
   
   def test_dump_to_writes_audit_if_specified
-    a = Audit.new
-    a._record(:a, 1)
-    a._record(:b, 2)
-    app.aggregator.store(a)
+    a = Audit.new(:a, 1)
+    b = Audit.new(:b, 2, a)
+    app.aggregator.store(b)
     
     Dump.new(:date => false, :audit => true).dump_to(io)
-    assert io.string.gsub(/^# /, "").include?(a._to_s)
+    assert io.string.gsub(/^# /, "").include?(b._to_s)
   end
   
   def test_dump_to_writes_date_if_specified
@@ -52,11 +51,11 @@ name (#{t.object_id}):
   
   def test_dump_skips_objects_whose_to_s_does_not_match_filter
     t1 = Tap::Task.new({}, "name")
-    a = Audit.new._record(t1, 1)
+    a = Audit.new(t1, 1)
     app.aggregator.store(a)
     
     t2 = Tap::Task.new({}, "alt")
-    b = Audit.new._record(t2, 2)
+    b = Audit.new(t2, 2)
     app.aggregator.store(b)
 
     Dump.new(:date => false, :audit => false, :filter => /lt/).dump_to(io)

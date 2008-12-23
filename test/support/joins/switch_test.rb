@@ -25,7 +25,7 @@ class SwitchTest < Test::Unit::TestCase
     
     assert app._results(t0_0).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     assert app._results(t2_0).empty?
     
@@ -41,10 +41,10 @@ class SwitchTest < Test::Unit::TestCase
     
     assert app._results(t0_0).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
+      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
     ], app._results(t2_0))
     
     # now skip (aggregate result)
@@ -59,13 +59,13 @@ class SwitchTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0']]
+      [[nil, ''],[t0_0, '0.0']]
     ], app._results(t0_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
+      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
     ], app._results(t2_0))
   end
   
@@ -96,12 +96,12 @@ class SwitchTest < Test::Unit::TestCase
     assert app._results(t0_0).empty?
     assert app._results(t0_1).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
+      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
+      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
+      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
     ], app._results(t1_1))
     assert app._results(t2_0).empty?
     assert app._results(t2_1).empty?
@@ -125,20 +125,20 @@ class SwitchTest < Test::Unit::TestCase
     assert app._results(t0_0).empty?
     assert app._results(t0_1).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
+      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
+      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
+      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
     ], app._results(t1_1))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
+      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
+      [[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
     ], app._results(t2_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
+      [[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
+      [[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
     ], app._results(t2_1))
     
     # now skip (aggregate result)
@@ -160,26 +160,26 @@ class SwitchTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0']]
+      [[nil, ''],[t0_0, '0.0']]
     ], app._results(t0_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_1, '0.1']]
+      [[nil, ''],[t0_1, '0.1']]
     ], app._results(t0_1))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
+      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
+      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
+      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
     ], app._results(t1_1))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
+      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
+      [[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
     ], app._results(t2_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
+      [[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
+      [[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
     ], app._results(t2_1))
   end
   
@@ -204,7 +204,7 @@ class SwitchTest < Test::Unit::TestCase
     
     assert app._results(t0_0).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     assert app._results(t2_0).empty?
     
@@ -222,10 +222,10 @@ class SwitchTest < Test::Unit::TestCase
     
     assert app._results(t0_0).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
+      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
     ], app._results(t2_0))
     
     # now skip (aggregate result)
@@ -242,13 +242,13 @@ class SwitchTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0']]
+      [[nil, ''],[t0_0, '0.0']]
     ], app._results(t0_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
+      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
     ], app._results(t2_0))
   end
   
@@ -277,12 +277,12 @@ class SwitchTest < Test::Unit::TestCase
     assert app._results(t0_0).empty?
     assert app._results(t0_1).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
+      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
+      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
+      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
     ], app._results(t1_1))
     assert app._results(t2_0).empty?
     assert app._results(t2_1).empty?
@@ -302,20 +302,20 @@ class SwitchTest < Test::Unit::TestCase
     assert app._results(t0_0).empty?
     assert app._results(t0_1).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
+      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
+      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
+      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
     ], app._results(t1_1))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
+      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
+      [[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
     ], app._results(t2_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
+      [[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
+      [[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
     ], app._results(t2_1))
     
     # now skip (aggregate result)
@@ -333,26 +333,26 @@ class SwitchTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0']]
+      [[nil, ''],[t0_0, '0.0']]
     ], app._results(t0_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_1, '0.1']]
+      [[nil, ''],[t0_1, '0.1']]
     ], app._results(t0_1))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
+      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
+      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
+      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
     ], app._results(t1_1))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
+      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
+      [[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
     ], app._results(t2_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
+      [[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
+      [[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
     ], app._results(t2_1))
   end
   
@@ -377,8 +377,8 @@ class SwitchTest < Test::Unit::TestCase
     
     assert app._results(t0_0).empty?
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[0, 'a 0.0'],[t1_0, 'a 0.0 1.0']],
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[1, 'b 0.0'],[t1_0, 'b 0.0 1.0']]
     ], app._results(t1_0))
     assert app._results(t2_0).empty?
     
@@ -396,12 +396,12 @@ class SwitchTest < Test::Unit::TestCase
     
     assert app._results(t0_0).empty?
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[0, 'a 0.0'],[t1_0, 'a 0.0 1.0']],
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[1, 'b 0.0'],[t1_0, 'b 0.0 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t2_0, 'a 0.0 2.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t2_0, 'b 0.0 2.0']]
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[0, 'a 0.0'],[t2_0, 'a 0.0 2.0']],
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[1, 'b 0.0'],[t2_0, 'b 0.0 2.0']]
     ], app._results(t2_0))
     
     # now skip (aggregate result)
@@ -418,15 +418,15 @@ class SwitchTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']]]
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']]]
     ], app._results(t0_0))
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t1_0, 'a 0.0 1.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t1_0, 'b 0.0 1.0']]
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[0, 'a 0.0'],[t1_0, 'a 0.0 1.0']],
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[1, 'b 0.0'],[t1_0, 'b 0.0 1.0']]
     ], app._results(t1_0))
     assert_audits_equal([
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(0), 'a 0.0'],[t2_0, 'a 0.0 2.0']],
-      ExpAudit[[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[AuditIterate.new(1), 'b 0.0'],[t2_0, 'b 0.0 2.0']]
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[0, 'a 0.0'],[t2_0, 'a 0.0 2.0']],
+      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[1, 'b 0.0'],[t2_0, 'b 0.0 2.0']]
     ], app._results(t2_0))
   end
   
@@ -454,10 +454,10 @@ class SwitchTest < Test::Unit::TestCase
     
     assert app._results(t0_0).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_1, '0.1']]
+      [[nil, ''],[t0_1, '0.1']]
     ], app._results(t0_1))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     assert app._results(t1_1).empty?
     assert app._results(t2_0).empty?
@@ -477,15 +477,15 @@ class SwitchTest < Test::Unit::TestCase
     
     assert app._results(t0_0).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_1, '0.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1']]
+      [[nil, ''],[t0_1, '0.1']],
+      [[nil, ''],[t0_1, '0.1']]
     ], app._results(t0_1))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     assert app._results(t1_1).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
+      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
     ], app._results(t2_0))
     assert app._results(t2_1).empty?
     
@@ -504,19 +504,19 @@ class SwitchTest < Test::Unit::TestCase
     }, runlist
     
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0']]
+      [[nil, ''],[t0_0, '0.0']]
     ], app._results(t0_0))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_1, '0.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1']],
-      ExpAudit[[nil, ''],[t0_1, '0.1']]
+      [[nil, ''],[t0_1, '0.1']],
+      [[nil, ''],[t0_1, '0.1']],
+      [[nil, ''],[t0_1, '0.1']]
     ], app._results(t0_1))
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
+      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
     ], app._results(t1_0))
     assert app._results(t1_1).empty?
     assert_audits_equal([
-      ExpAudit[[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
+      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
     ], app._results(t2_0))
     assert app._results(t2_1).empty?
   end

@@ -12,26 +12,22 @@ class AggregatorTest < Test::Unit::TestCase
   end
   
   def test_aggregator_documentation
-    a = Audit.new
-    a._record(:src, 'a')
-
-    b = Audit.new
-    b._record(:src, 'b')
+    a = Audit.new(:key, 'a')
+    b = Audit.new(:key, 'b')
 
     agg = Aggregator.new
     agg.store(a)
     agg.store(b)
-    assert_equal [a, b], agg.retrieve(:src)
+    assert_equal [a, b], agg.retrieve(:key)
   end
   
   #
   # store test
   #
   
-  def test_store_appends_audit_to_array_keyed_by_current_source
-    a = Audit.new
-    a._record(:a, 1)
-    assert_equal :a, a._current_source
+  def test_store_appends_audit_to_array_keyed_by_key
+    a = Audit.new(:a, 'a')
+    assert_equal :a, a.key
     
     aggregator.store(a)
     assert_equal({:a => [a]}, aggregator.to_hash)
@@ -39,11 +35,11 @@ class AggregatorTest < Test::Unit::TestCase
     aggregator.store(a)
     assert_equal({:a => [a, a]}, aggregator.to_hash)
     
-    a._record(:b, 2)
-    assert_equal :b, a._current_source
+    b = Audit.new(:b, 'b')
+    assert_equal :b, b.key
     
-    aggregator.store(a)
-    assert_equal({:a => [a, a], :b => [a]}, aggregator.to_hash)
+    aggregator.store(b)
+    assert_equal({:a => [a, a], :b => [b]}, aggregator.to_hash)
   end
   
   #
@@ -51,8 +47,7 @@ class AggregatorTest < Test::Unit::TestCase
   #
   
   def test_clear
-    a = Audit.new
-    a._record(:a, 1)
+    a = Audit.new(:a, 'a')
     
     aggregator.store(a)
     aggregator.store(a)
@@ -67,8 +62,7 @@ class AggregatorTest < Test::Unit::TestCase
   #
   
   def test_retrieve_returns_array_for_source
-    a = Audit.new
-    a._record(:a, 1)
+    a = Audit.new(:a, 'a')
     
     aggregator.store(a)
     aggregator.store(a)
@@ -86,14 +80,12 @@ class AggregatorTest < Test::Unit::TestCase
   #
   
   def test_retrieve_all_returns_concatenated_arrays_for_sources
-    a = Audit.new
-    a._record(:a, 1)
+    a = Audit.new(:a, 'a')
     
     aggregator.store(a)
     aggregator.store(a)
     
-    b = Audit.new
-    b._record(:b, 1)
+    b = Audit.new(:b, 'b')
     aggregator.store(b)
     
     assert_equal({:a => [a, a], :b => [b]}, aggregator.to_hash)

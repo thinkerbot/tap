@@ -106,9 +106,8 @@ module Tap
   #   add_five = Tap::Task.intern({}, 'add_five') {|task, input| input += 5 }
   #
   #   add_one.on_complete do |_result|
-  #     # _result is the audit; use the _current method
-  #     # to get the current value in the audit trail
-  #     current_value = _result._current
+  #     # _result is the audit
+  #     current_value = _result.value
   #
   #     if current_value < 3 
   #       add_one.enq(_result)
@@ -131,7 +130,7 @@ module Tap
   #   # app.results returns the actual result values
   #   # app._results returns the audits for these values
   #   app._results(add_five).each do |_result|
-  #     puts "How #{_result._original} became #{_result._current}:"
+  #     puts "How #{_result._original} became #{_result.value}:"
   #     puts _result._to_s
   #     puts
   #   end
@@ -378,7 +377,7 @@ module Tap
     #   app.results(t1, t0)           # => ["1.1", "0.0"]
     #
     def results(*tasks)
-      _results(tasks).collect {|_result| _result._current}
+      _results(tasks).collect {|_result| _result.value }
     end
     
     def inspect
