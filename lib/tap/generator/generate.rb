@@ -21,7 +21,7 @@ module Tap
           log_relative :exists, target
         else
           log_relative :create, target
-          file_task.mkdir_p(target) unless pretend
+          FileUtils.mkdir_p(target) unless pretend
         end
       end
       
@@ -40,24 +40,24 @@ module Tap
         source = source_file.path
         target = File.expand_path(target)
         
-        copy_file = case
+        copy_file = true
+        msg = case
         when !File.exists?(target)
-          log_relative :create, target
-          true
+          :create
         when FileUtils.cmp(source, target)
-          log_relative :exists, target
-          false
+          :exists
         when force_file_collision?(target)
-          log_relative :force, target
-          true
+          :force
         else
-          log_relative :skip, target
-          false
+          copy_file = false
+          :skip
         end
         
+        log_relative msg, target
         if copy_file && !pretend
-          file_task.prepare(target) 
-          FileUtils.mv(source, target)
+          dir = File.dirname(target)
+          FileUtils.mkdir_p(dir) unless File.exists?(dir) 
+          FileUtils.mv(source, target, :force => true)
         end
       end
       

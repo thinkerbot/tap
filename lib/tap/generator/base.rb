@@ -64,8 +64,6 @@ module Tap
     # be available in the erb template.
     # :startdoc:::+
     class Base < Tap::Task
-      define :file_task, Tap::FileTask
-      
       lazy_attr :manifest, 'generator'
       lazy_attr :args, :manifest
       lazy_register :manifest, Arguments
@@ -92,7 +90,6 @@ module Tap
       end
       
       # Builds the manifest, then executes the actions of the manifest.
-      # Returns any added files.
       def process(*argv)
         actions = []
         manifest(Manifest.new(actions), *argv)
@@ -100,8 +97,6 @@ module Tap
         iterate(actions) do |action, args, block|
           send(action, *args, &block)
         end
-        
-        file_task.added_files
       end
       
       # Overridden in subclasses to add actions to the input Manifest.
