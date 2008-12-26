@@ -24,22 +24,26 @@ module Tap
       
       # Causes the join to iterate the results
       # of the source when enquing the targets.
-      config :iterate, false, &c.boolean
+      config :iterate, false, :short => 'i', &c.boolean
+      
+      # Causes joins to splat ('*') the results
+      # of the source when enquing the targets.
+      config :splat, false, :short => 's', &c.boolean
       
       # Causes the targets to be enqued rather
       # than executed immediately.
-      config :stack, false, &c.boolean
+      config :stack, false, :short => 'k', &c.boolean
       
       # Causes joins to only occur between the
       # explicitly named source and targets,
       # and not their batches.
-      config :unbatched, false, &c.boolean
+      config :unbatched, false, :short => 'u', &c.boolean
       
       # An array of workflow flags.  Workflow flags are false unless specified.
       FLAGS = configurations.keys
       
-      # An array of the first character in each WORKFLOW_FLAGS. 
-      SHORT_FLAGS = FLAGS.collect {|flag| flag.to_s[0,1]}
+      # An array of the shorts in each WORKFLOW_FLAGS. 
+      SHORT_FLAGS = configurations.values.collect {|config| config.attributes[:short] }
       
       # Initializes a new join with the specified configuration.
       def initialize(config)
@@ -85,6 +89,7 @@ module Tap
       #
       #                true                       false
       #   iterate      _results are iterated      _results are enqued directly
+      #   splat        _results are splat enqued  _results are enqued directly
       #   stack        the executable is enqued   the executable is executed
       #   unbatched    only exectuable is enqued  executable.batch is enqued
       #
@@ -109,8 +114,13 @@ module Tap
       end
       
       def unpack(_results)
-        if iterate
+        case
+        when iterate && splat
+          raise "splat and iterate"
+        when iterate
           flatten(_results).each {|_result| yield(_result) }
+        when splat
+          yield(flatten(_results))
         else
           yield(_results)
         end
@@ -122,6 +132,7 @@ module Tap
           unless _result.kind_of?(Audit)
             _result = Audit.new(nil, _result)
           end
+          
           array.concat(_result._iterate)
         end
         array

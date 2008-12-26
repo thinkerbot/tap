@@ -234,7 +234,7 @@ module Tap
         # if the options string contains unknown options.
         #
         #   parse_options("")                   # => {}
-        #   parse_options("is")                 # => {:iterate => true, :stack => true}
+        #   parse_options("ik")                 # => {:iterate => true, :stack => true}
         #
         def parse_options(three)
           options = {}

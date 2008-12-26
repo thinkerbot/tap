@@ -164,6 +164,39 @@ class ForkTest < Test::Unit::TestCase
     ], app._results(t2_0))
   end
   
+  def test_splat_fork
+    runlist = []
+    t0_0 = Tracer.new(0, runlist) do |task, input|
+      input.collect {|str| task.mark(str) }
+    end
+    t1_0 = Tracer.new(1, runlist) do |task, *inputs|
+      inputs.collect {|str| task.mark(str) }
+    end 
+    t2_0 = Tracer.new(2, runlist) do |task, *inputs|
+      inputs.collect {|str| task.mark(str) }
+    end
+    
+    t0_0.fork(t1_0, t2_0, :splat => true)
+    t0_0.enq(['a', 'b'])
+    app.run
+  
+    assert_equal %w{
+      0.0 1.0
+          2.0
+    }, runlist
+    
+    m0_0a = [[nil, ["a", "b"]], [t0_0, ["a 0.0", "b 0.0"]], [0, "a 0.0"]]
+    m0_0b = [[nil, ["a", "b"]], [t0_0, ["a 0.0", "b 0.0"]], [1, "b 0.0"]]
+    
+    assert_audits_equal([
+      [[m0_0a, m0_0b], [t1_0, ['a 0.0 1.0', 'b 0.0 1.0']]]
+    ], app._results(t1_0))
+    
+    assert_audits_equal([
+      [[m0_0a, m0_0b], [t2_0, ['a 0.0 2.0', 'b 0.0 2.0']]]
+    ], app._results(t2_0))
+  end
+  
   def test_unbatched_fork
     runlist = []
     t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)

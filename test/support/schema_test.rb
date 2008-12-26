@@ -75,7 +75,7 @@ class SchemaUtilsTest < Test::Unit::TestCase
 
   def test_format_options
     assert_equal "", format_options({})
-    assert_equal "is", format_options({:iterate => true, :stack => true})
+    assert_equal "ik", format_options({:iterate => true, :stack => true})
     assert_equal "", format_options({:iterate => false, :stack => false})
   end
   

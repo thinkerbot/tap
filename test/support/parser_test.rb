@@ -352,12 +352,7 @@ class ParserUtilsTest < Test::Unit::TestCase
   
   def test_parse_options_documentation
     assert_equal({}, parse_options(""))
-    assert_equal({:iterate => true, :stack => true}, parse_options("is"))
-  end
-  
-  def test_parse_options
-    assert_equal({}, parse_options(""))
-    assert_equal({:iterate => true, :stack => true}, parse_options("is"))
+    assert_equal({:iterate => true, :stack => true}, parse_options("ik"))
   end
   
   def test_parse_options_raises_error_for_unknown_options
