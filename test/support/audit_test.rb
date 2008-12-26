@@ -5,6 +5,55 @@ class AuditTest < Test::Unit::TestCase
   include Tap::Support
   
   #
+  # documentation test
+  #
+  
+  def test_audit_documentation
+    # initialize a new audit
+    a = Audit.new(:one, 1)
+    assert_equal :one, a.key
+    assert_equal 1, a.value
+  
+    # build a short trail
+    b = Audit.new(:two, 2, a)
+    c = Audit.new(:three, 3, b)
+  
+    assert_equal [], a.sources
+    assert_equal [a], b.sources
+    assert_equal [b], c.sources
+  
+    assert_equal [a,b,c], c._trail
+    assert_equal [:one, :two, :three], c._trail {|audit| audit.key }
+    assert_equal [1,2,3], c._trail {|audit| audit.value }
+  
+    d = Audit.new(:four, 4, b)
+    assert_equal [a,b,d], d._trail
+  
+    e = Audit.new(:five, 5, b)
+    assert_equal [a,b,e], e._trail
+  
+    f = Audit.new(:six, 6)
+    g = Audit.new(:seven, 7, f)
+    h = Audit.new(:eight, 8, [c,d,g])
+    assert_equal [[[a,b,c], [a,b,d], [f,g]], h], h._trail
+    
+    expected = %q{
+o-[one] 1
+o-[two] 2
+|
+|-o-[three] 3
+| |
+`---o-[four] 4
+  | |
+  | | o-[six] 6
+  | | o-[seven] 7
+  | | |
+  `-`-`-o-[eight] 8
+}
+    assert_equal expected, "\n" + h._to_s
+  end
+  
+  #
   # Audit.dump test
   #
   
@@ -107,6 +156,24 @@ o-[x] "one"
   # _iterate tests
   #
   
+  def test__iterate_documentation
+    a = Audit.new(nil, [:x, :y, :z])
+    b,c,d = a._iterate
+  
+    assert_equal 0, b.key
+    assert_equal :x, b.value
+  
+    assert_equal 1, c.key
+    assert_equal :y, c.value
+  
+    assert_equal 2, d.key
+    assert_equal :z, d.value
+    assert_equal [a,d], d._trail
+    
+    a = Audit.new(nil, :value)
+    assert_equal [a], a._iterate
+  end
+  
   def test__iterate_returns_array_of_Audits
     a = Audit.new(nil, [:zero, :one, :two])
     array = a._iterate
@@ -134,26 +201,39 @@ o-[x] "one"
   end
   
   #
-  # _source_trails test
+  # _trail test
   #
   
-  def test__source_trails_with_sequence
+  def test__trail_documentation
+    a = Audit.new(:one, 1)
+    b = Audit.new(:two, 2, a)
+    assert_equal [a, b], b._trail
+  
+    a = Audit.new(:one, 1)
+    b = Audit.new(:two, 2)
+    c = Audit.new(:three, 3, [a, b])
+    assert_equal [[[a], [b]], c], c._trail
+  
+    assert_equal [[[1], [2]], 3], c._trail {|audit| audit.value }
+  end
+  
+  def test__trail_with_sequence
     a = Audit.new(:a, 'one')
     b = Audit.new(:b, 'two', a)
     c = Audit.new(:c, 'three', b)
     
-    assert_equal [[a, b, c]], c._source_trails
+    assert_equal [a, b, c], c._trail
   end
   
-  def test__source_trails_collects_block_return
+  def test__trail_collects_block_return
     a = Audit.new(:a, 'one')
     b = Audit.new(:b, 'two', a)
     c = Audit.new(:c, 'three', b)
     
-    assert_equal [[:a, :b, :c]], c._source_trails {|audit| audit.key }
+    assert_equal [:a, :b, :c], c._trail {|audit| audit.key }
   end
   
-  def test__source_trails_with_fork_and_merge
+  def test__trail_with_fork_and_merge
     a = Audit.new(:a, 'one')
     b = Audit.new(:b, 'two', a)
     c = Audit.new(:c, 'three', a)
@@ -162,44 +242,7 @@ o-[x] "one"
     f = Audit.new(:f, 'six')
     g = Audit.new(:g, 'seven', [b,e,f])
     
-    assert_equal [
-      [:a, :b, :g], 
-      [:a, :c, :e, :g], 
-      [:d, :e, :g], 
-      [:f, :g]
-    ], g._source_trails {|audit| audit.key }
-  end
-  
-  #
-  # _sink_trail test
-  #
-  
-  def test__sink_trail_with_sequence
-    a = Audit.new(:a, 'one')
-    b = Audit.new(:b, 'two', a)
-    c = Audit.new(:c, 'three', b)
-    
-    assert_equal [a, b, c], c._sink_trail
-  end
-  
-  def test__sink_trail_collects_block_return
-    a = Audit.new(:a, 'one')
-    b = Audit.new(:b, 'two', a)
-    c = Audit.new(:c, 'three', b)
-    
-    assert_equal [:a, :b, :c], c._sink_trail {|audit| audit.key }
-  end
-  
-  def test__sink_trail_with_fork_and_merge
-    a = Audit.new(:a, 'one')
-    b = Audit.new(:b, 'two', a)
-    c = Audit.new(:c, 'three', a)
-    d = Audit.new(:d, 'four')
-    e = Audit.new(:e, 'five', [c,d])
-    f = Audit.new(:f, 'six')
-    g = Audit.new(:g, 'seven', [b,e,f])
-    
-    assert_equal [[[:a, :b], [[[:a, :c], [:d]], :e], [:f]], :g], g._sink_trail {|audit| audit.key }
+    assert_equal [[[:a, :b], [[[:a, :c], [:d]], :e], [:f]], :g], g._trail {|audit| audit.key }
   end
   
 end
