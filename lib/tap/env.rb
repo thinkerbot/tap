@@ -38,9 +38,10 @@ module Tap
       #   #  File.expand_path("./path/to/config.yml") => e1, 
       #   #  File.expand_path("./path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}") => e2 }
       #
-      # The Env is initialized using configurations read from the env config file using
-      # load_config, and a Root initialized to the config file directory. An instance 
-      # will be initialized regardless of whether the config file or directory exists.
+      # The Env is initialized using configurations read from the env config
+      # file, and a Root initialized to the config file directory. An instance 
+      # will be initialized regardless of whether the config file or directory
+      # exists.
       def instantiate(path_or_root, default_config={}, logger=nil, &block)
         path = path_or_root.kind_of?(Root) ? path_or_root.root : path_or_root
         path = pathify(path)
