@@ -12,42 +12,13 @@ describe "FileTest under RSpec" do
   end
 
   #
-  # make_test_directories spec
-  #
-
-  it "should make method_root directories" do
-    begin
-      root = File.expand_path(__FILE__.chomp("_spec.rb") + "/should_make_method_root_directories")
-      
-      root.must_equal  method_root[:root]
-      method_root.directories.must_equal(:input => 'input', :output => 'output', :expected => 'expected')
-
-      method_root.directories.values.each do |dir|
-        dir_path = File.join(root, dir.to_s)
-        File.exists?(dir_path).must_equal false
-      end
-
-      make_test_directories
-
-      method_root.directories.values.each do |dir|
-        dir_path = File.join(root, dir.to_s)
-        File.exists?(dir_path).must_equal true
-      end
-    ensure
-      dir =  File.join(File.join(root, "should_make_method_root_directories"))
-      FileUtils.rm_r dir if File.exists?(dir)
-    end
-  end
-
-  #
   # assert_files spec
   #
   
   it "should compare transformed inputs to expected" do
     assert_files do |input_files|
       input_files.collect do |input_file|
-        target = method_root.filepath(:output, File.basename(input_file))
-        File.open(target, "w") do |file|
+        target = method_root.prepare(:output, File.basename(input_file)) do |file|
           file << "processed "
           file << File.read(input_file)
         end
@@ -60,8 +31,7 @@ describe "FileTest under RSpec" do
     assert_raises(MiniTest::Assertion) do
       assert_files do |input_files|
         input_files.collect do |input_file|
-          target = method_root.filepath(:output, File.basename(input_file))
-          File.open(target, "w") do |file|
+          target = method_root.prepare(:output, File.basename(input_file)) do |file|
             file << "processed "
             file << File.read(input_file)
           end
@@ -75,8 +45,7 @@ describe "FileTest under RSpec" do
     assert_raises(MiniTest::Assertion) do
       assert_files do |input_files|
         input_files.collect do |input_file|
-          target = method_root.filepath(:output, File.basename(input_file))
-          File.open(target, "w") do |file|
+          target = method_root.prepare(:output, File.basename(input_file)) do |file|
             file << "processed "
             file << File.read(input_file)
           end
@@ -90,8 +59,7 @@ describe "FileTest under RSpec" do
     assert_raises(MiniTest::Assertion) do
       assert_files do |input_files|
         input_files.collect do |input_file|
-          target = method_root.filepath(:output, File.basename(input_file))
-          File.open(target, "w") do |file|
+          target = method_root.prepare(:output, File.basename(input_file)) do |file|
             file << "processed "
             file << File.read(input_file)
           end
@@ -127,8 +95,7 @@ describe "FileTest under RSpec" do
   it "should translate reference files when specified" do
     assert_files :reference_dir => method_root[:ref] do |input_files|
       input_files.collect do |input_file|
-        target = method_root.filepath(:output, File.basename(input_file))
-        File.open(target, "w") do |file|
+        target = method_root.prepare(:output, File.basename(input_file)) do |file|
           file << "processed "
           file << File.read(input_file)
         end

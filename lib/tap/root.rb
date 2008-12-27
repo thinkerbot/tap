@@ -1,3 +1,5 @@
+require 'rubygems'
+require 'configurable'
 require 'tap/support/versions'
 autoload(:FileUtils, 'fileutils')
 
