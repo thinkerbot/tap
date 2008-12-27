@@ -276,10 +276,6 @@ module Tap
         end
       end
       
-      def inspect
-        "#<#{self.class.to_s}:#{object_id} _method: #{method_name} batch_length: #{batch.length} app: #{app}>"
-      end
-      
     end
   end
 end
