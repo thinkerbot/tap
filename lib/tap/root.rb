@@ -7,30 +7,30 @@ module Tap
   # that you can conceptualize what filepaths you need without predefining the
   # full filepaths.  Root also simplifies operations on filepaths.
   #
-  #  # define a root directory with aliased relative paths
-  #  r = Root.new '/root_dir', :input => 'in', :output => 'out'
+  #   # define a root directory with aliased relative paths
+  #   r = Root.new '/root_dir', :input => 'in', :output => 'out'
   #  
-  #  # work with aliases
-  #  r[:input]                                   # => '/root_dir/in'
-  #  r[:output]                                  # => '/root_dir/out'
-  #  r['implicit']                               # => '/root_dir/implicit'
+  #   # work with aliases
+  #   r[:input]                                   # => '/root_dir/in'
+  #   r[:output]                                  # => '/root_dir/out'
+  #   r['implicit']                               # => '/root_dir/implicit'
   #
-  #  # expanded paths are returned unchanged
-  #  r[File.expand_path('expanded')]             # => File.expand_path('expanded')
+  #   # expanded paths are returned unchanged
+  #   r[File.expand_path('expanded')]             # => File.expand_path('expanded')
   #
-  #  # work with filepaths
-  #  fp = r.filepath(:input, 'path/to/file.txt') # => '/root_dir/in/path/to/file.txt'
-  #  r.relative_filepath(:input, fp)             # => 'path/to/file.txt'
-  #  r.translate(fp, :input, :output)            # => '/root_dir/out/path/to/file.txt'
+  #   # work with filepaths
+  #   fp = r.filepath(:input, 'path/to/file.txt') # => '/root_dir/in/path/to/file.txt'
+  #   r.relative_filepath(:input, fp)             # => 'path/to/file.txt'
+  #   r.translate(fp, :input, :output)            # => '/root_dir/out/path/to/file.txt'
   #  
-  #  # version filepaths
-  #  r.version('path/to/config.yml', 1.0)        # => 'path/to/config-1.0.yml'
-  #  r.increment('path/to/config-1.0.yml', 0.1)  # => 'path/to/config-1.1.yml'
-  #  r.deversion('path/to/config-1.1.yml')       # => ['path/to/config.yml', "1.1"]
+  #   # version filepaths
+  #   r.version('path/to/config.yml', 1.0)        # => 'path/to/config-1.0.yml'
+  #   r.increment('path/to/config-1.0.yml', 0.1)  # => 'path/to/config-1.1.yml'
+  #   r.deversion('path/to/config-1.1.yml')       # => ['path/to/config.yml', "1.1"]
   #
-  #  # absolute paths can also be aliased 
-  #  r[:abs, true] = "/absolute/path"      
-  #  r.filepath(:abs, "to", "file.txt")          # => '/absolute/path/to/file.txt'
+  #   # absolute paths can also be aliased 
+  #   r[:abs, true] = "/absolute/path"      
+  #   r.filepath(:abs, "to", "file.txt")          # => '/absolute/path/to/file.txt'
   #
   # By default, Roots are initialized to the present working directory
   # (Dir.pwd).  As in the 'implicit' example, Root infers a path relative to
@@ -81,9 +81,9 @@ module Tap
         expanded_path[(expanded_dir.chomp("/").length + 1)..-1] || ""
       end
       
-      # Generates a target filepath translated from the source_dir to 
-      # the target_dir. Raises an error if the filepath is not relative 
-      # to the source_dir.    
+      # Generates a target filepath translated from the source_dir to the
+      # target_dir. Raises an error if the filepath is not relative to the
+      # source_dir.    
       #
       #    Root.translate("/path/to/file.txt", "/path", "/another/path")  # => '/another/path/to/file.txt'
       #
@@ -94,8 +94,8 @@ module Tap
         File.join(target_dir, relative_path)
       end
       
-      # Returns the path, exchanging the extension with extname.  Extname
-      # may optionally omit the leading period.
+      # Returns the path, exchanging the extension with extname.  Extname may
+      # optionally omit the leading period.
       #
       #   Root.exchange('path/to/file.txt', '.html')  # => 'path/to/file.html'
       #   Root.exchange('path/to/file.txt', 'rb')     # => 'path/to/file.rb'
@@ -111,8 +111,8 @@ module Tap
         end.flatten.uniq
       end
     
-      # Lists all unique versions of path matching the glob version patterns.  
-      # If no patterns are specified, then all versions of path will be returned.
+      # Lists all unique versions of path matching the glob version patterns. If
+      # no patterns are specified, then all versions of path will be returned.
       def vglob(path, *vpatterns)
         vpatterns << "*" if vpatterns.empty?
         vpatterns.collect do |vpattern| 
@@ -124,8 +124,8 @@ module Tap
         end.flatten.uniq
       end
       
-      # Path suffix glob.  Globs along the base paths for 
-      # paths that match the specified suffix pattern.
+      # Path suffix glob.  Globs along the base paths for paths that match the
+      # specified suffix pattern.
       def sglob(suffix_pattern, *base_paths)
         base_paths.collect do |base|
           base = File.expand_path(base)
@@ -133,9 +133,9 @@ module Tap
         end.flatten.uniq
       end
       
-      # Like Dir.chdir but makes the directory, if necessary, when 
-      # mkdir is specified. chdir raises an error for non-existant 
-      # directories, as well as non-directory inputs.
+      # Like Dir.chdir but makes the directory, if necessary, when mkdir is 
+      # specified. chdir raises an error for non-existant directories, as well
+      # as non-directory inputs.
       def chdir(dir, mkdir=false, &block)
         dir = File.expand_path(dir)
         
@@ -150,10 +150,9 @@ module Tap
         Dir.chdir(dir, &block)
       end
       
-      # Prepares the input path by making the parent directory for path.
-      # If a block is given, a file is created at path and passed to it;
-      # in this way files with non-existant parent directories are readily
-      # made.
+      # Prepares the input path by making the parent directory for path. If a
+      # block is given, a file is created at path and passed to it; in this
+      # way files with non-existant parent directories are readily made.
       #
       # Returns path.
       def prepare(path, &block)
@@ -163,8 +162,8 @@ module Tap
         path
       end
       
-      # The path root type indicating windows, *nix, or some unknown
-      # style of filepaths (:win, :nix, :unknown).
+      # The path root type indicating windows, *nix, or some unknown style of
+      # filepaths (:win, :nix, :unknown).
       def path_root_type
         @path_root_type ||= case
         when RUBY_PLATFORM =~ /mswin/ && File.expand_path(".") =~ WIN_ROOT_PATTERN then :win 
@@ -173,19 +172,18 @@ module Tap
         end
       end
       
-      # Returns true if the input path appears to be an expanded path,
-      # based on Root.path_root_type.  
+      # Returns true if the input path appears to be an expanded path, based on
+      # Root.path_root_type.  
       #
-      # If root_type == :win returns true if the path matches 
-      # WIN_ROOT_PATTERN.
+      # If root_type == :win returns true if the path matches WIN_ROOT_PATTERN.
       #
       #   Root.expanded?('C:/path')  # => true
       #   Root.expanded?('c:/path')  # => true
       #   Root.expanded?('D:/path')  # => true
       #   Root.expanded?('path')     # => false
       #
-      # If root_type == :nix, then expanded? returns true if 
-      # the path begins with '/'.
+      # If root_type == :nix, then expanded? returns true if the path begins
+      # with '/'.
       #
       #   Root.expanded?('/path')  # => true
       #   Root.expanded?('path')   # => false
@@ -302,8 +300,9 @@ module Tap
         end
       end
       
-      # Returns true if the mini_path matches path.  Matching logic
-      # reverses that of minimize: 
+      # Returns true if the mini_path matches path.  Matching logic reverses
+      # that of minimize:
+      #
       # * a match occurs when path ends with mini_path
       # * if mini_path doesn't specify an extension, then mini_path
       #   must only match path up to the path extension
@@ -359,11 +358,12 @@ module Tap
       #   windows     '\'        Root.split('C:\path\to\file')  # => ["C:", "path", "to", "file"]
       #   *nix        '/'        Root.split('/path/to/file')    # => ["", "path", "to", "file"]
       # 
-      # The path is always expanded relative to the expand_dir; so '.' and '..' are 
-      # resolved.  However, unless expand_path == true, only the segments relative
-      # to the expand_dir are returned.  
+      # The path is always expanded relative to the expand_dir; so '.' and
+      # '..' are resolved.  However, unless expand_path == true, only the
+      # segments relative to the expand_dir are returned.  
       #
-      # On windows (note that expanding paths allows the use of slashes or backslashes):
+      # On windows (note that expanding paths allows the use of slashes or
+      # backslashes):
       #
       #   Dir.pwd                                               # => 'C:/'
       #   Root.split('path\to\..\.\to\file')                    # => ["C:", "path", "to", "file"]
@@ -400,6 +400,7 @@ module Tap
       #
       #   "./path"
       #   "//path"
+      #
       def min_join(dir, path) # :nodoc:
         case dir
         when "." then path
@@ -504,8 +505,10 @@ module Tap
     # Returns the absolute paths registered with self.
     def absolute_paths
       abs_paths = {}
-      paths.each do |dir, path| 
-        abs_paths[dir] = path unless relative_paths.include?(dir) || dir.to_s == 'root'
+      paths.each do |als, path|
+        unless relative_paths.include?(als) || als.to_s == 'root'
+          abs_paths[als] = path
+        end
       end
       abs_paths
     end
@@ -571,43 +574,44 @@ module Tap
       Root.expanded?(als) ? als : File.expand_path(File.join(root, als))
     end
     
-    # Constructs expanded filepaths relative to the path of the specified alias. 
-    def filepath(als, *filename)
-      # TODO - consider filename.compact so nils will not raise errors
-      File.expand_path(File.join(self[als], *filename))
+    # Resolves the specified alias, joins the paths together, and expands the
+    # resulting filepath.  Analagous to File#expand_path(File#join).
+    def filepath(als, *paths)
+      File.expand_path(File.join(self[als], *paths))
     end
   
     # Retrieves the filepath relative to the path of the specified alias.  
-    def relative_filepath(als, filepath)
-      Root.relative_filepath(self[als], filepath)
+    def relative_filepath(als, path)
+      Root.relative_filepath(self[als], path)
     end
   
     # Generates a filepath translated from the aliased source dir to the
-    # aliased target dir. Raises an error if the filepath is not relative to
-    # the source dir.
+    # aliased target dir. Raises an error if the filepath is not relative
+    # to the source dir.
     # 
     #   r = Tap::Root.new '/root_dir'
     #   path = r.filepath(:in, 'path/to/file.txt')    # => '/root_dir/in/path/to/file.txt'
     #   r.translate(path, :in, :out)                  # => '/root_dir/out/path/to/file.txt'
     #
-    def translate(filepath, source_als, target_als)
-      Root.translate(filepath, self[source_als], self[target_als])
+    def translate(path, source_als, target_als)
+      Root.translate(path, self[source_als], self[target_als])
     end
   
     # Lists all files along the aliased path matching the input patterns.
-    # Patterns should be valid inputs for +Dir.glob+.  If no patterns are
-    # specified, glob returns all paths matching '**/*'.
+    # Patterns should join with the aliased path make valid globs for 
+    # Dir.glob.  If no patterns are specified, glob returns all paths
+    # matching 'als/**/*'.
     def glob(als, *patterns)
       patterns << "**/*" if patterns.empty?
       patterns.collect! {|pattern| filepath(als, pattern)}
       Root.glob(*patterns)
     end
   
-    # Lists all versions of filename in the aliased dir matching the version
-    # patterns. If no patterns are specified, then all versions of filename
+    # Lists all versions of path in the aliased dir matching the version
+    # patterns. If no patterns are specified, then all versions of path
     # will be returned.
-    def vglob(als, filename, *vpatterns)
-      Root.vglob(filepath(als, filename), *vpatterns)
+    def vglob(als, path, *vpatterns)
+      Root.vglob(filepath(als, path), *vpatterns)
     end
     
     # Changes pwd to the specified directory using Root.chdir.
@@ -617,8 +621,8 @@ module Tap
     
     # Constructs a path from the inputs (using filepath) and prepares it using
     # Root.prepare.  Returns the path.
-    def prepare(als, *filename, &block)
-      Root.prepare(filepath(als, *filename), &block)
+    def prepare(als, *paths, &block)
+      Root.prepare(filepath(als, *paths), &block)
     end
     
     private
