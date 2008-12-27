@@ -1,8 +1,6 @@
 require File.dirname(__FILE__) + "/../tap"
-require "tap/declarations/declaration"
+require "tap/declarations/description"
 require "tap/declarations/declaration_task"
-
-autoload(:OpenStruct, 'ostruct')
 
 module Tap
   #--
@@ -29,7 +27,8 @@ module Tap
       @env ||= Tap::Env.instance_for(Dir.pwd)
     end
     
-    # The declaration environment, by default Declarations.env
+    # The environment in which declared task classes are registered.
+    # By default Declarations.env
     def declaration_env
       @declaration_env ||= Declarations.env
     end
@@ -56,6 +55,8 @@ module Tap
       
       # set the arg_names for the subclass
       task_class.arg_names = arg_names
+      
+      # register the current_desc
       register_doc(task_class)
       
       # add the block to the task
@@ -146,9 +147,17 @@ module Tap
       name.to_s.tr(":", "/")
     end
     
+    # Looks up or creates the DeclarationTask subclass specified by name
+    # (nested within declaration_base), and adds the configs and dependencies.
+    # Declare also registers the subclass in the declaration_env tasks
+    # manifest.
+    # 
+    # Configurations are always validated using the yaml transformation block
+    # (see {Configurable::Validation.yaml}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]).
+    #
     def declare(name, configs={}, dependencies=[])
       # assemble the constant name
-      const_name = File.join(declaration_base, name).camelize
+      const_name = File.join(declaration_base, name.to_s).camelize
       
       # lookup or generate the subclass
       subclass = Support::Constant.constantize(const_name) do |base, constants|
@@ -166,11 +175,11 @@ module Tap
         raise "not a DeclarationTask: #{subclass}"
       end
       
-      # append configuration (note that specifying a
-      # desc prevents lazydoc registration of these
-      # lines)
+      # append configuration (note that specifying a desc 
+      # prevents lazydoc registration of these lines)
+      convert_to_yaml = Configurable::Validation.yaml
       configs.each_pair do |key, value|
-        subclass.send(:config, key, value, :desc => "")
+        subclass.send(:config, key, value, :desc => "", &convert_to_yaml)
       end
       
       # add dependencies
@@ -179,7 +188,7 @@ module Tap
         subclass.send(:depends_on, dependency_name, dependency)
       end
       
-      # register the subclass in the manifest
+      # register the subclass in the manifest, if necessary
       manifest = declaration_env.tasks
       const_name = subclass.to_s
       unless manifest.entries.any? {|const| const.name == const_name }
@@ -189,12 +198,13 @@ module Tap
       subclass
     end
     
-    def register_doc(task_class)
-      
+    # a helper to register the current_desc as the task_class.manifest
+    def register_doc(task_class) # :nodoc:
       # register documentation
       caller[1] =~ Lazydoc::CALLER_REGEXP
       task_class.source_file = File.expand_path($1)
-      manifest = task_class.lazydoc.register($3.to_i - 1, Declaration)
+      
+      manifest = task_class.lazydoc.register($3.to_i - 1, Description)
       manifest.desc = current_desc
       task_class.manifest = manifest
       

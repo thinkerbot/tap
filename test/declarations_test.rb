@@ -99,7 +99,7 @@ class DeclarationsTest < Test::Unit::TestCase
     task(:task13)
 
     Lazydoc[__FILE__].resolved = false
-    assert_equal Tap::Declarations::Declaration, Task13.manifest.class
+    assert_equal Tap::Declarations::Description, Task13.manifest.class
     assert_equal "summary", Task13.manifest.to_s
     assert_equal "a multiline comment", Task13.manifest.comment
 
@@ -122,7 +122,7 @@ class DeclarationsTest < Test::Unit::TestCase
     task(:task15)
 
     Lazydoc[__FILE__].resolved = false
-    assert_equal Tap::Declarations::Declaration, Task15.manifest.class
+    assert_equal Tap::Declarations::Description, Task15.manifest.class
     assert_equal "new summary", Task15.manifest.to_s
     assert_equal "new comment", Task15.manifest.comment
   end
@@ -182,6 +182,18 @@ class DeclarationsTest < Test::Unit::TestCase
   def test_normalize_name_documentation
     assert_equal "nested/name", normalize_name('nested:name')
     assert_equal "symbol", normalize_name(:symbol)
+  end
+  
+  #
+  # declare test
+  #
+  
+  class NonDeclarationTask
+  end
+  
+  def test_declare_raises_error_if_it_looks_up_a_non_DeclarationTask_class
+    e = assert_raise(RuntimeError) { declare(:NonDeclarationTask) }
+    assert_equal "not a DeclarationTask: DeclarationsTest::NonDeclarationTask", e.message
   end
   
   #

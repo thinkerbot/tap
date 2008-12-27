@@ -1,6 +1,9 @@
 module Tap
   module Declarations
-    class Declaration < Lazydoc::Comment
+    
+    # A special type of Lazydoc::Comment designed to handle the comment syntax
+    # for task declarations.
+    class Description < Lazydoc::Comment
       attr_accessor :desc
       
       def prepend(line)
