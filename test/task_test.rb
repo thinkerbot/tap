@@ -135,6 +135,10 @@ class TaskTest < Test::Unit::TestCase
     assert_equal Task, i.class
     assert_equal i, Task.instance 
   end
+  
+  def test_instance_is_a_Dependency
+    assert Task.instance.kind_of?(Support::Dependency)
+  end
 
   #
   # Task.load test
@@ -313,6 +317,24 @@ class TaskTest < Test::Unit::TestCase
   # Task.depends_on test
   #
   
+  class A < Tap::Task
+    def process
+      "result"
+    end
+  end
+
+  class B < Tap::Task
+    depends_on :a, A
+  end
+  
+  def test_depends_on_documentation
+    b = B.new
+    assert_equal [A.instance], b.dependencies
+    assert_equal "result", b.a
+
+    assert_equal true, A.instance.resolved?
+  end
+  
   class DependencyClassOne < Tap::Task
     def process; 1; end
   end
@@ -376,6 +398,17 @@ class TaskTest < Test::Unit::TestCase
     assert_equal [false, false], d.dependencies.collect {|dep| dep.resolved? }
     assert_equal 1, d.one
     assert_equal [true, false], d.dependencies.collect {|dep| dep.resolved? }
+  end
+  
+  class UpdateDependentClass < Tap::Task
+  end
+  
+  def test_depends_on_updates_dependencies_for_instance
+    d = UpdateDependentClass.instance
+    assert_equal [], d.dependencies
+    
+    UpdateDependentClass.send(:depends_on, :one, DependencyClassOne)
+    assert_equal [DependencyClassOne.instance], d.dependencies
   end
   
   #

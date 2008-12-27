@@ -131,7 +131,7 @@ module Tap
       # Returns an instance of self; the instance is a kind of 'global'
       # instance used in class-level dependencies.  See depends_on.
       def instance
-        @instance ||= new
+        @instance ||= new.extend(Support::Dependency)
       end
       
       def inherited(child) # :nodoc:
@@ -311,9 +311,32 @@ module Tap
       
       protected
       
-      # Sets a class-level dependency.  When task class B depends_on another task 
-      # class A, instances of B are initialized to depend on A.instance, with the
-      # specified arguments.  Returns self.
+      # Sets a class-level dependency; when task class B depends_on another
+      # task class A, instances of B are initialized to depend on A.instance.
+      # If a non-nil name is specified, depends_on will create a reader of 
+      # the resolved dependency value.
+      #
+      #   class A < Tap::Task
+      #     def process
+      #       "result"
+      #     end
+      #   end
+      #
+      #   class B < Tap::Task
+      #     depends_on :a, A
+      #   end
+      #
+      #   b = B.new
+      #   b.dependencies           # => [A.instance]
+      #   b.a                      # => "result"
+      #
+      #   A.instance.resolved?     # => true
+      # 
+      # Normally class-level dependencies are not added to existing instances
+      # but, as a special case, depends_on updates instance to depend on
+      # dependency_class.instance.
+      #
+      # Returns self.
       def depends_on(name, dependency_class)
         unless dependencies.include?(dependency_class)
           dependencies << dependency_class
@@ -321,9 +344,11 @@ module Tap
         
         # returns the resolved result of the dependency
         define_method(name) do
-          instance = dependency_class.instance
-          instance.resolve
-          instance._result.value
+          dependency_class.instance.resolve.value
+        end if name
+        
+        if instance_variable_defined?(:@instance)
+          instance.depends_on(dependency_class.instance)
         end
         
         public(name)
@@ -476,6 +501,7 @@ module Tap
         initialize_config(config)
       end
       
+      # setup class dependencies
       self.class.dependencies.each do |dependency_class|
         depends_on(dependency_class.instance)
       end
