@@ -146,7 +146,7 @@ end
     t3.name = 'trois'
 
     result = app._results(t2).collect do |_result|
-      _result._to_s
+      _result.dump
     end.join("---\n")
     expected = %Q{o-[] "input"
 o-[un] "input:one"

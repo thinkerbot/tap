@@ -2,56 +2,55 @@ module Tap
   module Support
     
     # Audit provides a way to track the values passed among tasks or, more 
-    # generally, any Executable.  Audits collectively build a directed
-    # acyclic graph of task execution and have great utility in debugging
-    # and record keeping.
+    # generally, any Executable.  Audits collectively build a {directed
+    # acyclic graph}[http://en.wikipedia.org/wiki/Directed_acyclic_graph] 
+    # of task execution and have great utility in debugging and record keeping.
     #
-    # Audits record a key, a current value, and the previous audit(s) (ie
-    # 'sources') in the trail.  Keys are arbitrary identifiers of where the
-    # value comes from; to illustrate, lets use symbols as keys.
+    # Audits record a key, a current value, and the previous audit(s) in the
+    # trail.  Keys are arbitrary identifiers of where the value comes from.
+    # To illustrate, lets use symbols as keys.
     #
     #   # initialize a new audit
-    #   a = Audit.new(:one, 1)
-    #   a.key                               # => :one
-    #   a.value                             # => 1
+    #   _a = Audit.new(:one, 1)
+    #   _a.key                              # => :one
+    #   _a.value                            # => 1
     #
     #   # build a short trail
-    #   b = Audit.new(:two, 2, a)
-    #   c = Audit.new(:three, 3, b)
+    #   _b = Audit.new(:two, 2, _a)
+    #   _c = Audit.new(:three, 3, _b)
     #
-    #   a.sources                           # => []
-    #   b.sources                           # => [a]
-    #   c.sources                           # => [b]
+    #   _a.sources                          # => []
+    #   _b.sources                          # => [_a]
+    #   _c.sources                          # => [_b]
     #
-    # Audits allow you track back through the sources of each node to build
-    # an audit trail describing how a particular value was produced.
+    # Audits allow you track back through the sources of each audit to build
+    # a trail describing how a particular value was produced.
     #
-    #   c._trail                            # => [a,b,c]
-    #   c._trail {|audit| audit.key }       # => [:one, :two, :three]
-    #   c._trail {|audit| audit.value }     # => [1,2,3]
+    #   _c.trail                            # => [_a,_b,_c]
+    #   _c.trail {|audit| audit.key }       # => [:one, :two, :three]
+    #   _c.trail {|audit| audit.value }     # => [1,2,3]
     #
-    # Any number of nodes may share the same source, so forks are naturally
+    # Any number of audits may share the same source, so forks are naturally
     # supported.
     #
-    #   d = Audit.new(:four, 4, b)
-    #   d._trail                            # => [a,b,d]
+    #   _d = Audit.new(:four, 4, _b)
+    #   _d.trail                            # => [_a,_b,_d]
     #
-    #   e = Audit.new(:five, 5, b)
-    #   e._trail                            # => [a,b,e]
+    #   _e = Audit.new(:five, 5, _b)
+    #   _e.trail                            # => [_a,_b,_e]
     #
-    # Merges are supported by specifying more than one source audit.  Merges
-    # have the effect of nesting audit trails within an array:
+    # Merges are supported by specifying more than one source.  Merges have 
+    # the effect of nesting audit trails within an array:
     #
-    #   f = Audit.new(:six, 6)
-    #   g = Audit.new(:seven, 7, f)
-    #   h = Audit.new(:eight, 8, [c,d,g])
-    #   h._trail                            # => [[[a,b,c], [a,b,d], [f,g]], h]
+    #   _f = Audit.new(:six, 6)
+    #   _g = Audit.new(:seven, 7, _f)
+    #   _h = Audit.new(:eight, 8, [_c,_d,_g])
+    #   _h.trail                            # => [[[_a,_b,_c], [_a,_b,_d], [_f,_g]], _h]
     #   
-    # Nesting can get quite ugly and impenetrable after a couple merges, but
-    # Audit provides a scalable pretty-print to_s method that helps visualize
-    # what is actually happening.
+    # Nesting can get quite ugly after a couple merges so Audit provides a
+    # scalable pretty-print dump that helps visualize the audit trail.
     #
-    #   "\n" + h._to_s
+    #   "\n" + _h.dump
     #   # => %q{
     #   # o-[one] 1
     #   # o-[two] 2
@@ -68,7 +67,9 @@ module Tap
     #
     # In practice, tasks are recorded as keys. Thus audit trails can be used
     # to access task configurations and other information that may be useful
-    # when creating reports or making workflow decisions.
+    # when creating reports or making workflow decisions.  Note that by
+    # convention audits and non-audit methods that return audits are
+    # prefixed with an underscore.
     #
     #--
     # Note Audit could easily be expanded to track sinks as well as sources.
@@ -86,10 +87,8 @@ module Tap
     class Audit
       class << self
         
-        # Produces a pretty-print dump of a series of nodes to target.  A
-        # block may be provided to format the trailer of each line (which
-        # is by default 'o-[key] value').
-        #
+        # Produces a pretty-print dump of the specified audits to target. 
+        # A block may be provided to format the trailer of each line.
         def dump(audits, target=$stdout) # :yields: audit
           return dump(audits, target) do |audit| 
             "o-[#{audit.key}] #{audit.value.inspect}"
@@ -101,9 +100,8 @@ module Tap
           # the order of audits
           order = []
           
-          # (audit, sinks) hash preventing double
-          # iteration over audits, and identifying
-          # sinks for a particular audit
+          # (audit, sinks) hash preventing double iteration over 
+          # audits, and identifying sinks for a particular audit
           sinks = {}
           
           # iterate over all audits, collecting in order
@@ -111,7 +109,7 @@ module Tap
             traverse(audit, order, sinks)
           end
           
-          # now visit each audit, collecting audits into indent groups
+          # visit each audit, collecting audits into indent groups
           groups = []
           group = nil
           order.each do |audit|
@@ -156,6 +154,7 @@ module Tap
               # |-o-[a]
               # |
               # `---o-[b]
+              
               n = fork[0] += 1
               base = leader[0, leader.length - (2 * n - 1)]
               target << "#{base}#{fork[0] == fork[1] ? '`-' : '|-'}#{'--' * (n-1)}#{yield(group.shift)}\n"
@@ -165,10 +164,12 @@ module Tap
               # simply get ready to print the next series of audits
               # o-[a]
               # o-[b]
+              
               leader = "#{leader} "
               leader = "" if leader.strip.empty?
             end
             
+            # print the next series of audits
             group.each do |audit|
               target << "#{leader}#{yield(audit)}\n"
             end
@@ -191,8 +192,7 @@ module Tap
         
         protected
         
-        # helper to determine the order and sinks for a node.
-        # used in dump
+        # helper to determine the order and sinks for a node
         def traverse(node, order=[], sinks={}) # :nodoc:
           return if sinks.has_key?(node)
           
@@ -212,42 +212,54 @@ module Tap
       # The current value
       attr_reader :value
       
+      # Initializes a new Audit.  Sources may be an array, a single value
+      # (which is turned into an array), or nil (indicating no sources).
+      #
+      #   _a = Audit.new(nil, nil, nil)
+      #   _a.sources                        # => []
+      #
+      #   _b = Audit.new(nil, nil, _a)
+      #   _b.sources                        # => [_a]
+      #
+      #   _c = Audit.new(nil, nil, [_a,_b])
+      #   _c.sources                        # => [_a,_b]
+      #
       def initialize(key=nil, value=nil, sources=nil)
         @key = key
         @value = value
         @source = singularize(sources)
       end
       
-      # An array of source audits for self.
+      # An array of source audits for self.  Sources may be empty.
       def sources
         arrayify(@source)
       end
       
       # Produces a fork of self for each item in value, using the index of
-      # the item as a key.  Iterate is useful for developing each item of
-      # an array along different paths.
+      # the item as a key.  Splat is useful for developing each item of an
+      # array value along different paths.
       #
-      #   a = Audit.new(nil, [:x, :y, :z])
-      #   b,c,d = a._iterate
+      #   _a = Audit.new(nil, [:x, :y, :z])
+      #   _b,_c,_d = _a.splat
       #
-      #   b.key                       # => 0
-      #   b.value                     # => :x
+      #   _b.key                            # => 0
+      #   _b.value                          # => :x
       #
-      #   c.key                       # => 1
-      #   c.value                     # => :y
+      #   _c.key                            # => 1
+      #   _c.value                          # => :y
       #
-      #   d.key                       # => 2
-      #   d.value                     # => :z
-      #   d._trail                    # => [a,d]
+      #   _d.key                            # => 2
+      #   _d.value                          # => :z
+      #   _d.trail                          # => [_a,_d]
       # 
-      # If value does not respond to :each, an array with self as the only
-      # member will be returned.  This ensures that the result of _iterate
+      # If value does not respond to 'each', an array with self as the only
+      # member will be returned.  This ensures that the result of splat
       # is an array of audits ready for further development.
       # 
-      #   a = Audit.new(nil, :value)
-      #   a._iterate                  # => [a]
+      #   _a = Audit.new(nil, :value)
+      #   _a.splat                          # => [_a]
       #
-      def _iterate
+      def splat
         return [self] unless value.respond_to?(:each)
         
         collection = []
@@ -260,39 +272,38 @@ module Tap
       end
       
       # Recursively collects an audit trail leading to self.  Single sources
-      # are collected into a trail directly, while multiple sources are
+      # are collected into the trail directly, while multiple sources are
       # collected into arrays.
       #
-      #   a = Audit.new(:one, 1)
-      #   b = Audit.new(:two, 2, a)
-      #   b._trail                          # => [a, b]
+      #   _a = Audit.new(:one, 1)
+      #   _b = Audit.new(:two, 2, _a)
+      #   _b.trail                          # => [_a,_b]
       #
-      #   a = Audit.new(:one, 1)
-      #   b = Audit.new(:two, 2)
-      #   c = Audit.new(:three, 3, [a, b])
-      #   c._trail                          # => [[[a], [b]], c]
+      #   _a = Audit.new(:one, 1)
+      #   _b = Audit.new(:two, 2)
+      #   _c = Audit.new(:three, 3, [_a, _b])
+      #   _c.trail                          # => [[[_a],[_b]],_c]
       #
-      # A block may be provided to collect a specific attribute of audits
-      # in the trail.
+      # A block may be provided to collect a specific audit attribute
+      # instead of the audit itself.
       #
-      #   c._trail {|audit| audit.value }   # => [[[1], [2]], 3]
+      #   _c.trail {|audit| audit.value }   # => [[[1],[2]],3]
       #
-      def _trail(trail=[], &block)
+      def trail(trail=[], &block)
         trail.unshift(block_given? ? block.call(self) : self)
         
         case @source
         when Audit
-          @source._trail(trail, &block)
+          @source.trail(trail, &block)
         when Array
-          trail.unshift @source.collect {|audit| audit._trail(&block) }
+          trail.unshift @source.collect {|audit| audit.trail(&block) }
         end
         
         trail
       end
       
-      # A kind of pretty-print for Audits.  See the documentation for
-      # an example of the _to_s dump.
-      def _to_s(&block)
+      # A kind of pretty-print for Audits.
+      def dump(&block)
         Audit.dump(self, "", &block)
       end
       

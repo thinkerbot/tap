@@ -42,7 +42,7 @@ module Tap
           next if filter && src.to_s !~ filter
           
           results["#{src} (#{src.object_id})"] = _results.collect {|_audit| _audit.value }
-          _results.each {|_audit| trails << _audit._to_s }
+          _results.each {|_audit| trails << _audit.dump }
         end
       
         if audit

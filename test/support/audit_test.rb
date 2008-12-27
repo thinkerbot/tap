@@ -10,33 +10,33 @@ class AuditTest < Test::Unit::TestCase
   
   def test_audit_documentation
     # initialize a new audit
-    a = Audit.new(:one, 1)
-    assert_equal :one, a.key
-    assert_equal 1, a.value
+    _a = Audit.new(:one, 1)
+    assert_equal :one, _a.key
+    assert_equal 1, _a.value
   
     # build a short trail
-    b = Audit.new(:two, 2, a)
-    c = Audit.new(:three, 3, b)
+    _b = Audit.new(:two, 2, _a)
+    _c = Audit.new(:three, 3, _b)
   
-    assert_equal [], a.sources
-    assert_equal [a], b.sources
-    assert_equal [b], c.sources
+    assert_equal [], _a.sources
+    assert_equal [_a], _b.sources
+    assert_equal [_b], _c.sources
   
-    assert_equal [a,b,c], c._trail
-    assert_equal [:one, :two, :three], c._trail {|audit| audit.key }
-    assert_equal [1,2,3], c._trail {|audit| audit.value }
+    assert_equal [_a,_b,_c], _c.trail
+    assert_equal [:one, :two, :three], _c.trail {|audit| audit.key }
+    assert_equal [1,2,3], _c.trail {|audit| audit.value }
   
-    d = Audit.new(:four, 4, b)
-    assert_equal [a,b,d], d._trail
+    _d = Audit.new(:four, 4, _b)
+    assert_equal [_a,_b,_d], _d.trail
   
-    e = Audit.new(:five, 5, b)
-    assert_equal [a,b,e], e._trail
+    _e = Audit.new(:five, 5, _b)
+    assert_equal [_a,_b,_e], _e.trail
   
-    f = Audit.new(:six, 6)
-    g = Audit.new(:seven, 7, f)
-    h = Audit.new(:eight, 8, [c,d,g])
-    assert_equal [[[a,b,c], [a,b,d], [f,g]], h], h._trail
-    
+    _f = Audit.new(:six, 6)
+    _g = Audit.new(:seven, 7, _f)
+    _h = Audit.new(:eight, 8, [_c,_d,_g])
+    assert_equal [[[_a,_b,_c], [_a,_b,_d], [_f,_g]], _h], _h.trail
+  
     expected = %q{
 o-[one] 1
 o-[two] 2
@@ -50,7 +50,7 @@ o-[two] 2
   | | |
   `-`-`-o-[eight] 8
 }
-    assert_equal expected, "\n" + h._to_s
+    assert_equal expected, "\n" + _h.dump
   end
   
   #
@@ -145,6 +145,17 @@ o-[x] "one"
   # initialize test
   #
   
+  def test_initialize_documentation
+    _a = Audit.new(nil, nil, nil)
+    assert_equal [], _a.sources
+  
+    _b = Audit.new(nil, nil, _a)
+    assert_equal [_a], _b.sources
+  
+    _c = Audit.new(nil, nil, [_a,_b])
+    assert_equal [_a,_b], _c.sources
+  end
+  
   def test_initialize
     a = Audit.new(:key, :value)
     assert_equal :key, a.key
@@ -153,30 +164,30 @@ o-[x] "one"
   end
   
   #
-  # _iterate tests
+  # splat tests
   #
   
-  def test__iterate_documentation
-    a = Audit.new(nil, [:x, :y, :z])
-    b,c,d = a._iterate
+  def test_splat_documentation
+    _a = Audit.new(nil, [:x, :y, :z])
+    _b,_c,_d = _a.splat
   
-    assert_equal 0, b.key
-    assert_equal :x, b.value
+    assert_equal 0, _b.key
+    assert_equal :x, _b.value
   
-    assert_equal 1, c.key
-    assert_equal :y, c.value
+    assert_equal 1, _c.key
+    assert_equal :y, _c.value
   
-    assert_equal 2, d.key
-    assert_equal :z, d.value
-    assert_equal [a,d], d._trail
-    
-    a = Audit.new(nil, :value)
-    assert_equal [a], a._iterate
+    assert_equal 2, _d.key
+    assert_equal :z, _d.value
+    assert_equal [_a,_d], _d.trail
+  
+    _a = Audit.new(nil, :value)
+    assert_equal [_a], _a.splat
   end
   
-  def test__iterate_returns_array_of_Audits
+  def test_splat_returns_array_of_Audits
     a = Audit.new(nil, [:zero, :one, :two])
-    array = a._iterate
+    array = a.splat
     
     assert_equal 3, array.length
     
@@ -195,45 +206,45 @@ o-[x] "one"
     assert_equal [a], two.sources
   end
   
-  def test__iterate_returns_array_of_self_if_not_array
+  def test_splat_returns_array_of_self_if_not_array
     a = Audit.new(nil)
-    assert_equal [a], a._iterate
+    assert_equal [a], a.splat
   end
   
   #
-  # _trail test
+  # trail test
   #
   
-  def test__trail_documentation
-    a = Audit.new(:one, 1)
-    b = Audit.new(:two, 2, a)
-    assert_equal [a, b], b._trail
-  
-    a = Audit.new(:one, 1)
-    b = Audit.new(:two, 2)
-    c = Audit.new(:three, 3, [a, b])
-    assert_equal [[[a], [b]], c], c._trail
-  
-    assert_equal [[[1], [2]], 3], c._trail {|audit| audit.value }
+  def test_trail_documentation
+    _a = Audit.new(:one, 1)
+    _b = Audit.new(:two, 2, _a)
+    assert_equal [_a,_b], _b.trail
+    
+    _a = Audit.new(:one, 1)
+    _b = Audit.new(:two, 2)
+    _c = Audit.new(:three, 3, [_a, _b])
+    assert_equal [[[_a],[_b]],_c], _c.trail
+    
+    assert_equal [[[1], [2]], 3], _c.trail {|audit| audit.value }
   end
   
-  def test__trail_with_sequence
+  def test_trail_with_sequence
     a = Audit.new(:a, 'one')
     b = Audit.new(:b, 'two', a)
     c = Audit.new(:c, 'three', b)
     
-    assert_equal [a, b, c], c._trail
+    assert_equal [a, b, c], c.trail
   end
   
-  def test__trail_collects_block_return
+  def test_trail_collects_block_return
     a = Audit.new(:a, 'one')
     b = Audit.new(:b, 'two', a)
     c = Audit.new(:c, 'three', b)
     
-    assert_equal [:a, :b, :c], c._trail {|audit| audit.key }
+    assert_equal [:a, :b, :c], c.trail {|audit| audit.key }
   end
   
-  def test__trail_with_fork_and_merge
+  def test_trail_with_fork_and_merge
     a = Audit.new(:a, 'one')
     b = Audit.new(:b, 'two', a)
     c = Audit.new(:c, 'three', a)
@@ -242,7 +253,7 @@ o-[x] "one"
     f = Audit.new(:f, 'six')
     g = Audit.new(:g, 'seven', [b,e,f])
     
-    assert_equal [[[:a, :b], [[[:a, :c], [:d]], :e], [:f]], :g], g._trail {|audit| audit.key }
+    assert_equal [[[:a, :b], [[[:a, :c], [:d]], :e], [:f]], :g], g.trail {|audit| audit.key }
   end
   
 end

@@ -130,7 +130,7 @@ module Tap
       #
       def assert_audit_equal(expected, audit, msg=nil, &block)
         block = lambda {|audit| [audit.key, audit.value] } unless block
-        actual = audit._trail(&block)
+        actual = audit.trail(&block)
         assert_equal(expected, actual, msg)
       end
       

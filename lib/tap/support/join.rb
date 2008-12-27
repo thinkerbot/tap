@@ -118,22 +118,22 @@ module Tap
         when iterate && splat
           raise "splat and iterate"
         when iterate
-          flatten(_results).each {|_result| yield(_result) }
+          _splat(_results).each {|_result| yield(_result) }
         when splat
-          yield(flatten(_results))
+          yield(_splat(_results))
         else
           yield(_results)
         end
       end
       
-      def flatten(_results)
+      def _splat(_results)
         array = []
         _results.each do |_result|
           unless _result.kind_of?(Audit)
             _result = Audit.new(nil, _result)
           end
           
-          array.concat(_result._iterate)
+          array.concat(_result.splat)
         end
         array
       end

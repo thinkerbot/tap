@@ -41,7 +41,7 @@ name (#{t.object_id}):
     app.aggregator.store(b)
     
     Dump.new(:date => false, :audit => true).dump_to(io)
-    assert io.string.gsub(/^# /, "").include?(b._to_s)
+    assert io.string.gsub(/^# /, "").include?(b.dump)
   end
   
   def test_dump_to_writes_date_if_specified

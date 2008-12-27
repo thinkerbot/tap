@@ -131,7 +131,7 @@ module Tap
   #   # app._results returns the audits for these values
   #   app._results(add_five).each do |_result|
   #     puts "How #{_result._original} became #{_result.value}:"
-  #     puts _result._to_s
+  #     puts _result.dump
   #     puts
   #   end
   #

@@ -125,7 +125,7 @@ class AppTest < Test::Unit::TestCase
     target = StringIO.new("")
     app._results(add_five).each do |_result|
       target.puts "How #{_result._original} became #{_result.value}:"
-      target.puts _result._to_s
+      target.puts _result.dump
       target.puts
     end
    
