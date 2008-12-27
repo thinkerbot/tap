@@ -127,33 +127,23 @@ module Tap
   # through a different series of tasks. With auditing you can see how each 
   # input came to the final value of 8:
   #
-  #   # app.results returns the actual result values
-  #   # app._results returns the audits for these values
-  #   app._results(add_five).each do |_result|
-  #     puts "How #{_result._original} became #{_result.value}:"
-  #     puts _result.dump
-  #     puts
-  #   end
-  #
-  # Prints:
-  #
-  #   How 2 became 8:
-  #   o-[] 2
-  #   o-[add_one] 3
-  #   o-[add_five] 8
-  #
-  #   How 1 became 8:
-  #   o-[] 1
-  #   o-[add_one] 2
-  #   o-[add_one] 3
-  #   o-[add_five] 8
-  #
-  #   How 0 became 8:
-  #   o-[] 0
-  #   o-[add_one] 1
-  #   o-[add_one] 2
-  #   o-[add_one] 3
-  #   o-[add_five] 8
+  #   "\n" + Tap::Support::Audit.dump(app._results(add_five), "")
+  #    # => %Q{
+  #    # o-[] 2
+  #    # o-[add_one] 3
+  #    # o-[add_five] 8
+  #    # 
+  #    # o-[] 1
+  #    # o-[add_one] 2
+  #    # o-[add_one] 3
+  #    # o-[add_five] 8
+  #    # 
+  #    # o-[] 0
+  #    # o-[add_one] 1
+  #    # o-[add_one] 2
+  #    # o-[add_one] 3
+  #    # o-[add_five] 8
+  #    # }
   #
   # See Tap::Support::Audit for more details.
   class App < Root
@@ -380,6 +370,7 @@ module Tap
       _results(tasks).collect {|_result| _result.value }
     end
     
+    # Returns a string like: "#<Tap::App:#{object_id} root: #{root} >"
     def inspect
       "#<#{self.class.to_s}:#{object_id} root: #{root} >"
     end

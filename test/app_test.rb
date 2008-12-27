@@ -122,33 +122,24 @@ class AppTest < Test::Unit::TestCase
     app.run
     assert_equal [8,8,8], app.results(add_five)
 
-    target = StringIO.new("")
-    app._results(add_five).each do |_result|
-      target.puts "How #{_result._original} became #{_result.value}:"
-      target.puts _result.dump
-      target.puts
-    end
-   
     expected = %Q{
-How 2 became 8:
 o-[] 2
 o-[add_one] 3
 o-[add_five] 8
-
-How 1 became 8:
+ 
 o-[] 1
 o-[add_one] 2
 o-[add_one] 3
 o-[add_five] 8
-
-How 0 became 8:
+ 
 o-[] 0
 o-[add_one] 1
 o-[add_one] 2
 o-[add_one] 3
-o-[add_five] 8}.strip
+o-[add_five] 8
+}
 
-    assert_equal expected, target.string.strip
+    assert_equal expected, "\n" + Tap::Support::Audit.dump(app._results(add_five), "")
   end
   
   #

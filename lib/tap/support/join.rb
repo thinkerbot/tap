@@ -50,8 +50,8 @@ module Tap
         initialize_config(config)
       end
       
-      # The name of the join, as a symbol.  By default 
-      # name is the basename of the underscored class.
+      # The name of the join, as a symbol.  By default name 
+      # is the basename of the underscored class name.
       def name
         File.basename(self.class.to_s.underscore).to_sym
       end
@@ -113,7 +113,8 @@ module Tap
         end
       end
       
-      def unpack(_results)
+      # helper method to splat/iterate audited results
+      def unpack(_results) # :nodoc:
         case
         when iterate && splat
           raise "splat and iterate"
@@ -126,7 +127,8 @@ module Tap
         end
       end
       
-      def _splat(_results)
+      # helper to splat audits
+      def _splat(_results)  # :nodoc:
         array = []
         _results.each do |_result|
           unless _result.kind_of?(Audit)
