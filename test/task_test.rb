@@ -345,11 +345,30 @@ class TaskTest < Test::Unit::TestCase
   
   class DependentClass < Tap::Task
     depends_on :one, DependencyClassOne
-    depends_on :two, DependencyClassTwo
+    depends_on nil, DependencyClassTwo
   end
   
   def test_depends_on_adds_dependency_class_to_dependencies
     assert_equal [DependencyClassOne, DependencyClassTwo], DependentClass.dependencies
+  end
+  
+  def test_depends_on_makes_a_reader_for_the_results_of_the_dependency
+    d = DependentClass.new
+    assert d.respond_to?(:one)
+    
+    d.reset_dependencies
+    d.resolve_dependencies
+    
+    assert_equal 1, d.one
+  end
+  
+  def test_depends_on_reader_resolves_dependencies_if_needed
+    d = DependentClass.new
+    d.reset_dependencies
+    
+    assert_equal [false, false], d.dependencies.collect {|dep| dep.resolved? }
+    assert_equal 1, d.one
+    assert_equal [true, false], d.dependencies.collect {|dep| dep.resolved? }
   end
   
   def test_depends_on_returns_self
@@ -376,28 +395,6 @@ class TaskTest < Test::Unit::TestCase
   def test_dependencies_are_inherited_down_but_not_up
     assert_equal [DependencyClassOne], DependentParentClass.dependencies
     assert_equal [DependencyClassOne, DependencyClassTwo], DependentSubClass.dependencies
-  end
-  
-  def test_depends_on_makes_a_reader_for_the_results_of_the_dependency
-    d = DependentClass.new
-    d.reset_dependencies
-    
-    assert d.respond_to?(:one)
-    assert d.respond_to?(:two)
-    
-    d.resolve_dependencies
-    
-    assert_equal 1, d.one
-    assert_equal 2, d.two
-  end
-  
-  def test_depends_on_reader_resolves_dependencies_if_needed
-    d = DependentClass.new
-    d.reset_dependencies
-    
-    assert_equal [false, false], d.dependencies.collect {|dep| dep.resolved? }
-    assert_equal 1, d.one
-    assert_equal [true, false], d.dependencies.collect {|dep| dep.resolved? }
   end
   
   class UpdateDependentClass < Tap::Task

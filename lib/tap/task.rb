@@ -342,16 +342,20 @@ module Tap
           dependencies << dependency_class
         end
         
-        # returns the resolved result of the dependency
-        define_method(name) do
-          dependency_class.instance.resolve.value
-        end if name
-        
+        # update instance with the dependency if necessary
         if instance_variable_defined?(:@instance)
           instance.depends_on(dependency_class.instance)
         end
         
-        public(name)
+        if name
+          # returns the resolved result of the dependency
+          define_method(name) do
+            dependency_class.instance.resolve.value
+          end
+        
+          public(name)
+        end
+        
         self
       end
       
