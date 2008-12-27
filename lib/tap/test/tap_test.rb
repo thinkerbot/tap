@@ -50,7 +50,7 @@ module Tap
           @runlist = runlist
 
           @app = Tap::App.instance
-          @_method_name = :trace
+          @method_name = :trace
           @on_complete_block =nil
           @dependencies = []
           @batch = [self]

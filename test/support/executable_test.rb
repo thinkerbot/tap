@@ -20,7 +20,7 @@ class ExecutableTest < Test::Unit::TestCase
   def test_initialization_defaults
     m = Executable.initialize(Object.new, :object_id)
     assert m.kind_of?(Executable)
-    assert_equal :object_id, m._method_name
+    assert_equal :object_id, m.method_name
     assert_equal Tap::App.instance, m.app
     assert_equal [m], m.batch
     assert_equal [], m.dependencies
@@ -34,7 +34,7 @@ class ExecutableTest < Test::Unit::TestCase
     
     assert_equal m, Executable.initialize(m, :object_id, app, [1,2,3], [4,5,6], &b)
     assert m.kind_of?(Executable)
-    assert_equal :object_id, m._method_name
+    assert_equal :object_id, m.method_name
     assert_equal app, m.app
     assert_equal [1,2,3,m], m.batch
     assert_equal [4,5,6], m.dependencies
@@ -52,9 +52,9 @@ class ExecutableTest < Test::Unit::TestCase
     m1 = m.initialize_batch_obj
     m2 = m1.initialize_batch_obj
     
-    assert_equal :object_id, m._method_name
-    assert_equal :object_id, m1._method_name
-    assert_equal :object_id, m2._method_name
+    assert_equal :object_id, m.method_name
+    assert_equal :object_id, m1.method_name
+    assert_equal :object_id, m2.method_name
     
     assert_equal app, m.app
     assert_equal m.app.object_id, m1.app.object_id
@@ -79,7 +79,7 @@ class ExecutableTest < Test::Unit::TestCase
     attr_reader :var
     
     def initialize(method_name, app, batch, dependencies, &on_complete_block)
-      @_method_name = method_name
+      @method_name = method_name
       @app = app
       @batch = batch
       @dependencies = dependencies
@@ -102,9 +102,9 @@ class ExecutableTest < Test::Unit::TestCase
     assert_equal m1.var, m.var
     assert_equal m2.var, m.var
     
-    assert_equal :object_id, m._method_name
-    assert_equal :object_id, m1._method_name
-    assert_equal :object_id, m2._method_name
+    assert_equal :object_id, m.method_name
+    assert_equal :object_id, m1.method_name
+    assert_equal :object_id, m2.method_name
     
     assert_equal app, m.app
     assert_equal m.app.object_id, m1.app.object_id

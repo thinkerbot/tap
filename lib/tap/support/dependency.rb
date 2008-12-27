@@ -12,7 +12,7 @@ module Tap
         base.instance_variable_set(:@_result, nil)
       end
       
-      # Conditional _execute; only calls _method_name if
+      # Conditional _execute; only calls method_name if
       # resolved? is false (thus assuring self will only
       # be executed once).
       #

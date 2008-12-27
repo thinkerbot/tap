@@ -473,7 +473,7 @@ module Tap
 
       @name = name || self.class.default_name
       @app = app
-      @_method_name = :execute_with_callbacks
+      @method_name = :execute_with_callbacks
       @on_complete_block = nil
       @dependencies = []
       @batch = [self]
