@@ -39,7 +39,7 @@ class DeclarationsTest < Test::Unit::TestCase
     instance = task(:task0)
     assert_equal DeclarationsTest::Task0, instance.class
     assert_equal Task0.instance, instance
-    assert_equal Tap::Task, Task0.superclass
+    assert_equal DependencyTask, Task0.superclass
   end
   
   def test_multiple_calls_to_task_with_the_same_name_return_same_instance
@@ -126,7 +126,64 @@ class DeclarationsTest < Test::Unit::TestCase
     assert_equal "new summary", Task15.manifest.to_s
     assert_equal "new comment", Task15.manifest.comment
   end
+  
+  #
+  # resolve_args test
+  #
+  
+  def test_resolve_args
+    assert_equal ['name', {}, [], []], resolve_args(['name'])
+    assert_equal ['name', {:key => 'value'}, [], [:one, :two]], resolve_args([:name, :one, :two, {:key => 'value'}])
+  end
+  
+  class NeedOne < DependencyTask
+  end
+  class NeedTwo < DependencyTask
+  end
+  
+  def test_resolve_args_looks_up_needs
+    assert_equal ['name', {}, [NeedOne], []], resolve_args([{:name => :need_one}])
+    assert_equal ['name', {}, [NeedOne, NeedTwo], []], resolve_args([{:name => [:need_one, :need_two]}])
+  end
+  
+  def test_resolve_args_defines_task_class_for_unknown_needs
+    assert !DeclarationsTest.const_defined?(:NeedThree)
+    args = resolve_args([{:name => [:need_three]}])
+    
+    assert DeclarationsTest.const_defined?(:NeedThree)
+    assert DependencyTask, NeedThree.superclass
+    assert_equal ['name', {}, [NeedThree], []], args
+  end
+  
+  def test_resolve_args_normalizes_names
+    assert_equal ['name', {}, [], []], resolve_args([:name])
+    assert_equal ['nested/name', {}, [], []], resolve_args(['nested/name'])
+    assert_equal ['nested/name', {}, [], []], resolve_args(['nested:name'])
+    assert_equal ['nested/name', {}, [], []], resolve_args([:'nested:name'])
+  end
+  
+  def test_resolve_args_raises_error_if_no_task_name_is_specified
+    e = assert_raise(ArgumentError) { resolve_args([]) }
+    assert_equal "no task name specified", e.message
 
+    e = assert_raise(ArgumentError) { resolve_args([{}]) }
+    assert_equal "no task name specified", e.message
+  end
+  
+  def test_resolve_args_raises_error_if_multiple_task_names_are_specified
+    e = assert_raise(ArgumentError) { resolve_args([{:one => [], :two => []}]) }
+    assert_equal "multiple task names specified: [:one, :two]", e.message
+  end
+  
+  #
+  # normalize_name test
+  #
+  
+  def test_normalize_name_documentation
+    assert_equal "nested/name", normalize_name('nested:name')
+    assert_equal "symbol", normalize_name(:symbol)
+  end
+  
   #
   # rake compatibility tests
   # 
