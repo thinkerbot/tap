@@ -4,18 +4,24 @@ require 'tap/support/constant'
 module Tap
   module Support
     
+    # :startdoc:::-
+    #
     # ConstantManifest builds a manifest of Constant entries using Lazydoc.
-    # The idea is that Lazydoc can find files with resouces of a specific type
-    # (ex tasks) and Constant can reference those resouces and load them as 
-    # necessary. ConstantManifest registers paths so that they may be lazily
-    # scanned when searching for a specific resource.
+    #
+    # Lazydoc can quickly scan files for constant attributes, and thereby
+    # identify constants based upon a flag like the '::manifest' attribute used
+    # to identify task classes.  ConstantManifest registers paths that will be
+    # scanned for a specific resource, and lazily builds a manifest of Constant
+    # references to load them as necessary.
+    # 
+    # :startdoc:::+
     class ConstantManifest < Support::Manifest
       
-      # The attribute identifying resources in a file
+      # The attribute identifying constants in a file
       attr_reader :const_attr
       
-      # Registered [root, [paths]] pairs that will be searched
-      # for the const_attr
+      # An array of registered [root, [paths]] pairs
+      # that will be searched for const_attr
       attr_reader :search_paths
       
       # The current index of search_paths
@@ -24,7 +30,8 @@ module Tap
       # The current index of paths
       attr_reader :path_index
       
-      # Initializes a new ConstantManifest
+      # Initializes a new ConstantManifest that will identify constants
+      # using the specified constant attribute.
       def initialize(const_attr)
         @const_attr = const_attr
         @search_paths = []
