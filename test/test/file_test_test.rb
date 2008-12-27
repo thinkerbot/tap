@@ -163,7 +163,13 @@ class FileTestTest < Test::Unit::TestCase
 end
 
 class FileTestTestWithOptions < Test::Unit::TestCase
-  acts_as_file_test :root => "some/root/dir"
+  acts_as_file_test(
+    :root => "some/root/dir", 
+    :relative_paths => {
+      :input => 'input', 
+      :output => 'output', 
+      :expected => 'expected'},
+    :absolute_paths => {:path => File.expand_path('/to/file')})
   
   def test_test_setup
     assert_equal File.expand_path("some/root/dir"), ctr[:root]
@@ -171,6 +177,7 @@ class FileTestTestWithOptions < Test::Unit::TestCase
         :input => 'input', 
         :output => 'output', 
         :expected => 'expected'}, ctr.relative_paths)
+    assert_equal({:path => File.expand_path('/to/file')}, ctr.absolute_paths)
   end
 end
 

@@ -7,7 +7,7 @@ module Tap
   module Test  
     
     # FileTest facilitates access and utilization of test-specific files and
-    # directories. FileTest provides each test method is setup with a Tap::Root 
+    # directories. FileTest provides each test method with a Tap::Root 
     # (method_root) specific for the method, and defines a new assertion method 
     # (assert_files) to facilitate tests which involve the production and/or 
     # modification of files.
@@ -54,7 +54,7 @@ module Tap
       include Tap::Test::EnvVars
       include Tap::Test::Assertions
       
-      def self.included(base)
+      def self.included(base) # :nodoc:
         super
         base.extend FileTestClass
         base.cleanup_dirs = [:output, :tmp]
@@ -67,7 +67,7 @@ module Tap
 
       # The test-method-specific Tap::Root which may be used to
       # access test files.  method_root is a duplicate of ctr
-      # reconfigured so that method_root.root is ctr[ method_name.to_sym ]
+      # reconfigured so that method_root.root is ctr[method_name.to_sym]
       attr_reader :method_root
       
       # Sets up method_root and calls cleanup.  Be sure to call super when
@@ -78,9 +78,9 @@ module Tap
         cleanup
       end
       
-      # Cleans up the method_root.root directory by removing the 
-      # method_root[:output] directory.  The root directory will
-      # also be removed if it is empty.
+      # Cleans up the method_root.root directory by removing the class
+      # cleanup_dirs (by default :tmp and :output). The root directory
+      # will also be removed if it is empty.
       # 
       # Override as necessary in subclasses.
       def cleanup

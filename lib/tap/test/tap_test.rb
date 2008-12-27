@@ -1,32 +1,6 @@
 module Tap
   module Test
 
-    # Used during check_audit to hold the sources and values of an audit
-    # in the correct order.  Oriented so that the next value to be checked
-    # is at the top of the stack.  Used internally.
-    class AuditStack # :nodoc:
-      attr_reader :test
-    
-      def initialize(test)
-        @test = test
-        @stack = []
-      end
-    
-      def load_audit(values)
-        [values._sources, values._values].transpose.reverse_each do |sv|
-          load(*sv)
-        end
-      end
-    
-      def load(source, value)
-        @stack.unshift [source, value]
-      end
-    
-      def next
-        @stack.shift
-      end
-    end
-
     # Tap-specific testing methods to help with testing Tasks, such as the
     # checking of audits and test-specific modification of application 
     # configuration.

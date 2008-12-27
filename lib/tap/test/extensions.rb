@@ -16,8 +16,8 @@ module Tap
       end
     
       # Causes a TestCase to act as a file test, by including FileTest and
-      # instantiating class_test_root (a Tap::Root).  The root and relative_paths 
-      # used by class_test_root may be specified as options.  
+      # instantiating class_test_root (a Tap::Root).  The root, relative_paths,
+      # and absolute_paths used by class_test_root may be specified as options.  
       #
       # Note: by default acts_as_file_test determines a root directory 
       # <em>based on the calling file</em>.  Be sure to specify the root 
@@ -26,15 +26,10 @@ module Tap
       def acts_as_file_test(options={})
         include Tap::Test::FileTest
       
-        options = {
-          :root => test_root_dir,
-          :relative_paths => {
-            :input => 'input',
-            :output => 'output',
-            :expected => 'expected'}
-        }.merge(options)
-      
-        self.class_test_root = Tap::Root.new(options[:root], options[:relative_paths])
+        self.class_test_root = Tap::Root.new(
+          options[:root] || test_root_dir, 
+          options[:relative_paths] || {}, 
+          options[:absolute_paths] || {})
       end
 
       # Causes a unit test to act as a tap test -- resulting in the following:
@@ -47,14 +42,17 @@ module Tap
       # directory manually if you call acts_as_file_test from a file that 
       # isn't the test file.
       def acts_as_tap_test(options={})
+        options[:root] ||= test_root_dir
+        
         acts_as_subset_test
-        acts_as_file_test({:root => test_root_dir}.merge(options))
+        acts_as_file_test(options)
       
         include Tap::Test::TapTest
       end
 
       def acts_as_script_test(options={})
-        acts_as_file_test({:root => test_root_dir}.merge(options))
+        options[:root] ||= test_root_dir
+        acts_as_file_test(options)
       
         include Tap::Test::ScriptTest
       end
