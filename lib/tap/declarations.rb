@@ -1,6 +1,6 @@
 require File.dirname(__FILE__) + "/../tap"
 require "tap/declarations/declaration"
-require "tap/declarations/dependency_task"
+require "tap/declarations/declaration_task"
 
 autoload(:OpenStruct, 'ostruct')
 
@@ -63,6 +63,9 @@ module Tap
       task_class.instance
     end
     
+    # Appends name to the declaration base for the duration of the block.
+    # This has the effect of nesting any task declarations within the
+    # Name module or class.
     def namespace(name, &block)
       current_base = declaration_base
       @declaration_base = File.join(current_base, name.to_s.underscore)
@@ -70,6 +73,7 @@ module Tap
       @declaration_base = current_base
     end
     
+    # Sets the current description for use by the next task declaration.
     def desc(str)
       self.current_desc = str
     end
@@ -143,34 +147,36 @@ module Tap
     end
     
     def declare(name, configs={}, dependencies=[])
+      # assemble the constant name
       const_name = File.join(declaration_base, name).camelize
       
-      # generate the subclass
+      # lookup or generate the subclass
       subclass = Support::Constant.constantize(const_name) do |base, constants|
         constants.each do |const|
-          # nesting Tasks into Tasks is required for
-          # namespaces with the same name as a task
-          base = base.const_set(const, Class.new(DependencyTask))
+          # nesting Task classes into other Task classes
+          # is required for namespaces with the same name
+          # as a task
+          base = base.const_set(const, Class.new(DeclarationTask))
         end
         base
       end
       
-      unless subclass.ancestors.include?(DependencyTask)
-        raise "not a DependencyTask: #{subclass}"
+      # check a correct class was found
+      unless subclass.ancestors.include?(DeclarationTask)
+        raise "not a DeclarationTask: #{subclass}"
       end
       
+      # append configuration (note that specifying a
+      # desc prevents lazydoc registration of these
+      # lines)
       configs.each_pair do |key, value|
         subclass.send(:config, key, value, :desc => "")
       end
       
+      # add dependencies
       dependencies.each do |dependency|
         dependency_name = File.basename(dependency.default_name)
         subclass.send(:depends_on, dependency_name, dependency)
-      end
-      
-      # update any dependencies in instance
-      subclass.dependencies.each do |dependency|
-        subclass.instance.depends_on(dependency.instance)
       end
       
       # register the subclass in the manifest

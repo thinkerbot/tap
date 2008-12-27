@@ -3,9 +3,9 @@ autoload(:OpenStruct, 'ostruct')
 module Tap
   module Declarations
     # Dependency tasks are a singleton version of tasks.  Dependency tasks only
-    # have one instance (DependencyTask.instance) and the instance is
+    # have one instance (DeclarationTask.instance) and the instance is
     # registered as a dependency, so it will only execute once.
-    class DependencyTask < Tap::Task
+    class DeclarationTask < Tap::Task
       class << self
         attr_writer :blocks
         

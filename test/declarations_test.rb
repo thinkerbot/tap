@@ -39,7 +39,7 @@ class DeclarationsTest < Test::Unit::TestCase
     instance = task(:task0)
     assert_equal DeclarationsTest::Task0, instance.class
     assert_equal Task0.instance, instance
-    assert_equal DependencyTask, Task0.superclass
+    assert_equal DeclarationTask, Task0.superclass
   end
   
   def test_multiple_calls_to_task_with_the_same_name_return_same_instance
@@ -136,9 +136,9 @@ class DeclarationsTest < Test::Unit::TestCase
     assert_equal ['name', {:key => 'value'}, [], [:one, :two]], resolve_args([:name, :one, :two, {:key => 'value'}])
   end
   
-  class NeedOne < DependencyTask
+  class NeedOne < DeclarationTask
   end
-  class NeedTwo < DependencyTask
+  class NeedTwo < DeclarationTask
   end
   
   def test_resolve_args_looks_up_needs
@@ -151,7 +151,7 @@ class DeclarationsTest < Test::Unit::TestCase
     args = resolve_args([{:name => [:need_three]}])
     
     assert DeclarationsTest.const_defined?(:NeedThree)
-    assert DependencyTask, NeedThree.superclass
+    assert DeclarationTask, NeedThree.superclass
     assert_equal ['name', {}, [NeedThree], []], args
   end
   
