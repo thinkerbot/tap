@@ -40,9 +40,12 @@ Gem::Specification.new do |s|
     lib/tap/app.rb
     lib/tap/constants.rb
     lib/tap/declarations.rb
+    lib/tap/declarations/declaration_task.rb
+    lib/tap/declarations/description.rb
     lib/tap/env.rb
     lib/tap/exe.rb
     lib/tap/file_task.rb
+    lib/tap/generator/arguments.rb
     lib/tap/generator/base.rb
     lib/tap/generator/destroy.rb
     lib/tap/generator/generate.rb
