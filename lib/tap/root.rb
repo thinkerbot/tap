@@ -38,6 +38,7 @@ module Tap
   # explicitly set.  The only exceptions to this are fully expanded paths.
   # These are returned unchanged.
   #
+  #--
   # === Implementation Notes
   #
   # Internally Root expands and stores all aliased paths in the 'paths' hash.
@@ -455,7 +456,7 @@ module Tap
     # A hash of (alias, relative path) pairs for aliased absolute paths.
     config_attr(:absolute_paths, {}, :reader => false, :writer => false)
     
-    # A hash of (alias, expanded path) pairs for aliased relative and
+    # A hash of (alias, expanded path) pairs for expanded relative and
     # absolute paths.
     attr_reader :paths
     
@@ -477,7 +478,7 @@ module Tap
     end
   
     # Sets the relative_paths to those provided. 'root' and :root are reserved
-    # and cannot be set using this method (use root= instead).
+    # aliases and cannot be set using this method (use root= instead).
     #
     #   r = Tap::Root.new
     #   r['alt']                            # => File.join(r.root, 'alt')
@@ -489,7 +490,7 @@ module Tap
     end
     
     # Sets the absolute paths to those provided. 'root' and :root are reserved
-    # directory keys and cannot be set using this method (use root= instead).
+    # aliases and cannot be set using this method (use root= instead).
     #
     #   r = Tap::Root.new
     #   r['abs']                            # => File.join(r.root, 'abs')
@@ -521,14 +522,15 @@ module Tap
     #   r[:abs]                             # => '/abs/path/to/dir'
     # 
     #--
-    # Implementation Notes:
+    # Implementation Note:
+    #
     # The syntax for setting an absolute filepath requires an odd use []=.  
     # In fact the method recieves the arguments (:dir, true, '/abs/path/to/dir') 
     # rather than (:dir, '/abs/path/to/dir', true), meaning that internally path 
     # and absolute are switched when setting an absolute filepath.
-    #++
-    def []=(dir, path, absolute=false)
-      raise ArgumentError, "The directory key '#{dir}' is reserved." if dir.to_s == 'root'
+    #
+    def []=(als, path, absolute=false)
+      raise ArgumentError, "the alias #{als.inspect} is reserved" if als.to_s == 'root'
   
       # switch the paths if absolute was provided
       unless absolute == false
@@ -539,21 +541,20 @@ module Tap
       
       case
       when path.nil? 
-        @relative_paths.delete(dir)
-        @paths.delete(dir)
+        @relative_paths.delete(als)
+        @paths.delete(als)
       when absolute
-        @relative_paths.delete(dir)
-        @paths[dir] = File.expand_path(path)
+        @relative_paths.delete(als)
+        @paths[als] = File.expand_path(path)
       else
-        @relative_paths[dir] = path
-        @paths[dir] = File.expand_path(File.join(root, path))
+        @relative_paths[als] = path
+        @paths[als] = File.expand_path(File.join(root, path))
       end 
     end
   
-    # Returns the expanded path for the specified alias.  If the alias 
-    # has not been set, then the path is inferred to be 'root/dir' unless
-    # the path is relative to path_root.  These paths are returned 
-    # directly.
+    # Returns the expanded path for the specified alias.  If the alias has not
+    # been set, then the path is inferred to be 'root/als'.  Expanded paths
+    # are returned directly.
     #
     #   r = Root.new '/root_dir', :dir => 'path/to/dir'
     #   r[:dir]                             # => '/root_dir/path/to/dir'
@@ -562,66 +563,67 @@ module Tap
     #   r['relative/path']                  # => '/root_dir/relative/path'
     #   r['/expanded/path']                 # => '/expanded/path'
     #
-    def [](dir)
-      path = self.paths[dir] 
+    def [](als)
+      path = self.paths[als] 
       return path unless path == nil
       
-      dir = dir.to_s 
-      Root.expanded?(dir) ? dir : File.expand_path(File.join(root, dir))
+      als = als.to_s 
+      Root.expanded?(als) ? als : File.expand_path(File.join(root, als))
     end
     
     # Constructs expanded filepaths relative to the path of the specified alias. 
-    def filepath(dir, *filename)
+    def filepath(als, *filename)
       # TODO - consider filename.compact so nils will not raise errors
-      File.expand_path(File.join(self[dir], *filename))
+      File.expand_path(File.join(self[als], *filename))
     end
   
     # Retrieves the filepath relative to the path of the specified alias.  
-    def relative_filepath(dir, filepath)
-      Root.relative_filepath(self[dir], filepath)
+    def relative_filepath(als, filepath)
+      Root.relative_filepath(self[als], filepath)
     end
   
-    # Generates a target filepath translated from the aliased source_dir to 
-    # the aliased target_dir. Raises an error if the filepath is not relative 
-    # to the aliased source_dir.
+    # Generates a filepath translated from the aliased source dir to the
+    # aliased target dir. Raises an error if the filepath is not relative to
+    # the source dir.
     # 
     #   r = Tap::Root.new '/root_dir'
     #   path = r.filepath(:in, 'path/to/file.txt')    # => '/root_dir/in/path/to/file.txt'
     #   r.translate(path, :in, :out)                  # => '/root_dir/out/path/to/file.txt'
     #
-    def translate(filepath, source_dir, target_dir)
-      Root.translate(filepath, self[source_dir], self[target_dir])
+    def translate(filepath, source_als, target_als)
+      Root.translate(filepath, self[source_als], self[target_als])
     end
   
-    # Lists all files in the aliased dir matching the input patterns.  Patterns 
-    # should be valid inputs for +Dir.glob+.  If no patterns are specified, lists 
-    # all files/folders matching '**/*'.
-    def glob(dir, *patterns)
+    # Lists all files along the aliased path matching the input patterns.
+    # Patterns should be valid inputs for +Dir.glob+.  If no patterns are
+    # specified, glob returns all paths matching '**/*'.
+    def glob(als, *patterns)
       patterns << "**/*" if patterns.empty?
-      patterns.collect! {|pattern| filepath(dir, pattern)}
+      patterns.collect! {|pattern| filepath(als, pattern)}
       Root.glob(*patterns)
     end
   
-    # Lists all versions of filename in the aliased dir matching the version patterns.
-    # If no patterns are specified, then all versions of filename will be returned.
-    def vglob(dir, filename, *vpatterns)
-      Root.vglob(filepath(dir, filename), *vpatterns)
+    # Lists all versions of filename in the aliased dir matching the version
+    # patterns. If no patterns are specified, then all versions of filename
+    # will be returned.
+    def vglob(als, filename, *vpatterns)
+      Root.vglob(filepath(als, filename), *vpatterns)
     end
     
-    # chdirs to the specified directory using Root.chdir.
-    def chdir(dir, mkdir=false, &block)
-      Root.chdir(self[dir], mkdir, &block)
+    # Changes pwd to the specified directory using Root.chdir.
+    def chdir(als, mkdir=false, &block)
+      Root.chdir(self[als], mkdir, &block)
     end
     
     # Constructs a path from the inputs (using filepath) and prepares it using
     # Root.prepare.  Returns the path.
-    def prepare(dir, *filename, &block)
-      Root.prepare(filepath(dir, *filename), &block)
+    def prepare(als, *filename, &block)
+      Root.prepare(filepath(als, *filename), &block)
     end
     
     private
   
-    # reassigns all paths with the input root, directories, and absolute_paths
+    # reassigns all paths with the input root, relative_paths, and absolute_paths
     def assign_paths(root, relative_paths, absolute_paths)
       @root = File.expand_path(root)
       @relative_paths = {}

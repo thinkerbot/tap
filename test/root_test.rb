@@ -748,7 +748,11 @@ class RootTest < Test::Unit::TestCase
   end
   
   def test_raise_error_when_trying_to_set_root_through_relative_paths
-    assert_raise(ArgumentError) { r.relative_paths = {'root' => "another"} }
+    e = assert_raise(ArgumentError) { r.relative_paths = {'root' => "another"} }
+    assert_equal "the alias \"root\" is reserved", e.message
+    
+    e = assert_raise(ArgumentError) { r.relative_paths = {:root => "another"} }
+    assert_equal "the alias :root is reserved", e.message
   end
   
   #
@@ -1052,7 +1056,8 @@ class RootTest < Test::Unit::TestCase
   end
   
   def test_translate_raises_error_if_path_is_not_relative_to_aliased_input_dir
-    assert_raise(ArgumentError) { r.translate("./root/dir/file.txt", :not_dir, :another) }
+    e = assert_raise(ArgumentError) { r.translate("./root/dir/file.txt", :not_dir, :another) }
+    assert_equal "\n./root/dir/file.txt\nis not relative to:\n#{r[:not_dir]}", e.message
   end
   
   #
