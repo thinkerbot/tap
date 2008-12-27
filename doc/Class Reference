@@ -220,7 +220,7 @@ Tracking the evolution of a result through a workflow can get complex; Tap audit
 
 http://tap.rubyforge.org/images/Root.png
 
-A Root represents the base of a directory structure. Roots allow you to alias directories and ease working with filepaths, basically allowing you to develop code for a conceptual directory structure that can be defined later.
+A Root represents the base of a directory structure. Roots allow you to alias relative paths, basically allowing you to develop code for a conceptual directory structure that can be defined later.
 
   root = Tap::Root.new '/path/to/root'
   root.root                                      # => '/path/to/root'

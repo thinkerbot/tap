@@ -4,7 +4,7 @@ require 'tap/test'
 class TestSetupTest < Test::Unit::TestCase
   acts_as_tap_test(
     :root => "alt/root", 
-    :directories => {:input => "alt/input"})
+    :relative_paths => {:input => "alt/input"})
   
   #
   # basic tests

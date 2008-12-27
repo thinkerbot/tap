@@ -22,8 +22,7 @@ unless defined?(TapTestMethods)
       clear_runlist
     end
 
-    # Clears all declared tasks, sets the application trace option to false, makes directories (if flagged
-    # and as needed), and clears the runlist.
+    # Clears the runlist.
     def clear_runlist
       # clear the attributes
       @runlist = []

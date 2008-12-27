@@ -159,7 +159,7 @@ o-[add_five] 8
     app = App.new
     
     assert_equal Dir.pwd, app.root
-    assert_equal({}, app.directories)
+    assert_equal({}, app.relative_paths)
 
     assert_equal(Support::ExecutableQueue, app.queue.class)
     assert app.queue.empty?

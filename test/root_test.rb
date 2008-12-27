@@ -30,7 +30,7 @@ class RootTest < Test::Unit::TestCase
   def test_documentation
     r = Tap::Root.new root_dir, :input => 'in', :output => 'out'
     
-    # work with directories
+    # work with relative_paths
     assert_equal root_dir + '/in', r[:input]         
     assert_equal root_dir + '/out', r[:output]        
     assert_equal root_dir + '/implicit', r['implicit']   
@@ -653,14 +653,14 @@ class RootTest < Test::Unit::TestCase
     r = Tap::Root.new
     
     assert_equal File.expand_path(Dir.pwd), r.root
-    assert_equal({}, r.directories)
+    assert_equal({}, r.relative_paths)
   end
   
   def test_initialize_root
     r = Tap::Root.new "./root", {:dir => "dir", :temp => "tmp"}, {:abs => "/abs/path"}
     
     assert_equal File.expand_path("./root"), r.root
-    assert_equal({:dir => "dir", :temp => "tmp"}, r.directories)
+    assert_equal({:dir => "dir", :temp => "tmp"}, r.relative_paths)
     assert_equal({:abs => File.expand_path("/abs/path")}, r.absolute_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
@@ -700,7 +700,7 @@ class RootTest < Test::Unit::TestCase
   
   def test_config_is_initialized
     r = Tap::Root.new
-    assert_equal({:root => File.expand_path(Dir.pwd), :directories => {}, :absolute_paths => {}}, r.config)
+    assert_equal({:root => File.expand_path(Dir.pwd), :relative_paths => {}, :absolute_paths => {}}, r.config)
   end
 
   #
@@ -711,7 +711,7 @@ class RootTest < Test::Unit::TestCase
     r.root = './another'
     
     assert_equal File.expand_path("./another"), r.root
-    assert_equal({:dir => "dir"}, r.directories)
+    assert_equal({:dir => "dir"}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./another"), 
       :root =>  File.expand_path("./another"), 
@@ -725,19 +725,20 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
-  # set directories tests
+  # set relative_paths tests
   #
   
-  def test_directories_documentation
+  def test_relative_paths_documentation
+    r = Tap::Root.new
     assert_equal File.join(r.root, 'alt'), r['alt']
-    r.directories = {'alt' => "dir"}
+    r.relative_paths = {'alt' => "dir"}
     assert_equal File.join(r.root, 'dir'), r['alt']
   end
   
-  def test_set_directories
-    r.directories = {:alt => "dir"}
+  def test_set_relative_paths
+    r.relative_paths = {:alt => "dir"}
 
-    assert_equal({:alt => "dir"}, r.directories)
+    assert_equal({:alt => "dir"}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -746,8 +747,8 @@ class RootTest < Test::Unit::TestCase
     r.paths)
   end
   
-  def test_raise_error_when_trying_to_set_root_through_directories
-    assert_raise(ArgumentError) { r.directories = {'root' => "another"} }
+  def test_raise_error_when_trying_to_set_root_through_relative_paths
+    assert_raise(ArgumentError) { r.relative_paths = {'root' => "another"} }
   end
   
   #
@@ -755,6 +756,7 @@ class RootTest < Test::Unit::TestCase
   #
   
   def test_absolute_paths_documentation
+    r = Tap::Root.new
     assert_equal File.join(r.root, 'abs'), r['abs']
     r.absolute_paths = {'abs' => File.expand_path("/path/to/dir")}
     assert_equal File.expand_path("/path/to/dir"), r['abs']
@@ -763,7 +765,7 @@ class RootTest < Test::Unit::TestCase
   def test_set_absolute_paths
     r.absolute_paths = {:absolute => "/absolute/path"}
 
-    assert_equal({:dir => "dir"}, r.directories)
+    assert_equal({:dir => "dir"}, r.relative_paths)
     assert_equal({
       'root' =>    File.expand_path("./root"), 
       :root =>     File.expand_path("./root"), 
@@ -803,10 +805,10 @@ class RootTest < Test::Unit::TestCase
     assert_equal File.expand_path('/abs/path/to/dir'), r[:abs]
   end
   
-  def test_set_existing_directory_using_assignment
+  def test_set_existing_relative_path_using_assignment
     r[:dir] = 'another'
     
-    assert_equal({:dir => "another"}, r.directories)
+    assert_equal({:dir => "another"}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -815,10 +817,10 @@ class RootTest < Test::Unit::TestCase
     r.paths)
   end
   
-  def test_set_new_directory_using_assignment
+  def test_set_new_relative_path_using_assignment
     r[:new] = 'new'
 
-    assert_equal({:dir => "dir", :new => "new"}, r.directories)
+    assert_equal({:dir => "dir", :new => "new"}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -831,7 +833,7 @@ class RootTest < Test::Unit::TestCase
   def test_absolute_paths_can_be_set_by_specifiying_absolute_true
     r[:absolute, true] = '/some/absolute/path'
     
-    assert_equal({:dir => "dir"}, r.directories)
+    assert_equal({:dir => "dir"}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -844,7 +846,7 @@ class RootTest < Test::Unit::TestCase
   def test_an_absolute_path_is_not_set_if_absolute_false
     r[:not_absolute, false] = 'not/an/absolute/path'
     
-    assert_equal({:dir => "dir", :not_absolute => "not/an/absolute/path"}, r.directories)
+    assert_equal({:dir => "dir", :not_absolute => "not/an/absolute/path"}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -857,7 +859,7 @@ class RootTest < Test::Unit::TestCase
   def test_paths_can_be_unset_with_nil
     # Non-absolute path
     r[:dir] = '/some/path'
-    assert_equal({:dir => "/some/path"}, r.directories)
+    assert_equal({:dir => "/some/path"}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -866,7 +868,7 @@ class RootTest < Test::Unit::TestCase
     r.paths)
     
     r[:dir] = nil
-    assert_equal({}, r.directories)
+    assert_equal({}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -875,7 +877,7 @@ class RootTest < Test::Unit::TestCase
 
     # the same with absolute specified
     r[:dir] = '/some/path'
-    assert_equal({:dir => "/some/path"}, r.directories)
+    assert_equal({:dir => "/some/path"}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -884,7 +886,7 @@ class RootTest < Test::Unit::TestCase
     r.paths)
     
     r[:dir, false] = nil
-    assert_equal({}, r.directories)
+    assert_equal({}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -893,7 +895,7 @@ class RootTest < Test::Unit::TestCase
 
     # Absolute path
     r[:abs, true] = '/some/absolute/path'
-    assert_equal({}, r.directories)
+    assert_equal({}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -901,7 +903,7 @@ class RootTest < Test::Unit::TestCase
     r.paths)
     
     r[:abs, true] = nil
-    assert_equal({}, r.directories)
+    assert_equal({}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root")}, 
@@ -909,7 +911,7 @@ class RootTest < Test::Unit::TestCase
     
     # the same with absolute unspecfied
     r[:abs, true] = '/some/absolute/path'
-    assert_equal({}, r.directories)
+    assert_equal({}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root"), 
@@ -917,7 +919,7 @@ class RootTest < Test::Unit::TestCase
     r.paths)
     
     r[:abs] = nil
-    assert_equal({}, r.directories)
+    assert_equal({}, r.relative_paths)
     assert_equal({
       'root' => File.expand_path("./root"), 
       :root =>  File.expand_path("./root")}, 
@@ -1039,9 +1041,9 @@ class RootTest < Test::Unit::TestCase
   def test_translate_documentation
     r = Tap::Root.new '/root_dir'
     
-    fp = r.filepath(:in, 'path/to/file.txt')    
-    assert_equal File.expand_path('/root_dir/in/path/to/file.txt'), fp
-    assert_equal File.expand_path('/root_dir/out/path/to/file.txt'), r.translate(fp, :in, :out) 
+    path = r.filepath(:in, 'path/to/file.txt')
+    assert_equal File.expand_path('/root_dir/in/path/to/file.txt'), path
+    assert_equal File.expand_path('/root_dir/out/path/to/file.txt'), r.translate(path, :in, :out) 
   end
   
   def test_translate

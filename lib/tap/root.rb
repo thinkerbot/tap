@@ -3,14 +3,14 @@ autoload(:FileUtils, 'fileutils')
 
 module Tap
   
-  # Root allows you to define a root directory and alias subdirectories, so that  
-  # you can conceptualize what filepaths you need without predefining the full 
-  # filepaths.  Root also simplifies operations on filepaths.
+  # Root allows you to define a root directory and alias relative paths, so
+  # that you can conceptualize what filepaths you need without predefining the
+  # full filepaths.  Root also simplifies operations on filepaths.
   #
-  #  # define a root directory with aliased subdirectories
+  #  # define a root directory with aliased relative paths
   #  r = Root.new '/root_dir', :input => 'in', :output => 'out'
   #  
-  #  # work with directories
+  #  # work with aliases
   #  r[:input]                                   # => '/root_dir/in'
   #  r[:output]                                  # => '/root_dir/out'
   #  r['implicit']                               # => '/root_dir/implicit'
@@ -32,27 +32,28 @@ module Tap
   #  r[:abs, true] = "/absolute/path"      
   #  r.filepath(:abs, "to", "file.txt")          # => '/absolute/path/to/file.txt'
   #
-  # By default, Roots are initialized to the present working directory (Dir.pwd).
-  # As in the 'implicit' example, Root infers a path relative to the root directory
-  # whenever it needs to resolve an alias that is not explicitly set.  The only 
-  # exceptions to this are fully expanded paths.  These are returned unchanged.
+  # By default, Roots are initialized to the present working directory
+  # (Dir.pwd).  As in the 'implicit' example, Root infers a path relative to
+  # the root directory whenever it needs to resolve an alias that is not
+  # explicitly set.  The only exceptions to this are fully expanded paths.
+  # These are returned unchanged.
   #
   # === Implementation Notes
   #
-  # Internally Root stores expanded paths all aliased paths in the 'paths' hash.  
-  # Expanding paths ensures they remain constant even when the present working 
+  # Internally Root expands and stores all aliased paths in the 'paths' hash.
+  # Expanding paths ensures they remain constant even when the present working
   # directory (Dir.pwd) changes.
   #
-  # Root keeps a separate 'directories' hash mapping aliases to their subdirectory paths.  
-  # This hash allow reassignment if and when the root directory changes.  By contrast, 
-  # there is no separate data structure storing the absolute paths. An absolute path 
-  # thus has an alias in 'paths' but not 'directories', whereas subdirectory paths
-  # have aliases in both.
+  # Root keeps a separate 'relative_paths' hash mapping aliases to their
+  # relative paths. This hash allow reassignment if and when the root directory
+  # changes.  By contrast, there is no separate data structure storing the
+  # absolute paths. An absolute path thus has an alias in 'paths' but not
+  # 'relative_paths', whereas relative paths have aliases in both.
   #
   # These features may be important to note when subclassing Root:
   # - root and all filepaths in 'paths' are expanded
-  # - subdirectory paths are stored in 'directories'
-  # - absolute paths are present in 'paths' but not in 'directories'
+  # - relative paths are stored in 'relative_paths'
+  # - absolute paths are present in 'paths' but not in 'relative_paths'
   #
   class Root
     # Regexp to match a windows-style root filepath.
@@ -447,72 +448,77 @@ module Tap
     # The root directory.
     config_attr(:root, '.', :writer => false)
     
-    # A hash of (alias, relative path) pairs for aliased subdirectories.
-    config_attr(:directories, {}, :writer => false)
+    # A hash of (alias, relative path) pairs for aliased paths relative
+    # to root.
+    config_attr(:relative_paths, {}, :writer => false)
     
     # A hash of (alias, relative path) pairs for aliased absolute paths.
     config_attr(:absolute_paths, {}, :reader => false, :writer => false)
     
-    # A hash of (alias, expanded path) pairs for aliased subdirectories and absolute paths.
+    # A hash of (alias, expanded path) pairs for aliased relative and
+    # absolute paths.
     attr_reader :paths
     
     # The filesystem root, inferred from self.root
     # (ex '/' on *nix or something like 'C:/' on Windows).
     attr_reader :path_root
     
-    # Creates a new Root with the given root directory, aliased directories
+    # Creates a new Root with the given root directory, aliased relative paths
     # and absolute paths.  By default root is the present working directory 
-    # and no aliased directories or absolute paths are specified.  
-    def initialize(root=Dir.pwd, directories={}, absolute_paths={})
-      assign_paths(root, directories, absolute_paths)
+    # and no aliased relative or absolute paths are specified.  
+    def initialize(root=Dir.pwd, relative_paths={}, absolute_paths={})
+      assign_paths(root, relative_paths, absolute_paths)
       @config = DelegateHash.new(self.class.configurations, {}, self)
     end
     
     # Sets the root directory. All paths are reassigned accordingly.
     def root=(path)
-      assign_paths(path, directories, absolute_paths)
+      assign_paths(path, relative_paths, absolute_paths)
     end
   
-    # Sets the directories to those provided. 'root' and :root are reserved
+    # Sets the relative_paths to those provided. 'root' and :root are reserved
     # and cannot be set using this method (use root= instead).
     #
-    # r['alt'] # => File.join(r.root, 'alt')
-    # r.directories = {'alt' => 'dir'}
-    # r['alt'] # => File.join(r.root, 'dir')
-    def directories=(dirs)
-      assign_paths(root, dirs, absolute_paths)
+    #   r = Tap::Root.new
+    #   r['alt']                            # => File.join(r.root, 'alt')
+    #   r.relative_paths = {'alt' => 'dir'}
+    #   r['alt']                            # => File.join(r.root, 'dir')
+    #
+    def relative_paths=(paths)
+      assign_paths(root, paths, absolute_paths)
     end
     
     # Sets the absolute paths to those provided. 'root' and :root are reserved
     # directory keys and cannot be set using this method (use root= instead).
     #
-    # r['abs'] # => File.join(r.root, 'abs')
-    # r.absolute_paths = {'abs' => '/path/to/dir'}
-    # r['abs'] # => '/path/to/dir'
+    #   r = Tap::Root.new
+    #   r['abs']                            # => File.join(r.root, 'abs')
+    #   r.absolute_paths = {'abs' => '/path/to/dir'}
+    #   r['abs']                            # => '/path/to/dir'
+    #
     def absolute_paths=(paths)
-      assign_paths(root, directories, paths)
+      assign_paths(root, relative_paths, paths)
     end
     
     # Returns the absolute paths registered with self.
     def absolute_paths
       abs_paths = {}
-      paths.each do |da, path| 
-        abs_paths[da] = path unless directories.include?(da) || da.to_s == 'root'
+      paths.each do |dir, path| 
+        abs_paths[dir] = path unless relative_paths.include?(dir) || dir.to_s == 'root'
       end
       abs_paths
     end
 
-    # Sets an alias for the subdirectory relative to the root directory.  
-    # The aliases 'root' and :root cannot be set with this method 
-    # (use root= instead).  Absolute filepaths can be set using the 
-    # second syntax.  
+    # Sets an alias for the path relative to the root directory.  The aliases
+    # 'root' and :root cannot be set with this method (use root= instead).
+    # Absolute filepaths can be set using the second syntax.  
     #
-    #  r = Root.new '/root_dir'
-    #  r[:dir] = 'path/to/dir'
-    #  r[:dir]       # => '/root_dir/path/to/dir'
+    #   r = Root.new '/root_dir'
+    #   r[:dir] = 'path/to/dir'
+    #   r[:dir]                             # => '/root_dir/path/to/dir'
     #
-    #  r[:abs, true] = '/abs/path/to/dir'  
-    #  r[:abs]       # => '/abs/path/to/dir'
+    #   r[:abs, true] = '/abs/path/to/dir'  
+    #   r[:abs]                             # => '/abs/path/to/dir'
     # 
     #--
     # Implementation Notes:
@@ -533,13 +539,13 @@ module Tap
       
       case
       when path.nil? 
-        @directories.delete(dir)
+        @relative_paths.delete(dir)
         @paths.delete(dir)
       when absolute
-        @directories.delete(dir)
+        @relative_paths.delete(dir)
         @paths[dir] = File.expand_path(path)
       else
-        @directories[dir] = path
+        @relative_paths[dir] = path
         @paths[dir] = File.expand_path(File.join(root, path))
       end 
     end
@@ -549,12 +555,12 @@ module Tap
     # the path is relative to path_root.  These paths are returned 
     # directly.
     #
-    #  r = Root.new '/root_dir', :dir => 'path/to/dir'
-    #  r[:dir]                 # => '/root_dir/path/to/dir'
+    #   r = Root.new '/root_dir', :dir => 'path/to/dir'
+    #   r[:dir]                             # => '/root_dir/path/to/dir'
     #
-    #  r.path_root             # => '/'
-    #  r['relative/path']      # => '/root_dir/relative/path'
-    #  r['/expanded/path']     # => '/expanded/path'
+    #   r.path_root                         # => '/'
+    #   r['relative/path']                  # => '/root_dir/relative/path'
+    #   r['/expanded/path']                 # => '/expanded/path'
     #
     def [](dir)
       path = self.paths[dir] 
@@ -579,8 +585,10 @@ module Tap
     # the aliased target_dir. Raises an error if the filepath is not relative 
     # to the aliased source_dir.
     # 
-    #  fp = r.filepath(:in, 'path/to/file.txt')    # => '/root_dir/in/path/to/file.txt'
-    #  r.translate(fp, :in, :out)                  # => '/root_dir/out/path/to/file.txt'
+    #   r = Tap::Root.new '/root_dir'
+    #   path = r.filepath(:in, 'path/to/file.txt')    # => '/root_dir/in/path/to/file.txt'
+    #   r.translate(path, :in, :out)                  # => '/root_dir/out/path/to/file.txt'
+    #
     def translate(filepath, source_dir, target_dir)
       Root.translate(filepath, self[source_dir], self[target_dir])
     end
@@ -614,9 +622,9 @@ module Tap
     private
   
     # reassigns all paths with the input root, directories, and absolute_paths
-    def assign_paths(root, directories, absolute_paths)
+    def assign_paths(root, relative_paths, absolute_paths)
       @root = File.expand_path(root)
-      @directories = {}
+      @relative_paths = {}
       @paths = {'root' => @root, :root => @root}
 
       @path_root = File.dirname(@root)
@@ -624,7 +632,7 @@ module Tap
         @path_root = parent 
       end
     
-      directories.each_pair {|dir, path| self[dir] = path }
+      relative_paths.each_pair {|dir, path| self[dir] = path }
       absolute_paths.each_pair {|dir, path| self[dir, true] = path }
     end  
 

@@ -390,14 +390,14 @@ a (0)
   
   def test_reconfigure_reconfigures_root_before_reconfiguring_self
     assert_not_equal 'alt', root['lib']
-    e.reconfigure({:load_paths => ['lib'], :directories => {'lib' => 'alt'}})
+    e.reconfigure({:load_paths => ['lib'], :relative_paths => {'lib' => 'alt'}})
     
     assert_not_equal 'alt', root['lib']
     assert_equal [root['alt']], e.load_paths
   end
   
   def test_reconfigure_symbolizes_keys
-    e.reconfigure({'load_paths' => ['lib'], 'directories' => {'lib' => 'alt'}})
+    e.reconfigure({'load_paths' => ['lib'], 'relative_paths' => {'lib' => 'alt'}})
     assert_equal [root['alt']], e.load_paths
   end
 

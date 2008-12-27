@@ -170,7 +170,7 @@ class FileTestTestWithOptions < Test::Unit::TestCase
     assert_equal({
         :input => 'input', 
         :output => 'output', 
-        :expected => 'expected'}, ctr.directories)
+        :expected => 'expected'}, ctr.relative_paths)
   end
 end
 

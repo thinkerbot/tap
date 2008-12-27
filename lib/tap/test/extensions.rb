@@ -16,7 +16,7 @@ module Tap
       end
     
       # Causes a TestCase to act as a file test, by including FileTest and
-      # instantiating class_test_root (a Tap::Root).  The root and directories 
+      # instantiating class_test_root (a Tap::Root).  The root and relative_paths 
       # used by class_test_root may be specified as options.  
       #
       # Note: by default acts_as_file_test determines a root directory 
@@ -28,13 +28,13 @@ module Tap
       
         options = {
           :root => test_root_dir,
-          :directories => {
+          :relative_paths => {
             :input => 'input',
             :output => 'output',
             :expected => 'expected'}
         }.merge(options)
       
-        self.class_test_root = Tap::Root.new(options[:root], options[:directories])
+        self.class_test_root = Tap::Root.new(options[:root], options[:relative_paths])
       end
 
       # Causes a unit test to act as a tap test -- resulting in the following:

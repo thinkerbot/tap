@@ -2,7 +2,7 @@
 # App Configurations:
 ######################################################
 
-directories:                  
+relative_paths:                  
   rel: dir
 
 options:                      

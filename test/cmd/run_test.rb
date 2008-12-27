@@ -2,7 +2,7 @@ require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/test/script_test'
 
 class RunTest < Test::Unit::TestCase
-  acts_as_script_test :directories => {:output => 'output'}
+  acts_as_script_test
   
   TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/tap")
 

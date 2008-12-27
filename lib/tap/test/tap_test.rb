@@ -79,7 +79,7 @@ module Tap
       attr_reader :app
       
       # Setup creates a test-method-specific application that is initialized
-      # to the method_root, and uses the directories and absolute paths from
+      # to the method_root, and uses the relative and absolute paths from
       # trs (the test root structure, see Tap::Test::FileTest). 
       #
       # Also makes sure Tap::App.instance returns the test method app.
