@@ -11,6 +11,45 @@ end
 
 unless defined?(TapTestMethods)
   
+  class Tracer
+    include Tap::Support::Executable
+
+    class << self
+      def intern(n, runlist, &block)
+        Array.new(n) { |index| new(index, runlist, &block) }
+      end
+    end
+
+    def initialize(index, runlist, &block)
+      @index = index
+      @runlist = runlist
+
+      @app = Tap::App.instance
+      @method_name = :trace
+      @on_complete_block =nil
+      @dependencies = []
+      @batch = [self]
+      @block = block || lambda {|task, str| task.mark(str) }
+    end
+
+    def id
+      "#{@index}.#{batch_index}"
+    end
+    
+    def mark(input)
+      "#{input} #{id}".strip
+    end
+    
+    def inspect
+      "Tracer(#{@index})"
+    end
+
+    def trace(*inputs)
+      @runlist << id
+      @block.call(self, *inputs)
+    end
+  end
+  
   # Some convenience methods used in testing tasks, workflows, app, etc.
   module TapTestMethods # :nodoc:
     attr_accessor  :runlist

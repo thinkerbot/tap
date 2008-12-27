@@ -10,45 +10,6 @@ module Tap
     # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] for documentation of the class methods added by TapTest.
     module TapTest
       
-      class Tracer
-        include Tap::Support::Executable
-
-        class << self
-          def intern(n, runlist, &block)
-            Array.new(n) { |index| new(index, runlist, &block) }
-          end
-        end
-
-        def initialize(index, runlist, &block)
-          @index = index
-          @runlist = runlist
-
-          @app = Tap::App.instance
-          @method_name = :trace
-          @on_complete_block =nil
-          @dependencies = []
-          @batch = [self]
-          @block = block || lambda {|task, str| task.mark(str) }
-        end
-
-        def id
-          "#{@index}.#{batch_index}"
-        end
-        
-        def mark(input)
-          "#{input} #{id}".strip
-        end
-        
-        def inspect
-          "Tracer(#{@index})"
-        end
-
-        def trace(*inputs)
-          @runlist << id
-          @block.call(self, *inputs)
-        end
-      end
-      
       # Returns the test-method-specific application.
       attr_reader :app
       
