@@ -96,6 +96,17 @@ class GenerateTest < Test::Unit::TestCase
     assert_equal [[:create, target]], log
   end
   
+  def test_file_does_not_create_target_if_pretend_is_true
+    target = method_root.filepath(:tmp, 'file.txt')
+    assert !File.exists?(target)
+    
+    self.pretend = true
+    file(target)
+    
+    assert !File.exists?(target)
+    assert_equal [[:create, target]], log
+  end
+  
   def test_file_logs_skip_for_identical_content
     target = method_root.prepare(:tmp, 'file.txt') {|file| file << "content" }
 
@@ -111,6 +122,17 @@ class GenerateTest < Test::Unit::TestCase
     file(target) {|file| file << "new content" }
     
     assert_equal "new content", File.read(target)
+    assert_equal [[:force, target]], log
+  end
+  
+  def test_file_does_not_force_collision_if_pretend_is_true
+    target = method_root.prepare(:tmp, 'file.txt') {|file| file << "old content" }
+    
+    self.pretend = true
+    self.force = true
+    file(target) {|file| file << "new content" }
+    
+    assert_equal "old content", File.read(target)
     assert_equal [[:force, target]], log
   end
   
