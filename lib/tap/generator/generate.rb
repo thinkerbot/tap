@@ -70,17 +70,21 @@ module Tap
         
         prompt_out.print "overwrite #{target}? [Ynaiq] "
         prompt_out.flush
-        case prompt_in.gets
-        when /a/i
+        case prompt_in.gets.strip
+        when /^y(es)?$/i
+          true
+        when /^n(o)?$/i
+          false
+        when /^a(ll)?$/i
           self.force = true
-        when /i/i
+          true
+        when /^i(gnore)?$/i
           self.skip = true
-        when /q/i
-          prompt_out.puts "aborting #{name}"
+          false
+        when /^q(uit)?$/i
+          prompt_out.puts "aborting"
           raise SystemExit
-        when /n/i then false
-        when /y/i then true
-        else force_file_collision?(destination)
+        else force_file_collision?(target)
         end
       end
     end

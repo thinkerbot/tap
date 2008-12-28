@@ -58,10 +58,10 @@ module Tap
     #
     # As with any task, generators can have configurations and take arguments
     # specified by manifest (minus the 'm' argument which is standard).  
-    # Creating directories and files is straightforward, as above.  The 
-    # template function a target file using the source file in the 
-    # 'templates' directory; any attributes specified by the last argument will
-    # be available in the erb template.
+    # Creating directories and files is straightforward, as above.  Template
+    # generates a target file using the source file in the templates' directory;
+    # any attributes specified by the last argument will be available in the erb
+    # template.
     # :startdoc:::+
     class Base < Tap::Task
       lazy_attr :manifest, 'generator'
