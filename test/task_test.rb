@@ -260,15 +260,6 @@ class TaskTest < Test::Unit::TestCase
     assert_equal('single value', Task.load(path))
   end
   
-  def test_load_does_not_recusively_load_unless_specified
-    path = prepare_yaml("a.yml", {'key' => 'a value'})
-           prepare_yaml("a/b.yml", {'key' => 'ab value'})
-           
-    a = {'key' => 'a value'}
-            
-    assert_equal(a, Task.load(path, false))
-  end
-  
   def test_recursive_loading_raises_error_when_two_files_map_to_the_same_value
     path = prepare_yaml("a.yml", {})
     one = prepare_yaml("a/b.yml", 'one')

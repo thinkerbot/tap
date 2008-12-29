@@ -249,52 +249,15 @@ module Tap
       # Recursively loads path into a nested configuration file.
       #--
       # TODO: move the logic of this to Configurable
-      def load(path, recursive=true)
-        base = Root.trivial?(path) ? {} : (YAML.load_file(path) || {})
+      def load(path)
+        # add optimization to check for trivial paths
+        # if Root.trivial?(path)
         
-        if recursive
-          # determine the files/dirs to load recursively
-          # and add them to paths by key (ie the base
-          # name of the path, minus any extname)
-          paths = {}
-          files, dirs = Dir.glob("#{path.chomp(File.extname(path))}/*").partition do |sub_path|
-            File.file?(sub_path)
-          end
-
-          # directories are added to paths first so they can be
-          # overridden by the files (appropriate since the file
-          # will recursively load the directory if it exists)
-          dirs.each do |dir|
-            paths[File.basename(dir)] = dir
-          end
-
-          # when adding files, check that no two files map to
-          # the same key (ex a.yml, a.yaml).
-          files.each do |filepath|
-            key = File.basename(filepath).chomp(File.extname(filepath))
-            if existing = paths[key]
-              if File.file?(existing)
-                confict = [File.basename(paths[key]), File.basename(filepath)].sort
-                raise "multiple files load the same key: #{confict.inspect}"
-              end
-            end
-
-            paths[key] = filepath
-          end
-
-          # recursively load each file and reverse merge
-          # the result into the base
-          paths.each_pair do |key, recursive_path|
-            value = nil
-            each_hash_in(base) do |hash|
-              unless hash.has_key?(key)
-                hash[key] = (value ||= load(recursive_path, true))
-              end
-            end
+        Configurable::Utils.load_file(path, true) do |base, key, value|
+          each_hash_in(base) do |hash|
+            hash[key] ||= value
           end
         end
-
-        base
       end
       
       # Loads the contents of path onto argv.
@@ -455,9 +418,8 @@ module Tap
       
       private
       
-      # helper for load_config.  yields each hash in the collection (ie each
-      # member of an Array, or the collection if it is a hash). returns
-      # the collection.
+      # helper for load_file.  yields each hash in the collection (ie each
+      # member of an Array, or the collection if it is a hash).
       def each_hash_in(collection) # :nodoc:
         case collection
         when Hash then yield(collection)
@@ -466,8 +428,6 @@ module Tap
             yield(hash) if hash.kind_of?(Hash)
           end
         end
-
-        collection
       end
     end
     
