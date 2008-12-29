@@ -487,8 +487,6 @@ module Tap
 
     # Initializes a new Task.
     def initialize(config={}, name=nil, app=App.instance)
-      super()
-
       @name = name || self.class.default_name
       @app = app
       @method_name = :execute_with_callbacks
@@ -496,14 +494,8 @@ module Tap
       @dependencies = []
       @batch = [self]
       
-      case config
-      when DelegateHash
-        # update is prudent to ensure all configs have an input
-        # (and hence, all configs will be initialized)
-        @config = config.update.bind(self)
-      else 
-        initialize_config(config)
-      end
+      # initialize configs
+      initialize_config(config)
       
       # setup class dependencies
       self.class.dependencies.each do |dependency_class|
