@@ -50,6 +50,6 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/task/templates/task.erb
     lib/tap/generator/generators/task/templates/test.erb
     lib/tap/generator/manifest.rb
-    tap.yml
+    _tap.yml
     }
 end

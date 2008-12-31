@@ -26,6 +26,6 @@ Gem::Specification.new do |s|
     lib/rap/description.rb
     lib/rap/rake_app.rb
     lib/rap/tasks/rake.rb
-    tap.yml
+    _tap.yml
     }
 end

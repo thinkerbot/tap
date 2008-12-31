@@ -35,6 +35,8 @@ help:
 
 available commands:
   console   
+  destroy   
+  generate  
   manifest  
   run       
 

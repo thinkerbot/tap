@@ -5,9 +5,14 @@ require 'tap/support/schema'
 module Tap
   class Exe < Env
     tap_core = File.expand_path("#{File.dirname(__FILE__)}/../..")
+    tap_modules = Dir.glob("#{tap_core}/../{t,r}ap*/_tap.yml").collect {|path| File.expand_path(File.dirname(path)) }
+    lib_paths = tap_modules.collect {|dir| File.join(dir, 'lib') }
+    cmd_paths = tap_modules.collect {|dir| File.join(dir, 'cmd') }
+    
     DEFAULT_TAP_ENV = Env.new({
-      :load_paths => ["#{tap_core}/lib"],
-      :command_paths => ["#{tap_core}/cmd"]
+      :load_paths => lib_paths,
+      :command_paths => cmd_paths,
+      :generator_paths => lib_paths
     }, Tap::Root.new("#{tap_core}/bin/tap"))
     
     class << self
@@ -18,7 +23,8 @@ module Tap
         # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
         if !File.exists?(Tap::Env::DEFAULT_CONFIG_FILE)
           exe.gems = Support::Gems.select_gems(false) do |spec|
-            File.exists?(File.join(spec.full_gem_path, Tap::Env::DEFAULT_CONFIG_FILE))
+            env_config = File.join(spec.full_gem_path, Tap::Env::DEFAULT_CONFIG_FILE)
+            File.exists?(env_config)
           end
         end
         

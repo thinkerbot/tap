@@ -64,5 +64,6 @@ Gem::Specification.new do |s|
     lib/tap/tasks/dump.rb
     lib/tap/tasks/load.rb
     lib/tap.rb
+    _tap.yml
     }
 end

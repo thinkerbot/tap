@@ -26,6 +26,7 @@ usage: rap taskname {options} [args]
 ===  tap tasks ===
   dump        # the default dump task
   load        # the default load task
+  rake        # run rake tasks
 
 === rake tasks ===
 :...:
@@ -35,6 +36,7 @@ usage: rap taskname {options} [args]
 ===  tap tasks ===
   dump        # the default dump task
   load        # the default load task
+  rake        # run rake tasks
 
 === rake tasks ===
 :...:
@@ -69,9 +71,10 @@ usage: rap taskname {options} [args]
 test_rap_help_with_declarations:
   task_with_doc     # task summary
   task_with_desc    # desc
-tap-core:
+tap:
   dump              # the default dump task
   load              # the default load task
+  rake              # run rake tasks
 
 === rake tasks ===
 :...:

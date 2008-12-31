@@ -16,6 +16,7 @@ class RunTest < Test::Unit::TestCase
 % #{cmd} run -T 
   dump        # the default dump task
   load        # the default load task
+  rake        # run rake tasks
 }, false
     end
   end

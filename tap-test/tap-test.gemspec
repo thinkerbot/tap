@@ -32,5 +32,6 @@ Gem::Specification.new do |s|
     lib/tap/test/subset_test_class.rb
     lib/tap/test/tap_test.rb
     lib/tap/test/utils.rb
+    _tap.yml
     }
 end
