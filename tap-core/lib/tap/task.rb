@@ -173,8 +173,8 @@ module Tap
         opts.separator ""
         opts.separator "options:"
         
-        # Add option to print help
-        opts.on("-h", "--help", "Print this help") do
+        # add option to print help
+        opts.on("--help", "Print this help") do
           prg = case $0
           when /rap$/ then 'rap'
           else 'tap run --'
@@ -186,24 +186,34 @@ module Tap
           exit
         end
  
-        # Add option to specify a config file
+        # add option to specify the task name
         name = default_name
-        opts.on('--name NAME', 'Specify a name') do |value|
+        opts.on('--name NAME', 'Specifies the task name') do |value|
           name = value
         end
+        
+        # add option to specify a config file
+        config_path = nil
+        opts.on('--config FILE', 'Specifies a config file') do |value|
+          config_path = value
+        end
  
-        # Add option to add args
+        # add option to load args to ARGV
         use_args = []
-        opts.on('--use FILE', 'Loads inputs from file') do |path|
+        opts.on('--use FILE', 'Loads inputs to ARGV') do |path|
           use(path, use_args)
         end
         
-        # build and reconfigure the instance and any associated
-        # batch objects as specified in the file configurations
+        # parse!
         argv = opts.parse!(argv)
-        configs = load(app.config_filepath(name))
+        
+        # load configurations
+        config_path ||= app.filepath('config', "#{name}.yml") if name
+        configs = load_config(config_path)
         configs = [configs] unless configs.kind_of?(Array)
         
+        # build and reconfigure the instance and any associated
+        # batch objects as specified in the file configurations
         obj = new(configs.shift, name, app)
         configs.each do |config|
           obj.initialize_batch_obj(config, "#{name}_#{obj.batch.length}")
@@ -247,11 +257,9 @@ module Tap
       end
       
       # Recursively loads path into a nested configuration file.
-      #--
-      # TODO: move the logic of this to Configurable
-      def load(path)
-        # add optimization to check for trivial paths
-        # if Root.trivial?(path)
+      def load_config(path)
+        # optimization to check for trivial paths
+        return {} if Root.trivial?(path)
         
         Configurable::Utils.load_file(path, true) do |base, key, value|
           each_hash_in(base) do |hash|
@@ -418,7 +426,7 @@ module Tap
       
       private
       
-      # helper for load_file.  yields each hash in the collection (ie each
+      # helper for load_config.  yields each hash in the collection (ie each
       # member of an Array, or the collection if it is a hash).
       def each_hash_in(collection) # :nodoc:
         case collection

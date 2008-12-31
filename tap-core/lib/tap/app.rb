@@ -239,13 +239,6 @@ module Tap
       logger.add(level, msg, action.to_s) if !quiet || verbose
     end
     
-    # Returns the configuration filepath for the specified task name,
-    # File.join(app['config'], task_name + ".yml"). Returns nil if 
-    # task_name is nil.
-    def config_filepath(name)
-      name == nil ? nil : filepath('config', "#{name}.yml")
-    end
-    
     # Sets state = State::READY unless the app is running.  Returns self.
     def ready
       @state = State::READY unless state == State::RUN

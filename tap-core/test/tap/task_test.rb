@@ -141,45 +141,45 @@ class TaskTest < Test::Unit::TestCase
   end
 
   #
-  # Task.load test
+  # Task.load_config test
   #
   
   def prepare_yaml(path, obj)
     method_root.prepare(:tmp, path) {|file| file << obj.to_yaml }
   end
   
-  def test_load_returns_empty_array_for_non_existant_file
+  def test_load_config_returns_empty_array_for_non_existant_file
     path = method_root.filepath("non_existant.yml")
     assert !File.exists?(path)
-    assert_equal({}, Task.load(path))
+    assert_equal({}, Task.load_config(path))
   end
   
-  def test_load_returns_empty_array_for_empty_file
+  def test_load_config_returns_empty_array_for_empty_file
     path = method_root.prepare(:tmp, "non_existant.yml") {}
     
     assert File.exists?(path)
     assert_equal "", File.read(path)
-    assert_equal({}, Task.load(path))
+    assert_equal({}, Task.load_config(path))
   end
   
-  def test_load_loads_existing_files_as_yaml
+  def test_load_config_loads_existing_files_as_yaml
     path = prepare_yaml("file.yml", {'key' => 'value'})
-    assert_equal({'key' => 'value'}, Task.load(path))
+    assert_equal({'key' => 'value'}, Task.load_config(path))
     
     path = prepare_yaml("file.yml", [1,2])
-    assert_equal([1,2], Task.load(path))
+    assert_equal([1,2], Task.load_config(path))
   end
   
-  def test_load_recursively_loads_files
+  def test_load_config_recursively_loads_files
     path = prepare_yaml("a.yml", {'key' => 'a value'})
            prepare_yaml("a/b.yml", 'b value')
            prepare_yaml("a/c.yml", 'c value')
     
     a = {'key' => 'a value', 'b' => 'b value', 'c' => 'c value'}
-    assert_equal(a, Task.load(path))
+    assert_equal(a, Task.load_config(path))
   end
   
-  def test_load_recursively_loads_directories
+  def test_load_config_recursively_loads_directories
     path = prepare_yaml("a.yml", {'key' => 'value'})
            prepare_yaml("a/b/c.yml", 'c value')
            prepare_yaml("a/c/d.yml", 'd value')
@@ -189,7 +189,7 @@ class TaskTest < Test::Unit::TestCase
        'b' => {'c' => 'c value'},
        'c' => {'d' => 'd value'}
     }
-    assert_equal(a, Task.load(path))
+    assert_equal(a, Task.load_config(path))
   end
   
   def test_recursive_loading_with_files_and_directories
@@ -204,7 +204,7 @@ class TaskTest < Test::Unit::TestCase
     b = {'key' => 'b value', 'c' => 'c value'}
     a = {'key' => 'a value', 'b' => b, 'd' => d}
     
-    assert_equal(a, Task.load(path))
+    assert_equal(a, Task.load_config(path))
   end
   
   def test_recursive_loading_sets_value_for_each_hash_in_a_parent_array
@@ -215,7 +215,7 @@ class TaskTest < Test::Unit::TestCase
       {'key' => 'one', 'b' => 'b value'},
       {'key' => 'two', 'b' => 'b value'}]
             
-    assert_equal(a, Task.load(path))
+    assert_equal(a, Task.load_config(path))
   end
   
   def test_recursive_loading_with_files_and_directories_and_arrays
@@ -236,7 +236,7 @@ class TaskTest < Test::Unit::TestCase
       {'key' => 'a one', 'b' => b, 'd' => d},
       {'key' => 'a two', 'b' => b, 'd' => d}]
     
-    assert_equal(a, Task.load(path))
+    assert_equal(a, Task.load_config(path))
   end
   
   def test_recursive_loading_does_not_override_values_set_in_parent
@@ -250,14 +250,14 @@ class TaskTest < Test::Unit::TestCase
       'c' => 'recursive value'
     }
     
-    assert_equal(a, Task.load(path))
+    assert_equal(a, Task.load_config(path))
   end
   
-  def test_load_does_not_recursively_load_over_single_values
+  def test_load_config_does_not_recursively_load_over_single_values
     path = prepare_yaml("a.yml", 'single value')
            prepare_yaml("a/b.yml", 'b value')
     
-    assert_equal('single value', Task.load(path))
+    assert_equal('single value', Task.load_config(path))
   end
   
   def test_recursive_loading_raises_error_when_two_files_map_to_the_same_value
@@ -265,7 +265,7 @@ class TaskTest < Test::Unit::TestCase
     one = prepare_yaml("a/b.yml", 'one')
     two = prepare_yaml("a/b.yaml", 'two')
            
-    e = assert_raise(RuntimeError) { Task.load(path) }
+    e = assert_raise(RuntimeError) { Task.load_config(path) }
     assert_equal "multiple files load the same key: [\"b.yaml\", \"b.yml\"]", e.message
   end
   

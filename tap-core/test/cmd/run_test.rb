@@ -61,9 +61,10 @@ configurations:
         --key KEY                    a sample config
 
 options:
-    -h, --help                       Print this help
-        --name NAME                  Specify a name
-        --use FILE                   Loads inputs from file
+        --help                       Print this help
+        --name NAME                  Specifies the task name
+        --config FILE                Specifies a config file
+        --use FILE                   Loads inputs to ARGV
 % #{cmd} run -- sample_without_doc --help
 SampleWithoutDoc
 
@@ -73,9 +74,10 @@ configurations:
         --key KEY
 
 options:
-    -h, --help                       Print this help
-        --name NAME                  Specify a name
-        --use FILE                   Loads inputs from file
+        --help                       Print this help
+        --name NAME                  Specifies the task name
+        --config FILE                Specifies a config file
+        --use FILE                   Loads inputs to ARGV
 % #{cmd} run -- sample_with_splat --help
 SampleWithSplat
 

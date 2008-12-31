@@ -187,22 +187,6 @@ o-[add_five] 8
   end
   
   #
-  # config_filepath test
-  #
-  
-  def test_config_filepath_joins_config_dir_and_input
-    assert_equal File.join(app['config'], "task/name.yml"), app.config_filepath("task/name")
-  end
-  
-  def test_config_filepath_is_nil_for_nil
-    assert_equal nil, app.config_filepath(nil)
-  end
-  
-  def test_config_filepath_stringifies_input
-    assert_equal File.join(app['config'], "task.yml"), app.config_filepath(:task)
-  end
-  
-  #
   # ready test
   #
   
