@@ -33,12 +33,6 @@ class EnvTest < Test::Unit::TestCase
     $LOAD_PATH.concat(@current_load_paths)
   end
   
-  class MockLogger < Array
-    def add(*args)
-      self << args
-    end
-  end
-  
   #
   # Env#full_gem_path test
   #
@@ -155,18 +149,6 @@ class EnvTest < Test::Unit::TestCase
   
   def test_env_is_configurable
     assert e.kind_of?(Configurable)
-  end
-  
-  #
-  # log test
-  #
-  
-  def test_log_adds_message_to_logger_if_logger_is_set
-    e.logger = MockLogger.new
-    e.log :one, "message one", Logger::DEBUG
-    e.log :two, "message two", Logger::INFO
-    
-    assert_equal [[Logger::DEBUG, "message one", "one"], [Logger::INFO, "message two", "two"]], e.logger
   end
   
   #
@@ -401,37 +383,30 @@ a (0)
     assert_equal [root['alt']], e.load_paths
   end
 
-  def test_unused_configs_are_yielded_to_block
-    was_in_block = false
-    e.reconfigure(:another => :value) do |other_configs|
-      was_in_block = true
-      assert_equal({:another => :value}, other_configs)
-    end
-    
-    assert was_in_block
-  end
+  # def test_unused_configs_are_yielded_to_block
+  #   was_in_block = false
+  #   e.reconfigure(:another => :value) do |other_configs|
+  #     was_in_block = true
+  #     assert_equal({:another => :value}, other_configs)
+  #   end
+  #   
+  #   assert was_in_block
+  # end
   
   def test_reconfigure_raises_error_when_active
     e.activate
     assert_raise(RuntimeError) { e.reconfigure }
   end
   
-  def test_reconfigure_yields_to_block_even_if_no_other_configs_are_present
-    was_in_block = false
-    e.reconfigure({}) do |other_configs|
-      was_in_block = true
-      assert_equal({}, other_configs)
-    end
-    
-    assert was_in_block
-  end
-  
-  def test_configure_logs_unused_configs_if_no_block_is_given
-    e.logger = MockLogger.new
-    e.reconfigure(:unused => :value)
-    
-    assert_equal [[Logger::DEBUG, "ignoring non-env configs: unused", "warn"]], e.logger
-  end
+  # def test_reconfigure_yields_to_block_even_if_no_other_configs_are_present
+  #   was_in_block = false
+  #   e.reconfigure({}) do |other_configs|
+  #     was_in_block = true
+  #     assert_equal({}, other_configs)
+  #   end
+  #   
+  #   assert was_in_block
+  # end
   
   def test_reconfigure_recursively_loads_env_paths
     config_file1 = method_root.prepare(:tmp, 'one')

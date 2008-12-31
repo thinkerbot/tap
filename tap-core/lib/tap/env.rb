@@ -42,47 +42,31 @@ module Tap
       # file, and a Root initialized to the config file directory. An instance 
       # will be initialized regardless of whether the config file or directory
       # exists.
-      def instantiate(path_or_root, default_config={}, logger=nil, &block)
+      def instantiate(path_or_root, default_config={}, &block)
         path = path_or_root.kind_of?(Root) ? path_or_root.root : path_or_root
         path = pathify(path)
         
         begin
           root = path_or_root.kind_of?(Root) ? path_or_root : Root.new(File.dirname(path))
-          config = default_config.merge(load_file(path))
+          config = default_config.merge load_config(path)
           
           # note the assignment of env to instances MUST occur before
           # reconfigure to prevent infinite looping
-          (instances[path] = new({}, root, logger)).reconfigure(config, &block)
+          (instances[path] = new({}, root)).reconfigure(config, &block)
         rescue(Exception)
           raise Env::ConfigError.new($!, path)
         end
       end
       
-      def instance_for(path)
+      def instance_for(path, default_class=Env)
         path = pathify(path)
-        instances.has_key?(path) ? instances[path] : instantiate(path)
-      end
-      
-      def pathify(path)
-        if File.directory?(path) || (!File.exists?(path) && File.extname(path) == "")
-          path = File.join(path, DEFAULT_CONFIG_FILE) 
-        end
-        File.expand_path(path)
+        instances.has_key?(path) ? instances[path] : default_class.instantiate(path)
       end
       
       def manifest(name, &block) # :yields: env (returns manifest)
         name = name.to_sym
         define_method(name) do
           self.manifests[name] ||= block.call(self).bind(self, name)
-        end
-      end
-      
-      # Returns the gemspecs for all installed gems with a DEFAULT_CONFIG_FILE. 
-      # If latest==true, then only the specs for the most current gems will be 
-      # returned.
-      def gemspecs(latest=true)
-        Support::Gems.select_gems(latest) do |spec|
-          File.exists?(File.join(spec.full_gem_path, DEFAULT_CONFIG_FILE))
         end
       end
       
@@ -104,9 +88,18 @@ module Tap
         end
       end
       
+      private
+      
+      def pathify(path) # :nodoc:
+        if File.directory?(path) || (!File.exists?(path) && File.extname(path) == "")
+          path = File.join(path, DEFAULT_CONFIG_FILE) 
+        end
+        File.expand_path(path)
+      end
+      
       # helper to load path as YAML.  load_file returns a hash if the path
       # loads to nil or false (as happens for empty files)
-      def load_file(path) # :nodoc:
+      def load_config(path) # :nodoc:
         Root.trivial?(path) ? {} : (YAML.load_file(path) || {})
       end
     end
@@ -119,9 +112,6 @@ module Tap
     
     # The Root directory structure for self.
     attr_reader :root
-    
-    # Gets or sets the logger for self
-    attr_accessor :logger
     
     # Specify files to require when self is activated.
     config :requires, [], &c.array_or_nil
@@ -211,9 +201,8 @@ module Tap
       generators
     end
 
-    def initialize(config={}, root=Tap::Root.new, logger=nil)
+    def initialize(config={}, root=Tap::Root.new)
       @root = root 
-      @logger = logger
       @envs = []
       @active = false
       @manifests = {}
@@ -347,12 +336,12 @@ module Tap
       super(env_configs)
       
       # handle other configs 
-      case
-      when block_given?
-        yield(other_configs) 
-      when !other_configs.empty?
-        log(:warn, "ignoring non-env configs: #{other_configs.keys.join(',')}", Logger::DEBUG)
-      end
+      # case
+      # when block_given?
+      #   yield(other_configs) 
+      # else
+      #   log(:warn, "ignoring non-env configs: #{other_configs.keys.join(',')}", Logger::DEBUG)
+      # end
       
       self
     end
@@ -361,12 +350,6 @@ module Tap
     def env_path
       Env.instances.each_pair {|path, env| return path if env == self }
       nil
-    end
-    
-    # Logs the action and message at the input level (default INFO).
-    # Logging is suppressed if no logger is set.
-    def log(action, msg="", level=Logger::INFO)
-      logger.add(level, msg, action.to_s) if logger
     end
     
     # Activates self by unshifting load_paths for self to the load_path_targets.

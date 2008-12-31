@@ -4,30 +4,28 @@ require 'tap/support/schema'
 
 module Tap
   class Exe < Env
-
+    tap_core = File.expand_path("#{File.dirname(__FILE__)}/../..")
+    DEFAULT_TAP_ENV = Env.new({
+      :load_paths => ["#{tap_core}/lib"],
+      :command_paths => ["#{tap_core}/cmd"]
+    }, Tap::Root.new("#{tap_core}/bin/tap"))
+    
     class << self
       def instantiate(path=Dir.pwd, logger=Tap::App::DEFAULT_LOGGER, &block)
         app = Tap::App.instance = Tap::App.new({:root => path}, logger)
-        exe = super(app, load_file(GLOBAL_CONFIG_FILE), app.logger, &block)
+        exe = super(app, load_config(GLOBAL_CONFIG_FILE), &block)
         
         # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
         if !File.exists?(Tap::Env::DEFAULT_CONFIG_FILE)
-          exe.gems = gemspecs(false)
+          exe.gems = Support::Gems.select_gems(false) do |spec|
+            File.exists?(File.join(spec.full_gem_path, Tap::Env::DEFAULT_CONFIG_FILE))
+          end
         end
         
         # add the default tap instance
-        tap = instance_for("#{File.dirname(__FILE__)}/../..")
-        # tap.tasks.paths = tap.root.glob(:lib, "tap/tasks/*").collect do |task_path|
-        #   [tap.root[:lib], task_path]
-        # end
-        exe.push(tap)
+        exe.push(DEFAULT_TAP_ENV)
         exe
       end
-      
-      def instance_for(path)
-        path = pathify(path)
-        instances.has_key?(path) ? instances[path] : Env.instantiate(path)
-      end   
     end
     
     config :before, nil
