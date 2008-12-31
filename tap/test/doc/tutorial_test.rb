@@ -3,10 +3,11 @@ require File.join(File.dirname(__FILE__), '../tap_test_helper')
 class TutorialTest < Test::Unit::TestCase 
   acts_as_script_test
 
-  RAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/rap")
-
+  RAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../../rap/bin/rap")
+  LOAD_PATHS = $:.collect {|path| "-I'#{File.expand_path(path)}'"}.uniq.join(' ')
+  
   def default_command_path
-    %Q{ruby "#{RAP_EXECUTABLE_PATH}"}
+    %Q{ruby #{LOAD_PATHS} "#{RAP_EXECUTABLE_PATH}"}
   end
   
   def test_declaration
@@ -15,7 +16,7 @@ class TutorialTest < Test::Unit::TestCase
         file << %q{
 # ::desc your basic goodnight moon task
 # Says goodnight with a configurable message.
-Tap.task(:goodnight, :obj, :message => 'goodnight') do |task, args|
+Rap.task(:goodnight, :obj, :message => 'goodnight') do |task, args|
   puts "#{task.message} #{args.obj}"
 end}
       end
@@ -48,7 +49,7 @@ options:
       File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
         file << %q{
 # make the declarations available everywhere
-include Tap::Declarations
+include Rap::Declarations
 
 namespace :example do
   task(:say, :message) do |task, args|

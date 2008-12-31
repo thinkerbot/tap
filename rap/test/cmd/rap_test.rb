@@ -1,12 +1,12 @@
-require File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/test/script_test'
+require File.join(File.dirname(__FILE__), '../rap_test_helper')
 
 class RapTest < Test::Unit::TestCase
   acts_as_script_test
   cleanup_dirs << :root
   
   RAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/rap")
-
+  LOAD_PATHS = $:.collect {|path| "-I'#{File.expand_path(path)}'"}.uniq.join(' ')
+  
   def setup
     super
     method_root.prepare('tap.yml') {}
@@ -14,7 +14,7 @@ class RapTest < Test::Unit::TestCase
   end
 
   def default_command_path
-    %Q{ruby "#{RAP_EXECUTABLE_PATH}"}
+    %Q{ruby #{LOAD_PATHS} "#{RAP_EXECUTABLE_PATH}"}
   end
 
   def test_rap_help_with_no_declarations
@@ -26,7 +26,6 @@ usage: rap taskname {options} [args]
 ===  tap tasks ===
   dump        # the default dump task
   load        # the default load task
-  rake        # run rake tasks
 
 === rake tasks ===
 :...:
@@ -36,7 +35,6 @@ usage: rap taskname {options} [args]
 ===  tap tasks ===
   dump        # the default dump task
   load        # the default load task
-  rake        # run rake tasks
 
 === rake tasks ===
 :...:
@@ -48,7 +46,7 @@ usage: rap taskname {options} [args]
     method_root.prepare('Tapfile') do |file|
       file << %q{
 module RapTest
-  extend Tap::Declarations
+  extend Rap::Declarations
   
   # ::desc task summary
   # long description
@@ -71,10 +69,9 @@ usage: rap taskname {options} [args]
 test_rap_help_with_declarations:
   task_with_doc     # task summary
   task_with_desc    # desc
-tap:
+tap-core:
   dump              # the default dump task
   load              # the default load task
-  rake              # run rake tasks
 
 === rake tasks ===
 :...:
@@ -104,7 +101,7 @@ usage: rap rap_test/task_with_desc
   def test_rap_help_with_duplicate_nested_declarations
     method_root.prepare('Tapfile') do |file|
       file << %q{
-include Tap::Declarations
+include Rap::Declarations
 
 desc "first desc"
 task :task
@@ -135,7 +132,7 @@ test_rap_help_with_duplicate_nested_declarations:
     method_root.prepare('Tapfile') do |file|
       file << %q{
 module RapTest
-  extend Tap::Declarations
+  extend Rap::Declarations
 
   task(:task_without_args) {}
   task(:task_with_args) {|task, args|}
@@ -182,7 +179,7 @@ usage: rap rap_test/task_with_arg_names A B
         method_root.prepare(path) do |file|
           manifests << "  task_#{basename}  # #{path}"
           file << %Q{
-include Tap::Declarations
+include Rap::Declarations
 
 desc "#{path}"
 task(:task_#{basename})

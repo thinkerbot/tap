@@ -10,7 +10,7 @@ If you've used rake, tap will be easy to pick up.  To get started, make a Tapfil
     
   # ::desc your basic goodnight moon task
   # Says goodnight with a configurable message.
-  Tap.task(:goodnight, :obj, :message => 'goodnight') do |task, args|
+  Rap.task(:goodnight, :obj, :message => 'goodnight') do |task, args|
     puts "#{task.message} #{args.obj}\n"
   end
   
@@ -45,7 +45,7 @@ The declaration syntax is obviously similar to rake; configurations are new but 
   
   # make the declarations available everywhere
   # (normally they're accessed via Tap, as above)
-  include Tap::Declarations
+  include Rap::Declarations
   
   namespace :example do
     task(:say, :message) do |task, args|
@@ -80,7 +80,7 @@ Going back to the first example, lets take a look at how a task declaration maps
   
   # ::desc your basic goodnight moon task
   # Says goodnight with a configurable message.
-  Tap.task(:goodnight, :obj, :message => 'goodnight') do
+  Rap.task(:goodnight, :obj, :message => 'goodnight') do
     puts "#{task.message} #{args.obj}\n"
   end
   

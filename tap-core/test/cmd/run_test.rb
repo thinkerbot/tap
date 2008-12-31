@@ -1,22 +1,21 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/test/script_test'
 
 class RunTest < Test::Unit::TestCase
   acts_as_script_test
   
   TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/tap")
-
+  LOAD_PATHS = $:.collect {|path| "-I'#{File.expand_path(path)}'"}.uniq.join(' ')
+  
   def default_command_path
-    %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
+    %Q{ruby #{LOAD_PATHS} "#{TAP_EXECUTABLE_PATH}"}
   end
-
- def test_run_manifest
+  
+  def test_run_manifest
    script_test do |cmd|
       cmd.check "Prints manifest", %Q{
 % #{cmd} run -T 
   dump        # the default dump task
   load        # the default load task
-  rake        # run rake tasks
 }
     end
   end

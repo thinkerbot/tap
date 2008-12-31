@@ -1,4 +1,8 @@
-require File.join(File.dirname(__FILE__), 'functional_helper')
+require File.join(File.dirname(__FILE__), '../../lib/tap')
+require 'test/unit'
+
+module Functional
+end
 
 # These tests are aimed at this basic system.
 # a switches b, b.
@@ -52,7 +56,7 @@ class Functional::WorkflowsTest < Test::Unit::TestCase
     a.switch(b, b1) do |_result|
       # sources are nil for the initial input
       # then a for the first task
-      (_result._sources.length == 2 ? 0 : 1)
+      (_result.trail.length == 2 ? 0 : 1)
     end
     b.fork(c, c1)
     c.sequence(a)

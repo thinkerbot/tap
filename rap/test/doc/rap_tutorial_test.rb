@@ -1,8 +1,8 @@
-require File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/declarations'
+require File.join(File.dirname(__FILE__), '../rap_test_helper')
+require 'rap/declarations'
 
 class RapTutorialTest < Test::Unit::TestCase
-  include Tap::Declarations
+  include Rap::Declarations
   
   def setup
     @declaration_base = "RapTutorialTest"
@@ -26,7 +26,7 @@ class RapTutorialTest < Test::Unit::TestCase
 
     assert_equal C, c.class
     assert c == C.instance
-    assert_equal Tap::Declarations::DeclarationTask, C.superclass
+    assert_equal Rap::DeclarationTask, C.superclass
 
   end
 end

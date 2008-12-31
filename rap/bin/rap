@@ -2,7 +2,7 @@
 # usage: rap taskname {options} [args]
 
 $:.unshift "#{File.dirname(__FILE__)}/../lib"
-require 'tap/declarations'
+require 'rap/declarations'
 
 # setup the environment
 begin
@@ -10,7 +10,7 @@ begin
   # handle super options
   $DEBUG = true if ARGV.delete('-d-')
   env = Tap::Exe.instantiate
-  env.unshift(Tap::Declarations.env)
+  env.unshift(Rap::Declarations.env)
 
   Dir.glob('[TtRr]apfile{,.rb}').each do |task_file|
     task_file  = File.expand_path(task_file)
@@ -56,9 +56,9 @@ end
 # run rap
 #
 
-module Tap
+module Rap
   module Tasks
-    autoload(:Rake, 'tap/tasks/rake')
+    autoload(:Rake, 'rap/tasks/rake')
   end
 end
 
@@ -87,7 +87,7 @@ begin
     puts env.summarize(:tasks, rap_template)
     puts
     puts "=== rake tasks ==="
-    Tap::Tasks::Rake.new.enq('-T')
+    Rap::Tasks::Rake.new.enq('-T')
     Tap::App.instance.run
     
     # this is not currently reached as rake exits on -T
@@ -97,7 +97,7 @@ begin
   else
     queues = env.build(ARGV) do |args|
       warn "warning: implict rake for [#{args.join(' ')}]"
-      Tap::Tasks::Rake
+      Rap::Tasks::Rake
     end
     ARGV.clear
 

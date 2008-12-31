@@ -1,8 +1,8 @@
-require  File.join(File.dirname(__FILE__), 'tap_test_helper')
-require 'tap/declarations'
+require File.join(File.dirname(__FILE__), '../rap_test_helper')
+require 'rap/declarations'
 
 class DeclarationsTest < Test::Unit::TestCase
-  include Tap::Declarations
+  include Rap::Declarations
   
   def setup
     @declaration_base = "DeclarationsTest"
@@ -14,7 +14,7 @@ class DeclarationsTest < Test::Unit::TestCase
   #
   
   module Nest
-    extend Tap::Declarations
+    extend Rap::Declarations
     task(:nested_sample)
   end
    
@@ -26,7 +26,7 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_declarations_are_not_nested_for_rap
-    t = Tap.task(:sample_declaration)
+    t = Rap.task(:sample_declaration)
     assert_equal "SampleDeclaration", t.class.to_s
   end
   
@@ -39,7 +39,7 @@ class DeclarationsTest < Test::Unit::TestCase
     instance = task(:task0)
     assert_equal DeclarationsTest::Task0, instance.class
     assert_equal Task0.instance, instance
-    assert_equal DeclarationTask, Task0.superclass
+    assert_equal Rap::DeclarationTask, Task0.superclass
   end
   
   def test_multiple_calls_to_task_with_the_same_name_return_same_instance
@@ -99,7 +99,7 @@ class DeclarationsTest < Test::Unit::TestCase
     task(:task13)
 
     Lazydoc[__FILE__].resolved = false
-    assert_equal Tap::Declarations::Description, Task13.manifest.class
+    assert_equal Rap::Description, Task13.manifest.class
     assert_equal "summary", Task13.manifest.to_s
     assert_equal "a multiline comment", Task13.manifest.comment
 
@@ -122,7 +122,7 @@ class DeclarationsTest < Test::Unit::TestCase
     task(:task15)
 
     Lazydoc[__FILE__].resolved = false
-    assert_equal Tap::Declarations::Description, Task15.manifest.class
+    assert_equal Rap::Description, Task15.manifest.class
     assert_equal "new summary", Task15.manifest.to_s
     assert_equal "new comment", Task15.manifest.comment
   end
@@ -136,9 +136,9 @@ class DeclarationsTest < Test::Unit::TestCase
     assert_equal ['name', {:key => 'value'}, [], [:one, :two]], resolve_args([:name, :one, :two, {:key => 'value'}])
   end
   
-  class NeedOne < DeclarationTask
+  class NeedOne < Rap::DeclarationTask
   end
-  class NeedTwo < DeclarationTask
+  class NeedTwo < Rap::DeclarationTask
   end
   
   def test_resolve_args_looks_up_needs
@@ -151,7 +151,7 @@ class DeclarationsTest < Test::Unit::TestCase
     args = resolve_args([{:name => [:need_three]}])
     
     assert DeclarationsTest.const_defined?(:NeedThree)
-    assert DeclarationTask, NeedThree.superclass
+    assert Rap::DeclarationTask, NeedThree.superclass
     assert_equal ['name', {}, [NeedThree], []], args
   end
   
@@ -172,7 +172,8 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def test_resolve_args_raises_error_if_multiple_task_names_are_specified
     e = assert_raise(ArgumentError) { resolve_args([{:one => [], :two => []}]) }
-    assert_equal "multiple task names specified: [:one, :two]", e.message
+    assert e.message =~ /multiple task names specified: \[.*:one.*\]/
+    assert e.message =~ /multiple task names specified: \[.*:two.*\]/
   end
   
   #
@@ -333,15 +334,15 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def test_namespaces_are_a_less_crazy_than_rake
     arr = []
-    Tap.task(:outer1) { arr << 'outer1' }
-    Tap.task(:outer2) { arr << 'outer2' }
+    Rap.task(:outer1) { arr << 'outer1' }
+    Rap.task(:outer2) { arr << 'outer2' }
     
-    Tap.namespace :nest do
-      Tap.task(:inner1 => :outer1) { arr << 'inner1' }
+    Rap.namespace :nest do
+      Rap.task(:inner1 => :outer1) { arr << 'inner1' }
       
       # outer2 defined in nest
-      Tap.task(:inner2 => :outer2) { arr << 'inner2' }
-      Tap.task(:outer2) { arr << 'inner3' }
+      Rap.task(:inner2 => :outer2) { arr << 'inner2' }
+      Rap.task(:outer2) { arr << 'inner3' }
     end
     
     ::Nest::Inner1.instance.execute

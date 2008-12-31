@@ -1,3 +1,5 @@
+require 'tap'
+
 module Tap
   module Test
 

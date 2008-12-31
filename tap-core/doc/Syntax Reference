@@ -57,7 +57,7 @@ A few syntactical differences between rake and rap must to be noted, as they can
 
 Tasks do not support :needs as a way to specify dependencies.  For instance, this will declare a ':needs' configuration with the default value ':another', not a task which depends on another:
 
-  Tap.task :name, :needs => :another
+  Rap.task :name, :needs => :another
 
 ==== immediate namespace lookup
 

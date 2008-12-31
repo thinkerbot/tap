@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), '../tap_test_helper.rb') 
+require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/test/file_test'
 
 class FileTestTest < Test::Unit::TestCase

@@ -1,7 +1,6 @@
-require 'rake'
-require 'tap/support/gems/rake'
+require 'rap/rake_app'
 
-module Tap
+module Rap
   module Tasks
     # :startdoc::manifest run rake tasks
     # 
@@ -17,7 +16,7 @@ module Tap
     #
     class Rake < Tap::Task
       class << self
-      
+    
         # Overrides Tap::Support::FrameworkClass#parse! to do  
         # nothing so that all args get passed forward to rake.
         def parse!(argv, app=Tap::App.instance) # => instance, argv
@@ -28,16 +27,16 @@ module Tap
           [new({}, default_name, app), argv.collect {|arg| arg == '--rake-help' ? '--help' : arg}]
         end
       end
-      
+    
       def enq(*argv)
         rake = ::Rake.application
-        
+      
         # run as if from command line using argv
         current_argv = ARGV.dup
         begin
           ARGV.clear
           ARGV.concat(argv)
-    
+  
           # now follow the same protocol as 
           # in run, handling options
           rake.init
@@ -46,12 +45,11 @@ module Tap
           ARGV.clear
           ARGV.concat(current_argv)
         end
-      
+    
         rake.enq_top_level(app)
-      
+    
         nil
       end
-      
     end
   end
 end

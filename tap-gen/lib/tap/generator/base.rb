@@ -1,3 +1,4 @@
+require 'tap'
 require 'tap/generator/manifest'
 require 'tap/generator/arguments'
 

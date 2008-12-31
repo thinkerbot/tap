@@ -1,0 +1,30 @@
+= {Tap Test}[http://tap.rubyforge.org/tap-test]
+
+The standard {Tap}[http://tap.rubyforge.org] test framework.
+
+== Description
+
+Tap is a framework for creating configurable, distributable tasks and
+workflows.  Tap is distributed as a set of several independent modules; 
+this is the test module.
+
+Check out these links for documentation, development, and bug tracking.
+
+* Website[http://tap.rubyforge.org]
+* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
+* Github[http://github.com/bahuvrihi/tap/tree/master]
+* {Google Group}[http://groups.google.com/group/ruby-on-tap]
+
+== Installation
+
+Tap Test is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+
+  % gem install tap-test
+
+== Info 
+
+Copyright (c) 2006-2008, Regents of the University of Colorado.
+Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com], {Biomolecular Structure Program}[http://biomol.uchsc.edu/], {Hansen Lab}[http://hsc-proteomics.uchsc.edu/hansenlab/] 
+Support:: CU Denver School of Medicine Deans Academic Enrichment Fund
+Licence:: {MIT-Style}[link:files/MIT-LICENSE.html]
+

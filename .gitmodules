@@ -1,0 +1,6 @@
+[submodule "configurable"]
+	path = configurable
+	url = git://github.com/bahuvrihi/configurable.git
+[submodule "lazydoc"]
+	path = lazydoc
+	url = git://github.com/bahuvrihi/lazydoc.git

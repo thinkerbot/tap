@@ -1,5 +1,4 @@
-require File.join(File.dirname(__FILE__), '../tap_test_helper.rb') 
-require 'tap/test'
+require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/test/subset_test'
 
 class SubsetTestTest < Test::Unit::TestCase

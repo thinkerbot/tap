@@ -1,8 +1,8 @@
-require File.dirname(__FILE__) + "/../tap"
-require "tap/declarations/description"
-require "tap/declarations/declaration_task"
+require "tap"
+require "rap/description"
+require "rap/declaration_task"
 
-module Tap
+module Rap
   #--
   # more thought needs to go into extending Tap with Declarations
   # and there should be some discussion on why include works at
@@ -14,7 +14,7 @@ module Tap
     def self.extended(base) # :nodoc:
       declaration_base = base.to_s
       case declaration_base
-      when "Object", "Tap", "main"
+      when "Object", "Rap", "main"
         declaration_base = ""
       end
       
@@ -125,7 +125,7 @@ module Tap
         unless need.kind_of?(Class)
           # lookup or declare non-class dependencies
           name = normalize_name(need).camelize
-          need = Support::Constant.constantize(name) {|base, constants| declare(name) }
+          need = Tap::Support::Constant.constantize(name) {|base, constants| declare(name) }
         end
         
         unless need.ancestors.include?(Tap::Task)
@@ -160,7 +160,7 @@ module Tap
       const_name = File.join(declaration_base, name.to_s).camelize
       
       # lookup or generate the subclass
-      subclass = Support::Constant.constantize(const_name) do |base, constants|
+      subclass = Tap::Support::Constant.constantize(const_name) do |base, constants|
         constants.each do |const|
           # nesting Task classes into other Task classes
           # is required for namespaces with the same name

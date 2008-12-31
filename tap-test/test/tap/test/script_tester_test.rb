@@ -1,4 +1,4 @@
-require  File.dirname(__FILE__) + '/../tap_test_helper'
+require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/test/script_tester'
 
 class ScriptTesterTest < Test::Unit::TestCase

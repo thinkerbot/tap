@@ -1,4 +1,20 @@
-require File.dirname(__FILE__) + '/../lib/tap'
+# setup testing with submodules
+begin
+  require File.join(File.dirname(__FILE__), '../lib/tap')
+rescue(LoadError)
+  puts %Q{
+Tests probably cannot be run because the submodules have
+not been initialized.  Use these commands and try again:
+
+  % git submodule init
+  % git submodule update
+
+}
+  raise
+end
+
+tap_test_lib = File.expand_path("#{File.dirname(__FILE__)}/../../tap-test/lib")
+$:.unshift(tap_test_lib) unless $:.include?(tap_test_lib)
 require 'tap/test'
 
 unless defined?(ObjectWithExecute)
@@ -7,10 +23,7 @@ unless defined?(ObjectWithExecute)
       input
     end
   end
-end
 
-unless defined?(TapTestMethods)
-  
   class Tracer
     include Tap::Support::Executable
 

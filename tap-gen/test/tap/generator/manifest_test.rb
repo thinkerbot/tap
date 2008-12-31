@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), '../tap_test_helper.rb') 
+require File.join(File.dirname(__FILE__), '../../tap_test_helper.rb')
 require 'tap/generator/manifest'
 
 class Tap::Generator::ManifestTest < Test::Unit::TestCase

@@ -1,6 +1,7 @@
 autoload(:YAML, 'yaml')                   # expensive to load
 
-$:.unshift File.expand_path(File.dirname(__FILE__))
+lib = File.expand_path(File.dirname(__FILE__))
+$:.unshift(lib) unless $:.include?(lib)
 
 require 'rubygems'
 require 'configurable'

@@ -1,7 +1,7 @@
 require 'tap/declarations'
 
 module <%= project_name.camelize %>
-  extend Tap::Declarations
+  extend Rap::Declarations
   
   # ::desc your basic goodnight moon task
   # Says goodnight with a configurable message.

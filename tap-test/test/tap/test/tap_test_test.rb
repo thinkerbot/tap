@@ -1,5 +1,5 @@
-require  File.dirname(__FILE__) + '/../tap_test_helper'
-require 'tap/test'
+require File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require 'tap/test/tap_test'
 
 class TestSetupTest < Test::Unit::TestCase
   acts_as_tap_test(
@@ -20,7 +20,6 @@ end
 
 class TapTestTest < Test::Unit::TestCase
   include Tap::Support
-  include TapTestMethods
   acts_as_tap_test 
   
   #
@@ -28,26 +27,10 @@ class TapTestTest < Test::Unit::TestCase
   #
   
   def test_setup
-    assert runlist.empty?
     assert_equal @app, app
     assert_equal Tap::App.instance, app
     assert_equal File.expand_path(File.dirname(__FILE__) + "/tap_test/test_setup"), File.expand_path(app[:root])
     assert_equal File.expand_path(File.dirname(__FILE__) + "/tap_test/test_setup/input"), File.expand_path(app[:input])
-  end
-  
-  def test_clear_runlist_empties_runlist
-    runlist << 1
-    assert !runlist.empty?
-    
-    clear_runlist
-    assert runlist.empty?
-  end
-  
-  def test_add_one_procedure_adds_input_to_runlist_and_returns_input_plus_one
-    input = 1
-    output = add_one.call(nil, input)
-    assert_equal 2, output
-    assert_equal [1], runlist
   end
   
   #

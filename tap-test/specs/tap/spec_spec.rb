@@ -1,4 +1,4 @@
-require 'tap/spec'
+require File.join(File.dirname(__FILE__), '../tap_spec_helper')
 
 describe "Tap::Spec" do
   acts_as_file_test(

@@ -1,0 +1,18 @@
+== 0.12.0 / 2008-12-30
+
+As of the 0.12.0 release, Tap is distributed as several independent modules.
+This is the core module.  The core classes have been cleaned up significantly
+since the 0.11 series, and some changes are not backwards compatible.  The
+main task API has been preserved.
+
+Notable changes include:
+
+* Lazydoc is now an independent gem
+* Configurable is now an independent gem
+* removed use of OptionParser
+* Root#directories was refactored to Root#relative_paths
+* added several methods to Root
+* added splat option for joins
+* refactored stack short option to 'k'
+* reworked Audit as a directed acyclic graph
+* cleanup and extension of FileTask API

@@ -1,9 +1,13 @@
-require File.join(File.dirname(__FILE__), 'functional_helper')
-require 'tap/declarations'
+$:.unshift File.expand_path("#{File.dirname(__FILE__)}/../../tap/lib")
+require 'test/unit'
+require 'rap/declarations'
 require 'stringio'
 
+module Functional
+end
+
 class Functional::DeclarationsTest < Test::Unit::TestCase
-  extend Tap::Declarations
+  extend Rap::Declarations
   
   attr_reader :trace
   
@@ -95,20 +99,20 @@ class Functional::DeclarationsTest < Test::Unit::TestCase
   
   ###########################
   
-  Tap.task(:existant)
-  Tap.namespace(:nest) do
+  Rap.task(:existant)
+  Rap.namespace(:nest) do
     # reference an existant, non-nested task
-    Tap.task(:existant => 'existant')
+    Rap.task(:existant => 'existant')
     
     # reference a non-existant nested task
-    Tap.task(:existant => 'non_existant')
+    Rap.task(:existant => 'non_existant')
   end
   
-  Tap.task(:ref => 'existant')
-  Tap.task(:ref => 'non_existant')
-  Tap.task(:ref => 'nest:existant')
-  Tap.task(:ref => 'nest:non_existant_task')
-  Tap.task(:ref => 'non_existant_nest:non_existant_task')
+  Rap.task(:ref => 'existant')
+  Rap.task(:ref => 'non_existant')
+  Rap.task(:ref => 'nest:existant')
+  Rap.task(:ref => 'nest:non_existant_task')
+  Rap.task(:ref => 'non_existant_nest:non_existant_task')
   
   def test_namespaces_are_resolved_in_dependencies
     assert_equal [
