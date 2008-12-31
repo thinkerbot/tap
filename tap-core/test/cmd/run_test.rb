@@ -16,7 +16,7 @@ class RunTest < Test::Unit::TestCase
 % #{cmd} run -T 
   dump        # the default dump task
   load        # the default load task
-}
+}, false
     end
   end
   
@@ -39,7 +39,7 @@ configurations:
 options:
     -h, --help                       Show this message
     -T, --manifest                   Print a list of available tasks
-}
+}, false
       
       cmd.check "Prints the sample task help", %Q{
 % #{cmd} run -- sample --help
@@ -103,17 +103,17 @@ no task specified
 no task specified
 % #{cmd} run -- --+ --++
 no task specified
-}
+}, false
 
       cmd.check "Prints unknown task", %Q{
 % #{cmd} run unknown
 unknown task: unknown
-}
+}, false
 
       cmd.check "Prints unknown task", %Q{
 % #{cmd} run -- --help
 unknown task: --help
-}
+}, false
 
       # run variations
 

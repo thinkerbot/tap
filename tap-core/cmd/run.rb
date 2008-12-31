@@ -33,7 +33,7 @@ ConfigParser.new do |opts|
     exit
   end
   
-  opts.on('-T', '--manifest', 'Print a list of available tasks') do |v|
+  opts.on('-T', '--manifest', 'Print a list of available tasks') do
     puts env.summarize(:tasks)
     exit
   end

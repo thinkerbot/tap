@@ -46,7 +46,7 @@ version #{Tap::VERSION} -- http://tap.rubyforge.org
       cmd.check "Prints help for the executable", %Q{
 % #{cmd} --help
 #{TAP_HELP}
-}
+}, false
     end
   end
   
@@ -56,7 +56,7 @@ version #{Tap::VERSION} -- http://tap.rubyforge.org
 % #{cmd} unknown
 Unknown command: 'unknown'
 Type 'tap --help' for usage information.
-}
+}, false
     end
   end
   
@@ -69,7 +69,7 @@ before line two
 #{TAP_HELP}
 after line one
 after line two
-}
+}, false
     end
   end
 
