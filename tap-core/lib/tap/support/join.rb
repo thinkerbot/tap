@@ -42,8 +42,8 @@ module Tap
       # An array of workflow flags.  Workflow flags are false unless specified.
       FLAGS = configurations.keys
       
-      # An array of the shorts in each WORKFLOW_FLAGS. 
-      SHORT_FLAGS = configurations.values.collect {|config| config.attributes[:short] }
+      # An array of the shorts corresponding to FLAGS. 
+      SHORT_FLAGS = configurations.keys.collect {|key| configurations[key].attributes[:short] }
       
       # Initializes a new join with the specified configuration.
       def initialize(config)
