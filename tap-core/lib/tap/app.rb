@@ -207,7 +207,7 @@ module Tap
       @aggregator = Support::Aggregator.new
       @dependencies = Support::Dependencies.new
       
-      initialize_config(config)
+      reconfigure(config)
       self.logger = logger
     end
     
