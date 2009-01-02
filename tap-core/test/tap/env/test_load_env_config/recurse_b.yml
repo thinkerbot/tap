@@ -1,2 +1,0 @@
-config_paths: recurse_a.yml
-load_paths: nested/lib

@@ -1,3 +1,0 @@
-load_paths: [lib, nested/lib]
-command_paths: [cmd, nested/cmd]
-load_once_paths: [lop.rb, nested/lop.rb]

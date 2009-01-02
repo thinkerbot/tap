@@ -9,16 +9,16 @@ module Tap
     lib_paths = tap_modules.collect {|dir| File.join(dir, 'lib') }
     cmd_paths = tap_modules.collect {|dir| File.join(dir, 'cmd') }
     
-    DEFAULT_TAP_ENV = Env.new({
+    DEFAULT_TAP_ENV = Env.new(
+      :root => {:root => "#{tap_core}/bin/tap"},
       :load_paths => lib_paths,
       :command_paths => cmd_paths,
       :generator_paths => lib_paths
-    }, Tap::Root.new("#{tap_core}/bin/tap"))
+    )
     
     class << self
-      def instantiate(path=Dir.pwd, logger=Tap::App::DEFAULT_LOGGER, &block)
-        app = Tap::App.instance = Tap::App.new({:root => path}, logger)
-        exe = super(app, load_config(GLOBAL_CONFIG_FILE), &block)
+      def instantiate(path=Dir.pwd)
+        exe = super(path, load_config(GLOBAL_CONFIG_FILE))
         
         # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
         if !File.exists?(Tap::Env::DEFAULT_CONFIG_FILE)
@@ -34,8 +34,18 @@ module Tap
       end
     end
     
+    # The Root directory structure for self.
+    nest(:root, Tap::App) do |config| 
+      Tap::App.instance = Tap::App.new(config)
+    end
+    
     config :before, nil
     config :after, nil
+    # Specify files to require when self is activated.
+    config :requires, [], &c.array_or_nil
+    
+    # Specify files to load when self is activated.
+    config :loads, [], &c.array_or_nil
     config :aliases, {}, &c.hash_or_nil
     
     # The global config file path
@@ -44,6 +54,21 @@ module Tap
     # Alias for root (Exe should have a Tap::App as root)
     def app
       root
+    end
+    
+    def activate
+      if super      
+      
+        # perform requires
+        requires.each do |path|
+          require path
+        end
+      
+        # perform loads
+        loads.each do |path|
+          load path
+        end
+      end
     end
     
     def handle_error(err)

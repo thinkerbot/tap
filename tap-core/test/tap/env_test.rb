@@ -1,86 +1,35 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/env'
-require 'yaml'
 
 class EnvTest < Test::Unit::TestCase
+  include Tap
   
   acts_as_file_test
   
-  attr_accessor :e, :root
+  attr_accessor :e
   
   def setup
     super
     
-    @current_instance = Tap::Env.instance
-    @current_instances = Tap::Env.instances
-    Tap::Env.send(:class_variable_set, :@@instance, nil)
-    Tap::Env.send(:class_variable_set, :@@instances, {})
+    @current_instance = Env.instance
+    @current_instances = Env.instances
+    Env.send(:class_variable_set, :@@instance, nil)
+    Env.send(:class_variable_set, :@@instances, {})
     
     @current_load_paths = $LOAD_PATH.dup
     $LOAD_PATH.clear
 
-    @root = Tap::Root.new
-    @e = Tap::Env.new({}, root)
+    @e = Env.new({})
   end
   
   def teardown
     super
     
-    Tap::Env.send(:class_variable_set, :@@instance,  @current_instance)
-    Tap::Env.send(:class_variable_set, :@@instances, @current_instances)
+    Env.send(:class_variable_set, :@@instance,  @current_instance)
+    Env.send(:class_variable_set, :@@instances, @current_instances)
     
     $LOAD_PATH.clear
     $LOAD_PATH.concat(@current_load_paths)
-  end
-  
-  #
-  # Env#full_gem_path test
-  #
-  
-  # def test_full_gem_path_returns_the_full_gem_path_for_the_specified_gem
-  #   assert !Gem.loaded_specs.empty?
-  #   gem_name, gem_spec = Gem.loaded_specs.to_a.first
-  #   assert_equal gem_spec.full_gem_path, Tap::Env.full_gem_path(gem_name)
-  # end
-  # 
-  # def test_full_gem_path_accepts_versions
-  #   assert !Gem.loaded_specs.empty?
-  #   gem_name, gem_spec = Gem.loaded_specs.to_a.first
-  #   assert_equal gem_spec.full_gem_path, Tap::Env.full_gem_path(" #{gem_name} >= #{gem_spec.version} ")
-  # end
-  
-  #
-  # path_config tests
-  #
-  
-  class PathConfigEnv < Tap::Env
-    path_config(:test_paths, ['test'])
-  end
-  
-  def test_path_configs_are_resolved_using_root
-    e = PathConfigEnv.new({:test_paths => ['dir', 'alt']}, root)
-    assert_equal [root['dir'], root['alt']], e.test_paths
-  end
-  
-  def test_path_configs_are_set_to_default_if_unspecified
-    e = PathConfigEnv.new({}, root)
-    assert_equal [root['test']], e.test_paths
-  end
-  
-  def test_path_configs_resolves_single_values_as_arrays
-    e = PathConfigEnv.new({:test_paths => 'dir'}, root)
-    assert_equal [root['dir']], e.test_paths
-  end
-  
-  def test_path_configs_ignore_nil_values
-    e = PathConfigEnv.new({:test_paths => nil}, root)
-    assert_equal [], e.test_paths
-  end
-  
-  def test_set_path_config_raises_error_when_active
-    e = PathConfigEnv.new
-    e.activate
-    assert_raise(RuntimeError) { e.test_paths = "value" }
   end
   
   #
@@ -89,14 +38,14 @@ class EnvTest < Test::Unit::TestCase
 
   def test_manifest_adds_method_to_access_manifest_produced_by_block
     assert !e.respond_to?(:new_manifest)
-    Tap::Env.manifest(:new_manifest) do |env|
-      Tap::Support::Manifest.new ['a', 'b', 'c']
+    Env.manifest(:new_manifest) do |env|
+      Support::Manifest.new ['a', 'b', 'c']
     end
     
     assert e.respond_to?(:new_manifest)
     assert_equal(['a', 'b', 'c'], e.new_manifest.entries)
 
-    another = Tap::Env.new({}, root)
+    another = Env.new
     assert another.respond_to?(:new_manifest)
     assert_equal(['a', 'b', 'c'], another.new_manifest.entries)
 
@@ -108,29 +57,29 @@ class EnvTest < Test::Unit::TestCase
   #
   
   def test_instantiate_doc
-    e1 = Tap::Env.instantiate("./path/to/config.yml")
-    e2 = Tap::Env.instantiate("./path/to/dir")
+    e1 = Env.instantiate("./path/to/config.yml")
+    e2 = Env.instantiate("./path/to/dir")
 
     assert_equal({
      File.expand_path("./path/to/config.yml") => e1, 
-     File.expand_path("./path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}") => e2 },  
-    Tap::Env.instances)
+     File.expand_path("./path/to/dir/#{Env::DEFAULT_CONFIG_FILE}") => e2 },  
+    Env.instances)
   end
   
   def test_instantiate_adds_new_env_to_instances_by_expanded_path
-    assert Tap::Env.instances.empty?
-    e = Tap::Env.instantiate("path.yml")
-    assert_equal({File.expand_path("path.yml") => e}, Tap::Env.instances)
+    assert Env.instances.empty?
+    e = Env.instantiate("path.yml")
+    assert_equal({File.expand_path("path.yml") => e}, Env.instances)
   end
   
   def test_instantiate_returns_env_with_root_directed_at_expaned_path_directory
-    e = Tap::Env.instantiate("path/to/config.yml")
+    e = Env.instantiate("path/to/config.yml")
     assert_equal(File.expand_path("path/to/"), e.root.root)
   end
   
   def test_instantiate_appends_DEFAULT_CONFIG_FILE_to_directories
-    e = Tap::Env.instantiate("path")
-    assert_equal({File.expand_path("path/#{Tap::Env::DEFAULT_CONFIG_FILE}") => e}, Tap::Env.instances)
+    e = Env.instantiate("path")
+    assert_equal({File.expand_path("path/#{Env::DEFAULT_CONFIG_FILE}") => e}, Env.instances)
   end
   
   #
@@ -138,17 +87,103 @@ class EnvTest < Test::Unit::TestCase
   #
   
   def test_instantiate_for_returns_existing_env_in_instances
-    e = Tap::Env.new
-    Tap::Env.instances[File.expand_path("path.yml")] = e
-    assert_equal(e, Tap::Env.instance_for("path.yml"))
+    e = Env.new
+    Env.instances[File.expand_path("path.yml")] = e
+    assert_equal(e, Env.instance_for("path.yml"))
   end
   
   #
   # initialization tests
   #
   
-  def test_env_is_configurable
-    assert e.kind_of?(Configurable)
+  def test_default_initialize
+    e = Env.new
+    assert_equal Dir.pwd, e.root.root
+    assert_equal [], e.envs
+    assert !e.active?
+  end
+  
+  #
+  # load_paths= test
+  #
+  
+  def test_set_load_paths_raises_error_once_active
+    e.activate
+    err = assert_raise(RuntimeError) { e.load_paths = ['/path/to/lib'] }
+    assert_equal "load_paths cannot be modified once active", err.message
+  end
+  
+  def test_set_load_paths_via_config_raises_error_once_active
+    e.activate
+    err = assert_raise(RuntimeError) { e.config[:load_paths] = ['/path/to/lib'] }
+    assert_equal "load_paths cannot be modified once active", err.message
+  end
+  
+  #
+  # env_paths= test
+  #
+  
+  def test_set_env_paths_instantiates_and_sets_envs
+    assert_equal [], e.envs
+    e.env_paths = ["path/to/file.yml", "path/to/dir"]
+    
+    e1 = Env.instances[File.expand_path("path/to/file.yml")]
+    e2 = Env.instances[File.expand_path( "path/to/dir/#{Env::DEFAULT_CONFIG_FILE}")]
+    
+    assert_equal [e1, e2], e.envs
+  end
+  
+  def test_set_env_paths_expands_and_sets_env_paths
+    assert_equal [], e.env_paths
+    e.env_paths = ["path/to/file.yml", "path/to/dir"]
+    assert_equal [File.expand_path("path/to/file.yml"), File.expand_path( "path/to/dir/#{Env::DEFAULT_CONFIG_FILE}")], e.env_paths
+  end
+  
+  def test_duplicate_envs_and_env_paths_are_filtered
+    e.env_paths = ["path/to/dir/tap.yml", "path/to/dir"]
+
+    path = File.expand_path( "path/to/dir/tap.yml" )
+    e1 = Env.instances[path]
+    
+    assert_equal [path], e.env_paths
+    assert_equal [e1], e.envs
+  end
+  
+  def test_set_env_paths_raises_error_once_active
+    e.activate
+    err = assert_raise(RuntimeError) { e.env_paths = ['/path/to/env'] }
+    assert_equal "envs cannot be modified once active", err.message
+  end
+  
+  #
+  # env_path test 
+  #
+  
+  def test_env_path_returns_the_Env_instances_key_for_self
+    Env.instances['/path'] = e
+    assert_equal '/path', e.env_path
+  end
+  
+  def test_env_path_returns_nil_if_self_is_not_in_Env_instances
+    assert_equal({}, Env.instances)
+    assert_nil e.env_path
+  end
+  
+  #
+  # envs= test
+  #
+  
+  def test_set_envs_removes_duplicates_and_self
+    a, b, c = Array.new(3) { Env.new }
+    
+    a.envs = [a, b, b, c]
+    assert_equal [b, c], a.envs
+  end
+  
+  def test_set_envs_raises_error_once_active
+    e.activate
+    err = assert_raise(RuntimeError) { e.envs = [Env.new] }
+    assert_equal "envs cannot be modified once active", err.message
   end
   
   #
@@ -156,19 +191,18 @@ class EnvTest < Test::Unit::TestCase
   #
   
   def test_unshift_unshifts_env_onto_envs_removing_duplicates
-    e1 = Tap::Env.new
-    e2 = Tap::Env.new
+    a, b, c = Array.new(3) { Env.new }
     
-    assert e.envs.empty?
+    assert a.envs.empty?
     
-    e.unshift(e1)
-    assert_equal [e1], e.envs
+    a.unshift(b)
+    assert_equal [b], a.envs
     
-    e.unshift(e2)
-    assert_equal [e2, e1], e.envs
+    a.unshift(c)
+    assert_equal [c, b], a.envs
     
-    e.unshift(e1)
-    assert_equal [e1, e2], e.envs
+    a.unshift(b)
+    assert_equal [b, c], a.envs
   end
   
   def test_self_cannot_be_unshift_onto_self
@@ -177,24 +211,29 @@ class EnvTest < Test::Unit::TestCase
     assert e.envs.empty?
   end
   
+  def test_unshift_raises_error_once_active
+    e.activate
+    err = assert_raise(RuntimeError) { e.unshift(Env.new) }
+    assert_equal "envs cannot be modified once active", err.message
+  end
+  
   #
   # push test
   #
   
   def test_push_pushes_env_onto_envs_removing_duplicates
-    e1 = Tap::Env.new
-    e2 = Tap::Env.new
+    a, b, c = Array.new(3) { Env.new }
     
-    assert e.envs.empty?
+    assert a.envs.empty?
     
-    e.push(e1)
-    assert_equal [e1], e.envs
+    a.push(b)
+    assert_equal [b], a.envs
     
-    e.push(e2)
-    assert_equal [e1, e2], e.envs
+    a.push(c)
+    assert_equal [b, c], a.envs
     
-    e.push(e1)
-    assert_equal [e2, e1], e.envs
+    a.push(b)
+    assert_equal [c, b], a.envs
   end
   
   def test_self_cannot_be_pushed_onto_self
@@ -203,15 +242,18 @@ class EnvTest < Test::Unit::TestCase
     assert e.envs.empty?
   end
   
+  def test_push_raises_error_once_active
+    e.activate
+    err = assert_raise(RuntimeError) { e.push(Env.new) }
+    assert_equal "envs cannot be modified once active", err.message
+  end
+  
   #
   # each test
   #
   
   def test_each_yields_each_env_in_order
-    a = Tap::Env.new
-    b = Tap::Env.new
-    c = Tap::Env.new
-    d = Tap::Env.new
+    a, b, c, d = Array.new(4) { Env.new }
 
     a.push b
     b.push c
@@ -224,10 +266,7 @@ class EnvTest < Test::Unit::TestCase
   end
   
   def test_each_only_yields_first_occurence_of_an_env
-    a = Tap::Env.new
-    b = Tap::Env.new
-    c = Tap::Env.new
-    d = Tap::Env.new
+    a, b, c, d = Array.new(4) { Env.new }
 
     a.push b
     b.push c
@@ -245,10 +284,7 @@ class EnvTest < Test::Unit::TestCase
   #
   
   def test_reverse_each_yields_each_env_in_reverse_order
-    a = Tap::Env.new
-    b = Tap::Env.new
-    c = Tap::Env.new
-    d = Tap::Env.new
+    a, b, c, d = Array.new(4) { Env.new }
 
     a.push b
     b.push c
@@ -261,10 +297,7 @@ class EnvTest < Test::Unit::TestCase
   end
   
   def test_reverse_each_only_yields_first_occurence_of_an_env
-    a = Tap::Env.new
-    b = Tap::Env.new
-    c = Tap::Env.new
-    d = Tap::Env.new
+    a, b, c, d = Array.new(4) { Env.new }
 
     a.push b
     b.push c
@@ -278,17 +311,17 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
-  # recursive_each test
+  # recursive_inject test
   #
   
-  def test_recursive_each_documentation
-    e0, e1, e2, e3, e4 = ('a'..'e').collect {|name| Tap::Env.new(:name => name) }
+  def test_recursive_inject_documentation
+    a,b,c,d,e = ('a'..'e').collect {|name| Tap::Env.new(:name => name) }
   
-    e0.push(e1).push(e2)
-    e1.push(e3).push(e4)
+    a.push(b).push(c)
+    b.push(d).push(e)
   
     lines = []
-    e0.recursive_each(0) do |env, nesting_depth|
+    a.recursive_inject(0) do |nesting_depth, env|
       lines << "\n#{'..' * nesting_depth}#{env.config[:name]} (#{nesting_depth})"
       nesting_depth + 1
     end
@@ -302,112 +335,42 @@ a (0)
     assert_equal expected, lines.join
   end
   
-  def test_recursive_each_passes_block_results_to_children
-    a = Tap::Env.new
-    b = Tap::Env.new
-    c = Tap::Env.new
-    d = Tap::Env.new
+  def test_recursive_inject_passes_same_block_result_to_each_child
+    a, b, c, d = Array.new(4) { Env.new }
     
     a.push(b).push(c)
     c.push(d)
     
     results = []
-    a.recursive_each(0) {|env, n| results << [env, n]; n+1}
+    a.recursive_inject(0) {|n, env| results << [env, n]; n+1}
     
     assert_equal [[a,0], [b,1], [c,1], [d,2]], results
   end
   
-  def test_recursive_each_treats_nil_returns_as_an_empty_array
-    a = Tap::Env.new
-    b = Tap::Env.new
-    
-    a.push(b)
-    
-    results = []
-    a.recursive_each {|env, *args| results << [env, args]; nil}
-    
-    assert_equal [[a, []], [b, []]], results
-  end
-  
-  def test_recursive_each_only_yields_first_occurence_of_an_env
-    a = Tap::Env.new
-    b = Tap::Env.new
-    c = Tap::Env.new
-    d = Tap::Env.new
+  def test_recursive_inject_only_injects_first_occurence_of_an_env
+    a, b, c, d = Array.new(4) { Env.new }
 
     a.push b
     b.push c
     a.push d
     c.push b
     
-    envs = []
-    a.recursive_each {|env| envs << env; []}
-    
-    assert_equal [a, b, c, d], envs
-  end
-  
-  #
-  # count test
-  #
-  
-  def test_count_returns_total_number_of_unique_nested_envs
-    e1 = Tap::Env.new
-    e2 = Tap::Env.new
-    e3 = Tap::Env.new
-    
-    e.push e1
-    e1.push e2
-    e2.push e3
-
-    assert_equal 4, e.count
-    assert_equal 1, e3.count
-    
-    e3.push e1
-    assert_equal 3, e3.count
+    result = a.recursive_inject([]) {|envs, env| envs << env }
+    assert_equal [a, b, c, d], result
   end
   
   #
   # reconfigure test
   #
   
-  def test_reconfigure_reconfigures_root_before_reconfiguring_self
-    assert_not_equal 'alt', root['lib']
-    e.reconfigure({:load_paths => ['lib'], :relative_paths => {'lib' => 'alt'}})
+  def test_reconfigure_reconfigures_root
+    assert_not_equal 'alt', e.root['lib']
+    e.reconfigure(:load_paths => ['lib'], :root => {:relative_paths => {'lib' => 'alt'}})
     
-    assert_not_equal 'alt', root['lib']
-    assert_equal [root['alt']], e.load_paths
-  end
-  
-  def test_reconfigure_symbolizes_keys
-    e.reconfigure({'load_paths' => ['lib'], 'relative_paths' => {'lib' => 'alt'}})
-    assert_equal [root['alt']], e.load_paths
+    assert_not_equal 'alt', e.root['lib']
+    assert_equal [e.root['alt']], e.load_paths
   end
 
-  # def test_unused_configs_are_yielded_to_block
-  #   was_in_block = false
-  #   e.reconfigure(:another => :value) do |other_configs|
-  #     was_in_block = true
-  #     assert_equal({:another => :value}, other_configs)
-  #   end
-  #   
-  #   assert was_in_block
-  # end
-  
-  def test_reconfigure_raises_error_when_active
-    e.activate
-    assert_raise(RuntimeError) { e.reconfigure }
-  end
-  
-  # def test_reconfigure_yields_to_block_even_if_no_other_configs_are_present
-  #   was_in_block = false
-  #   e.reconfigure({}) do |other_configs|
-  #     was_in_block = true
-  #     assert_equal({}, other_configs)
-  #   end
-  #   
-  #   assert was_in_block
-  # end
-  
   def test_reconfigure_recursively_loads_env_paths
     config_file1 = method_root.prepare(:tmp, 'one')
     config_file2 = method_root.prepare(:tmp, 'two')
@@ -426,9 +389,9 @@ a (0)
     
     e.reconfigure({:env_paths => config_file1})
     
-    assert_equal [Tap::Env.instances[config_file1]], e.envs
-    assert_equal [Tap::Env.instances[config_file2]], e.envs[0].envs
-    assert_equal [Tap::Env.instances[config_file3]], e.envs[0].envs[0].envs
+    assert_equal [Env.instances[config_file1]], e.envs
+    assert_equal [Env.instances[config_file2]], e.envs[0].envs
+    assert_equal [Env.instances[config_file3]], e.envs[0].envs[0].envs
   end
   
   def test_recursive_loading_does_not_infinitely_loop
@@ -445,53 +408,9 @@ a (0)
     
     assert_nothing_raised { e.reconfigure({:env_paths => config_file1}) }
     
-    assert_equal [Tap::Env.instances[config_file1]], e.envs
-    assert_equal [Tap::Env.instances[config_file2]], e.envs[0].envs
-    assert_equal [Tap::Env.instances[config_file1]], e.envs[0].envs[0].envs
-  end
-  
-  #
-  # env_path test 
-  #
-  
-  def test_env_path_returns_the_Env_instances_path_for_self
-    Tap::Env.instances['/path'] = e
-    assert_equal '/path', e.env_path
-  end
-  
-  def test_env_path_returns_nil_if_self_is_not_in_Env_instances
-    assert_equal({}, Tap::Env.instances)
-    assert_nil e.env_path
-  end
-  
-  #
-  # env_paths test
-  #
-  
-  def test_set_env_paths_instantiates_and_sets_envs
-    assert_equal [], e.envs
-    e.env_paths = ["path/to/file.yml", "path/to/dir"]
-    
-    e1 = Tap::Env.instances[File.expand_path("path/to/file.yml")]
-    e2 = Tap::Env.instances[File.expand_path( "path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}")]
-    
-    assert_equal [e1, e2], e.envs
-  end
-  
-  def test_set_env_paths_expands_and_sets_env_paths
-    assert_equal [], e.env_paths
-    e.env_paths = ["path/to/file.yml", "path/to/dir"]
-    assert_equal [File.expand_path("path/to/file.yml"), File.expand_path( "path/to/dir/#{Tap::Env::DEFAULT_CONFIG_FILE}")], e.env_paths
-  end
-  
-  def test_duplicate_envs_and_env_paths_are_filtered
-    e.env_paths = ["path/to/dir/tap.yml", "path/to/dir"]
-
-    path = File.expand_path( "path/to/dir/tap.yml" )
-    e1 = Tap::Env.instances[path]
-    
-    assert_equal [path], e.env_paths
-    assert_equal [e1], e.envs
+    assert_equal [Env.instances[config_file1]], e.envs
+    assert_equal [Env.instances[config_file2]], e.envs[0].envs
+    assert_equal [Env.instances[config_file1]], e.envs[0].envs[0].envs
   end
   
   #
@@ -506,22 +425,16 @@ a (0)
     assert !e.activate
   end
   
-  def test_activate_freezes_array_configs
-    e.config.each_pair do |key, value|
-      next unless value.kind_of?(Array)
-      assert !value.frozen?
-    end
-  
+  def test_activate_freezes_envs
+    assert !e.envs.frozen?
     e.activate
-    
-    count = 0
-    e.config.each_pair do |key, value|
-      next unless value.kind_of?(Array)
-      assert value.frozen?
-      count += 1
-    end
-    
-    assert count > 0
+    assert e.envs.frozen?
+  end
+  
+  def test_activate_freezes_load_paths
+    assert !e.load_paths.frozen?
+    e.activate
+    assert e.load_paths.frozen?
   end
   
   def test_activate_unshifts_load_paths_to_LOAD_PATH
@@ -530,48 +443,32 @@ a (0)
   
     e.activate
     
-    assert_equal [root["/path/to/lib"], root["/path/to/another/lib"]], $LOAD_PATH
+    assert_equal [e.root["/path/to/lib"], e.root["/path/to/another/lib"]], $LOAD_PATH
   end
   
   def test_activate_prioritizes_load_paths_in_LOAD_PATH
     e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
     $LOAD_PATH.clear
-    $LOAD_PATH.concat ["post", root["/path/to/another/lib"], root["/path/to/lib"]]
+    $LOAD_PATH.concat ["post", e.root["/path/to/another/lib"], e.root["/path/to/lib"]]
     
     e.activate
     
-    assert_equal [root["/path/to/lib"], root["/path/to/another/lib"], "post"], $LOAD_PATH
-  end
-  
-  def test_activate_requires_requires_after_setting_load_paths
-    e.load_paths = [method_root[:lib]]
-    
-    a = method_root.filepath('require_a')
-    b = 'require_b'
-    e.requires = [a,b]
-    
-    assert !Object.const_defined?(:RequireA)
-    assert !Object.const_defined?(:RequireB)
-    
-    e.activate
-    
-    assert Object.const_defined?(:RequireA)
-    assert Object.const_defined?(:RequireB)
+    assert_equal [e.root["/path/to/lib"], e.root["/path/to/another/lib"], "post"], $LOAD_PATH
   end
   
   def test_activate_assigns_self_as_Env_instance
-    assert_nil Tap::Env.instance
+    assert_nil Env.instance
     e.activate
-    assert_equal e, Tap::Env.instance
+    assert_equal e, Env.instance
   end
   
   def test_activate_does_not_assign_self_as_Env_instance_if_already_set
     e.activate
-    assert_equal e, Tap::Env.instance
+    assert_equal e, Env.instance
     
-    e1 = Tap::Env.new
+    e1 = Env.new
     e1.activate
-    assert_equal e, Tap::Env.instance
+    assert_equal e, Env.instance
   end
   
   #
@@ -588,24 +485,20 @@ a (0)
     assert e.deactivate
   end
   
-  def test_deactivate_unfreezes_array_configs
+  def test_deactivate_unfreezes_envs
     e.activate
-    
-    e.config.each_pair do |key, value|
-      next unless value.kind_of?(Array)
-      assert value.frozen?
-    end
+    assert e.envs.frozen?
     
     e.deactivate
+    assert !e.envs.frozen?
+  end
+  
+  def test_deactivate_unfreezes_load_paths
+    e.activate
+    assert e.load_paths.frozen?
     
-    count = 0
-    e.config.each_pair do |key, value|
-      next unless value.kind_of?(Array)
-      assert !value.frozen?
-      count += 1
-    end
-    
-    assert count > 0
+    e.deactivate
+    assert !e.load_paths.frozen?
   end
   
   def test_deactivate_removes_load_paths_from_LOAD_PATH
@@ -613,7 +506,7 @@ a (0)
     e.activate
     
     $LOAD_PATH.clear
-    $LOAD_PATH.concat [root["/path/to/lib"], root["/path/to/another/lib"]]
+    $LOAD_PATH.concat [e.root["/path/to/lib"], e.root["/path/to/another/lib"]]
     $LOAD_PATH.unshift "pre"
     $LOAD_PATH.push "post"
     
@@ -623,7 +516,7 @@ a (0)
   end
   
   def test_deactivate_does_not_remove_load_paths_unless_deactivated
-    Tap::Env.send(:class_variable_set, :@@instance, Tap::Env.new)
+    Env.send(:class_variable_set, :@@instance, Env.new)
     
     e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
     $LOAD_PATH.clear
@@ -636,10 +529,10 @@ a (0)
   
   def test_deactivate_unassigns_self_as_Env_instance
     e.activate
-    assert_equal e, Tap::Env.instance
+    assert_equal e, Env.instance
     
     e.deactivate
-    assert_nil Tap::Env.instance
+    assert_nil Env.instance
   end
   
   def test_deactivate_clears_manifests
@@ -671,21 +564,16 @@ a (0)
     assert_equal current_configs, e.config
   end
   
-  def test_path_config_modification_through_accessors_raise_error_when_active
-    e.activate
-    assert_raise(RuntimeError) { e.load_paths = [] }
-  end
-  
   def test_recursive_activate_and_dectivate
-    e1 = Tap::Env.new
+    e1 = Env.new
     e1.load_paths = ["/path/to/e1"]
     e.push e1
     
-    e2 = Tap::Env.new
+    e2 = Env.new
     e2.load_paths = ["/path/to/e2"]
     e1.push e2
     
-    e3 = Tap::Env.new
+    e3 = Env.new
     e3.load_paths = ["/path/to/e3"]
     e.push e3
     
@@ -696,7 +584,8 @@ a (0)
     assert e1.active?
     assert e2.active?
     assert e3.active?
-    assert_equal ["/path/to/e", "/path/to/e1", "/path/to/e2",  "/path/to/e3"].collect {|p| root[p] }, $LOAD_PATH
+    expected = ["/path/to/e", "/path/to/e1", "/path/to/e2",  "/path/to/e3"].collect {|p| e.root[p] }
+    assert_equal expected, $LOAD_PATH
     
     e.deactivate
     
@@ -707,11 +596,11 @@ a (0)
   end
   
   def test_recursive_activate_and_dectivate_does_not_infinitely_loop
-    e1 = Tap::Env.new
+    e1 = Env.new
     e1.load_paths = ["/path/to/e1"]
     e.push e1
     
-    e2 = Tap::Env.new
+    e2 = Env.new
     e2.load_paths = ["/path/to/e2"]
     e1.push e2
     e2.push e
@@ -722,7 +611,8 @@ a (0)
     
     assert e1.active?
     assert e2.active?
-    assert_equal ["/path/to/e", "/path/to/e1", "/path/to/e2"].collect {|p| root[p] }, $LOAD_PATH
+    expected = ["/path/to/e", "/path/to/e1", "/path/to/e2"].collect {|p| e.root[p] }
+    assert_equal expected, $LOAD_PATH
     
     e.deactivate
     
@@ -732,14 +622,14 @@ a (0)
   end
   
   #
-  # search test
+  # manifest.search test
   #
   
   def test_search_calls_find_in_each_env_manifest_until_a_matching_value_is_found
-    Tap::Env.manifest(:items) {|env| Tap::Support::Manifest.new }
+    Env.manifest(:items) {|env| Support::Manifest.new }
     
-    e1 = Tap::Env.new({}, Tap::Root.new("/path/to/e1"))
-    e2 = Tap::Env.new({}, Tap::Root.new("/path/to/e2"))
+    e1 = Env.new(:root => {:root => "/path/to/e1"})
+    e2 = Env.new(:root => {:root => "/path/to/e2"})
     e1.push e2
     
     [ "/path/to/one-0.1.0.txt",
@@ -784,7 +674,4 @@ a (0)
     assert_nil e1.items.search("non_existant")
   end
   
-  # def test_search_raises_argument_error_if_attempting_to_search_the_envs_manifest
-  #   assert_raise(ArgumentError) { e.search(:envs, 'pattern') }
-  # end
 end
