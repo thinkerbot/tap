@@ -6,6 +6,7 @@ module Tap
   class Exe < Env
     tap_core = File.expand_path("#{File.dirname(__FILE__)}/../..")
     tap_modules = Dir.glob("#{tap_core}/../{t,r}ap*/_tap.yml").collect {|path| File.expand_path(File.dirname(path)) }
+    tap_modules = Tap::Root.vniq(tap_modules)
     lib_paths = tap_modules.collect {|dir| File.join(dir, 'lib') }
     cmd_paths = tap_modules.collect {|dir| File.join(dir, 'cmd') }
     
