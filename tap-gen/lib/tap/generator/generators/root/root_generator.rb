@@ -1,7 +1,6 @@
-require 'tap/root'
+require 'tap/generator/base'
 
 module Tap::Generator::Generators
-  autoload(:ConfigGenerator, 'tap/generator/generators/config/config_generator')
   
   # :startdoc: Tap::Generator::Generators::RootGenerator::generator a basic tap directory structure
   #
