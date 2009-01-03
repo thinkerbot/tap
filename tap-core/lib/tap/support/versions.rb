@@ -80,6 +80,45 @@ module Tap
         a <=> b
       end
       
+      # Version unique.  Select the latest or earliest versions of each file
+      # in the array.  For paths that have no version, vniq considers any
+      # version to beat no version.  The order of paths is preserved by
+      # default, but the extra sort doing so may be turned off.
+      #
+      #   paths = [
+      #    "/path/to/two-0.0.1.txt",
+      #    "/path/to/one-0.0.1.txt",
+      #    "/path/to/one.txt",
+      #    "/path/to/two-1.0.1.txt",
+      #    "/path/to/three.txt"]
+      #
+      #   vniq(paths)
+      #   # => [
+      #   # "/path/to/one-0.0.1.txt",
+      #   # "/path/to/two-1.0.1.txt",
+      #   # "/path/to/three.txt"]
+      #
+      def vniq(array, earliest=false, preserve_order=true)
+        unique = {}
+        array.sort.each do |path|
+          base, version = deversion(path)
+          (unique[base] ||= []) << version
+        end
+        
+        results = []
+        unique.each_pair do |base, versions|
+          versions = versions.sort {|a, b| compare_versions(a,b) }
+          winner = earliest ? versions.shift : versions.pop
+          results << version(base, winner)
+        end
+        
+        results = results.sort_by do |path|
+          array.index(path)
+        end if preserve_order
+        
+        results
+      end
+      
       private
       
       # Converts an input argument (typically a string or an array) 

@@ -104,4 +104,87 @@ class VersionTest < Test::Unit::TestCase
     assert_equal 1, compare_versions([1,0], [0,9])
     assert_equal 1, compare_versions(["1","0"], ["0","9"])
   end
+  
+  #
+  # vniq test
+  #
+  
+  def test_vniq_documentation
+    paths = [
+     "/path/to/two-0.0.1.txt",
+     "/path/to/one-0.0.1.txt",
+     "/path/to/one.txt",
+     "/path/to/two-1.0.1.txt",
+     "/path/to/three.txt"]
+     
+    expected = [
+    "/path/to/one-0.0.1.txt",
+    "/path/to/two-1.0.1.txt",
+    "/path/to/three.txt"]
+    
+    assert_equal expected, vniq(paths)
+  end
+  
+  def test_vniq_returns_array_of_latest_paths
+    paths = [
+      "/path/to/one-0.0.1.txt",
+      "/path/to/one-1.0.1.txt",
+      "/path/to/one-1.txt",
+      "/path/to/two-0.0.1.txt",
+      "/path/to/three-1.txt",
+      "/path/to/four.txt",
+      "/path/to/five-0.1.2.txt",
+      "/path/to/five-0.2.1.txt"
+    ]
+    
+    expected = [
+      "/path/to/one-1.0.1.txt",
+      "/path/to/two-0.0.1.txt",
+      "/path/to/three-1.txt",
+      "/path/to/four.txt",
+      "/path/to/five-0.2.1.txt"
+    ]
+    
+    assert_equal expected, vniq(paths)
+  end
+  
+  def test_vniq_returns_array_of_earliest_paths_if_specified
+    paths = [
+      "/path/to/one-0.0.1.txt",
+      "/path/to/one-1.0.1.txt",
+      "/path/to/one-1.txt",
+      "/path/to/two-0.0.1.txt",
+      "/path/to/three-1.txt",
+      "/path/to/four.txt",
+      "/path/to/five-0.1.2.txt",
+      "/path/to/five-0.2.1.txt"
+    ]
+    
+    expected = [
+      "/path/to/one-0.0.1.txt",
+      "/path/to/two-0.0.1.txt",
+      "/path/to/three-1.txt",
+      "/path/to/four.txt",
+      "/path/to/five-0.1.2.txt"
+    ]
+    
+    assert_equal expected, vniq(paths, true)
+  end
+  
+  def test_vniq_considers_any_version_beats_no_version
+    paths = [
+      "/path/to/two.txt",
+      "/path/to/one-0.0.1.txt",
+      "/path/to/one.txt",
+      "/path/to/two-1.0.1.txt"
+    ]
+    
+    expected = [
+      "/path/to/one-0.0.1.txt",
+      "/path/to/two-1.0.1.txt"
+    ]
+    
+    assert_equal expected, vniq(paths)
+  end
+  
 end
