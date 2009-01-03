@@ -47,18 +47,15 @@ module Tap
       # The Env is initialized using configurations read from the env config
       # file. An instance will be initialized regardless of whether the config
       # file or directory exists.
-      def instantiate(path, default_config={}, &block)
+      def instantiate(path)
         path = config_path(path)
-        config = default_config.merge(load_config(path))
+        return instances[path] if instances.has_key?(path)
+        
+        config = load_config(path)
         
         # note the assignment of env to instances MUST occur
         # before reconfigure to prevent infinite looping
-        (instances[path] = new(:root => {:root => File.dirname(path)})).reconfigure(config, &block)
-      end
-      
-      def instance_for(path, default_class=Env)
-        path = config_path(path)
-        instances.has_key?(path) ? instances[path] : default_class.instantiate(path)
+        (instances[path] = new(:root => {:root => File.dirname(path)})).reconfigure(config)
       end
       
       def manifest(name, &block) # :yields: env (and should return a manifest)
@@ -115,7 +112,7 @@ module Tap
         
         case spec
         when nil then log(:warn, "unknown gem: #{gem_name}", Logger::WARN)
-        else Env.instance_for(spec.full_gem_path)
+        else Env.instantiate(spec.full_gem_path)
         end
         
         (specs_by_name[spec.name] ||= []) << spec
@@ -138,7 +135,7 @@ module Tap
     # Specify configuration files to load as nested Envs.
     config_attr :env_paths, [] do |input|
       @env_paths = [*input].compact.collect do |path| 
-        Env.instance_for(root[path]).env_path
+        Env.instantiate(root[path]).env_path
       end.uniq
       reset_envs
     end
@@ -460,9 +457,9 @@ module Tap
     # Resets envs using the current env_paths and gems.
     def reset_envs
       self.envs = env_paths.collect do |path| 
-        Env.instance_for(path)
+        Env.instantiate(path)
       end + gems.collect do |spec|
-        Env.instance_for(spec.full_gem_path)
+        Env.instantiate(spec.full_gem_path)
       end
     end
     

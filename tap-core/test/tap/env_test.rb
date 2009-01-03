@@ -82,14 +82,10 @@ class EnvTest < Test::Unit::TestCase
     assert_equal({File.expand_path("path/#{Env::DEFAULT_CONFIG_FILE}") => e}, Env.instances)
   end
   
-  #
-  # Env#instance_for test
-  #
-  
-  def test_instantiate_for_returns_existing_env_in_instances
+  def test_instantiate_returns_existing_env_in_instances
     e = Env.new
     Env.instances[File.expand_path("path.yml")] = e
-    assert_equal(e, Env.instance_for("path.yml"))
+    assert_equal(e, Env.instantiate("path.yml"))
   end
   
   #

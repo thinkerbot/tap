@@ -18,7 +18,7 @@ module Tap
     
     class << self
       def instantiate(path=Dir.pwd)
-        exe = super(path, load_config(GLOBAL_CONFIG_FILE))
+        exe = super
         
         # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
         if !File.exists?(Tap::Env::DEFAULT_CONFIG_FILE)
@@ -31,6 +31,10 @@ module Tap
         # add the default tap instance
         exe.push(DEFAULT_TAP_ENV)
         exe
+      end
+      
+      def load_config(path)
+        super(GLOBAL_CONFIG_FILE).merge super(path)
       end
     end
     
