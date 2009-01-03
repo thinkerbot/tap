@@ -24,7 +24,7 @@ module Rap
     
     # The Tap::Env for Dir.pwd
     def self.env
-      @env ||= Tap::Env.instance_for(Dir.pwd)
+      @env ||= Tap::Env.instantiate(Dir.pwd)
     end
     
     # The environment in which declared task classes are registered.

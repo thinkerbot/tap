@@ -12,7 +12,7 @@ module Rap
 
   module RakeApp
     def self.extended(base)
-      Tap::Env.instance_for(Dir.pwd).activate unless Tap::Env.instance
+      Tap::Env.instantiate(Dir.pwd).activate unless Tap::Env.instance
       base.env = Tap::Env.instance
     end
   
