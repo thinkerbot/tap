@@ -53,7 +53,7 @@ module Tap
     config :aliases, {}, &c.hash_or_nil
     
     # The global config file path
-    GLOBAL_CONFIG_FILE = File.join(Gem.user_home, ".tap.yml")
+    GLOBAL_CONFIG_FILE = File.join(Gem.user_home, ".tap/tap.yml")
 
     # Alias for root (Exe should have a Tap::App as root)
     def app
