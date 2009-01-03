@@ -4,10 +4,29 @@ require 'tap/test/script_test'
 class GeneratorTest < Test::Unit::TestCase
   acts_as_script_test
   
-  TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/tap")
-  
+  RAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../../tap-core/bin/tap")
+  LOAD_PATHS = $:.collect {|path| "-I'#{File.expand_path(path)}'"}.uniq.join(' ')
+
   def default_command_path
-    %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
+    %Q{ruby #{LOAD_PATHS} "#{RAP_EXECUTABLE_PATH}"}
+  end
+  
+  def test_root_generator
+    script_test(method_root[:output]) do |cmd|
+      cmd.check "Generates a root directory", 
+      "% #{cmd} generate root ." do |result|
+        assert_files do
+          method_root.glob(:output).delete_if {|path| File.directory?(path) }
+        end
+      end
+      
+      cmd.check "Destroys a root directory", 
+      "% #{cmd} destroy root ." do |result|
+        assert_files :expected_files => [] do
+          method_root.glob(:output)
+        end
+      end
+    end
   end
   
   def test_generators

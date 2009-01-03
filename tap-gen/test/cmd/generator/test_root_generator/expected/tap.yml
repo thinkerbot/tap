@@ -1,0 +1,23 @@
+# The root directory.
+# root: .
+
+# A hash of (alias, relative path) pairs for aliased
+# paths relative to root.
+relative_paths: {}
+
+# A hash of (alias, relative path) pairs for aliased
+# absolute paths.
+absolute_paths: {}
+
+# Flag debugging
+debug: false
+
+# Force execution at checkpoints
+force: false
+
+# Suppress logging
+quiet: false
+
+# Enables extra logging (overrides quiet)
+verbose: false
+

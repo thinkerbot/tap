@@ -31,6 +31,7 @@ module Tap::Generator::Generators
       
       m.directory r.root
       m.directory r['lib']
+      m.directory r['test']
       
       template_files do |source, target|
         case
@@ -47,9 +48,23 @@ module Tap::Generator::Generators
         m.template r[target], source, :project_name => project_name
       end
       
-     ConfigGenerator.new(:doc => true).dump(m, r['tap'], Tap::App.configurations) do |configs|
-        configs.each do |(key, config)|
-          config.default = nil if key.to_s == 'root'
+      m.file(r['tap.yml']) do |file|
+        Configurable::Utils.dump(Tap::App.configurations, file) do |key, delegate|
+          default = delegate.default
+          
+          # get the description
+          desc = delegate.attributes[:desc]
+          doc = desc.to_s
+          doc = desc.comment if doc.empty?
+          
+          # wrap as lines
+          lines = Lazydoc::Utils.wrap(doc, 50).collect {|line| "# #{line}"}
+          lines << "" unless lines.empty?
+          
+          # setup formatting
+          leader = key == 'root' || default == nil ? '# ' : ''
+          config = {key => default}.to_yaml[5..-1]
+          "#{lines.join("\n")}#{leader}#{config.strip}\n\n"
         end
       end if config_file
     end
