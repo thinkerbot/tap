@@ -87,7 +87,7 @@ begin
     puts env.summarize(:tasks, rap_template)
     puts
     puts "=== rake tasks ==="
-    Rap::Tasks::Rake.new.enq('-T')
+    Rap::Rake.new.enq('-T')
     Tap::App.instance.run
     
     # this is not currently reached as rake exits on -T
@@ -97,7 +97,7 @@ begin
   else
     queues = env.build(ARGV) do |args|
       warn "warning: implict rake for [#{args.join(' ')}]"
-      Rap::Tasks::Rake
+      Rap::Rake
     end
     ARGV.clear
 

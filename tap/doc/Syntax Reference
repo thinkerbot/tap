@@ -274,17 +274,17 @@ Rounds are particularly useful for dump tasks; add a dump task as a final round 
 
 ==== Notes for rap
 
-Specifying tasks for rap is no different than 'tap run'.  The only exception occurs when the task can't be found.  Unknown tasks are implicitly run as a Tap::Tasks::Rake task, which causes the task to be run as if by rake.  These are the same:
+Specifying tasks for rap is no different than 'tap run'.  The only exception occurs when the task can't be found.  Unknown tasks are implicitly run as a Tap::Rake task, which causes the task to be run as if by rake.  These are the same:
 
 Run a rake task with inputs and an ENV config:
 
   % rake task_name[1,2,3] key=value
 
-Explicitly run a Tap::Tasks::Rake task using the same inputs:
+Explicitly run a Tap::Rake task using the same inputs:
 
   % rap rake task_name[1,2,3] key=value
   
-Implicitly run the Tap::Tasks::Rake task:
+Implicitly run the Tap::Rake task:
 
   % rap task_name[1,2,3] key=value
 
