@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.name = "tap"
+  s.name = "tap-suite"
   s.version = "0.12.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
@@ -7,10 +7,9 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.summary = "A framework for creating configurable, distributable tasks and workflows."
   s.rubyforge_project = "tap"
-  s.add_dependency("tap-core", ">= 0.12.0")
-  s.add_dependency("tap-test", ">= 0.12.0")
-  s.add_dependency("tap-gen", ">= 0.12.0")
+  s.add_dependency("tap", ">= 0.12.0")
   s.add_dependency("rap", ">= 0.12.0")
+  s.add_dependency("tap-gen", ">= 0.12.0")
   s.has_rdoc = false
   
   s.extra_rdoc_files = %W{

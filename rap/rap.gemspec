@@ -8,8 +8,7 @@ Gem::Specification.new do |s|
   s.summary = "The rakish app extension to tap."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.add_dependency("tap-core", ">= 0.12.0")
-  s.add_development_dependency("tap-test", ">= 0.12.0")
+  s.add_dependency("tap", ">= 0.12.0")
   s.bindir = "bin"
   s.executables = "rap"
   s.has_rdoc = true

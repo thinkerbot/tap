@@ -37,9 +37,10 @@ configurations:
         --message MESSAGE
 
 options:
-    -h, --help                       Print this help
-        --name NAME                  Specify a name
-        --use FILE                   Loads inputs from file
+        --help                       Print this help
+        --name NAME                  Specifies the task name
+        --config FILE                Specifies a config file
+        --use FILE                   Loads inputs to ARGV
 }
     end
   end
@@ -136,9 +137,10 @@ configurations:
         --n N                        repeats message n times
 
 options:
-    -h, --help                       Print this help
-        --name NAME                  Specify a name
-        --use FILE                   Loads inputs from file
+        --help                       Print this help
+        --name NAME                  Specifies the task name
+        --config FILE                Specifies a config file
+        --use FILE                   Loads inputs to ARGV
 }
     end
     
@@ -185,9 +187,10 @@ configurations:
         --n N                        repeats message n times
 
 options:
-    -h, --help                       Print this help
-        --name NAME                  Specify a name
-        --use FILE                   Loads inputs from file
+        --help                       Print this help
+        --name NAME                  Specifies the task name
+        --config FILE                Specifies a config file
+        --use FILE                   Loads inputs to ARGV
 }     
       end
     end

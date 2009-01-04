@@ -8,7 +8,7 @@ require 'rake/gempackagetask'
 #
 
 def gemspec
-  data = File.read('tap.gemspec')
+  data = File.read('tap-suite.gemspec')
   spec = nil
   Thread.new { spec = eval("$SAFE = 3\n#{data}") }.join
   spec
@@ -69,7 +69,7 @@ task :publish_rdoc => [:rdoc] do
   host = "#{config["username"]}@rubyforge.org"
   
   rsync_args = "-v -c -r"
-  remote_dir = "/var/www/gforge-projects/tap/rdoc"
+  remote_dir = "/var/www/gforge-projects/tap/tap-suite"
   local_dir = "rdoc"
  
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
@@ -88,8 +88,7 @@ Rake::TestTask.new(:test) do |t|
   unless ENV['gems']
     t.libs << '../lazydoc/lib'
     t.libs << '../configurable/lib'
-    t.libs << '../tap-core/lib'
-    t.libs << '../tap-test/lib'
+    t.libs << '../tap/lib'
     t.libs << '../rap/lib'
     t.libs << '../tap-gen/lib'
   end

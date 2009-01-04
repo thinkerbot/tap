@@ -8,8 +8,7 @@ Gem::Specification.new do |s|
   s.summary = "Tap generators."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.add_dependency("tap-core", ">= 0.12.0")
-  s.add_development_dependency("tap-test", ">= 0.12.0")
+  s.add_dependency("tap", ">= 0.12.0")
   s.has_rdoc = true
   s.rdoc_options << '--title' << 'Tap Generators' << '--main' << 'README' 
    

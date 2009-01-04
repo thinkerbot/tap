@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.name = "tap-core"
+  s.name = "tap"
   s.version = "0.12.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
@@ -27,12 +27,14 @@ Gem::Specification.new do |s|
     cmd/manifest.rb
     cmd/run.rb
     bin/tap
+    lib/tap.rb
     lib/tap/app.rb
     lib/tap/constants.rb
     lib/tap/env.rb
     lib/tap/exe.rb
     lib/tap/file_task.rb
     lib/tap/root.rb
+    lib/tap/spec.rb
     lib/tap/support/aggregator.rb
     lib/tap/support/audit.rb
     lib/tap/support/combinator.rb
@@ -63,7 +65,20 @@ Gem::Specification.new do |s|
     lib/tap/task.rb
     lib/tap/tasks/dump.rb
     lib/tap/tasks/load.rb
-    lib/tap.rb
+    lib/tap/test.rb
+    lib/tap/test/assertions.rb
+    lib/tap/test/env_vars.rb
+    lib/tap/test/extensions.rb
+    lib/tap/test/file_test.rb
+    lib/tap/test/file_test_class.rb
+    lib/tap/test/regexp_escape.rb
+    lib/tap/test/script_test.rb
+    lib/tap/test/script_tester.rb
+    lib/tap/test/subset_test.rb
+    lib/tap/test/subset_test_class.rb
+    lib/tap/test/tap_test.rb
+    lib/tap/test/utils.rb
+    
     _tap.yml
     }
 end

@@ -13,8 +13,6 @@ not been initialized.  Use these commands and try again:
   raise
 end
 
-tap_test_lib = File.expand_path("#{File.dirname(__FILE__)}/../../tap-test/lib")
-$:.unshift(tap_test_lib) unless $:.include?(tap_test_lib)
 require 'tap/test'
 
 unless defined?(ObjectWithExecute)

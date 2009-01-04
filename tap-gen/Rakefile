@@ -88,8 +88,7 @@ Rake::TestTask.new(:test) do |t|
   unless ENV['gems']
     t.libs << '../lazydoc/lib'
     t.libs << '../configurable/lib'
-    t.libs << '../tap-core/lib'
-    t.libs << '../tap-test/lib'
+    t.libs << '../tap/lib'
   end
   
   t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') )

@@ -16,3 +16,100 @@ Notable changes include:
 * refactored stack short option to 'k'
 * reworked Audit as a directed acyclic graph
 * cleanup and extension of FileTask API
+* Removed RSpec support
+* Added Mini::Test support
+
+Upgrade note:
+
+Since Root#directories was refactored to Root#relative_path, the file_test
+:directories option needs to be updated to :relative_paths
+
+== 0.11.0 / 2008-10-20
+
+Significant update to Tap with many internal reworks.
+Major changes include:
+
+* Addition of Parser/Schema
+* Addition of rap and task declarations
+* Removal of Workflow in preference of workflow
+  definitions within Task
+* Refactoring of Test modules
+* Expanded/updated documentation
+
+== 0.10.1 / 2008-08-21
+
+Update of Tap with a few improvements to manifests
+and a new manifest command.
+
+* Fixed some bugs and extended manifests
+* Bug fixes in generators
+* Added task definitions to Workflow
+
+== 0.10.0 / 2008-08-08
+
+Major revision.  Reworked configurations and the execution
+environment.  Added Lazydoc documentation.  Backwards incompatible.
+Development is now on GitHub. 
+
+== 0.9.1 / 2008-04-26 revision 253
+
+Relatively minor update, but with one important refactoring that
+removes the Tap::Script module.  This breaks backward compatibility
+but only should affect people who have made their own commands.
+Simply sub Tap::Support::CommandLine for Tap::Script to fix.
+
+* Added constants methods (ex try_constantize) to String
+* Added gem discovery when no tap.yml file is present
+* Cleanup and refactoring -- removal of Tap::Script
+* Bug fix for JRuby 1.1.1
+
+== 0.9.0 / 2008-04-09 revision 246
+
+Major update to Tap. Many changes in this release ARE NOT BACKWARD COMPATIBLE.  
+
+* Reworked Task and App such that methods,  are
+  enqued and executed.  Made the Executable module 
+  to allow any Method to be enqued and executed.
+* App now aggregates results for methods that have no 
+  on_complete block; enabled access through App#results 
+  and App#_results.
+* Removed iteration from tasks
+* Task no longer templates app.config_templates.  Templating code
+  removed from this distribution.
+* Work to improve audit usability and visualization
+* Removed methods forwarding from Audit to Audit#_current,
+  as well as ambiguous Audit methods
+* Root [] now returns expanded paths unchanged. Example:
+  app['relative/path']  # => File.join(app.root, 'relative/path')
+  app['/expanded/path'] # => '/expanded/path'
+* Generalized rake support; now supports version 0.8.1
+* Fixes in generators
+* Improvements in running of multithread tasks
+* Removed condition blocks from tasks
+* many other things also...
+
+== 0.8.0 / 2007-12-08 revision 138
+
+Major update to Tap. Many changes in this release ARE NOT BACKWARD COMPATIBLE.  
+Documentation is still patchy, but improving.
+
+* Expanded/reworked application configuration, allowing specification of gems
+  to be loaded as task libraries.
+* Default app config file is now tap.yml (from app.yml)
+* Updated and improved generators
+* Included rails_generators in distribution, removing rails dependency
+* Reworked many classes to clean up interface
+* Reworked testing methods
+* Improved configuration for tasks
+* Optimized loading
+* Reworked threading model
+* Addition of TDoc documentation
+* Reworked tap command and subcommands
+* Added packaging into executables
+* Updated to ActiveSupport 2.0.1
+* documentation, documentation, documentation
+* many other things as well...
+
+== 0.7.9 / 2007-09-14
+
+* Initial testing release with partial documentation

@@ -11,7 +11,7 @@ require 'tap/constants'
 #
 
 def gemspec
-  data = File.read('tap-core.gemspec')
+  data = File.read('tap.gemspec')
   spec = nil
   Thread.new { spec = eval("$SAFE = 3\n#{data}") }.join
   spec
@@ -36,7 +36,7 @@ task :print_manifest do
   # included already (marking by the absence
   # of a label)
   Dir.glob("**/*").each do |file|
-    next if file =~ /^(rdoc|pkg|test|images)/ || File.directory?(file)
+    next if file =~ /^(rdoc|pkg|test|specs|images)/ || File.directory?(file)
     
     path = File.expand_path(file)
     files[path] = ["", file] unless files.has_key?(path)
@@ -76,7 +76,7 @@ task :publish_rdoc => [:rdoc] do
   host = "#{config["username"]}@rubyforge.org"
   
   rsync_args = "-v -c -r"
-  remote_dir = "/var/www/gforge-projects/tap/tap-core"
+  remote_dir = "/var/www/gforge-projects/tap/rdoc"
   local_dir = "rdoc"
  
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
@@ -95,7 +95,6 @@ Rake::TestTask.new(:test) do |t|
   unless ENV['gems']
     t.libs << '../lazydoc/lib'
     t.libs << '../configurable/lib'
-    t.libs << '../tap-test/lib'
   end
   
   t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
@@ -104,6 +103,21 @@ Rake::TestTask.new(:test) do |t|
 
   t.verbose = true
   t.warning = true
+end
+
+desc "Run specs."
+Rake::TestTask.new(:spec) do |t|
+  libs = ['lib']
+  unless ENV['gems']
+    t.libs << '../lazydoc/lib'
+    t.libs << '../configurable/lib'
+  end
+  
+  libs.collect! {|lib| ['-I', lib] }
+  specs = Dir.glob('specs/**/*_spec.rb')
+  
+  cmd = ['ruby', "-w"] + libs.flatten + ["-e", "ARGV.each {|spec| load spec}"] + specs
+  sh(*cmd)
 end
 
 namespace :test do

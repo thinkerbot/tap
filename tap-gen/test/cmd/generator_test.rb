@@ -4,7 +4,7 @@ require 'tap/test/script_test'
 class GeneratorTest < Test::Unit::TestCase
   acts_as_script_test
   
-  RAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../../tap-core/bin/tap")
+  RAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../../tap/bin/tap")
   LOAD_PATHS = $:.collect {|path| "-I'#{File.expand_path(path)}'"}.uniq.join(' ')
 
   def default_command_path
