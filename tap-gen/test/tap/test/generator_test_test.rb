@@ -43,7 +43,7 @@ class GeneratorTestTest < Test::Unit::TestCase
   #
   
   def test_assert_actions_documenation
-    template_path = method_root.prepare("template.erb") {|file| file << "<%= key %> was templated"}
+    template_path = method_root.prepare(:tmp, "template.erb") {|file| file << "<%= key %> was templated"}
   
     actions = []
     m = Manifest.new(actions)
@@ -51,21 +51,18 @@ class GeneratorTestTest < Test::Unit::TestCase
     m.file('/path/to/dir/file.txt') {|io| io << "content"}
     m.template('/path/to/dir/template.txt', template_path, :key => 'value')
   
-    builds = {}
-    assert_actions [
+    builds = assert_actions [
       [:directory, 'dir'],
       [:file, 'dir/file.txt'],
       [:template, 'dir/template.txt']
-    ], actions, '/path/to' do |file, content|
-      builds[file] = content
-    end
+    ], actions, '/path/to'
   
     assert_equal "content", builds['dir/file.txt']
     assert_equal "value was templated", builds['dir/template.txt']
   end
   
-  def test_assert_actions_builds_files_and_templates_and_passes_results_to_block
-    template_path = method_root.prepare("template.erb") {|file| file << "<%= key %> was templated"}
+  def test_assert_actions_builds_files_and_templates_and_returns_them_as_a_hash
+    template_path = method_root.prepare(:tmp, "template.erb") {|file| file << "<%= key %> was templated"}
   
     actions = []
     m = Manifest.new(actions)
@@ -73,14 +70,11 @@ class GeneratorTestTest < Test::Unit::TestCase
     m.file('/path/to/dir/file.txt') {|io| io << "content"}
     m.template('/path/to/dir/template.txt', template_path, :key => 'value')
   
-    builds = {}
-    assert_actions [
+    builds = assert_actions [
       [:file, 'dir/no_block.txt'],
       [:file, 'dir/file.txt'],
       [:template, 'dir/template.txt']
-    ], actions, '/path/to' do |file, content|
-      builds[file] = content
-    end
+    ], actions, '/path/to'
     
     assert_equal({
       'dir/no_block.txt' => nil,

@@ -24,13 +24,13 @@ module Tap
       
       # Returns the path of path, relative to root.
       def relative_path(root, path)
-        Tap::Root.relative_filepath(root, path)
+        Tap::Root.relative_filepath(root, path) || path
       end
       
       # A helper to assert that the actions recorded from a manifest are as
       # expected.  assert_actions simplifies the expected input by recollecting
       # the actual paths relative to root.  Any files or templates are built
-      # and passed to the block.
+      # and returned in a hash.
       #
       # Say a generator creates actual actions like this:
       #
@@ -45,14 +45,11 @@ module Tap
       #
       # These assertions will pass:
       #
-      #   builds = {}
-      #   assert_actions [
+      #   builds = assert_actions [
       #     [:directory, 'dir'],
       #     [:file, 'dir/file.txt'],
       #     [:template, 'dir/template.txt']
-      #   ], actions, '/path/to' do |file, content|
-      #     builds[file] = content
-      #   end
+      #   ], actions, '/path/to'
       #
       #   assert_equal "content", builds['dir/file.txt']
       #   assert_equal "value was templated", builds['dir/template.txt']
@@ -62,6 +59,7 @@ module Tap
       def assert_actions(expected, actual, root=Dir.pwd) # :yields: file, content
         assert_equal expected.length, actual.length, "unequal number of actions"
 
+        builds = {}
         index = 0
         actual.each do |action, args, block|
           expect_action, expect_path = expected[index]
@@ -69,15 +67,16 @@ module Tap
           assert_equal expect_action, action, "unequal action at index: #{index}"
           assert_equal expect_path, relative_path(root, args[0]), "unequal path at index: #{index}"
 
-          case action
-          when :file
-            yield(expect_path, build_file(block)) 
-          when :template
-            yield(expect_path, build_template(File.read(args[1]), args[2]))
-          end if block_given?
+          builds[expect_path] = case action
+          when :file then build_file(block)
+          when :template then build_template(File.read(args[1]), args[2])
+          else nil
+          end
 
           index += 1
         end
+        
+        builds
       end
     end
   end

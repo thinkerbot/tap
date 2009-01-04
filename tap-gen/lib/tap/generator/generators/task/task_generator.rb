@@ -14,7 +14,6 @@ module Tap::Generator::Generators
       m.directory File.dirname(task_path)
       m.template task_path, "task.erb", :const => const
       
-      puts config.to_hash.inspect
       if test
         test_path = app.filepath('test', "#{const.path}_test.rb")
         m.directory File.dirname(test_path)
