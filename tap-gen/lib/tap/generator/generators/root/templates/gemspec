@@ -22,6 +22,5 @@ Gem::Specification.new do |s|
   s.files = %W{
 <%= config_file ? "    tap.yml\n" : '' %>
     test/tap_test_helper.rb
-    test/tap_test_suite.rb
   }
 end

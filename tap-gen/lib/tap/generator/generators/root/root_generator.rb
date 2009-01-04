@@ -21,7 +21,7 @@ module Tap::Generator::Generators
   class RootGenerator < Tap::Generator::Base
     
     config :config_file, true, &c.switch   # create a tap.yml file
-    config :tapfile, false, &c.switch      # create a tapfile
+    config :rapfile, false, &c.switch      # create a rapfile
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
     def manifest(m, root, project_name=nil)
@@ -37,11 +37,11 @@ module Tap::Generator::Generators
         when File.directory?(source)
           m.directory r[target]
           next
-        when target == 'gemspec'
-          m.template r[project_name + '.gemspec'], source, :project_name => project_name, :tapfile => tapfile, :config_file => config_file
+        when source =~ /gemspec$/
+          m.template r[project_name + '.gemspec'], source, :project_name => project_name, :config_file => config_file
           next
-        when target =~ /tapfile/i
-          next unless tapfile
+        when source =~ /Rapfile$/
+          next unless rapfile
         end
         
         m.template r[target], source, :project_name => project_name

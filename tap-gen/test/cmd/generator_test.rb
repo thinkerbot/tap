@@ -11,24 +11,6 @@ class GeneratorTest < Test::Unit::TestCase
     %Q{ruby #{LOAD_PATHS} "#{RAP_EXECUTABLE_PATH}"}
   end
   
-  def test_root_generator
-    script_test(method_root[:output]) do |cmd|
-      cmd.check "Generates a root directory", 
-      "% #{cmd} generate root ." do |result|
-        assert_files do
-          method_root.glob(:output).delete_if {|path| File.directory?(path) }
-        end
-      end
-      
-      cmd.check "Destroys a root directory", 
-      "% #{cmd} destroy root ." do |result|
-        assert_files :expected_files => [] do
-          method_root.glob(:output)
-        end
-      end
-    end
-  end
-  
   def test_generators
     script_test(method_root[:output]) do |cmd|
       cmd.check "Generates a root directory", 
@@ -42,7 +24,6 @@ class GeneratorTest < Test::Unit::TestCase
           tap.yml
           test
           test/tap_test_helper.rb
-          test/tap_test_suite.rb
         }.collect do |path|
           method_root.filepath(:output, path)
         end
