@@ -1,12 +1,11 @@
 require File.join(File.dirname(__FILE__), '../../../tap_test_helper')
 require 'tap/generator/generators/task/task_generator'
-require 'tap/test/generator_test.rb'
+require 'tap/generator/preview.rb'
 
 class TaskGeneratorTest < Test::Unit::TestCase
   include Tap::Generator
   include Generators
-  include Tap::Test::GeneratorTest
-  
+
   attr_reader :m, :actions
   
   def setup
@@ -16,19 +15,18 @@ class TaskGeneratorTest < Test::Unit::TestCase
   end
   
   #
-  # manifest test
+  # process test
   #
   
-  def test_task_generator_manifest
-    g = TaskGenerator.new
-    g.manifest(m, 'const_name')
+  def test_task_generator
+    t = TaskGenerator.new.extend Preview
     
-    assert_actions [
-      [:directory, "lib"], 
-      [:template, "lib/const_name.rb"],
-      [:directory, "test"], 
-      [:template, "test/const_name_test.rb"]
-    ], actions
+    assert_equal %w{
+      lib
+      lib/const_name.rb
+      test
+      test/const_name_test.rb
+    }, t.process('const_name').sort
   end
   
 end

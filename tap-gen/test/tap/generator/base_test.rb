@@ -22,6 +22,27 @@ class BaseTest < Test::Unit::TestCase
   end
   
   #
+  # process test
+  #
+  
+  module MockIterate
+    def manifest(m, *argv)
+    end
+    def iterate(actions)
+      "results"
+    end
+    def directory(target, options={})
+    end
+    def file(target, options={})
+    end
+  end
+  
+  def test_process_returns_iterate_results
+    b.extend MockIterate
+    assert_equal "results", b.process
+  end
+  
+  #
   # manifest test
   #
   
@@ -33,8 +54,16 @@ class BaseTest < Test::Unit::TestCase
   # iterate test
   #
   
-  def test_iterate_raises_not_implemented_error
-    assert_raise(NotImplementedError) { b.iterate([]) }
+  def test_iterate_runs_over_actions_in_order
+    results = []
+    b.iterate([:a, :b, :c]) {|action| results << action }
+    
+    assert_equal [:a, :b, :c], results
+  end
+  
+  def test_iterate_collects_block_results
+    results = b.iterate([:a, :b, :c]) {|action| action }
+    assert_equal [:a, :b, :c], results
   end
   
   #

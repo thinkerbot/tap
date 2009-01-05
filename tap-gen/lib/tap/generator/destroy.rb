@@ -4,9 +4,11 @@ module Tap
     # A mixin defining how to run manifest actions in reverse.
     module Destroy
       
-      # Iterates over the actions in reverse.
+      # Iterates over the actions in reverse, and collects the results.
       def iterate(actions)
-        actions.reverse_each {|action| yield(action) }
+        results = []
+        actions.reverse_each {|action| results << yield(action) }
+        results
       end
       
       # Removes the target directory if it exists.  Missing, non-directory and 
@@ -28,6 +30,8 @@ module Tap
           log_relative :rm, target
           FileUtils.rmdir(target) unless pretend
         end
+        
+        target
       end
       
       # Removes the target file if it exists.  Missing and non-file and targets
@@ -47,6 +51,8 @@ module Tap
         else
           log_relative :missing, target
         end
+        
+        target
       end
       
     end

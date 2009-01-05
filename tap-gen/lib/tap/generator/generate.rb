@@ -4,11 +4,6 @@ module Tap
     # A mixin defining how to run manifest actions.
     module Generate
       
-      # Iterates over the actions in order.
-      def iterate(actions)
-        actions.each {|action| yield(action) }
-      end
-      
       # Creates the target directory if it doesn't exist.  When pretend is
       # true, creation is logged but does not actually happen.
       #
@@ -23,6 +18,8 @@ module Tap
           log_relative :create, target
           FileUtils.mkdir_p(target) unless pretend
         end
+        
+        target
       end
       
       # Creates the target file; content may be added to the file by providing
@@ -59,6 +56,8 @@ module Tap
           FileUtils.mkdir_p(dir) unless File.exists?(dir) 
           FileUtils.mv(source, target, :force => true)
         end
+        
+        target
       end
       
       protected

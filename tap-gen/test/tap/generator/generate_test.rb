@@ -7,12 +7,11 @@ class GenerateTest < Test::Unit::TestCase
   acts_as_file_test
   
   # this establishes the essential interface provided by Base
-  attr_accessor :log, :file_task, :pretend, :prompt_out, :prompt_in, :skip, :force
+  attr_accessor :log, :pretend, :prompt_out, :prompt_in, :skip, :force
   
   def setup
     @pretend = false
     @log = []
-    @file_task = Tap::FileTask.new
     @prompt_out = StringIO.new('')
     @prompt_in = StringIO.new('')
     @skip = false
@@ -22,17 +21,6 @@ class GenerateTest < Test::Unit::TestCase
   
   def log_relative(*args)
     log << args
-  end
-  
-  #
-  # iterate test
-  #
-  
-  def test_iterate_runs_over_actions_in_order
-    results = []
-    iterate([:a, :b, :c]) {|action| results << action }
-    
-    assert_equal [:a, :b, :c], results
   end
   
   #

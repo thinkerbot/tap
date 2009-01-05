@@ -107,10 +107,10 @@ module Tap
         raise NotImplementedError
       end
       
-      # Peforms each of the input actions.  Overridden by one of the
-      # action mixins (ex Generate or Destory).
+      # Peforms each of the input actions in order, and collects the
+      # results.  The process method returns these results.
       def iterate(actions)
-        raise NotImplementedError
+        actions.collect {|action| yield(action) }
       end
       
       # Peforms a directory action (ex generate or destroy).  Must be
@@ -119,9 +119,10 @@ module Tap
         raise NotImplementedError
       end
     
-      # Peforms a file action (ex generate or destroy).  Must be
+      # Peforms a file action (ex generate or destroy).  Calls to file provide
+      # a block that recieves an IO and pushes content to it.  Must be 
       # overridden by one of the action mixins (ex Generate or Destroy).
-      def file(target, options={})
+      def file(target, options={}) # :yields: io
         raise NotImplementedError
       end
       

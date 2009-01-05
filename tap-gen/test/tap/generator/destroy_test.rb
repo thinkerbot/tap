@@ -6,12 +6,11 @@ class DestroyTest < Test::Unit::TestCase
   acts_as_file_test
   
   # this establishes the essential interface provided by Base
-  attr_accessor :log, :file_task, :pretend
+  attr_accessor :log, :pretend
   
   def setup
     @pretend = false
     @log = []
-    @file_task = Tap::FileTask.new
     super
   end
   
