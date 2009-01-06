@@ -31,7 +31,7 @@ module Tap
     #
     #   ([1] + [3]) + [5] # => [1,3,5]
     #
-    # This is probably not the fastest implementation, but it works.
+    # This is surely not the fastest implementation, but it works.
     class Combinator
       include Enumerable
       

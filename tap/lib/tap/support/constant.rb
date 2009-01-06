@@ -21,7 +21,8 @@ module Tap
         # const_name.  When a constant is missing, constantize yields
         # the current base and any non-existant constant names the block,
         # if given, or raises a NameError.  The block is expected 
-        # to return the proper constant.
+        # to return the desired constant; in the example 'Non::Existant'
+        # is effectively mapping to ConstName.
         #
         #   module ConstName; end
         #

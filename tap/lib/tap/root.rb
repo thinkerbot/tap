@@ -35,10 +35,7 @@ module Tap
   #   r.filepath(:abs, "to", "file.txt")          # => '/absolute/path/to/file.txt'
   #
   # By default, Roots are initialized to the present working directory
-  # (Dir.pwd).  As in the 'implicit' example, Root infers a path relative to
-  # the root directory whenever it needs to resolve an alias that is not
-  # explicitly set.  The only exceptions to this are fully expanded paths.
-  # These are returned unchanged.
+  # (Dir.pwd).
   #
   #--
   # === Implementation Notes
@@ -577,7 +574,7 @@ module Tap
     end
     
     # Resolves the specified alias, joins the paths together, and expands the
-    # resulting filepath.  Analagous to File#expand_path(File#join).
+    # resulting filepath.
     def filepath(als, *paths)
       File.expand_path(File.join(self[als], *paths))
     end

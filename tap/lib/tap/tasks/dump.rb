@@ -11,7 +11,7 @@ module Tap
     #  
     #   % tap run -- [tasks] --+ dump FILEPATH
     #
-    # See Tap::Load for more details.
+    # See Load for more details.
     class Dump < Tap::FileTask
     
       config :date_format, '%Y-%m-%d %H:%M:%S'   # the date format

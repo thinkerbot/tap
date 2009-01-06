@@ -12,7 +12,8 @@ module Tap
   #
   # === Running Tasks
   #
-  # Task enque command are forwarded to App#enq:
+  # Tasks are enqued to an App, and then run by the App in order.  Tasks may
+  # be enqued from Task#enq or App#enq:
   #
   #   t0 = Task.intern {|task, input| "#{input}.0" }
   #   t0.enq('a')
@@ -21,11 +22,9 @@ module Tap
   #   app.run
   #   app.results(t0)                # => ['a.0', 'b.0']
   #
-  # When a task completes, the results will be passed to the task on_complete
-  # block, if set, or be collected into an Aggregator (aggregated results may 
-  # be accessed per-task, as shown above); on_complete blocks typically 
-  # execute or enque other tasks, allowing the construction of imperative
-  # workflows:
+  # By default apps collect task results as shown.  Alternatively tasks
+  # may be assigned an on_complete block to execute or enque other tasks,
+  # and thereby build imperative workflows:
   #
   #   # clear the previous results
   #   app.aggregator.clear
@@ -43,8 +42,8 @@ module Tap
   #
   # === Dependencies
   #
-  # Tasks allow the construction of dependency-based workflows such that a 
-  # dependent task only executes after its dependencies have been resolved.
+  # Tasks allow the construction of dependency-based workflows.  A dependent
+  # task only executes after its dependencies have been resolved.
   #
   #   runlist = []
   #   t0 = Task.intern {|task| runlist << task }
@@ -100,7 +99,7 @@ module Tap
   # === Auditing
   # 
   # All results are audited to track how a given input evolves during a workflow.
-  # To illustrate auditing, consider and addition workflow that ends in eights.
+  # To illustrate auditing, consider an addition workflow that ends in eights.
   #
   #   add_one  = Tap::Task.intern({}, 'add_one')  {|task, input| input += 1 }
   #   add_five = Tap::Task.intern({}, 'add_five') {|task, input| input += 5 }
@@ -152,13 +151,13 @@ module Tap
       attr_writer :instance
       
       # Returns the current instance of App.  If no instance has been set,
-      # then a new App with the default configuration will be initialized. 
+      # then instance initializes a new App with the default configuration. 
       def instance
         @instance ||= App.new
       end
     end
 
-    # The shared logger
+    # The application logger
     attr_reader :logger
     
     # The application queue
@@ -167,7 +166,7 @@ module Tap
     # The state of the application (see App::State)
     attr_reader :state
     
-    # A Tap::Support::Aggregator to collect the results of 
+    # A Tap::Support::Aggregator that collects the results of 
     # methods that have no on_complete block
     attr_reader :aggregator
     
@@ -188,7 +187,7 @@ module Tap
       
       module_function
       
-      # Returns the string corresponding to the input state value.  
+      # Returns a string corresponding to the input state value.  
       # Returns nil for unknown states.
       #
       #   State.state_str(0)        # => 'READY'
@@ -245,7 +244,7 @@ module Tap
       self
     end
 
-    # Sequentially calls execute with the [executable, inputs] pairs in
+    # Sequentially calls execute with the (executable, inputs) pairs in
     # queue; run continues until the queue is empty and then returns self.
     #
     # ==== Run State

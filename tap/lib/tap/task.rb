@@ -447,7 +447,7 @@ module Tap
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
     
-    # The name of self.
+    # The name of self
     #--
     # Currently names may be any object.  Audit makes use of name
     # via to_s, as does app when figuring configuration filepaths. 

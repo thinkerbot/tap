@@ -68,7 +68,7 @@ module Tap
     # In practice, tasks are recorded as keys. Thus audit trails can be used
     # to access task configurations and other information that may be useful
     # when creating reports or making workflow decisions.  Note that by
-    # convention audits and non-audit methods that return audits are
+    # convention Audits and non-Audit methods that return Audits are
     # prefixed with an underscore.
     #
     #--

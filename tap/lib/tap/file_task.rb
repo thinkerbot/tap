@@ -138,7 +138,7 @@ module Tap
     # Makes a backup of path to backup_filepath(path) and returns the backup path.
     # If backup_using_copy is true, the backup is a copy of path, otherwise the
     # file or directory at path is moved to the backup path.  Raises an error if
-    # the backup file already exists.
+    # the backup path already exists.
     #
     # Backups are restored on rollback.
     #
@@ -164,7 +164,7 @@ module Tap
         
       source = File.expand_path(path)
       target = backup_filepath(source)
-      raise "backup file already exists: #{target}" if File.exists?(target)
+      raise "backup already exists: #{target}" if File.exists?(target)
       
       mkdir_p File.dirname(target)
       
@@ -300,11 +300,11 @@ module Tap
       FileUtils.mv(source, target)
     end
     
-    # Rolls back any actions capable of being rolled back.  Rollback
-    # is forceful; for instance if you make a folder using mkdir
-    # rollback removes that directory using FileUtils.rm_r.  Any
-    # files added to the folder will be removed even if they were
-    # not added by self.
+    # Rolls back any actions capable of being rolled back.
+    #
+    # Rollback is forceful.  For instance if you make a folder using
+    # mkdir, rollback will remove the folder and all files within it
+    # even if they were not added by self.
     def rollback
       while !actions.empty?
         action, source, target = actions.pop

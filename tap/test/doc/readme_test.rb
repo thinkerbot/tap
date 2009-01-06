@@ -9,7 +9,7 @@ class ReadmeTest < Test::Unit::TestCase
   LOAD_PATHS = $:.collect {|path| "-I'#{File.expand_path(path)}'"}.uniq.join(' ')
   
   def default_command_path
-    %Q{ruby19 #{LOAD_PATHS} "#{TAP_EXECUTABLE_PATH}"}
+    %Q{ruby #{LOAD_PATHS} "#{TAP_EXECUTABLE_PATH}"}
   end
   
   def test_readme

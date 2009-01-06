@@ -2,22 +2,22 @@ module Tap
   module Tasks
     # :startdoc::manifest the default load task
     #
-    # Load YAML-formatted data, as may be produced using Tap::Dump,
-    # and makes this data available for other tasks.  Load is often
-    # used as a gateway task to other tasks.
+    # Load YAML-formatted data, as may be produced using Dump, and makes this
+    # data available for other tasks.  Load is often used as a gateway task
+    # to other tasks.
     #
     #   % tap run -- load FILEPATH --: [task]
     #
-    # Load can select items from Hash or Array objects using one or
-    # more keys when only a subset is desired.  By default items are
-    # selected using [].  For more flexible selection, use match.
+    # Load can select items from Hash or Array objects using one or more keys
+    # when only a subset is desired.  By default items are selected using [].
+    # For more flexible selection, use match.
     # 
-    # Match converts each of the keys to a Regexp.  For hashes, all
-    # values with a matching key will be selected.  For arrays, any
-    # item matching a regexp will be selected.
+    # Match converts each of the keys to a Regexp.  For hashes, all values
+    # with a matching key will be selected.  For arrays, any item matching
+    # a regexp will be selected.
     #
-    # Use the flags to flatten, compact, sort (etc) results before
-    # passing them on to the next task.
+    # Use the flags to flatten, compact, sort (etc) results before passing
+    # them on to the next task.
     class Load < Tap::Task
       
       config :match, false, :short => :m, &c.switch      # match keys

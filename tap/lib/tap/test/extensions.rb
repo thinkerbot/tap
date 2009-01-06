@@ -1,8 +1,4 @@
 module Tap
-  
-  # Modules facilitating testing.  TapTest are specific to
-  # Tap, but SubsetTest and FileTest are more general in 
-  # their utility.
   module Test
     autoload(:SubsetTest, 'tap/test/subset_test')
     autoload(:FileTest, 'tap/test/file_test')

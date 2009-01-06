@@ -1,6 +1,7 @@
 = Syntax Reference
 
-Tap uses several domain-specific languages to declare tasks and workflows.  This is a reference for:
+Tap uses several domain-specific languages to declare tasks and workflows.
+This is a reference for:
 
 * task declarations
 * class definitions
@@ -45,23 +46,32 @@ Extended documentation:
   # Lines are justified and wrapped on the command line.
   task ...
 
-Pains were taken to make task declarations for rap work the similar to rake tasks.  In both cases (noting that in general, beyond rap, task classes are not limited in these ways):
+Pains were taken to make task declarations for rap work the similar to rake
+tasks.  In both cases (noting that in general, beyond rap, task classes are
+not limited in these ways):
 
-* tasks are singleton instances that may be extended across multiple declarations
+* tasks are singleton instances that may be extended across multiple
+  declarations
 * tasks do not pass inputs from one task to the next
 * tasks only execute once
 
-A few syntactical differences between rake and rap must to be noted, as they can cause errors if you try to migrate rake tasks to tap.  Tap declarations.
+A few syntactical differences between rake and rap must to be noted, as they
+can cause errors if you try to migrate rake tasks to tap.  Tap declarations.
 
 ==== no needs
 
-Tasks do not support :needs as a way to specify dependencies.  For instance, this will declare a ':needs' configuration with the default value ':another', not a task which depends on another:
+Tasks do not support :needs as a way to specify dependencies.  For instance,
+this will declare a ':needs' configuration with the default value ':another',
+not a task which depends on another:
 
   Rap.task :name, :needs => :another
 
 ==== immediate namespace lookup
 
-Within a namespace, task will look for a literal match to the dependency first.  If it doesn't find one, it will declare it within the namespace; one way or the other the dependency is resolved immediately.  Hence, in this example the nested task depends on the non-nested task.  
+Within a namespace, task will look for a literal match to the dependency first.
+If it doesn't find one, it will declare it within the namespace; one way or the
+other the dependency is resolved immediately.  Hence, in this example the
+nested task depends on the non-nested task.  
 
   task :outer { print 'non-nested' }
   namespace :nest do
@@ -69,7 +79,9 @@ Within a namespace, task will look for a literal match to the dependency first. 
     task :outer { print 'nested' }
   end
   
-By contrast, rake waits to resolve dependencies and so will always use a match within a namespace in preference to a literal match.  For these tasks rap and rake produce different results:
+By contrast, rake waits to resolve dependencies and so will always use a match
+within a namespace in preference to a literal match.  For these tasks rap and
+rake produce different results:
 
   % rap nest/inner
   non-nested was executed
@@ -143,14 +155,21 @@ This is a verbose prototype for Tap::Task subclasses:
 
 == Workflows
 
-The tap workflow syntax is designed to specify an arbitrary number of tasks, inputs, configurations, and joins.  The syntax works both as text and as YAML; 'tap run' and rap both use it to specify which tasks to execute.  Basically, the syntax uses double-dash delimiters to separate task vectors and modified delimiters to specify joins for the tasks.  
+The tap workflow syntax is designed to specify an arbitrary number of tasks,
+inputs, configurations, and joins.  The syntax works both as text and as YAML;
+'tap run' and rap both use it to specify which tasks to execute.  Basically,
+the syntax uses double-dash delimiters to separate task vectors and modified
+delimiters to specify joins for the tasks.  
 
 These both specify three tasks (x,y,z) joined in a sequence:
 
   % rap x --: y --: z
   % rap x -- y -- z --0:1:2
   
-The modified delimiters use numbers to indicate which tasks participate in a join and punctuation to indicate the join type.  In the first example, the numbers are implicitly added for the preceding and following task.  A variety of joins are supported:
+The modified delimiters use numbers to indicate which tasks participate in a
+join and punctuation to indicate the join type.  In the first example, the
+numbers are implicitly added for the preceding and following task.  A variety
+of joins are supported:
 
   delimiter  function         syntax                 example        meaning 
   --         delimiter                               a -- b -- c    enques/configures tasks a, b, c
@@ -191,11 +210,17 @@ This is how it would look as YAML:
     - --key=value
   - 0:1:2
 
-The task vectors are converted into a task and an argument vector by first looking up a task class and then calling TaskClass.parse.  The parse method returns a configured instance of the task and an argv to be executed by the task.  Once the task are instantiated, instances are joined and enqued to Tap::App for execution (see Tap::Support::Schema#build).
+The task vectors are converted into a task and an argument vector by first
+looking up a task class and then calling TaskClass.parse.  The parse method
+returns a configured instance of the task and an argv to be executed by the
+task.  Once the task are instantiated, instances are joined and enqued to
+Tap::App for execution (see Tap::Support::Schema#build).
 
 ==== Class Lookup
 
-Tap looks up classes via Tap::Env.  Tap can find tasks from multiple environments; by adding in environments for gems, Tap can find tasks within a gem.
+Tap looks up classes via Tap::Env.  Tap can find tasks from multiple
+environments; by adding in environments for gems, Tap can find tasks
+within a gem.
 
 During lookup, classes are treated like filepaths which match from the basename up:
 
@@ -203,7 +228,11 @@ During lookup, classes are treated like filepaths which match from the basename 
   Sample::Task      sample/task         task, sample/task
   A::Nested::Task   a/nested/task       task, nested/task, a/nested/task
 
-In the event of a name conflict, the path of the environment may also be specified.  It seems like this could get confusing, but the tap executable produces manifests that specify the minimal path required to uniquely identify a class.  Fragments of the minimized paths will be resolved in order from top to bottom within the specified environment.  For example: 
+In the event of a name conflict, the path of the environment may also be
+specified.  It seems like this could get confusing, but the tap executable
+produces manifests that specify the minimal path required to uniquely
+identify a class.  Fragments of the minimized paths will be resolved in order
+from top to bottom within the specified environment.  For example: 
 
   % tap run -T
   one:
@@ -234,19 +263,27 @@ Runs another/task:
   % tap run -- another/task
   % tap run -- one:another/task
 
-Notice that the full minimized path ('another/task') is required because simply using 'task' will be matched to sample/task.  The order of tasks is obviously not alphabetical -- rather it corresponds to the order in which Tap::Env discovers the tasks.
+Notice that the full minimized path ('another/task') is required because simply
+using 'task' will be matched to sample/task.  The order of tasks is obviously
+not alphabetical -- rather it corresponds to the order in which Tap::Env
+discovers the tasks.
 
 ==== Dependencies (--*)
 
-Normally each task vector specifies a new instance of a task.  This specifies three instance of the 'a' task.
+Normally each task vector specifies a new instance of a task.  This specifies
+three instance of the 'a' task.
 
   % rap -- a -- a -- a
   
-When you want to specify a 'singleton' instance of a task, the instance specified by TaskClass.instance, use the dependency delimiter '--*'.  
+When you want to specify a 'singleton' instance of a task, the instance
+specified by TaskClass.instance, use the dependency delimiter '--*'.  
 
   % rap --* a
   
-The dependency instance will be configured and enqued with the arguments.  Dependency instances will be executed first, even if they are specified at the end of a workflow, they cannot participate in workflows, and any single dependency may only be specified once in a workflow.  These are equivalent:
+The dependency instance will be configured and enqued with the arguments.
+Dependency instances will be executed first, even if they are specified at the
+end of a workflow, they cannot participate in workflows, and any single
+dependency may only be specified once in a workflow.  These are equivalent:
 
   % rap --* a -- b -- c
   % rap b -- c --* a
@@ -258,23 +295,30 @@ While these raise errors:
 
 ==== Rounds (--+)
 
-The workflow syntax allows multiple execution rounds to be specified  All tasks in a round are run to completion before the next round begins.  Rounds are specified by adding '+' characters after the double-dash break.
+The workflow syntax allows multiple execution rounds to be specified  All tasks
+in a round are run to completion before the next round begins.  Rounds are
+specified by adding '+' characters after the double-dash break.
 
   % tap run -- round_one_task --+ round_two_task
 
-Tasks may be added to rounds in any order and may use the shorthand for multiple tasks.  These are equivalents:
+Tasks may be added to rounds in any order and may use the shorthand for multiple
+tasks.  These are equivalents:
 
   % tap run -- a --+ b --+ c --++ d
   % tap run --+ b --++ d -- a --+ c
   % tap run -- a -- b -- c -- d --+1[1,2] --+2[3]
 
-Rounds are particularly useful for dump tasks; add a dump task as a final round to capture all results from previous rounds:
+Rounds are particularly useful for dump tasks; add a dump task as a final round
+to capture all results from previous rounds:
 
   % tap run -- task -- task --+ dump
 
 ==== Notes for rap
 
-Specifying tasks for rap is no different than 'tap run'.  The only exception occurs when the task can't be found.  Unknown tasks are implicitly run as a Tap::Rake task, which causes the task to be run as if by rake.  These are the same:
+Specifying tasks for rap is no different than 'tap run'.  The only exception
+occurs when the task can't be found.  Unknown tasks are implicitly run as a
+Tap::Rake task, which causes the task to be run as if by rake.  These are the
+same:
 
 Run a rake task with inputs and an ENV config:
 

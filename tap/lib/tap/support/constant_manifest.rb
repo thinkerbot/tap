@@ -11,8 +11,8 @@ module Tap
     # Lazydoc can quickly scan files for constant attributes, and thereby
     # identify constants based upon a flag like the '::manifest' attribute used
     # to identify task classes.  ConstantManifest registers paths that will be
-    # scanned for a specific resource, and lazily builds a manifest of Constant
-    # references to load them as necessary.
+    # scanned for a specific resource, and lazily builds the references to load
+    # them as necessary.
     # 
     # :startdoc:::+
     class ConstantManifest < Support::Manifest
@@ -20,7 +20,7 @@ module Tap
       # The attribute identifying constants in a file
       attr_reader :const_attr
       
-      # An array of registered [root, [paths]] pairs
+      # An array of registered (root, [paths]) pairs
       # that will be searched for const_attr
       attr_reader :search_paths
       
@@ -69,8 +69,8 @@ module Tap
         super
       end
       
-      # Yields each entry to the block.  Unless built?, each lazily
-      # iterates over search_paths to look for new entries.
+      # Yields each Constant entry to the block.  Unless built?, each
+      # lazily iterates over search_paths to look for new entries.
       def each
         entries.each do |entry|
           yield(entry)
@@ -100,7 +100,7 @@ module Tap
       # objects for each.   If the document has no default_const_name set,
       # resolve will set the default_const_name based on the relative
       # filepath from path_root to path.
-      def resolve(path_root, path)
+      def resolve(path_root, path) # :nodoc:
         entries = []
         document = nil
         
