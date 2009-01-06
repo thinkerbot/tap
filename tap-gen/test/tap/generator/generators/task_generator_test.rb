@@ -6,12 +6,8 @@ class TaskGeneratorTest < Test::Unit::TestCase
   include Tap::Generator
   include Generators
 
-  attr_reader :m, :actions
-  
   def setup
-    super
-    @actions = []
-    @m = Manifest.new(@actions)
+    Tap::App.instance = Tap::App.new
   end
   
   #
@@ -26,7 +22,7 @@ class TaskGeneratorTest < Test::Unit::TestCase
       lib/const_name.rb
       test
       test/const_name_test.rb
-    }, t.process('const_name').sort
+    }, t.process('const_name')
   end
   
 end

@@ -91,6 +91,8 @@ module Tap
       end
       
       # Builds the manifest, then executes the actions of the manifest.
+      # Process returns the results of iterate, which normally will be
+      # an array of files and directories created (or destroyed) by self.
       def process(*argv)
         actions = []
         manifest(Manifest.new(actions), *argv)
@@ -119,9 +121,10 @@ module Tap
         raise NotImplementedError
       end
     
-      # Peforms a file action (ex generate or destroy).  Calls to file provide
-      # a block that recieves an IO and pushes content to it.  Must be 
-      # overridden by one of the action mixins (ex Generate or Destroy).
+      # Peforms a file action (ex generate or destroy).  Calls to file specify
+      # input for a target by providing a block; the block recieves an IO and
+      # pushes content to it.  Must be overridden by one of the action mixins
+      # (ex Generate or Destroy).
       def file(target, options={}) # :yields: io
         raise NotImplementedError
       end
