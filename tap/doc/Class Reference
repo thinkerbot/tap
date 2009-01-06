@@ -1,8 +1,7 @@
 = Class Reference
 
-Working up from the ground is useful to get a sense for how Tap does what it
-does.  This reference goes through the modules and classes that build up a task
-application: Tasks, Apps, and Envs.
+This is a ground-up overview of the main classes and modules used by Tap,
+specifically Tasks, Apps, and Envs.
 
 == Tasks
 
@@ -10,17 +9,18 @@ application: Tasks, Apps, and Envs.
 
 http://tap.rubyforge.org/images/Method.png
 
-Tasks begin with methods, simply a block of code.
+Tasks are fundamentally just a method, simply a block of code.
 
 ==== Tap::Support::Executable
 
 http://tap.rubyforge.org/images/Executable.png
 
-Executable extends objects allowing them to be used in workflows, enqued, and 
-run by an App.  Executable objects specify a method that gets called upon 
-execution; in essence Executable wraps this method and adds workflow support 
-for dependencies, joins, batches, and auditing.  Any method may be made 
-executable, and so any method can participate in a workflow (see Object#_method).
+Executable essentially wraps a method and adds support for dependencies, joins,
+batches, and auditing.  Executables are the nodes in a workflow.  Any 
+Executable may be joined to another Executable, enqued, and run by an App.  To
+wrap a method, Executable extends an object and defines which method on the
+object is 'executable'.  Any method may be made executable, and so any method
+can participate in a workflow (see Object#_method).
 
 Tasks are constructed such that <tt>process</tt> is the executable method, hence
 <tt>process</tt> is the standard method overridden in Task subclasses.
@@ -30,10 +30,9 @@ Tasks are constructed such that <tt>process</tt> is the executable method, hence
 http://tap.rubyforge.org/images/Configurable.png
 
 Tap uses the {Configurable}[http://tap.rubyforge.org/configurable/] module to
-declare class configurations and make them available on the command line and in
-other contexts.  Configurations essentially consist of a reader, writer, and
-default value, but they may also be accessed through a hash-like config object.
-For instance:
+declare class configurations and make them available on the command line.
+Configurations are essentially a shorthand to define attributes with a default
+value.  For instance:
   
   class ConfigClass
     include Configurable
@@ -61,7 +60,9 @@ Is basically the same as:
     end
   end
 
-As you can see here:
+However, configurations also track a fair amount of metadata making them
+easy to map to the command line, and may be accessed through a hash-like
+config object.  As you can see here:
 
   c = ConfigClass.new
   c.key                       # => 'VALUE'
@@ -72,15 +73,16 @@ As you can see here:
   c.key = 'another value'
   c.config[:key]              # => 'ANOTHER VALUE'
 
-This setup is both fast and convenient.  
+This setup is both fast and convenient. See the {Configurable}[http://tap.rubyforge.org/configurable]
+documentation for more information.
 
 ==== {Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]
 
-When configurations are set from the command line, the writer inevitably
-receives a string, even though a non-string input may be desired.  The
+When configurations are set from the command line, the config writer inevitably
+receives a string, even though you may want a non-string input.  The
 {Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]
-module provides standard blocks for validating and transforming inputs, 
-accessible through the <tt>c</tt> method (ex: <tt>c.integer</tt> or 
+module provides standard blocks for validating and transforming inputs, and may
+be accessed through the <tt>c</tt> method (ex: <tt>c.integer</tt> or 
 <tt>c.regexp</tt>).  These blocks (generally) load string inputs as YAML
 and validate that the result is the correct class; non-string inputs are
 simply validated.
@@ -103,84 +105,64 @@ simply validated.
 
   vc.array = "string"                          # !> ValidationError
 
-Validation blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes a config into a flag on the command line.
+Validation blocks sometimes imply metadata.  For instance <tt>c.flag</tt> makes
+a config into a flag on the command line.
 
 ==== {Lazydoc}[http://tap.rubyforge.org/lazydoc]
 
 Ah lazydoc.  {Lazydoc}[http://tap.rubyforge.org/lazydoc] fits into the space
-between live code and code documentation.  Lazydoc can scan a file (code or
-not) and pull documentation into the object space where it can be utilized.
-Lazydoc uses a key-value syntax like this:
+between live code and code documentation.  Lazydoc can scan a file and pull
+documentation into the object space.  Lazydoc identifies constant attributes
+using a syntax like this:
 
-  # ::key value
+  # Constant::key value
+  # comment
 
-Lazydoc parses a constant name, the key, the value, and any comment following
-the value until a non-comment line or an end key.  For example:
+For example:
 
   [lazydoc_file.rb]
-  # Name::Space::key value
+  # Const::Name::key value
   # 
-  # This documentation
-  # gets parsed.
+  # This is an extended,
+  # multiline comment.
   #
-
-  # Name::Space::another another value
-  # This gets parsed.
-  # Name::Space::another-
-  #
-  # This does not.
 
   require 'tap'
 
   lazydoc = Lazydoc[__FILE__]
-  lazydoc.resolve
-
-  lazydoc['Name::Space']['key'].comment        # => "This documentation gets parsed."
-  lazydoc['Name::Space']['another'].value      # => "another value"
-
-Furthermore, Lazydoc can register specific lines for documentation.  These
-lines are parsed to echo what happens in RDoc.
-
-  [another_lazydoc_file.rb]
-  # documentation
-  # for the method
-  def method
-  end
-
-  require 'tap'
-
-  lazydoc = Lazydoc[__FILE__]
-  code_comment = lazydoc.register(2)
   lazydoc.resolve
   
-  code_comment.subject         # => "def method"
-  code_comment.to_s            # => "documentation for the method"
+  lazydoc['Const::Name']['key'].value          # => "value"
+  lazydoc['Const::Name']['key'].comment        # => "This is an extended, multiline comment."
 
-Tap uses Lazydoc to indicate when a file contains a Task (<tt>::manifest</tt>)
-or a generator (<tt>::generator</tt>), and for config documentation.  Tap::Env
-uses this information to facilitate lookup and instantiation of task classes.  
+As you can see, the 'key' attribute is registered to the 'Const::Name' constant.
 
-When no constant name is specified for a Lazydoc key, Env uses a constant based
-on the file name.
+Lazydoc can register specific lines for documentation, like method definitions
+or configurations, and is used by Tap to quickly identify files that contain a
+specific resource like a task or generator.  Here is an example of information
+typically gleaned from a task definition:
 
-  [lib/sample/task.rb]
-  # ::manifest sample task description
-  #
-  # This manifest is expected to apply to the Sample::Task class.
-  # If more than one task is defined in this file, or if Sample::Task
-  # is not defined by loading this file, Tap will run into trouble.
-
-The best practice is to include the namespace explicitly.  See the
-{Lazydoc}[http://tap.rubyforge.org/lazydoc] documentation for more information.
+  # ::manifest a summary of the task
+  class Sample < Tap::Task
+    
+    config :key, 'value'   # a simple configuration
+    
+    def process(a, b='B', *c)
+    end
+  end
+  
+  Sample::manifest           # => "a summary of the task"
+  Sample::arg_names          # => "A B='B' C..."
+  
+  key = Sample.configurations[:key]
+  key.attributes[:desc]      # => "a simple configuration"
+  
+See the {Lazydoc}[http://tap.rubyforge.org/lazydoc] documentation for more
+information.
 
 === Tap::Task
 
 http://tap.rubyforge.org/images/Task.png
-
-Running a task from the command line using tap instantiates a task, configures
-it, enques it, and runs an App to pass inputs to the <tt>process</tt> method.
-Tasks do not have to be used this way; they are perfectly capable as objects in
-free-standing scripts.
 
 Task instances may be interned with a block that acts as a stand-in for 
 <tt>process</tt>:
