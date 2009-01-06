@@ -432,7 +432,7 @@ module Tap
       
       attrs = {}
       templaters = []
-      recursive_each(*args) do |env, *argv|
+      recursive_inject(args) do |argv, env|
         templater = Support::Templater.new(template, :env => env)
         next_args = block_given? ? yield(templater, attrs, *argv) : argv
         templaters << templater if next_args
