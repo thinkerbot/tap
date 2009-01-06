@@ -5,7 +5,7 @@ module Tap::Generator::Generators
   # Generates a new Tap::Task and an associated test file.
   class TaskGenerator < Tap::Generator::Base
     
-    config :test, true, &c.switch  # Generates the task without test files.
+    config :test, true, &c.switch  # specifies creation of a test file
     
     def manifest(m, const_name)
       const = Tap::Support::Constant.new(const_name.camelize)
