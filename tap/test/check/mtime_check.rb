@@ -124,7 +124,6 @@ class MtimeCheck < Test::Unit::TestCase
     sleep 1
     
     File.open(path, "r+") {|file| file << 'content' }
-    assert_not_equal mtime, File.mtime(path)
     assert mtime < File.mtime(path)
   end
   
@@ -136,7 +135,6 @@ class MtimeCheck < Test::Unit::TestCase
     sleep 1
     
     File.open(path, "w") {|file| }
-    assert_not_equal mtime, File.mtime(path)
     assert mtime < File.mtime(path)
   end
   
@@ -147,7 +145,6 @@ class MtimeCheck < Test::Unit::TestCase
     sleep 1
     
     FileUtils.touch(path)
-    assert_not_equal mtime, File.mtime(root)
     assert mtime < File.mtime(root)
   end
   
@@ -159,7 +156,6 @@ class MtimeCheck < Test::Unit::TestCase
     sleep 1
     
     FileUtils.rm(path)
-    assert_not_equal mtime, File.mtime(root)
     assert mtime < File.mtime(root)
   end
 end

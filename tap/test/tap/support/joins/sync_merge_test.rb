@@ -273,7 +273,7 @@ class SyncMergeTest < Test::Unit::TestCase
     t0_0.enq ''
     t1_0.enq ''
     
-    assert_raise(RuntimeError) { app.run }
+    assert_raises(RuntimeError) { app.run }
     assert_equal %w{
       0.0
       0.0

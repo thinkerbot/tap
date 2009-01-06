@@ -607,6 +607,6 @@ class SwitchTest < Test::Unit::TestCase
     end
   
     t0_0.enq ''
-    assert_raise(RuntimeError) { app.run }
+    assert_raises(RuntimeError) { app.run }
   end
 end

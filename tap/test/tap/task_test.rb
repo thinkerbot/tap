@@ -89,8 +89,8 @@ class TaskTest < Test::Unit::TestCase
   
     ####
     t = ValidatingTask.new
-    assert_raise(Configurable::Validation::ValidationError) { t.string = 1 }
-    assert_raise(Configurable::Validation::ValidationError) { t.integer = 1.1 }
+    assert_raises(Configurable::Validation::ValidationError) { t.string = 1 }
+    assert_raises(Configurable::Validation::ValidationError) { t.integer = 1.1 }
 
     t.integer = "1"
     assert t.integer == 1
@@ -265,7 +265,7 @@ class TaskTest < Test::Unit::TestCase
     one = prepare_yaml("a/b.yml", 'one')
     two = prepare_yaml("a/b.yaml", 'two')
            
-    e = assert_raise(RuntimeError) { Task.load_config(path) }
+    e = assert_raises(RuntimeError) { Task.load_config(path) }
     assert_equal "multiple files load the same key: [\"b.yaml\", \"b.yml\"]", e.message
   end
   

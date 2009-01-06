@@ -67,7 +67,7 @@ class TapTestTest < Test::Unit::TestCase
     e = [[:a, 'a'], [:b, 'b']]
     assert_audit_equal(e, b) 
     
-    assert_raise(Test::Unit::AssertionFailedError) do
+    assert_raises(Test::Unit::AssertionFailedError) do
       e = [[:a, 'FLUNK'], [:b, 'b']]
       assert_audit_equal(e, b)
     end

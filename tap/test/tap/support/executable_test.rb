@@ -317,8 +317,8 @@ class ExecutableTest < Test::Unit::TestCase
     m1.unbatched_on_complete {}
     assert !m.on_complete_block
     
-    assert_raise(RuntimeError) { m.on_complete {} }
-    assert_raise(RuntimeError) { m.on_complete }
+    assert_raises(RuntimeError) { m.on_complete {} }
+    assert_raises(RuntimeError) { m.on_complete }
   end
   
   def test_on_complete_with_override_overrides_all_on_complete_blocks_in_batch
@@ -326,8 +326,8 @@ class ExecutableTest < Test::Unit::TestCase
     m.on_complete {}
     b = lambda {}
     
-    assert_not_equal b, m.on_complete_block
-    assert_not_equal b, m1.on_complete_block
+    assert b != m.on_complete_block
+    assert b != m1.on_complete_block
     
     m.on_complete(true, &b)
     
@@ -339,8 +339,8 @@ class ExecutableTest < Test::Unit::TestCase
     m1 = m.initialize_batch_obj
     m.on_complete {}
   
-    assert_not_equal nil, m.on_complete_block
-    assert_not_equal nil, m1.on_complete_block
+    assert nil != m.on_complete_block
+    assert nil != m1.on_complete_block
     
     m.on_complete(true)
     
@@ -371,8 +371,8 @@ class ExecutableTest < Test::Unit::TestCase
   
   def test_unbatched_on_complete_raises_error_when_on_complete_block_is_already_set
     m.unbatched_on_complete {}
-    assert_raise(RuntimeError) { m.unbatched_on_complete {} }
-    assert_raise(RuntimeError) { m.unbatched_on_complete }
+    assert_raises(RuntimeError) { m.unbatched_on_complete {} }
+    assert_raises(RuntimeError) { m.unbatched_on_complete }
   end
   
   def test_unbatched_on_complete_with_override_overrides_complete_block_only_for_self
@@ -392,13 +392,13 @@ class ExecutableTest < Test::Unit::TestCase
     m1 = m.initialize_batch_obj
     m.on_complete {}
   
-    assert_not_equal nil, m.on_complete_block
-    assert_not_equal nil, m1.on_complete_block
+    assert nil != m.on_complete_block
+    assert nil != m1.on_complete_block
     
     m.unbatched_on_complete(true)
     
     assert_equal nil, m.on_complete_block
-    assert_not_equal nil, m1.on_complete_block
+    assert nil != m1.on_complete_block
   end
   
   def test_unbatched_on_complete_returns_self
@@ -446,7 +446,7 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   def test_depends_on_raises_error_for_self_as_dependency
-    assert_raise(ArgumentError) { m.depends_on m }
+    assert_raises(ArgumentError) { m.depends_on m }
   end
   
   #
@@ -513,9 +513,9 @@ class ExecutableTest < Test::Unit::TestCase
     a.depends_on(b)
     b.depends_on(m)
     
-    assert_raise(Dependencies::CircularDependencyError) { m.resolve_dependencies }
-    assert_raise(Dependencies::CircularDependencyError) { a.resolve_dependencies }
-    assert_raise(Dependencies::CircularDependencyError) { b.resolve_dependencies }
+    assert_raises(Dependencies::CircularDependencyError) { m.resolve_dependencies }
+    assert_raises(Dependencies::CircularDependencyError) { a.resolve_dependencies }
+    assert_raises(Dependencies::CircularDependencyError) { b.resolve_dependencies }
   end
   
   #

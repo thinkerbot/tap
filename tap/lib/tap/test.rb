@@ -65,5 +65,9 @@ class Test::Unit::TestCase
       end
     end
   end
+  
+  undef_method :name
+  alias name method_name
+
 end unless Object.const_defined?(:MiniTest)
 # :startdoc:

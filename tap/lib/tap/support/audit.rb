@@ -111,23 +111,23 @@ module Tap
           
           # visit each audit, collecting audits into indent groups
           groups = []
-          group = nil
+          current = nil
           order.each do |audit|
             sources = audit.sources
             unless sources.length == 1 && sinks[sources[0]].length <= 1
-              group = []
-              groups << group
+              current = []
+              groups << current
             end
             
-            group << audit
+            current << audit
           end
           
           # identify nodes at which a fork occurs... these are audits
           # that have more than one sink, and they cause a fork-style
           # leader to be printed
           forks = {}
-          sinks.each_pair do |audit, sinks|
-            n = sinks.length
+          sinks.each_pair do |audit, audit_sinks|
+            n = audit_sinks.length
             forks[audit] = [0, n] if n > 1
           end
           

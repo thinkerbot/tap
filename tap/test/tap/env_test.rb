@@ -49,7 +49,7 @@ class EnvTest < Test::Unit::TestCase
     assert another.respond_to?(:new_manifest)
     assert_equal(['a', 'b', 'c'], another.new_manifest.entries)
 
-    assert_not_equal another.new_manifest.object_id, e.new_manifest.object_id
+    assert another.new_manifest.object_id !=  e.new_manifest.object_id
   end
   
   #
@@ -105,13 +105,13 @@ class EnvTest < Test::Unit::TestCase
   
   def test_set_load_paths_raises_error_once_active
     e.activate
-    err = assert_raise(RuntimeError) { e.load_paths = ['/path/to/lib'] }
+    err = assert_raises(RuntimeError) { e.load_paths = ['/path/to/lib'] }
     assert_equal "load_paths cannot be modified once active", err.message
   end
   
   def test_set_load_paths_via_config_raises_error_once_active
     e.activate
-    err = assert_raise(RuntimeError) { e.config[:load_paths] = ['/path/to/lib'] }
+    err = assert_raises(RuntimeError) { e.config[:load_paths] = ['/path/to/lib'] }
     assert_equal "load_paths cannot be modified once active", err.message
   end
   
@@ -147,7 +147,7 @@ class EnvTest < Test::Unit::TestCase
   
   def test_set_env_paths_raises_error_once_active
     e.activate
-    err = assert_raise(RuntimeError) { e.env_paths = ['/path/to/env'] }
+    err = assert_raises(RuntimeError) { e.env_paths = ['/path/to/env'] }
     assert_equal "envs cannot be modified once active", err.message
   end
   
@@ -178,7 +178,7 @@ class EnvTest < Test::Unit::TestCase
   
   def test_set_envs_raises_error_once_active
     e.activate
-    err = assert_raise(RuntimeError) { e.envs = [Env.new] }
+    err = assert_raises(RuntimeError) { e.envs = [Env.new] }
     assert_equal "envs cannot be modified once active", err.message
   end
   
@@ -209,7 +209,7 @@ class EnvTest < Test::Unit::TestCase
   
   def test_unshift_raises_error_once_active
     e.activate
-    err = assert_raise(RuntimeError) { e.unshift(Env.new) }
+    err = assert_raises(RuntimeError) { e.unshift(Env.new) }
     assert_equal "envs cannot be modified once active", err.message
   end
   
@@ -240,7 +240,7 @@ class EnvTest < Test::Unit::TestCase
   
   def test_push_raises_error_once_active
     e.activate
-    err = assert_raise(RuntimeError) { e.push(Env.new) }
+    err = assert_raises(RuntimeError) { e.push(Env.new) }
     assert_equal "envs cannot be modified once active", err.message
   end
   
@@ -360,11 +360,10 @@ a (0)
   #
   
   def test_reconfigure_reconfigures_root
-    assert_not_equal 'alt', e.root['lib']
+    assert_equal [File.join(e.root.root, 'lib')], e.load_paths
     e.reconfigure(:load_paths => ['lib'], :root => {:relative_paths => {'lib' => 'alt'}})
     
-    assert_not_equal 'alt', e.root['lib']
-    assert_equal [e.root['alt']], e.load_paths
+    assert_equal [File.join(e.root.root, 'alt')], e.load_paths
   end
 
   def test_reconfigure_recursively_loads_env_paths
@@ -402,7 +401,7 @@ a (0)
       file << {:env_paths => config_file1}.to_yaml
     end
     
-    assert_nothing_raised { e.reconfigure({:env_paths => config_file1}) }
+    e.reconfigure({:env_paths => config_file1})
     
     assert_equal [Env.instances[config_file1]], e.envs
     assert_equal [Env.instances[config_file2]], e.envs[0].envs

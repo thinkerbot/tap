@@ -47,7 +47,7 @@ class BaseTest < Test::Unit::TestCase
   #
   
   def test_manifest_raises_not_implemented_error
-    assert_raise(NotImplementedError) { b.manifest(:m) }
+    assert_raises(NotImplementedError) { b.manifest(:m) }
   end
   
   #
@@ -71,7 +71,7 @@ class BaseTest < Test::Unit::TestCase
   #
   
   def test_directory_raises_not_implemented_error
-    assert_raise(NotImplementedError) { b.directory(:target) }
+    assert_raises(NotImplementedError) { b.directory(:target) }
   end
   
   #
@@ -79,7 +79,7 @@ class BaseTest < Test::Unit::TestCase
   #
   
   def test_file_raises_not_implemented_error
-    assert_raise(NotImplementedError) { b.file(:target) }
+    assert_raises(NotImplementedError) { b.file(:target) }
   end
   
   #

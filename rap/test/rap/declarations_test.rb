@@ -163,15 +163,15 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_resolve_args_raises_error_if_no_task_name_is_specified
-    e = assert_raise(ArgumentError) { resolve_args([]) }
+    e = assert_raises(ArgumentError) { resolve_args([]) }
     assert_equal "no task name specified", e.message
 
-    e = assert_raise(ArgumentError) { resolve_args([{}]) }
+    e = assert_raises(ArgumentError) { resolve_args([{}]) }
     assert_equal "no task name specified", e.message
   end
   
   def test_resolve_args_raises_error_if_multiple_task_names_are_specified
-    e = assert_raise(ArgumentError) { resolve_args([{:one => [], :two => []}]) }
+    e = assert_raises(ArgumentError) { resolve_args([{:one => [], :two => []}]) }
     assert e.message =~ /multiple task names specified: \[.*:one.*\]/
     assert e.message =~ /multiple task names specified: \[.*:two.*\]/
   end
@@ -193,7 +193,7 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_declare_raises_error_if_it_looks_up_a_non_DeclarationTask_class
-    e = assert_raise(RuntimeError) { declare(:NonDeclarationTask) }
+    e = assert_raises(RuntimeError) { declare(:NonDeclarationTask) }
     assert_equal "not a DeclarationTask: DeclarationsTest::NonDeclarationTask", e.message
   end
   

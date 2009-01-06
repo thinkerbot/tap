@@ -37,13 +37,13 @@ class ManifestTest < Test::Unit::TestCase
   end
   
   def test_bind_raises_error_if_env_is_nil
-    assert_raise(ArgumentError) { m.bind(nil, :object_id) }
+    assert_raises(ArgumentError) { m.bind(nil, :object_id) }
   end
   
   def test_bind_raises_error_if_env_does_not_respond_to_reader
     mock_env = Object.new
     assert !mock_env.respond_to?(:non_existant_reader)
-    assert_raise(ArgumentError) { m.bind(mock_env, :non_existant_reader) }
+    assert_raises(ArgumentError) { m.bind(mock_env, :non_existant_reader) }
   end
   
   #

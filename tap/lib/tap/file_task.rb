@@ -190,7 +190,7 @@ module Tap
         dir = File.dirname(dir)
       end
         
-      dirs.each {|dir| mkdir(dir) }
+      dirs.each {|d| mkdir(d) }
     end
     
     # Creates a directory. Directories created by mkdir removed on rollback.

@@ -5,7 +5,7 @@ class UtilsTest < Test::Unit::TestCase
   include Tap::Test::Utils
   
   def method_path(*paths)
-    File.join(__FILE__.chomp('_test.rb'), method_name.to_s, *paths)
+    File.join(__FILE__.chomp('_test.rb'), name.to_s, *paths)
   end
   
   #
@@ -21,7 +21,7 @@ class UtilsTest < Test::Unit::TestCase
       [method_path("input/two.txt.ref"), method_path("ref/path/to/two.txt")]
     ], reference_map(method_path('input'), method_path('ref'))
     
-    assert_raise(DereferenceError) { reference_map(method_path('input'), method_path('ref'), '**/*.txt') }
+    assert_raises(DereferenceError) { reference_map(method_path('input'), method_path('ref'), '**/*.txt') }
   end
   
   def test_reference_map_returns_a_list_of_ref_files_under_source_dir_mapped_to_ref_dir
@@ -52,7 +52,7 @@ class UtilsTest < Test::Unit::TestCase
   end
   
   def test_reference_map_raises_error_if_no_reference_file_is_found
-    assert_raise(DereferenceError) { reference_map(method_path('input'), method_path('ref')) }
+    assert_raises(DereferenceError) { reference_map(method_path('input'), method_path('ref')) }
   end
   
   #
@@ -106,7 +106,7 @@ class UtilsTest < Test::Unit::TestCase
     assert !File.exists?(method_path('input/one.txt'))
     assert !File.exists?(method_path('input/path'))
     
-    assert_raise(DereferenceTestError) do 
+    assert_raises(DereferenceTestError) do 
       dereference(method_path('input'), method_path('ref')) do
         raise DereferenceTestError
       end

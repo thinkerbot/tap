@@ -47,17 +47,17 @@ class ConstantTest < Test::Unit::TestCase
   end
   
   def test_constantize_raise_error_for_invalid_constant_names
-    assert_raise(NameError) { Constant.constantize("") }
-    assert_raise(NameError) { Constant.constantize("::") }
-    assert_raise(NameError) { Constant.constantize("const_name") }
+    assert_raises(NameError) { Constant.constantize("") }
+    assert_raises(NameError) { Constant.constantize("::") }
+    assert_raises(NameError) { Constant.constantize("const_name") }
   end
   
   def test_constantize_raises_error_if_constant_does_not_exist
-    assert_raise(NameError) { Constant.constantize("Non::Existant") }
-    assert_raise(NameError) { Constant.constantize("::Non::Existant") }
-    assert_raise(NameError) { Constant.constantize("ConstName", ConstName) }
-    assert_raise(NameError) { Constant.constantize("::ConstName", ConstName) }
-    assert_raise(NameError) { Constant.constantize("Object::ConstName", ConstName) }
+    assert_raises(NameError) { Constant.constantize("Non::Existant") }
+    assert_raises(NameError) { Constant.constantize("::Non::Existant") }
+    assert_raises(NameError) { Constant.constantize("ConstName", ConstName) }
+    assert_raises(NameError) { Constant.constantize("::ConstName", ConstName) }
+    assert_raises(NameError) { Constant.constantize("Object::ConstName", ConstName) }
   end
   
   def test_constantize_yields_current_base_and_missing_constant_names_to_the_block
@@ -166,7 +166,7 @@ class ConstantTest < Test::Unit::TestCase
     c3 = Constant.new('Another::Const', '/require/path.rb')
     c4 = Constant.new('Sample::Const', '/another/path.rb')
     
-    assert_not_equal c1.object_id, c2.object_id
+    assert c1.object_id != c2.object_id
     assert_equal c1, c2
     
     assert c1 == c2
@@ -204,8 +204,8 @@ class ConstantTest < Test::Unit::TestCase
     empty_file = "#{File.dirname(__FILE__)}/constant/empty_file.rb"
     assert !Object.const_defined?(:TotallyUnknownConstant)
     
-    assert_raise(NameError) { Constant.new('TotallyUnknownConstant').constantize }
-    assert_raise(NameError) { Constant.new('TotallyUnknownConstant', empty_file).constantize }
+    assert_raises(NameError) { Constant.new('TotallyUnknownConstant').constantize }
+    assert_raises(NameError) { Constant.new('TotallyUnknownConstant', empty_file).constantize }
   end
   
   #

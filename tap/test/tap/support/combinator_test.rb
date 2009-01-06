@@ -46,7 +46,7 @@ class CombinatorTest < Test::Unit::TestCase
       [[], 1], 
       [1,[]]
     ].each do |sets|
-      assert_raise(ArgumentError) { Combinator.new(*sets) }
+      assert_raises(ArgumentError) { Combinator.new(*sets) }
     end
   end
 

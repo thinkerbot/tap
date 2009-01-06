@@ -57,7 +57,7 @@ class ClassReferenceTest < Test::Unit::TestCase
     vc.array = "[1, 2, 3]"
     assert_equal [1, 2, 3], vc.array
 
-    assert_raise(Configurable::Validation::ValidationError) { vc.array = "string" }
+    assert_raises(Configurable::Validation::ValidationError) { vc.array = "string" }
   end
   
   #

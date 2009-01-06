@@ -44,8 +44,8 @@ end}
   #
   
   def test_initialize_raises_error_for_non_string_or_erb_template
-    assert_raise(ArgumentError) { Templater.new nil }
-    assert_raise(ArgumentError) { Templater.new 1 }
+    assert_raises(ArgumentError) { Templater.new nil }
+    assert_raises(ArgumentError) { Templater.new 1 }
   end
   
   #

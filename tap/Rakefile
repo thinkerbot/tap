@@ -11,6 +11,8 @@ require 'tap/constants'
 #
 
 def gemspec
+  require 'rubygems/specification'
+  
   data = File.read('tap.gemspec')
   spec = nil
   Thread.new { spec = eval("$SAFE = 3\n#{data}") }.join
@@ -105,22 +107,22 @@ Rake::TestTask.new(:test) do |t|
   t.warning = true
 end
 
-desc "Run specs."
-Rake::TestTask.new(:spec) do |t|
-  libs = ['lib']
-  unless ENV['gems']
-    t.libs << '../lazydoc/lib'
-    t.libs << '../configurable/lib'
-  end
-  
-  libs.collect! {|lib| ['-I', lib] }
-  specs = Dir.glob('specs/**/*_spec.rb')
-  
-  cmd = ['ruby', "-w"] + libs.flatten + ["-e", "ARGV.each {|spec| load spec}"] + specs
-  sh(*cmd)
-end
-
 namespace :test do
+  desc "Run specs."
+  task(:spec) do
+    libs = ['lib']
+    unless ENV['gems']
+      libs << '../lazydoc/lib'
+      libs << '../configurable/lib'
+    end
+  
+    libs.collect! {|lib| ['-I', lib] }
+    specs = Dir.glob('specs/**/*_spec.rb')
+  
+    cmd = ['ruby', "-w"] + libs.flatten + ["-e", "ARGV.each {|spec| load spec}"] + specs
+    sh(*cmd)
+  end
+
   desc 'Run functional tests.'
   task(:functional) do
     failures = []

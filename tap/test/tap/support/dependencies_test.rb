@@ -29,7 +29,7 @@ class DependenciesTest < Test::Unit::TestCase
   def test_resolve_raises_error_for_circular_resolution
     d = Object.new
     
-    assert_raise(Dependencies::CircularDependencyError) do
+    assert_raises(Dependencies::CircularDependencyError) do
       m.resolve(d) do
         m.resolve(d) {}
       end

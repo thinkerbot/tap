@@ -189,7 +189,7 @@ module Tap
         type = type.upcase
         type_test = "#{type}_TEST"
         if run_subset?(type) || env(type_test)
-          if match_regexp?(type_test, method_name.to_s)
+          if match_regexp?(type_test, name.to_s)
             yield
           else
             print skip
@@ -220,7 +220,7 @@ module Tap
       def benchmark_test(length=10, &block) 
         subset_test("BENCHMARK") do
           puts
-          puts method_name
+          puts name
           Benchmark.bm(length, &block)
         end
       end
@@ -243,7 +243,7 @@ module Tap
       # The block recieves ['avalue', 'bvalue', 'cvalue'].  
       def prompt_test(*keys, &block)
         subset_test("PROMPT", "p") do
-          puts "\n#{method_name} -- Enter values or 'skip'."
+          puts "\n#{name} -- Enter values or 'skip'."
   
           values = keys.collect do |key|
             print "#{key}: "

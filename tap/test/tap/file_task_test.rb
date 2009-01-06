@@ -41,7 +41,7 @@ class FileTaskTest < Test::Unit::TestCase
       raise "error!" if raise_error
     end
   
-    e = assert_raise(RuntimeError) { t.execute(true) }
+    e = assert_raises(RuntimeError) { t.execute(true) }
     assert_equal "error!", e.message
     assert_equal false, File.exists?(dir)
     assert_equal "original content", File.read(path)
@@ -273,7 +273,7 @@ class FileTaskTest < Test::Unit::TestCase
     t.extend BackupFile
     t.backup_file = backup_file
     
-    e = assert_raise(RuntimeError) { t.backup(existing_file) }
+    e = assert_raises(RuntimeError) { t.backup(existing_file) }
     assert_equal "backup file already exists: #{backup_file}", e.message
   end
   
@@ -436,12 +436,12 @@ class FileTaskTest < Test::Unit::TestCase
   def test_rmdir_raises_error_if_input_is_not_an_empty_directory
     file = method_root.prepare(:tmp, 'path/to/file.txt') {}
   
-    e = assert_raise(RuntimeError) { t.rmdir(file) }
+    e = assert_raises(RuntimeError) { t.rmdir(file) }
     assert_equal "not an empty directory: #{file}", e.message
     
     dir = File.dirname(file)
     
-    e = assert_raise(RuntimeError) { t.rmdir(dir) }
+    e = assert_raises(RuntimeError) { t.rmdir(dir) }
     assert_equal "not an empty directory: #{dir}", e.message
     
     assert File.exists?(file)
@@ -474,12 +474,12 @@ class FileTaskTest < Test::Unit::TestCase
   def test_rmdir_raises_error_if_input_is_not_an_existing_file
     path = method_root.filepath(:tmp, 'path/to/file.txt')
   
-    e = assert_raise(RuntimeError) { t.rm(path) }
+    e = assert_raises(RuntimeError) { t.rm(path) }
     assert_equal "not a file: #{path}", e.message
     
     FileUtils.mkdir_p(path)
     
-    e = assert_raise(RuntimeError) { t.rm(path) }
+    e = assert_raises(RuntimeError) { t.rm(path) }
     assert_equal "not a file: #{path}", e.message
     
     assert File.directory?(path)
@@ -810,7 +810,7 @@ class FileTaskTest < Test::Unit::TestCase
       raise "error"
     end
     
-    e = assert_raise(RuntimeError) { t.execute }
+    e = assert_raises(RuntimeError) { t.execute }
     assert_equal "error", e.message
     
     assert was_in_execute
@@ -836,7 +836,7 @@ class FileTaskTest < Test::Unit::TestCase
       raise "error"
     end
     
-    e = assert_raise(RuntimeError) { t.execute }
+    e = assert_raises(RuntimeError) { t.execute }
     assert_equal "error", e.message
     
     assert was_in_execute
@@ -859,7 +859,7 @@ class FileTaskTest < Test::Unit::TestCase
     
     assert_equal "raise error was: false", File.read(path)
     
-    e = assert_raise(RuntimeError) { t.execute(true) }
+    e = assert_raises(RuntimeError) { t.execute(true) }
     assert_equal "error", e.message
     
     assert_equal "raise error was: false", File.read(path)

@@ -241,8 +241,8 @@ o-[add_five] 8
     t2.enq
     app.run
     
-    assert_not_nil queue_before
-    assert_not_nil queue_after
+    assert nil != queue_before
+    assert nil != queue_after
     assert_equal queue_before, queue_after
   end
   
@@ -444,7 +444,7 @@ o-[add_five] 8
     end
      
     task.enq
-    assert_nothing_raised { app.run }
+    app.run
     assert was_in_block
   end
   

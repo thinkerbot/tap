@@ -67,7 +67,7 @@ class ExecutableQueueTest < Test::Unit::TestCase
   end
   
   def test_enq_raises_error_for_non_task_methods
-    assert_raise(RuntimeError) { queue.enq(method(:setup), [1]) }
+    assert_raises(RuntimeError) { queue.enq(method(:setup), [1]) }
   end
   
   #
@@ -85,7 +85,7 @@ class ExecutableQueueTest < Test::Unit::TestCase
   end
 
   def test_unshift_raises_error_for_non_task_methods
-    assert_raise(RuntimeError) { queue.unshift(method(:setup), [1]) }
+    assert_raises(RuntimeError) { queue.unshift(method(:setup), [1]) }
   end
   
   #

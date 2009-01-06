@@ -356,7 +356,7 @@ class ParserUtilsTest < Test::Unit::TestCase
   end
   
   def test_parse_options_raises_error_for_unknown_options
-    assert_raise(RuntimeError) { parse_options("q") }
+    assert_raises(RuntimeError) { parse_options("q") }
   end
   
   #

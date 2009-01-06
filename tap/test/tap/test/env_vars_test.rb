@@ -41,8 +41,8 @@ class EnvVarsTest < Test::Unit::TestCase
     # Filter for the platforms that do not by checking that ENV has both
     # expected keys
     if ENV.length == 2
-      assert_raise(RuntimeError) { env('key') }
-      assert_raise(RuntimeError) { env('Key') }
+      assert_raises(RuntimeError) { env('key') }
+      assert_raises(RuntimeError) { env('Key') }
     end
   end
 

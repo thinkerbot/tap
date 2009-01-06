@@ -46,41 +46,43 @@ class MethodsCheck < Test::Unit::TestCase
   end
   
   def test_argument_errors
-    assert_raise(ArgumentError) { m.no_inputs(1) }
+    assert_raises(ArgumentError) { m.no_inputs(1) }
     
-    assert_raise(ArgumentError) { m.one_input }
-    assert_raise(ArgumentError) { m.one_input(1,2) }
+    assert_raises(ArgumentError) { m.one_input }
+    assert_raises(ArgumentError) { m.one_input(1,2) }
     
-    assert_raise(ArgumentError) { m.two_inputs }
-    assert_raise(ArgumentError) { m.two_inputs(1) }
-    assert_raise(ArgumentError) { m.two_inputs(1,2,3) }
+    assert_raises(ArgumentError) { m.two_inputs }
+    assert_raises(ArgumentError) { m.two_inputs(1) }
+    assert_raises(ArgumentError) { m.two_inputs(1,2,3) }
     
-    assert_nothing_raised { m.arb_inputs }
-    assert_nothing_raised { m.arb_inputs(1,2,3) }
+    m.arb_inputs
+    m.arb_inputs(1,2,3)
     
-    assert_raise(ArgumentError) { m.mixed_inputs }
-    assert_raise(ArgumentError) { m.mixed_inputs(1) }
-    assert_nothing_raised { m.mixed_inputs(1,2) }
-    assert_nothing_raised { m.mixed_inputs(1,2,3) }
+    assert_raises(ArgumentError) { m.mixed_inputs }
+    assert_raises(ArgumentError) { m.mixed_inputs(1) }
+    
+    m.mixed_inputs(1,2)
+    m.mixed_inputs(1,2,3)
   end
   
   def test_call_errors
-    assert_raise(ArgumentError) { m.method(:no_inputs).call(1) }
+    assert_raises(ArgumentError) { m.method(:no_inputs).call(1) }
     
-    assert_raise(ArgumentError) { m.method(:one_input).call }
-    assert_raise(ArgumentError) { m.method(:one_input).call(1,2) }
+    assert_raises(ArgumentError) { m.method(:one_input).call }
+    assert_raises(ArgumentError) { m.method(:one_input).call(1,2) }
     
-    assert_raise(ArgumentError) { m.method(:two_inputs).call }
-    assert_raise(ArgumentError) { m.method(:two_inputs).call(1) }
-    assert_raise(ArgumentError) { m.method(:two_inputs).call(1,2,3) }
+    assert_raises(ArgumentError) { m.method(:two_inputs).call }
+    assert_raises(ArgumentError) { m.method(:two_inputs).call(1) }
+    assert_raises(ArgumentError) { m.method(:two_inputs).call(1,2,3) }
     
-    assert_nothing_raised { m.method(:arb_inputs).call }
-    assert_nothing_raised { m.method(:arb_inputs).call(1,2,3) }
+    m.method(:arb_inputs).call
+    m.method(:arb_inputs).call(1,2,3)
     
-    assert_raise(ArgumentError) { m.method(:mixed_inputs).call }
-    assert_raise(ArgumentError) { m.method(:mixed_inputs).call(1) }
-    assert_nothing_raised { m.method(:mixed_inputs).call(1,2) }
-    assert_nothing_raised { m.method(:mixed_inputs).call(1,2,3) }
+    assert_raises(ArgumentError) { m.method(:mixed_inputs).call }
+    assert_raises(ArgumentError) { m.method(:mixed_inputs).call(1) }
+    
+    m.method(:mixed_inputs).call(1,2)
+    m.method(:mixed_inputs).call(1,2,3)
   end
   
   def test_call_speeds_are_the_same_for_calls

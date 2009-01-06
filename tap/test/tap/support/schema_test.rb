@@ -18,7 +18,7 @@ class SchemaUtilsTest < Test::Unit::TestCase
     assert_equal %Q{"no 'double quote'"}, shell_quote("no 'double quote'")
     assert_equal ["a", "no 'double quote'", "b"], Shellwords.shellwords(%Q{a "no 'double quote'" b})
     
-    assert_raise(ArgumentError) { shell_quote("\"quote\" and 'double quote'") }
+    assert_raises(ArgumentError) { shell_quote("\"quote\" and 'double quote'") }
   end
   
   #
@@ -80,7 +80,7 @@ class SchemaUtilsTest < Test::Unit::TestCase
   end
   
   def test_format_options_raises_error_for_unknown_options
-    assert_raise(RuntimeError) { format_options(:key => 'value') }
+    assert_raises(RuntimeError) { format_options(:key => 'value') }
   end
 end
 
@@ -238,12 +238,12 @@ class SchemaTest < Test::Unit::TestCase
   
   # def test_build_raises_error_for_join_with_unassigned_source
   #   schema.set(Join, nil, [1,2])
-  #   assert_raise(RuntimeError) { schema.build }
+  #   assert_raises(RuntimeError) { schema.build }
   # end
   # 
   # def test_build_raises_error_for_join_with_unassigned_targets
   #   schema.set(Join, 0, [])
-  #   assert_raise(RuntimeError) { schema.build }
+  #   assert_raises(RuntimeError) { schema.build }
   # end
   
   #
@@ -331,8 +331,8 @@ class SchemaTest < Test::Unit::TestCase
   #   schema = Schema.new node_set
   #   schema.set :unknown, 0, [1]
   # 
-  #   assert_raise(RuntimeError) { schema.to_s }
-  #   assert_raise(RuntimeError) { schema.dump }
+  #   assert_raises(RuntimeError) { schema.to_s }
+  #   assert_raises(RuntimeError) { schema.dump }
   # end
 
 end

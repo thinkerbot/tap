@@ -200,7 +200,7 @@ class GenerateTest < Test::Unit::TestCase
   def test_file_prompts_action_for_collision_and_quits_for_q
     target = method_root.prepare(:tmp, 'file.txt') {|file| file << "old content" }
     
-    assert_raise(SystemExit) do    
+    assert_raises(SystemExit) do    
       prompt_in << "q"
       prompt_in.rewind
       file(target) {|file| file << "new content" }

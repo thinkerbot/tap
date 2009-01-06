@@ -99,7 +99,7 @@ class RootTest < Test::Unit::TestCase
   end
 
   def test_translate_raises_error_if_path_is_not_relative_to_source_dir
-    assert_raise(ArgumentError) { Tap::Root.translate("/path/to/file.txt", "/not_path", "/another/path") }
+    assert_raises(ArgumentError) { Tap::Root.translate("/path/to/file.txt", "/not_path", "/another/path") }
   end
   
   #
@@ -183,7 +183,7 @@ class RootTest < Test::Unit::TestCase
     test_dir = root_dir
     pwd = File.expand_path(Dir.pwd)
     
-    assert_not_equal pwd, test_dir
+    assert pwd != test_dir
     assert File.directory?(test_dir)
     
     begin
@@ -200,7 +200,7 @@ class RootTest < Test::Unit::TestCase
     test_dir = root_dir
     pwd = File.expand_path(Dir.pwd)
     
-    assert_not_equal pwd, test_dir
+    assert pwd != test_dir
     assert File.directory?(test_dir)
     
     was_in_block = false
@@ -228,8 +228,8 @@ class RootTest < Test::Unit::TestCase
     assert File.exists?(filepath) 
     assert File.file?(filepath)
     begin
-      assert_raise(ArgumentError) { Tap::Root.chdir(filepath) {} }
-      assert_raise(ArgumentError) { Tap::Root.chdir(filepath) {} }
+      assert_raises(ArgumentError) { Tap::Root.chdir(filepath) {} }
+      assert_raises(ArgumentError) { Tap::Root.chdir(filepath) {} }
     ensure
       Dir.chdir(pwd)
     end
@@ -241,7 +241,7 @@ class RootTest < Test::Unit::TestCase
     test_dir = root_dir + '/non/existant/dir'
     pwd = File.expand_path(Dir.pwd)
     
-    assert_not_equal pwd, test_dir
+    assert pwd != test_dir
     assert !File.exists?(root_dir + '/non')
 
     was_in_block = false
@@ -721,7 +721,7 @@ class RootTest < Test::Unit::TestCase
   end
   
   def root_dir_cannot_be_set_through_index
-    assert_raise(ArgumentError) { r['root'] = './another' }
+    assert_raises(ArgumentError) { r['root'] = './another' }
   end
   
   #
@@ -748,10 +748,10 @@ class RootTest < Test::Unit::TestCase
   end
   
   def test_raise_error_when_trying_to_set_root_through_relative_paths
-    e = assert_raise(ArgumentError) { r.relative_paths = {'root' => "another"} }
+    e = assert_raises(ArgumentError) { r.relative_paths = {'root' => "another"} }
     assert_equal "the alias \"root\" is reserved", e.message
     
-    e = assert_raise(ArgumentError) { r.relative_paths = {:root => "another"} }
+    e = assert_raises(ArgumentError) { r.relative_paths = {:root => "another"} }
     assert_equal "the alias :root is reserved", e.message
   end
   
@@ -779,7 +779,7 @@ class RootTest < Test::Unit::TestCase
   end
   
   def test_raise_error_when_trying_to_set_root_through_absolute_paths
-    assert_raise(ArgumentError) { r.absolute_paths = {'root' => "another"} }
+    assert_raises(ArgumentError) { r.absolute_paths = {'root' => "another"} }
   end
   
   #
@@ -1056,7 +1056,7 @@ class RootTest < Test::Unit::TestCase
   end
   
   def test_translate_raises_error_if_path_is_not_relative_to_aliased_input_dir
-    e = assert_raise(ArgumentError) { r.translate("./root/dir/file.txt", :not_dir, :another) }
+    e = assert_raises(ArgumentError) { r.translate("./root/dir/file.txt", :not_dir, :another) }
     assert_equal "\n./root/dir/file.txt\nis not relative to:\n#{r[:not_dir]}", e.message
   end
   
