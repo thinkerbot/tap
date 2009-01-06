@@ -2,6 +2,7 @@ $:.unshift File.expand_path("#{File.dirname(__FILE__)}/..")
 require 'tap/test/extensions'
 require 'test/unit'
 
+# :stopdoc:
 # Methods extending TestCase. For more information see:
 # - Tap::Test::SubsetTest
 # - Tap::Test::FileTest
@@ -22,7 +23,6 @@ class Test::Unit::TestCase
   end
 end
 
-# :stopdoc:
 class Test::Unit::TestCase
   class << self
     alias tap_original_test_case_inherited inherited

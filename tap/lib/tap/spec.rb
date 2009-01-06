@@ -4,6 +4,7 @@ require 'tap/test/extensions'
 require 'rubygems'
 require 'minitest/spec'
 
+# :stopdoc:
 class MiniTest::Unit::TestCase
   extend Tap::Test::Extensions
   
@@ -36,4 +37,5 @@ class MiniTest::Unit::TestCase
   end
 end
 
-MiniTest::Unit.autorun 
+MiniTest::Unit.autorun
+# :startdoc:

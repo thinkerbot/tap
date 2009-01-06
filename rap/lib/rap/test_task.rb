@@ -1,7 +1,6 @@
 require 'rap/declarations'
 
 module Rap
-  # ::manifest
   class TestTask < Tap::Task
     class << self
       include Declarations
