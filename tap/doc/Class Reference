@@ -110,10 +110,10 @@ a config into a flag on the command line.
 
 ==== {Lazydoc}[http://tap.rubyforge.org/lazydoc]
 
-Ah lazydoc.  {Lazydoc}[http://tap.rubyforge.org/lazydoc] fits into the space
-between live code and code documentation.  Lazydoc can scan a file and pull
-documentation into the object space.  Lazydoc identifies constant attributes
-using a syntax like this:
+{Lazydoc}[http://tap.rubyforge.org/lazydoc] fits into the space between live
+code and code documentation.  Lazydoc can scan a file and pull documentation
+into the object space.  Lazydoc identifies constant attributes using a syntax
+like this:
 
   # Constant::key value
   # comment
@@ -140,22 +140,21 @@ As you can see, the 'key' attribute is registered to the 'Const::Name' constant.
 Lazydoc can register specific lines for documentation, like method definitions
 or configurations, and is used by Tap to quickly identify files that contain a
 specific resource like a task or generator.  Here is an example of information
-typically gleaned from a task definition:
+Lazydoc gleans from a task definition:
 
-  # ::manifest a summary of the task
+  # Sample::manifest a summary of the task
   class Sample < Tap::Task
-    
     config :key, 'value'   # a simple configuration
     
     def process(a, b='B', *c)
     end
   end
   
-  Sample::manifest           # => "a summary of the task"
-  Sample::arg_names          # => "A B='B' C..."
+  Sample::manifest.to_s                        # => "a summary of the task"
+  Sample::args.to_s                            # => "A B='B' C..."
   
   key = Sample.configurations[:key]
-  key.attributes[:desc]      # => "a simple configuration"
+  key.attributes[:desc].to_s                   # => "a simple configuration"
   
 See the {Lazydoc}[http://tap.rubyforge.org/lazydoc] documentation for more
 information.
@@ -164,7 +163,13 @@ information.
 
 http://tap.rubyforge.org/images/Task.png
 
-Task instances may be interned with a block that acts as a stand-in for 
+Tasks are the bread and butter of Tap.  Although fundamentally tasks are just
+blocks of code used in workflows, the various bits of metadata defined by
+Configurable and extracted through Lazydoc allow tasks to map to the command
+line and act as miniature applications.  That said, tasks are perfectly capable
+as objects in ordinary scripts.
+
+Task instances may be interned with a block that effectively becomes
 <tt>process</tt>:
 
   t = Tap::Task.intern {|task| 1 + 2 }
@@ -210,10 +215,8 @@ inputs. Results are aggregated into the underlying Tap::App.
   runlist                  # => [t0, t1, t2, t3, t2]
   app.results(t2)          # => ["input:one:two", "input:three:two"]
 
-Tracking the evolution of a result through a workflow can get complex; Tap
-audits workflows to help.  In the audit trail, the tasks are identified by
-name.  Lets set the names of the tasks and take a look at the audit trails 
-of the t2 results:
+Tracking the evolution of a result through a workflow can get complex.  Tap
+audits workflows to help, using the name of each task as an identifier:
 
   t1.name = 'un'
   t2.name = 'deux'
@@ -258,44 +261,13 @@ stack of Executable objects, basically methods, and the inputs to those
 methods; during a run the enqued methods are sequentially executed with the 
 inputs.
 
-==== Tap::Support::Dependencies
-
-Dependencies coordinate the registration and resolution of dependencies, which
-may be shared across multiple tasks.
-
-==== Tap::Support::Audit
-
-Tap tracks inputs as they are modified by various tasks, again through
-Executable.  At the end of a run, any individual result can be tracked back to
-it's original value with references to the source of each change (ie the task).
-This auditing can be very useful when workflows diverge, as they often do.
-
-Auditing is largely invisible except in <tt>on_complete</tt> blocks.  
-<tt>on_complete</tt> blocks receive the audited results so that this 
-information can be used, as needed, to make decisions.  
-
-    Task.new.on_complete do |_result|            # _result is an Audit instance
-      _result.value                              # the current value
-    end
-
-To help indicate when a result is actually a result and when it is an audit, 
-Tap uses a convention whereby Audits and non-Audit methods that return Audits
-are prefixed with an underscore.
-
-==== Tap::Support::Aggregator
-
-When a task completes, it executes it's <tt>on_complete</tt> block to handle
-the results, perhaps passing them on to other tasks.  Aggregators collect
-results when no <tt>on_complete</tt> block is specified.  Results are collected
-per-task into an array; a single task executed many times will have it's 
-results aggregated into this single array.
-
 === Tap::App
 
 http://tap.rubyforge.org/images/App.png
 
 Instances of Tap::App coordinate the execution of tasks.  Apps are basically a
-subclass of Root with an ExecutableQueue, Dependencies, and an Aggregator.  
+subclass of Root with an ExecutableQueue.
+
 Task initialization requires an App, which is by default Tap::App.instance.  
 Tasks use their app for logging, dependency-resolution, checks, and to enque 
 themselves.  Normally a script will only need and use a single instance (often
@@ -321,7 +293,7 @@ used.
   app.results(t)             # => [[1], [2,3]]
   
 As shown, apps also aggregate results for tasks, which is important for
-workflows.
+divergent workflows.
 
 == Envs 
 
@@ -329,9 +301,8 @@ workflows.
 
 http://tap.rubyforge.org/images/Env.png
 
-Basically a wrapper for a Root, Envs define methods to generate manifests for a
-type of file-based resource (tasks, generators, etc).  Furthermore they provide
-methods to uniquely identify the resource by path or, more specifically,
+Envs generate manifests of various resources (tasks, generators, etc) and 
+provide methods to uniquely identify resources by path or, more specifically,
 minimized base paths.  In this directory structure:
 
   path
@@ -349,11 +320,11 @@ The minimal paths that uniquely identify these files are (respectively):
   'file-0.2.0'
   'file.rb'
 
-Envs facilitate mapping the minimal path, which might be provided by the 
-command line, to the actual path, and hence to the resource.  Envs can be
-nested so that manifests span multiple directories.  Indeed, this is how tap
-accesses tasks and generators within gems; the gem directories are initialized
-as Envs and nested within the Env for the working directory.
+Envs facilitate mapping a minimal path to an actual path, and hence to a
+resource.  Envs can be nested so that manifests span multiple directories.
+Indeed, this is how tap accesses tasks and generators within gems; the gem
+directories are initialized as Envs and nested within the Env for the working
+directory.
 
 http://tap.rubyforge.org/images/Nested-Env.png
 
@@ -399,8 +370,8 @@ allows selection of Envs, also by minimized paths.  Say you installed the
 
 In this printout of the manifest, you can see the resources available to tap on
 the Desktop (none), in the sample_tasks gem, and in tap itself.  Since there
-aren't any conflicts among tasks, the minipath of any of the tasks is
-sufficient for identification:
+aren't any conflicts among tasks, the minipath of any of the tasks is sufficient
+for identification:
 
   % tap run -- print_tree
   % tap run -- dump
@@ -414,7 +385,7 @@ If there were a conflict, you'd have to specify the environment minipath like:
 
 http://tap.rubyforge.org/images/Run-Env.png
 
-The tap executable environment.  Tap::Exe adds several configurations (ex
-before/after) which only get loaded for the present directory, and methods
-for building and executing workflows from command line inputs.  Tap::Exe is a
-singleton, and is special because it wraps Tap::App.
+Tap::Exe adds several configurations (ex before/after) which only get loaded
+for the present directory, and methods for building and executing workflows
+from command line inputs.  Tap::Exe is a singleton, and is special because it
+wraps Tap::App.instance.

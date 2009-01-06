@@ -1,18 +1,14 @@
 = Command Reference
 
-Tap comes with two executables: tap (a gateway application) and rap (a shortcut for running tasks).  The syntax for running tasks via 'tap run' and rap is covered in the {Syntax Reference}[link:files/doc/Syntax%20Reference.html]; this reference covers all of the other tap commands.  For help on the command line, type:
+Tap comes the tap executable.  For help on the command line, type:
 
   % tap --help
 
-=== configuration
-
-Tap sets up the local execution environment from 'tap.yml', if it exists.  The config file is, as the extension implies, a YAML file and will be automatically created by the root generator.  Naturally, you can create it yourself.  See Tap::Env and Tap::Exe for a list of the available configurations.
-
-In addition, default configurations may be specified in the global configuration file '~/.tap.yml', where '~' is evaluated as Gem.user_home.
-
 == tap console
 
-Console opens an irb session after loading the tap environment.  Console defines variables 'app' and 'env' referencing Tap::App.instance and Tap::Env.instance, for easy access.
+Console opens an irb session after loading the tap environment.  Console
+defines variables 'app' and 'env' referencing Tap::App.instance and
+Tap::Env.instance, for easy access.
 
   % tap console
   irb(main):001:0> app.log(:hello)
@@ -20,35 +16,12 @@ Console opens an irb session after loading the tap environment.  Console defines
   => true
   irb(main):002:0>
 
-== tap generate/destroy
-
-Generate and destory launch generator scripts, similar to those in {Rails}[http://www.rubyonrails.org/].  By default Tap provides generators for:
-
-{command}[link:classes/Tap/Generator/Generators/CommandGenerator.html]:: a new command
-{config}[link:classes/Tap/Generator/Generators/ConfigGenerator.html]:: a static config file for the specified task
-{file_task}[link:classes/Tap/Generator/Generators/FileTaskGenerator.html]:: a file task and test
-{generator}[link:classes/Tap/Generator/Generators/GeneratorGenerator.html]:: a new generator
-{root}[link:classes/Tap/Generator/Generators/RootGenerator.html]:: the basic directory structure
-{task}[link:classes/Tap/Generator/Generators/TaskGenerator.html]:: a task class and test
-
-For example:
-
-  % tap generate root .
-  % tap generate task sample_task
-  % tap generate config sample_task
-  
-  % tap destroy config sample_task
-  % tap destroy task sample_task
-  % tap destroy root .
-
-Each generator works a little differently.  For help:
-
-  % tap generate --help
-  % tap generate <generator> --help
-  
 == tap manifest
 
-Manifest prints a list of all resources (commands, tasks, generators, etc) available to tap.  Environments are listed in the same order as they are searched, and at the end a tree diagram is printed showing how the environments are nested.
+Manifest prints a list of all resources (commands, tasks, generators, etc)
+available to tap.  Environments are listed in the same order as they are
+searched, and at the end a tree diagram is printed showing how the
+environments are nested.
 
   % tap manifest
   --------------------------------------------------------------------------------
@@ -79,16 +52,23 @@ Manifest prints a list of all resources (commands, tasks, generators, etc) avail
 
 == tap run
 
-Run configures, enqueues, and executes tasks.  Run has a rich syntax allowing the specification of any number of tasks with configurations and inputs, but simplifies under most circumstances.  The run syntax is detailed in the {Syntax Reference}[link:files/doc/Syntax%20Reference.html], but a couple examples illustrate the key points:
+Run configures, enqueues, and executes tasks.  Run has a rich syntax allowing
+the specification of any number of tasks with configurations and inputs, but
+simplifies under most circumstances.  The run syntax is detailed in the {Syntax Reference}[link:files/doc/Syntax%20Reference.html], but a couple examples
+illustrate the key points:
 
   % tap run sample/task 
   % tap run -- sample/task --key=value input_one -- another/task input_two
 
-The second statement specifies two tasks with inputs, and specifies a configuration for sample/task.  As can be seen, run separates tasks using a double-dash, the standard option break.  Options for the run command can be specified before the first break.
+The second statement specifies two tasks with inputs, and specifies a
+configuration for sample/task.  As can be seen, run separates tasks using a
+double-dash, the standard option break.  Options for the run command can be
+specified before the first break.
 
   % tap run --debug -- sample/task --key=value
 
-Here run receives the <tt>--debug</tt> option and sample/task receives the <tt>--key=value</tt> option.  Inputs work the same way.  For example:
+Here run receives the <tt>--debug</tt> option and sample/task receives the 
+<tt>--key=value</tt> option.  Inputs work the same way.  For example:
 
   % tap run -- sample/task --key=value one -- another/task two three
 
@@ -98,8 +78,3 @@ Specifies the following:
   Another::Task.new.enq('two', 'three') 
 
 Any number of tasks, configurations, and inputs may be specified in this way.
-
---
-== tap server
-
-An experimental local server for tap tasks.

@@ -63,45 +63,43 @@ class ClassReferenceTest < Test::Unit::TestCase
   #
   # Lazydoc test
   #
-  
+
   def test_lazydoc
     lazydoc_file = method_root.prepare(:tmp, 'one') do |file|
       file << %Q{
-# Name::Space::key value
+# Const::Name::key value
 # 
-# This documentation
-# gets parsed.
+# This is an extended,
+# multiline comment.
 #
-
-# Name::Space::another another value
-# This gets parsed.
-# Name::Space::another-
-#
-# This does not.
 }
     end
 
     lazydoc = Lazydoc[lazydoc_file]
     lazydoc.resolve
-
-    assert_equal "This documentation gets parsed.", lazydoc['Name::Space']['key'].comment
-    assert_equal "another value", lazydoc['Name::Space']['another'].value
+    
+    assert_equal "value", lazydoc['Const::Name']['key'].value   
+    assert_equal "This is an extended, multiline comment.", lazydoc['Const::Name']['key'].comment
     
     ####
     another_lazydoc_file = method_root.prepare(:tmp, 'two') do |file|
-      file << %Q{# documentation
-# for the method
-def method
+      file << %Q{
+# Sample::manifest a summary of the task
+class Sample < Tap::Task
+  config :key, 'value'   # a simple configuration
+
+  def process(a, b='B', *c)
+  end
 end
 }
     end
     
-    lazydoc = Lazydoc[another_lazydoc_file]
-    code_comment = lazydoc.register(2)
-    lazydoc.resolve
+    load(another_lazydoc_file)
+    assert_equal "a summary of the task", Sample::manifest.to_s
+    assert_equal "A B='B' C...", Sample::args.to_s
 
-    assert_equal "def method", code_comment.subject
-    assert_equal "documentation for the method", code_comment.to_s
+    key = Sample.configurations[:key]
+    assert_equal "a simple configuration", key.attributes[:desc].to_s
   end
   
   #

@@ -1,5 +1,7 @@
 = {Tap (Task Application)}[http://tap.rubyforge.org]
 
+  tap n. to draw a supply from a resource
+
 A framework for creating configurable, distributable tasks and workflows.
 
 == Description

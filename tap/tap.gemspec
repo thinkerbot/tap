@@ -5,14 +5,15 @@ Gem::Specification.new do |s|
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
   s.platform = Gem::Platform::RUBY
-  s.summary = "The core functionality of the tap framework."
+  s.summary = "A framework for creating configurable, distributable tasks and workflows."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
   s.bindir = "bin"
   s.executables = "tap"
   s.add_dependency("configurable", ">= 0.2.1")
   s.has_rdoc = true
-  s.rdoc_options << '--title' << 'Tap Core' << '--main' << 'README' << '-S' << '-N'
+  s.rdoc_options.concat %w{--main README -S -N --title}
+  s.rdoc_options << 'Tap (Task Application)'
    
   s.extra_rdoc_files = %W{
     README

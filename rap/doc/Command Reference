@@ -1,0 +1,22 @@
+= Command Reference
+
+Rap comes the rap executable.  For help on the command line, type:
+
+  % rap --help
+
+The rap executable is basically a shorthand for 'tap run --'.  Specifying tasks
+for rap is no different than 'tap run' (see the {Syntax Reference}[http://tap.rubyforge.org/rdoc/files/doc/Syntax%20Reference.html]).
+The only exception occurs when the task  can't be found; unknown tasks are run
+as if by rake.  For instance all of these are the same:
+
+Run a rake task with inputs and an ENV config:
+
+  % rake task_name[1,2,3] key=value
+
+Explicitly run a Rap::Rake task using the same inputs:
+
+  % rap rake task_name[1,2,3] key=value
+
+Implicitly run the Rap::Rake task:
+
+  % rap task_name[1,2,3] key=value

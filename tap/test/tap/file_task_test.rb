@@ -274,7 +274,7 @@ class FileTaskTest < Test::Unit::TestCase
     t.backup_file = backup_file
     
     e = assert_raises(RuntimeError) { t.backup(existing_file) }
-    assert_equal "backup file already exists: #{backup_file}", e.message
+    assert_equal "backup already exists: #{backup_file}", e.message
   end
   
   #

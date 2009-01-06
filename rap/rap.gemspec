@@ -24,7 +24,7 @@ Gem::Specification.new do |s|
     lib/rap/declarations.rb
     lib/rap/description.rb
     lib/rap/rake_app.rb
-    lib/rap/tasks/rake.rb
+    lib/rap/rake.rb
     _tap.yml
     }
 end
