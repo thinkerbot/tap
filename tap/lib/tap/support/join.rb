@@ -1,3 +1,5 @@
+require 'configurable'
+
 module Tap
   module Support
     

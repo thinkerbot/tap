@@ -1,10 +1,11 @@
-require 'tap/support/executable'
-require 'tap/support/intern'
 autoload(:ConfigParser, 'config_parser')
 
 module Tap
+  autoload(:FileTask, 'tap/file_task')
+  
   module Support
     autoload(:Templater, 'tap/support/templater')
+    autoload(:Intern, 'tap/support/intern')
   end
   
   # === Task Definition

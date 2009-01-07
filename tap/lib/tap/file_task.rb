@@ -1,5 +1,4 @@
 require 'tap/support/shell_utils'
-autoload(:FileUtils, "fileutils")
 
 module Tap
   

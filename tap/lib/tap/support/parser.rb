@@ -1,6 +1,3 @@
-require 'tap/support/schema'
-autoload(:Shellwords, 'shellwords')
-
 module Tap
   module Support
     

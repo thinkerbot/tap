@@ -1,5 +1,3 @@
-require 'enumerator'
-
 module Tap 
   module Support
     

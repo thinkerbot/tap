@@ -2,6 +2,7 @@ require 'tap/support/minimap'
 
 module Tap
   module Support
+    autoload(:Intern, 'tap/support/intern')
     
     # Stores an array of paths and makes them available for lookup by
     # minipath.  Manifests may be bound to a Tap::Env, allowing searches

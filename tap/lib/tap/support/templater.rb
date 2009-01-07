@@ -1,5 +1,6 @@
 require 'ostruct'
-require 'erb'
+autoload(:ERB, 'erb')
+autoload(:YAML, 'yaml')
 
 module Tap
   module Support

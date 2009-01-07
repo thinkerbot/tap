@@ -1,4 +1,5 @@
 require 'tap/support/audit'
+require 'tap/support/joins'
 
 module Tap
   module Support

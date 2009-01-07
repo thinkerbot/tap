@@ -2,6 +2,9 @@ require 'tap/support/constant_manifest'
 require 'tap/support/gems'
 
 module Tap
+  module Support
+    autoload(:Templater, 'tap/support/templater')
+  end
   
   # Envs are locations on the filesystem that have resources associated with
   # them (commands, tasks, generators, etc).  Envs may point to files, but it's

@@ -1,3 +1,5 @@
+require 'tap/support/executable'
+
 module Tap
   module Support
     

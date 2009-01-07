@@ -1,7 +1,10 @@
 require 'logger'
+
+require 'tap/root'
 require 'tap/support/aggregator'
 require 'tap/support/dependencies'
 require 'tap/support/executable_queue'
+require 'tap/task'
 
 module Tap
   
