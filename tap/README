@@ -91,7 +91,8 @@ Tap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
 
   % gem install tap
 
-Tap requires an updated version of RubyGems[http://docs.rubygems.org/] (>= 1.2.0).  To check the version and update RubyGems:
+Tap requires an updated version of RubyGems[http://docs.rubygems.org/] 
+(>= 1.2.0).  To check the version and update RubyGems:
 
   % gem --version
   % gem --update system

@@ -7,9 +7,11 @@ The rakish app extension to {Tap}[http://tap.rubyforge.org].
 
 == Description
 
-Tap is a framework for creating configurable, distributable tasks and
-workflows.  Tap is distributed as a set of several independent modules; 
-this is the rap module.
+{Rake}[http://rake.rubyforge.org/] is great, but it has significant limitations
+when used as a general task framework and not as the 'simple ruby build program
+with capabilities similar to make' it was originally designed to be.  Rap
+supercharges the convenience and familiar syntax of Rake with the capabilities
+of Tap, making a configurable, inheritable, and testable amalgam.
 
 Check out these links for documentation, development, and bug tracking.
 
@@ -18,12 +20,33 @@ Check out these links for documentation, development, and bug tracking.
 * Github[http://github.com/bahuvrihi/tap/tree/master]
 * {Google Group}[http://groups.google.com/group/ruby-on-tap]
 
+=== Limitations
+
+Rap is not a pure replacement of Rake; it does not support builds by default,
+and many of the Rake-specific classes (ex FileList) are not included. 
+
+== Usage
+
+Usage is much like rake:
+
+  [Rapfile]
+  
+
+Rap does provides its own, documented versions of TestTask, RDocTask, and
+GemPackageTask.
+
 == Installation
 
 Rap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
 
   % gem install rap
 
+Rap requires an updated version of RubyGems[http://docs.rubygems.org/] 
+(>= 1.2.0).  To check the version and update RubyGems:
+
+  % gem --version
+  % gem --update system
+    
 == Info 
 
 Copyright (c) 2006-2008, Regents of the University of Colorado.

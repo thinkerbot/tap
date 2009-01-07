@@ -57,9 +57,7 @@ end
 #
 
 module Rap
-  module Tasks
-    autoload(:Rake, 'rap/tasks/rake')
-  end
+  autoload(:Rake, 'rap/rake')
 end
 
 begin

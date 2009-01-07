@@ -4,7 +4,7 @@ Tap comes the tap executable.  For help on the command line, type:
 
   % tap --help
 
-== tap console
+== console
 
 Console opens an irb session after loading the tap environment.  Console
 defines variables 'app' and 'env' referencing Tap::App.instance and
@@ -16,7 +16,7 @@ Tap::Env.instance, for easy access.
   => true
   irb(main):002:0>
 
-== tap manifest
+== manifest
 
 Manifest prints a list of all resources (commands, tasks, generators, etc)
 available to tap.  Environments are listed in the same order as they are
@@ -50,7 +50,7 @@ environments are nested.
   Desktop
   `- tap
 
-== tap run
+== run
 
 Run configures, enqueues, and executes tasks.  Run has a rich syntax allowing
 the specification of any number of tasks with configurations and inputs, but
