@@ -20,7 +20,7 @@ module Tap
         subset_test("SCRIPT", "s") do
           Tap::Root.chdir(test_dir, true) do  
             Utils.with_argv do
-              puts "\n# == #{method_name}"
+              puts "\n# == #{name}"
 
               cmd = ScriptTester.new(default_command_path, env('stepwise')) do |expected, result, msg|
                 case expected

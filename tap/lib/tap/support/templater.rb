@@ -162,6 +162,13 @@ module Tap
         @_erbout = input
       end
       
+      unless RUBY_VERSION < "1.9"
+        def force_encoding(encoding)
+          @_erbout.force_encoding(encoding)
+          @_erbout
+        end
+      end
+      
       # Redirects output of erb to the redirected_erbout string
       # for the duration of the block.  When redirect completes,
       # the redirected_erbout is concatenated to the main

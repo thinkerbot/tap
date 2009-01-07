@@ -326,13 +326,13 @@ class ExecutableTest < Test::Unit::TestCase
     m.on_complete {}
     b = lambda {}
     
-    assert b != m.on_complete_block
-    assert b != m1.on_complete_block
+    assert b.object_id != m.on_complete_block.object_id
+    assert b.object_id != m1.on_complete_block.object_id
     
     m.on_complete(true, &b)
     
-    assert_equal b, m.on_complete_block
-    assert_equal b, m1.on_complete_block
+    assert_equal b.object_id, m.on_complete_block.object_id
+    assert_equal b.object_id, m1.on_complete_block.object_id
   end
   
   def test_on_complete_with_override_and_no_block_sets_on_complete_block_to_nil_for_each_in_batch

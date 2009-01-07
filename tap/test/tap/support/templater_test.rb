@@ -18,7 +18,7 @@ class TemplaterTest < Test::Unit::TestCase
     
     e = ERB.new("<%= 1 + 2 %>")
     condition_test(:ruby_1_8) { assert_equal("_erbout = ''; _erbout.concat(( 1 + 2 ).to_s); _erbout", e.src) }
-    condition_test(:ruby_1_9) { assert_equal("#coding:US-ASCII\n_erbout = ''; _erbout.concat(( 1 + 2 ).to_s); _erbout", e.src) }
+    condition_test(:ruby_1_9) { assert_equal("#coding:US-ASCII\n_erbout = ''; _erbout.concat(( 1 + 2 ).to_s); _erbout.force_encoding(__ENCODING__)", e.src) }
     
     template = %Q{
 # Un-nested content
