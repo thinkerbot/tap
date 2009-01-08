@@ -1,8 +1,0 @@
-== 0.12.0 / 2008-12-30
-
-As of the 0.12.0 release, Tap is distributed as several independent modules.
-This is the generators module.  The core classes have been cleaned up 
-significantly since the 0.11 series, and some changes are not backwards
-compatible.
-
-* Cleanup and testing of generators
