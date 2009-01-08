@@ -9,13 +9,8 @@ module Tap
         exe = super
         
         # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
-        if !File.exists?(Tap::Env::DEFAULT_CONFIG_FILE)
-          exe.gems = Support::Gems.select_gems(false) do |spec|
-            env_config = File.join(spec.full_gem_path, Tap::Env::DEFAULT_CONFIG_FILE)
-            File.exists?(env_config)
-          end
-        end
-        
+        exe.gems = :all if !File.exists?(Tap::Env::DEFAULT_CONFIG_FILE)
+  
         # add the default tap instance
         exe.push Env.instantiate("#{File.dirname(__FILE__)}/../..")
         exe
@@ -23,6 +18,23 @@ module Tap
       
       def load_config(path)
         super(GLOBAL_CONFIG_FILE).merge super(path)
+      end
+      
+      # Adapted from Gem.find_home
+      def user_home
+        ['HOME', 'USERPROFILE'].each do |homekey|
+          return ENV[homekey] if ENV[homekey]
+        end
+      
+        if ENV['HOMEDRIVE'] && ENV['HOMEPATH'] then
+          return "#{ENV['HOMEDRIVE']}#{ENV['HOMEPATH']}"
+        end
+
+        begin
+          File.expand_path("~")
+        rescue
+          File::ALT_SEPARATOR ? "C:/" : "/"
+        end
       end
     end
     
@@ -41,7 +53,7 @@ module Tap
     config :aliases, {}, &c.hash_or_nil
     
     # The global home directory
-    GLOBAL_HOME = File.join(Support::Gems.find_home, ".tap")
+    GLOBAL_HOME = File.join(Exe.user_home, ".tap")
     
     # The global config file path
     GLOBAL_CONFIG_FILE = File.join(GLOBAL_HOME, "tap.yml")

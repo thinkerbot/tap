@@ -110,6 +110,16 @@ module Tap
     # Gems are immediately loaded (via gem) through this method.
     config_attr :gems, [] do |input|
       specs_by_name = {}
+      
+      input = case input
+      when :latest, :all
+        Support::Gems.select_gems(input == :latest) do |spec|
+          env_config = File.join(spec.full_gem_path, Tap::Env::DEFAULT_CONFIG_FILE)
+          File.exists?(env_config)
+        end
+      else input
+      end
+      
       @gems = [*input].compact.collect do |gem_name| 
         spec = Support::Gems.gemspec(gem_name)
         
