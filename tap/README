@@ -54,7 +54,6 @@ Tap pulls documentation out of task classes to generate manifests:
     tap:
       dump        # the default dump task
       load        # the default load task
-      rake        # run rake tasks
       
 And help:
 
@@ -78,6 +77,13 @@ Tasks are immediately available to run through the tap executable:
 
   % tap run -- goodnight moon
     I[00:09:55]          goodnight moon
+
+Tap comes with generators. To get started:
+
+  % tap generate root sample
+  % cd sample
+  % tap generate task goodnight
+  % tap run -- goodnight moon
 
 === Bugs/Known Issues
 

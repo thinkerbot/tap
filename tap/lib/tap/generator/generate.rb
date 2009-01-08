@@ -1,3 +1,5 @@
+autoload(:Tempfile, 'tempfile')
+
 module Tap
   module Generator
     

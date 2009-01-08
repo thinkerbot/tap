@@ -8,6 +8,23 @@ module Tap
     module Gems
       module_function
 
+      # Adapted from Gem.find_home
+      def find_home
+        ['HOME', 'USERPROFILE'].each do |homekey|
+          return ENV[homekey] if ENV[homekey]
+        end
+      
+        if ENV['HOMEDRIVE'] && ENV['HOMEPATH'] then
+          return "#{ENV['HOMEDRIVE']}#{ENV['HOMEPATH']}"
+        end
+
+        begin
+          File.expand_path("~")
+        rescue
+          File::ALT_SEPARATOR ? "C:/" : "/"
+        end
+      end
+      
       # Returns the gemspec for the specified gem.  A gem version 
       # can be specified in the name, like 'gem >= 1.2'.  The gem 
       # will be activated using +gem+ if necessary.

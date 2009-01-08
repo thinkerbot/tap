@@ -34,6 +34,33 @@ Gem::Specification.new do |s|
     lib/tap/env.rb
     lib/tap/exe.rb
     lib/tap/file_task.rb
+    lib/tap/generator/arguments.rb
+    lib/tap/generator/base.rb
+    lib/tap/generator/destroy.rb
+    lib/tap/generator/generate.rb
+    lib/tap/generator/generators/command/command_generator.rb
+    lib/tap/generator/generators/command/templates/command.erb
+    lib/tap/generator/generators/config/config_generator.rb
+    lib/tap/generator/generators/config/templates/doc.erb
+    lib/tap/generator/generators/config/templates/nodoc.erb
+    lib/tap/generator/generators/file_task/file_task_generator.rb
+    lib/tap/generator/generators/file_task/templates/file.txt
+    lib/tap/generator/generators/file_task/templates/result.yml
+    lib/tap/generator/generators/file_task/templates/task.erb
+    lib/tap/generator/generators/file_task/templates/test.erb
+    lib/tap/generator/generators/generator/generator_generator.rb
+    lib/tap/generator/generators/generator/templates/task.erb
+    lib/tap/generator/generators/root/root_generator.rb
+    lib/tap/generator/generators/root/templates/README
+    lib/tap/generator/generators/root/templates/Rakefile
+    lib/tap/generator/generators/root/templates/Rapfile
+    lib/tap/generator/generators/root/templates/gemspec
+    lib/tap/generator/generators/root/templates/test/tap_test_helper.rb
+    lib/tap/generator/generators/task/task_generator.rb
+    lib/tap/generator/generators/task/templates/task.erb
+    lib/tap/generator/generators/task/templates/test.erb
+    lib/tap/generator/manifest.rb
+    lib/tap/generator/preview.rb
     lib/tap/root.rb
     lib/tap/spec.rb
     lib/tap/support/aggregator.rb

@@ -37,7 +37,6 @@ sample:
 tap:
   dump        # the default dump task
   load        # the default load task
-  rake        # run rake tasks
 % #{cmd} run -- goodnight --help
 Goodnight -- your basic goodnight moon task
 --------------------------------------------------------------------------------

@@ -4,19 +4,6 @@ require 'tap/support/schema'
 
 module Tap
   class Exe < Env
-    tap_core = File.expand_path("#{File.dirname(__FILE__)}/../..")
-    tap_modules = Dir.glob("#{tap_core}/../{t,r}ap*/_tap.yml").collect {|path| File.expand_path(File.dirname(path)) }
-    tap_modules = Tap::Root.vniq(tap_modules)
-    lib_paths = tap_modules.collect {|dir| File.join(dir, 'lib') }
-    cmd_paths = tap_modules.collect {|dir| File.join(dir, 'cmd') }
-    
-    DEFAULT_TAP_ENV = Env.new(
-      :root => {:root => "#{tap_core}/bin/tap"},
-      :load_paths => lib_paths,
-      :command_paths => cmd_paths,
-      :generator_paths => lib_paths
-    )
-    
     class << self
       def instantiate(path=Dir.pwd)
         exe = super
@@ -30,7 +17,7 @@ module Tap
         end
         
         # add the default tap instance
-        exe.push(DEFAULT_TAP_ENV)
+        exe.push Env.instantiate("#{File.dirname(__FILE__)}/../..")
         exe
       end
       
@@ -53,8 +40,11 @@ module Tap
     config :loads, [], &c.array_or_nil
     config :aliases, {}, &c.hash_or_nil
     
+    # The global home directory
+    GLOBAL_HOME = File.join(Support::Gems.find_home, ".tap")
+    
     # The global config file path
-    GLOBAL_CONFIG_FILE = File.join(Gem.user_home, ".tap/tap.yml")
+    GLOBAL_CONFIG_FILE = File.join(GLOBAL_HOME, "tap.yml")
 
     # Alias for root (Exe should have a Tap::App as root)
     def app

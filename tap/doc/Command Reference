@@ -16,6 +16,32 @@ Tap::Env.instance, for easy access.
   => true
   irb(main):002:0>
 
+== generate/destroy
+
+Generate and destory launch generator scripts, similar to those in {Rails}[http://www.rubyonrails.org/].  By default Tap provides generators for:
+
+{command}[link:classes/Tap/Generator/Generators/CommandGenerator.html]:: a new command
+{config}[link:classes/Tap/Generator/Generators/ConfigGenerator.html]:: a static config file for the specified task
+{file_task}[link:classes/Tap/Generator/Generators/FileTaskGenerator.html]:: a file task and test
+{generator}[link:classes/Tap/Generator/Generators/GeneratorGenerator.html]:: a new generator
+{root}[link:classes/Tap/Generator/Generators/RootGenerator.html]:: the basic directory structure
+{task}[link:classes/Tap/Generator/Generators/TaskGenerator.html]:: a task class and test
+
+For example:
+
+  % tap generate root .
+  % tap generate task sample_task
+  % tap generate config sample_task
+
+  % tap destroy config sample_task
+  % tap destroy task sample_task
+  % tap destroy root .
+
+Each generator works a little differently.  For help:
+
+  % tap generate --help
+  % tap generate <generator> --help
+
 == manifest
 
 Manifest prints a list of all resources (commands, tasks, generators, etc)
