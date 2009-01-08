@@ -1,9 +1,9 @@
 require 'tap/support/constant_manifest'
-require 'tap/support/gems'
 
 module Tap
   module Support
     autoload(:Templater, 'tap/support/templater')
+    autoload(:Gems, 'tap/support/gems')
   end
   
   # Envs are locations on the filesystem that have resources associated with

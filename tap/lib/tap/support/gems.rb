@@ -1,4 +1,4 @@
-autoload(:Gem, 'rubygems')
+require 'rubygems'
 
 module Tap
   module Support

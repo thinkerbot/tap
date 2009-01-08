@@ -25,6 +25,8 @@ Gem::Specification.new do |s|
   
   s.files = %W{
     cmd/console.rb
+    cmd/destroy.rb
+    cmd/generate.rb
     cmd/manifest.rb
     cmd/run.rb
     bin/tap
