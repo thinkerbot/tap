@@ -70,16 +70,18 @@ module Tap::Generator::Generators
     def manifest(m, name, config_name=name)
       # setup
       configurations = configurations_for(name)
-      config_file = app.filepath('config', config_name + ".yml")
+      config_file = app.filepath('config', config_name)
+      config_file += ".yml" if File.extname(config_file).empty?
       
       # generate the dumps
       dumps = Configurable::Utils.dump_file(configurations, config_file, nest, true, &format_block)
       
       # now put the dumps to the manifest
-      dumps.keys.sort.each do |path|
-        m.directory(File.dirname(path))
+      m.directory(app['config'])
+      
+      dumps.each do |path, content|
         m.file(path) do |file|
-          file << dumps[path]
+          file << content
         end
       end
     end
