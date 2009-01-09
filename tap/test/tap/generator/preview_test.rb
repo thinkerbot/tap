@@ -9,7 +9,7 @@ class PreviewTest < Test::Unit::TestCase
   
   def setup
     @app = Tap::App.instance = Tap::App.new
-    @builds = {}
+    @preview = {}
   end
   
   #
@@ -32,20 +32,19 @@ class PreviewTest < Test::Unit::TestCase
       dir/file.txt
     }, s.process
   
-    builds = s.builds
-    assert_equal "content", builds['dir/file.txt']
+    assert_equal "content", s.preview['dir/file.txt']
   end
   
   #
   # extended test
   #
   
-  def test_preview_extend_initializes_builds
+  def test_preview_extend_initializes_preview
     s = Sample.new
-    assert !s.respond_to?(:builds)
+    assert !s.respond_to?(:preview)
     
     s.extend Preview
-    assert_equal({}, s.builds)
+    assert_equal({}, s.preview)
   end
 
   #
@@ -85,10 +84,10 @@ class PreviewTest < Test::Unit::TestCase
     assert_equal "path/to/file.txt", file(path)
   end
   
-  def test_file_stores_block_content_in_builds
+  def test_file_stores_block_content_in_preview
     path = app.filepath("file.txt")
-    assert_equal({}, builds)
+    assert_equal({}, preview)
     file(path) {|io| io << "content"}
-    assert_equal({'file.txt' => 'content'}, builds)
+    assert_equal({'file.txt' => 'content'}, preview)
   end
 end

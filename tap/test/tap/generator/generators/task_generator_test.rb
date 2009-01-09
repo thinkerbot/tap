@@ -23,7 +23,7 @@ class TaskGeneratorTest < Test::Unit::TestCase
     }, t.process('const_name')
     
     assert !TaskGeneratorTest.const_defined?(:ConstName)
-    eval(t.builds['lib/const_name.rb'])
+    eval(t.preview['lib/const_name.rb'])
 
     assert_equal "goodnight moon", ConstName.new.process('moon')
     assert_equal "hello world", ConstName.new(:message => 'hello').process('world')
@@ -50,7 +50,7 @@ class TaskGeneratorTest < Test::Unit::TestCase
     }, t.process('nested/const')
     
     assert !TaskGeneratorTest.const_defined?(:Nested)
-    eval(t.builds['lib/nested/const.rb'])
+    eval(t.preview['lib/nested/const.rb'])
     
     assert_equal "goodnight moon", Nested::Const.new.process('moon')
   end

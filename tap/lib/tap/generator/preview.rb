@@ -25,8 +25,7 @@ module Tap
     #     dir/file.txt
     #   }, s.process
     #
-    #   builds = s.builds
-    #   assert_equal "content", builds['dir/file.txt']
+    #   assert_equal "content", s.preview['dir/file.txt']
     #
     # Note that relative filepaths are determined from app.root for the
     # instance; in tests like the one above, it may be prudent to reset
@@ -40,10 +39,10 @@ module Tap
       
       # A hash of (relative_path, content) pairs representing
       # content built to files.
-      attr_accessor :builds
+      attr_accessor :preview
       
       def self.extended(base) # :nodoc:
-        base.instance_variable_set(:@builds, {})
+        base.instance_variable_set(:@preview, {})
       end
       
       # Returns the path of path, relative to app.root.  If path
@@ -67,7 +66,7 @@ module Tap
         if block_given?
           io = StringIO.new
           yield(io)
-          builds[target] = io.string
+          preview[target] = io.string
         end
         
         target

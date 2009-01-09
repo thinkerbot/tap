@@ -105,7 +105,7 @@ no_doc: value
 
 empty_doc: value
 
-}, "\n" + c.builds['config/doc_sample.yml']
+}, "\n" + c.preview['config/doc_sample.yml']
   end
   
   def test_config_generator_omits_documentation_if_specified
@@ -125,7 +125,7 @@ long_trailer: value
 leader_and_trailer: value
 no_doc: value
 empty_doc: value
-}, "\n" + c.builds['config/doc_sample.yml']
+}, "\n" + c.preview['config/doc_sample.yml']
   end
   
   #
@@ -209,7 +209,7 @@ nest_with_new_configs:
 # key documentation
 key: value
 
-}, "\n" + c.builds['config/nested_doc_sample.yml']
+}, "\n" + c.preview['config/nested_doc_sample.yml']
   end
 
   def test_nested_config_files_with_documentation
@@ -241,7 +241,7 @@ key: value
 # key documentation
 key: value
 
-}, "\n" + c.builds[path], path
+}, "\n" + c.preview[path], path
     end
     
     assert_equal %q{
@@ -250,7 +250,7 @@ key: value
 
 another: config
 
-}, "\n" + c.builds['config/nested_doc_sample/nest_with_new_configs.yml']
+}, "\n" + c.preview['config/nested_doc_sample/nest_with_new_configs.yml']
   end
       
   def test_non_nested_config_file_without_documentation
@@ -279,7 +279,7 @@ nest_with_new_configs:
   key: value
   another: config
 key: value
-}, "\n" + c.builds['config/nested_doc_sample.yml']
+}, "\n" + c.preview['config/nested_doc_sample.yml']
   end
   
   def test_nested_config_files_without_documentation
@@ -310,13 +310,13 @@ key: value
     }.each do |path|
       assert_equal %q{
 key: value
-}, "\n" + c.builds[path], path
+}, "\n" + c.preview[path], path
     end
 
     assert_equal %q{
 key: value
 another: config
-}, "\n" + c.builds['config/nested_doc_sample/nest_with_new_configs.yml']
+}, "\n" + c.preview['config/nested_doc_sample/nest_with_new_configs.yml']
   end
   
   #
@@ -369,7 +369,7 @@ another: config
     task = DoubleNestedSampleValues.new(task_nil_config)
     assert_equal(nil_config, task.config.to_hash)
     
-    task.reconfigure(YAML.load(c.builds['config/sample.yml']))
+    task.reconfigure(YAML.load(c.preview['config/sample.yml']))
     assert_equal(loaded_config, task.config.to_hash)
   end
   

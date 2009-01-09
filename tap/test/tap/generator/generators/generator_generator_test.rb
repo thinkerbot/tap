@@ -25,10 +25,10 @@ class GeneratorGeneratorTest < Test::Unit::TestCase
     }, g.process('const_name')
     
     assert !GeneratorGeneratorTest.const_defined?(:ConstNameGenerator)
-    eval(g.builds['lib/const_name/const_name_generator.rb'])
+    eval(g.preview['lib/const_name/const_name_generator.rb'])
     
     method_root.prepare(:tmp, 'template_file.erb') do |file|
-      file << g.builds['lib/const_name/templates/template_file.erb']
+      file << g.preview['lib/const_name/templates/template_file.erb']
     end
     
     c = ConstNameGenerator.new.extend Preview
@@ -41,6 +41,6 @@ class GeneratorGeneratorTest < Test::Unit::TestCase
     assert_equal %q{
 # A sample template file.
 key: value
-}, "\n" + c.builds['const_name_file.txt']
+}, "\n" + c.preview['const_name_file.txt']
   end
 end
