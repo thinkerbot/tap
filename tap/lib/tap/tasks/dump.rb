@@ -13,7 +13,8 @@ module Tap
     #
     # See Load for more details.
     class Dump < Tap::FileTask
-    
+      define :nest, Tap::FileTask, :blue => 'cheese'
+      
       config :date_format, '%Y-%m-%d %H:%M:%S'   # the date format
       config :audit, true, &c.switch             # include the audit trails
       config :date, true, &c.switch              # include a date
