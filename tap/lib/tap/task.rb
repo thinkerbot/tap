@@ -411,17 +411,16 @@ module Tap
         end
         
         if block_given?
+          # prevent lazydoc registration of the process method
+          subclass.registered_methods.delete(:process)
           subclass.send(:define_method, :process, &block)
         end
         
-        # add the configuration
-        if options[:desc] == nil
-          caller[0] =~ Lazydoc::CALLER_REGEXP
-          desc = Lazydoc.register($1, $3.to_i - 1)#, Lazydoc::Definition)
-          #desc.subclass = subclass
-          options[:desc] = desc
-        end
+        # register documentation
+        # TODO: register subclass in documentation
+        options[:desc] ||= Lazydoc.register_caller(Lazydoc::Trailer, 1)
         
+        # add the configuration
         nest(name, subclass, options) {|overrides| subclass.new(overrides) }
       end
       

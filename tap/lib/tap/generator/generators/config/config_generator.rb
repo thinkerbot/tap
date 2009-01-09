@@ -7,29 +7,30 @@ module Tap::Generator::Generators
   class ConfigGenerator < Tap::Generator::Base
     
     # Dumps a nested configuration.
-    DUMP_DELEGATES = lambda do |key, delegate, block|
+    DUMP_DELEGATES = lambda do |leader, delegate, block|
       nested_delegates = delegate.default(false).delegates
       indented_dump = Configurable::Utils.dump(nested_delegates, &block).gsub(/^/, "  ")
-      "#{key}:\n#{indented_dump}"
+      "#{leader}: \n#{indented_dump}"
     end
     
     # Dumps configurations as YAML with documentation,
     # used when the doc config is true.
     DOC_FORMAT = lambda do |key, delegate|
+      # get the description
+      desc = delegate.attributes[:desc]
+      doc = desc.to_s
+      doc = desc.comment if doc.empty?
+    
+      # wrap as lines
+      lines = Lazydoc::Utils.wrap(doc, 50).collect {|line| "# #{line}"}
+      lines << "" unless lines.empty?
+      
       if delegate.is_nest?
-        DUMP_DELEGATES[key, delegate, DOC_FORMAT]
+        leader = "#{lines.join("\n")}#{key}"
+        DUMP_DELEGATES[leader, delegate, DOC_FORMAT]
       else
         default = delegate.default
-      
-        # get the description
-        desc = delegate.attributes[:desc]
-        doc = desc.to_s
-        doc = desc.comment if doc.empty?
-      
-        # wrap as lines
-        lines = Lazydoc::Utils.wrap(doc, 50).collect {|line| "# #{line}"}
-        lines << "" unless lines.empty?
-      
+        
         # setup formatting
         leader = default == nil ? '# ' : ''
         config = {key => default}.to_yaml[5..-1]
@@ -55,19 +56,24 @@ module Tap::Generator::Generators
     config :doc, true, &c.switch        # include documentation in the config
     config :nest, false, &c.switch      # generate nested config files
     
-    # Returns the active Env.instance, for looking up the task configurations.
-    def env
-      Tap::Env.instance
+    # Lookup the configurations for the named task.  Lookup happens
+    # through the active Env instance, specifically using:
+    #
+    #   Env.instance.tasks.search(name)
+    #
+    # Raises an error if the name cannot be resolved to a task.
+    def configurations_for(name)
+      const = Env.instance.tasks.search(name) or raise "unknown task: #{name}"
+      const.constantize.configurations
     end
     
     def manifest(m, name, config_name=name)
       # setup
-      const = env.tasks.search(name) or raise "unknown task: #{name}"
-      task_class = const.constantize or raise "unknown task: #{name}"
+      configurations = configurations_for(name)
       config_file = app.filepath('config', config_name + ".yml")
       
       # generate the dumps
-      dumps = Configurable::Utils.dump_file(task_class.configurations, config_file, nest, true, &format_block)
+      dumps = Configurable::Utils.dump_file(configurations, config_file, nest, true, &format_block)
       
       # now put the dumps to the manifest
       dumps.keys.sort.each do |path|
