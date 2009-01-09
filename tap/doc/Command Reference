@@ -23,7 +23,6 @@ Generate and destory launch generator scripts, similar to those in
 
 {command}[link:classes/Tap/Generator/Generators/CommandGenerator.html]:: a new command
 {config}[link:classes/Tap/Generator/Generators/ConfigGenerator.html]:: a static config file for the specified task
-{file_task}[link:classes/Tap/Generator/Generators/FileTaskGenerator.html]:: a file task and test
 {generator}[link:classes/Tap/Generator/Generators/GeneratorGenerator.html]:: a new generator
 {root}[link:classes/Tap/Generator/Generators/RootGenerator.html]:: the basic directory structure
 {task}[link:classes/Tap/Generator/Generators/TaskGenerator.html]:: a task class and test
@@ -58,7 +57,6 @@ environments are nested.
     generators
       command        (lib/tap/generator/generators/command/command_generator.rb)
       config         (lib/tap/generator/generators/config/config_generator.rb)
-      file_task      (lib/tap/generator/generators/file_task/file_task_generator.rb)
       generator      (lib/tap/generator/generators/generator/generator_generator.rb)
       root           (lib/tap/generator/generators/root/root_generator.rb)
       task           (lib/tap/generator/generators/task/task_generator.rb)
