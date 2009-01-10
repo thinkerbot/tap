@@ -24,6 +24,9 @@ Upgrade note:
 
 * Root#directories was refactored to Root#relative_path, so the file_test
   :directories option needs to be updated to :relative_paths
+* Several test methods were removed in favor of better alternatives through
+  method_root itself.  In particular method_tempfile('path') should be
+  replaced with method_root.prepare(:tmp, 'path').
 
 == 0.11.0 / 2008-10-20
 

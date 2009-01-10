@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "tap"
   s.bindir = "bin"
   s.executables = "tap"
-  s.add_dependency("configurable", ">= 0.2.1")
+  s.add_dependency("configurable", ">= 0.3.0")
   s.has_rdoc = true
   s.rdoc_options.concat %w{--main README -S -N --title}
   s.rdoc_options << 'Tap (Task Application)'
@@ -43,15 +43,9 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/command/command_generator.rb
     lib/tap/generator/generators/command/templates/command.erb
     lib/tap/generator/generators/config/config_generator.rb
-    lib/tap/generator/generators/config/templates/doc.erb
-    lib/tap/generator/generators/config/templates/nodoc.erb
-    lib/tap/generator/generators/file_task/file_task_generator.rb
-    lib/tap/generator/generators/file_task/templates/file.txt
-    lib/tap/generator/generators/file_task/templates/result.yml
-    lib/tap/generator/generators/file_task/templates/task.erb
-    lib/tap/generator/generators/file_task/templates/test.erb
     lib/tap/generator/generators/generator/generator_generator.rb
     lib/tap/generator/generators/generator/templates/task.erb
+    lib/tap/generator/generators/generator/templates/test.erb
     lib/tap/generator/generators/root/root_generator.rb
     lib/tap/generator/generators/root/templates/README
     lib/tap/generator/generators/root/templates/Rakefile
@@ -108,7 +102,5 @@ Gem::Specification.new do |s|
     lib/tap/test/subset_test_class.rb
     lib/tap/test/tap_test.rb
     lib/tap/test/utils.rb
-    
-    _tap.yml
     }
 end
