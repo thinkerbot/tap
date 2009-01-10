@@ -1,14 +1,7 @@
 require 'rap/declarations'
 
 module Rap
-  class TestTask < Tap::Task
-    class << self
-      include Declarations
-      
-      def declare(name)
-      end
-    end
-    
+  class TestTask < DeclarationTask
     include Tap::Support::ShellUtils
     
     config :libs, ['lib'], &c.list
@@ -39,7 +32,7 @@ module Rap
       @test_files ||= Dir.glob(pattern).select {|path| File.file?(path) && path =~ filter }
     end
     
-    def process
+    def process(*args)
       opts = libs.collect {|path| "-I\"#{File.expand_path(path)}\""}
       opts << "-w" if warning
       opts.concat(ruby_opts)
@@ -47,6 +40,8 @@ module Rap
       files = test_files.collect {|path| "\"#{path}\""}
       cmd = ["ruby", run_code] + opts + files
       sh(cmd.join(' '))
+      
+      super
     end
     
   end

@@ -21,19 +21,6 @@ class DeclarationTaskTest < Test::Unit::TestCase
   
   def test_declare_raises_error_if_it_looks_up_a_non_DeclarationTask_class
     e = assert_raises(RuntimeError) { DeclarationTask.declare(:Object) }
-    assert_equal "not a DeclarationTask: Object", e.message
-  end
-  
-  #
-  # register_desc test
-  #
-  
-  def test_register_desc_registers_description_for_task
-    
-    # comment
-    DeclarationTask.declare(:task0).register_desc("description")
-    
-    assert_equal "description", Task0.manifest.desc
-    assert_equal "comment", Task0.manifest.comment
+    assert_equal "not a Rap::DeclarationTask: Object", e.message
   end
 end
