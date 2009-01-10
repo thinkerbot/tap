@@ -26,7 +26,6 @@ usage: rap taskname {options} [args]
 ===  tap tasks ===
   dump        # the default dump task
   load        # the default load task
-  rake        # run rake tasks
 
 === rake tasks ===
 :...:
@@ -36,7 +35,6 @@ usage: rap taskname {options} [args]
 ===  tap tasks ===
   dump        # the default dump task
   load        # the default load task
-  rake        # run rake tasks
 
 === rake tasks ===
 :...:
@@ -47,9 +45,9 @@ usage: rap taskname {options} [args]
   def test_rap_help_with_declarations
     method_root.prepare('Tapfile') do |file|
       file << %q{
-module RapTest
-  extend Rap::Declarations
+include Rap::Declarations
   
+namespace :rap_test do
   # ::desc task summary
   # long description
   task :task_with_doc
@@ -74,7 +72,6 @@ test_rap_help_with_declarations:
 tap:
   dump              # the default dump task
   load              # the default load task
-  rake              # run rake tasks
 
 === rake tasks ===
 :...:
@@ -134,8 +131,8 @@ test_rap_help_with_duplicate_nested_declarations:
   def test_rap_help_for_tasks_with_args
     method_root.prepare('Tapfile') do |file|
       file << %q{
-module RapTest
-  extend Rap::Declarations
+include Rap::Declarations
+namespace :RapTest do
 
   task(:task_without_args) {}
   task(:task_with_args) {|task, args|}
