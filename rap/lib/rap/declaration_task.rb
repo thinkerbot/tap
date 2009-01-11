@@ -4,23 +4,28 @@ require 'rap/description'
 
 module Rap
   
-  # Dependency tasks are a singleton version of tasks.  Dependency tasks only
+  # DeclarationTasks are a singleton version of tasks.  DeclarationTasks only
   # have one instance (DeclarationTask.instance) and the instance is
   # registered as a dependency, so it will only execute once.
   class DeclarationTask < Tap::Task
     class << self
-      attr_writer :blocks
+      attr_writer :actions
       
-      def blocks
-        @blocks ||= []
+      # An array of actions (blocks) associated with this class.  Each of the
+      # actions is called during process, with the instance and any args
+      # passed to process organized into an OpenStruct.
+      def actions
+        @actions ||= []
       end
       
       attr_writer :arg_names
       
+      # The argument names pulled from a task declaration.
       def arg_names
         @arg_names ||= []
       end
       
+      # Returns a Lazydoc::Arguments constructed from arg_names.
       def args
         args = Lazydoc::Arguments.new
         arg_names.each {|name| args.arguments << name.to_s }
@@ -44,7 +49,7 @@ module Rap
       #
       def subclass(const_name, configs={}, dependencies=[])
         # lookup or generate the subclass
-        subclass = Tap::Support::Constant.constantize(const_name) do |base, constants|
+        subclass = Tap::Support::Constant.constantize(const_name.to_s) do |base, constants|
           subclass_const = constants.pop
           constants.inject(base) do |namespace, const|
             # nesting Task classes into other Task classes is required
@@ -74,13 +79,17 @@ module Rap
         subclass
       end
       
-      protected
+      private
       
+      # overridden to provide self as the declaration_class
       def declaration_class # :nodoc:
         self
       end
     end
     
+    # Collects the inputs into an OpenStruct according to the class arg_names,
+    # and calls each class action in turn.  This behavior echoes the behavior
+    # of Rake tasks.
     def process(*inputs)
       # collect inputs to make a rakish-args object
       args = {}
@@ -91,11 +100,11 @@ module Rap
       args = OpenStruct.new(args)
       
       # execute each block assciated with this task
-      self.class.blocks.each do |task_block|
-        case task_block.arity
-        when 0 then task_block.call()
-        when 1 then task_block.call(self)
-        else task_block.call(self, args)
+      self.class.actions.each do |action|
+        case action.arity
+        when 0 then action.call()
+        when 1 then action.call(self)
+        else action.call(self, args)
         end
       end
       

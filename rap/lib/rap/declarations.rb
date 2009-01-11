@@ -2,12 +2,49 @@ require 'rap/declaration_task'
 require 'tap/support/shell_utils'
 
 module Rap
-    
-  #--
-  # more thought needs to go into extending Tap with Declarations
-  # and there should be some discussion on why include works at
-  # the top level (for main/Object) while extend should be used
-  # in all other cases.
+  
+  # Defines the rakish task declaration methods.  They may be included at the
+  # top level (like Rake) or, since they included as a part of the API, used
+  # through Rap.
+  #
+  # Unlike rake, task will define actual task classes according to the task
+  # names.  Task classes may be nested within modules using namespace.  It's
+  # VERY important to realize this is the case both to aid in thing like
+  # testing and to prevent namespace conflicts.  For example:
+  #
+  #   Rap.task(:sample)              # => Sample.instance
+  #   Rap.namespace(:nested) do
+  #     Rap.task(:sample)            # => Nested::Sample.instance
+  #   end
+  #
+  # Normally all declared tasks are subclasses of DeclarationTask.  An easy
+  # way to use an existing subclasses of DeclarationTask as a base task is
+  # to call declare on the subclass.  This feature is only available to
+  # subclasses of DeclarationTask, but can be used within namespaces, and in
+  # conjunction with desc.
+  #
+  #   class Alt < DeclarationTask
+  #   end
+  #
+  #   include Rap::Declarations
+  #
+  #   desc "task one, a subclass of DeclarationTask"
+  #   o = Rap.task(:one)
+  #   o.class                          # => One
+  #   o.class.superclass               # => DeclarationTask
+  #   o.class.manifest.desc            # => "task one, a subclass of DeclarationTask"
+  #
+  #   namespace(:nest) do
+  #
+  #     desc "task two, a nested subclass of Alt"
+  #     t = Alt.declare(:two)
+  #     t.class                          # => Nest::Two
+  #     t.class.superclass               # => Alt
+  #     t.class.manifest.desc            # => "task two, a nested subclass of Alt"
+  #   
+  #   end
+  #
+  # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for usage.
   module Declarations
     include Tap::Support::ShellUtils
     
@@ -27,14 +64,9 @@ module Rap
     def Declarations.current_desc() @@current_desc; end
     @@current_desc = nil
     
-    module_function
-    
-    def declaration_class
-      @declaration_class ||= DeclarationTask
-    end
-    
-    # Declares a task with a rake-like syntax
-    def task(*args, &block)
+    # Declares a task with a rake-like syntax.  Task generates a subclass of
+    # DeclarationTask, nested within the current namespace.
+    def task(*args, &action)
       # resolve arguments and declare unknown dependencies
       name, configs, dependencies, arg_names = Utils.resolve_args(args) do |dependency| 
         register DeclarationTask.subclass(dependency)
@@ -53,28 +85,38 @@ module Rap
       task_class.manifest = manifest
       task_class.source_file = manifest.document.source_file
       
-      # add the block
-      task_class.blocks << block if block
+      # add the action
+      task_class.actions << action if action
       
       # return the instance
       task_class.instance
     end
     
-    # Appends name to the declaration base for the duration of the block.
-    # This has the effect of nesting any task declarations within the
-    # Name module or class.
-    def namespace(name, &block)
+    # Nests tasks within the named module for the duration of the block.
+    # Namespaces may be nested.
+    def namespace(name)
       previous_namespace = @@current_namespace
       @@current_namespace = File.join(previous_namespace, name.to_s.underscore)
       yield
       @@current_namespace = previous_namespace
     end
     
-    # Sets the current description for use by the next task declaration.
+    # Sets the description for use by the next task declaration.
     def desc(str)
       @@current_desc = str
     end
     
+    private
+    
+    # The class of task declared by task, by default DeclarationTask. 
+    # Used as a hook to set the declaring class in including modules 
+    # (such as DeclarationTask itself).
+    def declaration_class
+      DeclarationTask
+    end
+    
+    # Registers a task class with the Declarations.env, if necessary.
+    # Returns task_class.
     def register(task_class)
       tasks = Declarations.env.tasks
       const_name = task_class.to_s
@@ -89,8 +131,12 @@ module Rap
   class DeclarationTask
     class << self
       include Declarations
+      
+      # alias task as declare, so that DeclarationTask and subclasses
+      # may directly declare subclasses of themselves
+      
       alias declare task
-      public :declare
+      private :task, :desc, :namespace
     end
   end
   

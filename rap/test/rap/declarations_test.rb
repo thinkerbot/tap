@@ -16,6 +16,64 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   #
+  # documentation tests
+  #
+  
+  class Alt < Rap::DeclarationTask
+  end
+  
+  def test_documentation
+    assert_equal Rap.task(:sample), Sample.instance
+    
+    was_in_block = false
+    Rap.namespace(:nested) do
+      assert_equal Rap.task(:sample), Nested::Sample.instance
+      was_in_block = true
+    end
+    assert was_in_block
+    
+    desc "task one, a subclass of DeclarationTask"
+    o = Rap.task(:one)
+    assert_equal One, o.class
+    assert_equal Rap::DeclarationTask, o.class.superclass
+    assert_equal "task one, a subclass of DeclarationTask", o.class.manifest.desc
+    
+    was_in_block = false
+    namespace(:nest) do
+  
+      desc "task two, a nested subclass of Alt"
+      t = Alt.declare(:two)
+      assert_equal Nest::Two, t.class
+      assert_equal Alt, t.class.superclass
+      assert_equal "task two, a nested subclass of Alt", t.class.manifest.desc
+      
+      was_in_block = true
+    end
+    assert was_in_block
+  end
+  
+  #
+  # interface tests
+  #
+  
+  module IncludingModule
+    include Rap::Declarations
+  end
+  
+  def test_declaration_API_is_hidden_on_including_modules
+    assert !IncludingModule.respond_to?(:namespace)
+    assert !IncludingModule.respond_to?(:desc)
+    assert !IncludingModule.respond_to?(:register)
+  end
+  
+  def test_declaration_API_is_visible_on_Rap
+    assert Rap.respond_to?(:namespace)
+    assert Rap.respond_to?(:desc)
+    assert Rap.respond_to?(:task)
+    assert Rap.respond_to?(:sh)
+  end
+  
+  #
   # task declaration
   #
   
