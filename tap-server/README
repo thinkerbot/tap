@@ -1,0 +1,27 @@
+= {Tap Server}[http://tap.rubyforge.org/tap-server]
+
+A web interface for {Tap}[http://tap.rubyforge.org].
+
+== Description
+
+== Usage
+
+== Installation
+
+Tap Server is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+
+  % gem install tap-server
+
+Tap requires an updated version of RubyGems[http://docs.rubygems.org/] 
+(>= 1.2.0).  To check the version and update RubyGems:
+
+  % gem --version
+  % gem --update system
+    
+== Info 
+
+Copyright (c) 2006-2008, Regents of the University of Colorado.
+Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com], {Biomolecular Structure Program}[http://biomol.uchsc.edu/], {Hansen Lab}[http://hsc-proteomics.uchsc.edu/hansenlab/] 
+Support:: CU Denver School of Medicine Deans Academic Enrichment Fund
+Licence:: {MIT-Style}[link:files/MIT-LICENSE.html]
+

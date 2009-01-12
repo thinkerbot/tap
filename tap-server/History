@@ -1,0 +1,4 @@
+== 0.12.0 / 2008-12-30
+
+As of the 0.12.0 release, Tap is distributed as several independent modules.
+This is the server module.
