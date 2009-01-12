@@ -1,5 +1,5 @@
+require 'tap'
 require 'ostruct'
-require 'rap/utils'
 require 'rap/description'
 
 module Rap
