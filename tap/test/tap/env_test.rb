@@ -19,7 +19,7 @@ class EnvTest < Test::Unit::TestCase
     @current_load_paths = $LOAD_PATH.dup
     $LOAD_PATH.clear
 
-    @e = Env.new({})
+    @e = Env.new
   end
   
   def teardown
@@ -72,7 +72,7 @@ class EnvTest < Test::Unit::TestCase
     assert_equal({File.expand_path("path.yml") => e}, Env.instances)
   end
   
-  def test_instantiate_returns_env_with_root_directed_at_expaned_path_directory
+  def test_instantiate_returns_env_with_root_directed_at_expanded_path_directory
     e = Env.instantiate("path/to/config.yml")
     assert_equal(File.expand_path("path/to/"), e.root.root)
   end

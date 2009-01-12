@@ -354,7 +354,7 @@ module Tap
     end
     
     # Searches each env for the first existing file or directory at 
-    # env.root.filepath(dir, path).  Paths are expanded, and search_path
+    # env.root.filepath(dir, path).  Paths are expanded, and search
     # checks to make sure the file is, in fact, relative to env.root[dir].
     # An optional block may be used to check the file; the file will only
     # be returned if the block returns true.

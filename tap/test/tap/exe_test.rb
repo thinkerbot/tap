@@ -19,7 +19,7 @@ class ExeTest < Test::Unit::TestCase
     @current_load_paths = $LOAD_PATH.dup
     $LOAD_PATH.clear
 
-    @e = Exe.new({})
+    @e = Exe.new
   end
   
   def teardown

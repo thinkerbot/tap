@@ -3,7 +3,7 @@
 # Initializes a tap server.
 
 require 'tap'
-require 'tap/support/gems/rack'
+require 'tap/server'
 
 env = Tap::Env.instance
 
@@ -36,7 +36,7 @@ end.parse!(ARGV)
 # cgi dir and public dir can be set in tap.yml
 #
 
-env.extend Tap::Support::Gems::Rack
+env.extend Tap::Server
 Rack::Handler::WEBrick.run(env, options) do |handler|
   env.handler = handler
 end

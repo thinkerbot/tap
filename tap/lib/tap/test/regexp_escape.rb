@@ -73,8 +73,8 @@ module Tap
         end
       end
       
-      def initialize(str)
-        super(RegexpEscape.escape(str))
+      def initialize(str, *options)
+        super(RegexpEscape.escape(str), *options)
         @original_str = str
       end
       
