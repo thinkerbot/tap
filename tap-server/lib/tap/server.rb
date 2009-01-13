@@ -205,7 +205,7 @@ module Tap
     
     module Render
       def renderer(path)
-        template = env.search_path(:template, path) {|file| File.file?(file) }
+        template = env.search(:template, path) {|file| File.file?(file) }
         raise("no such template: #{path}") if template == nil
         Tap::Support::Templater.new(File.read(template), marshal_dump).extend(Render)
       end
