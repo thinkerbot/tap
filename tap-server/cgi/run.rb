@@ -35,18 +35,33 @@ cgi.out() do
         lines << env.render('run/node.erb', :env => env, :node => Tap::Support::Node.new([name]), :index => index )
       end
       
+      n_sources = sources.length
+      n_targets = targets.length
       join = case
-      when sources.length > 1 && targets.length == 1
-        Tap::Support::Schema::Utils.format_merge(sources, targets, {})
-      when sources.length == 1 && targets.length > 0
+      when n_sources == 1 && n_targets > 0
         Tap::Support::Schema::Utils.format_fork(sources, targets, {})
-      else nil
+      when n_sources > 1 && n_targets == 1
+        # need to determine if sources and
+        # targets are already joined
+        Tap::Support::Schema::Utils.format_merge(sources, targets, {})
+      when n_sources == 0 && n_targets == 0
+        nil # no join specified
+      else
+        nil # TODO: warn an multi-join was specified
       end
       
       lines << env.render('run/join.erb', :env => env, :join => join) if join
       lines.join("\n")
     
     when 'remove'
+      sources = cgi.params['sources'].flatten.collect {|source| source.to_i }
+      targets = cgi.params['targets'].flatten.collect {|target| target.to_i }
+      
+      # select joins for sources and targets
+      
+      # remove src/target if it belongs to no join
+      # remove src/target from each join, as specified
+      # remove join if empty
 
     else
       # run

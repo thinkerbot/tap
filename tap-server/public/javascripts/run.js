@@ -3,7 +3,7 @@ var Tap = {
 };
 
 Tap.Run = {
-  parameters: function() {
+  parameters: function(id) {
     // Determine the total number of nodes
     nodes = document.getElementById(id).getElementsByClassName('node');
 
@@ -29,16 +29,17 @@ Tap.Run = {
     tasc = tasc_manifest.value;
     tasc_manifest.value = "";
     
-    return {
+    parameters = {
       index: nodes.length,
       sources: sources,
       targets: targets,
       tasc: tasc
     };
-  }
+    return parameters;
+  },
   
   add: function(id) {
-    parameters = Run.parameters();
+    parameters = Tap.Run.parameters(id);
     parameters.action = 'add';
     
     new Ajax.Updater(id, '/run', { 
