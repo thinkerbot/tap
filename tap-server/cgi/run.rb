@@ -5,52 +5,17 @@
 # 
 ############################
 require 'cgi'
-require "#{File.dirname(__FILE__)}/../vendor/url_encoded_pair_parser"
+require 'tap/server/utils'
 
 env = Tap::Env.instance
 
-module Tap
-  module Support
-    module Server
-      module_function
-      
-      def parse_schema(params)
-        argh = pair_parse(params)
-
-        parser = Parser.new
-        parser.parse(argh['nodes'] || [])
-        parser.parse(argh['joins'] || [])
-        parser.schema
-      end
-      
-      def pair_parse(params)
-        pairs = {}
-        params.each_pair do |key, values|
-          next if key == nil
-          key = key.chomp("%w") if key =~ /%w$/
-
-          slot = pairs[key] ||= []
-          values.each do |value|
-            value = value.respond_to?(:read) ? value.read : value
-            if $~ 
-              slot.concat(Shellwords.shellwords(value))
-            else 
-              slot << value
-            end
-          end
-        end
-
-        UrlEncodedPairParser.new(pairs).result   
-      end
-    end
-  end
-end
-
-cgi = CGI.new("html3")  # add HTML generation methods
+# initialize with HTML generation methods
+cgi = CGI.new("html3")  
 cgi.out() do
   case cgi.request_method
   when /GET/i
-    schema = Tap::Support::Server.parse_schema(cgi.params).compact
+    # parse a schema and clean it up using compact
+    schema = Tap::Server::Utils.parse_schema(cgi.params).compact
     env.render('run.erb', :env => env, :schema => schema)
   
   when /POST/i
@@ -86,7 +51,7 @@ cgi.out() do
     else
       # run
       cgi.pre do
-        schema = Tap::Support::Server.parse_schema(cgi.params)
+        schema = Tap::Server::Utils.parse_schema(cgi.params)
         schema.compact.dump.to_yaml
         #env.build(schema)
       end

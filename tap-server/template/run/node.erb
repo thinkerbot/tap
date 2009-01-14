@@ -2,11 +2,12 @@
 <% tasc_identifier = argv.shift %>
 <% tasc = env.tasks.search(tasc_identifier).constantize %>
 <% task, args = tasc.parse(argv) %>
+<% args.collect! {|arg| arg =~ /\s/ ? "'#{arg}'" : arg} %>
   <li id="node_<%= index %>" class="node">
     <!-- controls -->
     <ul>
-      <li><input id="source_checkbox_<%= index %>" class="source_checkbox" name="source" value="<%= index %>" type="checkbox" /></li>
       <li><input id="target_checkbox_<%= index %>" class="target_checkbox" name="target" value="<%= index %>" type="checkbox" /></li>
+      <li><input id="source_checkbox_<%= index %>" class="source_checkbox" name="source" value="<%= index %>" type="checkbox" /></li>
     </ul>
 
     <span class="class"><%= tasc %></span>: 
@@ -19,26 +20,20 @@
     <ul>
     <!-- inputs -->
     <li class="input">
-<% args.collect! {|arg| arg =~ /\s/ ? "'#{arg}'" : arg} %>
     <input class="value" name="nodes[<%= index %>][1]%w" value="<%= args.join(' ') %>" />
     <span class="name"><%= tasc.args.to_s %></span>
     </li>
 
     <!-- configurations -->
 <% tasc.configurations.each do |key, config| %>
-    <li class="config">
-<%   case config.attributes[:type] %>
-<%   when :switch, :flag then 'checkbox' %>
-    <!-- note switches should be more like a radio button, hide
-      the other when selected, so that both are allowed... or 
-      just present the opposite of the default... -->
-    <input class="value" name="nodes[<%= index %>][2]" type="checkbox" value="--<%= key.to_s.gsub('_', '-') %>" checked="<%= task.config[key] %>" />
-<%   else %>
-    <input class="key" name="nodes[<%= index %>][2]" type="hidden" value="--<%= key.to_s.gsub('_', '-') %>" />
-    <input class="value" name="nodes[<%= index %>][2]" type="text" value="<%= task.config[key] %>" />
+<%   template = case config[:type] %>
+<%   when :switch then 'switch' %>
+<%   when :flag then 'flag' %>
+<%   else 'default' %>
 <%   end %>
-    <span class="name"><%= key %></span>:
-    <span class="desc"><%= config.attributes[:desc].to_s %></span>
+<%   params = {:key => key, :config => config, :switch => "--#{key.to_s.gsub('_', '-')}", :value => task.config[key], :index => index} %>
+    <li class="config">
+<%=  render("run/config/#{template}.erb", params) %> 
     </li>
 <% end %>
 

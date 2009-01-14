@@ -3,7 +3,7 @@ var Tap = {
 };
 
 Tap.Run = {
-  add: function(id) {
+  parameters: function() {
     // Determine the total number of nodes
     nodes = document.getElementById(id).getElementsByClassName('node');
 
@@ -27,25 +27,32 @@ Tap.Run = {
     // Determine the currently selected tasc
     tasc_manifest = document.getElementById('tasc_manifest');
     tasc = tasc_manifest.value;
-    tasc_manifest.value = ""
+    tasc_manifest.value = "";
+    
+    return {
+      index: nodes.length,
+      sources: sources,
+      targets: targets,
+      tasc: tasc
+    };
+  }
+  
+  add: function(id) {
+    parameters = Run.parameters();
+    parameters.action = 'add';
     
     new Ajax.Updater(id, '/run', { 
       method: 'post', 
       insertion: Insertion.Bottom,
-      parameters: {
-        action: 'add',
-        index: nodes.length,
-        sources: sources,
-        targets: targets,
-        tasc: tasc
-      } 
+      parameters: parameters 
     });
   },
 
   remove: function() {
     alert('remove');
   },
-
+  
+  /* Run compacts and renders (ie updates) a schema upon a get request. */
   update: function(id) {
     form = document.getElementById(id);
     form.method = "get";

@@ -1,0 +1,6 @@
+    <!-- note switches should be more like a radio button, hide
+      the other when selected, so that both are allowed... or 
+      just present the opposite of the default... -->
+    <input class="value" name="nodes[<%= index %>][2]" type="checkbox" value="<%= switch %>" checked="<%= value %>" />
+    <span class="name"><%= key %></span>:
+    <span class="desc"><%= config[:desc].to_s %></span>
