@@ -129,8 +129,9 @@ class FileTaskTest < Test::Unit::TestCase
   #
 
   def test_backup_filepath_documentation
-    t = Tap::FileTask.new({:backup_dir => "/backup"}, "name")
-    assert_equal File.expand_path("/backup/name/file.0.txt"), t.backup_filepath("path/to/file.txt")
+    backup = File.expand_path("/backup")
+    t = Tap::FileTask.new({:backup_dir => backup}, "name")
+    assert_equal File.join(backup, "name/file.0.txt"), t.backup_filepath("path/to/file.txt")
   end
 
   def test_backup_filepath_constructs_filepath_from_backup_dir_name_and_input_basename

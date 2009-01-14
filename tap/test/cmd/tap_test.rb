@@ -44,7 +44,8 @@ version #{Tap::VERSION} -- http://tap.rubyforge.org
 }.strip
   
   def test_tap
-    script_test do |cmd|
+    script_test(method_root[:tmp]) do |cmd|
+      method_root.prepare(:tmp, 'tap.yml') {}
       cmd.check "Prints help for the executable", %Q{
 % #{cmd} --help
 #{TAP_HELP}
