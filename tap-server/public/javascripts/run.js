@@ -59,4 +59,15 @@ Tap.Run = {
     form.method = "get";
     form.submit();
   },
+  
+  tail: function(path, pos, id) {
+    new Ajax.Updater(id, '/tail', { 
+      method: 'post', 
+      insertion: Insertion.Bottom,
+      parameters: {
+        path: path,
+        pos: pos
+      } 
+    });
+  },
 };

@@ -1,0 +1,22 @@
+<html>
+<head>
+  <!-- <link rel="stylesheet" type="text/css" href="/stylesheets/run.css" /> -->
+  <script src="/javascripts/prototype.js"></script>
+  <script src="/javascripts/run.js"></script>
+</head>
+<body>
+<h1>Tailing: <%= path %></h1>
+
+<!-- TODO: in this system there is no update of pos.  That needs to be changed. 
+  additionally, a timer needs to be added. -->
+<div id="content">
+<%= content %>
+</div>
+<ul class="controls">
+  <form id="initialize" method="get" action="tail">
+    <input id="submit-form" type="submit" value="Tail" />
+  </form>
+  <li><a href="javascript:Tap.Run.tail('<%= path%>', <%= pos %>, 'content');">update</a></li>
+</ul>
+</body>
+</html>
