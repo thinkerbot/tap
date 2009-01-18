@@ -99,6 +99,17 @@ class EnvTest < Test::Unit::TestCase
     assert !e.active?
   end
   
+  def test_Envs_may_be_initialized_from_paths
+    e = Env.new(".")
+    assert_equal Dir.pwd, e.root.root
+  end
+  
+  def test_Envs_may_be_initialized_from_roots
+    root = Root.new(".")
+    e = Env.new(root)
+    assert_equal root, e.root
+  end
+  
   #
   # load_paths= test
   #

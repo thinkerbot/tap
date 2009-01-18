@@ -55,7 +55,7 @@ module Tap
         return instances[path] if instances.has_key?(path)
         
         config = load_config(path)
-        root = path_or_root.kind_of?(Root) ? path_or_root : Root.new(File.dirname(path))
+        root = path_or_root.kind_of?(Root) ? path_or_root : File.dirname(path)
         
         # note the assignment of env to instances MUST occur
         # before reconfigure to prevent infinite looping
@@ -102,9 +102,7 @@ module Tap
     attr_reader :envs
     
     # The Root directory structure for self.
-    nest(:root, Tap::Root, :map_default => false) do |config| 
-      Tap::Root.new.reconfigure(config)
-    end
+    nest(:root, Tap::Root, :map_default => false) {}
     
     # Specify gems to load as nested Envs.  Gems may be specified 
     # by name and/or version, like 'gemname >= 1.2'; by default the 
@@ -203,8 +201,8 @@ module Tap
       generators
     end
     
-    def initialize(root=Root.new)
-      @root = root
+    def initialize(path_or_root=Dir.pwd)
+      @root = path_or_root.kind_of?(Root) ? path_or_root : Root.new(path_or_root)
       @envs = []
       @active = false
       @manifests = {}

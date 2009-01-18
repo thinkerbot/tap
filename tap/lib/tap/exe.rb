@@ -40,9 +40,7 @@ module Tap
     end
     
     # The Root directory structure for self.
-    nest(:root, Tap::App, :map_default => false) do |config| 
-      Tap::App.instance = Tap::App.new(config)
-    end
+    nest(:root, Tap::App, :map_default => false) {}
     
     config :before, nil
     config :after, nil
