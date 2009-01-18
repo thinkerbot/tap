@@ -5,7 +5,7 @@ class DeclarationTaskTest < Test::Unit::TestCase
   include Rap
   
   def setup
-    Rap::Declarations.env = Tap::Env.new(:load_paths => [], :command_paths => [], :generator_paths => [])
+    Rap::Declarations.env = Tap::Env.new.reconfigure(:load_paths => [], :command_paths => [], :generator_paths => [])
   end
   
   def teardown

@@ -311,7 +311,7 @@ class EnvTest < Test::Unit::TestCase
   #
   
   def test_recursive_inject_documentation
-    a,b,c,d,e = ('a'..'e').collect {|name| Tap::Env.new(:name => name) }
+    a,b,c,d,e = ('a'..'e').collect {|name| Tap::Env.new.reconfigure(:name => name) }
   
     a.push(b).push(c)
     b.push(d).push(e)
@@ -623,8 +623,8 @@ a (0)
   def test_search_calls_find_in_each_env_manifest_until_a_matching_value_is_found
     Env.manifest(:items) {|env| Support::Manifest.new }
     
-    e1 = Env.new(:root => {:root => "/path/to/e1"})
-    e2 = Env.new(:root => {:root => "/path/to/e2"})
+    e1 = Env.new(Root.new("/path/to/e1"))
+    e2 = Env.new(Root.new("/path/to/e2"))
     e1.push e2
     
     [ "/path/to/one-0.1.0.txt",

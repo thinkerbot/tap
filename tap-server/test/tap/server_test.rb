@@ -8,7 +8,7 @@ class FunctionalServerTest < Test::Unit::TestCase
   acts_as_tap_test
   cleanup_dirs.concat [:public, :cgi]
     
-  SERVER_ENV = Tap::Env.new(:root => {:root => File.dirname(__FILE__) + "/../.."})
+  SERVER_ENV = Tap::Env.new(Tap::Root.new(File.dirname(__FILE__) + "/../.."))
   
   #
   # setup
@@ -19,7 +19,7 @@ class FunctionalServerTest < Test::Unit::TestCase
   def setup
     super
     
-    @server_app = Tap::Env.instantiate(method_root.root).extend Tap::Server
+    @server_app = Tap::Env.instantiate(method_root).extend Tap::Server
     @server_app.push SERVER_ENV
     @server = Rack::MockRequest.new(@server_app)
   end

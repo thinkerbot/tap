@@ -6,7 +6,8 @@ module Tap
   class Exe < Env
     class << self
       def instantiate(path=Dir.pwd)
-        exe = super
+        app = App.instance.reconfigure(:root => path)
+        exe = super(app)
         
         # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
         exe.gems = :all if !File.exists?(Tap::Env::DEFAULT_CONFIG_FILE)
@@ -39,7 +40,7 @@ module Tap
     end
     
     # The Root directory structure for self.
-    nest(:root, Tap::App) do |config| 
+    nest(:root, Tap::App, :map_default => false) do |config| 
       Tap::App.instance = Tap::App.new(config)
     end
     
@@ -57,7 +58,11 @@ module Tap
     
     # The global config file path
     GLOBAL_CONFIG_FILE = File.join(GLOBAL_HOME, "tap.yml")
-
+    
+    def initialize(app=App.instance)
+      super(app)
+    end
+    
     # Alias for root (Exe should have a Tap::App as root)
     def app
       root

@@ -50,15 +50,16 @@ module Tap
       # The Env is initialized using configurations read from the env config
       # file. An instance will be initialized regardless of whether the config
       # file or directory exists.
-      def instantiate(path)
-        path = config_path(path)
+      def instantiate(path_or_root)
+        path = config_path(path_or_root.kind_of?(Root) ? path_or_root.root : path_or_root)
         return instances[path] if instances.has_key?(path)
         
         config = load_config(path)
+        root = path_or_root.kind_of?(Root) ? path_or_root : Root.new(File.dirname(path))
         
         # note the assignment of env to instances MUST occur
         # before reconfigure to prevent infinite looping
-        (instances[path] = new(:root => {:root => File.dirname(path)})).reconfigure(config)
+        (instances[path] = new(root)).reconfigure(config)
       end
       
       def manifest(name, &block) # :yields: env (and should return a manifest)
@@ -101,7 +102,9 @@ module Tap
     attr_reader :envs
     
     # The Root directory structure for self.
-    nest(:root, Tap::Root) {|config| Tap::Root.new.reconfigure(config) }
+    nest(:root, Tap::Root, :map_default => false) do |config| 
+      Tap::Root.new.reconfigure(config)
+    end
     
     # Specify gems to load as nested Envs.  Gems may be specified 
     # by name and/or version, like 'gemname >= 1.2'; by default the 
@@ -200,7 +203,8 @@ module Tap
       generators
     end
     
-    def initialize(config={})
+    def initialize(root=Root.new)
+      @root = root
       @envs = []
       @active = false
       @manifests = {}
@@ -209,7 +213,7 @@ module Tap
       @gems = []
       @env_paths = []
       
-      initialize_config(config)
+      initialize_config
     end
     
     # Returns the key for self in Env.instances.

@@ -10,7 +10,7 @@ class DeclarationsTest < Test::Unit::TestCase
   include Rap::Declarations
   
   def setup
-    Rap::Declarations.env = Tap::Env.new(:load_paths => [], :command_paths => [], :generator_paths => [])
+    Rap::Declarations.env = Tap::Env.new.reconfigure(:load_paths => [], :command_paths => [], :generator_paths => [])
   end
   
   def teardown

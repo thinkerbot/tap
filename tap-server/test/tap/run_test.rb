@@ -16,7 +16,7 @@ class RunTest < Test::Unit::TestCase
   def setup
     super
     
-    @server = Tap::Env.instantiate(method_root.root).extend Tap::Server
+    @server = Tap::Env.instantiate(method_root).extend Tap::Server
     @server.reconfigure :root => {
       :absolute_paths => {
         :template => File.expand_path(File.dirname(__FILE__) + "/../../template")}}
