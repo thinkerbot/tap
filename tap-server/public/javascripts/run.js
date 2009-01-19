@@ -60,14 +60,26 @@ Tap.Run = {
     form.submit();
   },
   
-  tail: function(path, pos, id) {
-    new Ajax.Updater(id, '/tail', { 
-      method: 'post', 
-      insertion: Insertion.Bottom,
-      parameters: {
-        path: path,
-        pos: pos
-      } 
-    });
+  tail: function(path, update_id, id) {
+    if($(update_id).checked) {
+      new Ajax.Request('/tail', {
+        method: 'post',
+        parameters: {
+          path: path,
+          pos: $(id).attributes.pos.value
+        },
+        onSuccess: function(transport) {
+          var json = transport.responseText.evalJSON(true);
+          new Insertion.Bottom(id, json.content);
+          $(id).attributes.pos.value = json.pos;
+        },
+        onFailure: function() { 
+          alert('Something went wrong...') 
+        }
+      });
+      
+      var tail = "Tap.Run.tail('" + path + "', '" + update_id + "', '" + id + "');";
+      setTimeout(tail, 1000);
+    }
   },
 };

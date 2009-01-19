@@ -5,6 +5,7 @@
 # 
 ############################
 require 'cgi'
+require 'json'
 
 env = Tap::Env.instance
 
@@ -36,7 +37,7 @@ cgi.out() do
     env.render('tail.erb', params)
   
   when /POST/i
-    params[:content]
+    params.to_json
     
   else
     raise ArgumentError, "unhandled request method: #{cgi.request_method}"
