@@ -6,14 +6,11 @@
 </head>
 <body>
 <h1>Tailing: <%= path %></h1>
-
-<!-- TODO: in this system there is no update of pos.  That needs to be changed. 
-  additionally, a timer needs to be added. -->
 <div id="content" pos="<%= pos %>">
 <%= content %>
 </div>
 <ul class="controls">
-  <li><input id="update" type="checkbox" onchange="Tap.Run.tail('<%= path%>', 'update', 'content');">update</a></li>
+  <li><input id="update" type="checkbox" onchange="Tap.Run.tail('<%= path%>', 'update', 'content', 1000);">update</a></li>
 </ul>
 </body>
 </html>

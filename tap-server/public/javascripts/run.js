@@ -60,26 +60,38 @@ Tap.Run = {
     form.submit();
   },
   
-  tail: function(path, update_id, id) {
-    if($(update_id).checked) {
+  /* Performs a tail update to target at the specified interval as long as 
+   * checkbox is checked.  The target must have an integer position attribute,
+   * indicating the end position of the last update.  Typically tail is called
+   * when the checkbox changes value.
+   *
+   *   <div id='target' pos='0'></div>
+   *   <input id='checkbox' type='checkbox' onchange="Tap.Run.tail('/path', 'checkbox', 'target', 1000);" >
+   *
+   */
+  tail: function(path, checkbox, target, interval) {
+    if($(checkbox).checked) {
       new Ajax.Request('/tail', {
         method: 'post',
         parameters: {
           path: path,
-          pos: $(id).attributes.pos.value
+          pos: $(target).attributes.pos.value
         },
         onSuccess: function(transport) {
-          var json = transport.responseText.evalJSON(true);
-          new Insertion.Bottom(id, json.content);
-          $(id).attributes.pos.value = json.pos;
+          var update = transport.responseText.evalJSON(true);
+          new Insertion.Bottom(target, update.content);
+          $(target).attributes.pos.value = update.pos;
         },
         onFailure: function() { 
-          alert('Something went wrong...') 
+          // a transport input may be specified to
+          // print the error
+          alert('Tail update failed...');
+          $(checkbox).checked = false;
         }
       });
       
-      var tail = "Tap.Run.tail('" + path + "', '" + update_id + "', '" + id + "');";
-      setTimeout(tail, 1000);
+      var tail = "Tap.Run.tail('" + path + "', '" + checkbox + "', '" + target + "', " + interval + ");"
+      setTimeout(tail, interval);
     }
   },
 };

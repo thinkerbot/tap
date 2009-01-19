@@ -22,11 +22,15 @@ cgi.out() do
     params[:pos] = 0
     params[:content] = ""
   when File.exists?(path) # && permission
+    if pos >= File.size(path)
+      raise ArgumentError, "current position out of range"
+    end
+    
     params[:path] = path
     File.open(path) do |file|
       file.pos = pos
-      params[:content] = file.read
-      params[:pos] = file.pos
+      params[:content] = file.read.chomp
+      params[:pos] = file.pos - 1
     end
   else
     raise "non-existant file: #{path}"
