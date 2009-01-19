@@ -40,7 +40,13 @@ module Tap
     end
     
     # The Root directory structure for self.
-    nest(:root, Tap::App, :map_default => false) {}
+    nest(:root, Tap::App) do |config|
+      case config
+      when App then config
+      when String then App.new(:root => config)
+      else App.new(config)
+      end
+    end
     
     config :before, nil
     config :after, nil

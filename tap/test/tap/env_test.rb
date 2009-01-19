@@ -104,10 +104,17 @@ class EnvTest < Test::Unit::TestCase
     assert_equal Dir.pwd, e.root.root
   end
   
-  def test_Envs_may_be_initialized_from_roots
-    root = Root.new(".")
+  def test_Envs_may_be_initialized_from_Roots
+    root = Root.new
     e = Env.new(root)
     assert_equal root, e.root
+  end
+  
+  def test_Envs_may_be_initialized_from_config_hashes
+    e = Env.new(:root => {:relative_paths => {:key => 'value'}}, :load_paths => ['alt'])
+    assert_equal({:key => 'value'}, e.root.relative_paths)
+    assert_equal Root, e.root.class
+    assert_equal [File.expand_path('alt')], e.load_paths
   end
   
   #
