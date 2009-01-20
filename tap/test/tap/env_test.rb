@@ -635,6 +635,101 @@ a (0)
   end
   
   #
+  # search test
+  #
+  
+  def test_search_traverses_env_to_find_the_first_matching_file
+    e1 = Env.new( Root.new(method_root.filepath(:tmp, 'one')) )
+    e2 = Env.new( Root.new(method_root.filepath(:tmp, 'two')) )
+    e1.push e2
+    
+    a1 = e1.root.prepare(:dir, 'a.txt') {|file| file << "a1" }
+    b1 = e2.root.prepare(:dir, 'a.txt') {|file| }
+    b2 = e2.root.prepare(:dir, 'b.txt') {|file| }
+    
+    assert a1 != b1
+    assert b1 != b2
+    
+    assert_equal a1, e1.search(:dir, 'a.txt')
+    assert_equal b2, e1.search(:dir, 'b.txt')
+    assert_equal b1, e2.search(:dir, 'a.txt')
+    assert_equal(b1, e1.search(:dir, 'a.txt') {|file| File.read(file) != "a1" } )
+  end
+  
+  def test_search_returns_nil_if_no_matching_file_is_found
+    assert_equal nil, e.search(:dir, 'non_existant_file.txt')
+  end
+  
+  def test_search_raises_error_if_file_is_found_outside_of_dir
+    e = Env.new( method_root )
+    path = e.root.prepare(:tmp, 'one.txt') {}
+    err = assert_raises(RuntimeError) { e.search(:output, '../tmp/one.txt') }
+    assert_equal "not relative to search dir: #{path} (#{e.root[:output]})", err.message
+  end
+  
+  def test_search_returns_files_found_outside_of_dir_if_not_strict
+    e = Env.new( method_root )
+    path = e.root.prepare(:tmp, 'one.txt') {}
+    assert_equal path, e.search(:output, '../tmp/one.txt', false)
+  end
+  
+  def test_search_filters_results_based_on_block
+    e = Env.new( method_root )
+    path = e.root.prepare(:tmp, 'one.txt') {}
+    
+    was_in_block = false
+    result = e.search(:tmp, 'one.txt') do |file|
+      was_in_block = true
+      assert_equal path, file
+      true
+    end
+    assert was_in_block
+    assert_equal path, result
+    
+    was_in_block = false
+    result = e.search(:tmp, 'one.txt') do |file|
+      was_in_block = true
+      assert_equal path, file
+      false
+    end
+    assert was_in_block
+    assert_equal nil, result
+  end
+  
+  #
+  # render test
+  #
+  
+  def test_render_renders_template_as_ERB
+    e = Env.new( method_root )
+    e.root.prepare(:tmp, 'one.txt') {|file| file << "<%= key %> was templated" }
+    assert_equal "value was templated", e.render(:tmp, 'one.txt', :key => 'value')
+  end
+  
+  def test_render_sets_env_attribute
+    e = Env.new( method_root )
+    e.root.prepare(:tmp, 'one.txt') {|file| file << "<%= env.object_id %>" }
+    assert_equal "#{e.object_id}", e.render(:tmp, 'one.txt')
+  end
+  
+  def test_render_raises_error_if_template_cannot_be_found
+    e = Env.new( method_root )
+    err = assert_raises(ArgumentError) { e.render(:tmp, 'one.txt') }
+    assert_equal "no such template: [:tmp, \"one.txt\"]", err.message
+  end
+  
+  def test_render_raises_error_if_env_attribute_is_set
+    e = Env.new( method_root )
+    e.root.prepare(:tmp, 'one.txt') {|file| file << "<%= env.object_id %>" }
+    
+    err = assert_raises(ArgumentError) { e.render(:tmp, 'one.txt', :env => nil) }
+    assert_equal "attributes specifies env", err.message
+    
+    err = assert_raises(ArgumentError) { e.render(:tmp, 'one.txt', 'env' => nil) }
+    assert_equal "attributes specifies env", err.message
+  end
+  
+  #
   # manifest.search test
   #
   

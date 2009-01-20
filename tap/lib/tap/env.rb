@@ -370,21 +370,44 @@ module Tap
     # be returned if the block returns true.
     #
     # Returns nil if no file can be found.
-    def search(dir, path)
+    def search(dir, path, strict=true)
       each do |env|
         directory = env.root.filepath(dir)
         file = env.root.filepath(dir, path)
+        next unless File.exists?(file)
         
-        # check the file is relative to the
-        # directory, and that the file exists.
-        if file.rindex(directory, 0) == 0 && 
-          File.exists?(file) && 
-          (!block_given? || yield(file))
-          return file
+        # check the file is relative to directory
+        if strict && file.rindex(directory, 0) != 0
+          raise "not relative to search dir: #{file} (#{directory})"
         end
+        
+        # filter
+        return file if !block_given? || yield(file)
       end
       
       nil
+    end
+    
+    # Searches for and builds the specified template as ERB, using the
+    # attributes.  Render also specifies self as an attribute, keyed by :env.
+    # Raises an error if no such template can be found by search, or if the
+    # env attribute is already set.
+    #
+    #--
+    # Note the hazards of using this method in a context like server...
+    # ANY file may be specified and templated in this way, which also gives
+    # an avenue for executing arbitrary code via ERB
+    def render(dir, path, attributes={}, strict=true)
+      unless template_path = search(dir, path, strict) {|file| File.file?(file) }
+        raise ArgumentError.new("no such template: #{[dir, path].inspect}")
+      end
+      if attributes.has_key?(:env) || attributes.has_key?('env')
+        raise ArgumentError.new("attributes specifies env")
+      end
+      
+      templater = Support::Templater.new(File.read(template_path), attributes)
+      templater.env = self
+      templater.build
     end
     
     # 
