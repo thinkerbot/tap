@@ -16,14 +16,16 @@ class RunTest < Test::Unit::TestCase
   def setup
     super
     
-    @server = Tap::Env.instantiate(method_root).extend Tap::Server
-    @server.reconfigure :root => {
+    env = Tap::Env.instantiate(method_root)
+    env.reconfigure :root => {
       :absolute_paths => {
         :template => File.expand_path(File.dirname(__FILE__) + "/../../template")}}
+        
+    @server = Tap::Server.new(env)
   end
   
   def teardown
-    @server.deactivate
+    @server.env.deactivate
     Tap::Env.instances.clear
     
     super
@@ -47,7 +49,7 @@ end
     end
     
     schema = Tap::Support::Parser.new("sample").schema
-    assert_alike server.render('run.erb', :env => server, :schema => schema), Tap::Test::RegexpEscape.new(%q{
+    assert_alike server.env.render('run.erb', :schema => schema), Tap::Test::RegexpEscape.new(%q{
   <li id="node_0" class="node">
     <!-- controls -->
     <ul>

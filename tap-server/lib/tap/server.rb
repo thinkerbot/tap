@@ -2,6 +2,8 @@ require 'tap'
 require 'rack'
 require 'rack/mime'
 require 'time'
+require "#{File.dirname(__FILE__)}/../../vendor/url_encoded_pair_parser"
+require 'tap/support/renderer'
 
 module Tap
   Tap::Env.manifest(:cgis) do |env|
@@ -21,10 +23,96 @@ module Tap
   # * search(:public, path)
   # * cgis <Manifet>
   #
-  module Server
+  class Server
+    module Utils
+      module_function
+      
+      def parse_schema(params)
+        argh = pair_parse(params)
+
+        parser = Support::Parser.new
+        parser.parse(argh['nodes'] || [])
+        parser.parse(argh['joins'] || [])
+        parser.schema
+      end
+      
+      # UrlEncodedPairParser.parse, but also doing the following:
+      #
+      # * reads io values (ie multipart-form data)
+      # * keys ending in %w indicate a shellwords argument; values
+      #   are parsed using shellwords and concatenated to other
+      #   arguments for key
+      #
+      # Returns an argh.  The schema-related entries will be 'nodes' and
+      # 'joins', but other entries may be present (such as 'action') that
+      # dictate what gets done with the params.
+      def pair_parse(params)
+        pairs = {}
+        params.each_pair do |key, values|
+          next if key == nil
+          key = key.chomp("%w") if key =~ /%w$/
+
+          resolved_values = pairs[key] ||= []
+          values.each do |value|
+            value = value.respond_to?(:read) ? value.read : value
+            
+            # $~ indicates if key matches shellwords pattern
+            if $~ 
+              resolved_values.concat(Shellwords.shellwords(value))
+            else 
+              resolved_values << value
+            end
+          end
+        end
+
+        UrlEncodedPairParser.new(pairs).result   
+      end
+      
+      def cgi_attrs(rack_env)
+        # partition and sort the env variables into
+        # cgi and rack variables.
+        rack, cgi = rack_env.to_a.partition do |(key, value)|
+          key =~ /^rack/
+        end.collect do |part|
+          part.sort_by do |key, value|
+            key
+          end.inject({}) do |hash, (key,value)|
+            hash[key] = value
+            hash
+          end
+        end
+
+        {:cgi => cgi, :rack => rack}
+      end
+
+      # Executes block with ENV set to the specified hash.
+      # Non-string values in hash are skipped.
+      def with_ENV(hash)
+        current_env = {}
+        ENV.each_pair {|key, value| current_env[key] = value }
+
+        begin
+          ENV.clear
+          hash.each_pair {|key, value| ENV[key] = value if value.kind_of?(String)}
+
+          yield
+        ensure
+          ENV.clear
+          current_env.each_pair {|key, value| ENV[key] = value }
+        end
+      end
+    end
+    
+    include Utils
     
     # The handler for the server (ex Rack::Handler::WEBrick)
     attr_accessor :handler
+    
+    attr_accessor :env
+    
+    def initialize(env)
+      @env = env.extend(Support::Renderer)
+    end
     
     # The default error template used by response
     # when an error occurs.
@@ -76,17 +164,17 @@ module Tap
       path = rack_env['PATH_INFO']
       
       case 
-      when static_path = search(:public, path) {|file| File.file?(file) }
+      when static_path = env.search(:public, path) {|file| File.file?(file) }
         # serve named static pages
         file_response(static_path, rack_env)
  
-      when cgi_path = cgis.search(path)
+      when cgi_path = env.cgis.search(path)
         # serve cgis
         cgi_response(cgi_path, rack_env)
         
-      # when task_path = search(:tasks, path)
+      # when task_path = tasks.search(path)
       #   # serve tasks
-      #   cgi_response('task', rack_env)
+      #   task_response(task_path, rack_env)
         
       when path == "/" || path == "/index"
         # serve up the homepage
@@ -114,7 +202,9 @@ module Tap
       res.write begin
         yield(res)
       rescue
-        template(DEFAULT_ERROR_TEMPLATE, env_attrs(rack_env).merge(:error => $!))
+        # perhaps rescue a special type of error that
+        # specifies the template it should render...
+        template(DEFAULT_ERROR_TEMPLATE, cgi_attrs(rack_env).merge(:error => $!))
       end
       res.finish
     end
@@ -176,103 +266,13 @@ module Tap
       end
     end
     
-    # def cgi_template(name, attributes={})
-    #   path = root.filepath(:template, "#{name}.erb")
-    #   Templater.new( File.read(path), {:server => self}.merge(attributes) ).build
-    # end
-    
     # Generates a [status, headers, body] response using the first existing
     # template matching path (as determined by Env#search_path) and the
     # specified rack_env.
     def render_response(path, rack_env)
-      # partition and sort the env variables into
-      # cgi and rack variables.
-      rack, cgi = rack_env.to_a.partition do |(key, value)|
-        key =~ /^rack/
-      end.collect do |part|
-        part.sort_by do |key, value|
-          key
-        end.inject({}) do |hash, (key,value)|
-          hash[key] = value
-          hash
-        end
-      end
-      
       response(rack_env) do 
-        render(path, env_attrs(rack_env))
+        env.render(path, cgi_attrs(rack_env))
       end
     end
-    
-    module Render
-      def renderer(path)
-        template = env.search(:template, path) {|file| File.file?(file) }
-        raise("no such template: #{path}") if template == nil
-        Tap::Support::Templater.new(File.read(template), marshal_dump).extend(Render)
-      end
-      
-      def render(path, attrs={})
-        renderer(path).build(attrs)
-      end
-    end
-    
-    # Builds the specified template using the rack_env and additional
-    # attributes. The rack_env is partitioned into rack-related and 
-    # cgi-related hashes (all rack_env entries where the key starts
-    # with 'rack' are rack-related, the others are cgi-related).
-    #
-    # The template is built with the following standard locals:
-    #
-    #   server   self
-    #   cgi      the cgi-related hash
-    #   rack     the rack-related hash
-    #
-    # Plus the attributes.
-    def render(path, attributes={}) # :nodoc:
-      path = search(:template, path) {|file| File.file?(file) }
-      raise("no such template: #{path}") if path == nil
-
-      template(File.read(path) , attributes)
-    end
-    
-    def env_attrs(rack_env)
-      # partition and sort the env variables into
-      # cgi and rack variables.
-      rack, cgi = rack_env.to_a.partition do |(key, value)|
-        key =~ /^rack/
-      end.collect do |part|
-        part.sort_by do |key, value|
-          key
-        end.inject({}) do |hash, (key,value)|
-          hash[key] = value
-          hash
-        end
-      end
-      
-      {:env => self, :cgi => cgi, :rack => rack}
-    end
-    
-    def template(template, attributes={}) # :nodoc:
-      Support::Templater.new(template, attributes).extend(Render).build
-    end
-    
-    protected
-    
-    # Executes block with ENV set to the specified hash.
-    # Non-string values in hash are skipped.
-    def with_ENV(hash) # :nodoc:
-      current_env = {}
-      ENV.each_pair {|key, value| current_env[key] = value }
-
-      begin
-        ENV.clear
-        hash.each_pair {|key, value| ENV[key] = value if value.kind_of?(String)}
-         
-        yield
-      ensure
-        ENV.clear
-        current_env.each_pair {|key, value| ENV[key] = value }
-      end
-    end
-    
   end
 end

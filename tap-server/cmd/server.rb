@@ -36,7 +36,7 @@ end.parse!(ARGV)
 # cgi dir and public dir can be set in tap.yml
 #
 
-env.extend Tap::Server
-Rack::Handler::WEBrick.run(env, options) do |handler|
-  env.handler = handler
+server = Tap::Server.new(env)
+Rack::Handler::WEBrick.run(server, options) do |handler|
+  server.handler = handler
 end

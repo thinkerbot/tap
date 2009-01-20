@@ -15,7 +15,7 @@ cgi.out() do
   path = (cgi.params['path'] || [])[0]
   pos = (cgi.params['pos'] || [])[0].to_i
   
-  params = {:env => env}
+  params = {}
   case
   when path == nil
     params[:path] = nil

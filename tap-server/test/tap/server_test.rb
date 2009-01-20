@@ -19,13 +19,15 @@ class FunctionalServerTest < Test::Unit::TestCase
   def setup
     super
     
-    @server_app = Tap::Env.instantiate(method_root).extend Tap::Server
-    @server_app.push SERVER_ENV
+    env = Tap::Env.instantiate(method_root)
+    env.push SERVER_ENV
+    env.activate
+    @server_app = Tap::Server.new(env)
     @server = Rack::MockRequest.new(@server_app)
   end
   
   def teardown
-    @server_app.deactivate
+    @server_app.env.deactivate
     Tap::Env.instances.clear
     
     super
@@ -128,7 +130,7 @@ REQUEST_METHOD: POST
       }
     end
     
-    assert_equal cgi_file, server_app.cgis.search('page.rb')
+    assert_equal cgi_file, server_app.env.cgis.search('page.rb')
     assert_body server.get('/page.rb?key=one&key=two'), %q{
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"><HTML><BODY><PRE>
 --- 
