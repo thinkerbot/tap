@@ -38,7 +38,7 @@ cgi.out() do
   
   case cgi.request_method
   when /GET/i
-    env.render('tail.erb', params)
+    env.render(:template, 'tail.erb', params)
   
   when /POST/i
     params.to_json

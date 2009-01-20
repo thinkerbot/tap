@@ -15,7 +15,7 @@ cgi.out() do
   when /GET/i
     # parse a schema and clean it up using compact
     schema = Tap::Server::Utils.parse_schema(cgi.params).compact
-    env.render('run.erb', :schema => schema)
+    env.render(:template, 'run.erb', :schema => schema)
   
   when /POST/i
     action = cgi.params['action'][0]
@@ -31,7 +31,7 @@ cgi.out() do
       end.each do |name|
         index += 1
         targets << index
-        lines << env.render('run/node.erb', :node => Tap::Support::Node.new([name]), :index => index )
+        lines << env.render(:template, 'run/node.erb', :node => Tap::Support::Node.new([name]), :index => index )
       end
       
       n_sources = sources.length
@@ -49,7 +49,7 @@ cgi.out() do
         nil # TODO: warn an multi-join was specified
       end
       
-      lines << env.render('run/join.erb', :join => join) if join
+      lines << env.render(:template, 'run/join.erb', :join => join) if join
       lines.join("\n")
     
     when 'remove'

@@ -3,7 +3,6 @@ require 'rack'
 require 'rack/mime'
 require 'time'
 require "#{File.dirname(__FILE__)}/../../vendor/url_encoded_pair_parser"
-require 'tap/support/renderer'
 
 module Tap
   Tap::Env.manifest(:cgis) do |env|
@@ -68,18 +67,14 @@ module Tap
         UrlEncodedPairParser.new(pairs).result   
       end
       
+      # Partitions the CGI and rack variables from a rack environment, and
+      # returns them in a hash, keyed by :cgi and :rack, respectively.
       def cgi_attrs(rack_env)
-        # partition and sort the env variables into
-        # cgi and rack variables.
-        rack, cgi = rack_env.to_a.partition do |(key, value)|
-          key =~ /^rack/
-        end.collect do |part|
-          part.sort_by do |key, value|
-            key
-          end.inject({}) do |hash, (key,value)|
-            hash[key] = value
-            hash
-          end
+        rack = {}
+        cgi = {}
+        
+        rack_env.each_pair do |key, value|
+          (key =~ /^rack\./ ? rack : cgi)[key] = value
         end
 
         {:cgi => cgi, :rack => rack}
@@ -108,10 +103,11 @@ module Tap
     # The handler for the server (ex Rack::Handler::WEBrick)
     attr_accessor :handler
     
+    # The server Env
     attr_accessor :env
     
     def initialize(env)
-      @env = env.extend(Support::Renderer)
+      @env = env
     end
     
     # The default error template used by response
@@ -271,7 +267,7 @@ module Tap
     # specified rack_env.
     def render_response(path, rack_env)
       response(rack_env) do 
-        env.render(path, cgi_attrs(rack_env))
+        env.render(:template, path, cgi_attrs(rack_env))
       end
     end
   end
