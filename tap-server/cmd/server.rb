@@ -26,9 +26,9 @@ ConfigParser.new do |opts|
     options[:Port] = value.to_i
   end
   
-  opts.on("-d", "--development", "Specifies development mode") do
-    env.config[:development] = true
-  end
+  # opts.on("-d", "--development", "Specifies development mode") do
+  #   env.config[:development] = true
+  # end
   
 end.parse!(ARGV)
 
@@ -37,6 +37,4 @@ end.parse!(ARGV)
 #
 
 server = Tap::Server.new(env)
-Rack::Handler::WEBrick.run(server, options) do |handler|
-  server.handler = handler
-end
+Rack::Handler::WEBrick.run(server, options)
