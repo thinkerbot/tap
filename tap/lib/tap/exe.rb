@@ -118,7 +118,7 @@ module Tap
       end
     end
 
-    def build(argv=ARGV)
+    def build(argv=ARGV, app=app)
       schema = argv.kind_of?(Support::Schema) ? argv : Support::Schema.parse(argv)
       schema.compact.build(app) do |args|
         task = args.shift

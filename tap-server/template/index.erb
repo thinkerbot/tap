@@ -36,7 +36,7 @@
       <ol>
 <%   current.tasks.build.minimap.each do |(name, obj)| %>
 <%     path = obj.kind_of?(Tap::Support::Constant) ? obj.require_path : name %>
-      <li><a href="<%= env_names[env] %>%3Arun?tasc=<%= env_names[env] %>%3A<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
+      <li><a href="<%= env_names[env] %>%3Arun?nodes[0][0]=<%= env_names[current] %>%3A<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
 <%   end %>
       </ol>
     </dd>

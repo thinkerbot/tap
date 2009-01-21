@@ -65,9 +65,13 @@ cgi.out() do
     else
       # run
       cgi.pre do
+        log_file = env.root.prepare(:log, 'server.log')
+        env.app.logger = Logger.new(log_file)
         schema = Tap::Server::Utils.parse_schema(cgi.params)
-        schema.compact.dump.to_yaml
-        #env.build(schema)
+        queues = env.build(schema)
+        # thread new...
+        env.run(queues)
+        env.render(:template, 'tail.erb', :path => log_file, :pos => 0, :update => true)
       end
     end
   else 

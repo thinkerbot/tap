@@ -4,13 +4,13 @@
   <script src="/javascripts/prototype.js"></script>
   <script src="/javascripts/run.js"></script>
 </head>
-<body>
+<body onload="<%= update ? "Tap.Run.tail('#{path}', 'update', 'content', 1000);" : "" %>">
 <h1>Tailing: <%= path %></h1>
 <div id="content" pos="<%= pos %>">
 <%= content %>
 </div>
 <ul class="controls">
-  <li><input id="update" type="checkbox" onchange="Tap.Run.tail('<%= path%>', 'update', 'content', 1000);">update</a></li>
+  <li><input id="update" type="checkbox" checked="<%= update %>" onchange="Tap.Run.tail('<%= path%>', 'update', 'content', 1000);">update</a></li>
 </ul>
 </body>
 </html>
