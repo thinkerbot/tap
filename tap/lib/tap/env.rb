@@ -222,6 +222,13 @@ module Tap
       end
     end
     
+    # Resets manifests so they may be regenerated.
+    def reset
+      @manifests.each_pair do |key, value|
+        value.reset
+      end
+    end
+    
     # Returns the key for self in Env.instances.
     def env_path
       Env.instances.each_pair {|path, env| return path if env == self }

@@ -62,7 +62,7 @@ module Tap
       # Sets search_path_index and path_index to zero and clears entries.
       # Returns self.
       def reset
-        # Support::Lazydoc[path].resolved = false
+        @search_paths.each {|path| Lazydoc[path].resolved = false }
         @entries.clear
         @search_path_index = 0
         @path_index = 0

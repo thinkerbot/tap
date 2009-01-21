@@ -112,6 +112,20 @@ class ConstantManifestTest < Test::Unit::TestCase
     assert_equal [], m.entries
   end
   
+  def test_reset_sets_lazydocs_for_search_paths_to_unresolved
+    a = method_root.prepare(:tmp, 'a.txt') {|file| file << "# A::attr one" }
+    Lazydoc[a].resolve
+    assert_equal 'one', Lazydoc[a]['A']['attr'].value
+    
+    m.search_paths << a
+    m.reset
+    assert !Lazydoc[a].resolved
+    
+    method_root.prepare(:tmp, 'a.txt') {|file| file << "# A::attr two" }
+    Lazydoc[a].resolve
+    assert_equal 'two', Lazydoc[a]['A']['attr'].value
+  end
+  
   def test_reset_returns_self
     assert_equal m, m.reset
   end
