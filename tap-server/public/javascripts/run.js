@@ -94,4 +94,10 @@ Tap.Run = {
       setTimeout(tail, interval);
     }
   },
+  
+  // code smell
+  toggle_preview: function(preview, target) {
+    if($(preview).checked) $(target).action = "preview";
+    else $(target).action="run";
+  },
 };

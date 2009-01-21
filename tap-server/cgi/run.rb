@@ -9,7 +9,7 @@ require 'cgi'
 env = Tap::Env.instance
 
 # initialize with HTML generation methods
-cgi = CGI.new("html3")  
+cgi = CGI.new("html3")
 cgi.out() do
   case cgi.request_method
   when /GET/i
@@ -64,17 +64,17 @@ cgi.out() do
 
     else
       # run
-      cgi.pre do
-        log_file = env.root.prepare(:log, 'server.log')
-        env.app.logger = Logger.new(log_file)
-        schema = Tap::Server::Utils.parse_schema(cgi.params)
-        queues = env.build(schema)
-        # thread new...
-        env.run(queues)
-        env.render(:template, 'tail.erb', :path => log_file, :pos => 0, :update => true)
-      end
+      log_file = env.root.prepare(:log, 'server.log')
+      env.app.logger = Logger.new(log_file)
+      schema = Tap::Server::Utils.parse_schema(cgi.params)
+      queues = env.build(schema)
+      # thread new...
+      env.run(queues)
+      env.render(:template, 'tail.erb', :path => log_file, :pos => 0, :update => true)
     end
   else 
     raise ArgumentError, "unhandled request method: #{cgi.request_method}"
   end
 end
+
+
