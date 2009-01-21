@@ -5,6 +5,10 @@
   <script src="/javascripts/run.js"></script>
 </head>
 <body>
+<form id="load-form" enctype="multipart/form-data" method="post" action="load">
+  <input name="yaml" type="file"></input>
+  <input id="submit-form" type="submit" value="Load" />
+</form>
 <form id="run-form" enctype="multipart/form-data" method="post" action="run">
   <ol id="schema">
 <% index = 0 %>
