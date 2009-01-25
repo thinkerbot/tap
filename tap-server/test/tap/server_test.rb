@@ -123,6 +123,32 @@ class ServerTest < Test::Unit::TestCase
     assert_body request.get('/unknown/page'), "AppController: /unknown/page"
   end
   
+  class UnhandledErrorController
+    attr_accessor :err
+    def initialize
+      begin
+        raise "error"
+      rescue
+        @err = $!
+      end
+    end
+    
+    def call(env)
+      raise err
+    end
+  end
+  
+  def test_call_handles_unhandled_errors
+    controller = UnhandledErrorController.new
+    err = controller.err
+    server.controllers['err'] = controller
+    
+    res = request.get('/err')
+    assert_equal 500, res.status
+    assert_equal({'Content-Type' => 'text/plain'}, res.headers)
+    assert_equal "500 #{err.class}: #{err.message}\n#{err.backtrace.join("\n")}", res.body
+  end
+  
   #
   # process test
   #

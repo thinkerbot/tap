@@ -98,6 +98,8 @@ module Tap
       rack_env['PATH_INFO'] = path.to_s
       
       controller.call(rack_env)
+    rescue(Exception)
+      [500, {'Content-Type' => 'text/plain'}, "500 #{$!.class}: #{$!.message}\n#{$!.backtrace.join("\n")}"]
     end
     
     protected
@@ -128,5 +130,6 @@ module Tap
       else nil
       end
     end
+    
   end
 end
