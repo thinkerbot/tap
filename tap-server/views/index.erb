@@ -23,7 +23,7 @@
     <dt class="key">cgis</dt>
     <dd class="value">
       <ol>
-<%   current.cgis.build.minimap.each do |(name, obj)| %>
+<%   current.controllers.build.minimap.each do |(name, obj)| %>
 <%     path = obj.kind_of?(Tap::Support::Constant) ? obj.require_path : name %>
       <li><a href="<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
 <%   end %>

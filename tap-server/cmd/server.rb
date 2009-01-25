@@ -6,35 +6,39 @@ require 'tap'
 require 'tap/server'
 
 env = Tap::Env.instance
+app = Tap::App.instance
 
 #
 # handle options
 #
-options = {:Port => 8080}
-ConfigParser.new do |opts|
+
+config_path = nil
+opts = ConfigParser.new do |opts|
   
   opts.separator ""
   opts.separator "options:"
+  opts.add(Tap::Server.configurations)
 
+  # add option to print help
   opts.on("-h", "--help", "Show this message") do
     puts Lazydoc.usage(__FILE__)
     puts opts
     exit
   end
-  
-  opts.on("-p", "--port PORT", "Specifies the port (default 8080)") do |value|
-    options[:Port] = value.to_i
+
+  # add option to specify a config file
+  opts.on('--config FILE', 'Specifies a config file') do |value|
+    config_path = value
   end
-  
-  # opts.on("-d", "--development", "Specifies development mode") do
-  #   env.config[:development] = true
-  # end
-  
-end.parse!(ARGV)
+end
 
-#
-# cgi dir and public dir can be set in tap.yml
-#
+# parse!
+argv = opts.parse(ARGV)
 
-server = Tap::Server.new(env)
-Rack::Handler::WEBrick.run(server, options)
+# load configurations
+config_path ||= app.filepath('config', "server.yml")
+configs = Tap::Server.load_config(config_path)
+configs[:env] = env
+
+server = Tap::Server.new(configs).reconfigure(opts.config)
+Rack::Handler::WEBrick.run(server, :Port => server.port) # host...

@@ -1,0 +1,9 @@
+<html>
+<title>404</title>
+<body>
+<pre>
+# 404 Error: Could not handle request.
+<%= req.env.reject {|key, value| key =~ /^(tap|rack)\./ }.to_yaml %>
+</pre>
+</body>
+</html>
