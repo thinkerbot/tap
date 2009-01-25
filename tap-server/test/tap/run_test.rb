@@ -49,7 +49,7 @@
 #     end
 #     
 #     schema = Tap::Support::Parser.new("sample").schema
-#     assert_alike server.env.render(:template, 'run.erb', :schema => schema), Tap::Test::RegexpEscape.new(%q{
+#     assert_alike server.env.render(:views, 'run.erb', :schema => schema), Tap::Test::RegexpEscape.new(%q{
 #   <li id="node_0" class="node">
 #     <!-- controls -->
 #     <ul>

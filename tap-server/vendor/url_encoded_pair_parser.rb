@@ -1,3 +1,4 @@
+require 'cgi'
 require 'strscan'
 
 class UrlEncodedPairParser < StringScanner #:nodoc:

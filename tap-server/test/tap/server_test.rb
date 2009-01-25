@@ -125,12 +125,8 @@ class ServerTest < Test::Unit::TestCase
   
   class UnhandledErrorController
     attr_accessor :err
-    def initialize
-      begin
-        raise "error"
-      rescue
-        @err = $!
-      end
+    def initialize(err)
+      @err = err
     end
     
     def call(env)
@@ -139,9 +135,8 @@ class ServerTest < Test::Unit::TestCase
   end
   
   def test_call_handles_unhandled_errors
-    controller = UnhandledErrorController.new
-    err = controller.err
-    server.controllers['err'] = controller
+    err = Exception.new "message"
+    server.controllers['err'] = UnhandledErrorController.new(err)
     
     res = request.get('/err')
     assert_equal 500, res.status

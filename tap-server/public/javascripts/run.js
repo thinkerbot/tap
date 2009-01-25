@@ -38,26 +38,12 @@ Tap.Run = {
     return parameters;
   },
   
-  add: function(id) {
-    parameters = Tap.Run.parameters(id);
-    parameters.action = 'add';
-    
-    new Ajax.Updater(id, '/run', { 
+  update: function(id, action) {
+    new Ajax.Updater(id, action, { 
       method: 'post', 
       insertion: Insertion.Bottom,
-      parameters: parameters 
+      parameters: Tap.Run.parameters(id) 
     });
-  },
-
-  remove: function() {
-    alert('remove');
-  },
-  
-  /* Run compacts and renders (ie updates) a schema upon a get request. */
-  update: function(id) {
-    form = document.getElementById(id);
-    form.method = "get";
-    form.submit();
   },
   
   /* Performs a tail update to target at the specified interval as long as 

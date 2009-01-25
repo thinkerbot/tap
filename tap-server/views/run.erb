@@ -13,21 +13,20 @@
   <ol id="schema">
 <% index = 0 %>
 <% schema.nodes.each do |node| %>
-<%= env.render(:template, 'run/node.erb', :node => node, :index => index ) %> 
+<%= env.render(:views, 'run/node.erb', :node => node, :index => index ) %> 
 <% index += 1 %>
 <% end %>
 <% schema.rounds(true).each do |round| %>
-<%= env.render(:template, 'run/round.erb', :round => round) %> 
+<%= env.render(:views, 'run/round.erb', :round => round) %> 
 <% end %>
 <% schema.send(:each_join_str) do |join| %>
-<%= env.render(:template, 'run/join.erb', :join => join) %> 
+<%= env.render(:views, 'run/join.erb', :join => join) %> 
 <% end %>
   </ol>
   <ul class="controls">
-    <li><%= env.render(:template, 'run/manifest.erb') %></li>
-    <li><a href="javascript:Tap.Run.add('schema');">add</a></li>
-    <li><a href="javascript:Tap.Run.remove('schema');">remove</a></li>
-    <li><a href="javascript:Tap.Run.update('run-form');">update</a></li>
+    <li><%= env.render(:views, 'run/manifest.erb') %></li>
+    <li><a href="javascript:Tap.Run.update('schema', 'schema/add');">add</a></li>
+    <li><a href="javascript:Tap.Run.update('schema', 'schema/remove');">remove</a></li>
   </ul>
   <input id='preview' name="preview" type="checkbox" onclick="Tap.Run.toggle_preview('preview', 'run-form');">preview</input>
   <input id="submit-form" type="submit" value="Submit" />

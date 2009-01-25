@@ -1,9 +1,10 @@
 require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/controller'
 
-class UtilsTest < Test::Unit::TestCase
-  include Tap::Controller::Utils
-  
+class UtilsTest 
+  # < Test::Unit::TestCase
+  # include Tap::Controller::Utils
+  # 
   #
   # pair_parse test
   #

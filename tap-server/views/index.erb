@@ -18,25 +18,13 @@
   <dt class="key"><%= env_names[current] %> (<%= current.root.root %>)</dt>
   <dd class="value">
     <dl id="manifests" class="manifest">
-      
-    <!-- cgis manifest -->
-    <dt class="key">cgis</dt>
-    <dd class="value">
-      <ol>
-<%   current.controllers.build.minimap.each do |(name, obj)| %>
-<%     path = obj.kind_of?(Tap::Support::Constant) ? obj.require_path : name %>
-      <li><a href="<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
-<%   end %>
-      </ol>
-    </dd>
-    
     <!-- tasks manifest -->
     <dt class="key">tasks</dt>
     <dd class="value">
       <ol>
 <%   current.tasks.build.minimap.each do |(name, obj)| %>
 <%     path = obj.kind_of?(Tap::Support::Constant) ? obj.require_path : name %>
-      <li><a href="<%= env_names[env] %>%3Arun?nodes[0][0]=<%= env_names[current] %>%3A<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
+      <li><a href="schema?nodes[0][0]=<%= env_names[current] %>%3A<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
 <%   end %>
       </ol>
     </dd>
@@ -45,12 +33,5 @@
 <% end %>
   </dl>
 </div>
-
-<div id="nav">
-  <ul>
-    <li><a href="index?refresh=true">Refresh</a></li>
-  </ul>
-</div>
-
 </body>
 </html>
