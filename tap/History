@@ -27,6 +27,8 @@ Upgrade note:
 * Several test methods were removed in favor of better alternatives through
   method_root itself.  In particular method_tempfile('path') should be
   replaced with method_root.prepare(:tmp, 'path').
+* EnvVars#env was refactored to EnvVars#env_var to prevent a common collision
+  with env as a test variable.
 
 == 0.11.0 / 2008-10-20
 

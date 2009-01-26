@@ -101,9 +101,9 @@ module Tap
       # ENV or type is not specified in ENV.  
       def match_regexp?(type, str, default=true)
         return true if env_true?("ALL")
-        return default unless env(type)
+        return default unless env_var(type)
     
-        str =~ Regexp.new(env(type)) ? true : false
+        str =~ Regexp.new(env_var(type)) ? true : false
       end
 
       # Platform-specific test.  Useful for specifying test that should only 
@@ -188,7 +188,7 @@ module Tap
       def subset_test(type, skip=type[0..0].downcase)
         type = type.upcase
         type_test = "#{type}_TEST"
-        if run_subset?(type) || env(type_test)
+        if run_subset?(type) || env_var(type_test)
           if match_regexp?(type_test, name.to_s)
             yield
           else

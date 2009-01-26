@@ -107,7 +107,7 @@ module Tap
         end
         
         # clear out the output folder if it exists, unless flagged otherwise
-        unless env("KEEP_OUTPUTS") || (!passed? && env("KEEP_FAILURES"))
+        unless env_var("KEEP_OUTPUTS") || (!passed? && env_var("KEEP_FAILURES"))
           begin
             cleanup
           rescue

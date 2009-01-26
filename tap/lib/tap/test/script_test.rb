@@ -22,7 +22,7 @@ module Tap
             Utils.with_argv do
               puts "\n# == #{name}"
 
-              cmd = ScriptTester.new(default_command_path, env('stepwise')) do |expected, result, msg|
+              cmd = ScriptTester.new(default_command_path, env_var('stepwise')) do |expected, result, msg|
                 case expected
                 when String
                   assert_output_equal(expected, result, msg)

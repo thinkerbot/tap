@@ -20,20 +20,20 @@ class EnvVarsTest < Test::Unit::TestCase
   end
   
   #
-  # env test
+  # env_var test
   #
   
-  def test_env_access_is_case_insensitive
+  def test_env_var_access_is_case_insensitive
     ENV['key1'] = "value"
-    assert_equal 'value', env('key1')
-    assert_equal 'value', env('KEY1')
+    assert_equal 'value', env_var('key1')
+    assert_equal 'value', env_var('KEY1')
     
     ENV['KEY2'] = "VALUE"
-    assert_equal 'VALUE', env('key2')
-    assert_equal 'VALUE', env('KEY2')
+    assert_equal 'VALUE', env_var('key2')
+    assert_equal 'VALUE', env_var('KEY2')
   end
   
-  def test_env_raises_error_if_multiple_values_can_be_selected
+  def test_env_var_raises_error_if_multiple_values_can_be_selected
     ENV['key'] = "value"
     ENV['KEY'] = "VALUE"
     
@@ -41,8 +41,8 @@ class EnvVarsTest < Test::Unit::TestCase
     # Filter for the platforms that do not by checking that ENV has both
     # expected keys
     if ENV.length == 2
-      assert_raises(RuntimeError) { env('key') }
-      assert_raises(RuntimeError) { env('Key') }
+      assert_raises(RuntimeError) { env_var('key') }
+      assert_raises(RuntimeError) { env_var('Key') }
     end
   end
 

@@ -6,10 +6,10 @@ module Tap
       
       # Access to the case-insensitive ENV variables.  Raises an error
       # if multiple case-insensitive values are defined in ENV.
-      def env(type)
+      def env_var(type)
         type = type.downcase
         
-        # ruby 1.9 returns a hash instead of an array
+        # ENV.select in ruby 1.9 returns a hash instead of an array
         selected = ENV.select {|key, value| key.downcase == type}.to_a
         
         case selected.length
@@ -22,7 +22,7 @@ module Tap
       
       # Returns true if the env_var(var) is set and matches /^true$/i
       def env_true?(var)
-        (env(var) && env(var) =~ /^true$/i) ? true : false
+        (env_var(var) && env_var(var) =~ /^true$/i) ? true : false
       end
     end
   end
