@@ -14,7 +14,7 @@ class AppController < Tap::Controller
   def tail
     path = req.params['path'] || log_file
     pos = req.params['pos'].to_i
-
+    
     params = {
       :path => path,
       :pos => pos,
@@ -43,12 +43,19 @@ class AppController < Tap::Controller
   end
   
   def run
+    req.params[:path] = log_file
+    app.run
+    tail
   end
   
   def stop
+    app.stop
+    info
   end
   
   def terminate
+    app.terminate
+    info
   end
   
   protected

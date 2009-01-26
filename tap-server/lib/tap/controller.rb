@@ -16,7 +16,7 @@ module Tap
         # handle the request
         req = Rack::Request.new(env)
         res = Rack::Response.new
-        res.write new(req, res).send(action)
+        res.write new(req, res).send(action).to_s
         res.finish
       end
       
@@ -45,12 +45,14 @@ module Tap
     
     attr_reader :req
     attr_reader :res
+    attr_reader :server
     attr_reader :env
     
     def initialize(req, res)
       @req = req
       @res = res
-      @env = req.env['tap.server'].env
+      @server = req.env['tap.server']
+      @env = server.env
     end
     
     def unknown
@@ -78,6 +80,17 @@ module Tap
       end
     end
     
-    ErrorMessage = Tap::Server::ErrorMessage
+    def redirect(path)
+      result = server.process(path)
+      @res.status = result.status
+      @res.header.clear
+      @res.headers.merge! result.headers
+      @res.body = result.body
+      
+      nil
+    end
+    
+    class ErrorMessage < RuntimeError
+    end
   end
 end

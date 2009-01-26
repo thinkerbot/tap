@@ -1,6 +1,7 @@
 require 'tap'
 require 'rack'
 require 'rack/mock'
+require 'tap/controller'
 
 module Tap
   Tap::Env.manifest(:controllers) do |env|
@@ -83,7 +84,7 @@ module Tap
       key, path = $1, ($2 || '/')
       
       # route to a controller
-      unless controller = lookup(controllers[key] || key)
+      unless controller = lookup(key)
         path = path_info
         controller = lookup('app')
       end
@@ -98,7 +99,7 @@ module Tap
       rack_env['PATH_INFO'] = path.to_s
       
       controller.call(rack_env)
-    rescue(ErrorMessage)
+    rescue(Controller::ErrorMessage)
       [500, {'Content-Type' => 'text/plain'}, "#{$!.message}"]
     rescue(Exception)
       [500, {'Content-Type' => 'text/plain'}, "500 #{$!.class}: #{$!.message}\n#{$!.backtrace.join("\n")}"]
@@ -115,6 +116,8 @@ module Tap
     # is called.
     # 
     def lookup(key) # :nodoc:
+      key = controllers[key] || key
+      
       case
       when key.respond_to?(:call) then key
       when const = env.controllers.search(key)
@@ -131,9 +134,6 @@ module Tap
         const.constantize
       else nil
       end
-    end
-    
-    class ErrorMessage < RuntimeError
     end
   end
 end

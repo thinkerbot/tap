@@ -5,11 +5,11 @@
   <script src="/javascripts/run.js"></script>
 </head>
 <body>
-<form id="load-form" enctype="multipart/form-data" method="post" action="load">
+<form id="load-form" enctype="multipart/form-data" method="post" action="schema/load">
   <input name="yaml" type="file"></input>
   <input id="submit-form" type="submit" value="Load" />
 </form>
-<form id="run-form" enctype="multipart/form-data" method="post" action="run">
+<form id="run-form" enctype="multipart/form-data" method="post" action="schema/run">
   <ol id="schema">
 <% index = 0 %>
 <% schema.nodes.each do |node| %>
@@ -28,7 +28,7 @@
     <li><a href="javascript:Tap.Run.update('schema', 'schema/add');">add</a></li>
     <li><a href="javascript:Tap.Run.update('schema', 'schema/remove');">remove</a></li>
   </ul>
-  <input id='preview' name="preview" type="checkbox" onclick="Tap.Run.toggle_preview('preview', 'run-form');">preview</input>
+  <input id='preview' name="preview" type="checkbox">preview</input>
   <input id="submit-form" type="submit" value="Submit" />
 </form>
 </body>

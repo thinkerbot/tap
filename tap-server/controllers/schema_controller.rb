@@ -51,7 +51,7 @@ class SchemaController < Tap::Controller
   
   def index
     # parse a schema and clean it up using compact
-    env.render :views, 'run.erb', :schema => schema.compact
+    env.render :views, 'run.erb', :schema => schema
   end
   
   def add
@@ -96,19 +96,35 @@ class SchemaController < Tap::Controller
   end
   
   def run
-    log_file = env.root.prepare(:log, 'server.log')
-    env.app.logger = Logger.new(log_file)
+    return preview if req.params['preview']
     
-    queues = env.build(schema)
-    # thread new...
-    env.run(queues)
-    env.render(:views, 'tail.erb', :path => log_file, :pos => 0, :update => true)
+    # queues = env.build(schema, app)
+    # # thread new...
+    # env.run(queues)
+    redirect('/app/run')
+  end
+  
+  def preview
+    res["Content-Type"] = 'text/plain'
+    env.render(:views, 'preview.erb', :schema => schema)
+  end
+  
+  def load
+    argv = YAML.load(req.params['yaml'])
+
+    # parse a schema and clean it up using compact
+    schema = Tap::Support::Schema.parse(argv.flatten).compact
+    env.render(:views, 'run.erb', :schema => schema)
   end
   
   protected
   
+  def app
+    Tap::App.instance
+  end
+  
   def schema
-    parse_schema(req.params)
+    parse_schema(req.params).compact
   end
   
   def parameters
