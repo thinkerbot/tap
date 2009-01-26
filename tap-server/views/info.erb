@@ -1,0 +1,15 @@
+<html>
+<head>
+  <!-- <link rel="stylesheet" type="text/css" href="/stylesheets/run.css" /> -->
+  <script src="/javascripts/prototype.js"></script>
+  <script src="/javascripts/run.js"></script>
+</head>
+<body onload="<%= update ? "Tap.Run.info('update', 'info', 1000);" : "" %>">
+<div id="info">
+<%= info %>
+</div>
+<ul class="controls">
+  <li><input id="update" type="checkbox" <%= update ? "checked='true' " : "" %>onchange="Tap.Run.info('update', 'info', 1000);">update</a></li>
+</ul>
+</body>
+</html>

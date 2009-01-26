@@ -77,5 +77,7 @@ module Tap
         env.render :views, '404.erb', :req => req
       end
     end
+    
+    ErrorMessage = Tap::Server::ErrorMessage
   end
 end

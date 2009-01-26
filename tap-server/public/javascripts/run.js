@@ -46,6 +46,25 @@ Tap.Run = {
     });
   },
   
+  info: function(checkbox, target, interval) {
+    if($(checkbox).checked) {
+      new Ajax.Request('/app/info', {
+        method: 'post',
+        onSuccess: function(transport) {
+          var update = transport.responseText.evalJSON(true);
+          $(target).inner_html = update.info;
+        },
+        onFailure: function(transport) { 
+          alert(transport.responseText);
+          $(checkbox).checked = false;
+        }
+      });
+      
+      var info = "Tap.Run.info('" + checkbox + "', '" + target + "', " + interval + ");"
+      setTimeout(info, interval);
+    }
+  },
+  
   /* Performs a tail update to target at the specified interval as long as 
    * checkbox is checked.  The target must have an integer position attribute,
    * indicating the end position of the last update.  Typically tail is called
@@ -57,7 +76,7 @@ Tap.Run = {
    */
   tail: function(path, checkbox, target, interval) {
     if($(checkbox).checked) {
-      new Ajax.Request('/tail', {
+      new Ajax.Request('/app/tail', {
         method: 'post',
         parameters: {
           path: path,
@@ -68,10 +87,8 @@ Tap.Run = {
           new Insertion.Bottom(target, update.content);
           $(target).attributes.pos.value = update.pos;
         },
-        onFailure: function() { 
-          // a transport input may be specified to
-          // print the error
-          alert('Tail update failed...');
+        onFailure: function(transport) { 
+          alert(transport.responseText);
           $(checkbox).checked = false;
         }
       });

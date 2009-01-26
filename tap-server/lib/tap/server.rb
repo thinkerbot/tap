@@ -98,6 +98,8 @@ module Tap
       rack_env['PATH_INFO'] = path.to_s
       
       controller.call(rack_env)
+    rescue(ErrorMessage)
+      [500, {'Content-Type' => 'text/plain'}, "#{$!.message}"]
     rescue(Exception)
       [500, {'Content-Type' => 'text/plain'}, "500 #{$!.class}: #{$!.message}\n#{$!.backtrace.join("\n")}"]
     end
@@ -131,5 +133,7 @@ module Tap
       end
     end
     
+    class ErrorMessage < RuntimeError
+    end
   end
 end
