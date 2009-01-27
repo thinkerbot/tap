@@ -63,7 +63,7 @@ module Tap::Generator::Generators
     #
     # Raises an error if the name cannot be resolved to a task.
     def configurations_for(name)
-      const = Env.instance.tasks.search(name) or raise "unknown task: #{name}"
+      const = Tap::Env.instance.tasks.search(name) or raise "unknown task: #{name}"
       const.constantize.configurations
     end
     
