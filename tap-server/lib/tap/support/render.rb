@@ -2,6 +2,9 @@ module Tap
   module Support
     module Render
       
+      def default_layout()
+      end
+      
       def render(thing=nil, options={})
         # currently only erb...
         path = case File.extname(thing) 
@@ -26,7 +29,11 @@ module Tap
 
         templater = Support::Templater.new(File.read(path), locals).extend Render
         templater.env = env
-        templater.build
+        content = templater.build
+        
+        layout = options[:layout]
+        layout = default_layout if layout == nil || layout == true
+        layout ? render(layout, :locals => {:content => content}, :layout => false) : content
       end
       
     end

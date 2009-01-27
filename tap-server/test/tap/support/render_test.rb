@@ -7,19 +7,20 @@ class RenderTest < Test::Unit::TestCase
   acts_as_file_test
   cleanup_dirs << :views
   
-  # note env is required for Render
-  attr_accessor :env
+  # these accessors constitue the API for Render
+  attr_accessor :env, :default_layout
   
   def setup
     super
     @env = Tap::Env.new(method_root)
+    @default_layout = nil
   end
   
   #
   # render test
   #
   
-  def test_render_renders_template
+  def test_render_template
     method_root.prepare(:views, 'one.erb') {|file| file << "<%= 1 + 2 %>" }
     assert_equal "3", render('one')
   end
@@ -29,12 +30,12 @@ class RenderTest < Test::Unit::TestCase
     assert_equal "3", render(path)
   end
   
-  def test_render_renders_erb_as_erb
+  def test_render_erb
     method_root.prepare(:views, 'one.erb') {|file| file << "<%= 1 + 2 %>" }
     assert_equal "3", render('one.erb')
   end
   
-  def test_render_renders_nested_templates
+  def test_render_nested_templates
     method_root.prepare(:views, 'one.erb') {|file| file << "one:<%= render('two') %>" }
     method_root.prepare(:views, 'two.erb') {|file| file << "two:<%= 'thr' + 'ee' %>" }
     
@@ -64,7 +65,22 @@ class RenderTest < Test::Unit::TestCase
     method_root.prepare(:views, 'one.erb') {|file| file << "<%= env.object_id %>" }
     assert_equal "#{env.object_id}", render('one')
   end
-
+  
+  def test_render_with_layout_if_specified
+    method_root.prepare(:views, 'one.erb') {|file| file << "<%= 1 + 2 %>" }
+    method_root.prepare(:views, 'layout.erb') {|file| file << "sum = <%= content %>" }
+    
+    assert_equal "sum = 3", render('one.erb', :layout => 'layout')
+  end
+  
+  def test_render_with_default_layout
+    method_root.prepare(:views, 'one.erb') {|file| file << "<%= 1 + 2 %>" }
+    method_root.prepare(:views, 'layout.erb') {|file| file << "sum = <%= content %>" }
+    @default_layout = 'layout'
+    
+    assert_equal "sum = 3", render('one.erb')
+  end
+  
   def test_render_raises_error_if_env_local_is_set
     method_root.prepare(:views, 'one.erb') {|file| file << "<%= env.object_id %>" }
 
