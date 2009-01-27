@@ -33,7 +33,7 @@
 <%   end %>
 <%   params = {:key => key, :config => config, :switch => "--#{key.to_s.gsub('_', '-')}", :value => task.config[key], :index => index} %>
     <li class="config">
-<%=  env.render(:views, "run/config/#{template}.erb", params) %> 
+<%=  render("run/config/#{template}.erb", :locals => params) %> 
     </li>
 <% end %>
 

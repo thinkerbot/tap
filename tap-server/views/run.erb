@@ -13,18 +13,18 @@
   <ol id="schema">
 <% index = 0 %>
 <% schema.nodes.each do |node| %>
-<%= env.render(:views, 'run/node.erb', :node => node, :index => index ) %> 
+<%= render('run/node.erb', :locals => {:node => node, :index => index} ) %> 
 <% index += 1 %>
 <% end %>
 <% schema.rounds(true).each do |round| %>
-<%= env.render(:views, 'run/round.erb', :round => round) %> 
+<%= render('run/round.erb', :locals => {:round => round}) %> 
 <% end %>
 <% schema.send(:each_join_str) do |join| %>
-<%= env.render(:views, 'run/join.erb', :join => join) %> 
+<%= render('run/join.erb', :locals => {:join => join}) %> 
 <% end %>
   </ol>
   <ul class="controls">
-    <li><%= env.render(:views, 'run/manifest.erb') %></li>
+    <li><%= render('run/manifest.erb') %></li>
     <li><a href="javascript:Tap.Run.update('schema', 'schema/add');">add</a></li>
     <li><a href="javascript:Tap.Run.update('schema', 'schema/remove');">remove</a></li>
   </ul>

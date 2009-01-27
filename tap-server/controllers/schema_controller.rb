@@ -51,7 +51,7 @@ class SchemaController < Tap::Controller
   
   def index
     # parse a schema and clean it up using compact
-    env.render :views, 'run.erb', :schema => schema
+    render 'run.erb', :locals => {:schema => schema}
   end
   
   def add
@@ -63,7 +63,7 @@ class SchemaController < Tap::Controller
     end.each do |name|
       index += 1
       targets << index
-      lines << env.render(:views, 'run/node.erb', :node => Tap::Support::Node.new([name]), :index => index )
+      lines << render('run/node.erb', :locals => {:node => Tap::Support::Node.new([name]), :index => index} )
     end
     
     n_sources = sources.length
@@ -81,7 +81,7 @@ class SchemaController < Tap::Controller
       nil # TODO: warn an multi-join was specified
     end
     
-    lines << env.render(:views, 'run/join.erb', :join => join) if join
+    lines << render('run/join.erb', :locals => {:join => join}) if join
     lines.join("\n")
   end
   
@@ -106,7 +106,7 @@ class SchemaController < Tap::Controller
   
   def preview
     res["Content-Type"] = 'text/plain'
-    env.render(:views, 'preview.erb', :schema => schema)
+    render('preview.erb', :locals => {:schema => schema})
   end
   
   def load
@@ -114,7 +114,7 @@ class SchemaController < Tap::Controller
 
     # parse a schema and clean it up using compact
     schema = Tap::Support::Schema.parse(argv.flatten).compact
-    env.render(:views, 'run.erb', :schema => schema)
+    render('run.erb', :locals => {:schema => schema})
   end
   
   protected

@@ -3,12 +3,12 @@ require 'json'
 
 class AppController < Tap::Controller
   def index
-    env.render(:views, 'index.erb')
+    render('index.erb')
   end
   
   def info
     params = {:update => true, :info => app.info}
-    req.post? ? params.to_json : env.render(:views, 'info.erb', params)
+    req.post? ? params.to_json : render('info.erb', :locals => params)
   end
   
   def tail
@@ -39,7 +39,7 @@ class AppController < Tap::Controller
       raise ErrorMessage, "non-existant file: #{path}"
     end
     
-    req.post? ? params.to_json : env.render(:views, 'tail.erb', params)
+    req.post? ? params.to_json : render('tail.erb', :locals =>params)
   end
   
   def run
