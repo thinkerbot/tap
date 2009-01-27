@@ -63,9 +63,9 @@ module Tap
       path_info = req.path_info
       
       case
-      # when path = server.env.search(:views, path_info)
-      #   # serve templates
-      #   server.render(path)
+      when path = env.search(:views, path_info) {|file| File.file?(file) }
+        # serve templates
+        render(path)
         
       when path = env.search(:public, path_info) {|file| File.file?(file) }
         
@@ -84,6 +84,7 @@ module Tap
       end
     end
     
+    # experimental!
     def redirect(path)
       result = server.process(path)
       @res.status = result.status

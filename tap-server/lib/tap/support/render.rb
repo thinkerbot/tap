@@ -4,13 +4,18 @@ module Tap
       
       def render(thing=nil, options={})
         # currently only erb...
-        view_path = case File.extname(thing) 
+        path = case File.extname(thing) 
         when '' then "#{thing}.erb"
         when '.erb' then thing
         else raise ArgumentError, "currently render can only render .erb"
         end
         
-        unless path = env.search(:views, view_path, true) {|file| File.file?(file) }
+        # lookup the template path
+        unless File.exists?(path)
+          path = env.search(:views, path, true) {|file| File.file?(file)}
+        end
+        
+        unless path
           raise ArgumentError, "no such thing: #{thing.inspect}"
         end
         

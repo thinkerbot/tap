@@ -24,6 +24,11 @@ class RenderTest < Test::Unit::TestCase
     assert_equal "3", render('one')
   end
   
+  def test_render_allows_paths_to_existing_files
+    path = method_root.prepare(:views, 'one.erb') {|file| file << "<%= 1 + 2 %>" }
+    assert_equal "3", render(path)
+  end
+  
   def test_render_renders_erb_as_erb
     method_root.prepare(:views, 'one.erb') {|file| file << "<%= 1 + 2 %>" }
     assert_equal "3", render('one.erb')
