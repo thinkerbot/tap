@@ -697,39 +697,6 @@ a (0)
   end
   
   #
-  # render test
-  #
-  
-  def test_render_renders_template_as_ERB
-    e = Env.new( method_root )
-    e.root.prepare(:tmp, 'one.txt') {|file| file << "<%= key %> was templated" }
-    assert_equal "value was templated", e.render(:tmp, 'one.txt', :key => 'value')
-  end
-  
-  def test_render_sets_env_attribute
-    e = Env.new( method_root )
-    e.root.prepare(:tmp, 'one.txt') {|file| file << "<%= env.object_id %>" }
-    assert_equal "#{e.object_id}", e.render(:tmp, 'one.txt')
-  end
-  
-  def test_render_raises_error_if_template_cannot_be_found
-    e = Env.new( method_root )
-    err = assert_raises(ArgumentError) { e.render(:tmp, 'one.txt') }
-    assert_equal "no such template: [:tmp, \"one.txt\"]", err.message
-  end
-  
-  def test_render_raises_error_if_env_attribute_is_set
-    e = Env.new( method_root )
-    e.root.prepare(:tmp, 'one.txt') {|file| file << "<%= env.object_id %>" }
-    
-    err = assert_raises(ArgumentError) { e.render(:tmp, 'one.txt', :env => nil) }
-    assert_equal "attributes specifies env", err.message
-    
-    err = assert_raises(ArgumentError) { e.render(:tmp, 'one.txt', 'env' => nil) }
-    assert_equal "attributes specifies env", err.message
-  end
-  
-  #
   # manifest.search test
   #
   

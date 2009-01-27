@@ -393,28 +393,6 @@ module Tap
       nil
     end
     
-    # Searches for and builds the specified template as ERB, using the
-    # attributes.  Render also specifies self as an attribute, keyed by :env.
-    # Raises an error if no such template can be found by search, or if the
-    # env attribute is already set.
-    #
-    #--
-    # Note the hazards of using this method in a context like server...
-    # ANY file may be specified and templated in this way, which also gives
-    # an avenue for executing arbitrary code via ERB
-    def render(dir, path, attributes={}, strict=true)
-      unless template_path = search(dir, path, strict) {|file| File.file?(file) }
-        raise ArgumentError.new("no such template: #{[dir, path].inspect}")
-      end
-      if attributes.has_key?(:env) || attributes.has_key?('env')
-        raise ArgumentError.new("attributes specifies env")
-      end
-      
-      templater = Support::Templater.new(File.read(template_path), attributes)
-      templater.env = self
-      templater.build
-    end
-    
     # 
     TEMPLATES = {}
     TEMPLATES[:commands] = %Q{<% if count > 1 %>
