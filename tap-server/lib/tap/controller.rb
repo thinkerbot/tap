@@ -1,8 +1,9 @@
 require 'rack'
 require 'rack/mime'
 require 'time'
+require 'tap/server_error'
 
-module Tap  
+module Tap
   class Controller    
     class << self
       def call(env)
@@ -42,6 +43,15 @@ module Tap
         @unknown_action = input
       end
     end
+    
+    module Render
+      def render(thing=nil, options={})
+        # currently only erb...
+        env.render(:views, "#{thing}.erb", options[:locals] || {})
+      end
+    end
+    
+    include Render
     
     attr_reader :req
     attr_reader :res
@@ -88,9 +98,6 @@ module Tap
       @res.body = result.body
       
       nil
-    end
-    
-    class ErrorMessage < RuntimeError
     end
   end
 end

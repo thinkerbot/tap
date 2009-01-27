@@ -65,7 +65,6 @@ class ServerTest < Test::Unit::TestCase
     
     assert r =~ "/key/a/b/c/"
     assert_equal ['key', '/a/b/c/'], [$1, $2]
-    
   end
   
   #
@@ -97,7 +96,7 @@ class ServerTest < Test::Unit::TestCase
     assert_body request.get('/sample_route/page'), "SampleRouteController: /page"
   end
   
-  def test_call_routes_controller_aliases_to_env_controllers
+  def test_call_routes_using_env_controller_aliases
     method_root.prepare(:controllers, 'sample_alias_controller.rb') do |file| 
       file << %q{
         class SampleAliasController < ServerTest::MockController
@@ -111,7 +110,7 @@ class ServerTest < Test::Unit::TestCase
     assert_body request.get('/alias/page'), "SampleAliasController: /page"
   end
   
-  def test_call_routes_unknown_paths_to_app_controller_by_default
+  def test_call_routes_unknown_to_app_env_controller
     method_root.prepare(:controllers, 'app_controller.rb') do |file| 
       file << %q{
         class AppController < ServerTest::MockController
@@ -123,25 +122,40 @@ class ServerTest < Test::Unit::TestCase
     assert_body request.get('/unknown/page'), "AppController: /unknown/page"
   end
   
-  class UnhandledErrorController
+  class ErrorController
     attr_accessor :err
     def initialize(err)
       @err = err
     end
-    
     def call(env)
       raise err
     end
   end
   
-  def test_call_handles_unhandled_errors
+  def test_call_returns_500_for_unhandled_error
     err = Exception.new "message"
-    server.controllers['err'] = UnhandledErrorController.new(err)
+    server.controllers['err'] = ErrorController.new(err)
     
     res = request.get('/err')
     assert_equal 500, res.status
     assert_equal({'Content-Type' => 'text/plain'}, res.headers)
     assert_equal "500 #{err.class}: #{err.message}\n#{err.backtrace.join("\n")}", res.body
+  end
+  
+  def test_call_returns_response_for_ServerErrors
+    err = Tap::ServerError.new("msg")
+    server.controllers['err'] = ErrorController.new(err)
+    
+    res = request.get('/err')
+    assert_equal 500, res.status
+    assert_equal({'Content-Type' => 'text/plain'}, res.headers)
+    assert_equal "msg", res.body
+  end
+  
+  def test_call_returns_404_when_no_controller_can_be_found
+    res = request.get('/unknown')
+    assert_equal 404, res.status
+    assert_body res, "404 Error: could not route to controller"
   end
   
   #
