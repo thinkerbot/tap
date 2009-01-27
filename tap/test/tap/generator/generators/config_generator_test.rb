@@ -9,11 +9,11 @@ class ConfigGeneratorTest < Test::Unit::TestCase
   acts_as_tap_test
   
   module MockTaskLookup
-    def set_configuration_for(name, configs)
-      (@mock_configurations ||= {})[name] = configs
+    def set_tasc(name, tasc)
+      (@mock_configurations ||= {})[name] = tasc
     end
     
-    def configurations_for(name)
+    def lookup(name)
       @mock_configurations[name]
     end
   end
@@ -28,11 +28,11 @@ class ConfigGeneratorTest < Test::Unit::TestCase
   def test_config_name_sets_the_config_file_name
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('config_name', ConfigName.configurations)
+    c.set_tasc('config_name', ConfigName)
     
     assert_equal %w{
       config
-      config/config_name.yml
+      config/config_generator_test/config_name.yml
     }, c.process('config_name')
     
     assert_equal %w{
@@ -74,12 +74,12 @@ class ConfigGeneratorTest < Test::Unit::TestCase
   def test_config_generator_generates_config_file_with_documentation
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('doc_sample', DocSample.configurations)
+    c.set_tasc('doc_sample', DocSample)
     
     assert_equal %w{
       config
       config/doc_sample.yml
-    }, c.process('doc_sample')
+    }, c.process('doc_sample', 'doc_sample')
     
     assert_equal %q{
 # key documentation
@@ -111,12 +111,12 @@ empty_doc: value
   def test_config_generator_omits_documentation_if_specified
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('doc_sample', DocSample.configurations)
+    c.set_tasc('doc_sample', DocSample)
     c.doc = false
     assert_equal %w{
       config
       config/doc_sample.yml
-    }, c.process('doc_sample')
+    }, c.process('doc_sample', 'doc_sample')
 
     assert_equal %q{
 key: value
@@ -161,12 +161,12 @@ empty_doc: value
   def test_non_nested_config_file_with_documentation
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('nested_doc_sample', NestedDocSample.configurations)
+    c.set_tasc('nested_doc_sample', NestedDocSample)
 
     assert_equal %w{
       config
       config/nested_doc_sample.yml
-    }, c.process('nested_doc_sample')
+    }, c.process('nested_doc_sample', 'nested_doc_sample')
     
     assert_equal %q{
 # nest documentation
@@ -215,7 +215,7 @@ key: value
   def test_nested_config_files_with_documentation
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('nested_doc_sample', NestedDocSample.configurations)
+    c.set_tasc('nested_doc_sample', NestedDocSample)
     
     c.nest = true
     assert_equal %w{
@@ -227,7 +227,7 @@ key: value
       config/nested_doc_sample/leader_and_trailer.yml
       config/nested_doc_sample/no_doc.yml
       config/nested_doc_sample/nest_with_new_configs.yml
-    }, c.process('nested_doc_sample')
+    }, c.process('nested_doc_sample', 'nested_doc_sample')
     
     %w{
       config/nested_doc_sample.yml
@@ -256,13 +256,13 @@ another: config
   def test_non_nested_config_file_without_documentation
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('nested_doc_sample', NestedDocSample.configurations)
+    c.set_tasc('nested_doc_sample', NestedDocSample)
     
     c.doc = false
     assert_equal %w{
       config
       config/nested_doc_sample.yml
-    }, c.process('nested_doc_sample')
+    }, c.process('nested_doc_sample', 'nested_doc_sample')
 
     assert_equal %q{
 nest: 
@@ -285,7 +285,7 @@ key: value
   def test_nested_config_files_without_documentation
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('nested_doc_sample', NestedDocSample.configurations)
+    c.set_tasc('nested_doc_sample', NestedDocSample)
 
     c.nest = true
     c.doc = false
@@ -298,7 +298,7 @@ key: value
       config/nested_doc_sample/leader_and_trailer.yml
       config/nested_doc_sample/no_doc.yml
       config/nested_doc_sample/nest_with_new_configs.yml
-    }, c.process('nested_doc_sample')
+    }, c.process('nested_doc_sample', 'nested_doc_sample')
 
     %w{
       config/nested_doc_sample.yml
@@ -333,7 +333,7 @@ another: config
   def test_empty_config_files_are_skipped_if_no_blanks_is_specified
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('nested_blank_sample', NestedBlankSample.configurations)
+    c.set_tasc('nested_blank_sample', NestedBlankSample)
 
     c.blanks = false
     assert_equal %w{
@@ -344,7 +344,7 @@ another: config
   def test_empty_nested_config_files_are_skipped_if_no_blanks_is_specified
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('blank_sample', BlankSample.configurations)
+    c.set_tasc('blank_sample', BlankSample)
 
     c.nest = true
     c.blanks = false
@@ -356,14 +356,14 @@ another: config
   def test_empty_config_files_are_created_if_blanks_is_true
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('blank_sample', BlankSample.configurations)
+    c.set_tasc('blank_sample', BlankSample)
 
     c.nest = true
     assert_equal %w{
       config
       config/blank_sample.yml
       config/blank_sample/nest.yml
-    }, c.process('blank_sample')
+    }, c.process('blank_sample', 'blank_sample')
     
     assert_equal "", c.preview['config/blank_sample.yml']
     assert_equal "", c.preview['config/blank_sample/nest.yml']
@@ -409,8 +409,8 @@ another: config
   def test_tasks_can_be_reconfigured_with_loaded_configs
     c = ConfigGenerator.new.extend Preview
     c.extend MockTaskLookup
-    c.set_configuration_for('sample', DoubleNestedSampleValues.configurations)
-    c.process('sample')
+    c.set_tasc('sample', DoubleNestedSampleValues)
+    c.process('sample', 'sample')
     
     task_nil_config = nil_values.merge(:nest => nil_values.merge(:nest => nil_values))
     nil_config =      nil_values.merge(:nest => nil_values.merge(:nest => nil_values))
@@ -429,9 +429,9 @@ another: config
     c.app.root = method_root[:tmp]
     expected_config_file = method_root.filepath(:tmp, 'config/sample.yml')
     
-    c.set_configuration_for('sample', DoubleNestedSampleValues.configurations)
+    c.set_tasc('sample', DoubleNestedSampleValues)
     c.nest = true
-    c.process('sample')
+    c.process('sample', 'sample')
     
     assert File.exists?(expected_config_file)
     
