@@ -206,7 +206,7 @@ module Tap
         end
         
         # parse!
-        argv = opts.parse!(argv)
+        argv = opts.parse!(argv, {}, false)
         
         # load configurations
         config_path ||= app.filepath('config', "#{name}.yml") if name
@@ -215,7 +215,7 @@ module Tap
         
         # build and reconfigure the instance and any associated
         # batch objects as specified in the file configurations
-        obj = new(configs.shift, name, app)
+        obj = new({}, name, app).reconfigure(configs.shift)
         configs.each do |config|
           obj.initialize_batch_obj(config, "#{name}_#{obj.batch.length}")
         end        

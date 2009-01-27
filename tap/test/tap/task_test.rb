@@ -139,7 +139,91 @@ class TaskTest < Test::Unit::TestCase
   def test_instance_is_a_Dependency
     assert Task.instance.kind_of?(Support::Dependency)
   end
-
+  
+  #
+  # Task.parse test
+  #
+  
+  def test_parse_returns_instance_and_argv
+    instance, argv = Task.parse([1,2,3])
+    assert_equal Task, instance.class
+    assert_equal [1,2,3], argv
+  end
+  
+  def test_parse_uses_ARGV_if_unspecified
+    current_argv = ARGV.dup
+    begin
+      ARGV.clear
+      ARGV.concat([1,2,3])
+      
+      instance, argv = Task.parse
+      assert_equal [1,2,3], argv
+    ensure
+      ARGV.clear
+      ARGV.concat(current_argv)
+    end
+  end
+  
+  class ParseClass < Tap::Task
+    config :key, 'value'
+  end
+  
+  def test_parse_returns_instance_of_subclass
+    instance, argv = ParseClass.parse([])
+    assert_equal ParseClass, instance.class
+  end
+  
+  def test_parse_instance_is_initialized_with_default_name_and_config
+    instance, argv = ParseClass.parse([])
+    assert_equal(ParseClass.default_name, instance.name)
+    assert_equal({:key => 'value'}, instance.config)
+  end
+  
+  def test_parse_reconfigures_instance_using_configs_in_argv
+    instance, argv = ParseClass.parse(%w{--key alt})
+    assert_equal({:key => 'alt'}, instance.config)
+  end
+  
+  def test_parse_sets_name_using_name_option
+    instance, argv = ParseClass.parse(["--name", "alt"])
+    assert_equal('alt', instance.name)
+  end
+  
+  def test_parse_reconfigures_instance_using_config_option
+    path = method_root.prepare(:tmp, 'config.yml') do |file| 
+      file << {:key => 'alt'}.to_yaml
+    end
+    
+    instance, argv = ParseClass.parse(["--config", path])
+    assert_equal({:key => 'alt'}, instance.config)
+  end
+  
+  def test_parse_config_files_may_have_string_keys
+    path = method_root.prepare(:tmp, 'config.yml') do |file| 
+      file << {'key' => 'alt'}.to_yaml
+    end
+    
+    instance, argv = ParseClass.parse(["--config", path])
+    assert_equal({:key => 'alt'}, instance.config)
+  end
+  
+  def test_parse_configs_in_argv_override_config_file
+    path = method_root.prepare(:tmp, 'config.yml') do |file| 
+      file << {'key' => 'one'}.to_yaml
+    end
+    
+    instance, argv = ParseClass.parse ["--key", "two", "--config", path]
+    assert_equal({:key => 'two'}, instance.config)
+    
+    instance, argv = ParseClass.parse ["--config", path, "--key", "two"]
+    assert_equal({:key => 'two'}, instance.config)
+  end
+  
+  def test_parse_returns_remaining_args_in_argv
+    instance, argv = ParseClass.parse(%w{1 --key value --name name 2 3})
+    assert_equal %w{1 2 3}, argv
+  end
+  
   #
   # Task.load_config test
   #
