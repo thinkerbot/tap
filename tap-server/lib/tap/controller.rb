@@ -2,6 +2,7 @@ require 'rack'
 require 'rack/mime'
 require 'time'
 require 'tap/server_error'
+require 'tap/support/render'
 
 module Tap
   class Controller    
@@ -44,14 +45,7 @@ module Tap
       end
     end
     
-    module Render
-      def render(thing=nil, options={})
-        # currently only erb...
-        env.render(:views, "#{thing}.erb", options[:locals] || {})
-      end
-    end
-    
-    include Render
+    include Support::Render
     
     attr_reader :req
     attr_reader :res
@@ -86,7 +80,7 @@ module Tap
         
       else
         # missing page
-        env.render :views, '404.erb', :req => req
+        render '404.erb', :locals => {:req => req}
       end
     end
     

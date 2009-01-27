@@ -12,7 +12,7 @@ class ServerTest < Test::Unit::TestCase
     was_in_rescue = false
     
     begin
-      raise ArgumentError.new "message"
+      raise ArgumentError, "message"
     rescue
       assert_equal [
         500,
