@@ -320,6 +320,56 @@ another: config
   end
   
   #
+  # -[no]-blanks test
+  #
+  
+  class NestedBlankSample < Tap::Task
+  end
+  
+  class BlankSample < Tap::Task
+    define :nest, NestedBlankSample
+  end
+  
+  def test_empty_config_files_are_skipped_if_no_blanks_is_specified
+    c = ConfigGenerator.new.extend Preview
+    c.extend MockTaskLookup
+    c.set_configuration_for('nested_blank_sample', NestedBlankSample.configurations)
+
+    c.blanks = false
+    assert_equal %w{
+      config
+    }, c.process('nested_blank_sample')
+  end
+  
+  def test_empty_nested_config_files_are_skipped_if_no_blanks_is_specified
+    c = ConfigGenerator.new.extend Preview
+    c.extend MockTaskLookup
+    c.set_configuration_for('blank_sample', BlankSample.configurations)
+
+    c.nest = true
+    c.blanks = false
+    assert_equal %w{
+      config
+    }, c.process('blank_sample')
+  end
+  
+  def test_empty_config_files_are_created_if_blanks_is_true
+    c = ConfigGenerator.new.extend Preview
+    c.extend MockTaskLookup
+    c.set_configuration_for('blank_sample', BlankSample.configurations)
+
+    c.nest = true
+    assert_equal %w{
+      config
+      config/blank_sample.yml
+      config/blank_sample/nest.yml
+    }, c.process('blank_sample')
+    
+    assert_equal "", c.preview['config/blank_sample.yml']
+    assert_equal "", c.preview['config/blank_sample/nest.yml']
+  end
+  
+  #
   # dump/load tests
   #
   

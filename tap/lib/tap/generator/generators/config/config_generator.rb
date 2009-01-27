@@ -55,6 +55,7 @@ module Tap::Generator::Generators
     
     config :doc, true, &c.switch        # include documentation in the config
     config :nest, false, &c.switch      # generate nested config files
+    config :blanks, true, &c.switch     # allow generation of empty config files
     
     # Lookup the configurations for the named task.  Lookup happens
     # through the active Env instance, specifically using:
@@ -80,6 +81,7 @@ module Tap::Generator::Generators
       m.directory(app['config'])
       
       dumps.each do |path, content|
+        next if content.empty? && !blanks
         m.file(path) do |file|
           file << content
         end
