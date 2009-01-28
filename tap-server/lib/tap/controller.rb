@@ -2,7 +2,7 @@ require 'rack'
 require 'rack/mime'
 require 'time'
 require 'tap/server_error'
-require 'tap/support/render'
+require 'tap/support/renderer'
 
 module Tap
   class Controller    
@@ -45,33 +45,27 @@ module Tap
       end
     end
     
-    include Support::Render
-    
-    attr_reader :req
-    attr_reader :res
-    attr_reader :server
-    attr_reader :env
-    
     def initialize(req, res)
       @req = req
       @res = res
       @server = req.env['tap.server']
-      @env = server.env
+      @env = @server.env
+      @renderer = initialize_renderer
     end
     
     def unknown
-      path_info = req.path_info
+      path_info = @req.path_info
       
       case
-      when path = env.search(:views, path_info) {|file| File.file?(file) }
+      when path = @env.search(:views, path_info) {|file| File.file?(file) }
         # serve templates
         render(path)
         
-      when path = env.search(:public, path_info) {|file| File.file?(file) }
+      when path = @env.search(:public, path_info) {|file| File.file?(file) }
         
         # serve static pages
         content = File.read(path)
-        res.headers.merge!(
+        @res.headers.merge!(
           "Last-Modified" => File.mtime(path).httpdate,
           "Content-Type" => Rack::Mime.mime_type(File.extname(path), 'text/plain'), 
           "Content-Length" => content.size.to_s)
@@ -80,13 +74,21 @@ module Tap
         
       else
         # missing page
-        render '404.erb', :locals => {:req => req}
+        render '404.erb', :locals => {:req => @req}
       end
+    end
+    
+    def render(thing, options={})
+      @renderer.render(thing, options)
+    end
+    
+    def partial(path, options={})
+      @renderer.partial(path, options)
     end
     
     # experimental!
     def redirect(path)
-      result = server.process(path)
+      result = @server.process(path)
       @res.status = result.status
       @res.header.clear
       @res.headers.merge! result.headers
@@ -94,5 +96,20 @@ module Tap
       
       nil
     end
+    
+    private
+    
+    def initialize_renderer
+      Support::Renderer.intern do |r, thing|
+        thing = thing.to_s
+        
+        # default to erb...
+        path = File.extname(thing) == '' ? "#{thing}.erb" : thing
+        
+        # lookup the template path
+        File.exists?(path) ? path : @env.search(:views, path, true) {|file| File.file?(file) }
+      end
+    end
+    
   end
 end

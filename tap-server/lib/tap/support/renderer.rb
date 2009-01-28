@@ -31,7 +31,6 @@ module Tap
       def render(thing, options={})
         # lookup the template path
         path = template_path(thing)
-        raise "no such thing: #{thing.inspect}" unless File.exists?(path)
         
         # render content
         template = File.read(path)

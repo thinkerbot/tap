@@ -116,10 +116,4 @@ class RendererTest < Test::Unit::TestCase
     
     assert_equal "sum = 3", r.render(path, :layout => layout)
   end
-  
-  def test_render_raises_error_if_template_for_thing_cannot_be_found
-    err = assert_raises(RuntimeError) { r.render('one') }
-    assert_equal "no such thing: \"one\"", err.message
-  end
-  
 end
