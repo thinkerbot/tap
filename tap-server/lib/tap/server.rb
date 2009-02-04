@@ -1,55 +1,18 @@
-require 'tap'
-require 'rack'
-require 'rack/mock'
 require 'tap/controller'
+require 'rack/mock'
 
 module Tap
-  Env.manifest(:controllers) do |env|
-    entries = env.root.glob(:controllers, "*_controller.rb").collect do |path|
-      const_name = File.basename(path).chomp('.rb').camelize
-      Support::Constant.new(const_name, path)
-    end
-    
-    Support::Manifest.intern(entries) do |manifest, const|
-      const.basename.chomp('_controller')
-    end
-  end
   
   # ::manifest
   class Server < Tap::Task
   
-    # Matches a request-method url (a url preceded with 'get@' or 'post@').
-    # After the match:
-    #
-    #   $1:: get or post
-    #   $2:: everything after the @
-    #
-    # Example:
-    #
-    #   'get@/url' =~ METHOD_URI
-    #   $1     # => 'get'
-    #   $2     # => '/url'
-    #
-    METHOD_URI = /^(get|post)@(.*)$/
-  
-    # Matches url to parse out a controller key and everything else.
-    # After the match:
-    #
-    #   $1:: first segement of a url path
-    #   $2:: everything following
-    #
-    # Example:
-    #
-    #   '/key/a/b/c' =~ CONTROLLER_ROUTE
-    #   $1     # => 'key'
-    #   $2     # => '/a/b/c'
-    #
-    CONTROLLER_ROUTE = /^\/(.*?)(\/.*)?$/
-  
-    config :dev, false, :short => 'd', &c.flag
+    config :environment, (ENV['RACK_ENV'] || :development).to_sym
+    config :server, %w[thin mongrel webrick]
     config :host, 'localhost'
     config :port, 8080, &c.integer
-    config :default_method, 'get'
+    
+    config :views_dir, :views
+    config :public_dir, :public
   
     nest :env, Env do |config|
       case config
@@ -57,15 +20,14 @@ module Tap
       else Env.new.reconfigure(config)
       end
     end
-  
-    config :controllers, {}, &c.hash
-  
-    def process(uri="/")
-      method = default_method
-      if uri =~ METHOD_URI
-        method, uri = $1, $2
-      end
     
+    config :controllers, {}
+    
+    # analagous to Sinatra::Base.run
+    # def run
+    # end
+    
+    def process(method='get', uri="/")
       uri = URI(uri[0] == ?/ ? uri : "/#{uri}")
       uri.host ||= host
       uri.port ||= port
@@ -73,67 +35,71 @@ module Tap
       mock = Rack::MockRequest.new(self)
       mock.request(method, uri.to_s)
     end
+    
+    alias redirect process
   
     # The {Rack}[http://rack.rubyforge.org/doc/] interface method.
     def call(rack_env)
-      env.reset if dev
-    
-      # determine path_info
-      path_info = rack_env["PATH_INFO"].to_s
-      path_info =~ CONTROLLER_ROUTE
-      key, path = $1, ($2 || '/')
-    
+      env.reset if development?
+      
       # route to a controller
-      unless controller = lookup(key)
-        path = path_info
-        controller = lookup('app')
-      end
-    
-      if controller
-        # set environment variables
-        rack_env['tap.server'] = self
-        rack_env['tap.original_path_info'] = path_info
-        rack_env['PATH_INFO'] = path.to_s
-    
-        controller.call(rack_env)
+      blank, key, path_info = rack_env['PATH_INFO'].split("/", 3)
+      controller_class = lookup(unescape(key))
+      
+      if controller_class
+        rack_env['SCRIPT_NAME'] = "#{rack_env['SCRIPT_NAME'].chomp('/')}/#{key}"
+        rack_env['PATH_INFO'] = path_info
       else
-        raise ServerError.new("404 Error: could not route to controller", 404)
+        controller_class = lookup('app')
+        
+        unless controller_class
+          raise ServerError.new("Error 404: could not route to controller", 404)
+        end
       end
+      
+      # handle the request
+      controller_class.new(self).call(rack_env)
     rescue ServerError
       $!.response
     rescue Exception
       ServerError.response($!)
     end
-  
-    protected
-  
-    # Looks up a controller registered with env.  If key is already a
-    # controller (ie it responds to call) then it is returned directly.
-    # Returns nil if no controller can be found.
-    #
-    # ==== Development mode
-    # In development mode, controllers are reloaded each time lookup
-    # is called.
-    # 
-    def lookup(key) # :nodoc:
-      key = controllers[key] || key
     
-      case
-      when key.respond_to?(:call) then key
-      when const = env.controllers.search(key)
-        # load the require_path in dev mode so that
-        # controllers will be reloaded each time
-        if dev && const.require_path
-          if Object.const_defined?(const.const_name)
-            Object.send(:remove_const, const.const_name)
-          end
-        
-          load const.require_path
+    def development?
+      environment == :development
+    end
+    
+    def public_path(path)
+      return nil unless path
+      env.search(public_dir, path) {|public_path| File.file?(public_path) }
+    end
+    
+    def template_path(path)
+      return nil unless path
+      env.search(views_dir, path) {|template_path| File.file?(template_path) }
+    end
+    
+    protected
+    
+    def lookup(key) # :nodoc:
+      # cacheable:
+      #
+      # return cache[key] if cache.has_key?(key)
+      # return nil unless const = cache[key] =...
+      #    
+      return nil unless const = controllers[key] || env.controllers.search(key)
+      
+      # load the require_path in dev mode so that
+      # controllers will be reloaded each time
+      if development? && const.require_path
+        if Object.const_defined?(const.const_name)
+          Object.send(:remove_const, const.const_name)
         end
       
-        const.constantize
-      else nil
+        load const.require_path
       end
+    
+      const.constantize
     end
   end
 end

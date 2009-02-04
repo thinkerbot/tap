@@ -1,7 +1,25 @@
 require 'tap/controller'
+require 'rack/mime'
+require 'time'
 require 'json'
 
 class AppController < Tap::Controller
+  def call(env)
+    # serve public files before actions
+    if path = server.public_path(env['PATH_INFO'])
+      content = File.read(path)
+      headers = {
+        "Last-Modified" => File.mtime(path).httpdate,
+        "Content-Type" => Rack::Mime.mime_type(File.extname(path), 'text/plain'), 
+        "Content-Length" => content.size.to_s
+      }
+      
+      [200, headers, [content]]
+    else
+      super
+    end
+  end
+  
   def index
     render('index.erb')
   end

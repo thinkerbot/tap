@@ -1,115 +1,63 @@
 require 'rack'
-require 'rack/mime'
-require 'time'
+require 'tap'
 require 'tap/server_error'
-require 'tap/support/renderer'
 
 module Tap
-  class Controller    
+  class Controller
     class << self
-      def call(env)
-        # route the path
-        env['PATH_INFO'] =~ /^\/([^\/]+)/
-        action = $1 || default_action
-        unless public_instance_methods.include?(action)
-          action = unknown_action
-        end
-        
-        # handle the request
-        req = Rack::Request.new(env)
-        res = Rack::Response.new
-        res.write new(req, res).send(action).to_s
-        res.finish
-      end
+      attr_writer :actions
       
-      # Returns the method called when no action is specified,
-      # by default :index.
-      def default_action
-        @default_action ||= 'index'
-      end
-      
-      # Sets default_action.
-      def set_default_action(input)
-        @default_action = input
-      end
-      
-      # Returns the method called when an action is unknown,
-      # by default :unknown.
-      def unknown_action
-        @unknown_action ||= 'unknown'
-      end
-      
-      # Sets unknown_action.
-      def set_unknown_action(input)
-        @unknown_action = input
+      # An array of valid actions for self.  Actions are by default all public
+      # instance methods, minus all methods defined by Tap::Controller (ie all
+      # public methods defined by a subclass).
+      #
+      # The actions array is cached, but may be reset when new methods are
+      # added by specifiying reset=true.
+      def actions
+        @actions ||= (public_instance_methods.collect {|method| method.to_sym } - NON_ACTIONS)
       end
     end
     
-    def initialize(req, res)
-      @req = req
-      @res = res
-      @server = req.env['tap.server']
-      @env = @server.env
-      @renderer = initialize_renderer
+    include Rack::Utils
+    
+    attr_reader :server
+    attr_reader :request
+    attr_reader :response
+    
+    def initialize(server)
+      @server = server
+      @request = nil
+      @response = nil
     end
     
-    def unknown
-      path_info = @req.path_info
+    def action?(action)
+      action ? self.class.actions.include?(action.to_sym) : false
+    end
+    
+    def call(env)
+      @request = Rack::Request.new(env)
+      @response = Rack::Response.new
       
-      case
-      when path = @env.search(:views, path_info) {|file| File.file?(file) }
-        # serve templates
-        render(path)
-        
-      when path = @env.search(:public, path_info) {|file| File.file?(file) }
-        
-        # serve static pages
-        content = File.read(path)
-        @res.headers.merge!(
-          "Last-Modified" => File.mtime(path).httpdate,
-          "Content-Type" => Rack::Mime.mime_type(File.extname(path), 'text/plain'), 
-          "Content-Length" => content.size.to_s)
-          
-        content
-        
-      else
-        # missing page
-        render '404.erb', :locals => {:req => @req}
+      # route to an action
+      blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
+      action = "index" if action.empty?
+      
+      unless action?(action)
+        raise ServerError.new("404 Error: unknown action", 404)
       end
+      
+      response.write send(action, *args).to_s
+      response.finish
     end
     
     def render(thing, options={})
-      @renderer.render(thing, options)
     end
     
-    def partial(path, options={})
-      @renderer.partial(path, options)
+    def redirect(method, url)
+      @server.redirect(method, url)
     end
     
-    # experimental!
-    def redirect(path)
-      result = @server.process(path)
-      @res.status = result.status
-      @res.header.clear
-      @res.headers.merge! result.headers
-      @res.body = result.body
-      
-      nil
-    end
-    
-    private
-    
-    def initialize_renderer
-      Support::Renderer.intern do |r, thing|
-        thing = thing.to_s
-        
-        # default to erb...
-        path = File.extname(thing) == '' ? "#{thing}.erb" : thing
-        
-        # lookup the template path
-        File.exists?(path) ? path : @env.search(:views, path, true) {|file| File.file?(file) }
-      end
-    end
-    
+    # An array of methods that are not valid actions.
+    NON_ACTIONS = instance_methods.collect {|method| method.to_sym }
   end
 end
