@@ -1,13 +1,3 @@
-<% env_names = {} %>
-<% env.minimap.each do |name, environment| %>
-<%   env_names[environment] = name %>
-<% end %>
-<html>
-<head>
-  <title>Tap::Manifest</title>
-</head>
-<body>
-
 <div id="branding">
   <h1><a href="<%= Tap::WEBSITE %>">Tap (<ins>T</ins>ask <ins>Ap</ins>plication) <%= Tap::VERSION %> </a></h1>
 </div>
@@ -33,5 +23,3 @@
 <% end %>
   </dl>
 </div>
-</body>
-</html>

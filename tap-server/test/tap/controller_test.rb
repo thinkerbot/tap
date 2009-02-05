@@ -10,8 +10,7 @@ class ControllerTest < Test::Unit::TestCase
   def setup
     super
     @server = Tap::Server.new Tap::Env.new(method_root)
-    @controller = Tap::Controller.new
-    @controller.server = @server
+    @controller = Tap::Controller.new @server
   end
   
   #
@@ -62,7 +61,7 @@ class ControllerTest < Test::Unit::TestCase
   #
   
   def test_render_erb
-    assert_equal "3", controller.render_erb("<%= 1 + 2 %>")
+    assert_equal "one:two", controller.render_erb("<%= %w{one two}.join(':') %>")
   end
   
   def test_render_erb_sets_locals
@@ -99,19 +98,52 @@ class ControllerTest < Test::Unit::TestCase
   # render test
   #
   
-  def test_render_looks_up_path_by_controller_name
-    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= 1 + 2 %>" }
-    assert_equal "3", controller.render('sample.erb')
+  class NamedController < Tap::Controller
+    self.name = "name"
   end
   
-  def test_render_looks_up_template
-    method_root.prepare(:views, 'alt/sample.erb') {|file| file << "<%= 1 + 2 %>" }
-    assert_equal "3", controller.render(:template => 'alt/sample.erb')
+  def test_render_prepends_controller_name_to_path
+    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+    method_root.prepare(:views, 'name/sample.erb') {|file| file << "<%= %w{one two three}.join(':') %>" }
+    
+    name_controller = NamedController.new server
+    
+    assert_equal "one:two", controller.render('sample.erb')
+    assert_equal "one:two:three", name_controller.render('sample.erb')
+  end
+  
+  def test_render_looks_up_template_directly
+    method_root.prepare(:views, 'alt/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+    
+    name_controller = NamedController.new server
+    
+    assert_equal "one:two", controller.render(:template => 'alt/sample.erb')
+    assert_equal "one:two", name_controller.render(:template => 'alt/sample.erb')
   end
   
   def test_render_assigns_locals
     method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= local %>" }
     assert_equal "value", controller.render('sample.erb', :locals => {:local => 'value'})
+  end
+  
+  def test_render_renders_a_layout_template_with_content_if_specified
+    method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
+    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+    
+    assert_equal "<html>one:two</html>", controller.render('sample.erb', :layout => 'layout.erb')
+  end
+  
+  class DefaultLayoutController < Tap::Controller
+    self.default_layout = 'layout.erb'
+    self.name = ""
+  end
+  
+  def test_render_uses_default_layout_for_layout_true
+    method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
+    method_root.prepare(:views, 'sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+    
+    controller = DefaultLayoutController.new server
+    assert_equal "<html>one:two</html>", controller.render('sample.erb', :layout => true)
   end
   
   #
@@ -137,7 +169,7 @@ class ControllerTest < Test::Unit::TestCase
   def test_call_raises_a_server_error_if_path_info_cannot_be_routed_to_an_action
     request = Rack::MockRequest.new CallController
     e = assert_raises(Tap::ServerError) { request.get("/not_an_action") }
-    assert_equal "404 Error: unknown action", e.message
+    assert_equal "404 Error: page not found", e.message
   end
   
   class ResponseController < Tap::Controller
@@ -152,5 +184,16 @@ class ControllerTest < Test::Unit::TestCase
     response = request.get("/action")
     assert_equal 201, response.status
     assert_equal "body", response.body
+  end
+  
+  class IndexController < Tap::Controller
+    def index
+      "result"
+    end
+  end
+  
+  def test_empty_path_routes_to_index
+    request = Rack::MockRequest.new IndexController
+    assert_equal "result", request.get("/").body
   end
 end

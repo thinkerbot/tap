@@ -8,6 +8,9 @@ module Tap
         new.call(env)
       end
       
+      attr_accessor :default_layout
+      
+      attr_writer :name
       def name
         @name ||= to_s.underscore.chomp("_controller")
       end
@@ -19,7 +22,11 @@ module Tap
       # The actions array is cached, but may be reset when new methods are
       # added by specifiying reset=true.
       def actions
-        @actions ||= (public_instance_methods.collect {|method| method.to_sym } - NON_ACTIONS)
+        @actions ||= begin
+          current = public_instance_methods.collect {|method| method.to_sym }
+          base = Tap::Controller.instance_methods.collect {|method| method.to_sym }
+          current - base
+        end
       end
     end
     
@@ -29,8 +36,10 @@ module Tap
     attr_accessor :request
     attr_accessor :response
     
-    def initialize
-      @server = @request = @response = nil
+    def initialize(server=nil, request=nil, response=nil)
+      @server = server
+      @request = request
+      @response = response
     end
     
     def action?(action)
@@ -44,10 +53,10 @@ module Tap
       
       # route to an action
       blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-      action = "index" if action.empty?
+      action = "index" if action == nil || action.empty?
       
       unless action?(action)
-        raise ServerError.new("404 Error: unknown action", 404)
+        raise ServerError.new("404 Error: page not found", 404)
       end
       
       response.write send(action, *args).to_s
@@ -61,8 +70,6 @@ module Tap
       template_path = case
       when options.has_key?(:template)
         server.template_path(options[:template])
-      when File.file?(path) 
-        path
       else
         server.template_path("#{self.class.name}/#{path}")
       end
@@ -72,7 +79,15 @@ module Tap
       end
       
       template = server.content(template_path)
-      render_erb(template, options)
+      content = render_erb(template, options)
+      
+      layout = options[:layout]
+      layout = self.class.default_layout if layout == true
+      if layout
+        render(:template => layout, :locals => {:content => content})
+      else
+        content
+      end
     end
     
     def render_erb(template, options={})
@@ -95,8 +110,5 @@ module Tap
     def empty_binding # :nodoc:
       binding
     end
-    
-    # An array of methods that are not valid actions.
-    NON_ACTIONS = instance_methods.collect {|method| method.to_sym }
   end
 end

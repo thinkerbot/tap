@@ -1,11 +1,14 @@
 require 'tap/controller'
 require 'rack/mime'
 require 'time'
-require 'json'
 
 class AppController < Tap::Controller
+  self.default_layout = 'layouts/default.erb'
+  
   def call(env)
     # serve public files before actions
+    server = env['tap.server'] ||= Tap::Server.new
+    
     if path = server.public_path(env['PATH_INFO'])
       content = File.read(path)
       headers = {
@@ -21,7 +24,12 @@ class AppController < Tap::Controller
   end
   
   def index
-    render('index.erb')
+    env_names = {}
+    server.env.minimap.each do |name, environment|
+      env_names[environment] = name
+    end 
+    
+    render('index.erb', :locals => {:env => server.env, :env_names => env_names}, :layout => true)
   end
   
   def info
