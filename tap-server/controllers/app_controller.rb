@@ -1,7 +1,7 @@
 require 'tap/controller'
 require 'rack/mime'
 require 'time'
-
+require 'json'
 class AppController < Tap::Controller
   self.default_layout = 'layouts/default.erb'
   
@@ -33,10 +33,10 @@ class AppController < Tap::Controller
   end
   
   def info
-    params = {:update => true, :info => app.info}
-    if request.post? 
+    if request.post?
+      app.info
     else
-      render('info.erb', :locals => params, :layout => true)
+      render('info.erb', :locals => {:update => true, :info => app.info}, :layout => true)
     end
   end
   
@@ -61,21 +61,22 @@ class AppController < Tap::Controller
       
       File.open(path) do |file|
         file.pos = pos
-        params[:content] = file.read.chomp
-        params[:pos] =  file.pos
+        params[:content] = file.read
+        params[:pos] = file.pos
       end
     else
       raise Tap::ServerError, "non-existant file: #{path}"
     end
     
-    if request.post? 
+    if request.post?
+      params.to_json
     else
       render('tail.erb', :locals => params, :layout => true)
     end
   end
   
   def run
-    req.params[:path] = log_file
+    request[:path] = log_file
     app.run
     tail
   end

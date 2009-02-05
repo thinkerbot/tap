@@ -51,8 +51,7 @@ Tap.Run = {
       new Ajax.Request('/app/info', {
         method: 'post',
         onSuccess: function(transport) {
-          var update = transport.responseText.evalJSON(true);
-          $(target).inner_html = update.info;
+          $(target).update(transport.responseText);
         },
         onFailure: function(transport) { 
           alert(transport.responseText);

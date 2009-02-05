@@ -1,8 +1,6 @@
-<script type="text/javascript"><%= update ? "Tap.Run.info('update', 'info', 1000);" : "" %></script>
-  
-<div id="info">
-<%= info %>
+<% update_info = "Tap.Run.info('update', 'info', 1000);" %>
+<div class="info">
+  <input class="update" id="update" type="checkbox" <%= update ? "checked='true' " : "" %>onchange="<%= update_info %>" />
+  <span class="info" id="info"><%= info %></span>
 </div>
-<ul class="controls">
-  <li><input id="update" type="checkbox" <%= update ? "checked='true' " : "" %>onchange="Tap.Run.info('update', 'info', 1000);">update</a></li>
-</ul>
+<script type="text/javascript"><%= update ? update_info : "" %></script>
