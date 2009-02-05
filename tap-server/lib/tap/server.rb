@@ -1,11 +1,25 @@
-require 'tap/controller'
+require 'rack'
 require 'rack/mock'
 
+require 'tap'
+require 'tap/server_error'
+
 module Tap
+  Env.manifest(:controllers) do |env|
+    entries = env.root.glob(:controllers, "*_controller.rb").collect do |path|
+      const_name = File.basename(path).chomp('.rb').camelize
+      Support::Constant.new(const_name, path)
+    end
+
+    Support::Manifest.intern(entries) do |manifest, const|
+      const.basename.chomp('_controller')
+    end
+  end
   
-  # ::manifest
-  class Server < Tap::Task
-  
+  class Server
+    include Rack::Utils
+    include Configurable
+    
     config :environment, (ENV['RACK_ENV'] || :development).to_sym
     config :server, %w[thin mongrel webrick]
     config :host, 'localhost'
@@ -13,81 +27,70 @@ module Tap
     
     config :views_dir, :views
     config :public_dir, :public
-  
-    nest :env, Env do |config|
-      case config
-      when Env then config
-      else Env.new.reconfigure(config)
-      end
-    end
-    
     config :controllers, {}
     
-    # analagous to Sinatra::Base.run
-    # def run
-    # end
+    attr_accessor :env
     
-    def process(method='get', uri="/")
-      uri = URI(uri[0] == ?/ ? uri : "/#{uri}")
-      uri.host ||= host
-      uri.port ||= port
-    
-      mock = Rack::MockRequest.new(self)
-      mock.request(method, uri.to_s)
+    def initialize(env=Env.new, config={})
+      @env = env
+      @cache = {}
+      initialize_config(config)
     end
     
-    alias redirect process
-  
+    # Returns true if environment is :development.
+    def development?
+      environment == :development
+    end
+    
     # The {Rack}[http://rack.rubyforge.org/doc/] interface method.
     def call(rack_env)
-      env.reset if development?
+      if development?
+        env.reset 
+        @cache.clear
+      end
       
       # route to a controller
       blank, key, path_info = rack_env['PATH_INFO'].split("/", 3)
-      controller_class = lookup(unescape(key))
+      controller = lookup(unescape(key))
       
-      if controller_class
+      if controller
+        # adjust env if key routes to a controller
         rack_env['SCRIPT_NAME'] = "#{rack_env['SCRIPT_NAME'].chomp('/')}/#{key}"
-        rack_env['PATH_INFO'] = path_info
+        rack_env['PATH_INFO'] = "/#{path_info}"
       else
-        controller_class = lookup('app')
+        # default to AppController, if possible
+        controller = lookup('app')
         
-        unless controller_class
-          raise ServerError.new("Error 404: could not route to controller", 404)
+        unless controller
+          raise ServerError.new("404 Error: could not route to controller", 404)
         end
       end
       
       # handle the request
-      controller_class.new(self).call(rack_env)
+      rack_env['tap.server'] = self
+      controller.call(rack_env)
     rescue ServerError
       $!.response
     rescue Exception
       ServerError.response($!)
     end
     
-    def development?
-      environment == :development
-    end
-    
-    def public_path(path)
-      return nil unless path
-      env.search(public_dir, path) {|public_path| File.file?(public_path) }
-    end
-    
-    def template_path(path)
-      return nil unless path
-      env.search(views_dir, path) {|template_path| File.file?(template_path) }
-    end
-    
     protected
     
+    # a helper method for routing a key to a controller
     def lookup(key) # :nodoc:
-      # cacheable:
-      #
-      # return cache[key] if cache.has_key?(key)
-      # return nil unless const = cache[key] =...
-      #    
-      return nil unless const = controllers[key] || env.controllers.search(key)
+      return @cache[key] if @cache.has_key?(key)
+      
+      minikey = controllers[key] || key
+      if minikey.respond_to?(:call)
+        @cache[key] = minikey
+        return minikey
+      end
+      
+      unless const = env.controllers.search(minikey)
+        @cache[key] = nil
+        return nil
+      end
       
       # load the require_path in dev mode so that
       # controllers will be reloaded each time
@@ -99,7 +102,7 @@ module Tap
         load const.require_path
       end
     
-      const.constantize
+      @cache[key] = const.constantize
     end
   end
 end
