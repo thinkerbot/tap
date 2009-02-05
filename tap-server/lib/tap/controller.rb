@@ -11,6 +11,7 @@ module Tap
       attr_accessor :default_layout
       
       attr_writer :name
+      
       def name
         @name ||= to_s.underscore.chomp("_controller")
       end
@@ -59,8 +60,13 @@ module Tap
         raise ServerError.new("404 Error: page not found", 404)
       end
       
-      response.write send(action, *args).to_s
-      response.finish
+      result = send(action, *args)
+      if result.kind_of?(String) 
+        response.write result
+        response.finish
+      else 
+        result
+      end
     end
     
     def render(path, options={})
@@ -102,6 +108,17 @@ module Tap
       end if locals
       
       ERB.new(template, nil, "<>").result(binding)
+    end
+    
+    def redirect(uri, opts={})
+      uri = URI(uri)
+      
+      env = request.env.dup
+      env["QUERY_STRING"] = uri.query.to_s
+      env["PATH_INFO"] = (!uri.path || uri.path.empty?) ? "/" : uri.path
+      env.merge!(opts)
+      
+      server.call(env)
     end
     
     private

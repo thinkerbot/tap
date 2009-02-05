@@ -16,11 +16,61 @@ module Tap
     end
   end
   
+  # Server is a Rack application that dispatches calls to other Rack apps, most
+  # commonly a Tap::Controller.
+  #
+  # == Routes
+  #
+  # Routing is fixed and very simple:
+  #
+  #   /:controller/path/to/resource
+  #
+  # Server dispatches the request to the controller keyed by :controller after 
+  # shifting the key from PATH_INFO to SCRIPT_NAME.
+  #
+  #   server = Server.new
+  #   server.controllers['sample'] = lambda do |env|
+  #     [200, {}, "Sample got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+  #   end
+  #
+  #   req = Rack::MockRequest.new(server)
+  #   req.get('/sample/path/to/resource').body      # => "Sample got /sample : /path/to/resource"
+  #
+  # Server automatically maps unknown keys to a controller by searching
+  # env.controllers.  As a result '/example' maps to the ExampleController
+  # defined in 'controllers/example_controller.rb'.
+  #
+  #   # [controllers/example_controller.rb] => %q{
+  #   # class ExampleController
+  #   #   def self.call(env)
+  #   #     [200, {}, "ExampleController got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+  #   #   end
+  #   # end 
+  #   # }
+  #
+  #   req.get('/example/path/to/resource').body     # => "ExampleController got /example : /path/to/resource"
+  #
+  # If desired, controllers can be set with aliases to map a path key to a
+  # lookup key.
+  #
+  #   server.controllers['sample'] = 'example'
+  #   req.get('/sample/path/to/resource').body      # => "ExampleController got /sample : /path/to/resource"
+  #
+  # If no controller can be found, the request is routed using the
+  # default_controller_key and the request is NOT adjusted.
+  #
+  #   server.default_controller_key = 'app'
+  #   server.controllers['app'] = lambda do |env|
+  #     [200, {}, "App got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+  #   end
+  #
+  #   req.get('/unknown/path/to/resource').body     # => "App got  : /unknown/path/to/resource"
+  #
   class Server
     include Rack::Utils
     include Configurable
     
-    config :environment, (ENV['RACK_ENV'] || :development).to_sym
+    config :environment, :development
     config :server, %w[thin mongrel webrick]
     config :host, 'localhost'
     config :port, 8080, &c.integer
@@ -28,6 +78,7 @@ module Tap
     config :views_dir, :views
     config :public_dir, :public
     config :controllers, {}
+    config :default_controller_key, 'app'
     
     attr_accessor :env
     
@@ -58,8 +109,8 @@ module Tap
         rack_env['SCRIPT_NAME'] = "#{rack_env['SCRIPT_NAME'].chomp('/')}/#{key}"
         rack_env['PATH_INFO'] = "/#{path_info}"
       else
-        # default to AppController, if possible
-        controller = lookup('app')
+        # use default controller key
+        controller = lookup(default_controller_key)
         
         unless controller
           raise ServerError.new("404 Error: could not route to controller", 404)

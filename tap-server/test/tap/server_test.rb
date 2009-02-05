@@ -56,6 +56,42 @@ class ServerTest < Test::Unit::TestCase
   end
   
   #
+  # documentation test
+  #
+  
+  def test_documentation
+    server = Server.new(Tap::Env.new(method_root))
+    server.controllers['sample'] = lambda do |env|
+      [200, {}, "Sample got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+    end
+  
+    req = Rack::MockRequest.new(server)
+    assert_equal "Sample got /sample : /path/to/resource", req.get('/sample/path/to/resource').body
+  
+    method_root.prepare('controllers/example_controller.rb') do |file| 
+      file << %q{
+class ExampleController
+  def self.call(env)
+    [200, {}, "ExampleController got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+  end
+end 
+}
+    end
+  
+    assert_equal "ExampleController got /example : /path/to/resource", req.get('/example/path/to/resource').body
+  
+    server.controllers['sample'] = 'example'
+    assert_equal "ExampleController got /sample : /path/to/resource", req.get('/sample/path/to/resource').body 
+    
+    server.default_controller_key = 'app'
+    server.controllers['app'] = lambda do |env|
+      [200, {}, "App got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+    end
+  
+    assert_equal "App got  : /unknown/path/to/resource", req.get('/unknown/path/to/resource').body
+  end
+  
+  #
   # initialize test
   #
   

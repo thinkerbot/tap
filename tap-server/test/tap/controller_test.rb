@@ -186,6 +186,19 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal "body", response.body
   end
   
+  class NonStringResponseController < Tap::Controller
+    def action
+      [201, {}, "body"]
+    end
+  end
+  
+  def test_non_string_responses_are_returned_directly
+    request = Rack::MockRequest.new NonStringResponseController
+    response = request.get("/action")
+    assert_equal 201, response.status
+    assert_equal "body", response.body
+  end
+  
   class IndexController < Tap::Controller
     def index
       "result"
@@ -195,5 +208,24 @@ class ControllerTest < Test::Unit::TestCase
   def test_empty_path_routes_to_index
     request = Rack::MockRequest.new IndexController
     assert_equal "result", request.get("/").body
+  end
+  
+  #
+  # redirect test
+  #
+  
+  class RedirectController < Tap::Controller
+    def action
+      redirect "/target/path/to/resource"
+    end
+  end
+  
+  def test_redirect_redirects_call_to_new_uri
+    server.controllers['target'] = lambda do |env|
+      [200, {}, "Target got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+    end
+    
+    request = Rack::MockRequest.new RedirectController
+    assert_equal "Target got /target : /path/to/resource", request.get("/action", 'tap.server' => server).body
   end
 end
