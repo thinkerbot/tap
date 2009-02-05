@@ -25,20 +25,9 @@ opts = ConfigParser.new do |opts|
     puts opts
     exit
   end
-
-  # add option to specify a config file
-  opts.on('--config FILE', 'Specifies a config file') do |value|
-    config_path = value
-  end
 end
 
 # parse!
 argv = opts.parse(ARGV)
-
-# load configurations
-config_path ||= app.filepath('config', "server.yml")
-configs = Tap::Server.load_config(config_path)
-configs[:env] = env
-
-server = Tap::Server.new(configs).reconfigure(opts.config)
+server = Tap::Server.new(env, opts.config)
 Rack::Handler::WEBrick.run(server, :Port => server.port) # host...

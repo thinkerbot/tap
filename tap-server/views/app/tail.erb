@@ -1,0 +1,9 @@
+<script type="text/javascript"><%= update ? "Tap.Run.tail('#{path}', 'update', 'content', 1000);" : "" %></script>
+
+Tailing: <%= path %>
+<div id="content" pos="<%= pos %>">
+<%= content %>
+</div>
+<ul class="controls">
+  <li><input id="update" type="checkbox" <%= update ? "checked='true' " : "" %>onchange="Tap.Run.tail('<%= path%>', 'update', 'content', 1000);">update</a></li>
+</ul>
