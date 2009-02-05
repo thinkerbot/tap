@@ -75,18 +75,32 @@ module Tap
       ServerError.response($!)
     end
     
+    def content(path)
+      File.read(path)
+    end
+    
+    def public_path(path)
+      env.search(public_dir, path) {|public_path| File.file?(public_path) }
+    end
+    
+    def template_path(path)
+      env.search(views_dir, path) {|template_path| File.file?(template_path) }
+    end
+    
     protected
     
     # a helper method for routing a key to a controller
     def lookup(key) # :nodoc:
       return @cache[key] if @cache.has_key?(key)
-      
       minikey = controllers[key] || key
+      
+      # return registered controllers
       if minikey.respond_to?(:call)
         @cache[key] = minikey
         return minikey
       end
       
+      # return if no controller can be found
       unless const = env.controllers.search(minikey)
         @cache[key] = nil
         return nil

@@ -1,11 +1,16 @@
-require 'rack'
-require 'tap'
-require 'tap/server_error'
+require 'tap/server'
+autoload(:ERB, 'erb')
 
 module Tap
   class Controller
     class << self
-      attr_writer :actions
+      def call(env)
+        new.call(env)
+      end
+      
+      def name
+        @name ||= to_s.underscore.chomp("_controller")
+      end
       
       # An array of valid actions for self.  Actions are by default all public
       # instance methods, minus all methods defined by Tap::Controller (ie all
@@ -20,14 +25,12 @@ module Tap
     
     include Rack::Utils
     
-    attr_reader :server
-    attr_reader :request
-    attr_reader :response
+    attr_accessor :server
+    attr_accessor :request
+    attr_accessor :response
     
-    def initialize(server)
-      @server = server
-      @request = nil
-      @response = nil
+    def initialize
+      @server = @request = @response = nil
     end
     
     def action?(action)
@@ -35,6 +38,7 @@ module Tap
     end
     
     def call(env)
+      @server = env['tap.server'] || Tap::Server.new
       @request = Rack::Request.new(env)
       @response = Rack::Response.new
       
@@ -50,11 +54,46 @@ module Tap
       response.finish
     end
     
-    def render(thing, options={})
+    def render(path, options={})
+      options, path = path, nil if path.kind_of?(Hash)
+      
+      # lookup template
+      template_path = case
+      when options.has_key?(:template)
+        server.template_path(options[:template])
+      when File.file?(path) 
+        path
+      else
+        server.template_path("#{self.class.name}/#{path}")
+      end
+      
+      unless template_path
+        raise "could not find template for: #{path}"
+      end
+      
+      template = server.content(template_path)
+      render_erb(template, options)
     end
     
-    def redirect(method, url)
-      @server.redirect(method, url)
+    def render_erb(template, options={})
+      # assign locals to the render binding
+      # this almost surely may be optimized...
+      locals = options[:locals]
+      binding = empty_binding
+      
+      locals.each_pair do |key, value|
+        @assignment_value = value
+        eval("#{key} = remove_instance_variable(:@assignment_value)", binding)
+      end if locals
+      
+      ERB.new(template, nil, "<>").result(binding)
+    end
+    
+    private
+    
+    # Generates an empty binding to self without any locals assigned.
+    def empty_binding # :nodoc:
+      binding
     end
     
     # An array of methods that are not valid actions.

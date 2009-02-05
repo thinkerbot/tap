@@ -113,6 +113,14 @@ class ServerTest < Test::Unit::TestCase
     assert_equal "/path", headers['path_info']
   end
   
+  def test_call_correctly_routes_path_info_with_escapes
+    server.controllers['action'] = AdjustController
+    
+    headers = request.get("/%61ction/a%2Bb/c%20d")
+    assert_equal "/%61ction", headers['script_name']
+    assert_equal "/a%2Bb/c%20d", headers['path_info']
+  end
+  
   class EnvController
     def self.call(env)
       [200, {}, env['tap.server'].object_id.to_s]
