@@ -1,8 +1,8 @@
 module Tap
   module Support
   
-    # Aggregator allows thread-safe collection of Audits, organized
-    # by Audit#key.
+    # Aggregator allows thread-safe collection of Audits, organized by
+    # Audit#key.
     #
     #   a = Audit.new(:key, 'a')
     #   b = Audit.new(:key, 'b')
@@ -20,9 +20,13 @@ module Tap
         @hash = {}
       end
       
-      # Clears self of all audits.
+      # Clears self of all audits. Returns the existing audits as a hash
+      # of (key, audits) pairs.
       def clear
-        synchronize { @hash.clear }
+        synchronize do
+          current, @hash = @hash, {}
+          current
+        end
       end
       
       # The total number of audits recorded in self.
@@ -32,27 +36,27 @@ module Tap
       
       # True if size == 0
       def empty?
-        synchronize { @hash.empty? }
+        synchronize { size == 0 }
       end
       
-      # Stores the Audit according to _result.key
-      def store(_result)
-        synchronize { (@hash[_result.key] ||= []) << _result }
+      # Stores the Audit according to _audit.key.
+      def store(_audit)
+        synchronize { (@hash[_audit.key] ||= []) << _audit }
       end
       
-      # Retreives all aggregated audits for the specified source.
-      def retrieve(source)
-        synchronize { @hash[source] }
+      # Retreives all audits for the specified key.
+      def retrieve(key)
+        synchronize { @hash[key] }
       end
       
-      # Retreives all audits for the input sources, joined as an array.
-      def retrieve_all(*sources)
+      # Retreives all audits for the input keys, joined as an array.
+      def retrieve_all(*keys)
         synchronize do
-          sources.collect {|src| @hash[src] }.flatten.compact
+          keys.collect {|src| @hash[src] }.flatten.compact
         end
       end
       
-      # Converts self to a hash of (source, audits) pairs.
+      # Converts self to a hash of (key, audits) pairs.
       def to_hash
         synchronize { @hash.dup }
       end
