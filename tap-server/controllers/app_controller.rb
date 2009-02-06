@@ -41,11 +41,12 @@ class AppController < Tap::Controller
   end
   
   def tail
-    path = request.params['path'] || log_file
-    pos = request.params['pos'].to_i
+    path = dereference(request['id'] || log_key)
+    pos = request['pos'].to_i
     
     params = {
-      :path => path,
+      :path => File.basename(path),
+      :id => reference(path),
       :pos => pos,
       :update => true
     }
@@ -76,7 +77,7 @@ class AppController < Tap::Controller
   end
   
   def run
-    request[:path] = log_file
+    request['id'] = log_key
     app.run
     tail
   end
@@ -97,13 +98,23 @@ class AppController < Tap::Controller
     Tap::App.instance
   end
   
+  def reference(obj)
+    key = rand(10000).to_s
+    session[key] = obj
+    key
+  end
+  
+  def dereference(key)
+    session[key]
+  end
+  
   def setup_app
     log_file = server.env.root.prepare(:log, 'server.log')
     app.logger = Logger.new(log_file)
-    log_file
+    reference(log_file)
   end
   
-  def log_file
-    @log_File ||= setup_app
+  def log_key
+    @log_key ||= setup_app
   end
 end

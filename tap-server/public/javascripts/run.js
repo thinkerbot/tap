@@ -73,12 +73,12 @@ Tap.Run = {
    *   <input id='checkbox' type='checkbox' onchange="Tap.Run.tail('/path', 'checkbox', 'target', 1000);" >
    *
    */
-  tail: function(path, checkbox, target, interval) {
+  tail: function(id, checkbox, target, interval) {
     if($(checkbox).checked) {
       new Ajax.Request('/app/tail', {
         method: 'post',
         parameters: {
-          path: path,
+          id: id,
           pos: $(target).attributes.pos.value
         },
         onSuccess: function(transport) {
@@ -92,7 +92,7 @@ Tap.Run = {
         }
       });
       
-      var tail = "Tap.Run.tail('" + path + "', '" + checkbox + "', '" + target + "', " + interval + ");"
+      var tail = "Tap.Run.tail('" + id + "', '" + checkbox + "', '" + target + "', " + interval + ");"
       setTimeout(tail, interval);
     }
   },

@@ -121,6 +121,10 @@ module Tap
       server.call(env)
     end
     
+    def session
+      request.env['rack.session'] ||= {}
+    end
+    
     private
     
     # Generates an empty binding to self without any locals assigned.

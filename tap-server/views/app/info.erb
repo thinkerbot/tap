@@ -1,6 +1,6 @@
-<% id = app.object_id %>
+<% id = app.hash %>
 <% update_info = "Tap.Run.info('update-#{id}', 'info-#{id}', 1000);" %>
-<div class="info" id="<%= id %>">
+<div class="info" id="info-<%= id %>">
   <input class="update-" id="update-<%= id %>" type="checkbox" <%= update ? "checked='true' " : "" %>onchange="<%= update_info %>" />
   <span class="info" id="info-<%= id %>"><%= info %></span>
 </div>
