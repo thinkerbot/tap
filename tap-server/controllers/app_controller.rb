@@ -5,6 +5,8 @@ require 'rack/mime'
 require 'time'
 
 class AppController < Tap::Controller
+  Tail = Tap::Models::Tail
+  
   set :default_layout, 'layouts/default.erb'
   
   def call(env)
@@ -42,10 +44,11 @@ class AppController < Tap::Controller
     end
   end
   
-  def tail(id=log_id)
-    tail = dereference(id)
+  def tail(id=nil)
+    id = app.storage.store(Tail.new(log_file)) if id == nil
+    tail = app.storage[id.to_i]
     
-    unless tail
+    unless tail.kind_of?(Tail)
       raise Tap::ServerError, "no path for id: #{id.inspect}"
     end
     
@@ -83,20 +86,6 @@ class AppController < Tap::Controller
     Tap::App.instance
   end
   
-  def session
-    request.env['rack.session'] ||= {}
-  end
-  
-  def reference(obj)
-    key = rand(10000)
-    session[key] = obj
-    key
-  end
-  
-  def dereference(key)
-    session[key.to_i]
-  end
-  
   def setup_app
     log_file = server.env.root.prepare(:log, 'server.log')
     app.logger = Logger.new(log_file)
@@ -105,9 +94,5 @@ class AppController < Tap::Controller
   
   def log_file
     @log_file ||= setup_app
-  end
-  
-  def log_id
-    reference(Tap::Models::Tail.new(log_file))
   end
 end
