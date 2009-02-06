@@ -53,7 +53,7 @@ class ExecutableQueueTest < Test::Unit::TestCase
   end
   
   #
-  # queue test
+  # enq test
   #
   
   def test_enq_pushes_task_and_inputs_onto_queue
@@ -66,8 +66,9 @@ class ExecutableQueueTest < Test::Unit::TestCase
     assert_equal [[m,[1]], [m,[2]]], queue.to_a
   end
   
-  def test_enq_raises_error_for_non_task_methods
-    assert_raises(RuntimeError) { queue.enq(method(:setup), [1]) }
+  def test_enq_raises_error_for_non_executables
+    e = assert_raises(RuntimeError) { queue.enq(:obj, [1]) }
+    assert_equal "not executable: :obj", e.message
   end
   
   #
@@ -84,8 +85,9 @@ class ExecutableQueueTest < Test::Unit::TestCase
     assert_equal [[m,[2]], [m,[1]]], queue.to_a
   end
 
-  def test_unshift_raises_error_for_non_task_methods
-    assert_raises(RuntimeError) { queue.unshift(method(:setup), [1]) }
+  def test_unshift_raises_error_for_non_executables
+    e = assert_raises(RuntimeError) { queue.unshift(:obj, [1]) }
+    assert_equal "not executable: :obj", e.message
   end
   
   #
@@ -98,6 +100,21 @@ class ExecutableQueueTest < Test::Unit::TestCase
     
     assert_equal [m, [1]], queue.deq
     assert_equal [m, [2]], queue.deq
+  end
+  
+  #
+  # concat test
+  #
+  
+  def test_concat_enques_each_executable_inputs_pair_in_array
+    m1, m2, m3 = Array.new(3) { Object.new.extend Executable }
+    
+    assert_equal [], queue.to_a
+    
+    queue.concat [[m1, [1,2]], [m2, [3,4]]]
+    queue.concat [[m3, []]]
+    
+    assert_equal [[m1, [1,2]], [m2, [3,4]], [m3, []]], queue.to_a
   end
   
 end
