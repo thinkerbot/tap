@@ -48,8 +48,11 @@ module Tap
       # with the specified args and block, and applied to in the order in
       # which they are declared (ie first use processes requests first).
       #
-      # Middleware is only applied through the class call method.  Middleware
-      # is inherited.
+      # Middleware is applied through the class call method, and on a per-call
+      # basis... middleware like Rack::Session::Pool that is supposed to
+      # persist for the life of an application will not work properly.
+      # 
+      # Middleware is inherited.
       def use(middleware, *args, &block)
         @middleware << [middleware, args, block]
       end
@@ -209,6 +212,10 @@ module Tap
       env.merge!(opts)
       
       server.call(env)
+    end
+    
+    def session
+      request.env['rack.session'] ||= {}
     end
     
     private
