@@ -4,32 +4,68 @@ autoload(:ERB, 'erb')
 module Tap
   class Controller
     class << self
-      def call(env)
-        new.call(env)
+      
+      def inherited(child)
+        super
+        child.set(:actions, actions.dup)
+        child.set(:middleware, middleware.dup)
+        child.set(:default_layout, default_layout)
+        child.set(:define_action, true)
       end
       
-      attr_accessor :default_layout
+      attr_reader :actions
       
-      attr_writer :name
+      attr_reader :middleware
+      
+      attr_reader :default_layout
       
       def name
         @name ||= to_s.underscore.chomp("_controller")
       end
       
-      # An array of valid actions for self.  Actions are by default all public
-      # instance methods, minus all methods defined by Tap::Controller (ie all
-      # public methods defined by a subclass).
-      #
-      # The actions array is cached, but may be reset when new methods are
-      # added by specifiying reset=true.
-      def actions
-        @actions ||= begin
-          current = public_instance_methods.collect {|method| method.to_sym }
-          base = Tap::Controller.instance_methods.collect {|method| method.to_sym }
-          current - base
+      def use(middleware, *args, &block)
+        @middleware << [middleware, args, block]
+      end
+      
+      def call(env)
+        app = new
+        middleware.reverse_each do |(m, args, block)|
+          app = m.new(app, *args, &block)
         end
+        app.call(env)
+      end
+      
+      def set(attribute, input)
+        instance_variable_set("@#{attribute}", input)
+      end
+      
+      protected
+      
+      def method_added(sym)
+        actions << sym if @define_action
+        super
+      end
+      
+      def public(*symbols)
+        @define_action = true if symbols.empty?
+        super
+      end
+      
+      def protected(*symbols)
+        @define_action = false if symbols.empty?
+        super
+      end
+      
+      def private(*symbols)
+        @define_action = false if symbols.empty?
+        super
       end
     end
+    
+    set :actions, []
+    set :middleware, []
+    set :default_layout, nil
+    set :define_action, false
     
     include Rack::Utils
     
@@ -43,10 +79,6 @@ module Tap
       @response = response
     end
     
-    def action?(action)
-      action ? self.class.actions.include?(action.to_sym) : false
-    end
-    
     def call(env)
       @server = env['tap.server'] || Tap::Server.new
       @request = Rack::Request.new(env)
@@ -56,7 +88,7 @@ module Tap
       blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
       action = "index" if action == nil || action.empty?
       
-      unless action?(action)
+      unless self.class.actions.include?(action.to_sym)
         raise ServerError.new("404 Error: page not found", 404)
       end
       
@@ -119,10 +151,6 @@ module Tap
       env.merge!(opts)
       
       server.call(env)
-    end
-    
-    def session
-      request.env['rack.session'] ||= {}
     end
     
     private

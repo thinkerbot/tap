@@ -3,7 +3,7 @@ require 'rack/mime'
 require 'time'
 require 'json'
 class AppController < Tap::Controller
-  self.default_layout = 'layouts/default.erb'
+  set :default_layout, 'layouts/default.erb'
   
   def call(env)
     # serve public files before actions
@@ -96,6 +96,10 @@ class AppController < Tap::Controller
   
   def app
     Tap::App.instance
+  end
+  
+  def session
+    request.env['rack.session'] ||= {}
   end
   
   def reference(obj)

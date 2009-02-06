@@ -14,17 +14,11 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
-  # action? test
+  # actions test
   #
   
-  def test_action_is_false_for_all_controller_methods
-    controller.methods.each do |method|
-      assert !controller.action?(method), method
-    end
-  end
-  
-  def test_action_returns_false_for_nil
-    assert !controller.action?(nil)
+  def test_action_are_empty_by_default
+    assert Tap::Controller.actions.empty?
   end
   
   class ActionController < Tap::Controller
@@ -40,20 +34,15 @@ class ControllerTest < Test::Unit::TestCase
     
     def private_method
     end
+    
+    public
+    
+    def another_public_method
+    end
   end
   
-  def test_action_is_true_in_subclasses_for_new_public_methods
-    a = ActionController.new
-    assert a.action?(:public_method)
-    assert !a.action?(:protected_method)
-    assert !a.action?(:private_method)
-  end
-  
-  def test_action_works_with_string_inputs
-    a = ActionController.new
-    assert a.action?('public_method')
-    assert !a.action?('protected_method')
-    assert !a.action?('private_method')
+  def test_public_methods_in_subclasses_are_automatically_registered_as_actions
+    assert_equal [:public_method, :another_public_method], ActionController.actions
   end
   
   #
@@ -99,7 +88,7 @@ class ControllerTest < Test::Unit::TestCase
   #
   
   class NamedController < Tap::Controller
-    self.name = "name"
+    set :name, "name"
   end
   
   def test_render_prepends_controller_name_to_path
@@ -134,8 +123,8 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   class DefaultLayoutController < Tap::Controller
-    self.default_layout = 'layout.erb'
-    self.name = ""
+    set :default_layout, 'layout.erb'
+    set :name, ""
   end
   
   def test_render_uses_default_layout_for_layout_true
