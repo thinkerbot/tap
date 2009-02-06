@@ -38,17 +38,36 @@ Tap.Run = {
     return parameters;
   },
   
-  update: function(id, action) {
-    new Ajax.Updater(id, action, { 
-      method: 'post', 
-      insertion: Insertion.Bottom,
-      parameters: Tap.Run.parameters(id) 
-    });
+  /* Performs a tail update to target at the specified interval as long as 
+   * checkbox is checked.  The target must have an integer position attribute,
+   * indicating the end position of the last update.  Typically tail is called
+   * when the checkbox changes value.
+   *
+   *   <div id='target' pos='0'></div>
+   *   <input id='checkbox' type='checkbox' onchange="Tap.Run.tail('/path', 'checkbox', 'target', 1000);" >
+   *
+   */
+  tail: function(url, checkbox, target, interval) {
+    if($(checkbox).checked) {
+      new Ajax.Request(url, {
+        method: 'post',
+        onSuccess: function(transport) {
+          new Insertion.Bottom(target, transport.responseText);
+        },
+        onFailure: function(transport) { 
+          alert(transport.responseText);
+          $(checkbox).checked = false;
+        }
+      });
+      
+      var update = "Tap.Run.tail('" + url + "', '" + checkbox + "', '" + target + "', " + interval + ");"
+      setTimeout(update, interval);
+    }
   },
   
-  info: function(checkbox, target, interval) {
+  update: function(url, checkbox, target, interval) {
     if($(checkbox).checked) {
-      new Ajax.Request('/app/info', {
+      new Ajax.Request(url, {
         method: 'post',
         onSuccess: function(transport) {
           $(target).update(transport.responseText);
@@ -59,41 +78,8 @@ Tap.Run = {
         }
       });
       
-      var info = "Tap.Run.info('" + checkbox + "', '" + target + "', " + interval + ");"
-      setTimeout(info, interval);
-    }
-  },
-  
-  /* Performs a tail update to target at the specified interval as long as 
-   * checkbox is checked.  The target must have an integer position attribute,
-   * indicating the end position of the last update.  Typically tail is called
-   * when the checkbox changes value.
-   *
-   *   <div id='target' pos='0'></div>
-   *   <input id='checkbox' type='checkbox' onchange="Tap.Run.tail('/path', 'checkbox', 'target', 1000);" >
-   *
-   */
-  tail: function(id, checkbox, target, interval) {
-    if($(checkbox).checked) {
-      new Ajax.Request('/app/tail', {
-        method: 'post',
-        parameters: {
-          id: id,
-          pos: $(target).attributes.pos.value
-        },
-        onSuccess: function(transport) {
-          var update = transport.responseText.evalJSON(true);
-          new Insertion.Bottom(target, update.content);
-          $(target).attributes.pos.value = update.pos;
-        },
-        onFailure: function(transport) { 
-          alert(transport.responseText);
-          $(checkbox).checked = false;
-        }
-      });
-      
-      var tail = "Tap.Run.tail('" + id + "', '" + checkbox + "', '" + target + "', " + interval + ");"
-      setTimeout(tail, interval);
+      var update = "Tap.Run.update('" + url + "', '" + checkbox + "', '" + target + "', " + interval + ");"
+      setTimeout(update, interval);
     }
   },
   

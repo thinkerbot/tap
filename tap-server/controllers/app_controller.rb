@@ -1,7 +1,9 @@
 require 'tap/controller'
+require 'tap/models/tail'
+
 require 'rack/mime'
 require 'time'
-require 'json'
+
 class AppController < Tap::Controller
   set :default_layout, 'layouts/default.erb'
   
@@ -36,43 +38,26 @@ class AppController < Tap::Controller
     if request.post?
       app.info
     else
-      render('info.erb', :locals => {:update => true, :info => app.info}, :layout => true)
+      render('info.erb', :locals => {:update => true, :content => app.info}, :layout => true)
     end
   end
   
-  def tail
-    path = dereference(request['id'] || log_key)
-    pos = request['pos'].to_i
+  def tail(id=log_id)
+    tail = dereference(id)
     
-    params = {
-      :path => File.basename(path),
-      :id => reference(path),
-      :pos => pos,
-      :update => true
-    }
-    
-    case
-    when path == nil
-      params.merge!(:update => false, :content => "")
-      
-    when File.exists?(path) # && permission
-      if pos > File.size(path)
-        raise Tap::ServerError, "tail position out of range"
-      end
-      
-      File.open(path) do |file|
-        file.pos = pos
-        params[:content] = file.read
-        params[:pos] = file.pos
-      end
-    else
-      raise Tap::ServerError, "non-existant file: #{path}"
+    unless tail
+      raise Tap::ServerError, "no path for id: #{id.inspect}"
     end
     
     if request.post?
-      params.to_json
+      tail.content
     else
-      render('tail.erb', :locals => params, :layout => true)
+      render('tail.erb', :locals => {
+        :id => id,
+        :path => File.basename(tail.path),
+        :update => true,
+        :content => tail.content
+      }, :layout => true)
     end
   end
   
@@ -103,22 +88,26 @@ class AppController < Tap::Controller
   end
   
   def reference(obj)
-    key = rand(10000).to_s
+    key = rand(10000)
     session[key] = obj
     key
   end
   
   def dereference(key)
-    session[key]
+    session[key.to_i]
   end
   
   def setup_app
     log_file = server.env.root.prepare(:log, 'server.log')
     app.logger = Logger.new(log_file)
-    reference(log_file)
+    log_file
   end
   
-  def log_key
-    @log_key ||= setup_app
+  def log_file
+    @log_file ||= setup_app
+  end
+  
+  def log_id
+    reference(Tap::Models::Tail.new(log_file))
   end
 end
