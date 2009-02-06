@@ -1,7 +1,8 @@
-<% update_tail = "Tap.Run.tail('#{path}', 'update', 'content', 1000);" %>
-<div class="tail">
-  <input class="update" id="update" type="checkbox" <%= update ? "checked='true' " : "" %>onchange="<%= update_tail %>" />
-  <span class="path"><%= path %></span>
-  <pre class="content" id="content" pos="<%= pos %>"><%= content %></pre>
+<% id = path.hash %>
+<% update_tail = "Tap.Run.tail('#{path}', 'update-#{id}', 'content-#{id}', 1000);" %>
+<div class="tail" id="<%= id %>">
+  <input class="update" id="update-<%= id %>" type="checkbox" <%= update ? "checked='true' " : "" %>onchange="<%= update_tail %>" />
+  <span class="path" id="path-<%= id %>"><%= path %></span>
+  <pre class="content" id="content-<%= id %>" pos="<%= pos %>"><%= content %></pre>
 </div>
 <script type="text/javascript"><%= update ? update_tail : "" %></script>
