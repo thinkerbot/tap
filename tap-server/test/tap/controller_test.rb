@@ -14,6 +14,53 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
+  # inheritance test
+  #
+  
+  class ParentController < Tap::Controller
+    set :actions, [:a, :b, :c]
+    set :middleware, [[Rack::Session::Cookie, [], nil]]
+    set :default_layout, 'default'
+  end
+  
+  class ChildController < ParentController
+  end
+  
+  def test_actions_are_inherited_by_duplication
+    assert_equal [:a, :b, :c], ChildController.actions
+    assert ParentController.actions.object_id != ChildController.actions.object_id
+  end
+  
+  def test_middleware_inherited_by_duplication
+    assert_equal [[Rack::Session::Cookie, [], nil]], ChildController.middleware
+    assert ParentController.middleware.object_id != ChildController.middleware.object_id
+  end
+  
+  def test_default_layout_is_inherited
+    assert_equal 'default', ChildController.default_layout
+  end
+  
+  def test_name_is_underscored_class_name_minus_controller_suffix
+    assert_equal "controller_test/parent", ParentController.name
+    assert_equal "controller_test/child", ChildController.name
+  end
+  
+  #
+  # use test
+  #
+  
+  def test_use_adds_args_to_middleware
+    controller_class = Class.new(Tap::Controller)
+    assert_equal [], controller_class.middleware
+    
+    controller_class.use(:a)
+    block = lambda {}
+    controller_class.use(:b, 1,2,3, &block)
+    
+    assert_equal [[:a, [], nil], [:b, [1,2,3], block]], controller_class.middleware
+  end
+  
+  #
   # actions test
   #
   
@@ -197,6 +244,44 @@ class ControllerTest < Test::Unit::TestCase
   def test_empty_path_routes_to_index
     request = Rack::MockRequest.new IndexController
     assert_equal "result", request.get("/").body
+  end
+  
+  #
+  # middleware test
+  #
+  
+  class MiddlewareA
+    def initialize(app)
+      @app = app
+    end
+    def call(env)
+      env['middleware.a'] = "a"
+      env['middleware.b'] = "a"
+      @app.call(env)
+    end
+  end
+  
+  class MiddlewareB
+    def initialize(app)
+      @app = app
+    end
+    def call(env)
+      env['middleware.b'] = "b"
+      @app.call(env)
+    end
+  end
+  
+  class UseController < Tap::Controller
+    use MiddlewareA
+    use MiddlewareB
+    def action
+      [200, {}, [request.env['middleware.a'], request.env['middleware.b']]]
+    end
+  end
+  
+  def test_middleware_is_applied_to_class_calls_in_order
+    request = Rack::MockRequest.new UseController
+    assert_equal "ab", request.get("/action").body
   end
   
   #

@@ -2,10 +2,24 @@ require 'tap/server'
 autoload(:ERB, 'erb')
 
 module Tap
+  
+  # === Declaring Actions
+  # By default all public methods in subclasses are declared as actions.  You
+  # can declare a private or protected method as an action by:
+  #
+  # * manually adding it directly to actions
+  # * defining it as a public method and then call private(:method) or protected(:method)
+  #
+  # Similarly, public method can be made non-action by actions by:
+  #
+  # * manually deleting it from actions
+  # * define it private or protected then call public(:method)
+  #
   class Controller
     class << self
       
-      def inherited(child)
+      # Initialize instance variables on the child and inherit as necessary.
+      def inherited(child) # :nodoc:
         super
         child.set(:actions, actions.dup)
         child.set(:middleware, middleware.dup)
@@ -13,20 +27,38 @@ module Tap
         child.set(:define_action, true)
       end
       
+      # An array of methods that can be called as actions.  Actions must be
+      # stored as symbols.  Actions are inherited.
       attr_reader :actions
       
+      # An array of Rack middleware that will be applied when handing requests
+      # through the class call method.  Middleware is inherited.
       attr_reader :middleware
       
+      # The default layout rendered when the render option :layout is true.
       attr_reader :default_layout
       
+      # The base path prepended to render paths (ie render(<path>) renders
+      # <templates_dir/name/path>).
       def name
         @name ||= to_s.underscore.chomp("_controller")
       end
       
+      # Adds the specified middleware.  Middleware classes are initialized
+      # with the specified args and block, and applied to in the order in
+      # which they are declared (ie first use processes requests first).
+      #
+      # Middleware is only applied through the class call method.  Middleware
+      # is inherited.
       def use(middleware, *args, &block)
         @middleware << [middleware, args, block]
       end
       
+      # Instantiates self and performs call.  Middleware is applied in the
+      # order in which it was declared.
+      #--
+      # Note that middleware needs to be initialized in reverese, so that
+      # the first declared middleware runs first.
       def call(env)
         app = new
         middleware.reverse_each do |(m, args, block)|
@@ -35,28 +67,43 @@ module Tap
         app.call(env)
       end
       
-      def set(attribute, input)
-        instance_variable_set("@#{attribute}", input)
+      # Sets an instance variable for self, short for:
+      #
+      #   instance_variable_set(:@attribute, input)
+      #
+      # Typically only these variables should be set:
+      #
+      #   actions:: sets actions
+      #   name:: the name of the controller
+      #   default_layout:: the default layout (used by render)
+      #
+      def set(variable, input)
+        instance_variable_set("@#{variable}", input)
       end
       
       protected
       
-      def method_added(sym)
+      # Overridden so that if declare_action is set, new methods
+      # are added to actions.
+      def method_added(sym) # :nodoc:
         actions << sym if @define_action
         super
       end
       
-      def public(*symbols)
+      # Turns on declare_action when changing method context.
+      def public(*symbols) # :nodoc:
         @define_action = true if symbols.empty?
         super
       end
       
-      def protected(*symbols)
+      # Turns off declare_action when changing method context.
+      def protected(*symbols) # :nodoc:
         @define_action = false if symbols.empty?
         super
       end
       
-      def private(*symbols)
+      # Turns off declare_action when changing method context.
+      def private(*symbols) # :nodoc:
         @define_action = false if symbols.empty?
         super
       end
@@ -69,10 +116,19 @@ module Tap
     
     include Rack::Utils
     
+    # Accesses the 'tap.server' specified in env, set during call.
     attr_accessor :server
+    
+    # A Rack::Request wrapping env, set during call.
     attr_accessor :request
+    
+    # A Rack::Response.  If the action returns a string, it will be written to
+    # response and response will be returned by call.  Otherwise, call returns
+    # the action result and response is ignored.
     attr_accessor :response
     
+    # Initializes a new instance of self.  The input attributes are reset by
+    # call and are only provided for convenience during testing.
     def initialize(server=nil, request=nil, response=nil)
       @server = server
       @request = request
@@ -116,9 +172,11 @@ module Tap
         raise "could not find template for: #{path}"
       end
       
+      # render template
       template = server.content(template_path)
       content = render_erb(template, options)
       
+      # render layout
       layout = options[:layout]
       layout = self.class.default_layout if layout == true
       if layout
