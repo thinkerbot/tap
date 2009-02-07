@@ -1,8 +1,20 @@
 require File.join(File.dirname(__FILE__), '../../tap_spec_helper')
 
-describe "FileTest under RSpec" do
-  acts_as_file_test  
+describe "FileTest" do
+  include Tap::Test::FileTest
+  self.class_test_root = Tap::Root.new(__FILE__.chomp('_spec.rb'))
+  
+  it "should setup a method_root for method_name" do
+    respond_to?(:method_root).must_equal true
+    method_root.kind_of?(Tap::Root).must_equal true
+    method_root.root.must_equal File.expand_path("#{__FILE__.chomp('_spec.rb')}/should_setup_a_method_root_for_method_name")
+  end
+end
 
+describe "FileTest.method_name" do
+  include Tap::Test::FileTest 
+  self.class_test_root = Tap::Root.new(__FILE__.chomp("_spec.rb"))
+  
   it "should return the underscored description1" do
     method_name.must_equal "should_return_the_underscored_description1"
   end
@@ -10,13 +22,12 @@ describe "FileTest under RSpec" do
   it "should return the underscored description2" do
     method_name.must_equal "should_return_the_underscored_description2"
   end
-  
-  it "should setup a method_root for method_name" do
-    respond_to?(:method_root).must_equal true
-    method_root.kind_of?(Tap::Root).must_equal true
-    method_root.root.must_equal File.expand_path(File.join(__FILE__.chomp("_spec.rb"), method_name))
-  end
+end
 
+describe "FileTest.assert_files" do
+  include Tap::Test::FileTest
+  self.class_test_root = Tap::Root.new(__FILE__.chomp("_spec.rb"))
+  
   #
   # assert_files spec
   #
@@ -109,5 +120,4 @@ describe "FileTest under RSpec" do
       end
     end
   end
-
 end
