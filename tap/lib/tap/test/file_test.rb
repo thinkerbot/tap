@@ -62,7 +62,7 @@ module Tap
       
       # Convenience method to access the class_test_root.
       def ctr
-        self.class.class_test_root
+        self.class.class_test_root or raise "setup failure: no class_test_root has been set for #{self.class}"
       end
 
       # The test-method-specific Tap::Root which may be used to
@@ -103,7 +103,7 @@ module Tap
         # check that method_root still exists (nil may
         # indicate setup was overridden without super)
         unless method_root
-          raise "teardown failure: method_root is nil"
+          raise "teardown failure: method_root is nil (check a class_test_root has been set and ensure setup calls super)"
         end
         
         # clear out the output folder if it exists, unless flagged otherwise
