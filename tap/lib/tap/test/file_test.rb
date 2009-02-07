@@ -74,7 +74,7 @@ module Tap
       # overriding this method.
       def setup
         super
-        @method_root = ctr.dup.reconfigure(:root => ctr[name.to_sym])
+        @method_root = ctr.dup.reconfigure(:root => ctr[method_name.to_sym])
         cleanup
       end
       
@@ -120,7 +120,7 @@ module Tap
       
       # Returns method_name as a string (Ruby 1.9 symbolizes method_name)
       def method_name_str
-        name.to_s
+        method_name.to_s
       end
       
       # Runs a file-based test that compares files created by the block with

@@ -10,6 +10,12 @@ describe "FileTest under RSpec" do
   it "should return the underscored description2" do
     method_name.must_equal "should_return_the_underscored_description2"
   end
+  
+  it "should setup a method_root for method_name" do
+    respond_to?(:method_root).must_equal true
+    method_root.kind_of?(Tap::Root).must_equal true
+    method_root.root.must_equal File.expand_path(File.join(__FILE__.chomp("_spec.rb"), method_name))
+  end
 
   #
   # assert_files spec
