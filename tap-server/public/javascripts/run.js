@@ -1,11 +1,66 @@
 var Tap = {
-  Run: {},
+  App: {},
+  Schema: {},
 };
 
-Tap.Run = {
+Tap.App = {
+  /* Performs a tail update to target at the specified interval as long as 
+   * checkbox is checked.  A tail update posts to action and inserts the
+   * response at the bottom of target.
+   */
+  tail: function(action, checkbox, target, interval) {
+    if($(checkbox).checked) {
+      new Ajax.Request(action, {
+        method: 'post',
+        onSuccess: function(transport) {
+          new Insertion.Bottom(target, transport.responseText);
+        },
+        onFailure: function(transport) { 
+          alert(transport.responseText);
+          $(checkbox).checked = false;
+        }
+      });
+      
+      var update = "Tap.App.tail('" + action + "', '" + checkbox + "', '" + target + "', " + interval + ");"
+      setTimeout(update, interval);
+    }
+  },
+  
+  /* Performs a info update to target at the specified interval as long as 
+   * checkbox is checked.  An info update posts to action and replaces the
+   * inner html of target with the response.
+   */
+  info: function(action, checkbox, target, interval) {
+    if($(checkbox).checked) {
+      new Ajax.Request(action, {
+        method: 'post',
+        onSuccess: function(transport) {
+          $(target).update(transport.responseText);
+        },
+        onFailure: function(transport) { 
+          alert(transport.responseText);
+          $(checkbox).checked = false;
+        }
+      });
+      
+      var update = "Tap.App.info('" + action + "', '" + checkbox + "', '" + target + "', " + interval + ");"
+      setTimeout(update, interval);
+    }
+  },
+};
+
+Tap.Schema = {
+  /* Collects schema parameters in the specified element (ie source and target
+   * nodes that are checked, and the currently selected tasc, etc.).  These
+   * parameters are used by the server to determine how to respond to actions
+   * on a form.
+   *
+   */
   parameters: function(id) {
-    // Determine the total number of nodes
-    nodes = document.getElementById(id).getElementsByClassName('node');
+    
+    // Lookup elements
+    element = document.getElementById(id)
+    nodes = element.getElementsByClassName('node');
 
     // Determine the indicies of source and target nodes
     sources = []
@@ -25,6 +80,7 @@ Tap.Run = {
     };
 
     // Determine the currently selected tasc
+    // NOTE: should be a child of id
     tasc_manifest = document.getElementById('tasc_manifest');
     tasc = tasc_manifest.value;
     tasc_manifest.value = "";
@@ -38,49 +94,15 @@ Tap.Run = {
     return parameters;
   },
   
-  /* Performs a tail update to target at the specified interval as long as 
-   * checkbox is checked.  The target must have an integer position attribute,
-   * indicating the end position of the last update.  Typically tail is called
-   * when the checkbox changes value.
-   *
-   *   <div id='target' pos='0'></div>
-   *   <input id='checkbox' type='checkbox' onchange="Tap.Run.tail('/path', 'checkbox', 'target', 1000);" >
-   *
+  /* Performs an update to the specified element.  Update posts to action with
+   * the Schema.parameters for element and inserts the response at the bottom
+   * of the element.
    */
-  tail: function(url, checkbox, target, interval) {
-    if($(checkbox).checked) {
-      new Ajax.Request(url, {
-        method: 'post',
-        onSuccess: function(transport) {
-          new Insertion.Bottom(target, transport.responseText);
-        },
-        onFailure: function(transport) { 
-          alert(transport.responseText);
-          $(checkbox).checked = false;
-        }
-      });
-      
-      var update = "Tap.Run.tail('" + url + "', '" + checkbox + "', '" + target + "', " + interval + ");"
-      setTimeout(update, interval);
-    }
+  update: function(id, action) {
+    new Ajax.Updater(id, action, {
+      method: 'post',
+      insertion: Insertion.Bottom,
+      parameters: Tap.Schema.parameters(id)
+    });
   },
-  
-  update: function(url, checkbox, target, interval) {
-    if($(checkbox).checked) {
-      new Ajax.Request(url, {
-        method: 'post',
-        onSuccess: function(transport) {
-          $(target).update(transport.responseText);
-        },
-        onFailure: function(transport) { 
-          alert(transport.responseText);
-          $(checkbox).checked = false;
-        }
-      });
-      
-      var update = "Tap.Run.update('" + url + "', '" + checkbox + "', '" + target + "', " + interval + ");"
-      setTimeout(update, interval);
-    }
-  },
-  
 };

@@ -1,35 +1,27 @@
-<html>
-<head>
-  <!-- <link rel="stylesheet" type="text/css" href="/stylesheets/run.css" /> -->
-  <script src="/javascripts/prototype.js"></script>
-  <script src="/javascripts/run.js"></script>
-</head>
-<body>
 <form id="load-form" enctype="multipart/form-data" method="post" action="schema/load">
   <input name="yaml" type="file"></input>
-  <input id="submit-form" type="submit" value="Load" />
+  <input id="load-form-submit" type="submit" value="Load" />
 </form>
-<form id="run-form" enctype="multipart/form-data" method="post" action="schema/run">
+
+<form id="schema-form" enctype="multipart/form-data" method="post" action="schema/run">
   <ol id="schema">
 <% index = 0 %>
 <% schema.nodes.each do |node| %>
-<%= render('run/node.erb', :locals => {:node => node, :index => index} ) %> 
+<%= render('node.erb', :locals => {:node => node, :index => index} ) %> 
 <% index += 1 %>
 <% end %>
 <% schema.rounds(true).each do |round| %>
-<%= render('run/round.erb', :locals => {:round => round}) %> 
+<%= render('round.erb', :locals => {:round => round}) %> 
 <% end %>
 <% schema.send(:each_join_str) do |join| %>
-<%= render('run/join.erb', :locals => {:join => join}) %> 
+<%= render('join.erb', :locals => {:join => join}) %> 
 <% end %>
   </ol>
   <ul class="controls">
-    <li><%= render('run/manifest.erb') %></li>
+    <li><%= render('manifest.erb') %></li>
     <li><a href="javascript:Tap.Run.update('schema', 'schema/add');">add</a></li>
     <li><a href="javascript:Tap.Run.update('schema', 'schema/remove');">remove</a></li>
   </ul>
   <input id='preview' name="preview" type="checkbox">preview</input>
-  <input id="submit-form" type="submit" value="Submit" />
+  <input id="schema-form-submit" type="submit" value="Submit" />
 </form>
-</body>
-</html>
