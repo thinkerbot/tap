@@ -4,7 +4,7 @@
 </form>
 
 <form id="schema-form" enctype="multipart/form-data" method="post" action="schema/run">
-  <ol id="schema">
+  <ol class="schema">
 <% index = 0 %>
 <% schema.nodes.each do |node| %>
 <%= render('node.erb', :locals => {:node => node, :index => index} ) %> 
@@ -18,9 +18,12 @@
 <% end %>
   </ol>
   <ul class="controls">
-    <li><%= render('manifest.erb') %></li>
-    <li><a href="javascript:Tap.Run.update('schema', 'schema/add');">add</a></li>
-    <li><a href="javascript:Tap.Run.update('schema', 'schema/remove');">remove</a></li>
+    <li>
+<%= render('manifest.erb') %>
+
+    </li>
+    <li><a href="javascript:Tap.Schema.update('schema-form', 'schema/add');">add</a></li>
+    <li><a href="javascript:Tap.Schema.update('schema-form', 'schema/remove');">remove</a></li>
   </ul>
   <input id='preview' name="preview" type="checkbox">preview</input>
   <input id="schema-form-submit" type="submit" value="Submit" />

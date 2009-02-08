@@ -54,14 +54,13 @@ Tap.Schema = {
    * nodes that are checked, and the currently selected tasc, etc.).  These
    * parameters are used by the server to determine how to respond to actions
    * on a form.
-   *
    */
   parameters: function(id) {
-    
     // Lookup elements
     element = document.getElementById(id)
-    nodes = element.getElementsByClassName('node');
-
+    nodes = element.select('.node');
+    manifests = element.select('.manifest');
+    
     // Determine the indicies of source and target nodes
     sources = []
     targets = []
@@ -79,17 +78,19 @@ Tap.Schema = {
       };
     };
 
-    // Determine the currently selected tasc
-    // NOTE: should be a child of id
-    tasc_manifest = document.getElementById('tasc_manifest');
-    tasc = tasc_manifest.value;
-    tasc_manifest.value = "";
+    // Determine tascs selected by manifests
+    tascs = []
+    for (i=0;i<manifests.length;i++) {
+      manifest = manifests[i];
+      tascs.push(manifest.value);
+      manifest.value = "";
+    };
     
     parameters = {
       index: nodes.length,
       sources: sources,
       targets: targets,
-      tasc: tasc
+      tascs: tascs
     };
     return parameters;
   },

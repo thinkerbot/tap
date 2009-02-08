@@ -49,16 +49,18 @@ class SchemaController < Tap::Controller
   
   include Utils
   
+  set :default_layout, 'layouts/default.erb'
+  
   def index
     # parse a schema and clean it up using compact
-    render 'run.erb', :locals => {:schema => schema}
+    render 'index.erb', :locals => {:schema => schema}, :layout => true
   end
   
   def add
-    index, sources, targets = parameters
+    return "<pre>" + parameters.to_yaml + "</pre>"
     
     lines = []
-    (req.params['tasc'] || []).select do |name|
+    (request['tascs'] || []).select do |name|
       name && !name.empty?
     end.each do |name|
       index += 1
@@ -123,15 +125,20 @@ class SchemaController < Tap::Controller
     Tap::App.instance
   end
   
+  # Parses a compacted Tap::Support::Schema from the request.
   def schema
-    parse_schema(req.params).compact
+    parse_schema(request.params).compact
   end
   
+  # Parses a hash of schema parameters specified by the request.  The fields
+  # in parameters correspond to those produced by the Tap.Schema.parameters
+  # function in public/tap.js.
   def parameters
-    index = req.params['index'].to_i - 1
-    sources = (req.params['sources'] || []).collect {|source| source.to_i }
-    targets = (req.params['targets'] || []).collect {|target| target.to_i }
-    
-    [index, sources, targets]
+    {
+      :index => (request['index'].to_i - 1),
+      :sources => (request['sources'] || []).collect {|source| source.to_i },
+      :targets => (request['targets'] || []).collect {|target| target.to_i },
+      :tascs => (request['tascs'] || [])
+    }
   end
 end
