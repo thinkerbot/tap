@@ -126,7 +126,6 @@ module Tap
 
       def initialize(nodes=[])
         @nodes = nodes
-        @current_index = 1
       end
       
       # Retrieves the node at index, or instantiates

@@ -106,6 +106,15 @@ class SchemaTest < Test::Unit::TestCase
   # Schema#load_file test
   #
   
+  def test_load_file_reloads_a_yaml_dump
+    path = method_root.prepare(:tmp, 'dump.yml') do |file|
+      file << schema.dump.to_yaml
+    end
+    
+    loaded_schema = Schema.load_file(path)
+    assert_equal schema.dump, loaded_schema.dump
+  end
+  
   def test_load_file_initializes_new_Schema_for_empty_file
     path = method_root.prepare(:tmp, 'empty.yml') {}
     
@@ -273,6 +282,12 @@ class SchemaTest < Test::Unit::TestCase
   #
   # dump/to_s test
   #
+  
+  def test_to_s_and_dump_for_an_empty_schema
+    schema = Schema.new
+    assert_equal "", schema.to_s
+    assert_equal [], schema.dump
+  end
   
   def test_to_s_and_dump_formats_argvs_separated_by_break
     schema = Schema.new node_set

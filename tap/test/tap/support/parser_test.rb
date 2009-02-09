@@ -467,6 +467,15 @@ class ParserTest < Test::Unit::TestCase
   end
   
   #
+  # initialize test
+  #
+  
+  def test_parser_initializes_empty_schema_for_empty_argv
+    schema = Parser.new.schema
+    assert schema.nodes.empty?
+  end
+  
+  #
   # tasks tests
   #
 

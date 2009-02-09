@@ -323,6 +323,9 @@ module Tap
 
       # Same as parse, but removes parsed args from argv.
       def parse!(argv)
+        # prevent the addition of an empty node to schema
+        return if argv.empty?
+        
         argv = case argv
         when Array then argv
         when String then Shellwords.shellwords(argv) 
@@ -384,16 +387,16 @@ module Tap
       end
       
       def load(argv)
-         argv.each do |arg|
-          case arg
+        argv.each do |args|
+          case args
           when Array
-            schema.nodes << arg
+            schema.nodes << Node.new(args)
             self.current_index += 1
           else
-            parse_break(arg)
+            parse_break(args)
           end
         end
-        
+
         schema
       end
       
