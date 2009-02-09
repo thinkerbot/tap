@@ -114,7 +114,7 @@ class SchemaController < Tap::Controller
       id = random_key(current.length)
     end
     
-    dump_schema(id)
+    dump_schema(id, schema)
     id
   end
   

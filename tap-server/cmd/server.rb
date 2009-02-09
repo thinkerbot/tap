@@ -29,6 +29,6 @@ end
 
 # parse!
 argv = opts.parse(ARGV)
-server = Tap::Server.new(env, opts.config)
+server = Tap::Server.new(env, app, opts.config)
 cookie_server = Rack::Session::Pool.new(server)
 Rack::Handler::WEBrick.run(cookie_server, :Port => server.port)

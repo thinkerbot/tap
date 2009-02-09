@@ -7,18 +7,37 @@
 <% env.each do |current| %>
   <dt class="key"><%= env_names[current] %> (<%= current.root.root %>)</dt>
   <dd class="value">
-    <dl id="manifests" class="manifest">
+<%   controllers = current.controllers.build %>
+<%   unless controllers.empty? %>
+    <dl id="controllers" class="manifest">
+    <!-- controllers manifest -->
+    <dt class="key">controllers</dt>
+    <dd class="value">
+      <ol>
+<%     controllers.minimap.each do |(name, obj)| %>
+<%       path = obj.kind_of?(Tap::Support::Constant) ? obj.require_path : name %>
+      <li><a href="/<%= env_names[current] %>%3A<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
+<%     end %>
+      </ol>
+    </dd>
+    </dl>
+<%   end %>
+
+<%   tascs = current.tasks.build %>
+<%   unless tascs.empty? %>
+    <dl id="tascs" class="manifest">
     <!-- tasks manifest -->
     <dt class="key">tasks</dt>
     <dd class="value">
       <ol>
-<%   current.tasks.build.minimap.each do |(name, obj)| %>
-<%     path = obj.kind_of?(Tap::Support::Constant) ? obj.require_path : name %>
-      <li><a href="schema?nodes[0][0]=<%= env_names[current] %>%3A<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
-<%   end %>
+<%     tascs.minimap.each do |(name, obj)| %>
+<%       path = obj.kind_of?(Tap::Support::Constant) ? obj.require_path : name %>
+      <li><a href="/schema?nodes[0][0]=<%= env_names[current] %>%3A<%= name %>"><%= name %></a> (<%= current.root.relative_filepath(:root, path) || path %>)</li>
+<%     end %>
       </ol>
     </dd>
     </dl>
+<%   end %>
   </dd>
 <% end %>
   </dl>

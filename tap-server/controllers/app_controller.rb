@@ -74,16 +74,16 @@ class AppController < Tap::Controller
   
   def run
     app.run
-    tail
+    redirect("/app/tail")
   end
   
   def stop
     app.stop
-    info
+    redirect("/app/info")
   end
   
   def terminate
     app.terminate
-    info
+    redirect("/app/info")
   end
 end

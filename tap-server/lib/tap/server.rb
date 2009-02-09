@@ -89,9 +89,8 @@ module Tap
       initialize_config(config)
     end
     
-    #--
-    # Currently a stub for initializing a session.  initialize_session should
-    # return the session id.
+    # Currently a stub for initializing a session.  initialize_session returns
+    # an integer session id.
     def initialize_session
       id = 0
       session_app = app(id)
