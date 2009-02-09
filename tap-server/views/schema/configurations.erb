@@ -1,0 +1,27 @@
+<% configurations.each_pair do |key, config| %>
+    <li class="config">
+<%   if config.is_nest? %>
+    <span class="name"><%= key %></span>:
+    <span class="desc"><%= config[:desc].to_s %></span>
+    <ul class="nested_config">
+<%=  render("configurations.erb", :locals => {
+       :configurations => config.default(false).delegates, 
+       :values => values[key], 
+       :nest => "#{nest}#{nest.empty? ? '' : ':'}#{key}", 
+       :index => index}) %>
+    </ul>
+<%   else %>
+<%     template = case config[:type] %>
+<%     when :switch then 'switch' %>
+<%     when :flag then 'flag' %>
+<%     else 'default' %>
+<%     end %>
+<%=  render("config/#{template}.erb", :locals => {
+       :key => key, 
+       :config => config, 
+       :switch => "--#{nest}#{nest.empty? ? '' : ':'}#{key.to_s.gsub('_', '-')}", 
+       :value => values[key], 
+       :index => index}) %> 
+    </li>
+<%   end %>
+<% end %>

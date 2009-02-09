@@ -24,22 +24,16 @@
     </li>
 
     <!-- configurations -->
-<% tasc.configurations.each do |key, config| %>
-<%   template = case config[:type] %>
-<%   when :switch then 'switch' %>
-<%   when :flag then 'flag' %>
-<%   else 'default' %>
-<%   end %>
-<%   params = {:key => key, :config => config, :switch => "--#{key.to_s.gsub('_', '-')}", :value => task.config[key], :index => index} %>
-    <li class="config">
-<%=  render("config/#{template}.erb", :locals => params) %> 
-    </li>
-<% end %>
+<%=  render("configurations.erb", :locals => {
+       :configurations => tasc.configurations, 
+       :values => task.config, 
+       :nest => "", 
+       :index => index}) %> 
 
     <!-- options -->
     <li class="options">
-    <input class="key" name="nodes[<%= index %>][2]" type="hidden" value="--name" />
-    <input class="value" name="nodes[<%= index %>][2]" value="<%= task.name %>" />
+    <input class="key" name="nodes[<%= index %>][2][]" type="hidden" value="--name" />
+    <input class="value" name="nodes[<%= index %>][2][]" value="<%= task.name %>" />
     <span class="name">Name</span>
     </li>
     

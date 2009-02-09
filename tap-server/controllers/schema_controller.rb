@@ -88,7 +88,7 @@ class SchemaController < Tap::Controller
       dump_schema(id, schema)
       redirect("/schema/display/#{id}")
     when 'preview'
-      response.content_type = 'text/plain'
+      response.headers['Content-Type'] = 'text/plain'
       render('preview.erb', :locals => {:id => id, :schema => schema})
     when 'run'
     else
