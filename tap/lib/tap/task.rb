@@ -162,7 +162,7 @@ module Tap
       # Parses the argv into an instance of self and an array of arguments 
       # (implicitly to be enqued to the instance).
       def parse(argv=ARGV, app=Tap::App.instance)
-        parse!(argv.dup)
+        parse!(argv.dup, app)
       end
       
       # Same as parse, but removes switches destructively.
