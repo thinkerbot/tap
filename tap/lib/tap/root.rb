@@ -582,6 +582,19 @@ module Tap
     def relative_filepath(als, path)
       Root.relative_filepath(self[als], path)
     end
+    
+    # Same as filepath but raises an error if the result is not a subpath of
+    # the aliased directory.
+    def subpath(als, *paths)
+      dir = self[als]
+      path = filepath(als, *paths)
+      
+      if path.rindex(dir, 0) != 0
+        raise "not a subpath: #{path} (#{dir})"
+      end
+      
+      path
+    end
   
     # Generates a filepath translated from the aliased source dir to the
     # aliased target dir. Raises an error if the filepath is not relative

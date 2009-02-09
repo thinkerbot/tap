@@ -1002,6 +1002,22 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
+  # subpath tests
+  #
+  
+  def test_subpath_works_like_filepath
+    assert_equal File.expand_path("./root/dir"), r[:dir]
+    assert_equal File.expand_path("./root/dir/file.txt"), r.subpath(:dir, "file.txt")
+    assert_equal File.expand_path("./root/dir/nested/file.txt"), r.subpath(:dir, "nested/file.txt")
+  end
+  
+  def test_subpath_raises_error_if_file_is_found_outside_of_dir
+    assert_equal File.expand_path("./root/dir"), r[:dir]
+    err = assert_raises(RuntimeError) { r.subpath(:dir, "../alt/file.txt") }
+    assert_equal "not a subpath: #{File.expand_path("./root/alt/file.txt")} (#{r[:dir]})", err.message
+  end
+  
+  #
   # relative filepath tests
   #
   
