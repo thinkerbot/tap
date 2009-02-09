@@ -112,10 +112,12 @@ module Tap
           parser.load(argv)
           parser.schema
         end
-
+        
+        # Loads a schema from the specified path.  Raises an error if no such
+        # file existts.
         def load_file(path)
           argv = YAML.load_file(path)
-          load(argv)
+          argv ? load(argv) : new
         end
       end
       

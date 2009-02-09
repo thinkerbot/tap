@@ -87,9 +87,12 @@ end
 class SchemaTest < Test::Unit::TestCase
   include Tap::Support
   
+  acts_as_file_test
+  
   attr_reader :schema, :nodes, :n0, :n1, :n2, :n3, :n4, :n5
   
   def setup
+    super
     @nodes = Array.new(6) { Node.new }
     @schema = Schema.new @nodes
     @n0, @n1, @n2, @n3, @n4, @n5 = @nodes
@@ -97,6 +100,27 @@ class SchemaTest < Test::Unit::TestCase
   
   def node_set(n=3)
     Array.new(n) {|index| Node.new([index], 0) }
+  end
+  
+  #
+  # Schema#load_file test
+  #
+  
+  def test_load_file_initializes_new_Schema_for_empty_file
+    path = method_root.prepare(:tmp, 'empty.yml') {}
+    
+    assert_equal "", File.read(path)
+    schema = Schema.load_file(path)
+    assert schema.kind_of?(Schema)
+    assert schema.nodes.empty?
+  end
+  
+  def test_load_file_raises_error_for_non_existant_file
+    path = method_root.filepath('non_existant.yml')
+    
+    assert !File.exists?(path)
+    e = assert_raises(Errno::ENOENT) { Schema.load_file(path) }
+    assert_equal "No such file or directory - #{path}", e.message
   end
   
   #
