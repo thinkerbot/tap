@@ -52,63 +52,48 @@ class SchemaController < Tap::Controller
   set :default_layout, 'layouts/default.erb'
   
   def index
-    # parse a schema and clean it up using compact
-    render 'index.erb', :locals => {:schema => schema}, :layout => true
+    id = initialize_schema
+    redirect("/schema/display/#{id}")
   end
   
-  def add
-    return "<pre>" + parameters.to_yaml + "</pre>"
+  def display(id)
+    render 'index.erb', :locals => {:id => id, :schema => load_schema(id)}, :layout => true
+  end
+  
+  def add(id, *argv)
+    # TODO: parse configs/args from config
     
-    lines = []
-    (request['tascs'] || []).select do |name|
-      name && !name.empty?
-    end.each do |name|
-      index += 1
-      targets << index
-      lines << render('run/node.erb', :locals => {:node => Tap::Support::Node.new([name]), :index => index} )
+    load_schema(id) do |schema|
+      schema.nodes << Tap::Support::Node.new(argv)
     end
     
-    n_sources = sources.length
-    n_targets = targets.length
-    join = case
-    when n_sources == 1 && n_targets > 0
-      Tap::Support::Schema::Utils.format_fork(sources, targets, {})
-    when n_sources > 1 && n_targets == 1
-      # need to determine if sources and
-      # targets are already joined
-      Tap::Support::Schema::Utils.format_merge(sources, targets, {})
-    when n_sources == 0 && n_targets == 0
-      nil # no join specified
+    if request.get?
+      redirect("/schema/display/#{id}")
+    end
+  end
+  
+  def remove(id, index)
+    load_schema(id) do |schema|
+      schema.nodes.delete_at(index.to_i)
+    end
+    
+    if request.get?
+      redirect("/schema/display/#{id}")
+    end
+  end
+  
+  def run(id)
+    case request['action']
+    when 'update'
+      dump_schema(id, schema)
+      redirect("/schema/display/#{id}")
+    when 'preview'
+      response.content_type = 'text/plain'
+      render('preview.erb', :locals => {:id => id, :schema => schema})
+    when 'run'
     else
-      nil # TODO: warn an multi-join was specified
+      
     end
-    
-    lines << render('run/join.erb', :locals => {:join => join}) if join
-    lines.join("\n")
-  end
-  
-  def remove
-    index, sources, targets = parameters
-    
-    # select joins for sources and targets
-    
-    # remove src/target if it belongs to no join
-    # remove src/target from each join, as specified
-    # remove join if empty
-  end
-  
-  def run
-    return preview if req.params['preview']
-    
-    # queues = env.build(schema, app)
-    # # thread new...
-    # env.run(queues)
-    redirect('/app/run')
-  end
-  
-  def preview
-    res["Content-Type"] = 'text/plain'
-    render('preview.erb', :locals => {:schema => schema})
   end
   
   def load
@@ -121,8 +106,37 @@ class SchemaController < Tap::Controller
   
   protected
   
-  def app
-    Tap::App.instance
+  def initialize_schema
+    current = app.glob(:schema, "*").collect {|path| File.basename(path).chomp(".yml") }
+    
+    id = random_key(current.length)
+    while current.include?(id)
+      id = random_key(current.length)
+    end
+    
+    dump_schema(id)
+    id
+  end
+  
+  def dump_schema(id, schema=nil)
+    app.prepare(:schema, "#{id}.yml") do |file|
+      file << schema.dump.to_yaml if schema
+    end
+  end
+  
+  def load_schema(id)
+    unless path = app.filepath(:schema, "#{id}.yml")
+      raise ServerError, "no schema for id: #{id}"
+    end
+    schema = Tap::Support::Schema.load_file(path)
+    
+    if block_given?
+      result = yield(schema)
+      dump_schema(id, schema)
+      result
+    else
+      schema
+    end
   end
   
   # Parses a compacted Tap::Support::Schema from the request.
@@ -140,5 +154,11 @@ class SchemaController < Tap::Controller
       :targets => (request['targets'] || []).collect {|target| target.to_i },
       :tascs => (request['tascs'] || [])
     }
+  end
+  
+  # Generates a random integer key.
+  def random_key(length) # :nodoc:
+    length = 1 if length < 1
+    rand(length * 10000).to_s
   end
 end

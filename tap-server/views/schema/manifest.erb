@@ -1,8 +1,0 @@
-<select class="manifest">
-  <option value="">(none)</option>
-<% server.env.minimap.each do |(env_name, env)| %>
-<%   server.env.tasks.build.minimap.each do |(name, const)| %>
-  <option value="<%= env_name %>:<%= name %>"><%= env_name %>:<%= name %></option>
-<%   end %>
-<% end %>
-</select>

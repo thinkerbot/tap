@@ -1,15 +1,14 @@
-<% argv = node.argv %>
+<% argv = node.argv.dup %>
 <% tasc_identifier = argv.shift %>
-<% tasc = env.tasks.search(tasc_identifier).constantize %>
+<% tasc = server.env.tasks.search(tasc_identifier).constantize %>
 <% task, args = tasc.parse(argv) %>
 <% args.collect! {|arg| arg =~ /\s/ ? "'#{arg}'" : arg} %>
   <li id="node_<%= index %>" class="node">
     <!-- controls -->
-    <ul>
-      <li><input id="target_checkbox_<%= index %>" class="target_checkbox" name="target" value="<%= index %>" type="checkbox" /></li>
-      <li><input id="source_checkbox_<%= index %>" class="source_checkbox" name="source" value="<%= index %>" type="checkbox" /></li>
-    </ul>
-
+    <input id="target_checkbox_<%= index %>" class="target_checkbox" name="target" value="<%= index %>" type="checkbox" />
+    <input id="source_checkbox_<%= index %>" class="source_checkbox" name="source" value="<%= index %>" type="checkbox" />
+    <a href="/schema/remove/<%= id %>/<%= index %>">remove</a>
+    
     <span class="class"><%= tasc %></span>: 
     <span class="summary"><%= tasc.manifest.subject %></span>
     <pre><%= tasc.manifest.wrap %></pre>
@@ -33,7 +32,7 @@
 <%   end %>
 <%   params = {:key => key, :config => config, :switch => "--#{key.to_s.gsub('_', '-')}", :value => task.config[key], :index => index} %>
     <li class="config">
-<%=  render("run/config/#{template}.erb", :locals => params) %> 
+<%=  render("config/#{template}.erb", :locals => params) %> 
     </li>
 <% end %>
 

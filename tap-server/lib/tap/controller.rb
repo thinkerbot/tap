@@ -203,15 +203,10 @@ module Tap
       ERB.new(template, nil, "<>").result(binding)
     end
     
-    def redirect(uri, opts={})
-      uri = URI(uri)
-      
-      env = request.env.dup
-      env["QUERY_STRING"] = uri.query.to_s
-      env["PATH_INFO"] = (!uri.path || uri.path.empty?) ? "/" : uri.path
-      env.merge!(opts)
-      
-      server.call(env)
+    def redirect(uri)
+      response.status = 302
+      response['Location'] = uri
+      response.finish
     end
     
     # Returns a session hash.

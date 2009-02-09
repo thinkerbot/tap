@@ -1,30 +1,30 @@
-<form id="load-form" enctype="multipart/form-data" method="post" action="schema/load">
-  <input name="yaml" type="file"></input>
-  <input id="load-form-submit" type="submit" value="Load" />
-</form>
-
-<form id="schema-form" enctype="multipart/form-data" method="post" action="schema/run">
-  <ol class="schema">
+<form id="schema-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/run/<%= id %>">
+  <ol id="schema-<%= id %>" class="schema">
 <% index = 0 %>
 <% schema.nodes.each do |node| %>
-<%= render('node.erb', :locals => {:node => node, :index => index} ) %> 
+<%= render('node.erb', :locals => {:id => id, :node => node, :index => index} ) %> 
 <% index += 1 %>
 <% end %>
 <% schema.rounds(true).each do |round| %>
-<%= render('round.erb', :locals => {:round => round}) %> 
+<%= render('round.erb', :locals => {:id => id, :round => round}) %> 
 <% end %>
 <% schema.send(:each_join_str) do |join| %>
-<%= render('join.erb', :locals => {:join => join}) %> 
+<%= render('join.erb', :locals => {:id => id, :join => join}) %> 
+<% end %>
+<% server.env.minimap.each do |(env_name, env)| %>
+<%   env.tasks.build.minimap.each do |(name, const)| %>
+  <li class="manifest">
+    <a href="/schema/add/<%= id %>/<%= env_name %>:<%= name %>"><%= env_name %>:<%= name %></a>
+  </li>
+<%   end %>
 <% end %>
   </ol>
-  <ul class="controls">
-    <li>
-<%= render('manifest.erb') %>
-
-    </li>
+  <ul id="controls-<%= id %>" class="controls">
     <li><a href="javascript:Tap.Schema.update('schema-form', 'schema/add');">add</a></li>
     <li><a href="javascript:Tap.Schema.update('schema-form', 'schema/remove');">remove</a></li>
   </ul>
-  <input id='preview' name="preview" type="checkbox">preview</input>
+  <input type="radio" name="action" value="update" checked="true">update</input>
+  <input type="radio" name="action" value="preview">preview</input>
+  <input type="radio" name="action" value="run">run</input>
   <input id="schema-form-submit" type="submit" value="Submit" />
 </form>

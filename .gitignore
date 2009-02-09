@@ -2,5 +2,6 @@
 pkg
 rdoc
 backup
-log
+tap-server/log
+tap-server/schema
 *~
