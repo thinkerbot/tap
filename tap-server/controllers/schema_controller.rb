@@ -25,25 +25,15 @@ class SchemaController < Tap::Controller
     # 'joins', but other entries may be present (such as 'action') that
     # dictate what gets done with the params.
     def pair_parse(params)
-      pairs = {}
-      params.each_pair do |key, values|
-        next if key == nil
-        key = key.chomp("%w") if key =~ /%w$/
-
-        resolved_values = pairs[key] ||= []
-        values.each do |value|
-          value = value.respond_to?(:read) ? value.read : value
-
-          # $~ indicates if key matches shellwords pattern
-          if $~ 
-            resolved_values.concat(Shellwords.shellwords(value))
-          else 
-            resolved_values << value
-          end
-        end
+      params.keys.each do |key|
+        next unless key && key =~ /%w$/
+        value = params.delete(key)
+        key = key.chomp("%w")
+      
+        (params[key] ||= []).concat Shellwords.shellwords(value)
       end
 
-      UrlEncodedPairParser.new(pairs).result   
+      UrlEncodedPairParser.new(params).result   
     end
   end
   
@@ -90,9 +80,8 @@ class SchemaController < Tap::Controller
     when 'preview'
       response.headers['Content-Type'] = 'text/plain'
       render('preview.erb', :locals => {:id => id, :schema => schema})
-    when 'run'
     else
-      
+      # run
     end
   end
   

@@ -14,12 +14,12 @@
     <pre><%= tasc.manifest.wrap %></pre>
     
     <!-- tasc identifier -->
-    <input name="nodes[<%= index %>][0]" type="hidden" value="<%= tasc_identifier %>" />
+    <input name="nodes[<%= index %>][]" type="hidden" value="<%= tasc_identifier %>" />
     
     <ul>
     <!-- inputs -->
     <li class="input">
-    <input class="value" name="nodes[<%= index %>][1]%w" value="<%= args.join(' ') %>" />
+    <input class="value" name="nodes[<%= index %>]%w" value="<%= args.join(' ') %>" />
     <span class="name"><%= tasc.args.to_s %></span>
     </li>
 
@@ -32,8 +32,8 @@
 
     <!-- options -->
     <li class="options">
-    <input class="key" name="nodes[<%= index %>][2][]" type="hidden" value="--name" />
-    <input class="value" name="nodes[<%= index %>][2][]" value="<%= task.name %>" />
+    <input class="key" name="nodes[<%= index %>][]" type="hidden" value="--name" />
+    <input class="value" name="nodes[<%= index %>][]" value="<%= task.name %>" />
     <span class="name">Name</span>
     </li>
     
