@@ -4,7 +4,7 @@ require 'tap/test/regexp_escape'
 
 class ServerTest < Test::Unit::TestCase
   acts_as_tap_test
-  cleanup_dirs << :controllers
+  cleanup_dirs << :controllers << :log
   
   attr_accessor :server, :request
   
@@ -98,6 +98,24 @@ end
   def test_initialize_sets_env_to_pwd
     server = Tap::Server.new
     assert_equal Dir.pwd, server.env.root.root
+  end
+  
+  #
+  # initialize_session test
+  #
+  
+  def test_initialize_session_returns_an_integer_id
+    assert server.initialize_session.kind_of?(Integer)
+  end
+  
+  #
+  # app test
+  #
+  
+  def test_app_returns_app_when_id_is_nil
+    app = Tap::App.new
+    server = Tap::Server.new Tap::Env.new, app
+    assert_equal app, server.app
   end
   
   #

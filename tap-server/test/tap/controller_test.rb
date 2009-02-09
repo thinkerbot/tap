@@ -285,6 +285,56 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
+  # session test
+  #
+  
+  def test_session_returns_the_rack_session
+    session = {}
+    request = Rack::Request.new Rack::MockRequest.env_for("/", 'rack.session' => session)
+    controller = Tap::Controller.new nil, request
+    
+    assert_equal session.object_id, controller.session.object_id
+  end
+  
+  def test_session_initializes_rack_session_as_a_hash_if_necessary
+    request = Rack::Request.new Rack::MockRequest.env_for("/")
+    controller = Tap::Controller.new nil, request
+    
+    assert !request.env.has_key?('rack.session')
+    session = controller.session
+    assert_equal({}, session)
+    assert_equal session.object_id, request.env['rack.session'].object_id
+  end
+  
+  #
+  # app test
+  #
+  
+  class MockAppServer
+    def initialize_session
+      1
+    end
+    def app(id)
+      "app_#{id}"
+    end
+  end
+  
+  def test_app_returns_server_app_for_session_id
+    request = Rack::Request.new Rack::MockRequest.env_for("/", 'rack.session' => {:id => 0})
+    controller = Tap::Controller.new MockAppServer.new, request
+    assert_equal 'app_0', controller.app
+  end
+  
+  def test_app_initializes_session_id_if_unspecified
+    request = Rack::Request.new Rack::MockRequest.env_for("/")
+    controller = Tap::Controller.new MockAppServer.new, request
+    
+    assert !request.env.has_key?('rack.session')
+    assert_equal 'app_1', controller.app
+    assert_equal({:id => 1}, request.env['rack.session'])
+  end
+  
+  #
   # redirect test
   #
   

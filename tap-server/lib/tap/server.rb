@@ -80,12 +80,31 @@ module Tap
     config :controllers, {}
     config :default_controller_key, 'app'
     
-    attr_accessor :env
+    attr_reader :env
     
-    def initialize(env=Env.new, config={})
+    def initialize(env=Env.new, app=Tap::App.instance, config={})
       @env = env
+      @app = app
       @cache = {}
       initialize_config(config)
+    end
+    
+    #--
+    # Currently a stub for initializing a session.  initialize_session should
+    # return the session id.
+    def initialize_session
+      id = 0
+      session_app = app(id)
+      log_path = session_app.prepare(:log, 'server.log')
+      session_app.logger = Logger.new(log_path)
+      id
+    end
+    
+    # Returns the app provided during initialization.  In the future this
+    # method may be extended to provide a session-specific App, hence it
+    # has been stubbed with an id input.
+    def app(id=nil)
+      @app
     end
     
     # Returns true if environment is :development.
@@ -124,21 +143,6 @@ module Tap
       $!.response
     rescue Exception
       ServerError.response($!)
-    end
-    
-    #--
-    # Currently a stub for initializing a session.  initialize_session should
-    # return the session id.
-    def initialize_session
-      log_path = env.app.prepare(:log, 'server.log')
-      env.app.logger = Logger.new(log_path)
-      0
-    end
-    
-    #--
-    # TODO: implement session-specific applications keyed by id.
-    def app(id)
-      env.app
     end
     
     #--
