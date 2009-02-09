@@ -290,16 +290,38 @@ class ControllerTest < Test::Unit::TestCase
   
   class RedirectController < Tap::Controller
     def action
-      redirect "/target/path/to/resource"
+      redirect "/target"
+    end
+    
+    def action_with_args
+      redirect "/target", 300, {'Content-Type' => 'text/plain'}, "body"
+    end
+    
+    def action_with_location_header
+      redirect "/target", 302, {'Location' => 'overridden'}
     end
   end
   
-  def test_redirect_redirects_call_to_new_uri
-    server.controllers['target'] = lambda do |env|
-      [200, {}, "Target got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
-    end
-    
+  def test_redirect_returns_a_302_response_with_the_redirect_location_set
     request = Rack::MockRequest.new RedirectController
-    assert_equal "Target got /target : /path/to/resource", request.get("/action", 'tap.server' => server).body
+    response = request.get("/action", 'tap.server' => server)
+    assert_equal 302, response.status
+    assert_equal "/target", response.headers['Location']
+    assert_equal "", response.body
+  end
+  
+  def test_redirect_may_specify_status_headers_and_body
+    request = Rack::MockRequest.new RedirectController
+    response = request.get("/action_with_args", 'tap.server' => server)
+    assert_equal 300, response.status
+    assert_equal "/target", response.headers['Location']
+    assert_equal "text/plain", response.headers['Content-Type']
+    assert_equal "body", response.body
+  end
+  
+  def test_redirect_uri_overrides_header_Location
+    request = Rack::MockRequest.new RedirectController
+    response = request.get("/action_with_location_header", 'tap.server' => server)
+    assert_equal "/target", response.headers['Location']
   end
 end

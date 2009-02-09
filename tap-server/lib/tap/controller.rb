@@ -203,8 +203,12 @@ module Tap
       ERB.new(template, nil, "<>").result(binding)
     end
     
-    def redirect(uri)
-      response.status = 302
+    # Redirects to the specified uri.
+    def redirect(uri, status=302, headers={}, body="")
+      response.status = status
+      response.headers.merge!(headers)
+      response.body = body
+      
       response['Location'] = uri
       response.finish
     end
