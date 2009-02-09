@@ -221,7 +221,7 @@ module Tap
         end        
 
         obj.batch.each do |batch_obj|
-          batch_obj.reconfigure(opts.config)
+          batch_obj.reconfigure(opts.nested_config)
         end
         
         [obj, (argv + use_args)]

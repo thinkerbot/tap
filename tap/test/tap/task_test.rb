@@ -224,6 +224,23 @@ class TaskTest < Test::Unit::TestCase
     assert_equal %w{1 2 3}, argv
   end
   
+  class NestedParseClass < Tap::Task
+    config :key, nil
+  end
+  
+  class NestingParseClass < Tap::Task
+    config :key, nil
+    define :nest, NestedParseClass do |config|
+      NestedParseClass.new(config)
+    end
+  end
+  
+  def test_parse_reconfigures_nested_tasks
+    instance, argv = NestingParseClass.parse(%w{--key one --nest:key two})
+    assert_equal({:key => 'one', :nest => {:key => 'two'}}, instance.config.to_hash)
+    assert_equal({:key => 'two'}, instance.nest.config)
+  end
+  
   #
   # Task.load_config test
   #
