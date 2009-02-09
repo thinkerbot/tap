@@ -1017,6 +1017,15 @@ class RootTest < Test::Unit::TestCase
     assert_equal "not a subpath: #{File.expand_path("./root/alt/file.txt")} (#{r[:dir]})", err.message
   end
   
+  def test_subpath_properly_handles_expanded_and_partial_filepaths
+    expanded_dir = File.expand_path("./root/dir")
+    err = assert_raises(RuntimeError) { r.subpath(expanded_dir, "../alt/file.txt") }
+    assert_equal "not a subpath: #{File.expand_path("./root/alt/file.txt")} (#{expanded_dir})", err.message
+    
+    err = assert_raises(RuntimeError) { r.subpath("dir", "../alt/file.txt") }
+    assert_equal "not a subpath: #{File.expand_path("./root/alt/file.txt")} (#{expanded_dir})", err.message
+  end
+  
   #
   # relative filepath tests
   #
