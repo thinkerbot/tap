@@ -1,12 +1,8 @@
 require 'tap/controller'
-require 'tap/models/tail'
-
 require 'rack/mime'
 require 'time'
 
 class AppController < Tap::Controller
-  Tail = Tap::Models::Tail
-  
   set :default_layout, 'layouts/default.erb'
   
   def call(env)
@@ -44,28 +40,39 @@ class AppController < Tap::Controller
     end
   end
   
+  #--
+  # Currently tail is hard-coded to tail the server log only.
   def tail(id=nil)
-    id = app.storage.store(Tail.new(log_file)) if id == nil
-    tail = app.storage[id.to_i]
+    begin
+      path = app.subpath(:log, 'server.log')
+      raise unless File.exists?(path)
+    rescue
+      raise Tap::ServerError.new("invalid path", 404)
+    end
     
-    unless tail.kind_of?(Tail)
-      raise Tap::ServerError, "no path for id: #{id.inspect}"
+    pos = request['pos'].to_i
+    if pos > File.size(path)
+      raise Tap::ServerError.new("tail position out of range (try update)", 500)
+    end
+
+    content = File.open(path) do |file|
+      file.pos = pos
+      file.read
     end
     
     if request.post?
-      tail.content
+      content
     else
       render('tail.erb', :locals => {
         :id => id,
-        :path => File.basename(tail.path),
+        :path => File.basename(path),
         :update => true,
-        :content => tail.content
+        :content => content
       }, :layout => true)
     end
   end
   
   def run
-    request['id'] = log_key
     app.run
     tail
   end
@@ -78,21 +85,5 @@ class AppController < Tap::Controller
   def terminate
     app.terminate
     info
-  end
-  
-  protected
-  
-  def app
-    Tap::App.instance
-  end
-  
-  def setup_app
-    log_file = server.env.root.prepare(:log, 'server.log')
-    app.logger = Logger.new(log_file)
-    log_file
-  end
-  
-  def log_file
-    @log_file ||= setup_app
   end
 end

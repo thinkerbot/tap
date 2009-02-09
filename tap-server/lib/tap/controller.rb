@@ -214,11 +214,15 @@ module Tap
       server.call(env)
     end
     
+    # Returns a session hash.
     def session
       request.env['rack.session'] ||= {}
     end
     
-    private
+    # Returns the app for the current session.
+    def app
+      server.app(session[:id] ||= server.initialize_session)
+    end
     
     # Generates an empty binding to self without any locals assigned.
     def empty_binding # :nodoc:

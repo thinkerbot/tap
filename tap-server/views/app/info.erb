@@ -2,6 +2,7 @@
 <% update_info = "Tap.App.info('/app/info', 'update-#{id}', 'info-#{id}', 1000);" %>
 <div class="info">
   <input class="update-" id="update-<%= id %>" type="checkbox" <%= update ? "checked='true' " : "" %>onchange="<%= update_info %>" />
+  <a href="/app/info">update</a>
   <span class="info" id="info-<%= id %>"><%= content %></span>
 </div>
 <script type="text/javascript"><%= update ? update_info : "" %></script>

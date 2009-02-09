@@ -12,6 +12,9 @@ Tap.App = {
     if($(checkbox).checked) {
       new Ajax.Request(action, {
         method: 'post',
+        parameters: {
+          pos: $(target).innerHTML.length
+        },
         onSuccess: function(transport) {
           new Insertion.Bottom(target, transport.responseText);
         },

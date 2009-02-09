@@ -126,14 +126,35 @@ module Tap
       ServerError.response($!)
     end
     
+    #--
+    # Currently a stub for initializing a session.  initialize_session should
+    # return the session id.
+    def initialize_session
+      log_path = env.app.prepare(:log, 'server.log')
+      env.app.logger = Logger.new(log_path)
+      0
+    end
+    
+    #--
+    # TODO: implement session-specific applications keyed by id.
+    def app(id)
+      env.app
+    end
+    
+    #--
+    # TODO: implement caching for path content
     def content(path)
       File.read(path)
     end
     
+    #--
+    # TODO: implement caching for public_paths
     def public_path(path)
       env.search(public_dir, path) {|public_path| File.file?(public_path) }
     end
     
+    #--
+    # TODO: implement caching for template_paths
     def template_path(path)
       env.search(views_dir, path) {|template_path| File.file?(template_path) }
     end
