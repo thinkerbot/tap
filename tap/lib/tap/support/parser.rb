@@ -237,11 +237,13 @@ module Tap
           options = {}
           0.upto(three.length - 1) do |char_index|
             char = three[char_index, 1]
-            unless index = Join::SHORT_FLAGS.index(char)
-              raise "unknown option in: #{three} (#{char})"
+            
+            key, config = Join.configurations.find do |key, config| 
+              config.attributes[:short] == char
             end
             
-            options[Join::FLAGS[index]] = true
+            raise "unknown option in: #{three} (#{char})" unless key 
+            options[key] = true
           end
           options
         end
