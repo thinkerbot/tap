@@ -35,17 +35,44 @@ class SchemaController < Tap::Controller
 
       UrlEncodedPairParser.new(params).result   
     end
+    
+    def infer_join(sources, targets)
+      case sources.length
+      when 0 then nil
+      when 1
+        # one source: join
+        join = case targets.length
+        when 0 then return nil
+        when 1 then Tap::Support::Joins::Sequence
+        else Tap::Support::Joins::Fork
+        end
+        
+        [join, sources, targets]
+      else
+        # many sources: reverse_join
+        reverse_join = case targets.length
+        when 0 then return nil
+        when 1 then Tap::Support::Joins::Merge
+        else raise Tap::ServerError, "multi-join specified: #{sources.inspect} => #{targets.inspect}"
+        end
+        
+        [reverse_join, targets, sources]
+      end
+    end
   end
   
   include Utils
   
   set :default_layout, 'layouts/default.erb'
   
+  # Initializes a new schema and redirects to display.
   def index
     id = initialize_schema
     redirect("/schema/display/#{id}")
   end
   
+  # Loads the schema indicated by id and renders 'schema.erb' with the default
+  # layout.
   def display(id)
     schema = load_schema(id)
     render 'schema.erb', :locals => {
@@ -54,17 +81,51 @@ class SchemaController < Tap::Controller
     }, :layout => true
   end
   
+  # Updates the specified schema with the request parameters.  Update forwards
+  # the request to the action ('add' or 'remove') specified in the action
+  # parameter.
   def update(id)
+    case request['action']
+    when 'add' then add(id)
+    when 'remove' then remove(id)
+    else raise Tap::ServerError, "unknown action: #{request['action']}"
+    end
+  end
+  
+  # Adds nodes or joins to the schema.  Parameters:
+  #
+  # nodes[]:: An array of nodes to add to the schema. Each entry is split using
+  #           Shellwords to yield an argv; the argv initializes the node.  The
+  #           index of each new node is added to targets[].
+  # sources[]:: An array of source indicies used to create a join.
+  # targets[]:: An array of target indicies used to create a join (note the
+  #             indicies of new nodes are added to targets).
+  #
+  def add(id)
     unless request.post?
       raise Tap::ServerError, "update must be performed with post"
     end
     
+    targets = (request['targets[]'] || []).collect {|index| index.to_i }
+    sources = (request['sources[]'] || []).collect {|index| index.to_i }
+    nodes = request['nodes[]'] || []
+    
     load_schema(id) do |schema|
-      case request['action']
-      when 'add' then add(schema)
-      when 'remove' then remove(schema)
-      else raise Tap::ServerError, "unknown action: #{request['action']}"
+      nodes.each do |arg|
+        next unless arg && !arg.empty?
+
+        targets << schema.nodes.length
+        schema.nodes << Tap::Support::Node.new( Shellwords.shellwords(arg) )
       end
+      
+      if join = infer_join(sources, targets)
+        schema.set(*join)
+      else
+        sources.each {|index| schema[index].output = nil }
+        targets.each {|index| schema[index].input = nil }
+      end
+      
+      schema.compact
     end
     
     redirect("/schema/display/#{id}")
@@ -127,37 +188,6 @@ class SchemaController < Tap::Controller
     app.prepare(:schema, "#{id}.yml") do |file|
       file << schema.dump.to_yaml if schema
     end
-  end
-  
-  def add(schema)
-    targets = (request['targets[]'] || []).collect {|index| index.to_i }
-    sources = (request['sources[]'] || []).collect {|index| index.to_i }
-    tascs = request['tascs[]']
-    
-    tascs.each do |name|
-      next unless name && !name.empty?
-      
-      targets << schema.nodes.length
-      schema.nodes << Tap::Support::Node.new([name])
-    end if tascs
-
-    n_sources = sources.length
-    n_targets = targets.length
-    
-    case
-    when n_sources == 1 && n_targets > 0
-      schema.set(Tap::Support::Joins::Fork, sources, targets)
-    when n_sources > 1 && n_targets == 1
-      # need to determine if sources and targets are 
-      # already joined... if so then SyncMerge
-      schema.set(Tap::Support::Joins::Merge, sources, targets)
-    when n_sources == 0 || n_targets == 0
-      # no join specified
-    else
-      raise Tap::ServerError, "multi-join specified: #{sources.inspect} => #{targets.inspect}"
-    end
-    
-    schema.compact
   end
   
   def remove(schema)
