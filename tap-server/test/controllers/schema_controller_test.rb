@@ -159,7 +159,7 @@ class SchemaControllerTest < Test::Unit::TestCase
     assert_equal 302, request.post("/add/0?sources[]=1&sources[]=2", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c -- d --*1 --*2 --0{3}}", schema.to_s
+    assert_equal "-- a -- b -- c -- d --*1 --*2 --0{3}", schema.to_s
   end
   
   def test_add_sets_join_input_to_nil_for_targets_without_a_source

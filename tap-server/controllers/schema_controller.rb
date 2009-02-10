@@ -41,22 +41,18 @@ class SchemaController < Tap::Controller
       when 0 then nil
       when 1
         # one source: join
-        join = case targets.length
+        case targets.length
         when 0 then return nil
         when 1 then Tap::Support::Joins::Sequence
         else Tap::Support::Joins::Fork
         end
-        
-        [join, sources, targets]
       else
         # many sources: reverse_join
-        reverse_join = case targets.length
+        case targets.length
         when 0 then return nil
         when 1 then Tap::Support::Joins::Merge
         else raise Tap::ServerError, "multi-join specified: #{sources.inspect} => #{targets.inspect}"
         end
-        
-        [reverse_join, targets, sources]
       end
     end
   end
@@ -119,7 +115,7 @@ class SchemaController < Tap::Controller
       end
       
       if join = infer_join(sources, targets)
-        schema.set(*join)
+        schema.set(join, sources, targets)
       else
         sources.each {|index| schema[index].output = nil }
         targets.each {|index| schema[index].input = nil }
