@@ -157,15 +157,14 @@ module Tap
         end
         
         # cleanup joins
-        joins.each_pair do |join, (source_node, target_nodes)|
-          target_nodes.compact!
-          if target_nodes.empty?
+        joins.each_pair do |join, (source_nodes, target_nodes)|
+          source_nodes.each do |source_node|
             source_node.output = nil
-          else
-            target_nodes.each do |target_node|
-              target_node.input = nil
-            end unless source_node
-          end
+          end if target_nodes.empty?
+          
+          target_nodes.each do |target_node|
+            target_node.input = nil
+          end if source_nodes.empty?
         end
         
         # reassign rounds
@@ -223,25 +222,20 @@ module Tap
         nodes.each do |node|
           next unless node
           
-          case node.input
-          when Join, ReverseJoin
-            (joins[node.input] ||= [nil,[]])[1] << node
-          end
+          output = node.output
+          (joins[output] ||= [[],[]])[0] << node if output.kind_of?(Join)
           
-          case node.output
-          when Join, ReverseJoin
-            (joins[node.output] ||= [nil,[]])[0] = node
-          end
+          input = node.input
+          (joins[input] ||= [[],[]])[1] << node if input.kind_of?(Join)
         end
         
         if as_indicies
-          summary = []
-          joins.each_pair do |join, (source_node, target_nodes)|
-            target_indicies = target_nodes.collect {|node| nodes.index(node) }
-            summary << [join.name, nodes.index(source_node), target_indicies, join.options]
+          array = []
+          joins.each_pair do |join, (source_nodes, target_nodes)|
+            array << [join.name, node_indicies(source_nodes), node_indicies(target_nodes), join.options]
           end
           
-          summary.sort_by {|entry| entry[1] || -1 }
+          array.sort_by {|entry| entry[1] || -1 }
         else
           joins
         end
@@ -271,13 +265,15 @@ module Tap
         end
 
         # build the workflow
-        joins.each_pair do |join, (source_node, target_nodes)|
-          raise "unassigned join: #{join}" if source_node == nil || target_nodes.empty?
-
+        joins.each_pair do |join, (source_nodes, target_nodes)|
+          raise "orphan join: #{join}" if source_nodes.empty? || target_nodes.empty?
+          
+          sources = source_nodes.collect do |source_node|
+            tasks[source_node][0]
+          end
           targets = target_nodes.collect do |target_node|
             tasks[target_node][0]
           end
-          source = tasks[source_node][0]
           
           join.join(source, targets)
         end
@@ -326,6 +322,10 @@ module Tap
       
       protected
       
+      def node_indicies(node_array) # :nodoc:
+        node_array.collect {|node| nodes.index(node) }
+      end
+      
       # Yields each formatted schema string (global, round, and join).
       def each_schema_str # :nodoc:
         each_globals_str {|str| yield str }
@@ -354,16 +354,16 @@ module Tap
 
       # Yields each join formatted as a string.
       def each_join_str # :nodoc
-        joins.each_pair do |join, (source_node, target_nodes)|
-          source_index = nodes.index(source_node)
-          target_indicies = target_nodes.collect {|node| nodes.index(node) }
-          
+        joins.each_pair do |join, (source_nodes, target_nodes)|
+          source_indicies = node_indicies(source_nodes)
+          target_indicies = node_indicies(target_nodes)
+
           yield case join
-          when Joins::Sequence   then format_sequence(source_index, target_indicies, join.options)
-          when Joins::Fork       then format_fork(source_index, target_indicies, join.options)
-          when Joins::Merge      then format_merge(source_index, target_indicies, join.options)
-          when Joins::SyncMerge  then format_sync_merge(source_index, target_indicies, join.options)
-          else raise "unknown join type: #{join.class} (#{source_index}, [#{target_indicies.join(',')}])"
+          when Joins::Sequence   then format_sequence(source_indicies, target_indicies, join.options)
+          when Joins::Fork       then format_fork(source_indicies, target_indicies, join.options)
+          when Joins::Merge      then format_merge(target_indicies, source_indicies, join.options)
+          when Joins::SyncMerge  then format_sync_merge(target_indicies, source_indicies, join.options)
+          else raise "unknown join type: #{join.class} ([#{source_indicies.join(',')}], [#{target_indicies.join(',')}])"
           end
         end
       end

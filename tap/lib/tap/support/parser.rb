@@ -47,7 +47,7 @@ module Tap
     #
     #   schema = Parser.new("a --: b -- c --1:2i").schema
     #   schema.argvs                    # => [["a"], ["b"], ["c"], []]
-    #   schema.joins(true)              # => [[:sequence,0,[1],{}], [:sequence,1,[2],{:iterate => true}]]
+    #   schema.joins(true)              # => [[:sequence,[0],[1],{}], [:sequence,[1],[2],{:iterate => true}]]
     #
     # ==== Globals
     # Global instances of task (used, for example, by dependencies) may
@@ -428,8 +428,12 @@ module Tap
 
         when INSTANCE    then schema[parse_instance($1)].globalize
         when FORK        then schema.set(Joins::Fork,       *parse_bracket($1, $2, $3))
-        when MERGE       then schema.set(Joins::Merge,      *parse_bracket($1, $2, $3))
-        when SYNC_MERGE  then schema.set(Joins::SyncMerge,  *parse_bracket($1, $2, $3))    
+        when MERGE
+          sources, targets, options = parse_bracket($1, $2, $3)
+          schema.set(Joins::Merge,      targets, sources, options)
+        when SYNC_MERGE
+          sources, targets, options = parse_bracket($1, $2, $3)
+          schema.set(Joins::SyncMerge,  targets, sources, options)
         else raise ArgumentError, "invalid break argument: #{arg}"
         end
       end

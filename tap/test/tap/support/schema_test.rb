@@ -172,12 +172,12 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal join, n2.input
   end
   
-  def test_set_with_a_ReverseJoin_sets_inputs_and_outputs_for_specified_nodes_to_the_new_join
-    join = schema.set(ReverseJoin, 0, [1,2], {})
+  def test_set_allows_multiple_sources
+    join = schema.set(ReverseJoin, [1,2], 0, {})
     
-    assert_equal join, n0.output
-    assert_equal join, n1.input
-    assert_equal join, n2.input
+    assert_equal join, n0.input
+    assert_equal join, n1.output
+    assert_equal join, n2.output
   end
   
   #
@@ -292,12 +292,17 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_joins_returns_hash_of_input_and_output_nodes_by_join
     a = schema.set(Join, 0, [1,2])
-    b = schema.set(ReverseJoin, 5, [3,4])
+    b = schema.set(ReverseJoin, [3,4], 5)
     
     assert_equal({
-      a => [n0, [n1,n2]], 
-      b => [n5, [n3,n4]]
+      a => [[n0], [n1,n2]], 
+      b => [[n3,n4], [n5]]
     }, schema.joins)
+  end
+  
+  def test_joins_only_includes_joins
+    assert !schema.nodes.empty?
+    assert_equal({}, schema.joins)
   end
   
   #
@@ -387,7 +392,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_merge_breaks_for_merge_joins
     schema = Schema.new node_set
-    schema.set Joins::Merge, 2, [0,1]
+    schema.set Joins::Merge, [0,1], 2
 
     assert_equal "-- 0 -- 1 -- 2 --2{0,1}", schema.to_s
     assert_equal [[0],[1],[2],"2{0,1}"], schema.dump
@@ -395,7 +400,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_sync_merge_breaks_for_sync_merge_joins
     schema = Schema.new node_set
-    schema.set Joins::SyncMerge, 2, [0,1]
+    schema.set Joins::SyncMerge, [0,1], 2
 
     assert_equal "-- 0 -- 1 -- 2 --2(0,1)", schema.to_s
     assert_equal [[0],[1],[2],"2(0,1)"], schema.dump
