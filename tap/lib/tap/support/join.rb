@@ -11,17 +11,6 @@ module Tap
     # Joins have a single source and may have multiple targets.  See
     # ReverseJoin for joins with a single target and multiple sources.
     class Join
-      class << self
-        
-        # Create a join between the source and targets.  Targets should
-        # be an array; if the last member of targets is a hash, it will
-        # be used as the configurations for the join.
-        def join(source, targets, &block)
-          options = targets[-1].kind_of?(Hash) ? targets.pop : {}
-          new(options).join(source, targets, &block)
-        end
-      end
-      
       include Configurable
       
       # Causes the join to iterate the results
@@ -145,19 +134,9 @@ module Tap
     
     # Like a Join, but with a single target and multiple sources.
     class ReverseJoin < Join
-      class << self
-        # Create a join between the sources and target.  Sources should
-        # be an array; if the last member of sources is a hash, it will
-        # be used as the configurations for the join.
-        def join(target, sources, &block)
-          options = sources[-1].kind_of?(Hash) ? sources.pop : {}
-          new(options).join(target, sources, &block)
-        end
-      end
-      
       # Creates a join between the sources and target.
       # Must be implemented in subclasses.
-      def join(target, sources, &block)
+      def join(sources, target, &block)
         raise NotImplementedError
       end
       

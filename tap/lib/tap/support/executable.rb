@@ -168,20 +168,23 @@ module Tap
       # enques the next task with it's results, starting with self.  
       # See Joins::Sequence.
       def sequence(*tasks, &block) # :yields: _result
-        Joins::Sequence.join(self, tasks, &block)
+        options = tasks[-1].kind_of?(Hash) ? tasks.pop : {}
+        Joins::Sequence.new(options).join(self, tasks, &block)
       end
 
       # Sets a fork workflow pattern for self; each target
       # will enque the results of self.  See Joins::Fork.
       def fork(*targets, &block) # :yields: _result
-        Joins::Fork.join(self, targets, &block)
+        options = targets[-1].kind_of?(Hash) ? targets.pop : {}
+        Joins::Fork.new(options).join(self, targets, &block)
       end
 
       # Sets a simple merge workflow pattern for the source tasks. Each 
       # source enques self with it's result; no synchronization occurs, 
       # nor are results grouped before being enqued.  See Joins::Merge.
       def merge(*sources, &block) # :yields: _result
-        Joins::Merge.join(self, sources, &block)
+        options = sources[-1].kind_of?(Hash) ? sources.pop : {}
+        Joins::Merge.new(options).join(sources, self, &block)
       end
 
       # Sets a synchronized merge workflow for the source tasks.  Results 
@@ -191,7 +194,8 @@ module Tap
       #
       # Raises an error if a source returns twice before the target is enqued.
       def sync_merge(*sources, &block) # :yields: _result
-        Joins::SyncMerge.join(self, sources, &block)
+        options = sources[-1].kind_of?(Hash) ? sources.pop : {}
+        Joins::SyncMerge.new(options).join(sources, self, &block)
       end
 
       # Sets a switch workflow pattern for self.  When _execute completes, 
@@ -200,7 +204,8 @@ module Tap
       # will be enqued if the index is false or nil.  An error is raised if
       # no target can be found for the specified index. See Joins::Switch.
       def switch(*targets, &block) # :yields: _result
-        Joins::Switch.join(self, targets, &block)
+        options = targets[-1].kind_of?(Hash) ? targets.pop : {}
+        Joins::Switch.new(options).join(self, targets, &block)
       end
       
       # Adds the dependency to each member in batch (and implicitly self).

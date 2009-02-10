@@ -9,7 +9,7 @@ module Tap
       # available; results are passed in one group.  Similarly, a collision 
       # results if a single source completes twice before the group.
       class SyncMerge < ReverseJoin
-        def join(target, sources)
+        def join(sources, target)
 
           # a hash of (source, index) pairs where index is the
           # index of the source in a combination
