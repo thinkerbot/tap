@@ -88,12 +88,12 @@ module Tap
         def format_options(options)
           options_str = []
           options.each_pair do |key, value|
-            unless index = Join::FLAGS.index(key)
+            unless config = Join.configurations[key]
               raise "unknown key in: #{options} (#{key})"
             end
             
             if value
-              options_str << Join::SHORT_FLAGS[index]
+              options_str << config.attributes[:short]
             end
           end
           options_str.sort.join

@@ -30,12 +30,6 @@ module Tap
       # and not their batches.
       config :unbatched, false, :short => 'u', &c.boolean
       
-      # An array of workflow flags.  Workflow flags are false unless specified.
-      FLAGS = configurations.keys
-      
-      # An array of the shorts corresponding to FLAGS. 
-      SHORT_FLAGS = configurations.keys.collect {|key| configurations[key].attributes[:short] }
-      
       # Initializes a new join with the specified configuration.
       def initialize(config)
         initialize_config(config)
