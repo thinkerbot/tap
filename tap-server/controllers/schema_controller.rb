@@ -47,14 +47,25 @@ class SchemaController < Tap::Controller
   end
   
   def display(id)
-    render 'index.erb', :locals => {:id => id, :schema => load_schema(id)}, :layout => true
+    schema = load_schema(id)
+    render 'index.erb', :locals => {
+      :id => id, 
+      :schema => schema
+    }, :layout => true
   end
   
-  def add(id, *argv)
-    # TODO: parse configs/args from config
-    
-    load_schema(id) do |schema|
-      schema.nodes << Tap::Support::Node.new(argv)
+  def update(id)
+    case request['action']
+    when 'add'
+      load_schema(id) do |schema|
+        schema.nodes << Tap::Support::Node.new(argv)
+      end
+    when 'remove'
+      load_schema(id) do |schema|
+        schema.nodes.delete_at(index.to_i)
+      end
+    else
+      raise ServerError, "unknown action: #{request['action']}"
     end
     
     if request.get?
@@ -62,17 +73,7 @@ class SchemaController < Tap::Controller
     end
   end
   
-  def remove(id, index)
-    load_schema(id) do |schema|
-      schema.nodes.delete_at(index.to_i)
-    end
-    
-    if request.get?
-      redirect("/schema/display/#{id}")
-    end
-  end
-  
-  def run(id)
+  def submit(id)
     case request['action']
     when 'update'
       dump_schema(id, schema)
@@ -80,20 +81,19 @@ class SchemaController < Tap::Controller
     when 'preview'
       response.headers['Content-Type'] = 'text/plain'
       render('preview.erb', :locals => {:id => id, :schema => schema})
+    when 'run'
+      
     else
-      # run
+      raise ServerError, "unknown action: #{request['action']}"
     end
   end
   
-  def load
-    argv = YAML.load(req.params['yaml'])
-
-    # parse a schema and clean it up using compact
-    schema = Tap::Support::Schema.parse(argv.flatten).compact
-    render('run.erb', :locals => {:schema => schema})
-  end
-  
   protected
+  
+  # Parses a compacted Tap::Support::Schema from the request.
+  def schema
+    parse_schema(request.params).compact
+  end
   
   def initialize_schema
     current = app.glob(:schema, "*").collect {|path| File.basename(path).chomp(".yml") }
@@ -105,12 +105,6 @@ class SchemaController < Tap::Controller
     
     dump_schema(id, schema)
     id
-  end
-  
-  def dump_schema(id, schema=nil)
-    app.prepare(:schema, "#{id}.yml") do |file|
-      file << schema.dump.to_yaml if schema
-    end
   end
   
   def load_schema(id)
@@ -128,21 +122,16 @@ class SchemaController < Tap::Controller
     end
   end
   
-  # Parses a compacted Tap::Support::Schema from the request.
-  def schema
-    parse_schema(request.params).compact
+  def dump_schema(id, schema=nil)
+    app.prepare(:schema, "#{id}.yml") do |file|
+      file << schema.dump.to_yaml if schema
+    end
   end
   
-  # Parses a hash of schema parameters specified by the request.  The fields
-  # in parameters correspond to those produced by the Tap.Schema.parameters
-  # function in public/tap.js.
-  def parameters
-    {
-      :index => (request['index'].to_i - 1),
-      :sources => (request['sources'] || []).collect {|source| source.to_i },
-      :targets => (request['targets'] || []).collect {|target| target.to_i },
-      :tascs => (request['tascs'] || [])
-    }
+  def instantiate(*argv)
+    key = argv.shift
+    tasc = server.env.tasks.search(key).constantize 
+    tasc.parse(argv)
   end
   
   # Generates a random integer key.

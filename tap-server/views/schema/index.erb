@@ -1,30 +1,45 @@
-<form id="schema-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/run/<%= id %>">
+<form id="submit-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/submit/<%= id %>">
   <ol id="schema-<%= id %>" class="schema">
-<% index = 0 %>
-<% schema.nodes.each do |node| %>
+<% schema.nodes.each_with_index do |node, index| %>
+  <li id="node_<%= index %>" class="node">
 <%= render('node.erb', :locals => {:id => id, :node => node, :index => index} ) %> 
-<% index += 1 %>
+  </li>
 <% end %>
 <% schema.rounds(true).each do |round| %>
-<%= render('round.erb', :locals => {:id => id, :round => round}) %> 
-<% end %>
-<% schema.send(:each_join_str) do |join| %>
-<%= render('join.erb', :locals => {:id => id, :join => join}) %> 
-<% end %>
-<% server.env.minimap.each do |(env_name, env)| %>
-<%   env.tasks.build.minimap.each do |(name, const)| %>
-  <li class="manifest">
-    <a href="/schema/add/<%= id %>/<%= env_name %>:<%= name %>"><%= env_name %>:<%= name %></a>
+  <li class="round">
+    <input name="rounds" type="hidden" value="--<%= round %>" />
   </li>
-<%   end %>
+<% end %>
+<% schema.send(:each_join_str).each do |join| %>
+  <li class="join">
+    <input name="joins" type="hidden" value="--<%= join %>" />
+  </li>
 <% end %>
   </ol>
-  <ul id="controls-<%= id %>" class="controls">
-    <li><a href="javascript:Tap.Schema.update('schema-form', 'schema/add');">add</a></li>
-    <li><a href="javascript:Tap.Schema.update('schema-form', 'schema/remove');">remove</a></li>
-  </ul>
   <input type="radio" name="action" value="update" checked="true">update</input>
   <input type="radio" name="action" value="preview">preview</input>
   <input type="radio" name="action" value="run">run</input>
-  <input id="schema-form-submit" type="submit" value="Submit" />
+  <input id="submit-form-submit" type="submit" value="Submit" />
+</form>
+
+<form id="update-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/update/<%= id %>">
+  <ol id="selections-<%= id %>" class="selection">
+<% schema.nodes.each_with_index do |node, index| %>
+  <li id="selection-<%= id %>-<%= index %>" class="selection">
+    <input id="target_<%= index %>" class="target" name="targets[]" value="<%= index %>" type="checkbox" />
+    <input id="source_<%= index %>" class="source" name="sources[]" value="<%= index %>" type="checkbox" />
+  </li>
+<% end %>
+<% server.env.minimap.each do |(env_name, env)| %>
+<%   env.tasks.build.minimap.each do |(name, const)| %>
+<%     lookup = "#{env_name}:#{name}" %>
+   <li>
+     <input id="<%= lookup %>" class="tasc" name="tascs[]" value="<%= lookup %>" type="checkbox"><%= lookup %></input>
+   </li>
+<%   end %>
+<% end %>
+  </ol>
+  <input type="radio" name="action" value="update">add</input>
+  <input type="radio" name="action" value="remove">remove</input>
+  <input id="update-form-submit" type="submit" value="Update" />
 </form>

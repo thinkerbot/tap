@@ -1,24 +1,16 @@
-<% argv = node.argv.dup %>
-<% tasc_identifier = argv.shift %>
-<% tasc = server.env.tasks.search(tasc_identifier).constantize %>
-<% task, args = tasc.parse(argv) %>
-<% args.collect! {|arg| arg =~ /\s/ ? "'#{arg}'" : arg} %>
-  <li id="node_<%= index %>" class="node">
-    <!-- controls -->
-    <input id="target_checkbox_<%= index %>" class="target_checkbox" name="target" value="<%= index %>" type="checkbox" />
-    <input id="source_checkbox_<%= index %>" class="source_checkbox" name="source" value="<%= index %>" type="checkbox" />
-    <a href="/schema/remove/<%= id %>/<%= index %>">remove</a>
-    
+<% task, args = instantiate(*node.argv) %>
+<% tasc = task.class%>
     <span class="class"><%= tasc %></span>: 
     <span class="summary"><%= tasc.manifest.subject %></span>
     <pre><%= tasc.manifest.wrap %></pre>
     
     <!-- tasc identifier -->
-    <input name="nodes[<%= index %>][]" type="hidden" value="<%= tasc_identifier %>" />
+    <input name="nodes[<%= index %>][]" type="hidden" value="<%= node.argv[0] %>" />
     
     <ul>
     <!-- inputs -->
     <li class="input">
+<% args.collect! {|arg| arg =~ /\s/ ? "'#{arg}'" : arg} %>
     <input class="value" name="nodes[<%= index %>]%w" value="<%= args.join(' ') %>" />
     <span class="name"><%= tasc.args.to_s %></span>
     </li>
@@ -42,4 +34,3 @@
     <span class="name">Globalize</span> -->
     
     </ul>
-  </li>
