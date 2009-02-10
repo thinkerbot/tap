@@ -1,7 +1,7 @@
 <form id="submit-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/submit/<%= id %>">
   <ol id="schema-<%= id %>" class="schema">
 <% schema.nodes.each_with_index do |node, index| %>
-  <li id="node_<%= index %>" class="node">
+  <li id="node-<%= index %>" class="node">
 <%= render('node.erb', :locals => {:id => id, :node => node, :index => index} ) %> 
   </li>
 <% end %>
@@ -10,7 +10,7 @@
     <input name="rounds" type="hidden" value="--<%= round %>" />
   </li>
 <% end %>
-<% schema.send(:each_join_str).each do |join| %>
+<% schema.send(:each_join_str) do |join| %>
   <li class="join">
     <input name="joins" type="hidden" value="--<%= join %>" />
   </li>
@@ -39,7 +39,7 @@
 <%   end %>
 <% end %>
   </ol>
-  <input type="radio" name="action" value="update">add</input>
+  <input type="radio" name="action" value="add" checked="true">add</input>
   <input type="radio" name="action" value="remove">remove</input>
   <input id="update-form-submit" type="submit" value="Update" />
 </form>

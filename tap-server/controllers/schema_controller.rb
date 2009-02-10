@@ -55,25 +55,26 @@ class SchemaController < Tap::Controller
   end
   
   def update(id)
-    case request['action']
-    when 'add'
-      load_schema(id) do |schema|
-        schema.nodes << Tap::Support::Node.new(argv)
-      end
-    when 'remove'
-      load_schema(id) do |schema|
-        schema.nodes.delete_at(index.to_i)
-      end
-    else
-      raise ServerError, "unknown action: #{request['action']}"
+    unless request.post?
+      raise Tap::ServerError, "update must be performed with post"
     end
     
-    if request.get?
-      redirect("/schema/display/#{id}")
+    load_schema(id) do |schema|
+      case request['action']
+      when 'add' then add(schema)
+      when 'remove' then remove(schema)
+      else raise Tap::ServerError, "unknown action: #{request['action']}"
+      end
     end
+    
+    redirect("/schema/display/#{id}")
   end
   
   def submit(id)
+    unless request.post?
+      raise Tap::ServerError, "submit must be performed with post"
+    end
+    
     case request['action']
     when 'update'
       dump_schema(id, schema)
@@ -126,6 +127,50 @@ class SchemaController < Tap::Controller
     app.prepare(:schema, "#{id}.yml") do |file|
       file << schema.dump.to_yaml if schema
     end
+  end
+  
+  def add(schema)
+    targets = (request['targets[]'] || []).collect {|index| index.to_i }
+    sources = (request['sources[]'] || []).collect {|index| index.to_i }
+    tascs = request['tascs[]']
+    
+    tascs.each do |name|
+      next unless name && !name.empty?
+      
+      targets << schema.nodes.length
+      schema.nodes << Tap::Support::Node.new([name])
+    end if tascs
+
+    n_sources = sources.length
+    n_targets = targets.length
+    
+    case
+    when n_sources == 1 && n_targets > 0
+      schema.set(Tap::Support::Joins::Fork, sources, targets)
+    when n_sources > 1 && n_targets == 1
+      # need to determine if sources and targets are 
+      # already joined... if so then SyncMerge
+      schema.set(Tap::Support::Joins::Merge, sources, targets)
+    when n_sources == 0 || n_targets == 0
+      # no join specified
+    else
+      raise Tap::ServerError, "multi-join specified: #{sources.inspect} => #{targets.inspect}"
+    end
+    
+    schema.compact
+  end
+  
+  def remove(schema)
+    targets = (request['targets[]'] || []).collect {|index| index.to_i }
+    sources = (request['sources[]'] || []).collect {|index| index.to_i }
+    
+    # setting a node to nil causes it's removal during compact;
+    # orphaned joins are removed during compact as well.
+    (sources + targets).each do |index|
+      schema.nodes[index] = nil
+    end
+    
+    schema.compact
   end
   
   def instantiate(*argv)
