@@ -121,6 +121,11 @@ class EnvTest < Test::Unit::TestCase
   # load_paths= test
   #
   
+  def test_set_load_paths_loads_string_inputs_as_yaml
+    e.load_paths = "[one, two]"
+    assert_equal [File.expand_path('one'), File.expand_path('two')], e.load_paths
+  end
+  
   def test_set_load_paths_raises_error_once_active
     e.activate
     err = assert_raises(RuntimeError) { e.load_paths = ['/path/to/lib'] }
@@ -161,6 +166,15 @@ class EnvTest < Test::Unit::TestCase
     
     assert_equal [path], e.env_paths
     assert_equal [e1], e.envs
+  end
+  
+  def test_set_env_paths_loads_string_inputs_as_yaml
+    e.env_paths = "[one, two]"
+    
+    e1 = Env.instances[File.expand_path("one/#{Env::DEFAULT_CONFIG_FILE}")]
+    e2 = Env.instances[File.expand_path("two/#{Env::DEFAULT_CONFIG_FILE}")]
+    
+    assert_equal [e1, e2], e.envs
   end
   
   def test_set_env_paths_raises_error_once_active

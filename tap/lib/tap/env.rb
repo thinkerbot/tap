@@ -118,6 +118,7 @@ module Tap
     config_attr :gems, [] do |input|
       specs_by_name = {}
       
+      input = YAML.load(input) if input.kind_of?(String)
       input = case input
       when :latest, :all
         Support::Gems.select_gems(input == :latest) do |spec|
@@ -154,6 +155,7 @@ module Tap
 
     # Specify configuration files to load as nested Envs.
     config_attr :env_paths, [] do |input|
+      input = YAML.load(input) if input.kind_of?(String)
       @env_paths = [*input].compact.collect do |path| 
         Env.instantiate(root[path]).env_path
       end.uniq
@@ -498,6 +500,7 @@ module Tap
     #   resolve_paths ['lib', nil, 'lib', 'alt]  # => [root['lib'], root['alt']]
     #
     def resolve_paths(paths) # :nodoc:
+      paths = YAML.load(paths) if paths.kind_of?(String)
       [*paths].compact.collect {|path| root[path]}.uniq
     end
     
