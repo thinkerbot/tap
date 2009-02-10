@@ -485,6 +485,7 @@ module Tap
     #   r['alt']                            # => File.join(r.root, 'dir')
     #
     def relative_paths=(paths)
+      paths = Validation::HASH[paths]
       assign_paths(root, paths, absolute_paths)
     end
     
@@ -497,6 +498,7 @@ module Tap
     #   r['abs']                            # => '/path/to/dir'
     #
     def absolute_paths=(paths)
+      paths = Validation::HASH[paths]
       assign_paths(root, relative_paths, paths)
     end
     

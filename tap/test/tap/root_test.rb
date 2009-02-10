@@ -747,6 +747,16 @@ class RootTest < Test::Unit::TestCase
     r.paths)
   end
   
+  def test_set_relative_paths_loads_string_inputs_as_yaml
+    r.relative_paths = "{:alt: dir}"
+    assert_equal({:alt => "dir"}, r.relative_paths)
+  end
+  
+  def test_set_relative_paths_raises_error_if_input_is_not_a_hash
+    e = assert_raises(Configurable::Validation::ValidationError) { r.relative_paths = [] }
+    assert_equal "expected [Hash] but was: []", e.message
+  end
+  
   def test_raise_error_when_trying_to_set_root_through_relative_paths
     e = assert_raises(ArgumentError) { r.relative_paths = {'root' => "another"} }
     assert_equal "the alias \"root\" is reserved", e.message
@@ -776,6 +786,16 @@ class RootTest < Test::Unit::TestCase
       :dir =>      File.expand_path("./root/dir"), 
       :absolute => File.expand_path("/absolute/path")}, 
     r.paths)
+  end
+  
+  def test_set_absolute_paths_loads_string_inputs_as_yaml
+    r.absolute_paths = "{:absolute: /absolute/path}"
+    assert_equal({:absolute => File.expand_path("/absolute/path")}, r.absolute_paths)
+  end
+  
+  def test_set_absolute_paths_raises_error_if_input_is_not_a_hash
+    e = assert_raises(Configurable::Validation::ValidationError) { r.absolute_paths = [] }
+    assert_equal "expected [Hash] but was: []", e.message
   end
   
   def test_raise_error_when_trying_to_set_root_through_absolute_paths
