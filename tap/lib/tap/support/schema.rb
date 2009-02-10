@@ -145,15 +145,27 @@ module Tap
         join
       end
       
-      # Removes all nil nodes, and nodes with empty argvs.
-      # Additionally reassigns rounds by shifting later
-      # rounds up to fill any nils in the rounds array.
+      # Removes all nil nodes, nodes with empty argvs, and orphaned joins.
+      # Additionally reassigns rounds by shifting later rounds up to fill
+      # any nils in the rounds array.
       #
       # Returns self.
       def compact
         # remove nil and empty nodes
         nodes.delete_if do |node|
           node == nil || node.argv.empty?
+        end
+        
+        # cleanup joins
+        joins.each_pair do |join, (source_node, target_nodes)|
+          target_nodes.compact!
+          if target_nodes.empty?
+            source_node.output = nil
+          else
+            target_nodes.each do |target_node|
+              target_node.input = nil
+            end unless source_node
+          end
         end
         
         # reassign rounds

@@ -194,6 +194,41 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal [n0, n5], schema.nodes
   end
   
+  def test_compact_removes_orphaned_output_joins
+    n0 = Node.new [1,2,3]
+    n1 = Node.new []
+    
+    schema = Schema.new [n0, n1]
+    join = schema.set(Join, 0, [1], {})
+    
+    assert_equal join, n0.output
+    assert_equal [join], schema.joins.keys
+    
+    schema.compact
+    
+    assert_equal nil, n0.output
+    assert_equal [], schema.joins.keys
+  end
+  
+  def test_compact_removes_orphaned_input_joins
+    n0 = Node.new []
+    n1 = Node.new [1,2,3]
+    n2 = Node.new [4,5,6]
+    
+    schema = Schema.new [n0, n1, n2]
+    join = schema.set(Join, 0, [1,2], {})
+    
+    assert_equal join, n1.input
+    assert_equal join, n2.input
+    assert_equal [join], schema.joins.keys
+    
+    schema.compact
+    
+    assert_equal nil, n1.input
+    assert_equal nil, n2.input
+    assert_equal [], schema.joins.keys
+  end
+  
   def test_compact_removes_nils_from_rounds
     n0 = Node.new [1,2,3]
     n0.round = 0
