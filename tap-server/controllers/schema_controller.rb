@@ -48,7 +48,7 @@ class SchemaController < Tap::Controller
   
   def display(id)
     schema = load_schema(id)
-    render 'index.erb', :locals => {
+    render 'schema.erb', :locals => {
       :id => id, 
       :schema => schema
     }, :layout => true
