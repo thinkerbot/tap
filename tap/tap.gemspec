@@ -83,7 +83,6 @@ Gem::Specification.new do |s|
     lib/tap/support/parser.rb
     lib/tap/support/schema.rb
     lib/tap/support/shell_utils.rb
-    lib/tap/support/storage.rb
     lib/tap/support/string_ext.rb
     lib/tap/support/templater.rb
     lib/tap/support/versions.rb

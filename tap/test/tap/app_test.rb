@@ -167,8 +167,6 @@ o-[add_five] 8
     assert_equal(Support::Aggregator, app.aggregator.class)
     assert app.aggregator.empty?
     
-    assert_equal(Support::Storage, app.storage.class)
-    
     assert_equal App::State::READY, app.state
   end
   

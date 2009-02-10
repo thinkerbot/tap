@@ -4,7 +4,6 @@ require 'tap/root'
 require 'tap/support/aggregator'
 require 'tap/support/dependencies'
 require 'tap/support/executable_queue'
-require 'tap/support/storage'
 require 'tap/task'
 
 module Tap
@@ -177,9 +176,6 @@ module Tap
     # A Tap::Support::Dependencies to track dependencies.
     attr_reader :dependencies
     
-    # A Tap::Support::Storage to store application data.
-    attr_reader :storage
-    
     config :debug, false, &c.flag                 # Flag debugging
     config :force, false, &c.flag                 # Force execution at checkpoints
     config :quiet, false, &c.flag                 # Suppress logging
@@ -212,7 +208,6 @@ module Tap
       @queue = Support::ExecutableQueue.new
       @aggregator = Support::Aggregator.new
       @dependencies = Support::Dependencies.new
-      @storage = Support::Storage.new
       
       reconfigure(config)
       self.logger = logger
