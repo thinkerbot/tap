@@ -184,6 +184,8 @@ module Tap
       end
     end  
     
+    include MonitorMixin
+    
     # Creates a new App with the given configuration.  
     def initialize(config={}, logger=DEFAULT_LOGGER)
       super()
@@ -227,7 +229,7 @@ module Tap
     
     # Sets state = State::READY unless the app is running.  Returns self.
     def ready
-      @state = State::READY unless state == State::RUN
+      synchronize { @state = State::READY unless state == State::RUN }
       self
     end
 
@@ -248,8 +250,10 @@ module Tap
     # Calls to run when the state is not State::READY do nothing and
     # return immediately.
     def run
-      return self unless state == State::READY
-      @state = State::RUN
+      synchronize do
+        return self unless state == State::READY
+        @state = State::RUN
+      end
 
       # TODO: log starting run
       begin
@@ -264,7 +268,7 @@ module Tap
         raise if debug?
         log($!.class, $!.message)
       ensure
-        @state = State::READY
+        synchronize { @state = State::READY }
       end
       
       # TODO: log run complete
@@ -277,7 +281,7 @@ module Tap
     #
     # Does nothing unless state is State::RUN.
     def stop
-      @state = State::STOP if state == State::RUN
+      synchronize { @state = State::STOP if state == State::RUN }
       self
     end
 
@@ -289,7 +293,7 @@ module Tap
     #
     # Does nothing if state == State::READY.
     def terminate
-      @state = State::TERMINATE unless state == State::READY
+      synchronize { @state = State::TERMINATE unless state == State::READY }
       self
     end
     
