@@ -39,12 +39,11 @@ unless defined?(ObjectWithExecute)
       @method_name = :trace
       @on_complete_block =nil
       @dependencies = []
-      @batch = [self]
       @block = block || lambda {|task, str| task.mark(str) }
     end
 
     def id
-      "#{@index}.#{batch_index}"
+      @index.to_s
     end
     
     def mark(input)

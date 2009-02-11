@@ -96,14 +96,6 @@ class TaskTest < Test::Unit::TestCase
     assert t.integer == 1
   end
   
-  def test_hidden_documentation
-    ###
-    t1 = SubclassTask.new
-    t2 = t1.initialize_batch_obj
-    assert_equal true, t1.array == t2.array
-    assert_equal false, t1.array.object_id == t2.array.object_id
-  end
-  
   #
   # Task.source_file test
   #
@@ -304,38 +296,6 @@ class TaskTest < Test::Unit::TestCase
     d = {'key' => 'd value', 'e' => {'f' => 'f value'}}
     b = {'key' => 'b value', 'c' => 'c value'}
     a = {'key' => 'a value', 'b' => b, 'd' => d}
-    
-    assert_equal(a, Task.load_config(path))
-  end
-  
-  def test_recursive_loading_sets_value_for_each_hash_in_a_parent_array
-    path = prepare_yaml("a.yml", [{'key' => 'one'}, {'key' => 'two'}])
-           prepare_yaml("a/b.yml", 'b value')
-           
-    a = [
-      {'key' => 'one', 'b' => 'b value'},
-      {'key' => 'two', 'b' => 'b value'}]
-            
-    assert_equal(a, Task.load_config(path))
-  end
-  
-  def test_recursive_loading_with_files_and_directories_and_arrays
-    path = prepare_yaml("a.yml", [{'key' => 'a one'}, {'key' => 'a two'}])
-           prepare_yaml("a/b.yml", [{'key' => 'b one'}, {'key' => 'b two'}])
-           prepare_yaml("a/b/c.yml", 'c value')
-           
-           prepare_yaml("a/d.yml", [{'key' => 'd one'}, {'key' => 'd two'}])
-           prepare_yaml("a/d/e/f.yml", 'f value')
-    
-    d = [
-      {'key' => 'd one', 'e' => {'f' => 'f value'}},
-      {'key' => 'd two', 'e' => {'f' => 'f value'}}]
-    b = [
-      {'key' => 'b one', 'c' => 'c value'},
-      {'key' => 'b two', 'c' => 'c value'}]
-    a = [
-      {'key' => 'a one', 'b' => b, 'd' => d},
-      {'key' => 'a two', 'b' => b, 'd' => d}]
     
     assert_equal(a, Task.load_config(path))
   end
@@ -677,7 +637,6 @@ class TaskTest < Test::Unit::TestCase
   def test_default_initialization
     assert_equal App.instance, t.app
     assert_equal({}, t.config)
-    assert_equal [t], t.batch
     assert_equal "tap/task", t.name
   end
   
@@ -730,27 +689,6 @@ class TaskTest < Test::Unit::TestCase
     
     s = Sample.new
     assert_equal Sample.default_name, s.name
-  end
-  
-  #
-  # initialize_batch_obj test
-  #
-
-  def test_initialize_batch_obj_renames_batch_object_if_specified
-    t = Task.new
-    t1 = t.initialize_batch_obj({}, 'new_name')
-    assert_equal "new_name", t1.name
-  end
-
-  def test_initialize_batch_obj_reconfigures_batch_obj_with_overrides
-    s = Sample.new :three => 3
-    assert_equal({:one => 'one', :two => 'two', :three => 3}, s.config)
-
-    s1 = s.initialize_batch_obj
-    assert_equal({:one => 'one', :two => 'two', :three => 3}, s1.config)  
-
-    s2 = s.initialize_batch_obj(:one => 'ONE')
-    assert_equal({:one => 'ONE', :two => 'two', :three => 3}, s2.config)
   end
 
   #

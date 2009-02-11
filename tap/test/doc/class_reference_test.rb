@@ -127,32 +127,22 @@ end
       "#{input}:two"
     end
     t1.sequence(t2)
-
-    t3 = t1.initialize_batch_obj(:key => 'three')
-    assert_equal [t1, t3], t1.batch
     
     t1.enq('input')
     
     app = Tap::App.instance
     app.run
     
-    assert_equal [t0, t1, t2, t3, t2], runlist
-    assert_equal ["input:one:two", "input:three:two"], app.results(t2)
+    assert_equal [t0, t1, t2], runlist
+    assert_equal ["input:one:two"], app.results(t2)
 
     t1.name = 'un'
     t2.name = 'deux'
-    t3.name = 'trois'
 
-    result = app._results(t2).collect do |_result|
-      _result.dump
-    end.join("---\n")
+    result = app._results(t2)[0].dump
     expected = %Q{o-[] "input"
 o-[un] "input:one"
 o-[deux] "input:one:two"
----
-o-[] "input"
-o-[trois] "input:three"
-o-[deux] "input:three:two"
 }
     
     assert_equal expected, result

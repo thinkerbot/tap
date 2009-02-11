@@ -5,8 +5,6 @@ module Tap
     # An Intern module:
     # - adds an accessor for <method_name>_block
     # - overrides <method_name> to call the block
-    # - ensures initialize_batch_obj extends the batch object
-    #   with the same Intern module
     #
     def self.Intern(method_name)
       mod = INTERN_MODULES[method_name.to_sym]
@@ -27,10 +25,6 @@ module Tap
         end
       
         #{method_name}_block.call(*inputs)
-      end
-      
-      def initialize_batch_obj(*args)
-        super(*args).extend Tap::Support::Intern(:#{method_name})
       end
       }
       mod

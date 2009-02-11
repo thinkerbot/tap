@@ -61,7 +61,6 @@ Gem::Specification.new do |s|
     lib/tap/spec.rb
     lib/tap/support/aggregator.rb
     lib/tap/support/audit.rb
-    lib/tap/support/combinator.rb
     lib/tap/support/constant.rb
     lib/tap/support/constant_manifest.rb
     lib/tap/support/dependencies.rb

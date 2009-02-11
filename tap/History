@@ -19,6 +19,7 @@ Notable changes include:
 * Removed RSpec support
 * Added Mini::Test support
 * Added/clarified Task nesting
+* Removed batching from Executable (neat feature but complex in joins)
 
 Upgrade note:
 

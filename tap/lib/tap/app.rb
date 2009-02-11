@@ -64,22 +64,6 @@ module Tap
   #   app.run
   #   runlist                        # => [t1, t0, t0]
   #
-  # === Batching
-  #
-  # Tasks can be batched, allowing the same input to be enqued to multiple 
-  # tasks at once.
-  #
-  #   t0 = Task.intern  {|task, input| "#{input}.0" }
-  #   t1 = Task.intern  {|task, input| "#{input}.1" }
-  #
-  #   t0.batch_with(t1)
-  #   t0.enq 'a'
-  #   t1.enq 'b'
-  #
-  #   app.run
-  #   app.results(t0)                # => ['a.0', 'b.0']
-  #   app.results(t1)                # => ['a.1', 'b.1']
-  #
   # === Executables
   #
   # App can enque and run any Executable object. Arbitrary methods may be
@@ -317,8 +301,7 @@ module Tap
       "state: #{state} (#{State.state_str(state)}) queue: #{queue.size} results: #{aggregator.size}"
     end
     
-    # Enques the task (or Executable) with the inputs.  If the task is batched, 
-    # then each task in task.batch will be enqued with the inputs.  Returns task.
+    # Enques the task (or Executable) with the inputs.  Returns task.
     def enq(task, *inputs)
       case task
       when Tap::Task
@@ -351,14 +334,11 @@ module Tap
     #
     #   t0 = Task.intern  {|task, input| "#{input}.0" }
     #   t1 = Task.intern  {|task, input| "#{input}.1" }
-    #   t2 = Task.intern  {|task, input| "#{input}.2" }
-    #   t1.batch_with(t2)
     #
     #   t0.enq(0)
     #   t1.enq(1)
     #
     #   app.run
-    #   app.results(t0, t1.batch)     # => ["0.0", "1.1", "1.2"]
     #   app.results(t1, t0)           # => ["1.1", "0.0"]
     #
     def results(*tasks)

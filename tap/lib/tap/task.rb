@@ -210,21 +210,12 @@ module Tap
         
         # load configurations
         config_path ||= app.filepath('config', "#{name}.yml") if name
-        configs = load_config(config_path)
-        configs = [configs] unless configs.kind_of?(Array)
+        config = load_config(config_path)
         
-        # build and reconfigure the instance and any associated
-        # batch objects as specified in the file configurations
-        obj = new({}, name, app).reconfigure(configs.shift)
-        configs.each do |config|
-          obj.initialize_batch_obj(config, "#{name}_#{obj.batch.length}")
-        end        
-
-        obj.batch.each do |batch_obj|
-          batch_obj.reconfigure(opts.nested_config)
-        end
+        # build and reconfigure the instance
+        instance = new({}, name, app).reconfigure(config).reconfigure(opts.nested_config)
         
-        [obj, (argv + use_args)]
+        [instance, (argv + use_args)]
       end
       
       # A convenience method to parse the argv and execute the instance
@@ -263,9 +254,7 @@ module Tap
         return {} if Root.trivial?(path)
         
         Configurable::Utils.load_file(path, true) do |base, key, value|
-          each_hash_in(base) do |hash|
-            hash[key] ||= value
-          end
+          base[key] ||= value if base.kind_of?(Hash)
         end
       end
       
@@ -423,20 +412,6 @@ module Tap
         # add the configuration
         nest(name, subclass, options) {|overrides| subclass.new(overrides) }
       end
-      
-      private
-      
-      # helper for load_config.  yields each hash in the collection (ie each
-      # member of an Array, or the collection if it is a hash).
-      def each_hash_in(collection) # :nodoc:
-        case collection
-        when Hash then yield(collection)
-        when Array
-          collection.each do |hash|
-            yield(hash) if hash.kind_of?(Hash)
-          end
-        end
-      end
     end
     
     instance_variable_set(:@source_file, __FILE__)
@@ -460,7 +435,6 @@ module Tap
       @method_name = :execute_with_callbacks
       @on_complete_block = nil
       @dependencies = []
-      @batch = [self]
       
       # initialize configs
       initialize_config(config)
@@ -471,15 +445,6 @@ module Tap
       end
       
       workflow
-    end
-    
-    # Creates a new batched object and adds the object to batch. The batched
-    # object will be a duplicate of the current object but with a new name 
-    # and/or configurations.
-    def initialize_batch_obj(overrides={}, name=nil)
-      obj = super().reconfigure(overrides)
-      obj.name = name if name
-      obj 
     end
     
     # The method for processing inputs into outputs.  Override this method in

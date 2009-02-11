@@ -125,10 +125,18 @@ namespace :test do
 
   desc 'Run functional tests.'
   task(:functional) do
+    libs = ['lib']
+    unless ENV['gems']
+      libs << '../lazydoc/lib'
+      libs << '../configurable/lib'
+    end
+    libs.collect! {|lib| ['-I', lib] }
+    
     failures = []
     Dir.glob('test/functional/*_test.rb').each do |path|
       begin
-        sh('ruby', "-w", path)
+        cmd = ['ruby', "-w"] + libs.flatten + [path]
+        sh(*cmd)
       rescue(Exception)
         failures << path
       end

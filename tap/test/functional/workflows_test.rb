@@ -1,4 +1,18 @@
-require File.join(File.dirname(__FILE__), '../../lib/tap')
+# setup testing with submodules
+begin
+  require 'tap'
+rescue(LoadError)
+  puts %Q{
+Tests probably cannot be run because the submodules have
+not been initialized.  Use these commands and try again:
+
+  % git submodule init
+  % git submodule update
+
+}
+  raise
+end
+
 require 'test/unit'
 
 module Functional
@@ -23,7 +37,7 @@ end
 class FunctionalTask < Tap::Task
   def process(input)
     log name, input
-    input += (batched? ? "#{name}(#{batch_index})" : name)
+    input += name
   end
 end
 
@@ -67,22 +81,6 @@ class Functional::WorkflowsTest < Test::Unit::TestCase
     a.enq("")
     app.run
     assert_equal ["abcab.c..", "abc.c.."], app.results(c2)
-  end
-  
-  def test_workflow_with_batched_b
-    b.initialize_batch_obj
-    b.initialize_batch_obj
-    
-    a.enq("")
-    app.run
-    assert_equal [
-      "ab(0)cab.c..",
-      "ab(0)c.c..",
-      "ab(1)cab.c..",
-      "ab(1)c.c..",
-      "ab(2)cab.c..",
-      "ab(2)c.c.."
-    ], app.results(c2)
   end
   
   def test_workflow_with_dependencies

@@ -25,11 +25,6 @@ module Tap
       # than executed immediately.
       config :stack, false, :short => 'k', &c.boolean
       
-      # Causes joins to only occur between the
-      # explicitly named source and targets,
-      # and not their batches.
-      config :unbatched, false, :short => 'u', &c.boolean
-      
       attr_accessor :sources
       attr_accessor :targets
       
@@ -66,14 +61,6 @@ module Tap
       
       protected
       
-      # Sets the on_complete block for the specified executable.
-      # If unbatched == true, the on_complete block will only 
-      # be set for the executable; otherwise the on_complete
-      # block will be set for executable.batch.
-      def complete(executable, &block)
-        executable.send(unbatched ? :unbatched_on_complete : :on_complete, &block)
-      end
-      
       # Enques the executable with the results, respecting the
       # configuration for self.
       #
@@ -81,24 +68,13 @@ module Tap
       #   iterate      _results are iterated      _results are enqued directly
       #   splat        _results are splat enqued  _results are enqued directly
       #   stack        the executable is enqued   the executable is executed
-      #   unbatched    only exectuable is enqued  executable.batch is enqued
       #
       def enq(executable, *_results)
         unpack(_results) do |_result|
           if stack 
-            if unbatched
-              executable.unbatched_enq(*_result)
-            else
-              executable.enq(*_result)
-            end
+            executable.enq(*_result)
           else
-            if unbatched
-              executable._execute(*_result)
-            else
-              executable.batch.each do |e|
-                e._execute(*_result)
-              end
-            end
+            executable._execute(*_result)
           end
         end
       end

@@ -75,18 +75,6 @@ class AppTest < Test::Unit::TestCase
     assert_equal [t1, t0, t0], runlist
     
     ####
-    t0 = Task.intern  {|task, input| "#{input}.0" }
-    t1 = Task.intern  {|task, input| "#{input}.1" }
-  
-    t0.batch_with(t1)
-    t0.enq 'a'
-    t1.enq 'b'
-  
-    app.run
-    assert_equal ['a.0', 'b.0'], app.results(t0)
-    assert_equal ['a.1', 'b.1'], app.results(t1)
-    
-    ####
     array = []
   
     # longhand
@@ -269,21 +257,6 @@ o-[add_five] 8
     assert_equal [[t, []]], app.queue.to_a
   end
   
-  def test_enq_enques_each_task_in_task_batch_with_the_same_inputs
-    t1 = Task.new
-    t2 = t1.initialize_batch_obj
-    
-    assert app.queue.empty?
-    app.enq(t1)
-    assert_equal [[t1, []], [t2, []]], app.queue.to_a
-    
-    app.enq(t2,1,2,3)
-    assert_equal [
-      [t1, []], [t2, []],
-      [t1, [1,2,3]], [t2, [1,2,3]]
-    ], app.queue.to_a
-  end
-  
   def test_enq_allows_Executable_methods
     m = []._method(:push)
     assert app.queue.empty?
@@ -308,57 +281,6 @@ o-[add_five] 8
   end
   
   #
-  # run batched task tests
-  #
-
-  def test_run_batched_task
-    t1 = Task.intern do |task, input|
-      input = input + [task.batch_index]
-      runlist << input
-      input
-    end
-    t2 = t1.initialize_batch_obj
-
-    t1.enq [0]
-    app.run
-
-    # the same input is fed to each batched task 
-    assert_equal [
-      [0,0],
-      [0,1]
-    ], runlist
-
-    assert_audits_equal([
-      [[nil,[0]],[t1,[0,0]]],
-      [[nil,[0]],[t2,[0,1]]]
-    ], app._results(*t1.batch))
-  end
-   
-  def test_run_batched_task_with_existing_audit_trails
-    t1 = Task.intern do |task, input|
-      input = input + [task.batch_index]
-      runlist << input
-      input
-    end
-    t2 = t1.initialize_batch_obj
-
-    a = Support::Audit.new(:a, [0])
-    t1.enq a
-    app.run
-
-    # the same input is fed to each batched task 
-    assert_equal [
-      [0,0],
-      [0,1]
-    ], runlist
-
-    assert_audits_equal([
-      [[:a,[0]],[t1,[0,0]]],
-      [[:a,[0]],[t2,[0,1]]]
-    ], app._results(t1.batch))
-  end
-  
-  #
   # _results test
   #
 
@@ -380,14 +302,11 @@ o-[add_five] 8
   def test_results_documentation
     t0 = Task.intern  {|task, input| "#{input}.0" }
     t1 = Task.intern  {|task, input| "#{input}.1" }
-    t2 = Task.intern  {|task, input| "#{input}.2" }
-    t1.batch_with(t2)
   
     t0.enq(0)
     t1.enq(1)
   
     app.run
-    assert_equal ["0.0", "1.1", "1.2"], app.results(t0, t1.batch)
     assert_equal ["1.1", "0.0"], app.results(t1, t0)
   end
   
