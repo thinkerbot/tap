@@ -30,9 +30,14 @@ module Tap
       # and not their batches.
       config :unbatched, false, :short => 'u', &c.boolean
       
+      attr_accessor :sources
+      attr_accessor :targets
+      
       # Initializes a new join with the specified configuration.
       def initialize(config)
         initialize_config(config)
+        @sources = []
+        @targets = []
       end
       
       # The name of the join, as a symbol.  By default name 

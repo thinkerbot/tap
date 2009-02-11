@@ -221,7 +221,7 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal join, n1.input
     assert_equal join, n2.input
     assert_equal [join], schema.joins.keys
-    
+
     schema.compact
     
     assert_equal nil, n1.input
@@ -297,6 +297,16 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal({
       a => [[n0], [n1,n2]], 
       b => [[n3,n4], [n5]]
+    }, schema.joins)
+  end
+  
+  def test_joins_retain_source_and_target_order
+    a = schema.set(Join, 0, [2,1])
+    b = schema.set(ReverseJoin, [4,3], 5)
+    
+    assert_equal({
+      a => [[n0], [n2,n1]], 
+      b => [[n4,n3], [n5]]
     }, schema.joins)
   end
   

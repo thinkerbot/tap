@@ -223,10 +223,10 @@ module Tap
           next unless node
           
           output = node.output
-          (joins[output] ||= [[],[]])[0] << node if output.kind_of?(Join)
+          joins[output] = [output.sources.select {|n| nodes.include?(n)}, output.targets.select {|n| nodes.include?(n)}] if output.kind_of?(Join)
           
           input = node.input
-          (joins[input] ||= [[],[]])[1] << node if input.kind_of?(Join)
+          joins[input] = [input.sources.select {|n| nodes.include?(n)}, input.targets.select {|n| nodes.include?(n)}] if input.kind_of?(Join)
         end
         
         if as_indicies
