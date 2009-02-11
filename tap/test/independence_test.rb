@@ -19,7 +19,6 @@ class IndependenceTest < Test::Unit::TestCase
         tap/root
         tap/app
         tap/support/audit
-        tap/support/combinator
         tap/support/minimap
         tap/support/schema
         tap/support/shell_utils
