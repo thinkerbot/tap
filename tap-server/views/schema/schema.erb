@@ -1,3 +1,29 @@
+<form id="update-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/update/<%= id %>">
+  <ol id="selections-<%= id %>" class="selection">
+<% schema.nodes.each_with_index do |node, index| %>
+  <li id="selection-<%= id %>-<%= index %>" class="selection">
+    <span>(<%= node.input.kind_of?(Tap::Support::Join) ? node.input.sources.collect {|n| schema.nodes.index(n) + 1 }.join(", ") : ' ' %>)</span>
+    <input id="target_<%= index %>" class="target" name="targets[]" value="<%= index %>" type="checkbox" />
+    <input id="source_<%= index %>" class="source" name="sources[]" value="<%= index %>" type="checkbox" />
+    <span>(<%= node.output.kind_of?(Tap::Support::Join) ? node.output.targets.collect {|n| schema.nodes.index(n)  + 1 }.join(", ") : ' ' %>)</span>
+  </li>
+<% end %>
+  </ol>
+  <ul>
+<% server.env.minimap.each do |(env_name, env)| %>
+<%   env.tasks.build.minimap.each do |(name, const)| %>
+<%     lookup = "#{env_name}:#{name}" %>
+   <li>
+     <input id="<%= lookup %>" class="tasc" name="nodes[]" value="<%= lookup %>" type="checkbox"><%= lookup %></input>
+   </li>
+<%   end %>
+<% end %>
+  </ul>
+  <input type="radio" name="action" value="add" checked="true">add</input>
+  <input type="radio" name="action" value="remove">remove</input>
+  <input id="update-form-submit" type="submit" value="Update" />
+</form>
+
 <form id="submit-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/submit/<%= id %>">
   <ol id="schema-<%= id %>" class="schema">
 <% schema.nodes.each_with_index do |node, index| %>
@@ -16,30 +42,8 @@
   </li>
 <% end %>
   </ol>
-  <input type="radio" name="action" value="update" checked="true">update</input>
+  <input type="radio" name="action" value="save" checked="true">save</input>
   <input type="radio" name="action" value="preview">preview</input>
   <input type="radio" name="action" value="run">run</input>
   <input id="submit-form-submit" type="submit" value="Submit" />
-</form>
-
-<form id="update-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/update/<%= id %>">
-  <ol id="selections-<%= id %>" class="selection">
-<% schema.nodes.each_with_index do |node, index| %>
-  <li id="selection-<%= id %>-<%= index %>" class="selection">
-    <input id="target_<%= index %>" class="target" name="targets[]" value="<%= index %>" type="checkbox" />
-    <input id="source_<%= index %>" class="source" name="sources[]" value="<%= index %>" type="checkbox" />
-  </li>
-<% end %>
-<% server.env.minimap.each do |(env_name, env)| %>
-<%   env.tasks.build.minimap.each do |(name, const)| %>
-<%     lookup = "#{env_name}:#{name}" %>
-   <li>
-     <input id="<%= lookup %>" class="tasc" name="nodes[]" value="<%= lookup %>" type="checkbox"><%= lookup %></input>
-   </li>
-<%   end %>
-<% end %>
-  </ol>
-  <input type="radio" name="action" value="add" checked="true">add</input>
-  <input type="radio" name="action" value="remove">remove</input>
-  <input id="update-form-submit" type="submit" value="Update" />
 </form>

@@ -73,7 +73,7 @@ class AppController < Tap::Controller
   end
   
   def run
-    app.run
+    Thread.new { app.run }
     redirect("/app/tail")
   end
   

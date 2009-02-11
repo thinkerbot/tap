@@ -82,7 +82,7 @@ class SchemaController < Tap::Controller
   # parameter.
   def update(id)
     case request['action']
-    when 'add' then add(id)
+    when 'add'    then add(id)
     when 'remove' then remove(id)
     else raise Tap::ServerError, "unknown action: #{request['action']}"
     end
@@ -199,22 +199,64 @@ class SchemaController < Tap::Controller
   end
   
   def submit(id)
+    case request['action']
+    when 'save'    then save(id)
+    when 'preview' then preview(id)
+    when 'run'
+      dump_schema(id, schema)
+      run(id)
+    else raise Tap::ServerError, "unknown action: #{request['action']}"
+    end
+  end
+  
+  def save(id)
     unless request.post?
       raise Tap::ServerError, "submit must be performed with post"
     end
     
-    case request['action']
-    when 'update'
-      dump_schema(id, schema)
-      redirect("/schema/display/#{id}")
-    when 'preview'
-      response.headers['Content-Type'] = 'text/plain'
-      render('preview.erb', :locals => {:id => id, :schema => schema})
-    when 'run'
-      
-    else
-      raise ServerError, "unknown action: #{request['action']}"
+    dump_schema(id, schema)
+    redirect("/schema/display/#{id}")
+  end
+  
+  def preview(id)
+    response.headers['Content-Type'] = 'text/plain'
+    render('preview.erb', :locals => {:id => id, :schema => schema})
+  end
+  
+  def run(id)
+    unless request.post?
+      raise Tap::ServerError, "run must be performed with post"
     end
+    
+    schema = load_schema(id)
+    
+    Thread.new do
+      queues = schema.compact.build(app) do |args|
+        task = args.shift
+        const = server.env.tasks.search(task) 
+      
+        task_class = case
+        when const then const.constantize 
+        when block_given?
+          args.unshift(task)
+          yield(args)
+        else nil
+        end
+      
+        task_class or raise ArgumentError, "unknown task: #{task}"
+        task_class.parse(args, app) do |help|
+          # redirect help
+          raise Tap::ServerError, "no help yet..."
+        end
+      end
+     
+      queues.each_with_index do |queue, i|
+        app.queue.concat(queue)
+        app.run
+      end
+    end
+    
+    redirect("/app/tail")
   end
   
   protected
