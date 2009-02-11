@@ -34,7 +34,7 @@
 <%   env.tasks.build.minimap.each do |(name, const)| %>
 <%     lookup = "#{env_name}:#{name}" %>
    <li>
-     <input id="<%= lookup %>" class="tasc" name="tascs[]" value="<%= lookup %>" type="checkbox"><%= lookup %></input>
+     <input id="<%= lookup %>" class="tasc" name="nodes[]" value="<%= lookup %>" type="checkbox"><%= lookup %></input>
    </li>
 <%   end %>
 <% end %>

@@ -46,6 +46,12 @@ class SchemaControllerTest < Test::Unit::TestCase
     @request = Rack::MockRequest.new(@controller)
   end
   
+  def prepare_schema(id, str)
+    method_root.prepare(:schema, "#{id}.yml") do |file|
+      file << Schema.parse(str).dump.to_yaml
+    end
+  end
+  
   #
   # index tests
   #
@@ -90,12 +96,6 @@ class SchemaControllerTest < Test::Unit::TestCase
   #
   # add test
   #
-  
-  def prepare_schema(id, str)
-    method_root.prepare(:schema, "#{id}.yml") do |file|
-      file << Schema.parse(str).dump.to_yaml
-    end
-  end
   
   def test_post_add_adds_nodes_in_the_nodes_parameter
     path = prepare_schema(0, "")
@@ -170,4 +170,55 @@ class SchemaControllerTest < Test::Unit::TestCase
     assert_equal "-- a -- b -- c -- d --*1 --*2 --0[3]", schema.to_s
   end
   
+  #
+  # remove test
+  #
+  
+  def test_post_remove_removes_nodes_indicated_in_both_sources_and_targets
+    path = prepare_schema(0, "a -- b -- c")
+    assert_equal 302, request.post("/remove/0?sources[]=1&targets[]=1", opts).status
+    
+    schema = Schema.load_file(path)
+    assert_equal "-- a -- c --*0 --*1", schema.to_s
+  end
+  
+  def test_remove_removes_join_outputs_for_sources
+    path = prepare_schema(0, "a -- b -- c --0:1:2")
+    assert_equal 302, request.post("/remove/0?sources[]=0", opts).status
+    
+    schema = Schema.load_file(path)
+    assert_equal "-- a -- b -- c --*0 --1:2", schema.to_s
+  end
+  
+  def test_remove_removes_join_inputs_for_targets
+    path = prepare_schema(0, "a -- b -- c --0:1:2")
+    assert_equal 302, request.post("/remove/0?targets[]=1", opts).status
+    
+    schema = Schema.load_file(path)
+    assert_equal "-- a -- b -- c --*0 --1:2", schema.to_s
+  end
+  
+  def test_remove_removes_join_and_not_node_when_joins_exist
+    path = prepare_schema(0, "a -- b -- c --0:1:2")
+    assert_equal 302, request.post("/remove/0?sources[]=1&targets[]=1", opts).status
+    
+    schema = Schema.load_file(path)
+    assert_equal "-- a -- b -- c --*0 --*1 --*2", schema.to_s
+  end
+  
+  def test_remove_does_not_remove_nodes_unless_indicated_in_both_sources_and_targets
+    path = prepare_schema(0, "a -- b -- c")
+    assert_equal 302, request.post("/remove/0?sources[]=0&targets[]=1", opts).status
+    
+    schema = Schema.load_file(path)
+    assert_equal "-- a -- b -- c --*0 --*1 --*2", schema.to_s
+  end
+  
+  def test_remove_does_not_create_nodes_for_out_of_bounds_indicies
+    path = prepare_schema(0, "a")
+    assert_equal 302, request.post("/remove/0?sources[]=0&sources[]=1&targets[]=1&targets[]=2", opts).status
+    
+    schema = Schema.load_file(path)
+    assert_equal "-- a --*0", schema.to_s
+  end
 end
