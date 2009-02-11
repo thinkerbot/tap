@@ -16,11 +16,11 @@ Tasks are fundamentally just a method, simply a block of code.
 http://tap.rubyforge.org/images/Executable.png
 
 Executable essentially wraps a method and adds support for dependencies, joins,
-batches, and auditing.  Executables are the nodes in a workflow.  Any 
-Executable may be joined to another Executable, enqued, and run by an App.  To
-wrap a method, Executable extends an object and defines which method on the
-object is 'executable'.  Any method may be made executable, and so any method
-can participate in a workflow (see Object#_method).
+and auditing.  Executables are the nodes in a workflow.  Any Executable may be
+joined to another Executable, enqued, and run by an App.  To wrap a method,
+Executable extends an object and defines which method on the object is 'executable'.
+Any method may be made executable, and so any method can participate in a workflow
+(see Object#_method).
 
 Tasks are constructed such that <tt>process</tt> is the executable method, hence
 <tt>process</tt> is the standard method overridden in Task subclasses.
@@ -191,48 +191,35 @@ joined into dependency-based workflows,
   t0 = Tap::Task.intern {|task| runlist << task }
   t1.depends_on(t0)
 
-imperative workflows,
+and imperative workflows.
 
   t2 = Tap::Task.intern do |task, input|
     runlist << task
     "#{input}:two"
   end
   t1.sequence(t2)
-
-and batched.
-
-  t3 = t1.initialize_batch_obj(:key => 'three')
-  t1.batch                 # => [t1, t3]
   
-Batched tasks enque together, and therefore execute sequentially with the same
-inputs. Results are aggregated into the underlying Tap::App.
+Results are aggregated into the underlying Tap::App.
 
   t1.enq('input')
   
   app = Tap::App.instance
   app.run
   
-  runlist                  # => [t0, t1, t2, t3, t2]
-  app.results(t2)          # => ["input:one:two", "input:three:two"]
+  runlist                  # => [t0, t1, t2]
+  app.results(t2)          # => ["input:one:two"]
 
 Tracking the evolution of a result through a workflow can get complex.  Tap
 audits workflows to help, using the name of each task as an identifier:
 
   t1.name = 'un'
   t2.name = 'deux'
-  t3.name = 'trois'
   
-  app._results(t2).collect do |_result|
-    _result.dump
-  end.join("---\n")
+  app._results(t2)[0].dump
   # => 
   # o-[] "input"
   # o-[un] "input:one"
   # o-[deux] "input:one:two"
-  # ---
-  # o-[] "input"
-  # o-[trois] "input:three"
-  # o-[deux] "input:three:two"
 
 == Apps
 

@@ -6,7 +6,7 @@ module Tap
       # set of targets will receive the results of the source.
       class Switch < Join
         def join(source, targets)
-          complete(source) do |_result| 
+          source.on_complete do |_result| 
             if index = yield(_result)        
               unless target = targets[index] 
                 raise "no switch target for index: #{index}"

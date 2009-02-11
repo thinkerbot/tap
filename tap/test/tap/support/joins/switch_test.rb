@@ -7,606 +7,297 @@ class SwitchTest < Test::Unit::TestCase
   
   def test_simple_switch
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
+    t0, t1, t2 = Tracer.intern(3, runlist)
     
     index = nil
-    t0_0.switch(t1_0, t2_0) do |_results|
-      index
-    end
-    
-    # pick t1_0
-    index = 0
-    t0_0.enq ""
-    app.run
-  
-    assert_equal %w{
-      0.0 1.0
-    }, runlist
-    
-    assert app._results(t0_0).empty?
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
-    ], app._results(t1_0))
-    assert app._results(t2_0).empty?
-    
-    # pick t2_0
-    index = 1
-    t0_0.enq ""
-    app.run
-  
-    assert_equal %w{
-      0.0 1.0
-      0.0 2.0
-    }, runlist
-    
-    assert app._results(t0_0).empty?
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
-    ], app._results(t1_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
-    ], app._results(t2_0))
-    
-    # now skip (aggregate result)
-    index = nil
-    t0_0.enq ""
-    app.run
-  
-    assert_equal %w{
-      0.0 1.0
-      0.0 2.0
-      0.0
-    }, runlist
-    
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0']]
-    ], app._results(t0_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
-    ], app._results(t1_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
-    ], app._results(t2_0))
-  end
-  
-  def test_batch_switch
-    runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
-    t0_1 = t0_0.initialize_batch_obj
-    t1_1 = t1_0.initialize_batch_obj
-    t2_1 = t2_0.initialize_batch_obj
-
-    index = nil
-    t0_0.switch(t1_0, t2_0) do |_results|
+    t0.switch(t1, t2) do |_results|
       index
     end
     
     # pick t1
     index = 0
-    t0_0.enq ''
+    t0.enq ""
     app.run
-    
+  
     assert_equal %w{
-      0.0 1.0
-          1.1
-      0.1 1.0
-          1.1
+      0 1
     }, runlist
     
-    assert app._results(t0_0).empty?
-    assert app._results(t0_1).empty?
+    assert app._results(t0).empty?
     assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
-    ], app._results(t1_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
-    ], app._results(t1_1))
-    assert app._results(t2_0).empty?
-    assert app._results(t2_1).empty?
+      [[nil, ''],[t0, '0'],[t1, '0 1']]
+    ], app._results(t1))
+    assert app._results(t2).empty?
     
     # pick t2
     index = 1
-    t0_0.enq ''
+    t0.enq ""
     app.run
-    
+  
     assert_equal %w{
-      0.0 1.0
-          1.1
-      0.1 1.0
-          1.1
-      0.0 2.0
-          2.1
-      0.1 2.0
-          2.1
+      0 1
+      0 2
     }, runlist
     
-    assert app._results(t0_0).empty?
-    assert app._results(t0_1).empty?
+    assert app._results(t0).empty?
     assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
-    ], app._results(t1_0))
+      [[nil, ''],[t0, '0'],[t1, '0 1']]
+    ], app._results(t1))
     assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
-    ], app._results(t1_1))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
-      [[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
-    ], app._results(t2_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
-      [[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
-    ], app._results(t2_1))
+      [[nil, ''],[t0, '0'],[t2, '0 2']]
+    ], app._results(t2))
     
     # now skip (aggregate result)
     index = nil
-    t0_0.enq ''
+    t0.enq ""
     app.run
-    
+  
     assert_equal %w{
-      0.0 1.0
-          1.1
-      0.1 1.0
-          1.1
-      0.0 2.0
-          2.1
-      0.1 2.0
-          2.1
-      0.0
-      0.1
+      0 1
+      0 2
+      0
     }, runlist
     
     assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0']]
-    ], app._results(t0_0))
+      [[nil, ''],[t0, '0']]
+    ], app._results(t0))
     assert_audits_equal([
-      [[nil, ''],[t0_1, '0.1']]
-    ], app._results(t0_1))
+      [[nil, ''],[t0, '0'],[t1, '0 1']]
+    ], app._results(t1))
     assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
-    ], app._results(t1_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
-    ], app._results(t1_1))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
-      [[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
-    ], app._results(t2_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
-      [[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
-    ], app._results(t2_1))
+      [[nil, ''],[t0, '0'],[t2, '0 2']]
+    ], app._results(t2))
   end
   
   def test_stack_switch
     runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
+    t0, t1, t2 = Tracer.intern(3, runlist)
     
     index = nil
-    t0_0.switch(t1_0, t2_0, :stack => true) do |_results|
-      index
-    end
-    
-    # pick t1_0
-    index = 0
-    t0_0.enq ""
-    app.run
-  
-    assert_equal %w{
-      0.0 
-      1.0
-    }, runlist
-    
-    assert app._results(t0_0).empty?
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
-    ], app._results(t1_0))
-    assert app._results(t2_0).empty?
-    
-    # pick t2_0
-    index = 1
-    t0_0.enq ""
-    app.run
-  
-    assert_equal %w{
-      0.0 
-      1.0
-      0.0 
-      2.0
-    }, runlist
-    
-    assert app._results(t0_0).empty?
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
-    ], app._results(t1_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
-    ], app._results(t2_0))
-    
-    # now skip (aggregate result)
-    index = nil
-    t0_0.enq ""
-    app.run
-  
-    assert_equal %w{
-      0.0 
-      1.0
-      0.0 
-      2.0
-      0.0
-    }, runlist
-    
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0']]
-    ], app._results(t0_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
-    ], app._results(t1_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
-    ], app._results(t2_0))
-  end
-  
-  def test_batched_stack_switch
-    runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
-    t0_1 = t0_0.initialize_batch_obj
-    t1_1 = t1_0.initialize_batch_obj
-    t2_1 = t2_0.initialize_batch_obj
-
-    index = nil
-    t0_0.switch(t1_0, t2_0, :stack => true) do |_results|
+    t0.switch(t1, t2, :stack => true) do |_results|
       index
     end
     
     # pick t1
     index = 0
-    t0_0.enq ''
+    t0.enq ""
     app.run
-    
+  
     assert_equal %w{
-      0.0      0.1
-      1.0 1.1  1.0 1.1
+      0 
+      1
     }, runlist
     
-    assert app._results(t0_0).empty?
-    assert app._results(t0_1).empty?
+    assert app._results(t0).empty?
     assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
-    ], app._results(t1_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
-    ], app._results(t1_1))
-    assert app._results(t2_0).empty?
-    assert app._results(t2_1).empty?
+      [[nil, ''],[t0, '0'],[t1, '0 1']]
+    ], app._results(t1))
+    assert app._results(t2).empty?
     
     # pick t2
     index = 1
-    t0_0.enq ''
+    t0.enq ""
     app.run
-    
+  
     assert_equal %w{
-      0.0      0.1
-      1.0 1.1  1.0 1.1
-      0.0      0.1
-      2.0 2.1  2.0 2.1
+      0
+      1
+      0
+      2
     }, runlist
     
-    assert app._results(t0_0).empty?
-    assert app._results(t0_1).empty?
+    assert app._results(t0).empty?
     assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
-    ], app._results(t1_0))
+      [[nil, ''],[t0, '0'],[t1, '0 1']]
+    ], app._results(t1))
     assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
-    ], app._results(t1_1))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
-      [[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
-    ], app._results(t2_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
-      [[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
-    ], app._results(t2_1))
+      [[nil, ''],[t0, '0'],[t2, '0 2']]
+    ], app._results(t2))
     
     # now skip (aggregate result)
     index = nil
-    t0_0.enq ''
+    t0.enq ""
     app.run
-    
+  
     assert_equal %w{
-      0.0      0.1
-      1.0 1.1  1.0 1.1
-      0.0      0.1
-      2.0 2.1  2.0 2.1
-      0.0
-      0.1
+      0
+      1
+      0
+      2
+      0
     }, runlist
     
     assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0']]
-    ], app._results(t0_0))
+      [[nil, ''],[t0, '0']]
+    ], app._results(t0))
     assert_audits_equal([
-      [[nil, ''],[t0_1, '0.1']]
-    ], app._results(t0_1))
+      [[nil, ''],[t0, '0'],[t1, '0 1']]
+    ], app._results(t1))
     assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']],
-      [[nil, ''],[t0_1, '0.1'],[t1_0, '0.1 1.0']]
-    ], app._results(t1_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_1, '0.0 1.1']],
-      [[nil, ''],[t0_1, '0.1'],[t1_1, '0.1 1.1']]
-    ], app._results(t1_1))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']],
-      [[nil, ''],[t0_1, '0.1'],[t2_0, '0.1 2.0']]
-    ], app._results(t2_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_1, '0.0 2.1']],
-      [[nil, ''],[t0_1, '0.1'],[t2_1, '0.1 2.1']]
-    ], app._results(t2_1))
+      [[nil, ''],[t0, '0'],[t2, '0 2']]
+    ], app._results(t2))
   end
   
   def test_iterate_switch
     runlist = []
-    t0_0 = Tracer.new(0, runlist) do |task, input|
+    t0 = Tracer.new(0, runlist) do |task, input|
       input.collect {|str| task.mark(str) }
     end
-    t1_0 = Tracer.new(1, runlist)
-    t2_0 = Tracer.new(2, runlist)
+    t1 = Tracer.new(1, runlist)
+    t2 = Tracer.new(2, runlist)
     
     index = nil
-    t0_0.switch(t1_0, t2_0, :iterate => true) do |_results|
+    t0.switch(t1, t2, :iterate => true) do |_results|
       index
     end
     
-    # pick t1_0
+    # pick t1
     index = 0
-    t0_0.enq ['a', 'b']
+    t0.enq ['a', 'b']
     app.run
   
     assert_equal %w{
-      0.0 1.0
-          1.0
+      0 1
+        1
     }, runlist
     
-    assert app._results(t0_0).empty?
+    assert app._results(t0).empty?
     assert_audits_equal([
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[0, 'a 0.0'],[t1_0, 'a 0.0 1.0']],
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[1, 'b 0.0'],[t1_0, 'b 0.0 1.0']]
-    ], app._results(t1_0))
-    assert app._results(t2_0).empty?
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t1, 'a 0 1']],
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t1, 'b 0 1']]
+    ], app._results(t1))
+    assert app._results(t2).empty?
     
-    # pick t2_0
+    # pick t2
     index = 1
-    t0_0.enq ['a', 'b']
+    t0.enq ['a', 'b']
     app.run
   
     assert_equal %w{
-      0.0 1.0
-          1.0
-      0.0 2.0
-          2.0
+      0 1
+        1
+      0 2
+        2
     }, runlist
     
-    assert app._results(t0_0).empty?
+    assert app._results(t0).empty?
     assert_audits_equal([
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[0, 'a 0.0'],[t1_0, 'a 0.0 1.0']],
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[1, 'b 0.0'],[t1_0, 'b 0.0 1.0']]
-    ], app._results(t1_0))
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t1, 'a 0 1']],
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t1, 'b 0 1']]
+    ], app._results(t1))
     assert_audits_equal([
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[0, 'a 0.0'],[t2_0, 'a 0.0 2.0']],
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[1, 'b 0.0'],[t2_0, 'b 0.0 2.0']]
-    ], app._results(t2_0))
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t2, 'a 0 2']],
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t2, 'b 0 2']]
+    ], app._results(t2))
     
     # now skip (aggregate result)
     index = nil
-    t0_0.enq ['a', 'b']
+    t0.enq ['a', 'b']
     app.run
   
     assert_equal %w{
-      0.0 1.0
-          1.0
-      0.0 2.0
-          2.0
-      0.0
+      0 1
+        1
+      0 2
+        2
+      0
     }, runlist
     
     assert_audits_equal([
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']]]
-    ], app._results(t0_0))
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']]]
+    ], app._results(t0))
     assert_audits_equal([
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[0, 'a 0.0'],[t1_0, 'a 0.0 1.0']],
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[1, 'b 0.0'],[t1_0, 'b 0.0 1.0']]
-    ], app._results(t1_0))
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t1, 'a 0 1']],
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t1, 'b 0 1']]
+    ], app._results(t1))
     assert_audits_equal([
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[0, 'a 0.0'],[t2_0, 'a 0.0 2.0']],
-      [[nil,['a', 'b']],[t0_0,['a 0.0', 'b 0.0']],[1, 'b 0.0'],[t2_0, 'b 0.0 2.0']]
-    ], app._results(t2_0))
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t2, 'a 0 2']],
+      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t2, 'b 0 2']]
+    ], app._results(t2))
   end
   
   def test_splat_switch
     runlist = []
-    t0_0 = Tracer.new(0, runlist) do |task, input|
+    t0 = Tracer.new(0, runlist) do |task, input|
       input.collect {|str| task.mark(str) }
     end
-    t1_0 = Tracer.new(1, runlist) do |task, *inputs|
+    t1 = Tracer.new(1, runlist) do |task, *inputs|
       inputs.collect {|str| task.mark(str) }
     end 
-    t2_0 = Tracer.new(2, runlist) do |task, *inputs|
+    t2 = Tracer.new(2, runlist) do |task, *inputs|
       inputs.collect {|str| task.mark(str) }
     end
     
     index = nil
-    t0_0.switch(t1_0, t2_0, :splat => true) do |_results|
+    t0.switch(t1, t2, :splat => true) do |_results|
       index
     end
     
-    m0_0a = [[nil, ["a", "b"]], [t0_0, ["a 0.0", "b 0.0"]], [0, "a 0.0"]]
-    m0_0b = [[nil, ["a", "b"]], [t0_0, ["a 0.0", "b 0.0"]], [1, "b 0.0"]]
+    m0a = [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]], [0, "a 0"]]
+    m0b = [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]], [1, "b 0"]]
     
-    # pick t1_0
+    # pick t1
     index = 0
-    t0_0.enq ['a', 'b']
+    t0.enq ['a', 'b']
     app.run
   
     assert_equal %w{
-      0.0 1.0
+      0 1
     }, runlist
     
-    assert app._results(t0_0).empty?
+    assert app._results(t0).empty?
     assert_audits_equal([
-      [[m0_0a, m0_0b], [t1_0, ['a 0.0 1.0', 'b 0.0 1.0']]]
-    ], app._results(t1_0))
-    assert app._results(t2_0).empty?
+      [[m0a, m0b], [t1, ['a 0 1', 'b 0 1']]]
+    ], app._results(t1))
+    assert app._results(t2).empty?
     
-    # pick t2_0
+    # pick t2
     index = 1
-    t0_0.enq ['a', 'b']
+    t0.enq ['a', 'b']
     app.run
   
     assert_equal %w{
-      0.0 1.0
-      0.0 2.0
+      0 1
+      0 2
     }, runlist
     
-    assert app._results(t0_0).empty?
+    assert app._results(t0).empty?
     assert_audits_equal([
-      [[m0_0a, m0_0b], [t1_0, ['a 0.0 1.0', 'b 0.0 1.0']]]
-    ], app._results(t1_0))
+      [[m0a, m0b], [t1, ['a 0 1', 'b 0 1']]]
+    ], app._results(t1))
     assert_audits_equal([
-      [[m0_0a, m0_0b], [t2_0, ['a 0.0 2.0', 'b 0.0 2.0']]]
-    ], app._results(t2_0))
+      [[m0a, m0b], [t2, ['a 0 2', 'b 0 2']]]
+    ], app._results(t2))
     
     # now skip (aggregate result)
     index = nil
-    t0_0.enq ['a', 'b']
+    t0.enq ['a', 'b']
     app.run
   
     assert_equal %w{
-      0.0 1.0
-      0.0 2.0
-      0.0
+      0 1
+      0 2
+      0
     }, runlist
     
     assert_audits_equal([
-      [[nil, ["a", "b"]], [t0_0, ["a 0.0", "b 0.0"]]]
-    ], app._results(t0_0))
+      [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]]]
+    ], app._results(t0))
     assert_audits_equal([
-      [[m0_0a, m0_0b], [t1_0, ['a 0.0 1.0', 'b 0.0 1.0']]]
-    ], app._results(t1_0))
+      [[m0a, m0b], [t1, ['a 0 1', 'b 0 1']]]
+    ], app._results(t1))
     assert_audits_equal([
-      [[m0_0a, m0_0b], [t2_0, ['a 0.0 2.0', 'b 0.0 2.0']]]
-    ], app._results(t2_0))
-  end
-  
-  def test_unbatched_switch
-    runlist = []
-    t0_0, t1_0, t2_0 = Tracer.intern(3, runlist)
-    t0_1 = t0_0.initialize_batch_obj
-    t1_1 = t1_0.initialize_batch_obj
-    t2_1 = t2_0.initialize_batch_obj
-
-    index = nil
-    t0_0.switch(t1_0, t2_0, :unbatched => true) do |_results|
-      index
-    end
-    
-    # pick t1_0
-    index = 0
-    t0_0.enq ""
-    app.run
-  
-    assert_equal %w{
-      0.0 1.0
-      0.1
-    }, runlist
-    
-    assert app._results(t0_0).empty?
-    assert_audits_equal([
-      [[nil, ''],[t0_1, '0.1']]
-    ], app._results(t0_1))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
-    ], app._results(t1_0))
-    assert app._results(t1_1).empty?
-    assert app._results(t2_0).empty?
-    assert app._results(t2_1).empty?
-    
-    # pick t2_0
-    index = 1
-    t0_0.enq ""
-    app.run
-  
-    assert_equal %w{
-      0.0 1.0
-      0.1
-      0.0 2.0
-      0.1
-    }, runlist
-    
-    assert app._results(t0_0).empty?
-    assert_audits_equal([
-      [[nil, ''],[t0_1, '0.1']],
-      [[nil, ''],[t0_1, '0.1']]
-    ], app._results(t0_1))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
-    ], app._results(t1_0))
-    assert app._results(t1_1).empty?
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
-    ], app._results(t2_0))
-    assert app._results(t2_1).empty?
-    
-    # now skip (aggregate result)
-    index = nil
-    t0_0.enq ""
-    app.run
-  
-    assert_equal %w{
-      0.0 1.0
-      0.1
-      0.0 2.0
-      0.1
-      0.0
-      0.1
-    }, runlist
-    
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0']]
-    ], app._results(t0_0))
-    assert_audits_equal([
-      [[nil, ''],[t0_1, '0.1']],
-      [[nil, ''],[t0_1, '0.1']],
-      [[nil, ''],[t0_1, '0.1']]
-    ], app._results(t0_1))
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t1_0, '0.0 1.0']]
-    ], app._results(t1_0))
-    assert app._results(t1_1).empty?
-    assert_audits_equal([
-      [[nil, ''],[t0_0, '0.0'],[t2_0, '0.0 2.0']]
-    ], app._results(t2_0))
-    assert app._results(t2_1).empty?
+      [[m0a, m0b], [t2, ['a 0 2', 'b 0 2']]]
+    ], app._results(t2))
   end
   
   def test_switch_raises_error_for_out_of_bounds_index
-    t0_0, t1_0, t2_0 = Tracer.intern(3, [])
-    t0_0.switch(t1_0, t2_0) do |_results|
+    t0, t1, t2 = Tracer.intern(3, [])
+    t0.switch(t1, t2) do |_results|
       100
     end
   
-    t0_0.enq ''
+    t0.enq ''
     assert_raises(RuntimeError) { app.run }
   end
 end

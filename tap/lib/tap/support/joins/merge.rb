@@ -9,7 +9,7 @@ module Tap
           sources.each do |source|
             # merging can use the existing audit trails... each distinct 
             # input is getting sent to one place (the target)
-            complete(source) do |_result| 
+            source.on_complete do |_result| 
               yield(_result) if block_given?
               enq(target, _result)
             end
