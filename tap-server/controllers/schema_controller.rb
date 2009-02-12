@@ -59,7 +59,7 @@ class SchemaController < Tap::Controller
   
   include Utils
   
-  set :default_layout, 'layouts/default.erb'
+  set :default_layout, 'layout.erb'
   
   # Initializes a new schema and redirects to display.
   def index
@@ -228,34 +228,40 @@ class SchemaController < Tap::Controller
       raise Tap::ServerError, "run must be performed with post"
     end
     
+    # it would be nice to someday put all this on a separate thread...
     schema = load_schema(id)
     
-    Thread.new do
-      queues = schema.compact.build(app) do |args|
-        task = args.shift
-        const = server.env.tasks.search(task) 
+    result_pages = []
+    nodes = schema.nodes
+    nodes.each do |node|
+      next if node.output
       
-        task_class = case
-        when const then const.constantize 
-        when block_given?
-          args.unshift(task)
-          yield(args)
-        else nil
-        end
+      source_index = nodes.index(node)
+      target_index = nodes.length
       
-        task_class or raise ArgumentError, "unknown task: #{task}"
-        task_class.parse(args, app) do |help|
-          # redirect help
-          raise Tap::ServerError, "no help yet..."
+      schema.set(Tap::Support::Joins::Sequence, source_index, target_index)
+      nodes[target_index] = "tap-server:render --index=#{source_index}"
+      result_pages << source_index
+    end
+    
+    tasks = server.env.tasks
+    schema.compact.build(app) do |(key, *args)|
+      if const = tasks.search(key) 
+        const.constantize.parse(args, app) do |help|
+          redirect("/app/help/#{key}")
         end
-      end
-     
-      queues.each_with_index do |queue, i|
-        app.queue.concat(queue)
-        app.run
+      else
+        raise ArgumentError, "unknown task: #{key}"
       end
     end
     
+    # render  results/id/time.html
+    # (this is rendered according to a standard schema template)
+    
+    # prepare results/id/time/result_pages.html  
+    # (these, including format, are determined by task... default schema result replaced during render)
+    
+    Thread.new { app.run }
     redirect("/app/tail")
   end
   

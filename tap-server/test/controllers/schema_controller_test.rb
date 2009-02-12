@@ -82,10 +82,10 @@ class SchemaControllerTest < Test::Unit::TestCase
     end
     
     # fake out display templates
-    method_root.prepare(:views, "layouts/default.erb") do |file|
+    method_root.prepare(:views, "layout.erb") do |file|
       file << "<%= content %>"
     end
-    method_root.prepare(:views, "schema/schema.erb") do |file|
+    method_root.prepare(:views, "schema_controller/schema.erb") do |file|
       file << "<%= id %>: <%= schema.to_s %>"
     end
     

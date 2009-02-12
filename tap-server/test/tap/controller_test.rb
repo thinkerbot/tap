@@ -40,9 +40,9 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal 'default', ChildController.default_layout
   end
   
-  def test_name_is_underscored_class_name_minus_controller_suffix
-    assert_equal "controller_test/parent", ParentController.name
-    assert_equal "controller_test/child", ChildController.name
+  def test_name_is_underscored_class_name
+    assert_equal "controller_test/parent_controller", ParentController.name
+    assert_equal "controller_test/child_controller", ChildController.name
   end
   
   #

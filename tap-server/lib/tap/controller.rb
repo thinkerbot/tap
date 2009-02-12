@@ -41,7 +41,7 @@ module Tap
       # The base path prepended to render paths (ie render(<path>) renders
       # <templates_dir/name/path>).
       def name
-        @name ||= to_s.underscore.chomp("_controller")
+        @name ||= to_s.underscore
       end
       
       # Adds the specified middleware.  Middleware classes are initialized

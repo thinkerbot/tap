@@ -3,7 +3,7 @@ require 'rack/mime'
 require 'time'
 
 class AppController < Tap::Controller
-  set :default_layout, 'layouts/default.erb'
+  set :default_layout, 'layout.erb'
   
   def call(env)
     # serve public files before actions
@@ -85,5 +85,8 @@ class AppController < Tap::Controller
   def terminate
     app.terminate
     redirect("/app/info")
+  end
+  
+  def help(key=nil)
   end
 end
