@@ -176,13 +176,5 @@ module Tap
         end
       end
     end
-    
-    def run(queues)
-      queues.each_with_index do |queue, i|
-        app.queue.concat(queue)
-        app.run
-      end
-    end
-    
   end
 end

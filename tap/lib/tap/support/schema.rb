@@ -279,13 +279,8 @@ module Tap
         end
 
         # build queues
-        queues = rounds.compact.collect do |round|
-          round.each do |node|
-            task, args = tasks.delete(node)
-            task.enq(*args)
-          end
-
-          app.queue.clear
+        rounds.compact.collect do |round|
+          app.queue.concat round.collect {|node| tasks.delete(node) }
         end
         
         # notify any args that will be overlooked
@@ -293,8 +288,8 @@ module Tap
           next if args.empty?
           warn "warning: ignoring args for node (#{nodes.index(node)}) #{task} [#{args.join(' ')}]"
         end
-
-        queues
+        
+        app
       end
       
       # Creates an array dump of the contents of self.

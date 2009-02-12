@@ -3,32 +3,37 @@ require 'tap/support/executable'
 module Tap
   module Support
     
-    # ExecutableQueue allows thread-safe enqueing and dequeing of 
-    # Executable methods and inputs for execution.  
+    # ExecutableQueue allows thread-safe enqueing and dequeing of Executable
+    # methods and inputs for execution.
     class ExecutableQueue < Monitor
       
       # Creates a new ExecutableQueue
       def initialize
         super
-        @queue = []
+        @rounds = [[]]
       end
       
-      # Clears all methods and inputs.  Returns the existing queue as an array.
+      # Clears self and returns an array of the enqueued methods and inputs,
+      # organized by round.
       def clear
         synchronize do
-          current, @queue = @queue, []
+          current, @rounds = @rounds, [[]]
           current
         end
       end
       
       # Returns the number of enqueued methods
       def size
-        synchronize { @queue.length }
+        synchronize do
+          size = 0 
+          @rounds.each {|round| size += round.length }
+          size
+        end
       end
       
       # True if no methods are enqueued
       def empty?
-        synchronize { @queue.empty? }
+        synchronize { size == 0 }
       end
       
       # Enqueues the method and inputs. Raises an error if the  
@@ -36,7 +41,7 @@ module Tap
       def enq(method, inputs)
         synchronize do
           check_method(method)
-          @queue.push [method, inputs]
+          queue.push [method, inputs]
         end
       end
       
@@ -45,31 +50,58 @@ module Tap
       def unshift(method, inputs)
         synchronize do
           check_method(method)
-          @queue.unshift [method, inputs]
+          queue.unshift [method, inputs]
         end
       end
       
       # Dequeues the next method and inputs as an array like
       # [method, inputs]. Returns nil if the queue is empty.
       def deq
-        synchronize { @queue.shift }
+        synchronize { queue.shift }
       end
       
-      # Enques each [method, inputs] entry in array.
-      def concat(array)
+      # Enques an array of [method, inputs] entries as a round.  Rounds are
+      # dequeued completely before the next round is dequeued.
+      def concat(round)
         synchronize do
-          array.each do |method, inputs|
-            enq(method, inputs)
+          round.each do |method, inputs|
+            check_method(method)
+          end
+          
+          @rounds << round.dup
+        end
+      end
+      
+      # Converts self to an array.  If flatten is specified, all rounds are
+      # concatenated into a single array.
+      def to_a(flatten=true)
+        synchronize do
+          if flatten
+            array = []
+            @rounds.each {|round| array.concat(round) }
+            array
+          else
+            @rounds.collect {|round| round.dup}
           end
         end
       end
       
-      # Converts self to an array.
-      def to_a
-        synchronize { @queue.dup }
-      end
-      
       protected
+      
+      # Returns the active round.
+      def queue # :nodoc:
+        while @rounds.length > 1
+          queue = @rounds[0]
+          
+          if queue.empty?
+            @rounds.shift
+          else
+            return queue
+          end
+        end
+        
+        @rounds[0]
+      end
       
       # Checks if the input method is extended with Executable
       def check_method(method) # :nodoc:

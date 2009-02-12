@@ -218,4 +218,14 @@ unknown task: --help
 
     end
   end
+  
+  # see http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets/148-exerun-flubs-stopterminate
+  def test_run_does_not_suffer_from_stop_bug
+    script_test do |cmd|
+      cmd.check "Does not run after stop", %Q{
+% #{cmd} run -- echo before -- stop --+ echo after
+before
+}, false
+    end
+  end
 end

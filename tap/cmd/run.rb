@@ -44,14 +44,13 @@ end.parse!(ARGV)
 # build and run the argv
 #
 
-queues = env.build(ARGV)
+env.set_signals
+env.build(ARGV)
 ARGV.clear
 
-if queues.empty?
+if app.queue.empty?
   puts "no task specified"
   exit
 end
 
-env.set_signals
-env.run(queues)
-
+app.run
