@@ -175,24 +175,6 @@ o-[add_five] 8
   end
   
   #
-  # ready test
-  #
-  
-  def test_ready_sets_state_to_READY_unless_state_is_RUN
-    app.instance_variable_set('@state', App::State::STOP)
-    app.ready
-    assert_equal App::State::READY, app.state
-    
-    app.instance_variable_set('@state', App::State::RUN)
-    app.ready
-    assert_equal App::State::RUN, app.state
-  end
-  
-  def test_ready_returns_self
-    assert_equal app, app.ready
-  end
-  
-  #
   # run tests
   #
 
@@ -232,6 +214,59 @@ o-[add_five] 8
     assert nil != queue_before
     assert nil != queue_after
     assert_equal queue_before, queue_after
+  end
+  
+  def test_run_resets_state_to_ready
+    t1 = Task.intern do |task|
+      app.state
+    end
+    
+    t1.enq
+    assert_equal App::State::READY, app.state
+    app.run
+    assert_equal App::State::READY, app.state
+    assert_equal App::State::RUN, app.results(t1)[0]
+  end
+  
+  def test_run_resets_state_to_ready_when_stopped
+    t1 = Task.intern do |task|
+      app.stop
+      app.state
+    end
+    
+    t1.enq
+    assert_equal App::State::READY, app.state
+    app.run
+    assert_equal App::State::READY, app.state
+    assert_equal App::State::STOP, app.results(t1)[0]
+  end
+  
+  def test_run_resets_state_to_ready_when_terminated
+    t1 = Task.intern do |task|
+      app.terminate
+      task.check_terminate
+      flunk "should have been terminated"
+    end
+    
+    t1.enq
+    assert_equal App::State::READY, app.state
+    app.run
+    assert_equal App::State::READY, app.state
+  end
+  
+  def test_run_resets_state_to_ready_after_unhandled_error
+    t1 = Task.intern do |task|
+      raise "error!"
+    end
+    
+    t1.enq
+    assert_equal App::State::READY, app.state
+    
+    app.debug = true
+    e = assert_raises(RuntimeError) { app.run }
+    assert_equal "error!", e.message
+    
+    assert_equal App::State::READY, app.state
   end
   
   def test_run_returns_self

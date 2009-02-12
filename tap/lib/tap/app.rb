@@ -227,12 +227,6 @@ module Tap
       logger.add(level, msg, action.to_s) if !quiet || verbose
     end
     
-    # Sets state = State::READY unless the app is running.  Returns self.
-    def ready
-      synchronize { @state = State::READY unless state == State::RUN }
-      self
-    end
-
     # Sequentially calls execute with the (executable, inputs) pairs in
     # queue; run continues until the queue is empty and then returns self.
     #
