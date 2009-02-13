@@ -11,7 +11,7 @@ begin
   $DEBUG = true if ARGV.delete('-d-')
   env = Tap::Exe.instantiate
   env.unshift(Rap::Declarations.env)
-
+  
   Dir.glob('[TtRr]apfile{,.rb}').each do |task_file|
     task_file  = File.expand_path(task_file)
     next unless File.file?(task_file)
@@ -93,19 +93,20 @@ begin
     puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
     exit
   else
-    queues = env.build(ARGV) do |args|
+    env.set_signals
+    env.build(ARGV) do |args|
       warn "warning: implict rake for [#{args.join(' ')}]"
       Rap::Rake
     end
     ARGV.clear
-
-    if queues.empty?
+    
+    app = env.app
+    if app.queue.empty?
       puts "no task specified"
       exit
     end
-  
-    env.set_signals
-    env.run(queues)
+    
+    app.run
   end
   
 rescue

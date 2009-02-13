@@ -198,4 +198,15 @@ test_rap_uses_rap_and_tapfiles:
       end
     end
   end
+  
+  def test_rap_runs_tasks_from_rapfile
+    method_root.prepare('tap.yml') {}
+    method_root.prepare('Rapfile') {|file| file << "Rap.task(:echo) { puts 'echo!' }"}
+    script_test do |cmd|
+      cmd.check "Runs task from rapfile", %Q{
+% #{cmd} echo
+echo!
+}, false
+    end
+  end
 end
