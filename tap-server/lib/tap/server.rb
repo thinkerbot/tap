@@ -96,6 +96,27 @@ module Tap
       session_app = app(id)
       log_path = session_app.prepare(:log, 'server.log')
       session_app.logger = Logger.new(log_path)
+      
+      session_app.on_complete do |_result|
+        # find the template
+        pattern = "#{_result.key.to_s}/result\.*"
+        template = nil
+        env.each do |e|
+          templates = e.root.glob(views_dir, pattern)
+          unless templates.empty?
+            template = templates[0]
+            break
+          end
+        end
+        
+        if template
+          extname = File.extname(template)
+          session_app.prepare(:results, id.to_s, "#{_result.key.to_s}#{extname}") do |file|
+            file << Support::Templater.new(File.read(template)).build(:_result => _result)
+          end
+        end
+      end
+      
       id
     end
     

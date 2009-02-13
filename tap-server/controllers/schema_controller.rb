@@ -230,36 +230,17 @@ class SchemaController < Tap::Controller
     
     # it would be nice to someday put all this on a separate thread...
     schema = load_schema(id)
-    
-    result_pages = []
-    nodes = schema.nodes
-    nodes.each do |node|
-      next if node.output
-      
-      source_index = nodes.index(node)
-      target_index = nodes.length
-      
-      schema.set(Tap::Support::Joins::Sequence, source_index, target_index)
-      nodes[target_index] = "tap-server:render --index=#{source_index}"
-      result_pages << source_index
-    end
-    
     tasks = server.env.tasks
     schema.compact.build(app) do |(key, *args)|
       if const = tasks.search(key) 
         const.constantize.parse(args, app) do |help|
-          redirect("/app/help/#{key}")
+          raise "help not implemented"
+          #redirect("/app/help/#{key}")
         end
       else
         raise ArgumentError, "unknown task: #{key}"
       end
     end
-    
-    # render  results/id/time.html
-    # (this is rendered according to a standard schema template)
-    
-    # prepare results/id/time/result_pages.html  
-    # (these, including format, are determined by task... default schema result replaced during render)
     
     Thread.new { app.run }
     redirect("/app/tail")
