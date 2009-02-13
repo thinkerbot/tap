@@ -299,17 +299,18 @@ module Tap
       "state: #{state} (#{State.state_str(state)}) queue: #{queue.size} results: #{aggregator.size}"
     end
     
-    # Enques the task (or Executable) with the inputs.  Returns task.
+    # Enques the task (or Executable) with the inputs.  Raises an error if the
+    # input is not an Executable, or is not assigned to self.  Returns task.
     def enq(task, *inputs)
-      case task
-      when Tap::Task
-        raise ArgumentError, "not assigned to enqueing app: #{task}" unless task.app == self
-        task.enq(*inputs)
-      when Support::Executable
-        queue.enq(task, inputs)
-      else
-        raise ArgumentError, "not a Task or Executable: #{task}"
+      unless task.kind_of?(Support::Executable)
+        raise ArgumentError, "not an Executable: #{task.inspect}"
       end
+      
+      unless task.app == self
+        raise ArgumentError, "not assigned to enqueing app: #{task.inspect}"
+      end
+      
+      queue.enq(task, inputs)
       task
     end
 

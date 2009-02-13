@@ -299,6 +299,18 @@ o-[add_five] 8
     assert_equal [[m, []]], app.queue.to_a
   end
   
+  def test_enq_raises_error_if_task_is_not_an_Executable
+    e = assert_raises(ArgumentError) { app.enq(:task) }
+    assert_equal "not an Executable: :task", e.message
+  end
+  
+  def test_enq_raises_error_task_is_not_assigned_to_app
+    app2 = App.new
+    task = Task.new({}, nil, app2)
+    e = assert_raises(ArgumentError) { app.enq(task) }
+    assert_equal "not assigned to enqueing app: #{task.inspect}", e.message
+  end
+  
   def test_enq_returns_enqued_task
     t = Task.new
     assert_equal t, app.enq(t)
