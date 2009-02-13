@@ -39,8 +39,95 @@ class AppTest < Test::Unit::TestCase
   #
   # documentation test
   #
-
+  
   def test_app_documentation
+    app = App.instance
+  
+    t = Task.intern {|task, *inputs| inputs }
+    t.enq('a', 'b', 'c')
+    t.enq(1)
+    t.enq(2)
+    t.enq(3)
+  
+    app.run
+    assert_equal [['a', 'b', 'c'], [1], [2], [3]], app.results(t)
+  
+    ###
+  
+    t0 = Task.intern {|task| "0" }
+    t1 = Task.intern {|task, input| "#{input}:1" }
+    t2 = Task.intern {|task, input| "#{input}:2"}
+  
+    t0.on_complete {|_result| t1.enq(_result) }
+    t1.on_complete {|_result| t2.enq(_result) }
+    
+    t0.enq
+    app.run
+    assert_equal [], app.results(t0, t1)
+    assert_equal ["0:1:2"], app.results(t2)
+  
+    ###
+  
+    t2.enq("a")
+    t1.enq("b")
+    app.run
+    assert_equal ["0:1:2", "a:2", "b:1:2"], app.results(t2)
+  
+    t0.name = "zero"
+    t1.name = "one"
+    t2.name = "two"
+  
+    trails = app._results(t2).collect do |_result|
+      _result.dump
+    end
+  
+    expected = %q{
+o-[zero] "0"
+o-[one] "0:1"
+o-[two] "0:1:2"
+
+o-[] "a"
+o-[two] "a:2"
+
+o-[] "b"
+o-[one] "b:1"
+o-[two] "b:1:2"
+}
+    assert_equal expected, "\n" + trails.join("\n")
+  
+    ###
+    
+    runlist = []
+    t0 = Task.intern {|task| runlist << task }
+    t1 = Task.intern {|task| runlist << task }
+  
+    t0.depends_on(t1)
+    t0.enq
+  
+    app.run
+    assert_equal [t1, t0], runlist
+  
+    ###
+  
+    t0.enq
+    app.run
+    assert_equal [t1, t0, t0], runlist
+  
+    ###
+  
+    array = []
+  
+    m = array._method(:push)
+    m.enq(1)
+    m.enq(2)
+    m.enq(3)
+  
+    assert_equal true, array.empty?
+    app.run
+    assert_equal [1, 2, 3], array
+  end
+  
+  def test_old_app_documentation
     t0 = Task.intern {|task, input| "#{input}.0" }
     t0.enq('a')
     app.enq(t0, 'b')

@@ -9,39 +9,82 @@ require 'tap/task'
 module Tap
   
   # App coordinates the setup and running of tasks, and provides an interface 
-  # to the application directory structure. All tasks have an App (by default
-  # App.instance) through which tasks access access application-wide resources 
-  # like the logger, executable queue, aggregator, and dependencies.
+  # to the application directory structure. All tasks have an app (by default
+  # App.instance) through which they access application-wide resources like
+  # the logger, executable queue, and dependencies.
   #
   # === Running Tasks
   #
-  # Tasks are enqued to an App, and then run by the App in order.  Tasks may
-  # be enqued from Task#enq or App#enq:
+  # Tasks may be enqued and run by an App:
   #
-  #   t0 = Task.intern {|task, input| "#{input}.0" }
-  #   t0.enq('a')
-  #   app.enq(t0, 'b')
+  #   app = App.instance
+  #
+  #   t = Task.intern {|task, *inputs| inputs }
+  #   t.enq('a', 'b', 'c')
+  #   t.enq(1)
+  #   t.enq(2)
+  #   t.enq(3)
   #
   #   app.run
-  #   app.results(t0)                # => ['a.0', 'b.0']
+  #   app.results(t)                 # => [['a', 'b', 'c'], [1], [2], [3]]
   #
-  # By default apps collect task results as shown.  Alternatively tasks
-  # may be assigned an on_complete block to execute or enque other tasks,
-  # and thereby build imperative workflows:
+  # By default apps simply run tasks and collect the results.  To construct
+  # a workflow, set an on_complete block to receive the audited result and
+  # enque or execute the next series of tasks.  Here is a simple sequence:
   #
-  #   # clear the previous results
-  #   app.aggregator.clear
+  #   t0 = Task.intern {|task| "0" }
+  #   t1 = Task.intern {|task, input| "#{input}:1" }
+  #   t2 = Task.intern {|task, input| "#{input}:2"}
   #
-  #   t1 = Task.intern {|task, input| "#{input}.1" }
   #   t0.on_complete {|_result| t1.enq(_result) }
-  #   t0.enq 'c'
-  #
+  #   t1.on_complete {|_result| t2.enq(_result) }
+  #   
+  #   t0.enq
   #   app.run
-  #   app.results(t0)                # => []
-  #   app.results(t1)                # => ['c.0.1']
+  #   app.results(t0, t1)            # => []
+  #   app.results(t2)                # => ["0:1:2"]
   #
-  # Here t0 has no results because the on_complete block passed them to t1 in 
-  # a simple sequence.
+  # Apps may be assigned an on_complete block as well; the app on_complete
+  # block is called when a task has no on_complete block set.  If neither the
+  # task nor the app has an on_complete block, the app stores the audit in
+  # app.aggregator and makes it available through app.results.  Note how after
+  # the sequence, the t0 and t1 results are not in the app (they were handled
+  # by the on_complete block).
+  #
+  # Tracking how inputs evolve through a workflow can be onerous.  To help,
+  # Tap audits changes to the inputs.  Audit values are by convention prefixed
+  # by an underscore; all on_complete block receive the audited values and not
+  # the actual result of a task.  Aggregated audits are available through
+  # app._results.
+  #
+  #   t2.enq("a")
+  #   t1.enq("b")
+  #   app.run
+  #   app.results(t2)                # => ["0:1:2", "a:2", "b:1:2"]
+  # 
+  #   t0.name = "zero"
+  #   t1.name = "one"
+  #   t2.name = "two"
+  #
+  #   trails = app._results(t2).collect do |_result|
+  #     _result.dump
+  #   end
+  #
+  #   "\n" + trails.join("\n")
+  #   # => %q{
+  #   # o-[zero] "0"
+  #   # o-[one] "0:1"
+  #   # o-[two] "0:1:2"
+  #   # 
+  #   # o-[] "a"
+  #   # o-[two] "a:2"
+  #   # 
+  #   # o-[] "b"
+  #   # o-[one] "b:1"
+  #   # o-[two] "b:1:2"
+  #   # }
+  #
+  # See Audit for more details.
   #
   # === Dependencies
   #
@@ -67,71 +110,19 @@ module Tap
   # === Executables
   #
   # App can enque and run any Executable object. Arbitrary methods may be
-  # made into Executables using Object#_method. The mq (method enq) method
-  # generates and enques methods in one step.
+  # made into Executables using Object#_method.
   #
   #   array = []
   #
-  #   # longhand
   #   m = array._method(:push)
   #   m.enq(1)
-  #
-  #   # shorthand
-  #   app.mq(array, :push, 2)
+  #   m.enq(2)
+  #   m.enq(3)
   #
   #   array.empty?                   # => true
   #   app.run
-  #   array                          # => [1, 2]
+  #   array                          # => [1, 2, 3]
   #
-  # === Auditing
-  # 
-  # All results are audited to track how a given input evolves during a workflow.
-  # To illustrate auditing, consider an addition workflow that ends in eights.
-  #
-  #   add_one  = Tap::Task.intern({}, 'add_one')  {|task, input| input += 1 }
-  #   add_five = Tap::Task.intern({}, 'add_five') {|task, input| input += 5 }
-  #
-  #   add_one.on_complete do |_result|
-  #     # _result is the audit
-  #     current_value = _result.value
-  #
-  #     if current_value < 3 
-  #       add_one.enq(_result)
-  #     else
-  #       add_five.enq(_result)
-  #     end
-  #   end
-  #   
-  #   add_one.enq(0)
-  #   add_one.enq(1)
-  #   add_one.enq(2)
-  #
-  #   app.run
-  #   app.results(add_five)          # => [8,8,8]
-  #
-  # Although the results are indistinguishable, each achieved the final value
-  # through a different series of tasks. With auditing you can see how each 
-  # input came to the final value of 8:
-  #
-  #   "\n" + Tap::Support::Audit.dump(app._results(add_five), "")
-  #    # => %Q{
-  #    # o-[] 2
-  #    # o-[add_one] 3
-  #    # o-[add_five] 8
-  #    # 
-  #    # o-[] 1
-  #    # o-[add_one] 2
-  #    # o-[add_one] 3
-  #    # o-[add_five] 8
-  #    # 
-  #    # o-[] 0
-  #    # o-[add_one] 1
-  #    # o-[add_one] 2
-  #    # o-[add_one] 3
-  #    # o-[add_five] 8
-  #    # }
-  #
-  # See Tap::Support::Audit for more details.
   class App < Root
     class << self
       # Sets the current app instance
