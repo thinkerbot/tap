@@ -29,7 +29,7 @@ module Tap
       attr_accessor :targets
       
       # Initializes a new join with the specified configuration.
-      def initialize(config)
+      def initialize(config={})
         initialize_config(config)
         @sources = []
         @targets = []

@@ -74,6 +74,10 @@ class NodeTest < Test::Unit::TestCase
   #
   
   def test_natural_round_documentation
+    # (0)-o-[A]-o-[C]-o-[D]
+    #           |
+    # (1)-o-[B]-o
+    
     join1, join2 = Array.new(2) { Join.new }
     a = Node.new [], 0, join1
     b = Node.new [], 1, join1
@@ -82,6 +86,12 @@ class NodeTest < Test::Unit::TestCase
   
     assert_equal 0, d.natural_round
   
+    # ( )-o-[A]-o
+    #           |
+    # (1)-o-[B]-o
+    #           |
+    # (0)-o-[C]-o-[D]
+    
     join = Join.new
     a = Node.new [], nil, join
     b = Node.new [], 1, join

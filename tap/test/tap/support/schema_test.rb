@@ -252,20 +252,33 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal [], schema.joins.keys
   end
   
-  def test_compact_sets_orphaned_input_joins_to_orphan_round
-    n0 = Node.new [], 0
-    n1 = Node.new [1,2,3], 0
-    n2 = Node.new [4,5,6], 0
+  def test_compact_sets_orphaned_input_joins_to_natural_round
+    # (0)-o-[A]
+    #
+    # ( )-o-[B]-o
+    #           |
+    # (1)-o-[C]-o
+    #           |
+    # (0)-o-[D]-o-[E]
     
-    schema = Schema.new [n0, n1, n2]
-    join = schema.set(Join, 0, [2], {})
+    join = Join.new
+    a = Node.new [1,2,3], 0
+    b = Node.new [], nil, join
+    c = Node.new [], 1, join
+    d = Node.new [], 0, join
+    e = Node.new [4,5,6], join
+    schema = Schema.new [a,b,c,d,e]
     
-    assert_equal join, n2.input
+    assert_equal 0, a.input
+    assert_equal 1, e.natural_round
     assert_equal [join], schema.joins.keys
-
-    schema.compact(1)
     
-    assert_equal 1, n2.input
+    # nodes b,c,d are all removed since they have no args
+    schema.compact
+    
+    assert_equal [a,e], schema.nodes
+    assert_equal 0, a.input
+    assert_equal 1, e.input
     assert_equal [], schema.joins.keys
   end
   
@@ -287,25 +300,31 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   def test_orphaned_nodes_may_shift_round_if_nil_rounds_are_removed
-    n0 = Node.new [], 0
-    n1 = Node.new [1,2,3], 1
-    n2 = Node.new [4,5,6]
-    
-    schema = Schema.new [n0, n1, n2]
-    join = schema.set(Join, 0, [2], {})
-    
-    assert_equal 1, n1.input
-    assert_equal join, n2.input
-    assert_equal [join], schema.joins.keys
-
-    schema.compact(10)
-    
-    # after the n0 node is removed, rounds look like this:
-    # [nil, [n1], nil.... [n2]]
-    # so that when nils are removed:
+    # (3)-o-[A]
     #
-    assert_equal 0, n1.input
-    assert_equal 1, n2.input
+    # (6)-o-[B]-o
+    #           |
+    # (0)-o-[C]-o-[D]
+    
+    join = Join.new
+    a = Node.new [1,2,3], 3
+    b = Node.new [], 6, join
+    c = Node.new [], 0, join
+    d = Node.new [4,5,6], join
+    schema = Schema.new [a,b,c,d]
+    
+    assert_equal 3, a.input
+    assert_equal 6, d.natural_round
+    assert_equal [join], schema.joins.keys
+    
+    # nodes b,c removed since they have no args
+    # then rounds look like: [nil, nil, nil, [A], nil nil, [D]]
+    # which gets compacted to: [[A], [D]]
+    schema.compact
+    
+    assert_equal [a,d], schema.nodes
+    assert_equal 0, a.input
+    assert_equal 1, d.input
     assert_equal [], schema.joins.keys
   end
   

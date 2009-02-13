@@ -150,7 +150,7 @@ module Tap
       # any nils in the rounds array.
       #
       # Returns self.
-      def compact(orphan_round=0)
+      def compact
         # remove nil and empty nodes
         nodes.delete_if do |node|
           node == nil || node.argv.empty?
@@ -163,7 +163,7 @@ module Tap
           end if target_nodes.empty?
           
           target_nodes.each do |target_node|
-            target_node.input = orphan_round
+            target_node.input = target_node.natural_round
           end if source_nodes.empty?
         end
         
