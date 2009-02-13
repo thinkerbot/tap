@@ -115,6 +115,48 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal schema.dump, loaded_schema.dump
   end
   
+  def test_load_file_reloads_globals
+    schema = Schema.parse("-- a -- b -- c --*0 --*1 --*2").compact
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+    
+    assert_equal "-- a -- b -- c --*0 --*1 --*2", Schema.load_file(path).to_s
+  end
+  
+  def test_load_file_reloads_rounds
+    schema = Schema.parse("-- a --+ b --++ c")
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+    
+    assert_equal "-- a -- b -- c --+1[1] --+2[2]", Schema.load_file(path).to_s
+  end
+  
+  def test_load_file_reloads_sequence
+    schema = Schema.parse("-- a --: b")
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+    
+    assert_equal "-- a -- b --0:1", Schema.load_file(path).to_s
+  end
+  
+  def test_load_file_reloads_fork
+    schema = Schema.parse("-- a -- b -- c --0[1,2]").compact
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+    
+    assert_equal "-- a -- b -- c --0[1,2]", Schema.load_file(path).to_s
+  end
+  
+  def test_load_file_reloads_merge
+    schema = Schema.parse("-- a -- b -- c --2{0,1}").compact
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+    
+    assert_equal "-- a -- b -- c --2{0,1}", Schema.load_file(path).to_s
+  end
+  
+  def test_load_file_reloads_sync_merge
+    schema = Schema.parse("-- a -- b -- c --2(0,1)").compact
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+    
+    assert_equal "-- a -- b -- c --2(0,1)", Schema.load_file(path).to_s
+  end
+  
   def test_load_file_initializes_new_Schema_for_empty_file
     path = method_root.prepare(:tmp, 'empty.yml') {}
     

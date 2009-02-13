@@ -392,7 +392,7 @@ module Tap
         argv.each do |args|
           case args
           when Array
-            schema.nodes << Node.new(args)
+            schema.nodes << Node.new(args, 0)
             self.current_index += 1
           else
             parse_break(args)
