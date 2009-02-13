@@ -252,22 +252,20 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal [], schema.joins.keys
   end
   
-  def test_compact_removes_orphaned_input_joins
-    n0 = Node.new []
-    n1 = Node.new [1,2,3]
-    n2 = Node.new [4,5,6]
+  def test_compact_sets_orphaned_input_joins_to_orphan_round
+    n0 = Node.new [], 0
+    n1 = Node.new [1,2,3], 0
+    n2 = Node.new [4,5,6], 0
     
     schema = Schema.new [n0, n1, n2]
-    join = schema.set(Join, 0, [1,2], {})
+    join = schema.set(Join, 0, [2], {})
     
-    assert_equal join, n1.input
     assert_equal join, n2.input
     assert_equal [join], schema.joins.keys
 
-    schema.compact
+    schema.compact(1)
     
-    assert_equal nil, n1.input
-    assert_equal nil, n2.input
+    assert_equal 1, n2.input
     assert_equal [], schema.joins.keys
   end
   
@@ -286,6 +284,29 @@ class SchemaTest < Test::Unit::TestCase
     
     schema.compact
     assert_equal [[n0],[n5]], schema.rounds
+  end
+  
+  def test_orphaned_nodes_may_shift_round_if_nil_rounds_are_removed
+    n0 = Node.new [], 0
+    n1 = Node.new [1,2,3], 1
+    n2 = Node.new [4,5,6]
+    
+    schema = Schema.new [n0, n1, n2]
+    join = schema.set(Join, 0, [2], {})
+    
+    assert_equal 1, n1.input
+    assert_equal join, n2.input
+    assert_equal [join], schema.joins.keys
+
+    schema.compact(10)
+    
+    # after the n0 node is removed, rounds look like this:
+    # [nil, [n1], nil.... [n2]]
+    # so that when nils are removed:
+    #
+    assert_equal 0, n1.input
+    assert_equal 1, n2.input
+    assert_equal [], schema.joins.keys
   end
   
   def test_compact_returns_self
