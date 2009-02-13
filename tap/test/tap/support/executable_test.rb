@@ -245,6 +245,126 @@ class ExecutableTest < Test::Unit::TestCase
   end
   
   #
+  # _execute test
+  #
+  
+  class MockExecutable
+    include Tap::Support::Executable
+    
+    attr_reader :executed
+    
+    def initialize(app)
+      @method_name = :m
+      @app = app
+      @dependencies = []
+      @on_complete_block = nil
+      @executed = false
+    end
+    
+    def m(*inputs)
+      @executed = true
+      "received: #{inputs.inspect}"
+    end
+  end
+  
+  def test__execute_calls_method_name_with_inputs_and_returns_audit
+    e = MockExecutable.new(app)
+    _result = e._execute(1,2,3)
+    
+    assert e.executed
+    assert_equal Audit, _result.class
+    assert_equal e, _result.key
+    assert_equal "received: [1, 2, 3]", _result.value
+  end
+  
+  def test__execute_calls_method_name_with_current_audit_values_when_inputs_are_audits
+    one = Audit.new(:one, 1)
+    two = Audit.new(:two, 2)
+    three = Audit.new(:three, 3)
+    e = MockExecutable.new(app)
+    _result = e._execute(one, two, three)
+    
+    assert_equal "received: [1, 2, 3]", _result.value
+    assert_equal [one, two, three], _result.sources
+  end
+  
+  def test__execute_allows_mixed_audit_and_value_inputs
+    one = Audit.new(:one, 1)
+    three = Audit.new(:three, 3)
+    
+    e = MockExecutable.new(app)
+    _result = e._execute(one, 2, three)
+    
+    assert_equal "received: [1, 2, 3]", _result.value
+    assert_audits_equal [
+      [[:one, 1]], 
+      [[nil, 2]], 
+      [[:three, 3]]
+    ], _result.sources
+  end
+  
+  def test__execute_resolves_dependencies
+    e0 = MockExecutable.new(app)
+    e1 = MockExecutable.new(app)
+    e1.depends_on(e0)
+    
+    assert !e0.executed
+    assert !e1.executed
+    
+    e1._execute
+    
+    assert e0.executed
+    assert e1.executed
+  end
+  
+  def test__execute_calls_on_complete_block
+    e = MockExecutable.new(app)
+    
+    was_in_block = false
+    e.on_complete do |_result|
+      was_in_block = true
+    end
+    
+    assert_equal false, was_in_block
+    e._execute
+    assert_equal true, was_in_block
+  end
+  
+  def test__execute_calls_app_on_complete_block_if_no_on_complete_block_is_set
+    e = MockExecutable.new(app)
+    
+    was_in_block = false
+    app.on_complete do |_result|
+      was_in_block = true
+    end
+    
+    assert_equal false, was_in_block
+    assert_equal nil, e.on_complete_block
+    e._execute
+    assert_equal true, was_in_block
+  end
+  
+  def test__execute_sends_result_to_app_aggregator_if_no_on_complete_block_is_available
+    e = MockExecutable.new(app)
+    
+    assert_equal nil, e.on_complete_block
+    assert_equal nil, app.on_complete_block
+    assert app.aggregator.empty?
+    
+    audit = e._execute
+    assert_equal [audit], app.aggregator.retrieve(e)
+  end
+  
+  #
+  # execute test
+  #
+  
+  def test_execute_calls__execute_with_inputs_and_returns_result
+    e = MockExecutable.new(app)
+    assert_equal "received: [1, 2, 3]", e.execute(1,2,3)
+  end
+  
+  #
   # Object#_method test
   #
   

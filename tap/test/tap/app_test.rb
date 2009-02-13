@@ -155,7 +155,14 @@ o-[add_five] 8
     assert_equal(Support::Aggregator, app.aggregator.class)
     assert app.aggregator.empty?
     
+    assert_equal nil, app.on_complete_block
     assert_equal App::State::READY, app.state
+  end
+  
+  def test_initialization_with_block_sets_on_complete_block
+    b = lambda {}
+    app = App.new(&b)
+    assert_equal b, app.on_complete_block
   end
   
   #
@@ -378,6 +385,49 @@ o-[add_five] 8
     
     app.run
     assert_equal [{:key => 'value'}, [1,2,3], 2, "str"], app.results(t1)
+  end
+  
+  #
+  # on_complete test
+  #
+  
+  def test_on_complete_sets_on_complete_block_for_self
+    assert_equal nil, app.on_complete_block
+
+    b = lambda {}
+    app.on_complete(&b)
+    
+    assert_equal b, app.on_complete_block
+  end
+  
+  def test_on_complete_raises_error_when_an_on_complete_block_is_already_set
+    app.on_complete {}
+    assert app.on_complete_block
+    
+    assert_raises(RuntimeError) { app.on_complete {} }
+    assert_raises(RuntimeError) { app.on_complete }
+  end
+  
+  def test_on_complete_with_override_overrides_on_complete_block
+    app.on_complete {}
+    b = lambda {}
+    
+    assert b.object_id != app.on_complete_block.object_id
+    app.on_complete(true, &b)
+    assert_equal b.object_id, app.on_complete_block.object_id
+  end
+  
+  def test_on_complete_with_override_and_no_block_sets_on_complete_block_to_nil
+    app.on_complete {}
+  
+    assert nil != app.on_complete_block
+    app.on_complete(true)
+    
+    assert_equal nil, app.on_complete_block
+  end
+  
+  def test_on_complete_returns_self
+    assert_equal app, app.on_complete
   end
   
   #

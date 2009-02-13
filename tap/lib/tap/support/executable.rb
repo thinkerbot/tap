@@ -142,7 +142,11 @@ module Tap
         end
          
         audit = Audit.new(self, send(method_name, *inputs), previous)
-        on_complete_block ? on_complete_block.call(audit) : app.aggregator.store(audit)
+        if complete_block = on_complete_block || app.on_complete_block
+          complete_block.call(audit)
+        else 
+          app.aggregator.store(audit)
+        end
         
         audit
       end

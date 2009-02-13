@@ -160,6 +160,12 @@ module Tap
     # A Tap::Support::Dependencies to track dependencies.
     attr_reader :dependencies
     
+    # The block called when an executable completes and has no
+    # on_complete_block set.  An on_complete_block effectively
+    # takes the place of aggregation (ie when set, no results
+    # will be collected by self).
+    attr_reader :on_complete_block
+    
     config :debug, false, &c.flag                 # Flag debugging
     config :force, false, &c.flag                 # Force execution at checkpoints
     config :quiet, false, &c.flag                 # Suppress logging
@@ -187,13 +193,14 @@ module Tap
     include MonitorMixin
     
     # Creates a new App with the given configuration.  
-    def initialize(config={}, logger=DEFAULT_LOGGER)
+    def initialize(config={}, logger=DEFAULT_LOGGER, &block)
       super()
       
       @state = State::READY
       @queue = Support::ExecutableQueue.new
       @aggregator = Support::Aggregator.new
       @dependencies = Support::Dependencies.new
+      @on_complete_block = block
       
       reconfigure(config)
       self.logger = logger
@@ -342,6 +349,20 @@ module Tap
     #
     def results(*tasks)
       _results(tasks).collect {|_result| _result.value }
+    end
+    
+    # Sets a block to receive the results tasks with no on_complete_block
+    # set.  Raises an error if an on_complete_block is already set.
+    # Override the existing on_complete_block by specifying override = true.
+    #
+    # Note: the block recieves an audited result and not the result
+    # itself (see Audit for more information).
+    def on_complete(override=false, &block) # :yields: _result
+      unless on_complete_block == nil || override
+        raise "on_complete_block already set: #{self}" 
+      end
+      @on_complete_block = block
+      self
     end
     
     # Returns a string like: "#<Tap::App:#{object_id} root: #{root} >"
