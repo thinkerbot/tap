@@ -27,6 +27,7 @@ module Tap
         self.output = output
       end
       
+      # Sets the input for self.
       def input=(value)
         if @input.kind_of?(Join)
           @input.targets.delete(self)
@@ -39,6 +40,7 @@ module Tap
         end
       end
       
+      # Sets the output for self.
       def output=(value)
         if @output.kind_of?(Join)
           @output.sources.delete(self)

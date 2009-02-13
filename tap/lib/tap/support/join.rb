@@ -25,7 +25,12 @@ module Tap
       # than executed immediately.
       config :stack, false, :short => 'k', &c.boolean
       
+      # An array of nodes that have self set as their output.  Sources is
+      # managed by the nodes and should not be modified manually.
       attr_accessor :sources
+      
+      # An array of nodes that have self set as their input.  Targets is
+      # managed by the nodes and should not be modified manually.
       attr_accessor :targets
       
       # Initializes a new join with the specified configuration.

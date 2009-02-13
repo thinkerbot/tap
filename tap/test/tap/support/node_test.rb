@@ -9,7 +9,51 @@ class NodeTest < Test::Unit::TestCase
   def setup
     @node = Node.new
   end
+  
+  #
+  # input= test
+  #
+  
+  def test_after_set_input_self_is_no_longer_in_the_existing_join_targets
+    join = Join.new
+    node = Node.new [], join
     
+    assert_equal [node], join.targets
+    node.input = nil
+    assert_equal [], join.targets
+  end
+  
+  def test_after_set_input_self_is_included_in_the_new_join_targets
+    join = Join.new
+    node = Node.new
+    
+    assert_equal [], join.targets
+    node.input = join
+    assert_equal [node], join.targets
+  end
+  
+  #
+  # output= test
+  #
+  
+  def test_after_set_output_self_is_no_longer_in_the_existing_join_sources
+    join = Join.new
+    node = Node.new [], nil, join
+    
+    assert_equal [node], join.sources
+    node.output = nil
+    assert_equal [], join.sources
+  end
+  
+  def test_after_set_output_self_is_included_in_the_new_join_sources
+    join = Join.new
+    node = Node.new
+    
+    assert_equal [], join.sources
+    node.output = join
+    assert_equal [node], join.sources
+  end
+  
   #
   # globalize test
   #
