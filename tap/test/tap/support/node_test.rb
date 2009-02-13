@@ -68,4 +68,79 @@ class NodeTest < Test::Unit::TestCase
     node.round = :input
     assert_equal :input, node.input
   end
+  
+  #
+  # natural_round test
+  #
+  
+  def test_natural_round_documentation
+    join1, join2 = Array.new(2) { Join.new }
+    a = Node.new [], 0, join1
+    b = Node.new [], 1, join1
+    c = Node.new [], join1, join2
+    d = Node.new [], join2
+  
+    assert_equal 0, d.natural_round
+  
+    join = Join.new
+    a = Node.new [], nil, join
+    b = Node.new [], 1, join
+    c = Node.new [], 0, join
+    d = Node.new [], join
+  
+    assert_equal 1, d.natural_round
+  end
+  
+  def test_natural_round_returns_round_if_round_is_specified
+    node.round = 1
+    assert_equal 1, node.natural_round
+    
+    node.round = nil
+    assert_equal nil, node.natural_round
+  end
+  
+  def test_natural_round_returns_round_of_first_join_source_with_a_round
+    join = Join.new
+    
+    n0 = Node.new [], 0, join
+    n1 = Node.new [], 1, join
+    n2 = Node.new [], join
+    
+    assert_equal [n0, n1], join.sources
+    assert_equal join, n2.input
+    assert_equal 0, n2.natural_round
+    
+    # now reversing sources
+    join = Join.new
+    
+    n0 = Node.new [], 1, join
+    n1 = Node.new [], 0, join
+    n2 = Node.new [], join
+    
+    assert_equal 1, n2.natural_round
+  end
+  
+  def test_natural_round_does_not_consider_globals_as_natural_rounds
+    join = Join.new
+    
+    n0 = Node.new [], nil, join
+    n1 = Node.new [], 1, join
+    n2 = Node.new [], join
+    
+    assert_equal [n0, n1], join.sources
+    assert_equal join, n2.input
+    assert_equal 1, n2.natural_round
+  end
+  
+  def test_natural_round_of_all_global_sources_is_nil
+    join = Join.new
+    
+    n0 = Node.new [], nil, join
+    n1 = Node.new [], nil, join
+    n2 = Node.new [], join
+    
+    assert_equal [n0, n1], join.sources
+    assert_equal join, n2.input
+    assert_equal nil, n2.natural_round
+  end
 end

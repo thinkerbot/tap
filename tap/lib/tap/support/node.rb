@@ -1,3 +1,5 @@
+require 'tap/support/join'
+
 module Tap
   module Support
 
@@ -60,9 +62,8 @@ module Tap
         input == nil && output == nil
       end
       
-      # Returns the round for self; a round is indicated
-      # by an integer input.  If input is anything but 
-      # an integer, round returns nil.
+      # Returns the round for self; a round is indicated by an integer input. 
+      # If input is anything but an integer, round returns nil.
       def round
         input.kind_of?(Integer) ? input : nil
       end
@@ -70,6 +71,56 @@ module Tap
       # Alias for input=
       def round=(input)
         self.input = input
+      end
+      
+      # Returns the natural round of a node.  If a round is set then the
+      # natural round is the round.  If no round is set (ie input is a Join)
+      # then the natural round is that of the first source node with a natural
+      # round.
+      #
+      #   # (0)-o-[A]-o-[C]-o-[D]
+      #   #           |
+      #   # (1)-o-[B]-o
+      #
+      #   join1, join2 = Array.new(2) { Join.new }
+      #   a = Node.new [], 0, join1
+      #   b = Node.new [], 1, join1
+      #   c = Node.new [], join1, join2
+      #   d = Node.new [], join2
+      #
+      #   d.natural_round             # => 0
+      #
+      # Tracking back, the natural round of D is 0.  Source order matters and
+      # globals are ignored.
+      #
+      #   # ( )-o-[A]-o
+      #   #           |
+      #   # (1)-o-[B]-o
+      #   #           |
+      #   # (0)-o-[C]-o-[D]
+      #
+      #   join = Join.new
+      #   a = Node.new [], nil, join
+      #   b = Node.new [], 1, join
+      #   c = Node.new [], 0, join
+      #   d = Node.new [], join
+      #
+      #   d.natural_round             # => 1
+      #
+      def natural_round
+        case input
+        when Integer then input
+        when Join
+          
+          input.sources.each do |source_node|
+            if natural_round = source_node.natural_round
+              return natural_round
+            end
+          end
+          nil
+          
+        else nil
+        end
       end
       
       def inspect
