@@ -120,7 +120,7 @@ module Tap
 
     def build(argv=ARGV, app=app)
       schema = argv.kind_of?(Support::Schema) ? argv : Support::Schema.parse(argv)
-      schema.compact.build(app) do |args|
+      schema.build(app) do |args|
         task = args.shift
         const = tasks.search(task) 
         

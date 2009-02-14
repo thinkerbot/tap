@@ -17,7 +17,8 @@ module Tap
     # final argument reassigns e to round 3.
     #
     #   schema = Parser.new("a -- b --+ c -- d -- e --+3[4]").schema
-    #   schema.rounds(true)             # => [[0,1,3],[2], nil, [4]]
+    #   a, b, c, d, e = schema.nodes
+    #   schema.rounds                   # => [[a,b,d],[c], nil, [e]]
     #
     # ==== Workflow Assignment
     # All simple workflow patterns except switch can be specified within
@@ -46,16 +47,19 @@ module Tap
     # workflow until the final argument which sequenced b and c.
     #
     #   schema = Parser.new("a --: b -- c --1:2i").schema
-    #   schema.argvs                    # => [["a"], ["b"], ["c"], []]
-    #   schema.joins(true)              # => [[:sequence,[0],[1],{}], [:sequence,[1],[2],{:iterate => true}]]
+    #   a, b, c = schema.nodes
+    #   schema.joins.collect do |join, inputs, outputs|
+    #     [join.options, inputs, outputs]
+    #   end                             # => [[{},[a],[b]], [{:iterate => true},[b],[c]]]
     #
     # ==== Globals
     # Global instances of task (used, for example, by dependencies) may
     # be assigned in the parse syntax as well.  The break for a global
     # is '--*'.
     #
-    #   schema = Parser.new("a -- b --* global_name --config for --global").schema
-    #   schema.globals(true)            # => [2]
+    #   schema = Parser.new("a -- b --* c").schema
+    #   a, b, c = schema.nodes
+    #   schema.globals                  # => [c]
     #
     # ==== Escapes and End Flags
     # Breaks can be escaped by enclosing them in '-.' and '.-' delimiters;
@@ -164,12 +168,12 @@ module Tap
           indicies
         end
 
-        # Parses the match of a ROUND regexp into a round index
-        # and an array of task indicies that should be added to the
-        # round. The inputs correspond to $2 and $5 for the match.
+        # Parses the match of a ROUND regexp into a round index and an array
+        # of task indicies that should be added to the round. The inputs
+        # correspond to $2 and $5 for the match.
         #
-        # If $2 is nil, a round index of zero is assumed; if $5 is
-        # nil or empty, then indicies of [:current_index] are assumed.
+        # If $2 is nil, a round index of zero is assumed; if $5 is nil or
+        # empty, then indicies of [:current_index] are assumed.
         #
         #   parse_round("+", "")                # => [1, [:current_index]]
         #   parse_round("+2", "1,2,3")          # => [2, [1,2,3]]
@@ -210,20 +214,26 @@ module Tap
           one.empty? ? current_index : one.to_i
         end
 
-        # Parses the match of an bracket_regexp into a [source_index,
-        # target_indicies, options] array. The inputs corresponds to $1,
-        # $2, and $3 for the match. The previous and current index are
-        # assumed if $1 and/or $2 is empty.
+        # Parses the match of an bracket_regexp into a [input_indicies,
+        # output_indicies, options] array. The inputs corresponds to $1,
+        # $2, and $3 for a match to a bracket regexp. The previous and
+        # current index are assumed if $1 and/or $2 is empty.
         #
-        #   parse_bracket("1", "2,3", "")       # => [1, [2,3], {}]
-        #   parse_bracket("", "", "")           # => [:previous_index, [:current_index], {}]
-        #   parse_bracket("1", "", "")          # => [1, [:current_index], {}]
-        #   parse_bracket("", "2,3", "")        # => [:previous_index, [2,3], {}]
+        #   parse_bracket("1", "2,3", "")       # => [[1], [2,3], {}]
+        #   parse_bracket("", "", "")           # => [[:previous_index], [:current_index], {}]
+        #   parse_bracket("1", "", "")          # => [[1], [:current_index], {}]
+        #   parse_bracket("", "2,3", "")        # => [[:previous_index], [2,3], {}]
         #
         def parse_bracket(one, two, three)
           targets = parse_indicies(two)
           targets << current_index if targets.empty?
-          [one.empty? ? previous_index : one.to_i, targets, parse_options(three)]
+          [[one.empty? ? previous_index : one.to_i], targets, parse_options(three)]
+        end
+        
+        # Same as parse_bracket but reverses the input and output indicies.
+        def parse_reverse_bracket(one, two, three)
+          inputs, outputs, options = parse_bracket(one, two, three)
+          [outputs, inputs, options]
         end
         
         # Parses an options string into a hash.  The input corresponds
@@ -337,8 +347,7 @@ module Tap
         argv.unshift('--')
         
         escape = false
-        current_argv = schema[current_index].argv        
-        
+        current_argv = nil
         while !argv.empty?
           arg = argv.shift
 
@@ -348,7 +357,7 @@ module Tap
             if arg == ESCAPE_END
               escape = false
             else
-              current_argv << arg
+              (current_argv ||= schema[current_index].argv) << arg
             end
 
             next
@@ -367,9 +376,9 @@ module Tap
             # a breaking argument was reached:
             # unless the current argv is empty,
             # append and start a new definition
-            unless current_argv.empty?
+            if current_argv && !current_argv.empty?
               self.current_index += 1
-              current_argv = schema[current_index].argv
+              current_argv = nil
             end
             
             # parse the break string for any
@@ -380,11 +389,11 @@ module Tap
             # add all other non-breaking args to
             # the current argv; this includes
             # both inputs and configurations
-            current_argv << arg
+            (current_argv ||= schema[current_index].argv) << arg
             
           end
         end
-
+        
         schema
       end
       
@@ -423,17 +432,13 @@ module Tap
         when SEQUENCE
           indicies, options = parse_sequence($1, $3)
           while indicies.length > 1
-            schema.set(Joins::Sequence, indicies.shift, indicies[0], options)
+            schema.set(Joins::Sequence, [indicies.shift], [indicies[0]], options)
           end
 
         when INSTANCE    then schema[parse_instance($1)].globalize
-        when FORK        then schema.set(Joins::Fork,       *parse_bracket($1, $2, $3))
-        when MERGE
-          sources, targets, options = parse_bracket($1, $2, $3)
-          schema.set(Joins::Merge,      targets, sources, options)
-        when SYNC_MERGE
-          sources, targets, options = parse_bracket($1, $2, $3)
-          schema.set(Joins::SyncMerge,  targets, sources, options)
+        when FORK        then schema.set(Joins::Fork,      *parse_bracket($1, $2, $3))
+        when MERGE       then schema.set(Joins::Merge,     *parse_reverse_bracket($1, $2, $3))
+        when SYNC_MERGE  then schema.set(Joins::SyncMerge, *parse_reverse_bracket($1, $2, $3))
         else raise ArgumentError, "invalid break argument: #{arg}"
         end
       end

@@ -1,67 +1,154 @@
-require 'tap/support/join'
-
 module Tap
   module Support
 
     # Represents a task node in a Schema.
     class Node
+      class << self
+        
+        # Returns the natural round of a set of nodes.  The natural round is
+        # the lowest round of any of the nodes, or the node ancestors.
+        #
+        #   # (3)-o-[A]-o-[C]-o-[D]
+        #   #           |
+        #   # (2)-o-[B]-o
+        #
+        #   join1, join2 = Array.new(2) { [:join, [], []] }
+        #   a = Node.new [], 3, join1
+        #   b = Node.new [], 2, join1
+        #   c = Node.new [], join1, join2
+        #   d = Node.new [], join2
+        #
+        #   Node.natural_round([d])              # => 2
+        #
+        # Tracking back, the natural round of D is 2.  Node order does not
+        # matter and globals are ignored.
+        #
+        #   # ( )-o-[E]-o
+        #   #           |
+        #   # (1)-o-[F]-o
+        #   #           |
+        #   # (2)-o-[G]-o-[H]
+        #
+        #   join = [:join, [], []]
+        #   e = Node.new [], nil, join
+        #   f = Node.new [], 1, join
+        #   g = Node.new [], 2, join
+        #   h = Node.new [], join
+        #
+        #   Node.natural_round([d, h])           # => 1
+        #
+        def natural_round(nodes, visited=[])
+          round = nil
+          nodes.each do |node|
+            next if visited.include?(node)
+            visited << node
+            
+            case input = node.input
+            when Integer
+              
+              # reassign current round if necesssary
+              unless round && round < input
+                round = input
+              end
+              
+            when Array
+              round = natural_round(node.parents, visited)
+            end
+            
+            # optimization; no round is less than 0
+            return 0 if round == 0
+          end
+          
+          round
+        end
+      end
       
-      # An array of arguments used to instantiate
-      # the node
+      # An array of arguments used to instantiate the node
       attr_accessor :argv
       
-      # The input or source for the node.  Inputs
-      # may be a Join, nil, or an Integer.  An 
-      # Integer input indicates that the node should 
-      # be enqued to a round using argv as inputs.
+      # The input for the node.  Input may be:
+      #
+      # - a join array: [join_instance, input_nodes, output_nodes]
+      # - an Integer indicating the round for self
+      # - nil signifiying 'global'
+      #
       attr_reader :input
       
-      # The output for the node. Output may be a
-      # a Join or nil.
+      # The output for the node.  Output may be:
+      #
+      # - a join array: [join_instance, input_nodes, output_nodes]
+      # - nil signifying nothing
+      #
       attr_reader :output
 
-      def initialize(argv=[], input=nil, output=nil)
+      def initialize(argv=[], input=0, output=nil)
         @argv = argv
         @input = @output = nil
+        
         self.input = input
         self.output = output
       end
       
+      def input_join
+        input.kind_of?(Array) ? input : nil
+      end
+      
+      def output_join
+        output.kind_of?(Array) ? output : nil
+      end
+      
+      # Returns an array of nodes that pass inputs to self via an input join.
+      # If input is not a join, parents is an empty array.
+      def parents
+        input.kind_of?(Array) ? input[1] : []
+      end
+      
+      # Returns an array of nodes that receive the outputs self via an output
+      # join.  If output is not a join, children is an empty array.
+      def children
+        output.kind_of?(Array) ? output[2] : []
+      end
+      
       # Sets the input for self.
       def input=(value)
-        if @input.kind_of?(Join)
-          @input.targets.delete(self)
+        if input.kind_of?(Array)
+          input[2].delete(self)
+        end
+        
+        if value.kind_of?(Array)
+          value[2] << self
         end
         
         @input = value
-        
-        if @input.kind_of?(Join)
-          @input.targets << self
-        end
       end
       
       # Sets the output for self.
       def output=(value)
-        if @output.kind_of?(Join)
-          @output.sources.delete(self)
+        if output.kind_of?(Array)
+          output[1].delete(self)
+          
+          # cleanup orphan joins
+          if output[1].empty?
+            orphan_round = natural_round
+            output[2].dup.each {|node| node.input = orphan_round }
+          end
+        end
+        
+        if value.kind_of?(Array)
+          value[1] << self
         end
         
         @output = value
-        
-        if @output.kind_of?(Join)
-          @output.sources << self
-        end
       end
       
-      # Resets the source and join to nil.
+      # Sets the input to nil.
       def globalize
         self.input = nil
-        self.output = nil
       end
       
-      # True if the input and output are nil.
+      # True if the input is nil.
       def global?
-        input == nil && output == nil
+        input == nil
       end
       
       # Returns the round for self; a round is indicated by an integer input. 
@@ -75,54 +162,9 @@ module Tap
         self.input = input
       end
       
-      # Returns the natural round of a node.  If a round is set then the
-      # natural round is the round.  If no round is set (ie input is a Join)
-      # then the natural round is that of the first source node with a natural
-      # round.
-      #
-      #   # (0)-o-[A]-o-[C]-o-[D]
-      #   #           |
-      #   # (1)-o-[B]-o
-      #
-      #   join1, join2 = Array.new(2) { Join.new }
-      #   a = Node.new [], 0, join1
-      #   b = Node.new [], 1, join1
-      #   c = Node.new [], join1, join2
-      #   d = Node.new [], join2
-      #
-      #   d.natural_round             # => 0
-      #
-      # Tracking back, the natural round of D is 0.  Source order matters and
-      # globals are ignored.
-      #
-      #   # ( )-o-[A]-o
-      #   #           |
-      #   # (1)-o-[B]-o
-      #   #           |
-      #   # (0)-o-[C]-o-[D]
-      #
-      #   join = Join.new
-      #   a = Node.new [], nil, join
-      #   b = Node.new [], 1, join
-      #   c = Node.new [], 0, join
-      #   d = Node.new [], join
-      #
-      #   d.natural_round             # => 1
-      #
+      # Returns the natural round for self.
       def natural_round
-        case input
-        when Integer then input
-        when Join
-          
-          input.sources.each do |source_node|
-            if natural_round = source_node.natural_round
-              return natural_round
-            end
-          end
-          nil
-          
-        else nil
-        end
+        Node.natural_round([self])
       end
       
       def inspect

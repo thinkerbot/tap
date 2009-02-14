@@ -11,85 +11,235 @@ class NodeTest < Test::Unit::TestCase
   end
   
   #
+  # Node.natural_round test
+  #
+  
+  def test_natural_round_documentation
+    # (3)-o-[A]-o-[C]-o-[D]
+    #           |
+    # (2)-o-[B]-o
+  
+    join1, join2 = Array.new(2) { [:join, [], []] }
+    a = Node.new [], 3, join1
+    b = Node.new [], 2, join1
+    c = Node.new [], join1, join2
+    d = Node.new [], join2
+  
+    assert_equal 2, Node.natural_round([d])
+  
+    # ( )-o-[E]-o
+    #           |
+    # (1)-o-[F]-o
+    #           |
+    # (2)-o-[G]-o-[H]
+  
+    join = [:join, [], []]
+    e = Node.new [], nil, join
+    f = Node.new [], 1, join
+    g = Node.new [], 2, join
+    h = Node.new [], join
+  
+    assert_equal 1, Node.natural_round([d, h])
+  end
+  
+  def test_natural_round_returns_lowest_round_of_input_nodes
+    a = Node.new [], 2
+    b = Node.new [], 1
+    c = Node.new [], 5
+    d = Node.new [], nil
+    
+    assert_equal 1, Node.natural_round([a,b,c,d])
+  end
+  
+  def test_natural_round_returns_nil_if_all_nodes_are_global
+    a = Node.new [], nil
+    b = Node.new [], nil
+    
+    assert_equal nil, Node.natural_round([a,b])
+  end
+  
+  def test_natural_round_returns_lowest_round_of_join_parents
+    a = Node.new [], 2
+    b = Node.new [], 1
+    c = Node.new [], 5
+    d = Node.new [], nil
+    e = Node.new [], [:join, [a,b,c,d], []]
+    
+    assert_equal 1, Node.natural_round([e])
+  end
+  
+  def test_natural_round_recurses_for_join_parents
+    a = Node.new [], 2
+    b = Node.new [], 1
+    c = Node.new [], [:join, [a,b], []]
+    d = Node.new [], nil
+    e = Node.new [], [:join, [c,d], []]
+    
+    assert_equal 1, Node.natural_round([e])
+  end
+  
+  def test_natural_round_does_not_infinitely_loop
+    join = [:join, [], []]
+    a = Node.new
+    a.input = join
+    a.output = join
+    
+    assert_equal nil, Node.natural_round([a])
+  end
+  
+  #
+  # initialize test
+  #
+  
+  def test_default_initialize
+    node = Node.new
+    assert_equal [], node.argv
+    assert_equal 0, node.input
+    assert_equal nil, node.output
+  end
+  
+  def test_initialize_with_input_join_adds_self_to_input_join_outputs
+    join = [:join, [], []]
+    node = Node.new [], join
+    
+    assert_equal [:join, [], [node]], join
+  end
+  
+  def test_initialize_with_output_join_adds_self_to_output_join_inputs
+    join = [:join, [], []]
+    node = Node.new [], nil, join
+    
+    assert_equal [:join, [node], []], join
+  end
+  
+  #
+  # parents test
+  #
+  
+  def test_parents_returns_array_of_input_join_inputs
+    join = [:join, [:a, :b, :c], []]
+    node = Node.new [], join
+    
+    assert_equal [:a, :b, :c], node.parents
+  end
+  
+  def test_parents_is_empty_array_if_input_is_not_a_join
+    assert_equal 0, node.input
+    assert_equal [], node.parents
+  end
+  
+  #
+  # children test
+  #
+  
+  def test_children_returns_array_of_output_join_outputs
+    join = [:join, [], [:a, :b, :c]]
+    node = Node.new [], nil, join
+    
+    assert_equal [:a, :b, :c], node.children
+  end
+  
+  def test_children_is_empty_array_if_output_is_not_a_join
+    assert_equal nil, node.output
+    assert_equal [], node.children
+  end
+  
+  #
   # input= test
   #
   
-  def test_after_set_input_self_is_no_longer_in_the_existing_join_targets
-    join = Join.new
-    node = Node.new [], join
-    
-    assert_equal [node], join.targets
-    node.input = nil
-    assert_equal [], join.targets
+  def test_input_set_sets_input
+    node.input = :input
+    assert_equal :input, node.input
   end
   
-  def test_after_set_input_self_is_included_in_the_new_join_targets
-    join = Join.new
-    node = Node.new
+  def test_input_set_adds_self_to_join_outputs
+    join = [:join, [], []]
     
-    assert_equal [], join.targets
+    assert_equal [:join, [], []], join
     node.input = join
-    assert_equal [node], join.targets
+    assert_equal [:join, [], [node]], join
+  end
+  
+  def test_input_set_removes_self_from_current_input_join_outputs
+    join = [:join, [], []]
+    node = Node.new [], join
+    
+    assert_equal [:join, [], [node]], join
+    node.input = nil
+    assert_equal [:join, [], []], join
   end
   
   #
   # output= test
   #
   
-  def test_after_set_output_self_is_no_longer_in_the_existing_join_sources
-    join = Join.new
-    node = Node.new [], nil, join
+  def test_output_set_adds_self_to_join_inputs
+    join = [:join, [], []]
     
-    assert_equal [node], join.sources
-    node.output = nil
-    assert_equal [], join.sources
+    assert_equal [:join, [], []], join
+    node.output = join
+    assert_equal [:join, [node], []], join
   end
   
-  def test_after_set_output_self_is_included_in_the_new_join_sources
-    join = Join.new
-    node = Node.new
+  def test_output_set_removes_self_from_current_output_join_inputs
+    join = [:join, [], []]
+    node = Node.new [], nil, join
     
-    assert_equal [], join.sources
-    node.output = join
-    assert_equal [node], join.sources
+    assert_equal [:join, [node], []], join
+    node.output = nil
+    assert_equal [:join, [], []], join
+  end
+  
+  def test_if_resetting_output_produces_an_orphan_join_then_output_sets_children_input_to_natural_round
+    join1 = [:join, [], []]
+    join2 = [:join, [], []]
+    
+    a = Node.new [], 1, join1
+    b = Node.new [], 2, join1
+    c = Node.new [], join1, join2
+    d = Node.new [], join2
+    e = Node.new [], join2
+    
+    assert_equal 1, c.natural_round
+    assert_equal [d,e], c.children
+    assert_equal nil, d.round
+    assert_equal nil, e.round
+    
+    c.output = nil
+    
+    assert_equal 1, d.round
+    assert_equal 1, e.round
   end
   
   #
   # globalize test
   #
   
-  def test_globalize_sets_input_and_output_to_nil
-    node.input = :input
-    node.output = :output
-    
+  def test_globalize_sets_input_to_nil
+    assert_equal 0, node.input
     node.globalize
-    
     assert_equal nil, node.input
-    assert_equal nil, node.output
   end
   
   #
   # global? test
   #
-
-  def test_is_true_if_input_and_output_are_nil
-    assert_equal nil, node.input
-    assert_equal nil, node.output
+  
+  def test_is_true_if_input_is_nil
+    node = Node.new [], nil, nil
     
+    assert_equal nil, node.input
     assert node.global?
     
     node.input = :input
-    assert !node.global?
-    
-    node.input = nil
-    node.output = :output
     assert !node.global?
   end
   
   #
   # round test
   #
-
+  
   def test_round_returns_input_if_input_is_an_integer
     node.input = 1
     assert_equal 1, node.round  
@@ -108,93 +258,8 @@ class NodeTest < Test::Unit::TestCase
   #
   
   def test_set_round_is_an_alias_for_set_input
-    assert_equal nil, node.input
-    node.round = :input
-    assert_equal :input, node.input
-  end
-  
-  #
-  # natural_round test
-  #
-  
-  def test_natural_round_documentation
-    # (0)-o-[A]-o-[C]-o-[D]
-    #           |
-    # (1)-o-[B]-o
-    
-    join1, join2 = Array.new(2) { Join.new }
-    a = Node.new [], 0, join1
-    b = Node.new [], 1, join1
-    c = Node.new [], join1, join2
-    d = Node.new [], join2
-  
-    assert_equal 0, d.natural_round
-  
-    # ( )-o-[A]-o
-    #           |
-    # (1)-o-[B]-o
-    #           |
-    # (0)-o-[C]-o-[D]
-    
-    join = Join.new
-    a = Node.new [], nil, join
-    b = Node.new [], 1, join
-    c = Node.new [], 0, join
-    d = Node.new [], join
-  
-    assert_equal 1, d.natural_round
-  end
-  
-  def test_natural_round_returns_round_if_round_is_specified
+    assert_equal 0, node.input
     node.round = 1
-    assert_equal 1, node.natural_round
-    
-    node.round = nil
-    assert_equal nil, node.natural_round
-  end
-  
-  def test_natural_round_returns_round_of_first_join_source_with_a_round
-    join = Join.new
-    
-    n0 = Node.new [], 0, join
-    n1 = Node.new [], 1, join
-    n2 = Node.new [], join
-    
-    assert_equal [n0, n1], join.sources
-    assert_equal join, n2.input
-    assert_equal 0, n2.natural_round
-    
-    # now reversing sources
-    join = Join.new
-    
-    n0 = Node.new [], 1, join
-    n1 = Node.new [], 0, join
-    n2 = Node.new [], join
-    
-    assert_equal 1, n2.natural_round
-  end
-  
-  def test_natural_round_does_not_consider_globals_as_natural_rounds
-    join = Join.new
-    
-    n0 = Node.new [], nil, join
-    n1 = Node.new [], 1, join
-    n2 = Node.new [], join
-    
-    assert_equal [n0, n1], join.sources
-    assert_equal join, n2.input
-    assert_equal 1, n2.natural_round
-  end
-  
-  def test_natural_round_of_all_global_sources_is_nil
-    join = Join.new
-    
-    n0 = Node.new [], nil, join
-    n1 = Node.new [], nil, join
-    n2 = Node.new [], join
-    
-    assert_equal [n0, n1], join.sources
-    assert_equal join, n2.input
-    assert_equal nil, n2.natural_round
+    assert_equal 1, node.input
   end
 end

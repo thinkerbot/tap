@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/parser'
+require 'tap/support/schema'
 require 'yaml'
 
 class ParserUtilsTest < Test::Unit::TestCase
@@ -331,19 +331,32 @@ class ParserUtilsTest < Test::Unit::TestCase
   #
   
   def test_parse_bracket_documentation
-    assert_equal [1, [2,3],{}], parse_bracket("1", "2,3", "")
-    assert_equal [:previous_index, [:current_index],{}], parse_bracket("", "", "")
-    assert_equal [1, [:current_index],{}], parse_bracket("1", "", "")
-    assert_equal [:previous_index, [2,3],{}], parse_bracket("", "2,3", "")
+    assert_equal [[1], [2,3],{}], parse_bracket("1", "2,3", "")
+    assert_equal [[:previous_index], [:current_index],{}], parse_bracket("", "", "")
+    assert_equal [[1], [:current_index],{}], parse_bracket("1", "", "")
+    assert_equal [[:previous_index], [2,3],{}], parse_bracket("", "2,3", "")
   end
   
   def test_parse_bracket
-    assert_equal [:previous_index, [:current_index],{}], parse_bracket("", "", "")
-    assert_equal [1, [:current_index],{}], parse_bracket("1", "", "")
-    assert_equal [:previous_index, [2],{}], parse_bracket("", "2", "")
-    assert_equal [1, [2],{}], parse_bracket("1", "2", "")
-    assert_equal [1, [2,3],{}], parse_bracket("1", "2,3", "")
-    assert_equal [100, [200,300],{}], parse_bracket("100", "200,300", "")
+    assert_equal [[:previous_index], [:current_index],{}], parse_bracket("", "", "")
+    assert_equal [[1], [:current_index],{}], parse_bracket("1", "", "")
+    assert_equal [[:previous_index], [2],{}], parse_bracket("", "2", "")
+    assert_equal [[1], [2],{}], parse_bracket("1", "2", "")
+    assert_equal [[1], [2,3],{}], parse_bracket("1", "2,3", "")
+    assert_equal [[100], [200,300],{}], parse_bracket("100", "200,300", "")
+  end
+  
+  #
+  # parse_reverse_bracket test
+  #
+  
+  def test_parse_reveres_bracket
+    assert_equal [[:current_index], [:previous_index], {}], parse_reverse_bracket("", "", "")
+    assert_equal [[:current_index], [1], {}], parse_reverse_bracket("1", "", "")
+    assert_equal [[2], [:previous_index], {}], parse_reverse_bracket("", "2", "")
+    assert_equal [[2], [1], {}], parse_reverse_bracket("1", "2", "")
+    assert_equal [[2,3], [1], {}], parse_reverse_bracket("1", "2,3", "")
+    assert_equal [[200,300], [100], {}], parse_reverse_bracket("100", "200,300", "")
   end
   
   #
@@ -438,23 +451,68 @@ end
 
 class ParserTest < Test::Unit::TestCase
   include Tap::Support
+  acts_as_subset_test
   
   attr_accessor :parser
   
   def setup
+    super
     @parser = Parser.new  
   end
 
+  # helper
+  def assert_argvs_equal(expected, parser, msg=nil)
+    assert_equal expected, parser.schema.argvs, msg
+  end
+  
+  # helper
+  def assert_joins_equal(expected, parser, msg=nil)
+    schema = parser.schema
+    joins = schema.joins.collect do |join, input_nodes, output_nodes|
+      [join.class, join.options, schema.indicies(input_nodes), schema.indicies(output_nodes)]
+    end
+    
+    assert_equal expected, joins, msg
+  end
+  
+  # helper
+  def assert_rounds_equal(expected, parser, msg=nil)
+    schema = parser.schema
+    rounds = schema.rounds.collect do |round|
+      schema.indicies(round)
+    end
+    
+    assert_equal expected, rounds, msg
+  end
+  
+  # helper
+  def assert_globals_equal(expected, parser, msg=nil)
+    schema = parser.schema
+    globals = schema.indicies(schema.globals)
+    
+    assert_equal expected, globals, msg
+  end
+  
+  #
+  # documentation test
+  #
+  
   def test_parse_documentation
     schema = Parser.new("a -- b --+ c -- d -- e --+3[4]").schema
-    assert_equal [[0,1,3],[2], nil, [4]], schema.rounds(true)
+    a, b, c, d, e = schema.nodes
+    assert_equal [[a,b,d],[c], nil, [e]], schema.rounds
 
     schema = Parser.new("a --: b -- c --1:2i").schema
-    assert_equal [["a"], ["b"], ["c"], []], schema.argvs
-    assert_equal [[:sequence,[0],[1],{}], [:sequence,[1],[2],{:iterate => true}]], schema.joins(true)
-  
-    schema = Parser.new("a -- b --* global_name --config for --global").schema
-    assert_equal [2], schema.globals(true)
+    a, b, c = schema.nodes
+    joins = schema.joins.collect do |join, inputs, outputs|
+      [join.options, inputs, outputs]
+    end
+    
+    assert_equal [[{},[a],[b]], [{:iterate => true},[b],[c]]], joins
+
+    schema = Parser.new("a -- b --* c").schema
+    a, b, c = schema.nodes
+    assert_equal [c], schema.globals
   
     schema = Parser.new("a -- b -- c").schema
     assert_equal [["a"], ["b"], ["c"]], schema.argvs
@@ -493,7 +551,7 @@ class ParserTest < Test::Unit::TestCase
         ["a", "-b", "--c"],
         ["d", "-e", "--f"],
         ["x", "-y", "--z"]
-      ], parser.schema.compact.argvs, split
+      ], parser.schema.cleanup.argvs, split
     end
   end
   
@@ -512,44 +570,44 @@ class ParserTest < Test::Unit::TestCase
   
   def test_parser_assigns_tasks_to_rounds_using_plus_syntax
     parser = Parser.new "-- a --+ b --++ c"
-    assert_equal [[0],[1],[2]], parser.schema.rounds(true)
+    assert_rounds_equal [[0],[1],[2]], parser
   end
   
   def test_parser_assigns_tasks_to_rounds_using_plus_number_syntax
     parser = Parser.new "--+0 a --+1 b --+2 c "
-    assert_equal [[0],[1],[2]], parser.schema.rounds(true)
+    assert_rounds_equal [[0],[1],[2]], parser
   end
   
   def test_parser_assigns_tasks_to_rounds_with_target_syntax
     parser = Parser.new "--+0[0] a --+0[1] b --+1[2] c"
-    assert_equal [[0,1],[2]], parser.schema.rounds(true)
+    assert_rounds_equal [[0,1],[2]], parser
   end
   
   def test_rounds_may_be_reassigned
     parser = Parser.new "-- a -- b -- c --+1[0,1,2]"
-    assert_equal [nil, [0,1,2]], parser.schema.rounds(true)
+    assert_rounds_equal [nil, [0,1,2]], parser
   
     # reverse
     parser = Parser.new "--+1[0,1,2] -- a -- b -- c "
-    assert_equal [[0,1,2]], parser.schema.rounds(true)
+    assert_rounds_equal [[0,1,2]], parser
   end
   
   def test_parser_rounds_are_order_independent
     parser = Parser.new "--+ b --++ c -- a"
-    assert_equal [[2],[0],[1]], parser.schema.rounds(true)
+    assert_rounds_equal [[2],[0],[1]], parser
   end
   
   def test_first_round_is_assumed_if_left_unstated
     parser = Parser.new "a"
-    assert_equal [[0]], parser.schema.rounds(true)
+    assert_rounds_equal [[0]], parser
   
     parser = Parser.new "a -- b"
-    assert_equal [[0, 1]], parser.schema.rounds(true)
+    assert_rounds_equal [[0, 1]], parser
   end
   
   def test_empty_rounds_are_allowed
     parser = Parser.new "--++ a --+++ b --+++++ c"
-    assert_equal [nil, nil, [0],[1], nil, [2]], parser.schema.rounds(true)
+    assert_rounds_equal [nil, nil, [0],[1], nil, [2]], parser
   end
   
   #
@@ -558,57 +616,55 @@ class ParserTest < Test::Unit::TestCase
   
   def test_sequences_breaks_assign_sequences
     parser = Parser.new "a --: b --: c"
-    assert_equal([
-      [:sequence, [0], [1], {}],
-      [:sequence, [1], [2], {}]
-    ], parser.schema.joins(true))
+    assert_joins_equal [
+      [Joins::Sequence, {}, [0], [1]],
+      [Joins::Sequence, {}, [1], [2]]
+    ], parser
   end
   
   def test_sequences_may_be_reassigned
     parser = Parser.new "a -- b -- c --0:1:2"
-    assert_equal([
-      [:sequence, [0], [1], {}],
-      [:sequence, [1], [2], {}],
-    ], parser.schema.joins(true))
+    assert_joins_equal [
+      [Joins::Sequence, {}, [0], [1]],
+      [Joins::Sequence, {}, [1], [2]],
+    ], parser
    
     parser = Parser.new "a --: b --: c --1:0:2"
-    assert_equal([
-      [:sequence, [], [1], {}],  # unassigned join
-      [:sequence, [0], [2], {}],
-      [:sequence, [1], [0], {}],
-    ], parser.schema.joins(true))
-
+    assert_joins_equal [
+      [Joins::Sequence, {}, [0], [2]],
+      [Joins::Sequence, {}, [1], [0]],
+    ], parser
+  
     # now in reverse
     parser = Parser.new "--1:0:2 a --: b --: c "
-    assert_equal([
-      [:sequence, [], [0], {}],  # unassigned join
-      [:sequence, [0], [1], {}],
-      [:sequence, [1], [2], {}],
-    ], parser.schema.joins(true))
+    assert_joins_equal [
+      [Joins::Sequence, {}, [0], [1]],
+      [Joins::Sequence, {}, [1], [2]],
+    ], parser
   end
    
   def test_sequence_uses_the_last_count_if_no_lead_index_is_specified
     parser = Parser.new "a -- b --:100 c --:200"
-    assert_equal([
-      [:sequence, [1], [100], {}],
-      [:sequence, [2], [200], {}],
-    ], parser.schema.joins(true))
+    assert_joins_equal [
+      [Joins::Sequence, {}, [1], [100]],
+      [Joins::Sequence, {}, [2], [200]],
+    ], parser
   end
    
   def test_sequence_uses_the_next_count_if_no_end_index_is_specified
     parser = Parser.new  "a --100: b --200: c "
-    assert_equal([
-      [:sequence, [100], [1], {}],
-      [:sequence, [200], [2], {}],
-    ], parser.schema.joins(true))
+    assert_joins_equal [
+      [Joins::Sequence, {}, [100], [1]],
+      [Joins::Sequence, {}, [200], [2]],
+    ], parser
   end
    
   def test_sequence_use_with_no_lead_or_end_index
     parser = Parser.new  "a --: b --: c "
-    assert_equal([
-      [:sequence, [0], [1], {}],
-      [:sequence, [1], [2], {}],
-    ], parser.schema.joins(true))
+    assert_joins_equal [
+      [Joins::Sequence, {}, [0], [1]],
+      [Joins::Sequence, {}, [1], [2]],
+    ], parser
   end
    
   #
@@ -616,65 +672,65 @@ class ParserTest < Test::Unit::TestCase
   # (fork, merge, sync_merge)
   
   def bracket_test
-    yield(:fork, '[', ']')
+    yield(Joins::Fork, '[', ']')
   end
   
   def reverse_bracket_test
-    yield(:merge, '{', '}')
-    yield(:sync_merge, '(', ')')
+    yield(Joins::Merge, '{', '}')
+    yield(Joins::SyncMerge, '(', ')')
   end
   
   def test_bracketed_workflows_are_parsed
     bracket_test do |type, l, r|
       parser = Parser.new "--1#{l}2#{r} --3#{l}4,5#{r}"
-      assert_equal([
-        [type, [1], [2], {}],
-        [type, [3], [4,5], {}],
-      ], parser.schema.joins(true), type)
+      assert_joins_equal [
+        [type, {}, [1], [2]],
+        [type, {}, [3], [4,5]],
+      ], parser, type.to_s
     end
     
     reverse_bracket_test do |type, l, r|
       parser = Parser.new "--1#{l}2#{r} --3#{l}4,5#{r}"
-      assert_equal([
-        [type, [2], [1], {}],
-        [type, [4,5], [3], {}],
-      ], parser.schema.joins(true), type)
+      assert_joins_equal [
+        [type, {}, [2], [1]],
+        [type, {}, [4,5], [3]],
+      ], parser, type.to_s
     end
   end
   
   def test_bracketed_workflows_may_be_reassigned
     bracket_test do |type, l, r|
       parser = Parser.new "--1#{l}2#{r} --3#{l}4,5#{r} --1#{l}4,5#{r} --3#{l}2#{r}"
-      assert_equal([
-        [type, [1], [4,5], {}],
-        [type, [3], [2], {}]
-      ], parser.schema.joins(true), type)
+      assert_joins_equal [
+        [type, {}, [1], [4,5]],
+        [type, {}, [3], [2]]
+      ], parser, type.to_s
     end
     
     reverse_bracket_test do |type, l, r|
       parser = Parser.new "--1#{l}2#{r} --3#{l}4,5#{r} --1#{l}4,5#{r} --3#{l}2#{r}"
-      assert_equal([
-        [type, [2], [3], {}],
-        [type, [4,5], [1], {}]
-      ], parser.schema.joins(true), type)
+      assert_joins_equal [
+        [type, {}, [2], [3]],
+        [type, {}, [4,5], [1]]
+      ], parser, type.to_s
     end
   end
   
   def test_bracketed_workflows_uses_the_last_count_if_no_lead_index_is_specified
     bracket_test do |type, l, r|
       parser = Parser.new "a -- b --#{l}100#{r} c --#{l}200,300#{r}"
-      assert_equal([
-        [type, [1], [100], {}],
-        [type, [2], [200,300], {}]
-      ], parser.schema.joins(true), type)
+      assert_joins_equal [
+        [type, {}, [1], [100]],
+        [type, {}, [2], [200,300]]
+      ], parser, type.to_s
     end
     
     reverse_bracket_test do |type, l, r|
       parser = Parser.new "a -- b --#{l}100#{r} c --#{l}200,300#{r}"
-      assert_equal([
-        [type, [100], [1], {}],
-        [type, [200,300], [2], {}]
-      ], parser.schema.joins(true), type)
+      assert_joins_equal [
+        [type, {}, [100], [1]],
+        [type, {}, [200,300], [2]]
+      ], parser, type.to_s
     end
   end
   
@@ -683,57 +739,57 @@ class ParserTest < Test::Unit::TestCase
   #
   
   def test_parse
-    schema = Parser.new([
+    parser = Parser.new [
       "a", "a1", "a2", "--key", "value", "--another", "another value",
       "--", "b","b1",
       "--", "c",
       "--+2[0,1,2]",
-      "--0:1:2"]).schema
+      "--0:1:2"]
     
-    assert_equal [
+    assert_argvs_equal [
       ["a", "a1", "a2", "--key", "value", "--another", "another value"],
       ["b", "b1"],
-      ["c"],
-      []
-    ], schema.argvs
+      ["c"]
+    ], parser
     
-    assert_equal [nil, nil, [0]], schema.rounds(true)
-    assert_equal [
-      [:sequence, [0], [1], {}],
-      [:sequence, [1], [2], {}]
-    ], schema.joins(true)
+    assert_joins_equal [
+      [Joins::Sequence, {}, [0], [1]],
+      [Joins::Sequence, {}, [1], [2]]
+    ], parser
     
-    assert_equal [3], schema.globals(true)
+    assert_rounds_equal [nil, nil, [0]], parser
+    assert_globals_equal [], parser
   end
   
-  def test_schema_is_clear_after_compact
-    schema = Parser.new(%w{a -- b -- c --0:1 --1:2}).schema.compact
+  def test_schema_cleanup
+    parser = Parser.new %w{a -- b -- c --0:1 --1:2}
+    parser.schema.cleanup
     
-    assert_equal [["a"],["b"],["c"]], schema.argvs
+    assert_argvs_equal [["a"],["b"],["c"]], parser
+    assert_joins_equal [
+      [Joins::Sequence, {}, [0], [1]],
+      [Joins::Sequence, {}, [1], [2]]
+    ], parser
     
-    assert_equal [[0]], schema.rounds(true)
-    assert_equal [
-      [:sequence, [0], [1], {}],
-      [:sequence, [1], [2], {}]
-    ], schema.joins(true)
-    
-    assert_equal [], schema.globals(true)
+    assert_rounds_equal [[0]], parser
+    assert_globals_equal [], parser
   end
   
   def test_parse_splits_string_argv_using_shellwords
-    schema = Parser.new("a a1 a2 --key value --another 'another value' -- b b1 -- c --+2[0,1,2] --0:1:2").schema
-    assert_equal [
+    parser = Parser.new "a a1 a2 --key value --another 'another value' -- b b1 -- c --+2[0,1,2] --0:1:2"
+   
+    assert_argvs_equal [
       ["a", "a1", "a2", "--key", "value", "--another", "another value"],
       ["b", "b1"],
-      ["c"],
-      []
-    ], schema.argvs
+      ["c"]
+    ], parser
     
-    assert_equal [nil, nil, [0]], schema.rounds(true)
-    assert_equal [
-      [:sequence, [0], [1], {}],
-      [:sequence, [1], [2], {}]
-    ], schema.joins(true)
+    assert_joins_equal [
+      [Joins::Sequence, {}, [0], [1]],
+      [Joins::Sequence, {}, [1], [2]]
+    ], parser
+    
+    assert_rounds_equal [nil, nil, [0]], parser
   end
   
   def test_parse_converts_hash_argvs_to_arrays_using_parse_argh
@@ -749,19 +805,19 @@ class ParserTest < Test::Unit::TestCase
       '4' => ['--0:1:2']
     }
     
-    schema = Parser.new(argh).schema
-    assert_equal [
+    parser = Parser.new(argh)
+    assert_argvs_equal [
       ["a", "a1", "a2", "--key", "value", "--another", "another value"],
       ["b", "b1"],
-      ["c"],
-      []
-    ], schema.argvs
+      ["c"]
+    ], parser
     
-    assert_equal [nil, nil, [0]], schema.rounds(true)
-    assert_equal [
-      [:sequence, [0], [1], {}],
-      [:sequence, [1], [2], {}]
-    ], schema.joins(true)
+    assert_joins_equal [
+      [Joins::Sequence, {}, [0], [1]],
+      [Joins::Sequence, {}, [1], [2]]
+    ], parser
+    
+    assert_rounds_equal [nil, nil, [0]], parser
   end
   
   def test_parse_is_non_destructive
@@ -778,17 +834,16 @@ class ParserTest < Test::Unit::TestCase
   end
   
   def test_parse_does_not_parse_escaped_args
-    schema = Parser.new("a -. -- --: --1[2,3] 4{5,6} x y .- z -- b -- c").schema
-    assert_equal [
+    parser = Parser.new "a -. -- --: --1[2,3] 4{5,6} x y .- z -- b -- c"
+    assert_argvs_equal [
       ["a", "--", "--:", "--1[2,3]", "4{5,6}", "x", "y", "z"],
       ["b"],
       ["c"]
-    ], schema.argvs
+    ], parser
   end
   
   def test_parse_stops_at_end_flag
-    schema = Parser.new("a -- b --- c").schema
-    assert_equal [["a"], ["b"]], schema.argvs
+    assert_argvs_equal [["a"], ["b"]], Parser.new("a -- b --- c")
   end
   
   def test_parse_correctly_assigns_join_inputs_and_outputs_for_forward_join
@@ -800,6 +855,7 @@ class ParserTest < Test::Unit::TestCase
     schema = Parser.new("a -- b --0{1}").schema
     assert_equal schema[0].input, schema[1].output
   end
+  
   #
   # parse! test
   #
@@ -819,10 +875,48 @@ class ParserTest < Test::Unit::TestCase
   
   def test_parse_bang_stops_at_end_flag
     argv = ["a", "--", "b", "---", "c"]
-
+  
     schema = Parser.new.parse! argv
     assert_equal [["a"], ["b"]], schema.argvs
     assert_equal ["c"], argv
   end
   
+  #
+  # benchmark test
+  #
+  
+  def test_parse_speed
+    benchmark_test(20) do |x|
+      
+      # 10 nodes
+      nodes = Array.new(10) {|i| [i.to_s]}
+      str = nodes.collect {|args| "-- #{args.join(' ')}"}.join(" ")
+      argv = Shellwords.shellwords(str)
+      
+      assert_argvs_equal nodes, Parser.new(argv)
+      x.report("1000x10 nodes") {1000.times { Parser.new(argv) } }
+      
+      nodes = Array.new(10) {|i| [i.to_s] + %w{a b c d e}}
+      str = nodes.collect {|args| "-- #{args.join(' ')}"}.join(" ")
+      argv = Shellwords.shellwords(str)
+      
+      assert_argvs_equal nodes, Parser.new(argv)
+      x.report("1000x10 nodes+5args") {1000.times { Parser.new(argv) } }
+      
+      ### 100 nodes
+      nodes = Array.new(100) {|i| [i.to_s]}
+      str = nodes.collect {|args| "-- #{args.join(' ')}"}.join(" ")
+      argv = Shellwords.shellwords(str)
+      
+      assert_argvs_equal nodes, Parser.new(argv)
+      x.report("100x100 nodes") {100.times { Parser.new(argv) } }
+      
+      nodes = Array.new(100) {|i| [i.to_s] + %w{a b c d e}}
+      str = nodes.collect {|args| "-- #{args.join(' ')}"}.join(" ")
+      argv = Shellwords.shellwords(str)
+      
+      assert_argvs_equal nodes, Parser.new(argv)
+      x.report("100x100 nodes+5arg") {100.times { Parser.new(argv) } }
+    end
+  end
 end

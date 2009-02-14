@@ -42,8 +42,8 @@ module Tap
         #
         #   format_sequence(1, [2,3], {})       # => "1:2:3"
         #
-        def format_sequence(source_index, target_indicies, options)
-          ([source_index] + target_indicies).join(":") + format_options(options)
+        def format_sequence(source_index, outputs, options)
+          ([source_index] + outputs).join(":") + format_options(options)
         end
 
         # Formats a global instance string.
@@ -58,8 +58,8 @@ module Tap
         #
         #   format_fork(1, [2,3],{})            # => "1[2,3]"
         #
-        def format_fork(source_index, target_indicies, options)
-          "#{source_index}[#{target_indicies.join(',')}]#{format_options(options)}"
+        def format_fork(source_index, outputs, options)
+          "#{source_index}[#{outputs.join(',')}]#{format_options(options)}"
         end
 
         # Formats a merge string (note the target index is
@@ -67,8 +67,8 @@ module Tap
         #
         #   format_merge(1, [2,3],{})           # => "1{2,3}"
         #
-        def format_merge(target_index, source_indicies, options)
-          "#{target_index}{#{source_indicies.join(',')}}#{format_options(options)}"
+        def format_merge(target_index, inputs, options)
+          "#{target_index}{#{inputs.join(',')}}#{format_options(options)}"
         end
 
         # Formats a sync_merge string (note the target index 
@@ -76,8 +76,8 @@ module Tap
         #
         #   format_sync_merge(1, [2,3],{})      # => "1(2,3)"
         #
-        def format_sync_merge(target_index, source_indicies, options)
-          "#{target_index}(#{source_indicies.join(',')})#{format_options(options)}"
+        def format_sync_merge(target_index, inputs, options)
+          "#{target_index}(#{inputs.join(',')})#{format_options(options)}"
         end
 
         # Formats an options hash into a string.  Raises an error
@@ -123,25 +123,90 @@ module Tap
       
       # An array of the nodes registered in self.
       attr_reader :nodes
-
+      
       def initialize(nodes=[])
         @nodes = nodes
       end
       
-      # Retrieves the node at index, or instantiates
-      # a new Node if one does not already exists.
+      # Retrieves the node at index, or instantiates a new Node if one does
+      # not already exists.
       def [](index)
         nodes[index] ||= Node.new
       end
       
-      # Sets a join between the source and targets.  
+      # Returns the index of the node in nodes.
+      def index(node)
+        nodes.index(node)
+      end
+      
+      # Shortcut to collect the indicies of each node in nodes.  Returns nil if
+      # nodes is nil.
+      def indicies(nodes)
+        nodes ? nodes.collect {|node| index(node) } : nodes
+      end
+       
+      # Returns an array of the argvs for each nodes.
+      def argvs
+        nodes.collect do |node|
+          node == nil ? nil : node.argv
+        end
+      end
+      
+      # Returns a collection of nodes sorted into arrays by round.
+      def rounds
+        rounds = []
+        nodes.each do |node|
+          next unless node
+          round = node.round
+          (rounds[round] ||= []) << node if round
+        end
+        rounds
+      end
+      
+      # Returns a collection of global nodes.
+      def globals
+        globals = []
+        nodes.each do |node|
+          if node && node.global?
+            globals << node
+          end
+        end
+        globals
+      end
+      
+      # Returns an array of joins among nodes in self.
+      def joins
+        joins = []
+        
+        nodes.each do |node|
+          next unless node
+          if join = node.output_join
+            joins << join
+          end
+        end
+        
+        nodes.each do |node|
+          next unless node
+          if join = node.input_join
+            joins << join
+          end
+        end
+        
+        joins.uniq
+      end
+      
+      # Sets a join between the nodes at the input and output indicies.
       # Returns the new join.
-      def set(join_class, source_indicies, target_indicies, options={})
-        join = join_class.new(options)
-
-        [*source_indicies].each {|source_index| self[source_index].output = join }
-        [*target_indicies].each {|target_index| self[target_index].input = join  }
-
+      def set(join_class, inputs, outputs, options={})
+        unless inputs && !inputs.empty?
+          raise ArgumentError, "no input nodes specified"
+        end
+        
+        join = [join_class.new(options), [],[]]
+        
+        inputs.each {|index| self[index].output = join }
+        outputs.each {|index| self[index].input = join }
+        
         join
       end
       
@@ -150,21 +215,39 @@ module Tap
       # any nils in the rounds array.
       #
       # Returns self.
-      def compact
+      #
+      #-- 
+      # Note: the algorithm for cleaning up joins can likely be optimized.
+      def cleanup
         # remove nil and empty nodes
         nodes.delete_if do |node|
           node == nil || node.argv.empty?
         end
         
         # cleanup joins
-        joins.each_pair do |join, (source_nodes, target_nodes)|
-          source_nodes.each do |source_node|
-            source_node.output = nil
-          end if target_nodes.empty?
+        joins.delete_if do |join, input_nodes, output_nodes|
           
-          target_nodes.each do |target_node|
-            target_node.input = target_node.natural_round
-          end if source_nodes.empty?
+          # remove missing output nodes
+          output_nodes.delete_if {|node| !nodes.include?(node) }
+
+          # remove missing input nodes; the removed nodes need
+          # to be preserved in case an orphan join results and
+          # the natural round before cleanup needs to be
+          # determined.
+          remaining_nodes, removed_nodes = input_nodes.partition {|node| nodes.include?(node) }
+          
+          case
+          when removed_nodes.empty?
+            false
+          when remaining_nodes.empty?
+            # orphan join: reassign output nodes to natural round
+            orphan_round = Node.natural_round(removed_nodes)
+            output_nodes.dup.each {|node| node.round = orphan_round }
+            true
+          else
+            input_nodes.replace(remaining_nodes)
+            false
+          end
         end
         
         # reassign rounds
@@ -177,74 +260,11 @@ module Tap
         self
       end
       
-      # Returns an array of the argvs for each nodes.
-      def argvs
-        nodes.collect do |node|
-          node == nil ? nil : node.argv
-        end
-      end
-      
-      # Returns a collection of nodes sorted  
-      # into arrays by node.round.
-      def rounds(as_indicies=false)
-        rounds = []
-        nodes.each do |node|
-          (rounds[node.round] ||= []) << node if node && node.round
-        end
-        
-        rounds.each do |round|
-          next unless round
-          round.collect! {|node| nodes.index(node) }
-        end if as_indicies
-
-        rounds
-      end
-      
-      # Returns a collection of global nodes
-      # (nodes with no input or output set).
-      def globals(as_indicies=false)
-        globals = []
-        nodes.each do |node|
-          globals << node if node && node.global?
-        end
-        
-        globals.collect! do |node| 
-          nodes.index(node)
-        end if as_indicies
-        
-        globals
-      end
-      
-      # Returns a hash of [join, [source_node, target_nodes]] pairs
-      # across all nodes.
-      def joins(as_indicies=false)
-        joins = {}
-        nodes.each do |node|
-          next unless node
-          
-          output = node.output
-          joins[output] = [output.sources.select {|n| nodes.include?(n)}, output.targets.select {|n| nodes.include?(n)}] if output.kind_of?(Join)
-          
-          input = node.input
-          joins[input] = [input.sources.select {|n| nodes.include?(n)}, input.targets.select {|n| nodes.include?(n)}] if input.kind_of?(Join)
-        end
-        
-        if as_indicies
-          array = []
-          joins.each_pair do |join, (source_nodes, target_nodes)|
-            array << [join.name, node_indicies(source_nodes), node_indicies(target_nodes), join.options]
-          end
-          
-          array.sort_by {|entry| entry[1] || -1 }
-        else
-          joins
-        end
-      end
-      
       def build(app)
-        tasks = {}
+        cleanup
         
         # instantiate the nodes
+        tasks = {}
         nodes.each do |node|
           tasks[node] = yield(node.argv) if node
         end
@@ -265,103 +285,86 @@ module Tap
         end
 
         # build the workflow
-        joins.each_pair do |join, (source_nodes, target_nodes)|
-          raise "orphan join: #{join}" if source_nodes.empty? || target_nodes.empty?
+        joins.each do |join, input_nodes, output_nodes|
+          sources = input_nodes.collect {|node| tasks[node][0] }
+          targets = output_nodes.collect {|node| tasks[node][0] }
           
-          sources = source_nodes.collect do |source_node|
-            tasks[source_node][0]
-          end
-          targets = target_nodes.collect do |target_node|
-            tasks[target_node][0]
-          end
-          
-          join.join(source, targets)
+          join.join(sources, targets)
         end
 
-        # build queues
-        rounds.compact.collect do |round|
-          app.queue.concat round.collect {|node| tasks.delete(node) }
+        # build rounds
+        queues = rounds.compact.collect do |round|
+          round.collect {|node| tasks.delete(node) }
         end
         
         # notify any args that will be overlooked
         tasks.each_pair do |node, (task, args)|
           next if args.empty?
-          warn "warning: ignoring args for node (#{nodes.index(node)}) #{task} [#{args.join(' ')}]"
+          warn "warning: ignoring args for node (#{index(node)}) #{task} [#{args.join(' ')}]"
         end
         
+        # enque
+        queues.each {|queue| app.queue.concat(queue) }
         app
       end
       
       # Creates an array dump of the contents of self.
       def dump
-        segments = argvs
-        each_schema_str {|str| segments << str }
-        segments
+        
+        # add argvs
+        array = argvs
+        
+        # add global declarations
+        globals.each do |node|
+          array << format_instance(index(node))
+        end
+        
+        # add round declarations
+        index = 0
+        rounds.each do |nodes|
+          
+          # skip round 0 as it is implicit
+          if index > 0
+            indicies = nodes.collect {|node| index(node) }
+            array << format_round(index, indicies)
+          end
+          
+          index += 1
+        end
+        
+        # add join declarations
+        joins.each do |join, input_nodes, output_nodes|
+          inputs = input_nodes.collect {|node| nodes.index(node) }
+          outputs = output_nodes.collect {|node| nodes.index(node) }
+
+          array << case join
+          when Joins::Sequence   then format_sequence(inputs, outputs, join.options)
+          when Joins::Fork       then format_fork(inputs, outputs, join.options)
+          when Joins::Merge      then format_merge(outputs, inputs, join.options)
+          when Joins::SyncMerge  then format_sync_merge(outputs, inputs, join.options)
+          else raise "unknown join type: #{join.class} ([#{inputs.join(',')}], [#{outputs.join(',')}])"
+          end
+        end
+        
+        array
       end
       
       # Constructs a command-line string for the schema, ex:
       # '-- a -- b --0:1'.
       def to_s
-        segments = []
-        nodes.each do |node|
-          segments << "--"
-          
-          node.argv.each do |arg| 
-            segments << shell_quote(arg)
-          end unless node == nil
+        args = []
+        dump.each do |obj|
+          if obj.kind_of?(Array)
+            args << "--"
+            args.concat obj.collect {|arg| shell_quote(arg) }
+          else
+            args << "--#{obj}"
+          end
         end
         
-        each_schema_str {|str| segments << "--#{str}" }
-        segments.join(' ')
+        args.join(' ')
       end
       
-      protected
-      
-      def node_indicies(node_array) # :nodoc:
-        node_array.collect {|node| nodes.index(node) }
-      end
-      
-      # Yields each formatted schema string (global, round, and join).
-      def each_schema_str # :nodoc:
-        each_globals_str {|str| yield str }
-        each_round_str   {|str| yield str }
-        each_join_str    {|str| yield str }
-      end
-      
-      # Yields globals formatted as a string.
-      def each_globals_str # :nodoc:
-        globals.each do |node|
-          yield format_instance(nodes.index(node))
-        end
-      end
-      
-      # Yields each round formatted as a string.
-      def each_round_str # :nodoc
-        index = 0
-        rounds.each do |indicies|
-          unless indicies == nil || index == 0
-            indicies = indicies.collect {|node| nodes.index(node) }
-            yield format_round(index, indicies)
-          end
-          index += 1
-        end
-      end
-
-      # Yields each join formatted as a string.
-      def each_join_str # :nodoc
-        joins.each_pair do |join, (source_nodes, target_nodes)|
-          source_indicies = node_indicies(source_nodes)
-          target_indicies = node_indicies(target_nodes)
-
-          yield case join
-          when Joins::Sequence   then format_sequence(source_indicies, target_indicies, join.options)
-          when Joins::Fork       then format_fork(source_indicies, target_indicies, join.options)
-          when Joins::Merge      then format_merge(target_indicies, source_indicies, join.options)
-          when Joins::SyncMerge  then format_sync_merge(target_indicies, source_indicies, join.options)
-          else raise "unknown join type: #{join.class} ([#{source_indicies.join(',')}], [#{target_indicies.join(',')}])"
-          end
-        end
-      end
     end
   end
 end
