@@ -35,26 +35,6 @@ class SchemaController < Tap::Controller
 
       UrlEncodedPairParser.new(params).result   
     end
-    
-    def infer_join(sources, targets)
-      case sources.length
-      when 0 then nil
-      when 1
-        # one source: join
-        case targets.length
-        when 0 then return nil
-        when 1 then Tap::Support::Joins::Sequence
-        else Tap::Support::Joins::Fork
-        end
-      else
-        # many sources: reverse_join
-        case targets.length
-        when 0 then return nil
-        when 1 then Tap::Support::Joins::Merge
-        else raise Tap::ServerError, "multi-join specified: #{sources.inspect} => #{targets.inspect}"
-        end
-      end
-    end
   end
   
   include Utils
@@ -114,26 +94,25 @@ class SchemaController < Tap::Controller
       raise Tap::ServerError, "add must be performed with post"
     end
     
-    targets = (request['targets[]'] || []).collect {|index| index.to_i }
-    sources = (request['sources[]'] || []).collect {|index| index.to_i }
+    round = (request['round'] || 0).to_i
+    outputs = (request['outputs[]'] || []).collect {|index| index.to_i }
+    inputs = (request['inputs[]'] || []).collect {|index| index.to_i }
     nodes = request['nodes[]'] || []
     
     load_schema(id) do |schema|
       nodes.each do |arg|
         next unless arg && !arg.empty?
 
-        targets << schema.nodes.length
-        schema.nodes << Tap::Support::Node.new( Shellwords.shellwords(arg) )
+        outputs << schema.nodes.length
+        schema.nodes << Tap::Support::Node.new(Shellwords.shellwords(arg), round)
       end
       
-      if join = infer_join(sources, targets)
-        schema.set(join, sources, targets)
+      if inputs.empty? || outputs.empty?
+        inputs.each {|index| schema[index].output = nil }
+        outputs.each {|index| schema[index].input = round }
       else
-        sources.each {|index| schema[index].output = nil }
-        targets.each {|index| schema[index].input = nil }
+        schema.set(Tap::Support::Join, inputs, outputs)
       end
-      
-      schema.compact
     end
     
     redirect("/schema/display/#{id}")
@@ -160,15 +139,16 @@ class SchemaController < Tap::Controller
       raise Tap::ServerError, "remove must be performed with post"
     end
     
-    targets = (request['targets[]'] || []).collect {|index| index.to_i }
-    sources = (request['sources[]'] || []).collect {|index| index.to_i }
+    round = (request['round'] || 0).to_i
+    outputs = (request['outputs[]'] || []).collect {|index| index.to_i }
+    inputs = (request['inputs[]'] || []).collect {|index| index.to_i }
     
     load_schema(id) do |schema|
       # Remove joins.  Removed indicies are popped to ensure
       # that if a join was removed the node will not be.
-      sources.delete_if do |index|
+      inputs.delete_if do |index|
         next unless node = schema.nodes[index]
-        if node.output.kind_of?(Tap::Support::Join)
+        if node.output_join
           node.output = nil
           true
         else
@@ -176,10 +156,10 @@ class SchemaController < Tap::Controller
         end
       end
     
-      targets.delete_if do |index|
+      outputs.delete_if do |index|
         next unless node = schema.nodes[index]
-        if node.input.kind_of?(Tap::Support::Join)
-          node.input = nil
+        if node.input_join
+          node.input = round
           true
         else
           false
@@ -188,11 +168,9 @@ class SchemaController < Tap::Controller
     
       # Remove nodes. Setting a node to nil causes it's removal during 
       # compact; orphaned joins are removed during compact as well.
-      (sources & targets).each do |index|
+      (inputs & outputs).each do |index|
         schema.nodes[index] = nil
       end
-    
-      schema.compact
     end
     
     redirect("/schema/display/#{id}")
@@ -231,7 +209,7 @@ class SchemaController < Tap::Controller
     # it would be nice to someday put all this on a separate thread...
     schema = load_schema(id)
     tasks = server.env.tasks
-    schema.compact.build(app) do |(key, *args)|
+    schema.build(app) do |(key, *args)|
       if const = tasks.search(key) 
         const.constantize.parse(args, app) do |help|
           raise "help not implemented"
@@ -250,7 +228,7 @@ class SchemaController < Tap::Controller
   
   # Parses a compacted Tap::Support::Schema from the request.
   def schema
-    parse_schema(request.params).compact
+    parse_schema(request.params)
   end
   
   def initialize_schema

@@ -90,7 +90,7 @@ class SchemaControllerTest < Test::Unit::TestCase
     end
     
     response = request.get("/display/0", opts)
-    assert_equal "0: -- tap:task a b c --*0", response.body
+    assert_equal "0: -- tap:task a b c", response.body
   end
   
   #
@@ -102,7 +102,7 @@ class SchemaControllerTest < Test::Unit::TestCase
     assert_equal 302, request.post("/add/0?nodes[]=tap%3Atask", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- tap:task --*0", schema.to_s
+    assert_equal "-- tap:task", schema.to_s
   end
   
   def test_add_may_specify_multiple_nodes
@@ -110,7 +110,7 @@ class SchemaControllerTest < Test::Unit::TestCase
     assert_equal 302, request.post("/add/0?nodes[]=a&nodes[]=b", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b --*0 --*1", schema.to_s
+    assert_equal "-- a -- b", schema.to_s
   end
   
   def test_add_node_is_split_into_and_argv_using_shellwords
@@ -118,107 +118,106 @@ class SchemaControllerTest < Test::Unit::TestCase
     assert_equal 302, request.post("/add/0?nodes[]=tap%3atask%20a%20b%20c", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- tap:task a b c --*0", schema.to_s
+    assert_equal "-- tap:task a b c", schema.to_s
   end
   
-  def test_add_joins_one_source_to_one_target_as_sequence
+  def test_add_joins_one_input_to_one_output_as_sequence
     path = prepare_schema(0, "a -- b")
-    assert_equal 302, request.post("/add/0?sources[]=0&targets[]=1", opts).status
+    assert_equal 302, request.post("/add/0?inputs[]=0&outputs[]=1", opts).status
     
     schema = Schema.load_file(path)
     assert_equal "-- a -- b --0:1", schema.to_s
   end
   
-  def test_add_joins_one_source_to_many_target_as_fork
+  def test_add_joins_one_input_to_many_output_as_fork
     path = prepare_schema(0, "a -- b -- c")
-    assert_equal 302, request.post("/add/0?sources[]=0&targets[]=1&targets[]=2", opts).status
+    assert_equal 302, request.post("/add/0?inputs[]=0&outputs[]=1&outputs[]=2", opts).status
     
     schema = Schema.load_file(path)
     assert_equal "-- a -- b -- c --0[1,2]", schema.to_s
   end
   
-  def test_add_joins_many_sources_to_one_target_as_merge
+  def test_add_joins_many_inputs_to_one_output_as_merge
     path = prepare_schema(0, "a -- b -- c")
-    assert_equal 302, request.post("/add/0?sources[]=0&sources[]=1&targets[]=2", opts).status
+    assert_equal 302, request.post("/add/0?inputs[]=0&inputs[]=1&outputs[]=2", opts).status
     
     schema = Schema.load_file(path)
     assert_equal "-- a -- b -- c --2{0,1}", schema.to_s
   end
   
-  def test_add_raises_error_for_many_sources_to_many_targets
-    path = prepare_schema(0, "a -- b -- c -- d")
-    err = assert_raises(Tap::ServerError) do
-      request.post("/add/0?sources[]=0&sources[]=1&targets[]=2&targets[]=3", opts)
-    end
-    
-    assert_equal "multi-join specified: [0, 1] => [2, 3]", err.message
-  end
+  # def test_add_allows_many_inputs_to_many_outputs_join
+  #   path = prepare_schema(0, "a -- b -- c -- d")
+  #   assert_equal 302, request.post("/add/0?inputs[]=0&inputs[]=1&outputs[]=2&outputs[]=3", opts).status
+  #   
+  #   schema = Schema.load_file(path)
+  #   assert_equal "-- a -- b -- c -- d --2{0,1}", schema.to_s
+  # end
   
-  def test_add_sets_join_output_to_nil_for_sources_without_a_target
+  def test_add_sets_join_output_to_nil_for_inputs_without_a_output
     path = prepare_schema(0, "a -- b -- c -- d --0{1,2,3}")
-    assert_equal 302, request.post("/add/0?sources[]=1&sources[]=2", opts).status
+    assert_equal 302, request.post("/add/0?inputs[]=1&inputs[]=2", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c -- d --*1 --*2 --0{3}", schema.to_s
+    assert_equal "-- a -- b -- c -- d --3:0", schema.to_s
   end
   
-  def test_add_sets_join_input_to_nil_for_targets_without_a_source
+  def test_add_sets_join_input_to_nil_for_outputs_without_a_input
     path = prepare_schema(0, "a -- b -- c -- d --0[1,2,3]")
-    assert_equal 302, request.post("/add/0?targets[]=1&targets[]=2", opts).status
+    assert_equal 302, request.post("/add/0?outputs[]=1&outputs[]=2", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c -- d --*1 --*2 --0[3]", schema.to_s
+    assert_equal "-- a -- b -- c -- d --0:3", schema.to_s
   end
   
   #
   # remove test
   #
   
-  def test_post_remove_removes_nodes_indicated_in_both_sources_and_targets
+  def test_post_remove_removes_nodes_indicated_in_both_inputs_and_outputs
     path = prepare_schema(0, "a -- b -- c")
-    assert_equal 302, request.post("/remove/0?sources[]=1&targets[]=1", opts).status
+    assert_equal 302, request.post("/remove/0?inputs[]=1&outputs[]=1", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- c --*0 --*1", schema.to_s
+    assert_equal "-- a -- c", schema.to_s
   end
   
-  def test_remove_removes_join_outputs_for_sources
+  def test_remove_removes_join_outputs_for_inputs
     path = prepare_schema(0, "a -- b -- c --0:1:2")
-    assert_equal 302, request.post("/remove/0?sources[]=0", opts).status
+    assert_equal 302, request.post("/remove/0?inputs[]=0", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --*0 --1:2", schema.to_s
+    assert_equal "-- a -- b -- c --1:2", schema.to_s
   end
   
-  def test_remove_removes_join_inputs_for_targets
+  def test_remove_removes_join_inputs_for_outputs
     path = prepare_schema(0, "a -- b -- c --0:1:2")
-    assert_equal 302, request.post("/remove/0?targets[]=1", opts).status
+    assert_equal 302, request.post("/remove/0?outputs[]=1", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --*0 --1:2", schema.to_s
+    assert_equal "-- a -- b -- c --0[] --1:2", schema.to_s
   end
   
   def test_remove_removes_join_and_not_node_when_joins_exist
     path = prepare_schema(0, "a -- b -- c --0:1:2")
-    assert_equal 302, request.post("/remove/0?sources[]=1&targets[]=1", opts).status
+    assert_equal 302, request.post("/remove/0?inputs[]=1&outputs[]=1", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --*0 --*1 --*2", schema.to_s
+    assert_equal "-- a -- b -- c --0[]", schema.to_s
   end
   
-  def test_remove_does_not_remove_nodes_unless_indicated_in_both_sources_and_targets
+  def test_remove_does_not_remove_nodes_unless_indicated_in_both_inputs_and_outputs
     path = prepare_schema(0, "a -- b -- c")
-    assert_equal 302, request.post("/remove/0?sources[]=0&targets[]=1", opts).status
+    assert_equal 302, request.post("/remove/0?inputs[]=0&outputs[]=1", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --*0 --*1 --*2", schema.to_s
+    assert_equal "-- a -- b -- c", schema.to_s
   end
   
   def test_remove_does_not_create_nodes_for_out_of_bounds_indicies
     path = prepare_schema(0, "a")
-    assert_equal 302, request.post("/remove/0?sources[]=0&sources[]=1&targets[]=1&targets[]=2", opts).status
+    assert_equal 302, request.post("/remove/0?inputs[]=0&inputs[]=1&outputs[]=1&outputs[]=2", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a --*0", schema.to_s
+    assert_equal "-- a", schema.to_s
   end
 end

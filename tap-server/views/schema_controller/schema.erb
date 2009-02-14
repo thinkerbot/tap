@@ -1,28 +1,13 @@
-<form id="update-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/update/<%= id %>">
-  <ol id="selections-<%= id %>" class="selection">
-<% schema.nodes.each_with_index do |node, index| %>
-  <li id="selection-<%= id %>-<%= index %>" class="selection">
-    <span>(<%= node.input.kind_of?(Tap::Support::Join) ? node.input.sources.collect {|n| schema.nodes.index(n) + 1 }.join(", ") : ' ' %>)</span>
-    <input id="target_<%= index %>" class="target" name="targets[]" value="<%= index %>" type="checkbox" />
-    <input id="source_<%= index %>" class="source" name="sources[]" value="<%= index %>" type="checkbox" />
-    <span>(<%= node.output.kind_of?(Tap::Support::Join) ? node.output.targets.collect {|n| schema.nodes.index(n)  + 1 }.join(", ") : ' ' %>)</span>
-  </li>
+<% globals = schema.globals %>
+<% unless globals.empty? %>
+<%= render 'round.erb', :locals => {:schema => schema, :nodes => globals, :round => nil, :id => id} %>
 <% end %>
-  </ol>
-  <ul>
-<% server.env.minimap.each do |(env_name, env)| %>
-<%   env.tasks.build.minimap.each do |(name, const)| %>
-<%     lookup = "#{env_name}:#{name}" %>
-   <li>
-     <input id="<%= lookup %>" class="tasc" name="nodes[]" value="<%= lookup %>" type="checkbox"><%= lookup %></input>
-   </li>
-<%   end %>
+<% index = 0 %>
+<% schema.rounds.each do |nodes| %>
+<%= render 'round.erb', :locals => {:schema => schema, :nodes => nodes, :round => index, :id => id} %>
+<% index += 1 %>
 <% end %>
-  </ul>
-  <input type="radio" name="action" value="add" checked="true">add</input>
-  <input type="radio" name="action" value="remove">remove</input>
-  <input id="update-form-submit" type="submit" value="Update" />
-</form>
+<%= render 'round.erb', :locals => {:schema => schema, :nodes => [], :round => index, :id => id} %>
 
 <form id="submit-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/submit/<%= id %>">
   <ol id="schema-<%= id %>" class="schema">
