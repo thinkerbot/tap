@@ -617,53 +617,53 @@ class ParserTest < Test::Unit::TestCase
   def test_sequences_breaks_assign_sequences
     parser = Parser.new "a --: b --: c"
     assert_joins_equal [
-      [Joins::Sequence, {}, [0], [1]],
-      [Joins::Sequence, {}, [1], [2]]
+      [Join, {}, [0], [1]],
+      [Join, {}, [1], [2]]
     ], parser
   end
   
   def test_sequences_may_be_reassigned
     parser = Parser.new "a -- b -- c --0:1:2"
     assert_joins_equal [
-      [Joins::Sequence, {}, [0], [1]],
-      [Joins::Sequence, {}, [1], [2]],
+      [Join, {}, [0], [1]],
+      [Join, {}, [1], [2]],
     ], parser
    
     parser = Parser.new "a --: b --: c --1:0:2"
     assert_joins_equal [
-      [Joins::Sequence, {}, [0], [2]],
-      [Joins::Sequence, {}, [1], [0]],
+      [Join, {}, [0], [2]],
+      [Join, {}, [1], [0]],
     ], parser
   
     # now in reverse
     parser = Parser.new "--1:0:2 a --: b --: c "
     assert_joins_equal [
-      [Joins::Sequence, {}, [0], [1]],
-      [Joins::Sequence, {}, [1], [2]],
+      [Join, {}, [0], [1]],
+      [Join, {}, [1], [2]],
     ], parser
   end
    
   def test_sequence_uses_the_last_count_if_no_lead_index_is_specified
     parser = Parser.new "a -- b --:100 c --:200"
     assert_joins_equal [
-      [Joins::Sequence, {}, [1], [100]],
-      [Joins::Sequence, {}, [2], [200]],
+      [Join, {}, [1], [100]],
+      [Join, {}, [2], [200]],
     ], parser
   end
    
   def test_sequence_uses_the_next_count_if_no_end_index_is_specified
     parser = Parser.new  "a --100: b --200: c "
     assert_joins_equal [
-      [Joins::Sequence, {}, [100], [1]],
-      [Joins::Sequence, {}, [200], [2]],
+      [Join, {}, [100], [1]],
+      [Join, {}, [200], [2]],
     ], parser
   end
    
   def test_sequence_use_with_no_lead_or_end_index
     parser = Parser.new  "a --: b --: c "
     assert_joins_equal [
-      [Joins::Sequence, {}, [0], [1]],
-      [Joins::Sequence, {}, [1], [2]],
+      [Join, {}, [0], [1]],
+      [Join, {}, [1], [2]],
     ], parser
   end
    
@@ -672,11 +672,11 @@ class ParserTest < Test::Unit::TestCase
   # (fork, merge, sync_merge)
   
   def bracket_test
-    yield(Joins::Fork, '[', ']')
+    yield(Join, '[', ']')
   end
   
   def reverse_bracket_test
-    yield(Joins::Merge, '{', '}')
+    yield(Join, '{', '}')
     yield(Joins::SyncMerge, '(', ')')
   end
   
@@ -753,8 +753,8 @@ class ParserTest < Test::Unit::TestCase
     ], parser
     
     assert_joins_equal [
-      [Joins::Sequence, {}, [0], [1]],
-      [Joins::Sequence, {}, [1], [2]]
+      [Join, {}, [0], [1]],
+      [Join, {}, [1], [2]]
     ], parser
     
     assert_rounds_equal [nil, nil, [0]], parser
@@ -767,8 +767,8 @@ class ParserTest < Test::Unit::TestCase
     
     assert_argvs_equal [["a"],["b"],["c"]], parser
     assert_joins_equal [
-      [Joins::Sequence, {}, [0], [1]],
-      [Joins::Sequence, {}, [1], [2]]
+      [Join, {}, [0], [1]],
+      [Join, {}, [1], [2]]
     ], parser
     
     assert_rounds_equal [[0]], parser
@@ -785,8 +785,8 @@ class ParserTest < Test::Unit::TestCase
     ], parser
     
     assert_joins_equal [
-      [Joins::Sequence, {}, [0], [1]],
-      [Joins::Sequence, {}, [1], [2]]
+      [Join, {}, [0], [1]],
+      [Join, {}, [1], [2]]
     ], parser
     
     assert_rounds_equal [nil, nil, [0]], parser
@@ -813,8 +813,8 @@ class ParserTest < Test::Unit::TestCase
     ], parser
     
     assert_joins_equal [
-      [Joins::Sequence, {}, [0], [1]],
-      [Joins::Sequence, {}, [1], [2]]
+      [Join, {}, [0], [1]],
+      [Join, {}, [1], [2]]
     ], parser
     
     assert_rounds_equal [nil, nil, [0]], parser

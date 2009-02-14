@@ -71,9 +71,6 @@ Gem::Specification.new do |s|
     lib/tap/support/intern.rb
     lib/tap/support/join.rb
     lib/tap/support/joins.rb
-    lib/tap/support/joins/fork.rb
-    lib/tap/support/joins/merge.rb
-    lib/tap/support/joins/sequence.rb
     lib/tap/support/joins/switch.rb
     lib/tap/support/joins/sync_merge.rb
     lib/tap/support/manifest.rb

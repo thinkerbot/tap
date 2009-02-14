@@ -499,15 +499,16 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_sequence_breaks_for_sequence_joins
     schema = Schema.new node_set
-    schema.set Joins::Sequence, [0], [1,2]
-  
-    assert_equal "-- 0 -- 1 -- 2 --0:1:2", schema.to_s
-    assert_equal [[0],[1],[2],"0:1:2"], schema.dump
+    schema.set Join, [0], [1]
+    schema.set Join, [1], [2]
+    
+    assert_equal "-- 0 -- 1 -- 2 --0:1 --1:2", schema.to_s
+    assert_equal [[0],[1],[2],"0:1", "1:2"], schema.dump
   end
   
   def test_to_s_and_dump_adds_fork_breaks_for_fork_joins
     schema = Schema.new node_set
-    schema.set Joins::Fork, [0], [1,2]
+    schema.set Join, [0], [1,2]
   
     assert_equal "-- 0 -- 1 -- 2 --0[1,2]", schema.to_s
     assert_equal [[0],[1],[2],"0[1,2]"], schema.dump
@@ -515,7 +516,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_merge_breaks_for_merge_joins
     schema = Schema.new node_set
-    schema.set Joins::Merge, [0,1], [2]
+    schema.set Join, [0,1], [2]
   
     assert_equal "-- 0 -- 1 -- 2 --2{0,1}", schema.to_s
     assert_equal [[0],[1],[2],"2{0,1}"], schema.dump

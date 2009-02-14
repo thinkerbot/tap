@@ -338,10 +338,17 @@ module Tap
           outputs = output_nodes.collect {|node| nodes.index(node) }
 
           array << case join
-          when Joins::Sequence   then format_sequence(inputs, outputs, join.options)
-          when Joins::Fork       then format_fork(inputs, outputs, join.options)
-          when Joins::Merge      then format_merge(outputs, inputs, join.options)
           when Joins::SyncMerge  then format_sync_merge(outputs, inputs, join.options)
+          when Join
+            if inputs.length == 1
+              if outputs.length == 1
+                format_sequence(inputs, outputs, join.options)
+              else
+                format_fork(inputs, outputs, join.options)
+              end
+            else
+              format_merge(outputs, inputs, join.options)
+            end
           else raise "unknown join type: #{join.class} ([#{inputs.join(',')}], [#{outputs.join(',')}])"
           end
         end

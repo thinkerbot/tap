@@ -432,12 +432,12 @@ module Tap
         when SEQUENCE
           indicies, options = parse_sequence($1, $3)
           while indicies.length > 1
-            schema.set(Joins::Sequence, [indicies.shift], [indicies[0]], options)
+            schema.set(Join, [indicies.shift], [indicies[0]], options)
           end
 
         when INSTANCE    then schema[parse_instance($1)].globalize
-        when FORK        then schema.set(Joins::Fork,      *parse_bracket($1, $2, $3))
-        when MERGE       then schema.set(Joins::Merge,     *parse_reverse_bracket($1, $2, $3))
+        when FORK        then schema.set(Join, *parse_bracket($1, $2, $3))
+        when MERGE       then schema.set(Join, *parse_reverse_bracket($1, $2, $3))
         when SYNC_MERGE  then schema.set(Joins::SyncMerge, *parse_reverse_bracket($1, $2, $3))
         else raise ArgumentError, "invalid break argument: #{arg}"
         end

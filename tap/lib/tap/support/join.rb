@@ -8,8 +8,6 @@ module Tap
     # variety of configurations which affect how one task passes inputs
     # to subsequent tasks.
     #
-    # Joins have a single source and may have multiple targets.  See
-    # ReverseJoin for joins with a single target and multiple sources.
     class Join
       include Configurable
       
@@ -25,31 +23,27 @@ module Tap
       # than executed immediately.
       config :stack, false, :short => 'k', &c.boolean
       
-      # An array of nodes that have self set as their output.  Sources is
-      # managed by the nodes and should not be modified manually.
-      attr_accessor :sources
-      
-      # An array of nodes that have self set as their input.  Targets is
-      # managed by the nodes and should not be modified manually.
-      attr_accessor :targets
-      
       # Initializes a new join with the specified configuration.
       def initialize(config={})
         initialize_config(config)
-        @sources = []
-        @targets = []
       end
       
-      # The name of the join, as a symbol.  By default name 
-      # is the basename of the underscored class name.
+      # The name of the join, as a symbol.  By default name is the basename of
+      # the underscored class name.
       def name
         File.basename(self.class.to_s.underscore).to_sym
       end
       
-      # Creates a join between the source and targets.
-      # Must be implemented in subclasses.
-      def join(source, targets, &block)
-        raise NotImplementedError
+      # Creates a join that passes the results of each input to each output.
+      def join(inputs, outputs)
+        inputs.each do |input|
+          input.on_complete do |_result|
+            outputs.each do |output| 
+              yield(_result) if block_given?
+              enq(output, _result)
+            end
+          end
+        end
       end
       
       # A hash of the configurations set to true.
@@ -109,20 +103,6 @@ module Tap
           array.concat(_result.splat)
         end
         array
-      end
-    end
-    
-    # Like a Join, but with a single target and multiple sources.
-    class ReverseJoin < Join
-      # Creates a join between the sources and target.
-      # Must be implemented in subclasses.
-      def join(sources, target, &block)
-        raise NotImplementedError
-      end
-      
-      # Returns a string like: "#<ReverseJoin:object_id>"
-      def inspect
-        "#<ReverseJoin:#{object_id}>"
       end
     end
   end

@@ -54,47 +54,49 @@ module Tap
       end
       
       # Sets a sequence workflow pattern for the tasks; each task
-      # enques the next task with it's results, starting with self.  
-      # See Joins::Sequence.
+      # enques the next task with it's results, starting with self.
       def sequence(*tasks, &block) # :yields: _result
         options = tasks[-1].kind_of?(Hash) ? tasks.pop : {}
-        Joins::Sequence.new(options).join(self, tasks, &block)
+        
+        current_task = self
+        tasks.each do |next_task|
+          Join.new(options).join([current_task], [next_task], &block)
+          current_task = next_task
+        end
       end
 
-      # Sets a fork workflow pattern for self; each target
-      # will enque the results of self.  See Joins::Fork.
+      # Sets a fork workflow pattern for self; each target will enque the
+      # results of self.
       def fork(*targets, &block) # :yields: _result
         options = targets[-1].kind_of?(Hash) ? targets.pop : {}
-        Joins::Fork.new(options).join(self, targets, &block)
+        Join.new(options).join([self], targets, &block)
       end
 
       # Sets a simple merge workflow pattern for the source tasks. Each 
       # source enques self with it's result; no synchronization occurs, 
-      # nor are results grouped before being enqued.  See Joins::Merge.
+      # nor are results grouped before being enqued.
       def merge(*sources, &block) # :yields: _result
         options = sources[-1].kind_of?(Hash) ? sources.pop : {}
-        Joins::Merge.new(options).join(sources, self, &block)
+        Join.new(options).join(sources, [self], &block)
       end
 
       # Sets a synchronized merge workflow for the source tasks.  Results 
       # from each source are collected and enqued as a single group to
       # self.  The collective results are not enqued until all sources
       # have completed.  See Joins::SyncMerge.
-      #
-      # Raises an error if a source returns twice before the target is enqued.
       def sync_merge(*sources, &block) # :yields: _result
         options = sources[-1].kind_of?(Hash) ? sources.pop : {}
-        Joins::SyncMerge.new(options).join(sources, self, &block)
+        Joins::SyncMerge.new(options).join(sources, [self], &block)
       end
 
-      # Sets a switch workflow pattern for self.  When _execute completes, 
-      # switch yields the audited result to the block and the block should
-      # return the index of the target to enque with the results. No target
-      # will be enqued if the index is false or nil.  An error is raised if
-      # no target can be found for the specified index. See Joins::Switch.
+      # Sets a switch workflow pattern for self.  On complete, switch yields
+      # the audited result to the block and the block should return the index
+      # of the target to enque with the results. No target will be enqued if
+      # the index is false or nil.  An error is raised if no target can be
+      # found for the specified index. See Joins::Switch.
       def switch(*targets, &block) # :yields: _result
         options = targets[-1].kind_of?(Hash) ? targets.pop : {}
-        Joins::Switch.new(options).join(self, targets, &block)
+        Joins::Switch.new(options).join([self], targets, &block)
       end
       
       # Adds the dependencies to self.  Dependencies are resolved during
