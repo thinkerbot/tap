@@ -51,11 +51,11 @@ class NodeTest < Test::Unit::TestCase
     assert_equal 1, Node.natural_round([a,b,c,d])
   end
   
-  def test_natural_round_returns_nil_if_all_nodes_are_global
+  def test_natural_round_returns_zero_if_all_nodes_are_global
     a = Node.new [], nil
     b = Node.new [], nil
     
-    assert_equal nil, Node.natural_round([a,b])
+    assert_equal 0, Node.natural_round([a,b])
   end
   
   def test_natural_round_returns_lowest_round_of_join_parents
@@ -84,7 +84,7 @@ class NodeTest < Test::Unit::TestCase
     a.input = join
     a.output = join
     
-    assert_equal nil, Node.natural_round([a])
+    assert_equal 0, Node.natural_round([a])
   end
   
   #

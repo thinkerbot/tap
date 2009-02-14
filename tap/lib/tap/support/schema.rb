@@ -237,13 +237,13 @@ module Tap
           remaining_nodes, removed_nodes = input_nodes.partition {|node| nodes.include?(node) }
           
           case
-          when removed_nodes.empty?
-            false
           when remaining_nodes.empty?
             # orphan join: reassign output nodes to natural round
             orphan_round = Node.natural_round(removed_nodes)
             output_nodes.dup.each {|node| node.round = orphan_round }
             true
+          when removed_nodes.empty?
+            false
           else
             input_nodes.replace(remaining_nodes)
             false
@@ -310,6 +310,7 @@ module Tap
       
       # Creates an array dump of the contents of self.
       def dump
+        cleanup
         
         # add argvs
         array = argvs

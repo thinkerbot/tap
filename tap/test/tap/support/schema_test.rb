@@ -393,6 +393,21 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal [], schema.joins
   end
   
+  def test_cleanup_removes_orphan_joins
+    join = [Join.new, [], []]
+    a = Node.new ["a"], join
+    b = Node.new ["b"], join
+    
+    schema = Schema.new [a,b]
+    assert_equal join, a.input
+    assert_equal join, b.input
+    
+    schema.cleanup
+    
+    assert_equal 0, a.input
+    assert_equal 0, b.input
+  end
+  
   def test_cleanup_removes_nils_from_rounds
     n0 = schema[0] 
     n0.argv.concat [1,2,3]
@@ -411,35 +426,6 @@ class SchemaTest < Test::Unit::TestCase
     schema.cleanup
     assert_equal [[n0],[n5]], schema.rounds
   end
-  
-  # def test_orphaned_nodes_may_shift_round_if_nil_rounds_are_removed
-  #   # (3)-o-[A]
-  #   #
-  #   # (6)-o-[B]-o
-  #   #           |
-  #   # (0)-o-[C]-o-[D]
-  #   
-  #   join = Join.new
-  #   a = Node.new [1,2,3], 3
-  #   b = Node.new [], 6, join
-  #   c = Node.new [], 0, join
-  #   d = Node.new [4,5,6], join
-  #   schema = Schema.new [a,b,c,d]
-  #   
-  #   assert_equal 3, a.input
-  #   assert_equal 6, d.natural_round
-  #   assert_equal [join], schema.joins.keys
-  #   
-  #   # nodes b,c removed since they have no args
-  #   # then rounds look like: [nil, nil, nil, [A], nil nil, [D]]
-  #   # which gets compacted to: [[A], [D]]
-  #   schema.compact
-  #   
-  #   assert_equal [a,d], schema.nodes
-  #   assert_equal 0, a.input
-  #   assert_equal 1, d.input
-  #   assert_equal [], schema.joins.keys
-  # end
   
   def test_cleanup_returns_self
     assert_equal schema, schema.cleanup
@@ -463,6 +449,17 @@ class SchemaTest < Test::Unit::TestCase
     schema = Schema.new node_set
     assert_equal "-- 0 -- 1 -- 2", schema.to_s
     assert_equal [[0],[1],[2]], schema.dump
+  end
+  
+  def test_to_s_and_dump_perform_cleanup
+    join = [Join.new, [], []]
+    a = Node.new ["a"], 2
+    b = Node.new ["b"], join
+    c = Node.new ["c"], join
+    
+    schema = Schema.new [a,b,nil,c]
+    assert_equal "-- a -- b -- c --+1[0]", schema.to_s
+    assert_equal [['a'],['b'],['c'], "+1[0]"], schema.dump
   end
   
   def test_to_s_and_dump_adds_round_breaks_for_non_zero_rounds

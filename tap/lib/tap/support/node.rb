@@ -59,7 +59,7 @@ module Tap
             return 0 if round == 0
           end
           
-          round
+          round || 0
         end
       end
       
