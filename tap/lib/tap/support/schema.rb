@@ -225,7 +225,7 @@ module Tap
         end
         
         # cleanup joins
-        joins.delete_if do |join, input_nodes, output_nodes|
+        joins.each do |join, input_nodes, output_nodes|
           
           # remove missing output nodes
           output_nodes.delete_if {|node| !nodes.include?(node) }
@@ -241,12 +241,8 @@ module Tap
             # orphan join: reassign output nodes to natural round
             orphan_round = Node.natural_round(removed_nodes)
             output_nodes.dup.each {|node| node.round = orphan_round }
-            true
-          when removed_nodes.empty?
-            false
           else
             input_nodes.replace(remaining_nodes)
-            false
           end
         end
         
