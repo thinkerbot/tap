@@ -554,4 +554,17 @@ class SchemaTest < Test::Unit::TestCase
   #   assert_raises(RuntimeError) { schema.dump }
   # end
 
+  #
+  # misc tests
+  #
+  
+  def test_schema_loads_terminal_joins_correctly
+    schema = Schema.load [["a"], ["b"], "0[]"]
+    assert_equal 2, schema.nodes.length
+    
+    a,b = schema.nodes
+    
+    assert_equal [[a,b]], schema.rounds
+    assert_equal [[a,b]], schema.natural_rounds
+  end
 end

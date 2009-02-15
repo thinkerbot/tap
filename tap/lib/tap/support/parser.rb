@@ -407,8 +407,10 @@ module Tap
             parse_break(args)
           end
         end
-
-        schema
+        
+        # cleanup is currently required if terminal joins like
+        # --0[] are allowed (since it's interpreted as --0[next])
+        schema.cleanup
       end
       
       protected
