@@ -9,26 +9,20 @@
 <% end %>
 <%= render 'round.erb', :locals => {:schema => schema, :nodes => [], :round => index, :id => id} %>
 
-<form id="submit-form-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/submit/<%= id %>">
-  <ol id="schema-<%= id %>" class="schema">
+<form id="submit_form_<%= id %>" class="submit_form" enctype="multipart/form-data" method="post" action="/schema/submit/<%= id %>">
+  <ol id="schema_<%= id %>" class="schema">
 <% schema.nodes.each_with_index do |node, index| %>
-  <li id="node-<%= index %>" class="node">
+  <li id="node_<%= index %>" class="node">
 <%= render('node.erb', :locals => {:id => id, :node => node, :index => index} ) %> 
   </li>
 <% end %>
-<% schema.rounds(true).each do |round| %>
-  <li class="round">
-    <input name="rounds" type="hidden" value="--<%= round %>" />
-  </li>
-<% end %>
-<% schema.send(:each_join_str) do |join| %>
-  <li class="join">
-    <input name="joins" type="hidden" value="--<%= join %>" />
-  </li>
-<% end %>
   </ol>
-  <input type="radio" name="action" value="save" checked="true">save</input>
-  <input type="radio" name="action" value="preview">preview</input>
-  <input type="radio" name="action" value="run">run</input>
-  <input id="submit-form-submit" type="submit" value="Submit" />
+<% schema.dump.select {|obj| !obj.kind_of?(Array) }.each do |str| %>
+  <input name="argv[]" type="hidden" value="--<%= str %>" />
+<% end %>
+  <input class="submit_form_action" type="radio" name="action" value="save" checked="true">save</input>
+  <input class="submit_form_action" type="radio" name="action" value="preview">preview</input>
+  <input class="submit_form_action" type="radio" name="action" value="echo">echo</input>
+  <input class="submit_form_action" type="radio" name="action" value="run">run</input>
+  <input id="submit_form_submit" type="submit" value="Submit" />
 </form>

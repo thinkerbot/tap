@@ -1,20 +1,29 @@
 <% task, args = instantiate(*node.argv) %>
-<% tasc = task.class%>
+<% tasc = task.class %>
     <span class="class"><%= tasc %></span>: 
     <span class="summary"><%= tasc.manifest.subject %></span>
     <pre><%= tasc.manifest.wrap %></pre>
     
     <!-- tasc identifier -->
-    <input name="nodes[<%= index %>][]" type="hidden" value="<%= node.argv[0] %>" />
+    <input name="argv[]" type="hidden" value="--" />
+    <input name="argv[]" type="hidden" value="<%= node.argv[0] %>" />
     
     <ul>
     <!-- inputs -->
+<% tasc.args.arguments.each do |argument| %>
     <li class="input">
-<% args.collect! {|arg| arg =~ /\s/ ? "'#{arg}'" : arg} %>
-    <input class="value" name="nodes[<%= index %>]%w" value="<%= args.join(' ') %>" />
-    <span class="name"><%= tasc.args.to_s %></span>
+    <input name="argv[]" value="<%= args.shift %>" />
+    <span><%= argument %></span>
     </li>
-
+<% end %>
+<% args << '' %>
+<% args.each do |arg| %>
+    <li class="input">
+    <input name="argv[]" value="<%= arg %>" />
+    <span>...</span>
+    </li>
+<% end %>
+    
     <!-- configurations -->
 <%=  render("configurations.erb", :locals => {
        :configurations => tasc.configurations, 
@@ -24,9 +33,9 @@
 
     <!-- options -->
     <li class="options">
-    <input class="key" name="nodes[<%= index %>][]" type="hidden" value="--name" />
-    <input class="value" name="nodes[<%= index %>][]" value="<%= task.name %>" />
-    <span class="name">Name</span>
+    <input name="argv[]" type="hidden" value="--name" />
+    <input name="argv[]" value="<%= task.name %>" />
+    <span>Name</span>
     </li>
     
     <!--

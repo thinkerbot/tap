@@ -1,44 +1,6 @@
 require 'tap/controller'
-require "#{File.dirname(__FILE__)}/../vendor/url_encoded_pair_parser"
 
 class SchemaController < Tap::Controller
-  module Utils
-    module_function
-
-    def parse_schema(params)
-      argh = pair_parse(params)
-
-      parser = Tap::Support::Parser.new
-      parser.parse(argh['nodes'] || [])
-      parser.parse(argh['joins'] || [])
-      parser.schema
-    end
-
-    # UrlEncodedPairParser.parse, but also doing the following:
-    #
-    # * reads io values (ie multipart-form data)
-    # * keys ending in %w indicate a shellwords argument; values
-    #   are parsed using shellwords and concatenated to other
-    #   arguments for key
-    #
-    # Returns an argh.  The schema-related entries will be 'nodes' and
-    # 'joins', but other entries may be present (such as 'action') that
-    # dictate what gets done with the params.
-    def pair_parse(params)
-      params.keys.each do |key|
-        next unless key && key =~ /%w$/
-        value = params.delete(key)
-        key = key.chomp("%w")
-      
-        (params[key] ||= []).concat Shellwords.shellwords(value)
-      end
-
-      UrlEncodedPairParser.new(params).result   
-    end
-  end
-  
-  include Utils
-  
   set :default_layout, 'layout.erb'
   
   # Initializes a new schema and redirects to display.
@@ -64,6 +26,7 @@ class SchemaController < Tap::Controller
     case request['action']
     when 'add'    then add(id)
     when 'remove' then remove(id)
+    when 'echo'   then echo
     else raise Tap::ServerError, "unknown action: #{request['action']}"
     end
   end
@@ -111,6 +74,12 @@ class SchemaController < Tap::Controller
         inputs.each {|index| schema[index].output = nil }
         outputs.each {|index| schema[index].input = round }
       else
+        
+        # temporary
+        if inputs.length > 1 && outputs.length > 1
+          raise "multi-way join specified"
+        end
+        
         schema.set(Tap::Support::Join, inputs, outputs)
       end
     end
@@ -180,6 +149,7 @@ class SchemaController < Tap::Controller
     case request['action']
     when 'save'    then save(id)
     when 'preview' then preview(id)
+    when 'echo'    then echo
     when 'run'
       dump_schema(id, schema)
       run(id)
@@ -226,9 +196,11 @@ class SchemaController < Tap::Controller
   
   protected
   
-  # Parses a compacted Tap::Support::Schema from the request.
+  # Parses a Tap::Support::Schema from the request.
   def schema
-    parse_schema(request.params)
+    argv = request['argv[]'] || []
+    argv.delete_if {|arg| arg.empty? }
+    Tap::Support::Schema.parse(argv)
   end
   
   def initialize_schema
@@ -268,6 +240,10 @@ class SchemaController < Tap::Controller
     key = argv.shift
     tasc = server.env.tasks.search(key).constantize 
     tasc.parse(argv)
+  end
+  
+  def echo
+    "<pre>#{request.params.to_yaml}</pre>"
   end
   
   # Generates a random integer key.

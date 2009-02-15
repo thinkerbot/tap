@@ -1,13 +1,13 @@
-<form id="round-<%= id %>" enctype="multipart/form-data" method="post" action="/schema/update/<%= id %>">
+<form id="update_<%= id %>" class="update_form" enctype="multipart/form-data" method="post" action="/schema/update/<%= id %>">
   <span>round</span>
-  <input class="input" name="round" value="<%= round %>" />
-  <ol id="selections-<%= id %>" class="selection">
+  <input name="round" value="<%= round %>">
+  <ol>
 <% nodes.each do |node| %>
-<% index = schema.nodes.index(node) %>
-  <li id="selection-<%= id %>-<%= index %>" class="selection">
-    <input id="output_<%= index %>" class="output" name="outputs[]" value="<%= index %>" type="checkbox" />
-    <a href="#node-<%= index %>"><%= index %></a>
-    <input id="input_<%= index %>" class="input" name="inputs[]" value="<%= index %>" type="checkbox" />
+<% index = schema.index(node) %>
+  <li>
+    <input name="outputs[]" value="<%= index %>" type="checkbox" />
+    <a href="#node_<%= index %>"><%= index %></a>
+    <input name="inputs[]" value="<%= index %>" type="checkbox" />
   </li>
 <% end %>
   </ol>
@@ -16,13 +16,13 @@
 <%   env.tasks.build.minimap.each do |(name, const)| %>
 <%     lookup = "#{env_name}:#{name}" %>
    <li>
-     <input id="<%= lookup %>" class="tasc" name="nodes[]" value="<%= lookup %>" type="checkbox"><%= lookup %></input>
+     <input name="nodes[]" value="<%= lookup %>" type="checkbox"><%= lookup %></input>
    </li>
 <%   end %>
 <% end %>
   </ul>
-  <input type="radio" name="action" value="add" checked="true">add</input>
-  <input type="radio" name="action" value="remove">remove</input>
-  <input type="radio" name="action" value="clear">clear</input>
-  <input id="update-form-submit" type="submit" value="Update" />
+  <input class="update_action" type="radio" name="action" value="add" checked="true">add</input>
+  <input class="update_action" type="radio" name="action" value="remove">remove</input>
+  <input class="update_action" type="radio" name="action" value="echo">echo</input>
+  <input id="update_form_submit" type="submit" value="Update" />
 </form>

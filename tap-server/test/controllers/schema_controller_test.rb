@@ -1,35 +1,6 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'schema_controller'
 
-class SchemaControllerUtilsTest < Test::Unit::TestCase
-  include SchemaController::Utils
-  
-  #
-  # pair_parse test
-  #
-  
-  def test_pair_parse_collects_ordinary_key_value_pairs
-    assert_equal({'key' => ['value']}, pair_parse('key' => ['value']))
-    assert_equal({'key' => ['a', 'b', 'c']}, pair_parse('key' => ['a', 'b', 'c']))
-  end
-  
-  def test_pair_parse_parses_url_encoded_hashes
-    assert_equal({'key' => {'key' => ['value']}}, pair_parse('key[key]' => ['value']))
-  end
-  
-  def test_pair_parse_parses_url_encoded_arrays
-    assert_equal({'key' => [['a', 'b', 'c']]}, pair_parse('key[]' => ['a', 'b', 'c']))
-  end
-  
-  def test_pair_parse_shellword_splits_values_keyed_with_a_percent_sign_w
-    assert_equal({'key' => ['a', 'b', 'c']}, pair_parse('key%w' => 'a b c'))
-  end
-  
-  def test_pair_parse_concatenates_shellword_and_ordinary_array_values
-    assert_equal ['a', 'b', 'c', 'value'].sort, pair_parse('key%w' => 'a b c', 'key' => ['value'])['key'].sort
-  end
-end
-
 class SchemaControllerTest < Test::Unit::TestCase
   include Tap::Support
   
@@ -78,7 +49,7 @@ class SchemaControllerTest < Test::Unit::TestCase
   
   def test_get_display_loads_and_renders_the_specified_schema
     method_root.prepare(:schema, "0.yml") do |file|
-      file << Schema.parse("tap:task a b c").dump.to_yaml
+      file << Schema.parse("-- a 1 2 3 --+ b -- c --0:2").dump.to_yaml
     end
     
     # fake out display templates
@@ -90,7 +61,7 @@ class SchemaControllerTest < Test::Unit::TestCase
     end
     
     response = request.get("/display/0", opts)
-    assert_equal "0: -- tap:task a b c", response.body
+    assert_equal "0: -- a 1 2 3 -- b -- c --+1[1] --0:2", response.body
   end
   
   #
@@ -145,13 +116,12 @@ class SchemaControllerTest < Test::Unit::TestCase
     assert_equal "-- a -- b -- c --2{0,1}", schema.to_s
   end
   
-  # def test_add_allows_many_inputs_to_many_outputs_join
-  #   path = prepare_schema(0, "a -- b -- c -- d")
-  #   assert_equal 302, request.post("/add/0?inputs[]=0&inputs[]=1&outputs[]=2&outputs[]=3", opts).status
-  #   
-  #   schema = Schema.load_file(path)
-  #   assert_equal "-- a -- b -- c -- d --2{0,1}", schema.to_s
-  # end
+  # temporary
+  def test_add_raises_error_for_multiway_join
+    path = prepare_schema(0, "a -- b -- c -- d")
+    e = assert_raises(RuntimeError) { request.post("/add/0?inputs[]=0&inputs[]=1&outputs[]=2&outputs[]=3", opts) }
+    assert_equal "multi-way join specified", e.message
+  end
   
   def test_add_sets_join_output_to_nil_for_inputs_without_a_output
     path = prepare_schema(0, "a -- b -- c -- d --0{1,2,3}")

@@ -1,4 +1,4 @@
-    <input class="key" name="nodes[<%= index %>][]" type="hidden" value="<%= switch %>" />
-    <input class="value" name="nodes[<%= index %>][]" type="text" value="<%= value %>" />
-    <span class="name"><%= key %></span>:
-    <span class="desc"><%= config[:desc].to_s %></span>
+    <input name="argv[]" type="hidden" value="<%= switch %>" />
+    <input name="argv[]" type="text" value="<%= value %>" />
+    <span><%= key %></span>:
+    <span><%= config[:desc].to_s %></span>
