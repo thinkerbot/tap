@@ -163,6 +163,17 @@ module Tap
         rounds
       end
       
+      # Returns a collection of nodes sorted into arrays by natural round.
+      def natural_rounds
+        rounds = []
+        nodes.each do |node|
+          next unless node
+          round = node.natural_round
+          (rounds[round] ||= []) << node if round
+        end
+        rounds
+      end
+      
       # Returns a collection of global nodes.
       def globals
         globals = []

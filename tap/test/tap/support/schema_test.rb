@@ -277,6 +277,25 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   #
+  # natural_rounds test
+  #
+  
+  def test_natural_rounds_returns_a_collection_of_node_indicies_sorted_into_arrays_by_natural_rounds
+    # (3)-o-[A]-o-[C]-o-[D]
+    #           |
+    # (2)-o-[B]-o
+  
+    join1, join2 = Array.new(2) { [:join, [], []] }
+    a = Node.new [], 3, join1
+    b = Node.new [], 2, join1
+    c = Node.new [], join1, join2
+    d = Node.new [], join2
+    
+    schema = Schema.new([a,b,c,d])
+    assert_equal [nil, nil, [b,c,d], [a]], schema.natural_rounds
+  end
+  
+  #
   # globals test
   #
   
