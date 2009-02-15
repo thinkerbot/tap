@@ -3,8 +3,11 @@ module Tap
     
     # ::manifest
     class Echo < Tap::Task
-      def process
-        "result #{Time.now}"
+      def process(*args)
+        args = args.flatten
+        args << name
+        log name, args.inspect
+        args
       end
     end
   end

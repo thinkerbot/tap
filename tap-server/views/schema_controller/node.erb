@@ -10,16 +10,18 @@
     
     <ul>
     <!-- inputs -->
+<% attributes = node.input_join ? "disabled='true' ": " " %>
 <% tasc.args.arguments.each do |argument| %>
     <li class="input">
-    <input name="argv[]" value="<%= args.shift %>" />
+    <input name="argv[]" <%= attributes %>value="<%= args.shift %>" />
     <span><%= argument %></span>
     </li>
 <% end %>
+   <!-- for extra args... should be limited to *arg -->
 <% args << '' %>
 <% args.each do |arg| %>
     <li class="input">
-    <input name="argv[]" value="<%= arg %>" />
+    <input name="argv[]" <%= attributes %>value="<%= arg %>" />
     <span>...</span>
     </li>
 <% end %>
