@@ -242,7 +242,8 @@ class SchemaController < Tap::Controller
     tasc.parse(argv)
   end
   
-  def echo
+  # helper to echo requests back... good for debugging
+  def echo # :nodoc:
     "<pre>#{request.params.to_yaml}</pre>"
   end
   

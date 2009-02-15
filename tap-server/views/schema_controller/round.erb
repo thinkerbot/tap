@@ -8,6 +8,9 @@
     <input name="outputs[]" value="<%= index %>" type="checkbox" />
     <a href="#node_<%= index %>"><%= index %></a>
     <input name="inputs[]" value="<%= index %>" type="checkbox" />
+<% if output = node.output %>
+<%= render('join.erb', :locals => {:schema => schema, :id => id, :join => output[0], :inputs => output[1], :outputs => output[2]}) %>
+<% end %>
   </li>
 <% end %>
   </ol>

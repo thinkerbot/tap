@@ -3,7 +3,7 @@
 <%= render 'round.erb', :locals => {:schema => schema, :nodes => globals, :round => nil, :id => id} %>
 <% end %>
 <% index = 0 %>
-<% schema.rounds.each do |nodes| %>
+<% schema.natural_rounds.each do |nodes| %>
 <%= render 'round.erb', :locals => {:schema => schema, :nodes => nodes, :round => index, :id => id} %>
 <% index += 1 %>
 <% end %>

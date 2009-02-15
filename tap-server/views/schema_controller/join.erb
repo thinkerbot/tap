@@ -1,0 +1,5 @@
+    <span><%= join.class %></span>
+<% outputs.each do |node| %>
+<%   index = schema.index(node) %>
+    <a href="#node_<%= index %>"><%= index %></a>
+<% end %>
