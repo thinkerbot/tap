@@ -175,6 +175,14 @@ class SchemaControllerTest < Test::Unit::TestCase
     assert_equal "-- a -- b -- c --0[]", schema.to_s
   end
   
+  def test_remove_removes_join_when_two_joined_nodes_are_both_selected
+    path = prepare_schema(0, "a -- b --0:1")
+    assert_equal 302, request.post("/remove/0?inputs[]=0&inputs[]=1&outputs[]=0&outputs[]=1", opts).status
+    
+    schema = Schema.load_file(path)
+    assert_equal "-- a -- b", schema.to_s
+  end
+  
   def test_remove_does_not_remove_nodes_unless_indicated_in_both_inputs_and_outputs
     path = prepare_schema(0, "a -- b -- c")
     assert_equal 302, request.post("/remove/0?inputs[]=0&outputs[]=1", opts).status

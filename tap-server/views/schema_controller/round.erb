@@ -1,6 +1,6 @@
 <form id="update_<%= id %>" class="update_form" enctype="multipart/form-data" method="post" action="/schema/update/<%= id %>">
-  <span>round</span>
-  <input name="round" value="<%= round %>">
+  <span>round <%= round %></span>
+  <input name="round" type="hidden" value="<%= round %>">
   <ol>
 <% nodes.each do |node| %>
 <% index = schema.index(node) %>
@@ -8,9 +8,8 @@
     <input name="outputs[]" value="<%= index %>" type="checkbox" />
     <a href="#node_<%= index %>"><%= index %></a>
     <input name="inputs[]" value="<%= index %>" type="checkbox" />
-<% if output = node.output_join %>
-<%= render('join.erb', :locals => {:schema => schema, :id => id, :join => output[0], :inputs => output[1], :outputs => output[2]}) %>
-<% end %>
+<%= render('join.erb', :locals => {:schema => schema, :id => id, :nodes => node.parents}) %>
+<%= render('join.erb', :locals => {:schema => schema, :id => id, :nodes => node.children}) %>
   </li>
 <% end %>
   </ol>

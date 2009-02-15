@@ -115,20 +115,20 @@ class SchemaController < Tap::Controller
     load_schema(id) do |schema|
       # Remove joins.  Removed indicies are popped to ensure
       # that if a join was removed the node will not be.
-      inputs.delete_if do |index|
+      outputs.delete_if do |index|
         next unless node = schema.nodes[index]
-        if node.output_join
-          node.output = nil
+        if node.input_join
+          node.input = round
           true
         else
           false
         end
       end
-    
-      outputs.delete_if do |index|
+      
+      inputs.delete_if do |index|
         next unless node = schema.nodes[index]
-        if node.input_join
-          node.input = round
+        if node.output_join
+          node.output = nil
           true
         else
           false
