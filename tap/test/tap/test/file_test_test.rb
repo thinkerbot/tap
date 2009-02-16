@@ -4,6 +4,8 @@ require 'tap/test/file_test'
 class FileTestTest < Test::Unit::TestCase
   include Tap::Test::FileTest
   
+  ASSERTION_ERROR = Object.const_defined?(:MiniTest) ? MiniTest::Assertion : Test::Unit::AssertionFailedError
+  
   self.class_test_root = Tap::Root.new(
     __FILE__.chomp("_test.rb"), 
     {:input => 'input', :output => 'output', :expected => 'expected'})
@@ -66,7 +68,7 @@ class FileTestTest < Test::Unit::TestCase
     setup_file :input, "two.txt", "file two"
     setup_file :expected, "one.txt", "processed file one"
     
-    assert_raises(Test::Unit::AssertionFailedError) do
+    assert_raises(ASSERTION_ERROR) do
       assert_files do |input_files|
         input_files.collect do |input_file|
           method_root.prepare(:output, File.basename(input_file)) do |file|
@@ -84,7 +86,7 @@ class FileTestTest < Test::Unit::TestCase
     setup_file :expected, "one.txt", "processed file one"
     setup_file :expected, "two.txt", "processed file two"
      
-    assert_raises(Test::Unit::AssertionFailedError) do
+    assert_raises(ASSERTION_ERROR) do
       assert_files do |input_files|
         input_files.collect do |input_file|
           method_root.prepare(:output, File.basename(input_file)) do |file|
@@ -102,7 +104,7 @@ class FileTestTest < Test::Unit::TestCase
     setup_file :expected, "one.txt", "processed file FLUNK"
     setup_file :expected, "two.txt", "processed file two"
     
-    assert_raises(Test::Unit::AssertionFailedError) do
+    assert_raises(ASSERTION_ERROR) do
       assert_files do |input_files|
         input_files.collect do |input_file|
           method_root.prepare(:output, File.basename(input_file)) do |file|
@@ -119,7 +121,7 @@ class FileTestTest < Test::Unit::TestCase
     setup_file :input, "two.txt", "file two"
    
     was_in_block = false
-    assert_raises(Test::Unit::AssertionFailedError) do
+    assert_raises(ASSERTION_ERROR) do
       assert_files do |input_files| 
         was_in_block = true
         []

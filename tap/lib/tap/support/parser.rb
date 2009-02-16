@@ -248,9 +248,10 @@ module Tap
           0.upto(three.length - 1) do |char_index|
             char = three[char_index, 1]
             
-            key, config = Join.configurations.find do |key, config| 
+            entry = Join.configurations.find do |key, config| 
               config.attributes[:short] == char
             end
+            key, config = entry
             
             raise "unknown option in: #{three} (#{char})" unless key 
             options[key] = true

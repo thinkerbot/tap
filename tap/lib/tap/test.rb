@@ -65,9 +65,13 @@ class Test::Unit::TestCase
       end
     end
   end
-  
-  undef_method :name
-  alias name method_name
-
 end unless Object.const_defined?(:MiniTest)
+
+if Object.const_defined?(:MiniTest)
+  # MiniTest renames method_name name, so it has to be added back here.
+  class MiniTest::Unit::TestCase
+    undef_method :method_name if method_defined?(:method_name)
+    alias method_name name
+  end
+end
 # :startdoc:

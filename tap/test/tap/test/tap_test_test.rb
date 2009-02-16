@@ -22,6 +22,8 @@ class TapTestTest < Test::Unit::TestCase
   include Tap::Support
   acts_as_tap_test 
   
+  ASSERTION_ERROR = Object.const_defined?(:MiniTest) ? MiniTest::Assertion : Test::Unit::AssertionFailedError
+  
   #
   # basic tests
   #
@@ -67,7 +69,7 @@ class TapTestTest < Test::Unit::TestCase
     e = [[:a, 'a'], [:b, 'b']]
     assert_audit_equal(e, b) 
     
-    assert_raises(Test::Unit::AssertionFailedError) do
+    assert_raises(ASSERTION_ERROR) do
       e = [[:a, 'FLUNK'], [:b, 'b']]
       assert_audit_equal(e, b)
     end

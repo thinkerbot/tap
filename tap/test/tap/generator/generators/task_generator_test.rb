@@ -17,16 +17,16 @@ class TaskGeneratorTest < Test::Unit::TestCase
     
     assert_equal %w{
       lib
-      lib/const_name.rb
+      lib/task_const_name.rb
       test
-      test/const_name_test.rb
-    }, t.process('const_name')
+      test/task_const_name_test.rb
+    }, t.process('task_const_name')
     
-    assert !TaskGeneratorTest.const_defined?(:ConstName)
-    eval(t.preview['lib/const_name.rb'])
+    assert !TaskGeneratorTest.const_defined?(:TaskConstName)
+    eval(t.preview['lib/task_const_name.rb'])
 
-    assert_equal "goodnight moon", ConstName.new.process('moon')
-    assert_equal "hello world", ConstName.new(:message => 'hello').process('world')
+    assert_equal "goodnight moon", TaskConstName.new.process('moon')
+    assert_equal "hello world", TaskConstName.new(:message => 'hello').process('world')
   end
   
   def test_task_generator_does_not_generate_test_if_test_is_false

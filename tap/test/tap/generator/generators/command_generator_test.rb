@@ -13,10 +13,13 @@ class CommandGeneratorTest < Test::Unit::TestCase
     super
     @current_stdout = $stdout
     $stdout = StringIO.new
+    @current_argv = ARGV
+    ARGV.clear
   end
   
   def teardown
     super
+    ARGV.concat(@current_argv)
     $stdout = @current_stdout
   end
   #

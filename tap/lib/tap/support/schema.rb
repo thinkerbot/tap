@@ -59,7 +59,7 @@ module Tap
         #   format_fork(1, [2,3],{})            # => "1[2,3]"
         #
         def format_fork(source_index, outputs, options)
-          "#{source_index}[#{outputs.join(',')}]#{format_options(options)}"
+          "#{source_index[0]}[#{outputs.join(',')}]#{format_options(options)}"
         end
 
         # Formats a merge string (note the target index is
@@ -68,7 +68,7 @@ module Tap
         #   format_merge(1, [2,3],{})           # => "1{2,3}"
         #
         def format_merge(target_index, inputs, options)
-          "#{target_index}{#{inputs.join(',')}}#{format_options(options)}"
+          "#{target_index[0]}{#{inputs.join(',')}}#{format_options(options)}"
         end
 
         # Formats a sync_merge string (note the target index 
@@ -77,7 +77,7 @@ module Tap
         #   format_sync_merge(1, [2,3],{})      # => "1(2,3)"
         #
         def format_sync_merge(target_index, inputs, options)
-          "#{target_index}(#{inputs.join(',')})#{format_options(options)}"
+          "#{target_index[0]}(#{inputs.join(',')})#{format_options(options)}"
         end
 
         # Formats an options hash into a string.  Raises an error
