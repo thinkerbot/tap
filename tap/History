@@ -1,4 +1,4 @@
-== 0.12.0 / 2009-01-08
+== 0.12.0 / 2009-02-15
 
 As of the 0.12.0 release, Tap is distributed as several independent modules
 which can be collectively installed through tap-suite.  Tap has been cleaned
@@ -20,6 +20,7 @@ Notable changes include:
 * Added Mini::Test support
 * Added/clarified Task nesting
 * Removed batching from Executable (neat feature but complex in joins)
+* The tap executable longer automatically reconfigures tasks from config files
 
 Upgrade note:
 

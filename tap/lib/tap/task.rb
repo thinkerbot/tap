@@ -209,7 +209,10 @@ module Tap
         argv = opts.parse!(argv, {}, false)
         
         # load configurations
-        config_path ||= app.filepath('config', "#{name}.yml") if name
+        if config_path == nil && name != nil
+          config_path = app.filepath('config', "#{name}.yml")
+        end
+        
         config = load_config(config_path)
         
         # build and reconfigure the instance
