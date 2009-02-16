@@ -99,7 +99,8 @@ module Tap
       
       session_app.on_complete do |_result|
         # find the template
-        pattern = "#{_result.key.to_s}/result\.*"
+        class_name = _result.key.class.to_s.underscore
+        pattern = "#{class_name}/result\.*"
         template = nil
         env.each do |e|
           templates = e.root.glob(views_dir, pattern)
@@ -111,7 +112,7 @@ module Tap
         
         if template
           extname = File.extname(template)
-          session_app.prepare(:results, id.to_s, "#{_result.key.to_s}#{extname}") do |file|
+          session_app.prepare(:results, id.to_s, "#{class_name}#{extname}") do |file|
             file << Support::Templater.new(File.read(template)).build(:_result => _result)
           end
         end
