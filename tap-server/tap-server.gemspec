@@ -5,14 +5,14 @@ Gem::Specification.new do |s|
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
   s.platform = Gem::Platform::RUBY
-  s.summary = "A web interface for Tap."
+  s.summary = "A web interface for tap."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
   s.add_dependency("tap", ">= 0.12.0")
   s.add_dependency("rack", ">= 0.9.1")
   s.has_rdoc = true
-  s.rdoc_options << '--title' << 'Tap Server' << '--main' << 'README' 
-   
+  s.rdoc_options.concat %W{--main README -S -N --title Tap\sServer}
+  
   s.extra_rdoc_files = %W{
     README
     MIT-LICENSE
@@ -29,7 +29,7 @@ Gem::Specification.new do |s|
     lib/tap/tasks/server.rb
     public/javascripts/prototype.js
     public/javascripts/tap.js
-    public/stylesheets/run.css
+    public/stylesheets/tap.css
     tap.yml
     views/404.erb
     views/500.erb

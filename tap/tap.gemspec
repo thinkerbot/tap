@@ -12,8 +12,7 @@ Gem::Specification.new do |s|
   s.executables = "tap"
   s.add_dependency("configurable", ">= 0.3.0")
   s.has_rdoc = true
-  s.rdoc_options.concat %w{--main README -S -N --title}
-  s.rdoc_options << 'Tap (Task Application)'
+  s.rdoc_options.concat %W{--main README -S -N --title Tap\s(Task\sApplication)}
    
   s.extra_rdoc_files = %W{
     README

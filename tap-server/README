@@ -1,10 +1,32 @@
 = {Tap Server}[http://tap.rubyforge.org/tap-server]
 
-A web interface for {Tap}[http://tap.rubyforge.org].
+A web interface for {Tap}[http://tap.rubyforge.org/rdoc].
 
 == Description
 
+{Tap Server}[http://tap.rubyforge.org/tap-server] provides a web interface for
+Tap tasks.  The basic interface allows the construction and execution of
+workflows, rendering of task results, and facilitates distributable
+controllers.  The intention is not to make websites for the masses, but rather
+a local interface for individuals and small groups.
+
+{Tap Server}[http://tap.rubyforge.org/tap-server] is a part of the
+{Tap-Suite}[http://tap.rubyforge.org/tap-suite].  Check out these links for
+documentation, development, and bug tracking.
+
+* Website[http://tap.rubyforge.org]
+* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
+* Github[http://github.com/bahuvrihi/tap/tree/master]
+* {Google Group}[http://groups.google.com/group/ruby-on-tap]
+
 == Usage
+
+To get a peek, use the command:
+
+  % tap server
+  
+Then go to the url 'localhost:8080'.  Currently tap-server is in alpha and
+should not be considered stable.
 
 == Installation
 

@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap-suite"
-  s.version = "0.12.0"
+  s.version = "0.1.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -9,13 +9,13 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "tap"
   s.add_dependency("tap", ">= 0.12.0")
   s.add_dependency("rap", ">= 0.12.0")
-  s.add_dependency("tap-gen", ">= 0.12.0")
   s.has_rdoc = false
   
   s.extra_rdoc_files = %W{
     README
     MIT-LICENSE
-    History}
+    History
+    doc/Tutorial}
   
   s.files = %W{}
 end

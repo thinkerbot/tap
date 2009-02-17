@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.bindir = "bin"
   s.executables = "rap"
   s.has_rdoc = true
-  s.rdoc_options << '--title' << 'Rap (Rakish App)' << '--main' << 'README' << '--line-numbers' << '--inline-source'
+  s.rdoc_options.concat %W{--main README -S -N --title Rap\s(Rakish\sApp)}
   
   s.extra_rdoc_files = %W{
     README

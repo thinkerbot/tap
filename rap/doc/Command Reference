@@ -5,7 +5,7 @@ Rap comes the rap executable.  For help on the command line, type:
   % rap --help
 
 The rap executable is basically a shorthand for 'tap run --'.  Specifying tasks
-for rap is no different than 'tap run' (see the {tap Command Reference}[http://tap.rubyforge.org/rdoc/files/doc/Command%20Reference.html]).
+for rap is no different than 'tap run' (see the Tap {Command Reference}[http://tap.rubyforge.org/rdoc/files/doc/Command%20Reference.html]).
 The only exception occurs when the task can't be found; unknown tasks are run
 as if by rake.  For instance all of these are the same:
 
