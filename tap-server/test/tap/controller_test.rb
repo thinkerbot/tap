@@ -224,7 +224,7 @@ class ControllerTest < Test::Unit::TestCase
   
   class NonStringResponseController < Tap::Controller
     def action
-      [201, {}, "body"]
+      [201, {}, ["body"]]
     end
   end
   

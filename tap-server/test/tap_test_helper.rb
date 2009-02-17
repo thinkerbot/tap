@@ -13,9 +13,6 @@ not been initialized.  Use these commands and try again:
   raise
 end
 
-# for rack
-require 'rubygems'
-
 unless Object.const_defined?(:TEST_ROOT)
   TEST_ROOT = File.expand_path("#{File.dirname(__FILE__)}/../")
   controllers_dir = TEST_ROOT + "/controllers"

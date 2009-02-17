@@ -30,7 +30,7 @@ module Tap
   #
   #   server = Server.new
   #   server.controllers['sample'] = lambda do |env|
-  #     [200, {}, "Sample got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+  #     [200, {}, ["Sample got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]]
   #   end
   #
   #   req = Rack::MockRequest.new(server)
@@ -43,7 +43,7 @@ module Tap
   #   # [controllers/example_controller.rb] => %q{
   #   # class ExampleController
   #   #   def self.call(env)
-  #   #     [200, {}, "ExampleController got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+  #   #     [200, {}, ["ExampleController got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]]
   #   #   end
   #   # end 
   #   # }
@@ -61,7 +61,7 @@ module Tap
   #
   #   server.default_controller_key = 'app'
   #   server.controllers['app'] = lambda do |env|
-  #     [200, {}, "App got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+  #     [200, {}, ["App got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]]
   #   end
   #
   #   req.get('/unknown/path/to/resource').body     # => "App got  : /unknown/path/to/resource"
@@ -146,8 +146,8 @@ module Tap
       
       if controller
         # adjust env if key routes to a controller
-        rack_env['SCRIPT_NAME'] = "#{rack_env['SCRIPT_NAME'].chomp('/')}/#{key}"
-        rack_env['PATH_INFO'] = "/#{path_info}"
+        rack_env['SCRIPT_NAME'] = ["#{rack_env['SCRIPT_NAME'].chomp('/')}/#{key}"]
+        rack_env['PATH_INFO'] = ["/#{path_info}"]
       else
         # use default controller key
         controller = lookup(default_controller_key)

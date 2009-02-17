@@ -19,7 +19,7 @@ module Tap
     # The error response body
     attr_reader :body
   
-    def initialize(body="500 Server Error", status=500, headers={'Content-Type' => 'text/plain'})
+    def initialize(body="500 Server Error", status=500, headers={'Content-Type' => ['text/plain']})
       @body = body
       @status = status
       @headers = headers
@@ -28,7 +28,7 @@ module Tap
     
     # Formats self as a rack response array (ie [status, headers, body]).
     def response
-      [status, headers, body]
+      [status, headers, [body]]
     end
   end
 end

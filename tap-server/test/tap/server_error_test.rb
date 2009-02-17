@@ -16,8 +16,8 @@ class ServerTest < Test::Unit::TestCase
     rescue
       assert_equal [
         500,
-        {'Content-Type' => 'text/plain'},
-        "500 ArgumentError: message\n#{$!.backtrace.join("\n")}"
+        {'Content-Type' => ['text/plain']},
+        ["500 ArgumentError: message\n#{$!.backtrace.join("\n")}"]
       ], ServerError.response($!)
       
       was_in_rescue = true
@@ -35,7 +35,7 @@ class ServerTest < Test::Unit::TestCase
     assert_equal "500 Server Error", e.message
     assert_equal "500 Server Error", e.body
     assert_equal 500, e.status
-    assert_equal({'Content-Type' => 'text/plain'}, e.headers)
+    assert_equal({'Content-Type' => ['text/plain']}, e.headers)
   end
   
   def test_initialize
@@ -52,6 +52,6 @@ class ServerTest < Test::Unit::TestCase
   
   def test_response_formats_self_as_rack_response_array
     e = ServerError.new
-    assert_equal [e.status, e.headers, e.body], e.response
+    assert_equal [e.status, e.headers, [e.body]], e.response
   end
 end

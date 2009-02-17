@@ -88,6 +88,7 @@ Rake::TestTask.new(:test) do |t|
   unless ENV['gems']
     t.libs << '../lazydoc/lib'
     t.libs << '../configurable/lib'
+    t.libs << '../rack/lib'
     t.libs << '../tap/lib'
   end
   

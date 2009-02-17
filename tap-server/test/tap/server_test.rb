@@ -60,35 +60,35 @@ class ServerTest < Test::Unit::TestCase
   #
   
   def test_documentation
-    server = Server.new(Tap::Env.new(method_root))
+    server = Tap::Server.new(Tap::Env.new(method_root))
     server.controllers['sample'] = lambda do |env|
-      [200, {}, "Sample got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+      [200, {}, ["Sample got #{env['SCRIPT_NAME'].inspect} : #{env['PATH_INFO'].inspect}"]]
     end
   
     req = Rack::MockRequest.new(server)
-    assert_equal "Sample got /sample : /path/to/resource", req.get('/sample/path/to/resource').body
+    assert_equal "Sample got [\"/sample\"] : [\"/path/to/resource\"]", req.get('/sample/path/to/resource').body
   
     method_root.prepare('controllers/example_controller.rb') do |file| 
       file << %q{
 class ExampleController
   def self.call(env)
-    [200, {}, "ExampleController got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+    [200, {}, ["ExampleController got #{env['SCRIPT_NAME'].inspect} : #{env['PATH_INFO'].inspect}"]]
   end
 end 
 }
     end
   
-    assert_equal "ExampleController got /example : /path/to/resource", req.get('/example/path/to/resource').body
+    assert_equal "ExampleController got [\"/example\"] : [\"/path/to/resource\"]", req.get('/example/path/to/resource').body
   
     server.controllers['sample'] = 'example'
-    assert_equal "ExampleController got /sample : /path/to/resource", req.get('/sample/path/to/resource').body 
+    assert_equal "ExampleController got [\"/sample\"] : [\"/path/to/resource\"]", req.get('/sample/path/to/resource').body 
     
     server.default_controller_key = 'app'
     server.controllers['app'] = lambda do |env|
-      [200, {}, "App got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]
+      [200, {}, ["App got #{env['SCRIPT_NAME'].inspect} : #{env['PATH_INFO'].inspect}"]]
     end
   
-    assert_equal "App got  : /unknown/path/to/resource", req.get('/unknown/path/to/resource').body
+    assert_equal "App got \"\" : \"/unknown/path/to/resource\"", req.get('/unknown/path/to/resource').body
   end
   
   #
@@ -139,7 +139,7 @@ end
       @body = body
     end
     def call(env)
-      [200, {}, @body]
+      [200, {}, [@body]]
     end
   end
   
@@ -151,7 +151,7 @@ end
   class AdjustController
     def self.call(env)
       headers = {'script_name' => env['SCRIPT_NAME'], 'path_info' => env['PATH_INFO']}
-      [200, headers, ""]
+      [200, headers, [""]]
     end
   end
 
@@ -177,7 +177,7 @@ end
   
   class EnvController
     def self.call(env)
-      [200, {}, env['tap.server'].object_id.to_s]
+      [200, {}, [env['tap.server'].object_id.to_s]]
     end
   end
 
@@ -188,7 +188,7 @@ end
   
   class RouteController
     def self.call(env)
-      [200, {}, to_s]
+      [200, {}, [to_s]]
     end
   end
   
@@ -275,15 +275,15 @@ end
       
       env = Rack::MockRequest.env_for("/route")
       x.report("10k call") { n.times { BenchmarkController.call(env.dup) } }
-      assert_equal [200, {}, "/"], server.call(env)
+      assert_equal [200, {}, ["/"]], server.call(env)
       
       env = Rack::MockRequest.env_for("/route")
       x.report("10k route") { n.times { server.call(env.dup) } }
-      assert_equal [200, {}, "/"], server.call(env)
+      assert_equal [200, {}, ["/"]], server.call(env)
       
       env = Rack::MockRequest.env_for("/route/to/resource")
       x.report("10k route/path") { n.times { server.call(env.dup) } }
-      assert_equal [200, {}, "/to/resource"], server.call(env)
+      assert_equal [200, {}, ["/to/resource"]], server.call(env)
       
       method_root.prepare(:controllers, 'bench_controller.rb') do |file| 
         file << %q{class BenchController < ServerTest::BenchmarkController; end}
@@ -291,12 +291,12 @@ end
       
       env = Rack::MockRequest.env_for("/bench")
       x.report("1k dev env") { 1000.times { server.call(env.dup) } }
-      assert_equal [200, {}, "/"], server.call(env)
+      assert_equal [200, {}, ["/"]], server.call(env)
       
       server.environment = :production
       env = Rack::MockRequest.env_for("/bench")
       x.report("10k pro env") { n.times { server.call(env.dup) } }
-      assert_equal [200, {}, "/"], server.call(env)
+      assert_equal [200, {}, ["/"]], server.call(env)
     end
   end
 end
