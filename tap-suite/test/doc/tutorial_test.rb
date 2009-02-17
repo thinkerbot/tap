@@ -58,7 +58,7 @@ namespace :example do
   end
 
   desc "your basic goodnight moon task"
-  task({:goodnight => :say}, :obj) do |task, args|
+  task({:goodnight => 'example:say'}, :obj) do |task, args|
     puts " #{args.obj}"
   end
 end}

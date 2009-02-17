@@ -90,7 +90,6 @@ Rake::TestTask.new(:test) do |t|
     t.libs << '../configurable/lib'
     t.libs << '../tap/lib'
     t.libs << '../rap/lib'
-    t.libs << '../tap-gen/lib'
   end
   
   t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') )
