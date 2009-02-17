@@ -60,9 +60,8 @@ Is basically the same as:
     end
   end
 
-However, configurations also track a fair amount of metadata making them
-easy to map to the command line, and may be accessed through a hash-like
-config object.  As you can see here:
+Configurations may be accessed through a hash-like config object, as you can
+see here:
 
   c = ConfigClass.new
   c.key                       # => 'VALUE'
@@ -81,10 +80,10 @@ documentation for more information.
 When configurations are set from the command line, the config writer inevitably
 receives a string, even though you may want a non-string input.  The
 {Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]
-module provides standard blocks for validating and transforming inputs, and may
-be accessed through the <tt>c</tt> method (ex: <tt>c.integer</tt> or 
-<tt>c.regexp</tt>).  These blocks (generally) load string inputs as YAML
-and validate that the result is the correct class; non-string inputs are
+module provides standard blocks for validating and transforming inputs, and
+may be accessed through the shortcut method <tt>c</tt> (ex: <tt>c.integer</tt>
+or <tt>c.regexp</tt>).  Validation blocks (generally) load string inputs as
+YAML and validate that the result is the correct class; non-string inputs are
 simply validated.
 
   class ValidatingClass
@@ -112,8 +111,7 @@ a config into a flag on the command line.
 
 {Lazydoc}[http://tap.rubyforge.org/lazydoc] fits into the space between live
 code and code documentation.  Lazydoc can scan a file and pull documentation
-into the object space.  Lazydoc identifies constant attributes using a syntax
-like this:
+into the object space, typically via a syntax like this:
 
   # Constant::key value
   # comment
@@ -135,12 +133,11 @@ For example:
   lazydoc['Const::Name']['key'].value          # => "value"
   lazydoc['Const::Name']['key'].comment        # => "This is an extended, multiline comment."
 
-As you can see, the 'key' attribute is registered to the 'Const::Name' constant.
-
-Lazydoc can register specific lines for documentation, like method definitions
-or configurations, and is used by Tap to quickly identify files that contain a
-specific resource like a task or generator.  Here is an example of information
-Lazydoc gleans from a task definition:
+Lazydoc can also register specific lines for documentation, like method
+definitions or configurations.  Tap uses Lazydoc to identify files that contain
+tasks and generators, to extract config documentation, and to infer the args
+arguments a task receives.  Here is an example of information gleaned from a
+task definition:
 
   # Sample::manifest a summary of the task
   class Sample < Tap::Task
@@ -163,14 +160,12 @@ information.
 
 http://tap.rubyforge.org/images/Task.png
 
-Tasks are the bread and butter of Tap.  Although fundamentally tasks are just
-blocks of code used in workflows, the various bits of metadata defined by
-Configurable and extracted through Lazydoc allow tasks to map to the command
-line and act as miniature applications.  That said, tasks are perfectly capable
-as objects in ordinary scripts.
+Tasks are the bread and butter of Tap.  Tasks act as the nodes in workflows and,
+using the Configurable and Lazydoc metadata, map to the command line as miniature
+applications.  That said, tasks are perfectly useful as ordinary objects.
 
-Task instances may be interned with a block that effectively becomes
-<tt>process</tt>:
+When subclassing is too much, tasks may be interned with a block that effectively
+replaces <tt>process</tt>:
 
   t = Tap::Task.intern {|task| 1 + 2 }
   t.process                # => 3
@@ -210,7 +205,8 @@ Results are aggregated into the underlying Tap::App.
   app.results(t2)          # => ["input:one:two"]
 
 Tracking the evolution of a result through a workflow can get complex.  Tap
-audits workflows to help, using the name of each task as an identifier:
+audits workflows to help.  Setting the names of the tasks will identify them
+in an audit dump:
 
   t1.name = 'un'
   t2.name = 'deux'
@@ -289,8 +285,8 @@ divergent workflows.
 http://tap.rubyforge.org/images/Env.png
 
 Envs generate manifests of various resources (tasks, generators, etc) and 
-provide methods to uniquely identify resources by path or, more specifically,
-minimized base paths.  In this directory structure:
+provide methods to uniquely identify resources using minimized base paths.
+In this directory structure:
 
   path
   `- to
@@ -315,8 +311,8 @@ directory.
 
 http://tap.rubyforge.org/images/Nested-Env.png
 
-To prevent conflicts between similarly-named resources under two Envs, Env
-allows selection of Envs, also by minimized paths.  Say you installed the
+To prevent conflicts between similarly-named resources under different Envs,
+Env allows selection of Envs, also by minimized paths.  Say you installed the
 'sample_tasks' gem.
 
   % tap manifest

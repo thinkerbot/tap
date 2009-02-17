@@ -1,4 +1,4 @@
-== 0.12.0 / 2009-02-15
+== 0.12.0 / 2009-02-17
 
 As of the 0.12.0 release, Tap is distributed as several independent modules
 which can be collectively installed through tap-suite.  Tap has been cleaned
@@ -14,6 +14,7 @@ Notable changes include:
 * Added several methods to Root
 * Added splat option for joins
 * Refactored stack short option to 'k'
+* Reworked Sequence, Fork, and Merge as special cases of Join
 * Reworked Audit as a directed acyclic graph
 * Cleanup and extension of FileTask API
 * Removed RSpec support

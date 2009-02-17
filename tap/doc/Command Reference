@@ -18,7 +18,7 @@ Tap::Env.instance, for easy access.
 
 == generate/destroy
 
-Generate and destory launch generator scripts, similar to those in 
+Generate and destroy launch generator scripts, similar to those in 
 {Rails}[http://www.rubyonrails.org/].  By default Tap provides generators for:
 
 {command}[link:classes/Tap/Generator/Generators/CommandGenerator.html]:: a new command

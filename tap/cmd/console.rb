@@ -1,7 +1,8 @@
 # tap console {options}
 #
 # Opens up an IRB session with Tap initialized to the configurations 
-# in tap.yml. Access the Tap::App.instance through 'app'.
+# in tap.yml. Access the Tap::App.instance through 'app', and
+# Tap::Env.instance through 'env'.
 
 #
 # handle options
