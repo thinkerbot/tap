@@ -4,9 +4,9 @@ Tap is a framework for creating configurable, distributable tasks and workflows.
 
 == Quickstart
 
-If you've used rake, tap will be easy to pick up.  To get started, make a Tapfile with a simple task declaration:
+If you've used rake, tap will be easy to pick up.  To get started, make a Rapfile with a simple task declaration:
 
-  [Tapfile]
+  [Rapfile]
     
   # ::desc your basic goodnight moon task
   # Says goodnight with a configurable message.
@@ -41,7 +41,7 @@ Just like that you have a command-line application with inputs, configuration, a
 
 The declaration syntax is obviously similar to rake; configurations are new but the task-block style is the same, as are inputs.  Other rake constructs are available.  Here is a similar goodnight task using dependencies, rake-style.
 
-  [Tapfile]
+  [Rapfile]
   
   # make the declarations available everywhere
   # (normally they're accessed via Tap, as above)
@@ -76,7 +76,7 @@ Spoiler: declarations make subclasses of Tap::Task.
 
 Going back to the first example, lets take a look at how a task declaration maps to a class definition:
 
-  [Tapfile]
+  [Rapfile]
   
   # ::desc your basic goodnight moon task
   # Says goodnight with a configurable message.

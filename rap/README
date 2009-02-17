@@ -8,10 +8,9 @@ The rakish app extension to {Tap}[http://tap.rubyforge.org].
 == Description
 
 {Rake}[http://rake.rubyforge.org/] is great, but it has significant limitations
-when used as a general task framework and not as the 'simple ruby build program
-with capabilities similar to make' it was originally designed to be.  Rap
-supercharges the convenience and familiar syntax of Rake with the capabilities
-of Tap, making a configurable, inheritable, and testable amalgam.
+when used as a general task framework.  Rap supercharges the syntax of Rake,
+allowing the declaration of tasks with configurations and extended documentation,
+and making tasks class-based so they may be more easily tested.
 
 Check out these links for documentation, development, and bug tracking.
 
@@ -20,20 +19,102 @@ Check out these links for documentation, development, and bug tracking.
 * Github[http://github.com/bahuvrihi/tap/tree/master]
 * {Google Group}[http://groups.google.com/group/ruby-on-tap]
 
-=== Limitations
-
-Rap is not a pure replacement of Rake; it does not support builds by default,
-and many of the Rake-specific classes (ex FileList) are not included. 
-
 == Usage
 
 Usage is much like rake:
 
   [Rapfile]
+  require 'rap/declarations'
+  include Rap::Declarations
   
+  desc "your basic goodnight moon task"
+  
+  # Says goodnight with a configurable message.
+  task(:goodnight, :obj, :message => 'goodnight') do |task, args|
+    puts "#{task.message} #{args.obj}\n"
+  end
+  
+Now from the command line:
 
-Rap does provides its own, documented versions of TestTask, RDocTask, and
-GemPackageTask.
+  % rap goodnight moon
+  goodnight moon
+  
+  % rap goodnight world --message hello
+  hello world
+  
+  % rap goodnight --help
+  Goodnight -- your basic goodnight moon task
+  --------------------------------------------------------------------------------
+    Says goodnight with a configurable message.
+  --------------------------------------------------------------------------------
+  usage: rap goodnight OBJ
+
+  configurations:
+          --message MESSAGE
+
+  options:
+      -h, --help                       Print this help
+          --name NAME                  Specify a name
+          --use FILE                   Loads inputs from file
+
+For testing, load the Rapfile and access the task as a constant.
+
+  [test.rb]
+  load 'Rapfile'
+  require 'test/unit'
+  require 'stringio'
+  
+  class RapfileTest < Test::Unit::TestCase
+    def test_the_goodnight_task
+      $stdout = StringIO.new
+      
+      task = Goodnight.new
+      assert_equal 'goodnight', task.message
+      
+      task.process('moon')
+      assert_equal "goodnight moon", $stdout.string
+    end
+  end
+
+The test passes:
+
+  % ruby test.rb
+  Loaded suite test
+  Started
+  .
+  Finished in 0.004921 seconds.
+
+  1 tests, 2 assertions, 0 failures, 0 errors
+
+=== Limitations
+
+Rap is not a pure replacement of Rake; it does not support builds by default,
+and many of the Rake-specific classes (ex FileList) are not included.  Moreover
+rap and rake resolve dependencies differently.  For example:
+
+  [Rapfile]
+  include Rap::Declarations
+  
+  task(:outer) { puts "outer" }
+  namespace(:nest) do
+    task(:name => [:outer, 'nest:outer'])
+    task(:outer) { puts "inner" }
+  end
+
+On the command line:
+
+  % rap nest/name
+  outer
+  inner
+  
+If you did this with rake, you'd get:
+
+  % rake nest:name
+  inner
+
+Rap always resolves dependencies as constants (ie 'outer' => Outer and
+'nest:outer' => Nest::Outer) while rake waits until execution, at which time
+it uses tasks in the current namespace before looking in higher namespaces.
 
 == Installation
 

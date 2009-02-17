@@ -12,7 +12,7 @@ class TutorialTest < Test::Unit::TestCase
   
   def test_declaration
     script_test(method_root[:output]) do |cmd|
-      File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
+      File.open(method_root.filepath(:output, 'Rapfile'), 'w') do |file|
         file << %q{
 # ::desc your basic goodnight moon task
 # Says goodnight with a configurable message.
@@ -47,7 +47,7 @@ options:
   
   def test_rake_style_declaration
     script_test(method_root[:output]) do |cmd|
-      File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
+      File.open(method_root.filepath(:output, 'Rapfile'), 'w') do |file|
         file << %q{
 # make the declarations available everywhere
 include Rap::Declarations
@@ -146,7 +146,7 @@ options:
     
     def test_stand_alone_goodnight_script
       script_test(method_root[:output]) do |cmd|
-        File.open(method_root.filepath(:output, 'Tapfile'), 'w') do |file|
+        File.open(method_root.filepath(:output, 'Rapfile'), 'w') do |file|
           file << %q{
 #!/usr/bin/env ruby
 
@@ -168,7 +168,7 @@ instance.execute(*args)
 }
         end
       
-        FileUtils.chmod(method_root.filepath(:output, 'Tapfile'), 744)
+        FileUtils.chmod(method_root.filepath(:output, 'Rapfile'), 744)
       
         cmd.check "stand alone goodnight script", %q{
 % ./goodnight moon
