@@ -20,7 +20,8 @@ Gem::Specification.new do |s|
     History
     doc/Class\sReference
     doc/Command\sReference
-    doc/Syntax\sReference}
+    doc/Syntax\sReference
+    doc/Tutorial}
   
   s.files = %W{
     cmd/console.rb
