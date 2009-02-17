@@ -302,7 +302,7 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def test_task_supports_rake_args_declaration
     arg_hash = nil
-    t = task(:task0, :one, :two, :three) do |t, args|
+    t = task(:task0, :one, :two, :three) do |task, args|
       arg_hash = args.marshal_dump
     end
   
@@ -312,7 +312,7 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def test_task_args_declaration_with_too_few_args_uses_nil
     arg_hash = nil
-    t = task(:task0, :one, :two, :three) do |t, args|
+    t = task(:task0, :one, :two, :three) do |task, args|
       arg_hash = args.marshal_dump
     end
   
@@ -322,7 +322,7 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def test_task_args_declaration_with_too_many_args_ignores_extra_args
     arg_hash = nil
-    t = task(:task0, :one, :two, :three) do |t, args|
+    t = task(:task0, :one, :two, :three) do |task, args|
       arg_hash = args.marshal_dump
     end
   
@@ -332,12 +332,12 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def test_task_args_declaration_will_override_with_later_args
     arg_hash_a = nil
-    t = task(:task0, :one, :two, :three) do |t, args|
+    t = task(:task0, :one, :two, :three) do |task, args|
       arg_hash_a = args.marshal_dump
     end
   
     arg_hash_b = nil
-    t1 = task(:task0, :four, :five) do |t, args|
+    t1 = task(:task0, :four, :five) do |task, args|
       arg_hash_b = args.marshal_dump
     end
   
@@ -348,12 +348,12 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def test_task_args_declaration_will_override_with_later_args_when_no_later_args_are_given
     arg_hash_a = nil
-    t = task(:task0, :one, :two, :three) do |t, args|
+    t = task(:task0, :one, :two, :three) do |task, args|
       arg_hash_a = args.marshal_dump
     end
   
     arg_hash_b = nil
-    t1 = task(:task0) do |t, args|
+    t1 = task(:task0) do |task, args|
       arg_hash_b = args.marshal_dump
     end
   
