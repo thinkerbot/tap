@@ -8,9 +8,9 @@ The rakish app extension to {Tap}[http://tap.rubyforge.org].
 == Description
 
 {Rake}[http://rake.rubyforge.org/] is great, but it has significant limitations
-when used as a general task framework.  Rap supercharges the syntax of Rake,
-allowing the declaration of tasks with configurations and extended documentation,
-and making tasks class-based so they may be more easily tested.
+when used as a general task framework.  Rap supercharges the syntax of Rake by
+adding configurations, extended documentation, and class-based tasks that are
+easy to test.
 
 Check out these links for documentation, development, and bug tracking.
 
@@ -86,35 +86,16 @@ The test passes:
 
   1 tests, 2 assertions, 0 failures, 0 errors
 
+Generally speaking, the rap executable is a shorthand for 'tap run --' so you
+can use rap to quickly launch workflows as well.  See the 
+{Command}[link:files/doc/Command%20Reference.html] and 
+{Syntax}[link:files/doc/Syntax%20Reference.html] References for more information.
+
 === Limitations
 
-Rap is not a pure replacement of Rake; it does not support builds by default,
-and many of the Rake-specific classes (ex FileList) are not included.  Moreover
-rap and rake resolve dependencies differently.  For example:
-
-  [Rapfile]
-  include Rap::Declarations
-  
-  task(:outer) { puts "outer" }
-  namespace(:nest) do
-    task(:name => [:outer, 'nest:outer'])
-    task(:outer) { puts "inner" }
-  end
-
-On the command line:
-
-  % rap nest/name
-  outer
-  inner
-  
-If you did this with rake, you'd get:
-
-  % rake nest:name
-  inner
-
-Rap always resolves dependencies as constants (ie 'outer' => Outer and
-'nest:outer' => Nest::Outer) while rake waits until execution, at which time
-it uses tasks in the current namespace before looking in higher namespaces.
+Rap is not a pure replacement of Rake.  Rap does not support builds by default,
+classes like FileList are not included, and namespace lookup is slightly
+different (see the {Syntax Reference}[link:files/doc/Syntax%20Reference.html]).
 
 == Installation
 

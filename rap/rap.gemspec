@@ -17,7 +17,10 @@ Gem::Specification.new do |s|
   s.extra_rdoc_files = %W{
     README
     MIT-LICENSE
-    History}
+    History
+    doc/Command\sReference
+    doc/Syntax\sReference
+    }
   
   s.files = %W{
     lib/rap/declaration_task.rb
