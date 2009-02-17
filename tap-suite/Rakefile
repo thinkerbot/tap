@@ -51,14 +51,14 @@ end
 
 desc 'Generate documentation.'
 Rake::RDocTask.new(:rdoc) do |rdoc|
-  # spec = gemspec
+  spec = gemspec
   
-  # rdoc.rdoc_dir = 'rdoc'
-  # rdoc.options.concat(spec.rdoc_options)
-  # rdoc.rdoc_files.include( spec.extra_rdoc_files )
-  # # '--title' << 'Tap - Task Application' << '--main' << 'README' 
-  # files = spec.files.select {|file| file =~ /^lib.*\.rb$/}
-  # rdoc.rdoc_files.include( files )
+  rdoc.rdoc_dir = 'rdoc'
+  rdoc.options.concat(spec.rdoc_options)
+  rdoc.rdoc_files.include( spec.extra_rdoc_files )
+  
+  files = spec.files.select {|file| file =~ /^lib.*\.rb$/}
+  rdoc.rdoc_files.include( files )
 end
 
 desc "Publish RDoc to RubyForge"

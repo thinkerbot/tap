@@ -1,0 +1,5 @@
+== 0.1.0 / 2009-02-17
+
+As of the 0.12.0 release, Tap is distributed as several independent modules.
+This is the full suite, which installs the currently released versions of
+each module.

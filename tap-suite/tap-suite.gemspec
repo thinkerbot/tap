@@ -9,6 +9,7 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "tap"
   s.add_dependency("tap", ">= 0.12.0")
   s.add_dependency("rap", ">= 0.12.0")
+  s.add_dependency("tap-server", ">= 0.1.0")
   s.has_rdoc = false
   
   s.extra_rdoc_files = %W{
