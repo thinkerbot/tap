@@ -7,10 +7,8 @@ The rakish app extension to {Tap}[http://tap.rubyforge.org].
 
 == Description
 
-{Rake}[http://rake.rubyforge.org/] is great, but it has significant limitations
-when used as a general task framework.  Rap supercharges the syntax of Rake by
-adding configurations, extended documentation, and class-based tasks that are
-easy to test.
+Rap supercharges the syntax of Rake by adding configurations, extended
+documentation, and class-based tasks that are easy to test.
 
 Check out these links for documentation, development, and bug tracking.
 
@@ -21,7 +19,7 @@ Check out these links for documentation, development, and bug tracking.
 
 == Usage
 
-Usage is much like rake:
+Usage is much like {rake}[http://rake.rubyforge.org/]:
 
   [Rapfile]
   require 'rap/declarations'
@@ -111,7 +109,7 @@ Rap requires an updated version of RubyGems[http://docs.rubygems.org/]
     
 == Info 
 
-Copyright (c) 2006-2008, Regents of the University of Colorado.
+Copyright (c) 2009, Regents of the University of Colorado.
 Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com], {Biomolecular Structure Program}[http://biomol.uchsc.edu/], {Hansen Lab}[http://hsc-proteomics.uchsc.edu/hansenlab/] 
 Support:: CU Denver School of Medicine Deans Academic Enrichment Fund
 Licence:: {MIT-Style}[link:files/MIT-LICENSE.html]

@@ -5,15 +5,15 @@ Gem::Specification.new do |s|
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
   s.platform = Gem::Platform::RUBY
-  s.summary = "The rakish app extension to tap."
+  s.summary = "A rakish extension to tap."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
   s.add_dependency("tap", ">= 0.12.0")
   s.bindir = "bin"
   s.executables = "rap"
   s.has_rdoc = true
-  s.rdoc_options << '--title' << 'Rap (Rakish App)' << '--main' << 'README' 
-   
+  s.rdoc_options << '--title' << 'Rap (Rakish App)' << '--main' << 'README' << '--line-numbers' << '--inline-source'
+  
   s.extra_rdoc_files = %W{
     README
     MIT-LICENSE

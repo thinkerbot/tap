@@ -49,11 +49,11 @@ not limited in these ways):
 * tasks only execute once
 
 A few syntactical differences between rake and rap must to be noted, as they
-can cause errors if you try to migrate rake tasks to tap.  Tap declarations.
+can cause errors if you try to migrate rake tasks to tap.
 
 ==== no needs
 
-Tasks do not support :needs as a way to specify dependencies.  For instance,
+Rap does not support :needs as a way to specify dependencies.  For instance,
 this will declare a ':needs' configuration with the default value ':another',
 not a task which depends on another:
 
@@ -63,8 +63,8 @@ not a task which depends on another:
 
 Within a namespace, task will look for a literal match to the dependency first.
 If it doesn't find one, it will declare it within the namespace; one way or the
-other the dependency is resolved immediately.  Hence, in this example the
-nested task depends on the non-nested task.  
+other the dependency is resolved to a constant immediately.  Hence, in this
+example the nested task depends on the non-nested task.  
 
   task :outer { print 'non-nested' }
   namespace :nest do
@@ -72,7 +72,7 @@ nested task depends on the non-nested task.
     task :outer { print 'nested' }
   end
   
-By contrast, rake waits to resolve dependencies and so will always use a match
+By contrast, rake waits to resolve dependencies and will always use a match
 within a namespace in preference to a literal match.  For these tasks rap and
 rake produce different results:
 
