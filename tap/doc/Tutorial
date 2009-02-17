@@ -6,7 +6,7 @@ supercharged rake.  Using the rap executable, you can declare tasks using a
 syntax almost identical to rake, but with added support for configurations and
 documentation.
 
-This tutorial spans several modules in the {Tap-Suite}[http://tap.rubyforge.org/tap-suite].
+Note: this tutorial spans several modules in the {Tap-Suite}[http://tap.rubyforge.org/tap-suite].
 Be sure to install both tap and rap (or the full suite) beforehand.
 
   % gem install tap-suite
@@ -82,8 +82,8 @@ And now from the command line:
 Unlike rake, rap inputs are written out individually and tasks are delimited
 by a modified double-dash.  Aside from that, you can see rap is basically a
 supercharged rake.  Furthermore, rap runs rake.  Directly substitute rap for
-rake on the command line and your tasks should run as normal (see the 
-{Syntax Reference}[link:http://tap.rubyforge.org/rap/files/doc/Syntax%20Reference.html]
+rake on the command line and your tasks should run as normal (see the Rap
+{Syntax Reference}[http://tap.rubyforge.org/rap/files/doc/Syntax%20Reference.html]
 for more details).
 
 However, supercharging rake isn't the point of Tap.  Declarations bridge the
@@ -242,7 +242,7 @@ convenience.
 
 Tap comes with two executables, rap and tap.  The tap executable is more
 verbose than rap for running tasks, but it is more configurable, scalable, and
-logically pure.  Tap comes with a number of {commands}[link:http://tap.rubyforge.org/rdoc/files/doc/Command%20Reference.html]
+logically pure.  Tap comes with a number of {commands}[link:/files/doc/Command%20Reference.html]
 but we'll focus on generate to make, test, and package a task library.  Begin
 by creating a tap directory structure and a task:
 
