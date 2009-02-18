@@ -1,18 +1,17 @@
 module Tap
   module Tasks
-    # :startdoc::manifest the default dump task
+    # :startdoc::manifest dumps the application
     #
-    # A dump task to print aggregated application results to a file or IO.  
-    # The results are printed as YAML, allowing dumped results to be 
-    # reloaded and used as inputs to other tasks.
+    # A dump task to print the application data to a file or IO.  Data is
+    # printed as YAML.
     #
-    # Often dump is used as the final task in a round of tasks; if no filepath 
-    # is specified, the results are printed to stdout.
+    # A core dump may be used in a terminal round to capture all the unhandled
+    # results from previous rounds; if no filepath is specified, the results
+    # are printed to stdout.
     #  
-    #   % tap run -- [tasks] --+ dump FILEPATH
+    #   % tap run -- [tasks] --+ core_dump FILEPATH
     #
-    # See Load for more details.
-    class Dump < Tap::FileTask
+    class CoreDump < Tap::FileTask
       
       config :date_format, '%Y-%m-%d %H:%M:%S'   # the date format
       config :audit, true, &c.switch             # include the audit trails

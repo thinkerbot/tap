@@ -1,8 +1,8 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper') 
-require 'tap/tasks/dump'
+require 'tap/tasks/core_dump'
 require 'stringio'
 
-class DumpTest < Test::Unit::TestCase
+class CoreDumpTest < Test::Unit::TestCase
   include Tap::Tasks
   Audit = Tap::Support::Audit
   acts_as_tap_test 
@@ -27,7 +27,7 @@ class DumpTest < Test::Unit::TestCase
     app.aggregator.store(b)
     assert_equal({t => [a,b]}, app.aggregator.to_hash)
     
-    Dump.new(:date => false, :audit => false).dump_to(io)
+    CoreDump.new(:date => false, :audit => false).dump_to(io)
     assert_equal %Q{--- 
 name (#{t.object_id}): 
 - 1
@@ -40,12 +40,12 @@ name (#{t.object_id}):
     b = Audit.new(:b, 2, a)
     app.aggregator.store(b)
     
-    Dump.new(:date => false, :audit => true).dump_to(io)
+    CoreDump.new(:date => false, :audit => true).dump_to(io)
     assert io.string.gsub(/^# /, "").include?(b.dump)
   end
   
   def test_dump_to_writes_date_if_specified
-    Dump.new(:date => true, :audit => false).dump_to(io)
+    CoreDump.new(:date => true, :audit => false).dump_to(io)
     assert io.string =~ /# date: \d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d/
   end
   
@@ -58,14 +58,14 @@ name (#{t.object_id}):
     b = Audit.new(t2, 2)
     app.aggregator.store(b)
 
-    Dump.new(:date => false, :audit => false, :filter => /lt/).dump_to(io)
+    CoreDump.new(:date => false, :audit => false, :filter => /lt/).dump_to(io)
     assert_equal %Q{--- 
 alt (#{t2.object_id}): 
 - 2
 }, io.string
     
     io.string = ""
-    Dump.new(:date => false, :audit => false, :filter => /m/).dump_to(io)
+    CoreDump.new(:date => false, :audit => false, :filter => /m/).dump_to(io)
     assert_equal %Q{--- 
 name (#{t1.object_id}): 
 - 1
