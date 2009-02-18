@@ -33,6 +33,9 @@ module Tap
         end
       end
       
+      lazy_attr :args, :setup
+      lazy_register :setup, Lazydoc::Arguments
+      
       config :date_format, '%Y-%m-%d %H:%M:%S'   # the date format
       config :audit, true, &c.switch             # include the audit trails
       config :date, true, &c.switch              # include a date
