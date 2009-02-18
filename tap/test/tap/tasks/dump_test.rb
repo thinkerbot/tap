@@ -10,9 +10,9 @@ class DumpTest < Test::Unit::TestCase
   attr_reader :io, :dump
   
   def setup
+    super
     @io = StringIO.new
     @dump = Dump.new({:date => false, :audit => false}, nil, app, io)
-    super
   end
   
   #
@@ -27,7 +27,21 @@ class DumpTest < Test::Unit::TestCase
     assert_equal true, dump.date
     assert_equal false, dump.audit
   end
-  
+
+  #
+  # _execute test
+  #
+
+  def test_execute_preserves_input_values_in_audit
+    a = Audit.new('a', 'A')
+    c = Audit.new('c', 'C')
+    
+    _result = dump._execute(a, 'B', c)
+    
+    assert_equal [[['a'], [nil], ['c']], dump], _result.trail {|audit| audit.key }
+    assert_equal [[['A'], ['B'], ['C']], ['A', 'B', 'C']], _result.trail {|audit| audit.value }
+  end
+    
   #
   # process test
   #

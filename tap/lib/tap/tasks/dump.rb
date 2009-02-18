@@ -54,18 +54,24 @@ module Tap
       
       # Overrides the standard _execute to send process the audits and not
       # the audit values.  This allows process to inspect audit trails.
-      def _execute(*previous)
+      def _execute(*inputs)
         resolve_dependencies
         
-        inputs = previous.collect do |input| 
+        previous = []
+        inputs.collect! do |input| 
           if input.kind_of?(Support::Audit) 
-            input
+            previous << input
+            input.value
           else
-            Support::Audit.new(nil, input)
+            previous << Support::Audit.new(nil, input)
+            input
           end
         end
         
-        audit = Support::Audit.new(self, send(method_name, *inputs), previous)
+        # this is the overridden part
+        send(method_name, *previous)
+        audit = Support::Audit.new(self, inputs, previous)
+        
         if complete_block = on_complete_block || app.on_complete_block
           complete_block.call(audit)
         else 
@@ -75,7 +81,8 @@ module Tap
         audit
       end
       
-      # Prints the _audit to the target.
+      # Prints the _audit to the target.  The return value of process is
+      # not recorded in the audit trail.
       def process(*_audits)
         open_io do |io|
           if date
@@ -91,7 +98,6 @@ module Tap
             YAML::dump(_audit.value, io)
           end
         end
-        
       end
       
       protected
