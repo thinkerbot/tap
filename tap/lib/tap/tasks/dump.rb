@@ -48,7 +48,7 @@ module Tap
       
       # Setup self with the input target.  Setup is typically called from
       # parse! and receives arguments passed from the command line.
-      def setup(path)
+      def setup(path=target)
         @target = path
       end
       
@@ -58,37 +58,40 @@ module Tap
         resolve_dependencies
         
         inputs = previous.collect do |input| 
-          if input.kind_of?(Audit) 
+          if input.kind_of?(Support::Audit) 
             input
           else
-            Audit.new(nil, input)
+            Support::Audit.new(nil, input)
           end
         end
         
-        audit = Audit.new(self, send(method_name, *inputs), previous)
+        audit = Support::Audit.new(self, send(method_name, *inputs), previous)
         if complete_block = on_complete_block || app.on_complete_block
           complete_block.call(audit)
         else 
-          $stdout << audit.value
+          app.aggregator.store(audit)
         end
         
         audit
       end
       
       # Prints the _audit to the target.
-      def process(_audit=nil)
+      def process(*_audits)
         open_io do |io|
           if date
             io.puts "# date: #{Time.now.strftime(date_format)}"
           end
           
-          if audit
-            io.puts "# audit:"
-            io.puts "# #{_audit.dump.gsub("\n", "\n# ")}"
-          end
+          _audits.each do |_audit|
+            if audit
+              io.puts "# audit:"
+              io.puts "# #{_audit.dump.gsub("\n", "\n# ")}"
+            end
           
-          YAML::dump(_audit.value, io)
+            YAML::dump(_audit.value, io)
+          end
         end
+        
       end
       
       protected

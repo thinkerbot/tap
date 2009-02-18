@@ -83,6 +83,7 @@ Gem::Specification.new do |s|
     lib/tap/support/templater.rb
     lib/tap/support/versions.rb
     lib/tap/task.rb
+    lib/tap/tasks/core_dump.rb
     lib/tap/tasks/dump.rb
     lib/tap/tasks/load.rb
     lib/tap/test.rb
