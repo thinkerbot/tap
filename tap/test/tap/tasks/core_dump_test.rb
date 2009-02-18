@@ -48,27 +48,4 @@ name (#{t.object_id}):
     CoreDump.new(:date => true, :audit => false).dump_to(io)
     assert io.string =~ /# date: \d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d/
   end
-  
-  def test_dump_skips_objects_whose_to_s_does_not_match_filter
-    t1 = Tap::Task.new({}, "name")
-    a = Audit.new(t1, 1)
-    app.aggregator.store(a)
-    
-    t2 = Tap::Task.new({}, "alt")
-    b = Audit.new(t2, 2)
-    app.aggregator.store(b)
-
-    CoreDump.new(:date => false, :audit => false, :filter => /lt/).dump_to(io)
-    assert_equal %Q{--- 
-alt (#{t2.object_id}): 
-- 2
-}, io.string
-    
-    io.string = ""
-    CoreDump.new(:date => false, :audit => false, :filter => /m/).dump_to(io)
-    assert_equal %Q{--- 
-name (#{t1.object_id}): 
-- 1
-}, io.string
-  end
 end

@@ -16,7 +16,6 @@ module Tap
       config :date_format, '%Y-%m-%d %H:%M:%S'   # the date format
       config :audit, true, &c.switch             # include the audit trails
       config :date, true, &c.switch              # include a date
-      config :filter, nil, &c.regexp_or_nil      # only dump matching objects
       
       # Calls dump_to with the target.  If the target is not an
       # IO, process assumes the target is a filepath.  In that
@@ -38,8 +37,6 @@ module Tap
         trails = []
         results = {}
         app.aggregator.to_hash.each_pair do |src, _results|
-          next if filter && src.to_s !~ filter
-          
           results["#{src} (#{src.object_id})"] = _results.collect {|_audit| _audit.value }
           _results.each {|_audit| trails << _audit.dump }
         end
