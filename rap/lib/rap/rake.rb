@@ -28,7 +28,7 @@ module Rap
       end
     end
   
-    def enq(*argv)
+    def process(*argv)
       rake = ::Rake.application
     
       # run as if from command line using argv

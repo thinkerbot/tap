@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "rap"
-  s.version = "0.12.0"
+  s.version = "0.12.1"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
