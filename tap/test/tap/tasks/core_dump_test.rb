@@ -28,11 +28,13 @@ class CoreDumpTest < Test::Unit::TestCase
     assert_equal({t => [a,b]}, app.aggregator.to_hash)
     
     CoreDump.new(:date => false, :audit => false).dump_to(io)
-    assert_equal %Q{--- 
+    assert_equal %Q{
+# info: state: 0 (READY) queue: 0 results: 2
+--- 
 name (#{t.object_id}): 
 - 1
 - 2
-}, io.string
+}, "\n" + io.string
   end
   
   def test_dump_to_writes_audit_if_specified
