@@ -35,6 +35,7 @@ class ReadmeTest < Test::Unit::TestCase
 sample:
   goodnight   # your basic goodnight moon task
 tap:
+  core_dump   # dumps the application
   dump        # the default dump task
   load        # the default load task
 % #{cmd} run -- goodnight --help

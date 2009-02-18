@@ -14,6 +14,7 @@ class RunTest < Test::Unit::TestCase
    script_test do |cmd|
       cmd.check "Prints manifest", %Q{
 % #{cmd} run -T 
+  core_dump   # dumps the application
   dump        # the default dump task
   load        # the default load task
 }, false
