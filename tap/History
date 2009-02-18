@@ -1,3 +1,11 @@
+== 0.12.1 / 2009-02-18
+
+Maintenance release with updates to Dump and Load tasks.
+
+* refactored Dump as CoreDump
+* implemented a simple yaml Dump
+* simplified Load
+
 == 0.12.0 / 2009-02-17
 
 As of the 0.12.0 release, Tap is distributed as several independent modules
