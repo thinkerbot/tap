@@ -39,6 +39,7 @@ module Tap
       config :date_format, '%Y-%m-%d %H:%M:%S'   # the date format
       config :audit, true, &c.switch             # include the audit trails
       config :date, true, &c.switch              # include a date
+      config :yaml, true, &c.switch              # dump as yaml (vs string)
       
       # The dump target, by default $stdout.  Target may be a filepath,
       # in which case dumps append the file.
@@ -97,8 +98,12 @@ module Tap
               io.puts "# audit:"
               io.puts "# #{_audit.dump.gsub("\n", "\n# ")}"
             end
-          
-            YAML::dump(_audit.value, io)
+            
+            if yaml
+              YAML::dump(_audit.value, io)
+            else
+              io << _audit.value.to_s
+            end
           end
         end
       end

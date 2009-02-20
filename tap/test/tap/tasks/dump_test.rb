@@ -55,6 +55,14 @@ class DumpTest < Test::Unit::TestCase
 }, "\n" + io.string
   end
   
+  def test_process_dumps_the_audit_value_as_a_string_if_specified
+    a = Audit.new('a', 'value')
+    
+    dump.yaml = false
+    dump.process(a)
+    assert_equal "value", io.string
+  end
+    
   def test_process_dumps_the_audit_if_specified
     a = Audit.new('a', 1)
     b = Audit.new('b', 2, a)
