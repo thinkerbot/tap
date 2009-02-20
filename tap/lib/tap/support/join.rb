@@ -126,7 +126,10 @@ module Tap
         
           round[0][1] = Audit.new(:aggregate, value, sources)
           unless queue.has_round?(round)
-            queue.concat(round) 
+            queue.concat(round)
+            
+            # dirty patch, see http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets/174-bug-in-joinaggregate-logic
+            queue.concat([])
           end
         end
       end
