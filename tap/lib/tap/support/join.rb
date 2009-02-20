@@ -64,10 +64,6 @@ module Tap
       
       protected
       
-      def aggregator
-        @aggregator ||= {}
-      end
-      
       # Enques the executable with the results, respecting the
       # configuration for self.
       #
@@ -77,26 +73,60 @@ module Tap
       #   stack        the executable is enqued   the executable is executed
       #
       def enq(executable, *_results)
-        unpack(_results) do |_result|
+        case
+        when aggregate
+          
           case
-          when stack && aggregate
-            raise "stack and aggregate"
-          when stack
-            executable.enq(*_result)
-          when aggregate
-            
-            queue = executable.app.queue
-            round = (aggregator[executable] ||= [executable, []])
-            
-            queue.synchronize do
-              round[1] << _result
-              unless queue.has_round?(round)
-                queue.concat(round) 
-              end
+          when iterate, splat, stack
+            raise "iterate, splat, or stack and aggregate"
+          else collect(executable, _results)
+          end
+          
+        else
+          unpack(_results) do |_result|
+            case
+            when stack
+              executable.enq(*_result)            
+            else
+              executable._execute(*_result)
             end
-            
-          else
-            executable._execute(*_result)
+          end
+        end
+      end
+      
+      # returns the aggregator for self
+      def aggregator # :nodoc:
+        @aggregator ||= {}
+      end
+      
+      # helper method to aggregate audited results
+      def collect(executable, inputs) # :nodoc:
+        queue = executable.app.queue
+        round = (aggregator[executable] ||= [[executable, Audit.new(:aggregate, [], [])]])
+      
+        queue.synchronize do
+          _audit = round[0][1]
+          
+          previous = []
+          inputs.collect! do |input| 
+            if input.kind_of?(Audit) 
+              previous << input
+              input.value
+            else
+              previous << Audit.new(nil, input)
+              input
+            end
+          end
+        
+          value = _audit.value
+          value.concat inputs
+        
+          sources = _audit.sources
+          sources.concat previous
+        
+          round[0][1] = Audit.new(:aggregate, value, sources)
+          unless queue.has_round?(round)
+            queue.concat(round) 
           end
         end
       end
