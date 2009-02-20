@@ -23,6 +23,10 @@ module Tap
       # than executed immediately.
       config :stack, false, :short => 'k', &c.boolean
       
+      # Aggregates results and enques them to the target
+      # in a trailing round.
+      config :aggregate, false, :short => 'a', &c.boolean
+      
       # Initializes a new join with the specified configuration.
       def initialize(config={})
         initialize_config(config)
@@ -60,6 +64,10 @@ module Tap
       
       protected
       
+      def aggregator
+        @aggregator ||= {}
+      end
+      
       # Enques the executable with the results, respecting the
       # configuration for self.
       #
@@ -70,8 +78,23 @@ module Tap
       #
       def enq(executable, *_results)
         unpack(_results) do |_result|
-          if stack 
+          case
+          when stack && aggregate
+            raise "stack and aggregate"
+          when stack
             executable.enq(*_result)
+          when aggregate
+            
+            queue = executable.app.queue
+            round = (aggregator[executable] ||= [executable, []])
+            
+            queue.synchronize do
+              round[1] << _result
+              unless queue.has_round?(round)
+                queue.concat(round) 
+              end
+            end
+            
           else
             executable._execute(*_result)
           end

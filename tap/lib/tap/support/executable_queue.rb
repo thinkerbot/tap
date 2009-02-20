@@ -36,6 +36,27 @@ module Tap
         synchronize { size == 0 }
       end
       
+      def has_round?(round)
+        synchronize do
+          @rounds.each do |enqued_round|
+            return true if round == enqued_round
+          end
+          false
+        end
+      end
+      
+      def has_method?(method)
+        synchronize do
+          @rounds.each do |round|            
+            round.each do |enqued_method, inputs|
+              return true if method == enqued_method 
+            end
+          end
+          
+          false
+        end
+      end
+      
       # Enqueues the method and inputs. Raises an error if the  
       # method is not an Executable.
       def enq(method, inputs)
