@@ -11,6 +11,9 @@ module Tap
     #
     #   % tap run -- [task] --: dump FILEPATH
     #
+    # Results may be printed directly, without conversion to YAML by using the
+    # --no-yaml option.
+    #
     # :startdoc::manifest-
     #
     # Dumps are organized so that arguments passed on the command line are

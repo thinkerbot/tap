@@ -29,6 +29,14 @@ class Tap::Tasks::LoadTest < Test::Unit::TestCase
     assert_equal({'one' => 1, 'two' => 2, 'three' => 3}, load.process(io))
   end
   
+  def test_process_reads_input_if_no_yaml_is_specified
+    load.yaml = false
+    
+    str = {'one' => 1, 'two' => 2, 'three' => 3}.to_yaml
+    io = StringIO.new(str)
+    assert_equal(str, load.process(io))
+  end
+  
   def test_process_loads_input_from_filepaths
     path = method_root.prepare(:tmp, 'input.yml') do |file|
       file << {'one' => 1, 'two' => 2, 'three' => 3}.to_yaml
