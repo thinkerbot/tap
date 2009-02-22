@@ -32,7 +32,7 @@ class DumpTest < Test::Unit::TestCase
   # _execute test
   #
 
-  def test_execute_preserves_input_values_in_audit
+  def test_execute_merges_inputs
     a = Audit.new('a', 'A')
     c = Audit.new('c', 'C')
     
@@ -41,7 +41,22 @@ class DumpTest < Test::Unit::TestCase
     assert_equal [[['a'], [nil], ['c']], dump], _result.trail {|audit| audit.key }
     assert_equal [[['A'], ['B'], ['C']], ['A', 'B', 'C']], _result.trail {|audit| audit.value }
   end
+  
+  def test_process_receives_the_merged_input
+    a = Audit.new('a', 'A')
+    c = Audit.new('c', 'C')
     
+    was_in_block = false
+    dump = Dump.intern do |task, _audit|
+      assert_equal [[['a'], [nil], ['c']], dump], _audit.trail {|audit| audit.key }
+      assert_equal [[['A'], ['B'], ['C']], ['A', 'B', 'C']], _audit.trail {|audit| audit.value } 
+      was_in_block = true
+    end
+    
+    dump._execute(a, 'B', c)
+    assert was_in_block
+  end
+  
   #
   # process test
   #

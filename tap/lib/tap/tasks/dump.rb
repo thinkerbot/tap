@@ -76,8 +76,8 @@ module Tap
         end
         
         # this is the overridden part
-        send(method_name, *previous)
         audit = Support::Audit.new(self, inputs, previous)
+        send(method_name, audit)
         
         if complete_block = on_complete_block || app.on_complete_block
           complete_block.call(audit)
@@ -90,23 +90,21 @@ module Tap
       
       # Prints the _audit to the target.  The return value of process is
       # not recorded in the audit trail.
-      def process(*_audits)
+      def process(_audit)
         open_io do |io|
           if date
             io.puts "# date: #{Time.now.strftime(date_format)}"
           end
           
-          _audits.each do |_audit|
-            if audit
-              io.puts "# audit:"
-              io.puts "# #{_audit.dump.gsub("\n", "\n# ")}"
-            end
-            
-            if yaml
-              YAML::dump(_audit.value, io)
-            else
-              io << _audit.value.to_s
-            end
+          if audit
+            io.puts "# audit:"
+            io.puts "# #{_audit.dump.gsub("\n", "\n# ")}"
+          end
+          
+          if yaml
+            YAML::dump(_audit.value, io)
+          else
+            io << _audit.value.to_s
           end
         end
       end
