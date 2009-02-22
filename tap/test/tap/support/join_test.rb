@@ -222,4 +222,73 @@ class JoinTest < Test::Unit::TestCase
       [[nil, ''], [t1, '1'], [t3, ["1 3"]]]
     ], app._results(t3))
   end
+  
+  def test_aggregate_join_does_not_carryover_when_aggregate_enques_task
+    runlist = []
+    t0, t1, t2 = Tracer.intern(3, runlist)
+    t3 = Tracer.new(3, runlist) do |task, *inputs|
+      inputs.collect {|str| task.mark(str) }
+    end
+    
+    results = []
+    t3.on_complete do |_result|
+      unless runlist.include?('2')
+        t2.enq ''
+        t1.enq ''
+      end
+      results << _result
+    end
+    
+    join.aggregate = true
+    join.join([t0,t1], [t3])
+    t0.enq ''
+    app.run
+  
+    assert_equal %w{
+      0 
+      3
+      2
+      1
+      3
+    }, runlist
+    
+    assert_audits_equal([
+      [[nil, ''], [t0, '0'], [t3, ["0 3"]]],
+      [[nil, ''], [t1, '1'], [t3, ["1 3"]]]
+    ], results)
+  end
+  
+  def test_aggregate_join_does_not_double_execute_when_task_enques_to_aggregate_round
+    runlist = []
+    t0, t1, t2 = Tracer.intern(3, runlist)
+    t2.on_complete do |_result|
+      app.queue.unshift(t1, [''])
+      app.queue.unshift(t1, [''])
+    end
+    t3 = Tracer.new(3, runlist) do |task, *inputs|
+      inputs.collect {|str| task.mark(str) }
+    end
+    
+    join.aggregate = true
+    join.join([t0,t1], [t3])
+    
+    t0.enq ''
+    app.queue.concat [[t2, ['']]]
+    app.run
+    
+    assert_equal %w{
+      0 
+      2
+      1
+      1
+      3
+    }, runlist
+    
+    m0 = [[nil, ''],[t0, '0']]
+    m1 = [[nil, ''],[t1, '1']]
+    
+    assert_audits_equal([
+      [[m0, m1, m1], [t3, ["0 3", "1 3", "1 3"]]]
+    ], app._results(t3))
+  end
 end

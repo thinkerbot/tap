@@ -102,17 +102,14 @@ module Tap
       # helper method to aggregate audited results
       def collect(executable, inputs) # :nodoc:
         queue = executable.app.queue
-        round = aggregator[executable]
+        entry = aggregator[executable]
         
         queue.synchronize do
-          unless queue.has_round?(round)
-            round = aggregator[executable] = [[executable, []]]
-            queue.concat(round)
-            
-            # dirty patch, see http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets/174-bug-in-joinaggregate-logic
-            queue.concat([])
+          unless queue.has?(entry)
+            entry = aggregator[executable] = [executable, []]
+            queue.concat [entry]
           end
-          round[0][1].concat(inputs)
+          entry[1].concat(inputs)
         end
       end
       

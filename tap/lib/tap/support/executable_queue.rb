@@ -36,23 +36,15 @@ module Tap
         synchronize { size == 0 }
       end
       
-      def has_round?(round)
+      def has?(entry)
         synchronize do
-          @rounds.each do |enqued_round|
-            return true if round == enqued_round
-          end
-          false
-        end
-      end
-      
-      def has_method?(method)
-        synchronize do
-          @rounds.each do |round|            
-            round.each do |enqued_method, inputs|
-              return true if method == enqued_method 
+          entry_id = entry.object_id
+          
+          @rounds.each do |round|
+            round.each do |enqued_entry|
+              return true if entry_id == enqued_entry.object_id
             end
           end
-          
           false
         end
       end
@@ -89,7 +81,7 @@ module Tap
             check_method(method)
           end
           
-          @rounds << round.dup
+          @rounds << round
         end
       end
       
