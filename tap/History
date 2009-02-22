@@ -1,3 +1,9 @@
+== 0.12.2
+
+* Added --no-yaml option to Dump and Load
+* Added --aggregate option to Join
+* Updated Dump behavior to merge inputs before process
+
 == 0.12.1 / 2009-02-18
 
 Maintenance release with updates to Dump and Load tasks.

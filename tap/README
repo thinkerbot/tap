@@ -91,6 +91,7 @@ Tap comes with generators. To get started:
 - Some inconsequential tests on JRuby fail due to bugs in JRuby itself.
 - Joins, Parser, and Schema require additional documentation and may be
   reworked in a future release.  The workflow syntax should remain the same.
+- Audit.dump only works for certain cases.  Merges frequently cause trouble.
 
 == Installation
 
