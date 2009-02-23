@@ -3,6 +3,8 @@
 * Added --no-yaml option to Dump and Load
 * Added --aggregate option to Join
 * Updated Dump behavior to merge inputs before process
+* Reworked App so that it is not a Root
+* Added the ability to load workflows via 'tap run'
 
 == 0.12.1 / 2009-02-18
 
