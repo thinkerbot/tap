@@ -303,6 +303,18 @@ class ExecutableTest < Test::Unit::TestCase
     ], _result.sources
   end
   
+  def test__execute_does_not_join_audits_if_app_audit_is_false
+    one = Audit.new(:one, 1)
+    three = Audit.new(:three, 3)
+    
+    app.audit = false
+    e = MockExecutable.new(app)
+    _result = e._execute(one, 2, three)
+    
+    assert_equal "received: [1, 2, 3]", _result.value
+    assert_audits_equal [], _result.sources
+  end
+  
   def test__execute_resolves_dependencies
     e0 = MockExecutable.new(app)
     e1 = MockExecutable.new(app)

@@ -48,7 +48,7 @@ ConfigParser.new do |opts|
     exit
   end
   
-end.parse!(run_argv)
+end.parse!(run_argv, app.config)
 
 #
 # build and run the argv

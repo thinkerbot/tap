@@ -76,7 +76,7 @@ module Tap
         end
         
         # this is the overridden part
-        audit = Support::Audit.new(self, inputs, previous)
+        audit = Support::Audit.new(self, inputs, app.audit ? previous : nil)
         send(method_name, audit)
         
         if complete_block = on_complete_block || app.on_complete_block

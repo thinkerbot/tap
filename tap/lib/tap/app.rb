@@ -158,6 +158,7 @@ module Tap
     # will be collected by self).
     attr_reader :on_complete_block
     
+    config :audit, true, &c.switch                # Signal auditing
     config :debug, false, &c.flag                 # Flag debugging
     config :force, false, &c.flag                 # Force execution at checkpoints
     config :quiet, false, &c.flag                 # Suppress logging

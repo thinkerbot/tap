@@ -32,6 +32,7 @@ examples:
   tap run -- task --help             Prints help for task
 
 configurations:
+        --[no-]audit                 Signal auditing
         --debug                      Flag debugging
         --force                      Force execution at checkpoints
         --quiet                      Suppress logging
@@ -225,6 +226,43 @@ unknown task: --help
         /with_string_config \"\\n\"/  # "\n"
       end
 
+    end
+  end
+  
+  def test_run_with_dump
+    script_test do |cmd|
+      cmd.check "Runs and dumps workflow", %Q{
+% #{cmd} run -- echo --name 1 --: echo --name 2 --: echo --name 3 --: dump
+["1"]
+["1", "2"]
+["1", "2", "3"]
+# date: :...:
+# audit:
+# o-[1] ["1"]
+# o-[2] ["1", "2"]
+# o-[3] ["1", "2", "3"]
+# o-[tap/tasks/dump] [["1", "2", "3"]]
+# 
+--- 
+- - "1"
+  - "2"
+  - "3"
+}
+
+      cmd.check "Workflow without auditing", %Q{
+% #{cmd} run --no-audit -- echo --name 1 --: echo --name 2 --: echo --name 3 --: dump
+["1"]
+["1", "2"]
+["1", "2", "3"]
+# date: :...:
+# audit:
+# o-[tap/tasks/dump] [["1", "2", "3"]]
+# 
+--- 
+- - "1"
+  - "2"
+  - "3"
+}
     end
   end
   

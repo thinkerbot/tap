@@ -32,7 +32,7 @@ class DumpTest < Test::Unit::TestCase
   # _execute test
   #
 
-  def test_execute_merges_inputs
+  def test__execute_merges_inputs
     a = Audit.new('a', 'A')
     c = Audit.new('c', 'C')
     
@@ -40,6 +40,17 @@ class DumpTest < Test::Unit::TestCase
     
     assert_equal [[['a'], [nil], ['c']], dump], _result.trail {|audit| audit.key }
     assert_equal [[['A'], ['B'], ['C']], ['A', 'B', 'C']], _result.trail {|audit| audit.value }
+  end
+  
+  def test__execute_does_not_join_audits_if_app_audit_is_false
+    a = Audit.new('a', 'A')
+    c = Audit.new('c', 'C')
+    
+    app.audit = false
+    _result = dump._execute(a, 'B', c)
+    
+    assert_equal [dump], _result.trail {|audit| audit.key }
+    assert_equal [['A', 'B', 'C']], _result.trail {|audit| audit.value }
   end
   
   def test_process_receives_the_merged_input

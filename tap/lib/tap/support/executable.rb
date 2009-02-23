@@ -143,7 +143,7 @@ module Tap
           end
         end
          
-        audit = Audit.new(self, send(method_name, *inputs), previous)
+        audit = Audit.new(self, send(method_name, *inputs), app.audit ? previous : nil)
         if complete_block = on_complete_block || app.on_complete_block
           complete_block.call(audit)
         else 
