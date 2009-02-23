@@ -100,7 +100,7 @@ begin
     end
     ARGV.clear
     
-    app = env.app
+    app = Tap::App.instance
     if app.queue.empty?
       puts "no task specified"
       exit

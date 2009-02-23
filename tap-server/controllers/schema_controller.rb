@@ -204,7 +204,7 @@ class SchemaController < Tap::Controller
   end
   
   def initialize_schema
-    current = app.glob(:schema, "*").collect {|path| File.basename(path).chomp(".yml") }
+    current = root.glob(:schema, "*").collect {|path| File.basename(path).chomp(".yml") }
     
     id = random_key(current.length)
     while current.include?(id)
@@ -216,7 +216,7 @@ class SchemaController < Tap::Controller
   end
   
   def load_schema(id)
-    unless path = app.filepath(:schema, "#{id}.yml")
+    unless path = root.filepath(:schema, "#{id}.yml")
       raise ServerError, "no schema for id: #{id}"
     end
     schema = Tap::Support::Schema.load_file(path)
@@ -231,8 +231,8 @@ class SchemaController < Tap::Controller
   end
   
   def dump_schema(id, schema=nil)
-    app.prepare(:schema, "#{id}.yml") do |file|
-      file << schema.dump.to_yaml if schema
+    root.prepare(:schema, "#{id}.yml") do |file|
+      file << YAML.dump(schema.dump) if schema
     end
   end
   

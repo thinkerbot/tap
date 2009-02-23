@@ -44,7 +44,7 @@ class AppController < Tap::Controller
   # Currently tail is hard-coded to tail the server log only.
   def tail(id=nil)
     begin
-      path = app.subpath(:log, 'server.log')
+      path = root.subpath(:log, 'server.log')
       raise unless File.exists?(path)
     rescue
       raise Tap::ServerError.new("invalid path", 404)

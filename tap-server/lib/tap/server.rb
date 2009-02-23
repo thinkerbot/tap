@@ -94,7 +94,7 @@ module Tap
     def initialize_session
       id = 0
       session_app = app(id)
-      log_path = session_app.prepare(:log, 'server.log')
+      log_path = env.root.prepare(:log, 'server.log')
       session_app.logger = Logger.new(log_path)
       
       session_app.on_complete do |_result|
@@ -112,7 +112,7 @@ module Tap
         
         if template
           extname = File.extname(template)
-          session_app.prepare(:results, id.to_s, "#{class_name}#{extname}") do |file|
+          env.root.prepare(:results, id.to_s, "#{class_name}#{extname}") do |file|
             file << Support::Templater.new(File.read(template)).build(:_result => _result)
           end
         end
@@ -126,6 +126,13 @@ module Tap
     # has been stubbed with an id input.
     def app(id=nil)
       @app
+    end
+    
+    # Returns the env.root provided during initialization.  In the future this
+    # method may be extended to provide a session-specific Root, hence it
+    # has been stubbed with an id input.
+    def root(id=nil)
+      @env.root
     end
     
     # Returns true if environment is :development.

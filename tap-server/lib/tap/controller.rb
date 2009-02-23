@@ -223,6 +223,11 @@ module Tap
       server.app(session[:id] ||= server.initialize_session)
     end
     
+    # Returns the root for the current session.
+    def root
+      server.root(session[:id] ||= server.initialize_session)
+    end
+    
     # Generates an empty binding to self without any locals assigned.
     def empty_binding # :nodoc:
       binding
