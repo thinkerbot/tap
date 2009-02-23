@@ -13,11 +13,6 @@ class AppTest < Test::Unit::TestCase
     method_root.config.to_hash
   end
   
-  def setup
-    super
-    app.root = ctr.root
-  end
-  
   #
   # instance tests
   #
@@ -232,9 +227,6 @@ o-[add_five] 8
   
   def test_default_app
     app = App.new
-    
-    assert_equal Dir.pwd, app.root
-    assert_equal({}, app.relative_paths)
 
     assert_equal(Support::ExecutableQueue, app.queue.class)
     assert app.queue.empty?

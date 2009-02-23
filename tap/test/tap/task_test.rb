@@ -47,7 +47,6 @@ class TaskTest < Test::Unit::TestCase
   def setup
     super
     @t = Task.new
-    app.root = ctr.root
   end
   
   # sample class repeatedly used in tests

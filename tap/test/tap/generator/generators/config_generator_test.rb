@@ -426,7 +426,7 @@ another: config
   def test_tasks_load_nested_dump_configs
     c = ConfigGenerator.new.extend Generate
     c.extend MockTaskLookup
-    c.app.root = method_root[:tmp]
+    c.destination_root = method_root[:tmp]
     expected_config_file = method_root.filepath(:tmp, 'config/sample.yml')
     
     c.set_tasc('sample', DoubleNestedSampleValues)

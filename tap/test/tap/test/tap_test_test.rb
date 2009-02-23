@@ -13,8 +13,8 @@ class TestSetupTest < Test::Unit::TestCase
   def test_setup_with_options
     assert_equal @app, app
     assert_equal Tap::App.instance, app
-    assert_equal File.expand_path("./alt/root/test_setup_with_options"), File.expand_path(app[:root])
-    assert_equal File.expand_path("./alt/root/test_setup_with_options/alt/input"), File.expand_path(app[:input])
+    assert_equal File.expand_path("./alt/root/test_setup_with_options"), File.expand_path(method_root[:root])
+    assert_equal File.expand_path("./alt/root/test_setup_with_options/alt/input"), File.expand_path(method_root[:input])
   end
 end
 
@@ -31,8 +31,8 @@ class TapTestTest < Test::Unit::TestCase
   def test_setup
     assert_equal @app, app
     assert_equal Tap::App.instance, app
-    assert_equal File.expand_path(File.dirname(__FILE__) + "/tap_test/test_setup"), File.expand_path(app[:root])
-    assert_equal File.expand_path(File.dirname(__FILE__) + "/tap_test/test_setup/input"), File.expand_path(app[:input])
+    assert_equal File.expand_path(File.dirname(__FILE__) + "/tap_test/test_setup"), File.expand_path(method_root[:root])
+    assert_equal File.expand_path(File.dirname(__FILE__) + "/tap_test/test_setup/input"), File.expand_path(method_root[:input])
   end
   
   #

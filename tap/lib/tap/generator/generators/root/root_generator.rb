@@ -62,7 +62,7 @@ module Tap::Generator::Generators
           
           # setup formatting
           leader = key == 'root' || default == nil ? '# ' : ''
-          config = {key => default}.to_yaml[5..-1]
+          config = YAML.dump({key => default})[5..-1]
           "#{lines.join("\n")}#{leader}#{config.strip}\n\n"
         end
       end if config_file

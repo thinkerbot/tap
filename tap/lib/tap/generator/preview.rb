@@ -10,7 +10,7 @@ module Tap
     #
     #   class Sample < Tap::Generator::Base
     #     def manifest(m)
-    #       dir = app.filepath(:root, 'dir')
+    #       dir = path('dir')
     #
     #       m.directory dir
     #       m.file(File.join(dir, 'file.txt')) {|io| io << "content"}
@@ -27,14 +27,7 @@ module Tap
     #
     #   assert_equal "content", s.preview['dir/file.txt']
     #
-    # Note that relative filepaths are determined from app.root for the
-    # instance; in tests like the one above, it may be prudent to reset
-    # the Tap::App.instance like so:
-    #
-    #   def setup
-    #     Tap::App.instance = Tap::App.new
-    #   end
-    #
+    # Note that relative filepaths are relative to destination_root.
     module Preview
       
       # A hash of (relative_path, content) pairs representing
@@ -45,10 +38,10 @@ module Tap
         base.instance_variable_set(:@preview, {})
       end
       
-      # Returns the path of path, relative to app.root.  If path
-      # is app.root, '.' will be returned.
+      # Returns the path of path, relative to destination_root.  If path
+      # is destination_root, '.' will be returned.
       def relative_path(path)
-        path = app.relative_filepath(:root, path) || path
+        path = Root.relative_filepath(destination_root, path, destination_root) || path
         path.empty? ? "." : path
       end
       

@@ -10,10 +10,10 @@ module Tap::Generator::Generators
   class CommandGenerator < Tap::Generator::Base
     
     def manifest(m, command_name)
-      m.directory app['cmd']
+      m.directory path('cmd')
       
       template_files do |source, target|
-        m.template app.filepath('cmd', "#{command_name}.rb"), source, :command_name => command_name
+        m.template path('cmd', "#{command_name}.rb"), source, :command_name => command_name
       end
     end
     

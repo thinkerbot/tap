@@ -1,6 +1,5 @@
 require 'logger'
 
-require 'tap/root'
 require 'tap/support/aggregator'
 require 'tap/support/dependencies'
 require 'tap/support/executable_queue'
@@ -123,7 +122,7 @@ module Tap
   #   app.run
   #   array                          # => [1, 2, 3]
   #
-  class App < Root
+  class App < Monitor
     class << self
       # Sets the current app instance
       attr_writer :instance
@@ -134,7 +133,9 @@ module Tap
         @instance ||= App.new
       end
     end
-
+    
+    include Configurable
+    
     # The application logger
     attr_reader :logger
     
@@ -179,13 +180,11 @@ module Tap
       def state_str(state)
         constants.inject(nil) {|str, s| const_get(s) == state ? s.to_s : str}
       end
-    end  
-    
-    include MonitorMixin
+    end
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, logger=DEFAULT_LOGGER, &block)
-      super()
+      super() # monitor
       
       @state = State::READY
       @queue = Support::ExecutableQueue.new
@@ -193,7 +192,7 @@ module Tap
       @dependencies = Support::Dependencies.new
       @on_complete_block = block
       
-      reconfigure(config)
+      initialize_config(config)
       self.logger = logger
     end
     

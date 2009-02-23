@@ -1,4 +1,5 @@
 require 'tap/support/constant_manifest'
+autoload(:YAML, 'yaml')
 
 module Tap
   module Support

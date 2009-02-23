@@ -9,26 +9,26 @@ module Tap::Generator::Generators
     
     def manifest(m, const_name)
       const = Tap::Support::Constant.new(const_name.camelize)
-      dir = app.filepath('lib', const.path)
+      dir = path('lib', const.path)
       
       # make the directory
       m.directory dir
       
       # make the generator
-      m.template app.filepath(dir, "#{const.basename}_generator.rb"), "task.erb", :const => const
+      m.template path(dir, "#{const.basename}_generator.rb"), "task.erb", :const => const
       
       # make the templates directory
-      m.directory app.filepath(dir, 'templates')
+      m.directory path(dir, 'templates')
       
       # make a template file
       # (note it's easier to do this as a file since erb is
       # added, and would have to be escaped in a template)
-      m.file app.filepath(dir, 'templates', 'template_file.erb') do |file|
+      m.file path(dir, 'templates', 'template_file.erb') do |file|
         file << "# A sample template file.\nkey: <%= key %>\n"
       end
       
       if test
-        test_path = app.filepath('test', "#{const.path}_generator_test.rb")
+        test_path = path('test', "#{const.path}_generator_test.rb")
         m.directory File.dirname(test_path)
         m.template test_path, "test.erb", :const => const
       end

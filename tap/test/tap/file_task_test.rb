@@ -10,7 +10,7 @@ class FileTaskTest < Test::Unit::TestCase
   def setup
     super
     @t = Tap::FileTask.new
-    app.root = method_root.root
+    @t.backup_dir = method_root[:backup]
   end
   
   # simple overrides to backup file to provide a
@@ -31,7 +31,7 @@ class FileTaskTest < Test::Unit::TestCase
     path = method_root.prepare(:tmp, "file.txt") {|file| file << "original content"}
     dir = method_root.prepare(:tmp, "some/dir")
     
-    t = Tap::FileTask.intern do |task, raise_error|
+    t = Tap::FileTask.intern(:backup_dir => method_root[:backup]) do |task, raise_error|
       task.mkdir_p(dir)              # marked for rollback
       task.prepare(path) do |file|    # marked for rollback
         file << "new content"
@@ -112,16 +112,8 @@ class FileTaskTest < Test::Unit::TestCase
 
   def test_filepath_doc
     t = Tap::FileTask.new 
-    t.app[:data, true] = "/data" 
     assert_equal "tap/file_task", t.name
-    assert_equal File.expand_path("/data/tap/file_task/result.txt"), t.filepath(:data, "result.txt")
-  end
-
-  def test_filepath_constructs_path_using_app_filepath_and_name
-    assert_equal "tap/file_task", t.name
-    assert_equal(
-    app.filepath(:dir, "tap/file_task", "path", "to", "file"),
-    t.filepath(:dir, "path", "to", "file"))
+    assert_equal File.expand_path("data/tap/file_task/result.txt"), t.filepath('data', "result.txt")
   end
 
   #
@@ -138,7 +130,7 @@ class FileTaskTest < Test::Unit::TestCase
     t.backup_dir = 'backup_dir'
     t.name = "name"
 
-    assert_equal app.filepath('backup_dir', "name/file.0.txt"), t.backup_filepath("path/to/file.txt")
+    assert_equal File.expand_path('backup_dir/name/file.0.txt'), t.backup_filepath("path/to/file.txt")
   end
 
   def test_backup_dir_can_be_full_path
@@ -218,7 +210,7 @@ class FileTaskTest < Test::Unit::TestCase
     file = method_root.filepath(:tmp, "file.txt")
     File.open(file, "w") {|f| f << "file content"}
   
-    t = Tap::FileTask.new
+    t = Tap::FileTask.new(:backup_dir => method_root[:backup])
     backup_file = t.backup(file)
     
     assert !File.exists?(file)                     
@@ -798,7 +790,7 @@ class FileTaskTest < Test::Unit::TestCase
     non_existant_dir = method_root.filepath(:tmp, "path/to/dir")
     
     was_in_execute = false
-    t = Tap::FileTask.intern do |task|
+    t = Tap::FileTask.intern(:backup_dir => method_root[:backup]) do |task|
       task.prepare(existing_file) {|file| file << "new content" }
       task.prepare(non_existant_file) {|file| file << "content" }
       task.mkdir_p(non_existant_dir)
@@ -828,7 +820,7 @@ class FileTaskTest < Test::Unit::TestCase
     non_existant_dir = method_root.filepath(:tmp, "path/to/dir")
     
     was_in_execute = false
-    t = Tap::FileTask.intern(:rollback_on_error => false) do |task|
+    t = Tap::FileTask.intern(:backup_dir => method_root[:backup], :rollback_on_error => false) do |task|
       task.prepare(existing_file) {|file| file << "new content" }
       task.prepare(non_existant_file) {|file| file << "content" }
       task.mkdir_p(non_existant_dir)
@@ -849,7 +841,7 @@ class FileTaskTest < Test::Unit::TestCase
   def test_execute_does_not_rollback_results_from_prior_executions
     path = method_root.filepath(:tmp, "file.txt")
     
-    t = Tap::FileTask.intern do |task, raise_error|
+    t = Tap::FileTask.intern(:backup_dir => method_root[:backup]) do |task, raise_error|
       task.prepare(path) do |file| 
         file << "raise error was: #{raise_error}"
       end

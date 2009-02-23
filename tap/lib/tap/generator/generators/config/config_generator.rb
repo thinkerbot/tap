@@ -33,7 +33,7 @@ module Tap::Generator::Generators
         
         # setup formatting
         leader = default == nil ? '# ' : ''
-        config = {key => default}.to_yaml[5..-1]
+        config = YAML.dump({key => default})[5..-1]
         "#{lines.join("\n")}#{leader}#{config.strip}\n\n"
       end
     end
@@ -48,7 +48,7 @@ module Tap::Generator::Generators
       
         # setup formatting
         leader = default == nil ? '# ' : ''
-        config = {key => default}.to_yaml[5..-1]
+        config = YAML.dump({key => default})[5..-1]
         "#{leader}#{config.strip}\n"
       end
     end
@@ -72,14 +72,14 @@ module Tap::Generator::Generators
       # setup
       tasc = lookup(name)
       config_name ||= tasc.default_name
-      config_file = app.filepath('config', config_name)
+      config_file = path('config', config_name)
       config_file += ".yml" if File.extname(config_file).empty?
       
       # generate the dumps
       dumps = Configurable::Utils.dump_file(tasc.configurations, config_file, nest, true, &format_block)
       
       # now put the dumps to the manifest
-      m.directory(app['config'])
+      m.directory(path('config'))
       
       dumps.each do |path, content|
         next if content.empty? && !blanks

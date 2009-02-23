@@ -41,19 +41,6 @@ class ExeTest < Test::Unit::TestCase
     assert_equal Dir.pwd, e.root.root
   end
   
-  def test_Exes_may_be_initialized_from_Apps
-    app = App.new
-    e = Exe.new(app)
-    assert_equal app, e.root
-  end
-  
-  def test_Exes_may_be_initialized_from_config_hashes
-    e = Exe.new(:root => {:relative_paths => {:key => 'value'}}, :load_paths => ['alt'])
-    assert_equal({:key => 'value'}, e.root.relative_paths)
-    assert_equal App, e.root.class
-    assert_equal [File.expand_path('alt')], e.load_paths
-  end
-  
   #
   # activate test
   #

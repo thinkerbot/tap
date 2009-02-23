@@ -10,12 +10,12 @@ module Tap::Generator::Generators
     def manifest(m, const_name)
       const = Tap::Support::Constant.new(const_name.camelize)
       
-      task_path = app.filepath('lib', "#{const.path}.rb")
+      task_path = path('lib', "#{const.path}.rb")
       m.directory File.dirname(task_path)
       m.template task_path, "task.erb", :const => const
       
       if test
-        test_path = app.filepath('test', "#{const.path}_test.rb")
+        test_path = path('test', "#{const.path}_test.rb")
         m.directory File.dirname(test_path)
         m.template test_path, "test.erb", :const => const
       end

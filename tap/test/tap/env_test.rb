@@ -1,5 +1,6 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/env'
+require 'yaml'
 
 class EnvTest < Test::Unit::TestCase
   include Tap
@@ -404,11 +405,11 @@ a (0)
     config_file3 = method_root.prepare(:tmp, 'three')
     
     File.open(config_file1, "w") do |file| 
-      file << {:env_paths => config_file2}.to_yaml
+      file << YAML.dump({:env_paths => config_file2})
     end
   
     File.open(config_file2, "w") do |file| 
-      file << {:env_paths => config_file3}.to_yaml
+      file << YAML.dump({:env_paths => config_file3})
     end
     
     File.open(config_file3, "w") do |file| 
@@ -426,11 +427,11 @@ a (0)
     config_file2 = method_root.prepare(:tmp, 'two')
     
     File.open(config_file1, "w") do |file| 
-      file << {:env_paths => config_file2}.to_yaml
+      file << YAML.dump({:env_paths => config_file2})
     end
   
     File.open(config_file2, "w") do |file| 
-      file << {:env_paths => config_file1}.to_yaml
+      file << YAML.dump({:env_paths => config_file1})
     end
     
     e.reconfigure({:env_paths => config_file1})

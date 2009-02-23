@@ -69,6 +69,7 @@ module Tap
       lazy_attr :args, :manifest
       lazy_register :manifest, Arguments
       
+      config :destination_root, Dir.pwd       # The destination root directory
       config :pretend, false, &c.flag         # Run but rollback any changes.
       config :force, false, &c.flag           # Overwrite files that already exist.
       config :skip, false, &c.flag            # Skip files that already exist.
@@ -113,6 +114,11 @@ module Tap
       # results.  The process method returns these results.
       def iterate(actions)
         actions.collect {|action| yield(action) }
+      end
+      
+      # Constructs a path relative to destination_root.
+      def path(*paths)
+        File.expand_path(File.join(*paths), destination_root)
       end
       
       # Peforms a directory action (ex generate or destroy).  Must be

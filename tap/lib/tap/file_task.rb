@@ -90,13 +90,12 @@ module Tap
     
     # Constructs a filepath using the dir, name, and the specified paths.
     #
-    #   t = FileTask.new 
-    #   t.app[:data, true] = "/data" 
-    #   t.name                              # => "tap/file_task"
-    #   t.filepath(:data, "result.txt")     # => "/data/tap/file_task/result.txt"
+    #   t = FileTask.new
+    #   t.name                                # => "tap/file_task"
+    #   t.filepath('data', "result.txt")      # => File.expand_path("data/tap/file_task/result.txt")
     #
-    def filepath(dir, *paths) 
-      app.filepath(dir, name, *paths)
+    def filepath(dir, *paths)
+      File.expand_path(File.join(dir, name, *paths))
     end
     
     # Makes a backup filepath relative to backup_dir by using name, the

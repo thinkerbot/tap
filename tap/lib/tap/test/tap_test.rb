@@ -73,7 +73,7 @@ module Tap
       
       # The configurations used to initialize self.app
       def app_config
-        method_root.config.to_hash.merge(:quiet => true, :debug => true)
+        {:quiet => true, :debug => true}
       end
       
       # Reconfigures app with the input configurations for the 

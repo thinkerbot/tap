@@ -1,14 +1,15 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper.rb')
+require 'tap/generator/base'
 require 'tap/generator/preview'
 
 class PreviewTest < Test::Unit::TestCase
   include Tap::Generator
   include Preview
   
-  attr_reader :app
+  attr_accessor :destination_root
   
   def setup
-    @app = Tap::App.instance = Tap::App.new
+    @destination_root = Dir.pwd
     @preview = {}
   end
   
@@ -18,7 +19,7 @@ class PreviewTest < Test::Unit::TestCase
   
   class Sample < Tap::Generator::Base
     def manifest(m)
-      dir = app.filepath(:root, 'dir')
+      dir = path('dir')
 
       m.directory dir
       m.file(File.join(dir, 'file.txt')) {|io| io << "content"}
@@ -51,18 +52,20 @@ class PreviewTest < Test::Unit::TestCase
   # relative_path test
   #
   
-  def test_relative_path_returns_the_path_of_path_relative_to_root
-    path = app.filepath("path/to/file.txt")
+  def test_relative_path_returns_the_path_of_path_relative_to_destination_root
+    path = File.expand_path("path/to/file.txt", destination_root)
     assert_equal "path/to/file.txt", relative_path(path)
   end
   
-  def test_relative_path_returns_dot_for_app_root
-    assert_equal ".", relative_path(app.root)
+  def test_relative_path_returns_dot_for_destination_root
+    assert_equal ".", relative_path(destination_root)
   end
   
-  def test_relative_path_returns_full_path_for_paths_not_relative_to_root
+  def test_relative_path_returns_full_path_for_paths_not_relative_to_destination_root
     path = File.expand_path("/path/to/dir")
-    assert_equal nil, Tap::Root.relative_filepath(app.root, path)
+    @destination_root = File.expand_path("/path/to/destination_root")
+    
+    assert_equal nil, Tap::Root.relative_filepath(destination_root, path)
     assert_equal path, relative_path(path)
   end
 
@@ -71,7 +74,7 @@ class PreviewTest < Test::Unit::TestCase
   #
   
   def test_directory_returns_the_relative_path_of_the_target
-    path = app.filepath("path/to/file.txt")
+    path = File.expand_path("path/to/file.txt", destination_root)
     assert_equal "path/to/file.txt", directory(path)
   end
 
@@ -80,12 +83,12 @@ class PreviewTest < Test::Unit::TestCase
   #
   
   def test_file_returns_the_relative_path_of_the_target
-    path = app.filepath("path/to/file.txt")
+    path = File.expand_path("path/to/file.txt", destination_root)
     assert_equal "path/to/file.txt", file(path)
   end
   
   def test_file_stores_block_content_in_preview
-    path = app.filepath("file.txt")
+    path = File.expand_path("file.txt", destination_root)
     assert_equal({}, preview)
     file(path) {|io| io << "content"}
     assert_equal({'file.txt' => 'content'}, preview)
