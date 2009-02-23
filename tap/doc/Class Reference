@@ -248,8 +248,7 @@ inputs.
 
 http://tap.rubyforge.org/images/App.png
 
-Instances of Tap::App coordinate the execution of tasks.  Apps are basically a
-subclass of Root with an ExecutableQueue.
+Instances of Tap::App coordinate the execution of tasks.
 
 Task initialization requires an App, which is by default Tap::App.instance.  
 Tasks use their app for logging, dependency-resolution, checks, and to enque 
@@ -370,5 +369,4 @@ http://tap.rubyforge.org/images/Run-Env.png
 
 Tap::Exe adds several configurations (ex before/after) which only get loaded
 for the present directory, and methods for building and executing workflows
-from command line inputs.  Tap::Exe is a singleton, and is special because it
-wraps Tap::App.instance.
+from command line inputs.

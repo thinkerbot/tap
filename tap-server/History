@@ -1,3 +1,7 @@
+== 0.1.1 / 2009-02-23
+
+Update executable to use Tap-0.12.2.
+
 == 0.1.0 / 2009-02-17
 
 As of the 0.12.0 release, Tap is distributed as several independent modules.

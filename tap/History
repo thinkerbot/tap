@@ -1,4 +1,4 @@
-== 0.12.2
+== 0.12.2 / 2009-02-23
 
 * Added --no-yaml option to Dump and Load
 * Added --aggregate option to Join
