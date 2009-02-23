@@ -93,19 +93,20 @@ begin
     puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
     exit
   else
-    env.set_signals
-    env.build(ARGV) do |args|
+    app = Tap::App.instance
+    schema = Tap::Support::Schema.parse(ARGV)
+    ARGV.clear
+    env.build(schema, app) do |args|
       warn "warning: implict rake for [#{args.join(' ')}]"
       Rap::Rake
     end
-    ARGV.clear
-    
-    app = Tap::App.instance
+
     if app.queue.empty?
       puts "no task specified"
       exit
     end
-    
+
+    env.set_signals
     app.run
   end
   

@@ -9,6 +9,16 @@ env = Tap::Env.instance
 app = Tap::App.instance
 
 #
+# divide argv
+#
+
+run_argv = []
+break_regexp = Tap::Support::Parser::BREAK
+while !ARGV.empty? && ARGV[0] !~ break_regexp
+  run_argv << ARGV.shift
+end
+
+#
 # handle options
 #
 
@@ -38,19 +48,31 @@ ConfigParser.new do |opts|
     exit
   end
   
-end.parse!(ARGV)
+end.parse!(run_argv)
 
 #
 # build and run the argv
 #
 
-env.set_signals
-env.build(ARGV)
+run_argv.each do |path|
+  unless File.exists?(path)
+    puts "No such file or directory - #{path}"
+    puts "(did you mean 'tap run -- #{path}'?)"
+    exit
+  end
+  
+  schema = Tap::Support::Schema.load_file(path)
+  env.build(schema, app)
+end
+
+schema = Tap::Support::Schema.parse(ARGV)
 ARGV.clear
+env.build(schema, app)
 
 if app.queue.empty?
   puts "no task specified"
   exit
 end
 
+env.set_signals
 app.run

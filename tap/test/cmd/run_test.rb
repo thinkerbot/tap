@@ -106,9 +106,10 @@ no task specified
 no task specified
 }, false
 
-      cmd.check "Prints unknown task", %Q{
+      cmd.check "Prints no such file", %Q{
 % #{cmd} run unknown
-unknown task: unknown
+No such file or directory - unknown
+(did you mean 'tap run -- unknown'?)
 }, false
 
       cmd.check "Prints unknown task", %Q{
@@ -117,9 +118,16 @@ unknown task: --help
 }, false
 
       # run variations
-
+      
+      path = method_root.prepare(:tmp, 'workflow.yml') do |file|
+        file << "- [sample, one]"
+      end
+      cmd.match "Runs the workflow successfully", 
+      "% #{cmd} run #{path}",
+      /I\[\d\d:\d\d:\d\d\]             sample one was processed with value/
+      
       cmd.match "Runs the sample task successfully", 
-      "% #{cmd} run sample one",
+      "% #{cmd} run -- sample one",
       /I\[\d\d:\d\d:\d\d\]             sample one was processed with value/
 
       cmd.match "Runs the sample task with config", 
@@ -131,11 +139,11 @@ unknown task: --help
       /I\[\d\d:\d\d:\d\d\]             sample one was processed with alt/
 
       cmd.match "Runs the sample task causing an argument error",
-      "% #{cmd} run sample",
+      "% #{cmd} run -- sample",
       /ArgumentError wrong number of arguments \(0 for 1\)/
 
       cmd.match "Runs the sample task causing an argument error",
-      "% #{cmd} run sample one two",
+      "% #{cmd} run -- sample one two",
       /ArgumentError wrong number of arguments \(2 for 1\)/
 
       # config variations

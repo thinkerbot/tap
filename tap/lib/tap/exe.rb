@@ -5,7 +5,7 @@ require 'tap/support/schema'
 module Tap
   class Exe < Env
     class << self
-      def instantiate(path=Dir.pwd)
+      def instantiate(path_or_root=Dir.pwd)
         exe = super
         
         # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
@@ -40,6 +40,7 @@ module Tap
     
     config :before, nil
     config :after, nil
+    
     # Specify files to require when self is activated.
     config :requires, [], &c.array_or_nil
     
@@ -98,9 +99,8 @@ module Tap
         end
       end
     end
-
-    def build(argv=ARGV, app=Tap::App.instance)
-      schema = argv.kind_of?(Support::Schema) ? argv : Support::Schema.parse(argv)
+    
+    def build(schema, app=Tap::App.instance)
       schema.build(app) do |args|
         task = args.shift
         const = tasks.search(task) 
