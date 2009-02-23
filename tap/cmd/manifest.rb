@@ -1,4 +1,4 @@
-# tap manifest
+# tap manifest [options]
 #
 # Prints information about the current tap environment.
 #

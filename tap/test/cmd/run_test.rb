@@ -25,7 +25,7 @@ class RunTest < Test::Unit::TestCase
     script_test do |cmd|
       cmd.check "Prints help for run", %Q{
 % #{cmd} run --help
-tap run {options} -- {task options} task INPUTS...
+tap run FILEPATHS... [options] -- [SCHEMA]
 
 examples:
   tap run --help                     Prints this help

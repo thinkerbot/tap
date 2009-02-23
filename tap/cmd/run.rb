@@ -1,4 +1,4 @@
-# tap run {options} -- {task options} task INPUTS...
+# tap run FILEPATHS... [options] -- [SCHEMA]
 #
 # examples:
 #   tap run --help                     Prints this help
