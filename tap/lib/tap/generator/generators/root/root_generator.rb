@@ -4,24 +4,24 @@ module Tap::Generator::Generators
   
   # :startdoc: Tap::Generator::Generators::RootGenerator::generator a basic tap directory structure
   #
-  # Generates a tap root directory structure.  Use the switches to 
-  # generate a Tapfile and/or a tap config file:
+  # Generates a tap root directory structure.  Use the switches to turn on or
+  # off the creation of various files:
   #
-  #   root
+  #   project
+  #   |- MIT-LICENSE
+  #   |- README
   #   |- Rakefile
   #   |- lib
-  #   |- sample.gemspec
+  #   |- project.gemspec
   #   |- tap.yml
-  #   |- Tapfile
   #   `- test
-  #       |- tap_test_helper.rb
-  #       |- tap_test_suite.rb
-  #       `- tapfile_test.rb
+  #       `- tap_test_helper.rb
   #
   class RootGenerator < Tap::Generator::Base
     
-    config :config_file, true, &c.switch   # create a tap.yml file
-    config :rapfile, false, &c.switch      # create a rapfile
+    config :config_file, true, &c.switch   # Create a tap.yml file
+    config :license, true, &c.switch       # Create an MIT-LICENSE
+    config :rapfile, false, &c.switch      # Create a Rapfile
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
     def manifest(m, root, project_name=nil)
@@ -38,13 +38,15 @@ module Tap::Generator::Generators
           m.directory r[target]
           next
         when source =~ /gemspec$/
-          m.template r[project_name + '.gemspec'], source, :project_name => project_name, :config_file => config_file
+          m.template r[project_name + '.gemspec'], source, :project_name => project_name, :config_file => config_file, :license => license
           next
         when source =~ /Rapfile$/
           next unless rapfile
+        when source =~ /MIT-LICENSE$/
+          next unless license
         end
         
-        m.template r[target], source, :project_name => project_name
+        m.template r[target], source, :project_name => project_name, :license => license
       end
       
       m.file(r['tap.yml']) do |file|

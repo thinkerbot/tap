@@ -7,6 +7,8 @@
 == Installation
 
 == Info
+<% if license %>
 
 Copyright (c) <%= Time.now.year %>, <copyright holders>
-Licence:: {MIT-Style}[link:files/MIT-LICENSE.html]
+License:: {MIT-Style}[link:files/MIT-LICENSE.html]
+<% end %>
