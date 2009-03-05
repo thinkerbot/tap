@@ -1,7 +1,6 @@
-# tap manifest [options]
+# usage: tap manifest [options]
 #
-# Prints information about the current tap environment.
-#
+# Prints a manifest of all resources in the current tap environment.
 
 options = {}
 ConfigParser.new do |opts|

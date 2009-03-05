@@ -1,11 +1,14 @@
-# tap console [options]
+# usage: tap console [options]
 #
-# Opens up an IRB session with Tap initialized to the configurations 
+# Opens up an IRB session with the Tap environment initialized as specified
 # in tap.yml. Access the Tap::App.instance through 'app', and
-# Tap::Env.instance through 'env'.
-
+# Tap::Env.instance through 'env'.  For example:
 #
-# handle options
+#   % tap console
+#   >> env.tasks.search('tap:dump').constantize=> Tap::Tasks::Dump
+#   >> app.info
+#   => "state: 0 (READY) queue: 0 results: 0"
+#   >> 
 #
 
 ConfigParser.new do |opts|

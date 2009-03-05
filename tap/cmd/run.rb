@@ -1,4 +1,4 @@
-# tap run FILEPATHS... [options] -- [SCHEMA]
+# usage: tap run FILEPATHS... [options] -- [SCHEMA]
 #
 # examples:
 #   tap run --help                     Prints this help
