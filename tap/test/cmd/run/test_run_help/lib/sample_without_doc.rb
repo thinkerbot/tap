@@ -7,5 +7,4 @@ class SampleWithoutDoc < Tap::Task
   
   def process(input)
   end
-  
 end

@@ -168,10 +168,13 @@ module Tap
       # Same as parse, but removes switches destructively.
       def parse!(argv=ARGV, app=Tap::App.instance)
         opts = ConfigParser.new
-        opts.separator "configurations:"
-        opts.add(configurations)
         
-        opts.separator ""
+        unless configurations.empty?
+          opts.separator "configurations:"
+          opts.add(configurations)
+          opts.separator ""
+        end
+        
         opts.separator "options:"
         
         # add option to print help

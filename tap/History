@@ -1,6 +1,8 @@
 == 0.12.3
 
 * Updates to allow Tap to use the latest Configurable.
+* Updated RootGenerator
+* Fixed minor task --help bugs
 
 == 0.12.2 / 2009-02-23
 

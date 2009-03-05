@@ -91,6 +91,19 @@ usage: tap run -- sample_with_splat A B C...
 % #{cmd} run -- unknown --help
 unknown task: unknown
 }
+
+      cmd.check "no configurations are listed if none exist",  %Q{
+% #{cmd} run -- without_configs --help
+WithoutConfigs
+
+usage: tap run -- without_configs INPUT
+
+options:
+        --help                       Print this help
+        --name NAME                  Specifies the task name
+        --config FILE                Specifies a config file
+        --use FILE                   Loads inputs to ARGV
+}
     end
   end
   

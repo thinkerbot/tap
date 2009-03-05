@@ -20,11 +20,5 @@ class Sample < Tap::Task
   
   self.args = "one"
   def process(input) 
-    # use log to record information
-    result = "#{input} was processed with #{key}"
-    log self.name, result
-  
-    result
   end
-  
 end
