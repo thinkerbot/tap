@@ -390,8 +390,7 @@ module Tap
       #
       def define(name, baseclass=Tap::Task, configs={}, options={}, &block)
         # define the subclass
-        const_name = options.delete(:const_name) || name.to_s.camelize
-        subclass = const_set(const_name, Class.new(baseclass))
+        subclass = Class.new(baseclass)
         subclass.default_name = name.to_s
         
         configs.each_pair do |key, value|
@@ -409,7 +408,7 @@ module Tap
         options[:desc] ||= Lazydoc.register_caller(Lazydoc::Trailer, 1)
         
         # add the configuration
-        nest(name, subclass, options) {|overrides| subclass.new(overrides) }
+        nest(name, subclass, {:const_name => name.to_s.camelize}.merge!(options))
       end
     end
     
