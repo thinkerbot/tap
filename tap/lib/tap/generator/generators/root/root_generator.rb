@@ -48,8 +48,8 @@ module Tap::Generator::Generators
       end
       
       m.file(r['tap.yml']) do |file|
-        Configurable::Utils.dump(Tap::App.configurations, file) do |key, delegate|
-          default = delegate.default
+        Configurable::Utils.dump(Tap::Env.configurations, file) do |key, delegate|
+          default = delegate.default(false)
           
           # get the description
           desc = delegate.attributes[:desc]
@@ -57,13 +57,16 @@ module Tap::Generator::Generators
           doc = desc.comment if doc.empty?
           
           # wrap as lines
-          lines = Lazydoc::Utils.wrap(doc, 50).collect {|line| "# #{line}"}
+          lines = Lazydoc::Utils.wrap(doc, 78).collect {|line| "# #{line}"}
           lines << "" unless lines.empty?
           
+          # note: this causes order to be lost...
+          default = default.to_hash if delegate.is_nest?
+
           # setup formatting
           leader = key == 'root' || default == nil ? '# ' : ''
-          config = YAML.dump({key => default})[5..-1]
-          "#{lines.join("\n")}#{leader}#{config.strip}\n\n"
+          config = YAML.dump({key => default})[5..-1].strip.gsub(/\n+/, "\n#{leader}")
+          "#{lines.join("\n")}#{leader}#{config}\n\n"
         end
       end if config_file
     end

@@ -3,8 +3,6 @@ require 'rake/testtask'
 require 'rake/rdoctask'
 require 'rake/gempackagetask'
 
-require 'tap/constants'
-
 #
 # Gem specification
 #
@@ -56,11 +54,11 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   spec = gemspec
   
   rdoc.rdoc_dir = 'rdoc'
-  rdoc.title    = '<%= project_name %>'
-  rdoc.main     = 'README'
-  rdoc.options << '--line-numbers' << '--inline-source'
+  rdoc.options.concat(spec.rdoc_options)
   rdoc.rdoc_files.include( spec.extra_rdoc_files )
-  rdoc.rdoc_files.include( spec.files.select {|file| file =~ /^lib.*\.rb$/} )
+  
+  files = spec.files.select {|file| file =~ /^lib.*\.rb$/}
+  rdoc.rdoc_files.include( files )
   
   # Using CDoc to template your RDoc will result in configurations being
   # listed with documentation in a subsection following attributes.  Not

@@ -7,20 +7,20 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.summary = "<%= project_name %>"
   s.require_path = "lib"
-  s.test_file = "test/tap_test_suite.rb"
   #s.rubyforge_project = "<%= project_name %>"
-  #s.has_rdoc = true
   s.add_dependency("tap", "= <%= Tap::VERSION %>")
+  s.has_rdoc = true
+  s.rdoc_options.concat %W{--main README -S -N --title <%= project_name.capitalize %>}
   
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{
     README
+    MIT-LICENSE
   }
   
   # list the files you want to include here. you can
   # check this manifest using 'rake :print_manifest'
   s.files = %W{
 <%= config_file ? "    tap.yml\n" : '' %>
-    test/tap_test_helper.rb
   }
 end

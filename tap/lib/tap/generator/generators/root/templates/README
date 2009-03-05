@@ -1,0 +1,12 @@
+= <%= project_name.capitalize %>
+
+== Description
+
+== Usage
+
+== Installation
+
+== Info
+
+Copyright (c) <%= Time.now.year %>, <copyright holders>
+Licence:: {MIT-Style}[link:files/MIT-LICENSE.html]
