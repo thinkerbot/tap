@@ -103,7 +103,7 @@ module Tap
     attr_reader :envs
     
     # The Root directory structure for self.
-    nest(:root, Tap::Root, :initializer => false)
+    nest(:root, Tap::Root, :set_default => false)
     
     # Specify gems to load as nested Envs.  Gems may be specified 
     # by name and/or version, like 'gemname >= 1.2'; by default the 
@@ -213,10 +213,16 @@ module Tap
       @gems = []
       @env_paths = []
       
-      initialize_config case path_root_or_config
-      when String, Root then {:root => path_root_or_config}
-      else path_root_or_config
+      @root = case path_root_or_config
+      when Root then path_root_or_config
+      when String then Root.new(path_root_or_config)
+      else Root.new
       end
+      
+      unless path_root_or_config.kind_of?(Hash)
+        path_root_or_config = {}
+      end
+      initialize_config(path_root_or_config)
     end
     
     # Clears manifests so they may be regenerated.
@@ -475,14 +481,6 @@ module Tap
     
     # A hash of the manifests for self.
     attr_reader :manifests
-    
-    def initialize_root(config)
-      case config
-      when Root then config
-      when String then Root.new(config)
-      else Root.new.reconfigure(config)
-      end
-    end
     
     def minikey(env)
       env.root.root

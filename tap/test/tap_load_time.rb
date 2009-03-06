@@ -38,7 +38,7 @@
 #
 # = Info
 # Developer:: Simon Chiang (http://bahuvrihi.wordpress.com)
-# Licence:: MIT-Style (http://en.wikipedia.org/wiki/MIT_License)
+# License:: MIT-Style (http://en.wikipedia.org/wiki/MIT_License)
 # Gist:: http://gist.github.com/5732
  
 class RecursiveProfile
