@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "0.12.2"
+  s.version = "0.12.3"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -47,6 +47,7 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/generator/templates/task.erb
     lib/tap/generator/generators/generator/templates/test.erb
     lib/tap/generator/generators/root/root_generator.rb
+    lib/tap/generator/generators/root/templates/MIT-LICENSE
     lib/tap/generator/generators/root/templates/README
     lib/tap/generator/generators/root/templates/Rakefile
     lib/tap/generator/generators/root/templates/Rapfile
