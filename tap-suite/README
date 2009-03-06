@@ -31,5 +31,5 @@ Tap requires an updated version of RubyGems[http://docs.rubygems.org/] (>= 1.2.0
 Copyright (c) 2009, Regents of the University of Colorado.
 Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com], {Biomolecular Structure Program}[http://biomol.uchsc.edu/], {Hansen Lab}[http://hsc-proteomics.uchsc.edu/hansenlab/] 
 Support:: CU Denver School of Medicine Deans Academic Enrichment Fund
-Licence:: {MIT-Style}[link:files/MIT-LICENSE.html]
+License:: {MIT-Style}[link:files/MIT-LICENSE.html]
 
