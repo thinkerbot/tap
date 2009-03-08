@@ -1,7 +1,7 @@
-require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'app_controller'
+require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require 'tap/controllers/app'
 
-class AppControllerTest < Test::Unit::TestCase
+class Tap::Controllers::AppTest < Test::Unit::TestCase
   acts_as_tap_test
   cleanup_dirs << :views << :public
   
@@ -11,7 +11,7 @@ class AppControllerTest < Test::Unit::TestCase
     super
     @server = Tap::Server.new Tap::Env.new(:root => method_root, :env_paths => TEST_ROOT)
     @opts = {'tap.server' => @server}
-    @request = Rack::MockRequest.new(AppController)
+    @request = Rack::MockRequest.new(Tap::Controllers::App)
   end
   
   #

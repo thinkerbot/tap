@@ -6,16 +6,14 @@ require 'tap/server_error'
 
 module Tap
   Env.manifest(:controllers) do |env|
-    entries = env.root.glob(:controllers, "*_controller.rb").collect do |path|
-      const_name = File.basename(path).chomp('.rb').camelize
-      Support::Constant.new(const_name, path)
+    controllers = Support::ConstantManifest.new('controller')
+    env.load_paths.each do |path_root|
+      controllers.register(path_root, '**/*.rb')
     end
-
-    Support::Manifest.intern(entries) do |manifest, const|
-      const.basename.chomp('_controller')
-    end
+    controllers
   end
   
+  # :::-
   # Server is a Rack application that dispatches calls to other Rack apps, most
   # commonly a Tap::Controller.
   #
@@ -37,24 +35,25 @@ module Tap
   #   req.get('/sample/path/to/resource').body      # => "Sample got /sample : /path/to/resource"
   #
   # Server automatically maps unknown keys to a controller by searching
-  # env.controllers.  As a result '/example' maps to the ExampleController
-  # defined in 'controllers/example_controller.rb'.
+  # env.controllers.  As a result '/example' maps to the Example controller
+  # defined in 'lib/example.rb'.
   #
-  #   # [controllers/example_controller.rb] => %q{
-  #   # class ExampleController
+  #   # [lib/example.rb] => %q{
+  #   # ::controller
+  #   # class Example
   #   #   def self.call(env)
-  #   #     [200, {}, ["ExampleController got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]]
+  #   #     [200, {}, ["Example got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]]
   #   #   end
   #   # end 
   #   # }
   #
-  #   req.get('/example/path/to/resource').body     # => "ExampleController got /example : /path/to/resource"
+  #   req.get('/example/path/to/resource').body     # => "Example got /example : /path/to/resource"
   #
   # If desired, controllers can be set with aliases to map a path key to a
   # lookup key.
   #
   #   server.controllers['sample'] = 'example'
-  #   req.get('/sample/path/to/resource').body      # => "ExampleController got /sample : /path/to/resource"
+  #   req.get('/sample/path/to/resource').body      # => "Example got /sample : /path/to/resource"
   #
   # If no controller can be found, the request is routed using the
   # default_controller_key and the request is NOT adjusted.
@@ -66,6 +65,7 @@ module Tap
   #
   #   req.get('/unknown/path/to/resource').body     # => "App got  : /unknown/path/to/resource"
   #
+  # :::+
   class Server
     include Rack::Utils
     include Configurable

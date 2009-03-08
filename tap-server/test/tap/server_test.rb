@@ -4,7 +4,7 @@ require 'tap/test/regexp_escape'
 
 class ServerTest < Test::Unit::TestCase
   acts_as_tap_test
-  cleanup_dirs << :controllers << :log
+  cleanup_dirs << :lib << :log
   
   attr_accessor :server, :request
   
@@ -23,9 +23,9 @@ class ServerTest < Test::Unit::TestCase
     assert server.env.controllers.kind_of?(Tap::Support::Manifest)
   end
   
-  def test_controllers_manifests_detects_controllers_under_controllers_dir
-    method_root.prepare(:controllers, 'sample_controller.rb') do |file| 
-      file << %q{class SampleController; end}
+  def test_controllers_manifests_detects_controllers_under_lib_dir
+    method_root.prepare(:lib, 'sample_controller.rb') do |file| 
+      file << %Q{# ::controller\nclass SampleController; end}
     end
     
     controllers = server.env.controllers
@@ -34,17 +34,22 @@ class ServerTest < Test::Unit::TestCase
     assert_equal ["SampleController"], entries
   end
   
-  def test_controllers_manifests_searches_by_key_prior_to__controller
-    method_root.prepare(:controllers, 'sample_controller.rb') do |file| 
-      file << %q{class SampleController; end}
+  def test_controllers_manifests_searches_by_lazydoc_constant_name
+    method_root.prepare(:lib, 'sample_controller.rb') do |file| 
+      file << %Q{# ::controller\nclass SampleController; end}
+    end
+    method_root.prepare(:lib, 'alt.rb') do |file| 
+      file << %Q{# Lazy::Constant::Name::controller\nclass SampleController; end}
     end
     
-    assert_equal "SampleController", server.env.controllers.search('sample').name
+    assert_equal "SampleController", server.env.controllers.search('sample_controller').name
+    assert_equal "Lazy::Constant::Name", server.env.controllers.search('name').name
   end
   
-  def test_controllers_does_not_detect_nested_controllers
-    method_root.prepare(:controllers, 'nested/sample_controller.rb') do |file| 
+  def test_controllers_detects_nested_controllers
+    method_root.prepare(:lib, 'nested/sample_controller.rb') do |file| 
       file << %q{
+      # ::controller
       module Nested
         class SampleController; end
       end}
@@ -52,7 +57,7 @@ class ServerTest < Test::Unit::TestCase
     
     controllers = server.env.controllers
     controllers.build
-    assert controllers.entries.empty?
+    assert_equal "Nested::SampleController", server.env.controllers.search('sample_controller').name
   end
   
   #
@@ -68,20 +73,21 @@ class ServerTest < Test::Unit::TestCase
     req = Rack::MockRequest.new(server)
     assert_equal "Sample got [\"/sample\"] : [\"/path/to/resource\"]", req.get('/sample/path/to/resource').body
   
-    method_root.prepare('controllers/example_controller.rb') do |file| 
+    method_root.prepare('lib/example.rb') do |file| 
       file << %q{
-class ExampleController
+# ::controller
+class Example
   def self.call(env)
-    [200, {}, ["ExampleController got #{env['SCRIPT_NAME'].inspect} : #{env['PATH_INFO'].inspect}"]]
+    [200, {}, ["Example got #{env['SCRIPT_NAME'].inspect} : #{env['PATH_INFO'].inspect}"]]
   end
 end 
 }
     end
   
-    assert_equal "ExampleController got [\"/example\"] : [\"/path/to/resource\"]", req.get('/example/path/to/resource').body
+    assert_equal "Example got [\"/example\"] : [\"/path/to/resource\"]", req.get('/example/path/to/resource').body
   
     server.controllers['sample'] = 'example'
-    assert_equal "ExampleController got [\"/sample\"] : [\"/path/to/resource\"]", req.get('/sample/path/to/resource').body 
+    assert_equal "Example got [\"/sample\"] : [\"/path/to/resource\"]", req.get('/sample/path/to/resource').body 
     
     server.default_controller_key = 'app'
     server.controllers['app'] = lambda do |env|
@@ -193,33 +199,33 @@ end
   end
   
   def test_call_routes_to_env_controllers
-    method_root.prepare(:controllers, 'sample_route_controller.rb') do |file| 
-      file << %q{class SampleRouteController < ServerTest::RouteController; end}
+    method_root.prepare(:lib, 'sample_route.rb') do |file| 
+      file << %Q{# ::controller\nclass SampleRoute < ServerTest::RouteController; end}
     end
   
-    assert_equal "SampleRouteController", request.get('/sample_route').body
-    assert_equal "SampleRouteController", request.get('/sample_route/page').body
+    assert_equal "SampleRoute", request.get('/sample_route').body
+    assert_equal "SampleRoute", request.get('/sample_route/page').body
   end
   
   def test_call_routes_using_env_controller_aliases
-    method_root.prepare(:controllers, 'sample_alias_controller.rb') do |file| 
-      file << %q{class SampleAliasController < ServerTest::RouteController; end}
+    method_root.prepare(:lib, 'sample_alias.rb') do |file| 
+      file << %Q{# ::controller\nclass SampleAlias < ServerTest::RouteController; end}
     end
   
     server.controllers['alias'] = 'sample_alias'
-    assert_equal "SampleAliasController", request.get('/alias').body
-    assert_equal "SampleAliasController", request.get('/alias/page').body
+    assert_equal "SampleAlias", request.get('/alias').body
+    assert_equal "SampleAlias", request.get('/alias/page').body
   end
   
-  def test_call_routes_unknown_to_app_env_controller
-    method_root.prepare(:controllers, 'app_controller.rb') do |file| 
-      file << %q{class AppController < ServerTest::RouteController; end}
+  def test_call_routes_unknown_to_app_controller
+    method_root.prepare(:lib, 'app.rb') do |file| 
+      file << %Q{# ::controller\nclass App < ServerTest::RouteController; end}
     end
     
-    assert_equal "AppController", request.get('/').body
-    assert_equal "AppController", request.get('/unknown').body
-    assert_equal "AppController", request.get('/app').body
-    assert_equal "AppController", request.get('/app/page').body
+    assert_equal "App", request.get('/').body
+    assert_equal "App", request.get('/unknown').body
+    assert_equal "App", request.get('/app').body
+    assert_equal "App", request.get('/app/page').body
   end
   
   class ErrorController
@@ -285,8 +291,8 @@ end
       x.report("10k route/path") { n.times { server.call(env.dup) } }
       assert_equal [200, {}, ["/to/resource"]], server.call(env)
       
-      method_root.prepare(:controllers, 'bench_controller.rb') do |file| 
-        file << %q{class BenchController < ServerTest::BenchmarkController; end}
+      method_root.prepare(:lib, 'bench.rb') do |file| 
+        file << %Q{# ::controller\nclass Bench < ServerTest::BenchmarkController; end}
       end
       
       env = Rack::MockRequest.env_for("/bench")
