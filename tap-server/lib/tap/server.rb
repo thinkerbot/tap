@@ -213,10 +213,9 @@ module Tap
       # load the require_path in dev mode so that
       # controllers will be reloaded each time
       if development? && const.require_path
-        if Object.const_defined?(const.const_name)
-          Object.send(:remove_const, const.const_name)
-        end
-      
+        parent = Tap::Support::Constant.constantize(const.nesting) { nil }
+        parent.send(:remove_const, const.const_name) if parent
+        
         load const.require_path
       end
     
