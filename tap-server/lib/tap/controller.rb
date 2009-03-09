@@ -44,30 +44,9 @@ module Tap
         @name ||= to_s.underscore
       end
       
-      # Adds the specified middleware.  Middleware classes are initialized
-      # with the specified args and block, and applied to in the order in
-      # which they are declared (ie first use processes requests first).
-      #
-      # Middleware is applied through the class call method, and on a per-call
-      # basis... middleware like Rack::Session::Pool that is supposed to
-      # persist for the life of an application will not work properly.
-      # 
-      # Middleware is inherited.
-      def use(middleware, *args, &block)
-        @middleware << [middleware, args, block]
-      end
-      
-      # Instantiates self and performs call.  Middleware is applied in the
-      # order in which it was declared.
-      #--
-      # Note that middleware needs to be initialized in reverese, so that
-      # the first declared middleware runs first.
+      # Instantiates self and performs call.
       def call(env)
-        app = new
-        middleware.reverse_each do |(m, args, block)|
-          app = m.new(app, *args, &block)
-        end
-        app.call(env)
+        new.call(env)
       end
       
       # Sets an instance variable for self, short for:

@@ -46,21 +46,6 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
-  # use test
-  #
-  
-  def test_use_adds_args_to_middleware
-    controller_class = Class.new(Tap::Controller)
-    assert_equal [], controller_class.middleware
-    
-    controller_class.use(:a)
-    block = lambda {}
-    controller_class.use(:b, 1,2,3, &block)
-    
-    assert_equal [[:a, [], nil], [:b, [1,2,3], block]], controller_class.middleware
-  end
-  
-  #
   # actions test
   #
   
@@ -244,44 +229,6 @@ class ControllerTest < Test::Unit::TestCase
   def test_empty_path_routes_to_index
     request = Rack::MockRequest.new IndexController
     assert_equal "result", request.get("/").body
-  end
-  
-  #
-  # middleware test
-  #
-  
-  class MiddlewareA
-    def initialize(app)
-      @app = app
-    end
-    def call(env)
-      env['middleware.a'] = "a"
-      env['middleware.b'] = "a"
-      @app.call(env)
-    end
-  end
-  
-  class MiddlewareB
-    def initialize(app)
-      @app = app
-    end
-    def call(env)
-      env['middleware.b'] = "b"
-      @app.call(env)
-    end
-  end
-  
-  class UseController < Tap::Controller
-    use MiddlewareA
-    use MiddlewareB
-    def action
-      [200, {}, [request.env['middleware.a'], request.env['middleware.b']]]
-    end
-  end
-  
-  def test_middleware_is_applied_to_class_calls_in_order
-    request = Rack::MockRequest.new UseController
-    assert_equal "ab", request.get("/action").body
   end
   
   #
