@@ -214,7 +214,9 @@ module Tap
       # controllers will be reloaded each time
       if development? && const.require_path
         parent = Tap::Support::Constant.constantize(const.nesting) { nil }
-        parent.send(:remove_const, const.const_name) if parent
+        if parent && parent.const_defined?(const.const_name)
+          parent.send(:remove_const, const.const_name)
+        end
         
         load const.require_path
       end
