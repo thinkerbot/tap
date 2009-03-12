@@ -201,8 +201,10 @@ module Tap
       id
     end
     
-    def uri(controller=nil, action=nil)
-      ["http://#{host}:#{port}", escape(controller), action].compact.join("/")
+    def uri(controller=nil, action=nil, params={})
+      query = build_query(params)
+      uri = ["http://#{host}:#{port}", escape(controller), action].compact.join("/")
+      query.empty? ? uri : "#{uri}?#{query}"
     end
     
     # Returns the app provided during initialization.  In the future this
@@ -289,6 +291,10 @@ module Tap
         end
       end
       raise "Server handler (#{servers.join(',')}) not found."
+    end
+    
+    def format_query(key, value)
+      "#{escape(key)}=#{escape(value)}"
     end
     
     # a helper method for routing a key to a controller

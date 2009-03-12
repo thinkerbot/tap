@@ -205,8 +205,8 @@ module Tap
     end
     
     # Returns a controller uri.
-    def uri(action=nil, controller=nil)
-      server.uri(self.class.name, action)
+    def uri(action=nil, params={})
+      server.uri(self.class.name, action, params)
     end
     
     # Generates an empty binding to self without any locals assigned.
