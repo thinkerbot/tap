@@ -40,5 +40,8 @@
 <%   end %>
   </dd>
 <% end %>
-  </dl>
+</dl>
+<% if shutdown_key %>
+<a href="<%= uri(:shutdown) %>?shutdown_key=<%= shutdown_key %>">shutdown</a>
+<% end %>
 </div>

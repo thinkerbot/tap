@@ -59,6 +59,10 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   
   files = spec.files.select {|file| file =~ /^lib.*\.rb$/}
   rdoc.rdoc_files.include( files )
+  
+  require 'cdoc'
+  rdoc.template = 'cdoc/cdoc_html_template' 
+  rdoc.options << '--fmt' << 'cdoc'
 end
 
 desc "Publish RDoc to RubyForge"

@@ -67,11 +67,39 @@ module Tap
   #
   # :::+
   class Server
+    class << self
+      def instantiate(root, shutdown_key=false)
+        # setup the server directory
+        root = File.expand_path(root)
+        FileUtils.mkdir_p(root) unless File.exists?(root)
+        Dir.chdir(root)
+
+        # initialize the server
+        app = Tap::App.instance
+        env = Tap::Exe.instantiate(root)
+        env.activate
+        config = Configurable::Utils.load_file(env.root['server.yml'])
+        
+        server = new(env, app, config)
+        server.config[:shutdown_key] = rand(1000000) if shutdown_key
+        server
+      end
+
+      def run(server)
+        cookie_server = Rack::Session::Pool.new(server)
+        Rack::Handler::WEBrick.run(cookie_server, :Port => server.port)
+      end
+      
+      def kill
+        Process.kill('INT', Process.pid);
+      end
+    end
+    
     include Rack::Utils
     include Configurable
     
     config :environment, :development
-    config :server, %w[thin mongrel webrick]
+    # config :server, %w[thin mongrel webrick]
     config :host, 'localhost'
     config :port, 8080, &c.integer
     
@@ -119,6 +147,10 @@ module Tap
       end
       
       id
+    end
+    
+    def uri(controller=nil)
+      "http://#{host}:#{port}#{controller ? '/' : ''}#{controller}"
     end
     
     # Returns the app provided during initialization.  In the future this

@@ -22,7 +22,6 @@ module Tap
       def inherited(child) # :nodoc:
         super
         child.set(:actions, actions.dup)
-        child.set(:middleware, middleware.dup)
         child.set(:default_layout, default_layout)
         child.set(:define_action, true)
       end
@@ -30,10 +29,6 @@ module Tap
       # An array of methods that can be called as actions.  Actions must be
       # stored as symbols.  Actions are inherited.
       attr_reader :actions
-      
-      # An array of Rack middleware that will be applied when handing requests
-      # through the class call method.  Middleware is inherited.
-      attr_reader :middleware
       
       # The default layout rendered when the render option :layout is true.
       attr_reader :default_layout
@@ -92,8 +87,10 @@ module Tap
     end
     
     set :actions, []
-    set :middleware, []
     set :default_layout, nil
+    
+    # Ensures methods (even public methods) on Controller will
+    # not be actions in subclasses. 
     set :define_action, false
     
     include Rack::Utils
@@ -205,6 +202,12 @@ module Tap
     # Returns the root for the current session.
     def root
       server.root(session[:id] ||= server.initialize_session)
+    end
+    
+    # Returns a controller uri.
+    def uri(action=nil, controller=nil)
+      controller = File.basename(self.class.name) if controller == nil
+      "http://#{server.host}:#{server.port}/#{controller}#{action ? '/' : ''}#{action}"
     end
     
     # Generates an empty binding to self without any locals assigned.

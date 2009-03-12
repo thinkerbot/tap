@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "tap"
   s.add_dependency("tap", ">= 0.12.3")
   s.add_dependency("rack", ">= 0.9.1")
+  s.add_dependency("json_pure", ">= 1.1.3")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\sServer}
   
