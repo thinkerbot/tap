@@ -206,8 +206,7 @@ module Tap
     
     # Returns a controller uri.
     def uri(action=nil, controller=nil)
-      controller = File.basename(self.class.name) if controller == nil
-      "http://#{server.host}:#{server.port}/#{controller}#{action ? '/' : ''}#{action}"
+      server.uri(self.class.name, action)
     end
     
     # Generates an empty binding to self without any locals assigned.

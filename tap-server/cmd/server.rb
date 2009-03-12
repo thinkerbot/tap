@@ -23,5 +23,4 @@ end
 argv = parser.parse(ARGV)
 
 # launch server
-server = Tap::Server.new(env, app, parser.config)
-Tap::Server.run(server)
+Tap::Server.new(env, app, parser.config).run!

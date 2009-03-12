@@ -94,13 +94,6 @@ module Tap
         cookie_server = Rack::Session::Pool.new(server)
         server.run!
       end
-      
-      # Sends an INT signal to the current process using Process.kill.
-      # Kill is used during remote shutdown to interrupt a server and
-      # allow it to exit.
-      def kill
-        Process.kill('INT', Process.pid);
-      end
     end
     
     include Rack::Utils
@@ -143,22 +136,36 @@ module Tap
     config :shutdown_key, nil, &c.integer_or_nil        # specifies a public shutdown key
     
     attr_reader :env
+    attr_reader :handler
     
     def initialize(env=Env.new, app=Tap::App.instance, config={})
       @env = env
       @app = app
       @cache = {}
+      @handler = nil
       initialize_config(config)
     end
     
     # Runs self as configured, on the specified server, host, and port.  Use an
-    # INT signal to interrupt.  Adapted from Sinatra.run! 
-    def run!
-      rack_handler.run self, :Host => host, :Port => port do |server|
-        trap(:INT) do
-          # Use thins' hard #stop! if available, otherwise just #stop
-          server.respond_to?(:stop!) ? server.stop! : server.stop
-        end
+    # INT signal to interrupt.
+    def run!(handler=rack_handler)
+      app.log :run, "#{host}:#{port} (#{handler})"
+      handler.run self, :Host => host, :Port => port do |handler_instance|
+        @handler = handler_instance
+        trap(:INT) { stop! }
+      end
+    end
+    
+    # Stops the server if running (ie a handler is set).  Returns true if the
+    # server was stopped, and false otherwise.
+    def stop!
+      if handler
+        # Use thins' hard #stop! if available, otherwise just #stop
+        handler.respond_to?(:stop!) ? handler.stop! : handler.stop
+        @handler = nil
+        false
+      else
+        true
       end
     end
     
@@ -194,8 +201,8 @@ module Tap
       id
     end
     
-    def uri(controller=nil)
-      "http://#{host}:#{port}#{controller ? '/' : ''}#{controller}"
+    def uri(controller=nil, action=nil)
+      ["http://#{host}:#{port}", escape(controller), action].compact.join("/")
     end
     
     # Returns the app provided during initialization.  In the future this
