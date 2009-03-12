@@ -68,11 +68,15 @@ module Tap
   # :::+
   class Server
     class << self
+      
+      # Instantiates a Server in the specified directory, configured as
+      # specified in root/server.yml.  If shutdown_key is specified, a
+      # random shutdown key will be generated and set on the sever.
+      #
       def instantiate(root, shutdown_key=false)
         # setup the server directory
         root = File.expand_path(root)
         FileUtils.mkdir_p(root) unless File.exists?(root)
-        Dir.chdir(root)
 
         # initialize the server
         app = Tap::App.instance
@@ -84,12 +88,16 @@ module Tap
         server.config[:shutdown_key] = rand(1000000) if shutdown_key
         server
       end
-
+      
+      # Runs the server
       def run(server)
         cookie_server = Rack::Session::Pool.new(server)
-        Rack::Handler::WEBrick.run(cookie_server, :Port => server.port)
+        server.run!
       end
       
+      # Sends an INT signal to the current process using Process.kill.
+      # Kill is used during remote shutdown to interrupt a server and
+      # allow it to exit.
       def kill
         Process.kill('INT', Process.pid);
       end
@@ -98,15 +106,41 @@ module Tap
     include Rack::Utils
     include Configurable
     
-    config :environment, :development
-    # config :server, %w[thin mongrel webrick]
-    config :host, 'localhost'
-    config :port, 8080, &c.integer
+    config :environment, :development                   
+    config :servers, %w[thin mongrel webrick], &c.list  # a list of preferred handlers
+    config :host, 'localhost', &c.string                # the server host
+    config :port, 8080, &c.integer                      # the server port
     
+    # The views directory used to lookup controller views.
+    #--
+    # bad idea... should be environment-specific
     config :views_dir, :views
+    
+    # The public directory.  Files under public are served directly.
+    #--
+    # not critically true... needs to be implemnted in server, not app
     config :public_dir, :public
+    
+    # A hash of (key, controller) pairs mapping the controller part of a route
+    # to a Rack application.  Typically controllers is used to specify aliases
+    # when the defaults are not preferable.
     config :controllers, {}
+    
+    # config :infer_controllers, true, &c.switch
+    
+    # The default controller key used in routes that cannot be directly mapped
+    # to a controller
+    #--
+    # Set to nil to force controller mapping?
     config :default_controller_key, 'app'
+    
+    # Server implements a shutdown key so the server can be shutdown remotely
+    # via an HTTP request to the app/shutdown method.  Remote shutdown is
+    # useful when the user is running a local server (especially from a
+    # background process).  Under many circumstances remote shutdown is
+    # undesirable; specify a nil shutdown key, the default, to turn off
+    # shutdown.
+    config :shutdown_key, nil, &c.integer_or_nil        # specifies a public shutdown key
     
     attr_reader :env
     
@@ -115,6 +149,17 @@ module Tap
       @app = app
       @cache = {}
       initialize_config(config)
+    end
+    
+    # Runs self as configured, on the specified server, host, and port.  Use an
+    # INT signal to interrupt.  Adapted from Sinatra.run! 
+    def run!
+      rack_handler.run self, :Host => host, :Port => port do |server|
+        trap(:INT) do
+          # Use thins' hard #stop! if available, otherwise just #stop
+          server.respond_to?(:stop!) ? server.stop! : server.stop
+        end
+      end
     end
     
     # Currently a stub for initializing a session.  initialize_session returns
@@ -224,6 +269,20 @@ module Tap
     end
     
     protected
+    
+    # Looks up and returns the first available Rack::Handler as listed in the
+    # servers configuration. (Note rack_handler returns a handler class, not
+    # an instance).  Adapted from Sinatra.detect_rack_handler
+    def rack_handler # :nodoc:
+      servers.each do |server_name|
+        begin
+          return Rack::Handler.get(server_name)
+        rescue LoadError
+        rescue NameError
+        end
+      end
+      raise "Server handler (#{servers.join(',')}) not found."
+    end
     
     # a helper method for routing a key to a controller
     def lookup(key) # :nodoc:
