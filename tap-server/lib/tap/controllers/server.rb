@@ -12,10 +12,10 @@ module Tap
         render 'index.erb'
       end
       
-      # Returns 'ping'.
+      # Returns 'pong'.
       def ping
         response['Content-Type'] = 'text/plain'
-        "ping"
+        "pong"
       end
       
       # Returns a JSON hash of public server configurations.

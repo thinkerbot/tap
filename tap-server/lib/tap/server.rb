@@ -196,7 +196,7 @@ module Tap
             file << Support::Templater.new(File.read(template)).build(:_result => _result)
           end
         end
-      end
+      end unless session_app.on_complete_block
       
       id
     end
@@ -317,7 +317,12 @@ module Tap
       # load the require_path in dev mode so that
       # controllers will be reloaded each time
       if development? && const.require_path
-        parent = Tap::Support::Constant.constantize(const.nesting) { nil }
+        parent = if const.nesting.empty?
+          Object
+        else
+          Tap::Support::Constant.constantize(const.nesting) { nil }
+        end
+        
         if parent && parent.const_defined?(const.const_name)
           parent.send(:remove_const, const.const_name)
         end

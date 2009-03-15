@@ -31,11 +31,6 @@ class ControllerTest < Test::Unit::TestCase
     assert ParentController.actions.object_id != ChildController.actions.object_id
   end
   
-  def test_middleware_inherited_by_duplication
-    assert_equal [[Rack::Session::Cookie, [], nil]], ChildController.middleware
-    assert ParentController.middleware.object_id != ChildController.middleware.object_id
-  end
-  
   def test_default_layout_is_inherited
     assert_equal 'default', ChildController.default_layout
   end
