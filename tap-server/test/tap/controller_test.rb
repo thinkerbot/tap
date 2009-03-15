@@ -177,6 +177,11 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal "a.b.c", request.get("/action/a/b/c").body
   end
   
+  def test_controller_chomps_extname_off_action_if_specified
+    request = Rack::MockRequest.new CallController
+    assert_equal "a.b.c", request.get("/action.ext/a/b/c").body
+  end
+  
   def test_call_correctly_routes_path_info_with_escapes
     request = Rack::MockRequest.new CallController
     assert_equal "a+b.c d", request.get("/%61ction/a%2Bb/c%20d").body

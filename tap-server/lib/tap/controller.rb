@@ -122,6 +122,7 @@ module Tap
       # route to an action
       blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
       action = "index" if action == nil || action.empty?
+      action.chomp!(File.extname(action))
       
       unless self.class.actions.include?(action.to_sym)
         raise ServerError.new("404 Error: page not found", 404)
