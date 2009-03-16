@@ -201,12 +201,6 @@ module Tap
       id
     end
     
-    def uri(controller=nil, action=nil, params={})
-      query = build_query(params)
-      uri = ["http://#{host}:#{port}", escape(controller), action].compact.join("/")
-      query.empty? ? uri : "#{uri}?#{query}"
-    end
-    
     # Returns the app provided during initialization.  In the future this
     # method may be extended to provide a session-specific App, hence it
     # has been stubbed with an id input.
@@ -224,6 +218,18 @@ module Tap
     # Returns true if environment is :development.
     def development?
       environment == :development
+    end
+    
+    # Returns a uri mapping to the specified controller and action.  Parameters
+    # may be specified; they are built as a query and attached to the uri as
+    # normal.
+    #
+    # Currenlty uri does not map the controller to a minipath, but in the
+    # future it will.
+    def uri(controller=nil, action=nil, params={})
+      query = build_query(params)
+      uri = ["http://#{host}:#{port}", escape(controller), action].compact.join("/")
+      query.empty? ? uri : "#{uri}?#{query}"
     end
     
     # The {Rack}[http://rack.rubyforge.org/doc/] interface method.
@@ -291,10 +297,6 @@ module Tap
         end
       end
       raise "Server handler (#{servers.join(',')}) not found."
-    end
-    
-    def format_query(key, value)
-      "#{escape(key)}=#{escape(value)}"
     end
     
     # a helper method for routing a key to a controller
