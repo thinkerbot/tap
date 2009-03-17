@@ -316,6 +316,21 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal "result", request.get("/").body
   end
   
+  class AccessorsController < Tap::Controller
+    def act
+      ""
+    end
+  end
+  
+  def test_call_sets_server_and_action
+    controller = AccessorsController.new
+    request = Rack::MockRequest.new controller
+    request.get("/act", 'tap.server' => 'server')
+    
+    assert_equal :act, controller.action
+    assert_equal 'server', controller.server
+  end
+  
   #
   # session test
   #

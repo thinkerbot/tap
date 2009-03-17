@@ -141,12 +141,16 @@ module Tap
     # the action result and response is ignored.
     attr_accessor :response
     
+    # The action currently being called by self.
+    attr_accessor :action
+    
     # Initializes a new instance of self.  The input attributes are reset by
     # call and are only provided for convenience during testing.
     def initialize(server=nil, request=nil, response=nil)
       @server = server
       @request = request
       @response = response
+      @action = nil
     end
     
     def call(env)
@@ -159,10 +163,10 @@ module Tap
       action = "index" if action == nil || action.empty?
       action = action.chomp(File.extname(action)).to_sym
       
-      case
-      when self.class.actions.include?(action)
+      @action = case
+      when self.class.actions.include?(action) then action
       when self.class.rest_action == action
-        action = case request.request_method
+        case request.request_method
         when /GET/i  
           case
           when args.empty?
@@ -182,7 +186,7 @@ module Tap
         raise ServerError.new("404 Error: page not found", 404)
       end
       
-      result = send(action, *args)
+      result = send(@action, *args)
       if result.kind_of?(String) 
         response.write result
         response.finish

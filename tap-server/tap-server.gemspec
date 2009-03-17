@@ -23,10 +23,12 @@ Gem::Specification.new do |s|
     lib/tap/controller.rb
     lib/tap/controllers/app.rb
     lib/tap/controllers/schema.rb
+    lib/tap/controllers/server.rb
     lib/tap/server.rb
     lib/tap/server_error.rb
     lib/tap/tasks/echo.rb
     lib/tap/tasks/server.rb
+    lib/tap/support/persistence.rb
     public/javascripts/prototype.js
     public/javascripts/tap.js
     public/stylesheets/tap.css
@@ -46,6 +48,7 @@ Gem::Specification.new do |s|
     views/tap/controllers/schema/preview.erb
     views/tap/controllers/schema/round.erb
     views/tap/controllers/schema/schema.erb
+    views/tap/controllers/server/index.erb
     views/tap/tasks/echo/result.html
     }
 end

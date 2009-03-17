@@ -3,7 +3,13 @@ require 'tap/controller'
 module Tap
   module Controllers
     
-    # ::controller
+    # :startdoc::controller remotely controls and monitors server
+    # 
+    # Server provides several uris to control and monitor the server behavior.
+    # Importantly, server allows the remote shutdown of a Tap::Server if a
+    # shutdown_key is set.  This makes it possible to run servers in the
+    # background and still have a shutdown handle on them.
+    #
     class Server < Tap::Controller
       set :default_layout, 'layout.erb'
   

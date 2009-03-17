@@ -34,8 +34,8 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
     response = request.get("/config", opts)
     
     assert_equal 'text/xml', response['Content-Type']
-    assert_match /<uri>#{server.uri('tap/controllers/server')}<\/uri>/, response.body
-    assert_match /<shutdown_key>#{server.shutdown_key}<\/shutdown_key>/, response.body
+    assert_match(/<uri>#{server.uri('tap/controllers/server')}<\/uri>/, response.body)
+    assert_match(/<shutdown_key>#{server.shutdown_key}<\/shutdown_key>/, response.body)
   end
   
   #
