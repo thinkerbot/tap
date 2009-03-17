@@ -73,6 +73,50 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
+  # rest routes test
+  #
+  
+  class RESTController < Tap::Controller
+    use_rest_routes :projects
+    
+    # GET /projects
+    def index
+      "index"
+    end
+    
+    # GET /projects/1
+    def show(id)
+      "show #{id}"
+    end
+    
+    # POST /projects/1
+    def create(id)
+      "create #{id}"
+    end
+    
+    # PUT /projects/1
+    def update(id)
+      "update #{id}"
+    end
+    
+    # DELETE /projects/1
+    def destroy(id)
+      "destroy #{id}"
+    end
+  end
+  
+  def test_rest_routes
+    controller = RESTController.new server
+    request = Rack::MockRequest.new controller
+    
+    assert_equal "index", request.get("/projects").body
+    assert_equal "show 1", request.get("/projects/1").body
+    assert_equal "create 1", request.post("/projects/1").body
+    assert_equal "update 1", request.put("/projects/1").body
+    assert_equal "destroy 1", request.delete("/projects/1").body
+  end
+  
+  #
   # render_erb test
   #
   
@@ -279,6 +323,59 @@ class ControllerTest < Test::Unit::TestCase
     assert !request.env.has_key?('rack.session')
     assert_equal 'app_1', controller.app
     assert_equal({:id => 1}, request.env['rack.session'])
+  end
+  
+  #
+  # root test
+  #
+  
+  class MockRootServer
+    def initialize_session
+      1
+    end
+    def root(id)
+      "root_#{id}"
+    end
+  end
+  
+  def test_root_returns_server_root_for_session_id
+    request = Rack::Request.new Rack::MockRequest.env_for("/", 'rack.session' => {:id => 0})
+    controller = Tap::Controller.new MockRootServer.new, request
+    assert_equal 'root_0', controller.root
+  end
+  
+  def test_root_initializes_session_id_if_unspecified
+    request = Rack::Request.new Rack::MockRequest.env_for("/")
+    controller = Tap::Controller.new MockRootServer.new, request
+    
+    assert !request.env.has_key?('rack.session')
+    assert_equal 'root_1', controller.root
+    assert_equal({:id => 1}, request.env['rack.session'])
+  end
+  
+  #
+  # persistence test
+  #
+  
+  class MockPersistenceServer
+    def initialize(root)
+      @root = root
+    end
+    def initialize_session
+      1
+    end
+    def root(id)
+      @root
+    end
+  end
+  
+  def test_persistence_returns_a_Persistence_object_initialized_to_root
+    request = Rack::Request.new Rack::MockRequest.env_for("/")
+    controller = Tap::Controller.new MockPersistenceServer.new(method_root), request
+    
+    p = controller.persistence
+    assert_equal Tap::Support::Persistence, p.class
+    assert_equal method_root, p.root
   end
   
   #

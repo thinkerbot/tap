@@ -1,4 +1,5 @@
 require 'tap/server'
+require 'tap/support/persistence'
 autoload(:ERB, 'erb')
 
 module Tap
@@ -24,6 +25,7 @@ module Tap
         child.set(:actions, actions.dup)
         child.set(:default_layout, default_layout)
         child.set(:define_action, true)
+        child.set(:rest_action, rest_action)
       end
       
       # An array of methods that can be called as actions.  Actions must be
@@ -32,6 +34,31 @@ module Tap
       
       # The default layout rendered when the render option :layout is true.
       attr_reader :default_layout
+      
+      # An action routed with RESTful routes.  For example if rest_action
+      # is :projects then:
+      #
+      #   class RESTController < Tap::Controller
+      #     set :rest_action, :projects
+      #   
+      #     # GET /projects
+      #     def index...
+      # 
+      #     # GET /projects/*args
+      #     def show(*args)...
+      # 
+      #     # POST /projects/*args
+      #     def create(*args)...
+      # 
+      #     # PUT /projects/*args
+      #     def update(*args)...
+      # 
+      #     # DELETE /projects/*args
+      #     def destroy(*args)...
+      #   end
+      #
+      # May be nil to indicate no RESTful routing, and must be a symbol if set.
+      attr_reader :rest_action
       
       # The base path prepended to render paths (ie render(<path>) renders
       # <templates_dir/name/path>).
@@ -56,6 +83,11 @@ module Tap
       #
       def set(variable, input)
         instance_variable_set("@#{variable}", input)
+      end
+      
+      # Sets :rest_action assuring that action is symbolized.
+      def use_rest_routes(action)
+        set :rest_action, action.to_sym
       end
       
       protected
@@ -88,6 +120,7 @@ module Tap
     
     set :actions, []
     set :default_layout, nil
+    set :rest_action, nil
     
     # Ensures methods (even public methods) on Controller will
     # not be actions in subclasses. 
@@ -122,9 +155,19 @@ module Tap
       # route to an action
       blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
       action = "index" if action == nil || action.empty?
-      action.chomp!(File.extname(action))
+      action = action.chomp(File.extname(action)).to_sym
       
-      unless self.class.actions.include?(action.to_sym)
+      case
+      when self.class.actions.include?(action)
+      when self.class.rest_action == action
+        action = case request.request_method
+        when /GET/i  then args.empty? ? :index : :show
+        when /POST/i then :create
+        when /PUT/i  then :update
+        when /DELETE/i then :destroy
+        else raise ServerError.new("unknown request method: #{request.request_method}")
+        end
+      else
         raise ServerError.new("404 Error: page not found", 404)
       end
       
@@ -203,6 +246,11 @@ module Tap
     # Returns the root for the current session.
     def root
       server.root(session[:id] ||= server.initialize_session)
+    end
+    
+    # Returns the file-based controller persistence.
+    def persistence
+      @persistence ||= Support::Persistence.new(root)
     end
     
     # Returns a controller uri.
