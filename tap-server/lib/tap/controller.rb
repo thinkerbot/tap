@@ -85,8 +85,10 @@ module Tap
         instance_variable_set("@#{variable}", input)
       end
       
-      # Sets :rest_action assuring that action is symbolized.
-      def use_rest_routes(action)
+      # Sets :rest_action assuring that action is symbolized.  By default
+      # use_rest_routes sets the rest action to the underscored constant
+      # name (ie Example => 'example').
+      def use_rest_routes(action=File.basename(name))
         set :rest_action, action.to_sym
       end
       
@@ -163,11 +165,13 @@ module Tap
         action = case request.request_method
         when /GET/i  
           case
-          when args.empty? then :index
+          when args.empty?
+            :index
           when args[-1] =~ /(.*);edit$/
             args[-1] = $1
             :edit
-          else :show
+          else 
+            :show
           end
         when /POST/i then :create
         when /PUT/i  then :update

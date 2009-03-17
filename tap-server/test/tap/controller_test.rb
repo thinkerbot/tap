@@ -73,6 +73,33 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
+  # use_rest_routes test
+  #
+  
+  class UseRestRoutes < Tap::Controller
+  end
+  
+  def test_use_rest_routes_sets_rest_action
+    assert_equal nil, UseRestRoutes.rest_action
+    
+    UseRestRoutes.use_rest_routes :action
+    assert_equal :action, UseRestRoutes.rest_action
+    
+    UseRestRoutes.use_rest_routes 'alt'
+    assert_equal :alt, UseRestRoutes.rest_action
+  end
+  
+  module Nested
+    class UseRestRoutes < Tap::Controller
+      use_rest_routes
+    end
+  end
+  
+  def test_use_rest_routes_sets_reset_action_to_controller_name
+    assert_equal :use_rest_routes, Nested::UseRestRoutes.rest_action
+  end
+  
+  #
   # rest routes test
   #
   
