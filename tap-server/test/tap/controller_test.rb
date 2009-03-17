@@ -3,7 +3,7 @@ require 'tap/controller'
 
 class ControllerTest < Test::Unit::TestCase
   acts_as_tap_test
-  cleanup_dirs << :views
+  cleanup_dirs << :views << :data << :log
   
   attr_reader :controller, :server
   
@@ -114,6 +114,14 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal "create 1", request.post("/projects/1").body
     assert_equal "update 1", request.put("/projects/1").body
     assert_equal "destroy 1", request.delete("/projects/1").body
+  end
+  
+  def test_rest_routing_raises_error_for_unknown_request_method
+    env = Rack::MockRequest.env_for("/projects", 'REQUEST_METHOD' => 'UNKNOWN')
+    controller = RESTController.new server
+    
+    e = assert_raises(Tap::ServerError) { controller.call(env) }
+    assert_equal "unknown request method: UNKNOWN", e.message
   end
   
   #
@@ -376,6 +384,67 @@ class ControllerTest < Test::Unit::TestCase
     p = controller.persistence
     assert_equal Tap::Support::Persistence, p.class
     assert_equal method_root, p.root
+  end
+  
+  class PersistenceController < Tap::Controller
+    use_rest_routes :resource
+    
+    def persistence_root
+      persistence.root.root
+    end
+    
+    def index
+      persistence.index.join(", ")
+    end
+    
+    def show(id)
+      persistence.read(id)
+    end
+    
+    def create(id)
+      persistence.create(id) {|io| io << "create" }
+    end
+    
+    def update(id)
+      persistence.update(id) {|io| io << "update" }
+    end
+    
+    def destroy(id)
+      persistence.destroy(id).to_s
+    end
+  end
+  
+  def test_a_sample_persistence_controller
+    controller = PersistenceController.new
+    request = Rack::MockRequest.new controller
+    opts = {'tap.server' => server}
+    
+    assert_equal method_root.root, request.get("/persistence_root", opts).body
+    
+    assert_equal "", request.get("/resource", opts).body
+    assert_equal "", request.get("/resource/1", opts).body
+    
+    # create
+    path = method_root.filepath(:data, "1")
+    assert_equal path, request.post("/resource/1", opts).body
+    assert_equal "create", File.read(path)
+    
+    assert_equal "1", request.get("/resource", opts).body
+    assert_equal "create", request.get("/resource/1", opts).body
+    
+    # update
+    assert_equal path, request.put("/resource/1", opts).body
+    assert_equal "update", File.read(path)
+    
+    assert_equal "1", request.get("/resource", opts).body
+    assert_equal "update", request.get("/resource/1", opts).body
+    
+    # destroy
+    assert_equal "true", request.delete("/resource/1", opts).body
+    assert !File.exists?(path)
+    
+    assert_equal "", request.get("/resource", opts).body
+    assert_equal "", request.get("/resource/1", opts).body
   end
   
   #

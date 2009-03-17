@@ -95,9 +95,9 @@ class PersistenceTest < Test::Unit::TestCase
     assert_equal "content", p.read("file.yml")
   end
   
-  def test_read_returns_nil_if_path_does_not_exist
+  def test_read_returns_empty_string_if_path_does_not_exist
     assert !File.exists?(p.path("file.yml"))
-    assert_equal nil, p.read("file.yml")
+    assert_equal "", p.read("file.yml")
   end
   
   #

@@ -39,11 +39,11 @@ module Tap
         root.prepare(filepath) {|io| yield(io) if block_given? }
       end
       
-      # Reads and returns the data for the specified id, or nil if the
-      # persistence file doesn't exist.
+      # Reads and returns the data for the specified id, or an empty string if
+      # the persistence file doesn't exist.
       def read(id)
         filepath = path(id)
-        File.file?(filepath) ? File.read(filepath) : nil
+        File.file?(filepath) ? File.read(filepath) : ''
       end
       
       # Overwrites the data for the specified id.  A block must be given to
