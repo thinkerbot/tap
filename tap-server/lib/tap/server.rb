@@ -34,9 +34,9 @@ module Tap
   #   req = Rack::MockRequest.new(server)
   #   req.get('/sample/path/to/resource').body      # => "Sample got /sample : /path/to/resource"
   #
-  # Server automatically maps unknown keys to a controller by searching
-  # env.controllers.  As a result '/example' maps to the Example controller
-  # defined in 'lib/example.rb'.
+  # Server automatically maps unknown keys to controllers discovered via the
+  # env.controllers manifest.  The only requirement is that the controller
+  # constant is a Rack application.  For instance:
   #
   #   # [lib/example.rb] => %q{
   #   # ::controller
@@ -64,6 +64,10 @@ module Tap
   #   end
   #
   #   req.get('/unknown/path/to/resource').body     # => "App got  : /unknown/path/to/resource"
+  #
+  # In development mode, the controller constant is removed and the constant
+  # require path is reloaded each time it gets called.  This system allows many
+  # web frameworks to be hooked into a Tap server.
   #
   # :::+
   class Server
@@ -103,16 +107,6 @@ module Tap
     config :servers, %w[thin mongrel webrick], &c.list  # a list of preferred handlers
     config :host, 'localhost', &c.string                # the server host
     config :port, 8080, &c.integer                      # the server port
-    
-    # The views directory used to lookup controller views.
-    #--
-    # bad idea... should be environment-specific
-    config :views_dir, :views
-    
-    # The public directory.  Files under public are served directly.
-    #--
-    # not critically true... needs to be implemnted in server, not app
-    config :public_dir, :public
     
     # A hash of (key, controller) pairs mapping the controller part of a route
     # to a Rack application.  Typically controllers is used to specify aliases
@@ -174,9 +168,13 @@ module Tap
     def initialize_session
       id = 0
       session_app = app(id)
-      log_path = env.root.prepare(:log, 'server.log')
-      session_app.logger = Logger.new(log_path)
+      session_root = root(id)
       
+      # setup expiration information...
+      
+      # setup a session log
+      log_path = session_root.prepare(:log, 'session.log')
+      session_app.logger = Logger.new(log_path)
       session_app.on_complete do |_result|
         # find the template
         class_name = _result.key.class.to_s.underscore
@@ -201,23 +199,14 @@ module Tap
       id
     end
     
-    # Returns the app provided during initialization.  In the future this
-    # method may be extended to provide a session-specific App, hence it
-    # has been stubbed with an id input.
+    # Returns the session-specific App, or the server app if id is nil.
     def app(id=nil)
       @app
     end
     
-    # Returns the env.root provided during initialization.  In the future this
-    # method may be extended to provide a session-specific Root, hence it
-    # has been stubbed with an id input.
+    # Returns the session-specific Root, or the server env.root if id is nil.
     def root(id=nil)
       @env.root
-    end
-    
-    # Returns true if environment is :development.
-    def development?
-      environment == :development
     end
     
     # Returns a uri mapping to the specified controller and action.  Parameters
@@ -265,25 +254,17 @@ module Tap
       ServerError.response($!)
     end
     
-    #--
-    # TODO: implement caching for path content
-    def content(path)
-      File.read(path)
-    end
-    
-    #--
-    # TODO: implement caching for public_paths
-    def public_path(path)
-      env.search(public_dir, path) {|public_path| File.file?(public_path) }
-    end
-    
-    #--
-    # TODO: implement caching for template_paths
-    def template_path(path)
-      env.search(views_dir, path) {|template_path| File.file?(template_path) }
+    # Searches env for the first matching file, directories are not matched.
+    def search(dir, path)
+      env.search(dir, path) {|file| File.file?(file) }
     end
     
     protected
+    
+    # Returns true if environment is :development.
+    def development? # :nodoc:
+      environment == :development
+    end
     
     # Looks up and returns the first available Rack::Handler as listed in the
     # servers configuration. (Note rack_handler returns a handler class, not

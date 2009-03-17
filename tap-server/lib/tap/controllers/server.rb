@@ -1,5 +1,5 @@
 require 'tap/controller'
-require 'json/pure'
+require 'json'
 
 module Tap
   module Controllers

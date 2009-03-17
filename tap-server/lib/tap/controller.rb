@@ -143,9 +143,9 @@ module Tap
       # lookup template
       template_path = case
       when options.has_key?(:template)
-        server.template_path(options[:template])
+        server.search(:views, options[:template])
       else
-        server.template_path("#{self.class.name}/#{path}")
+        server.search(:views, "#{self.class.name}/#{path}")
       end
       
       unless template_path
@@ -153,7 +153,7 @@ module Tap
       end
       
       # render template
-      template = server.content(template_path)
+      template = File.read(template_path)
       content = render_erb(template, options)
       
       # render layout

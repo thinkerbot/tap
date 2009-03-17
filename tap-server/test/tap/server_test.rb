@@ -125,18 +125,6 @@ end
   end
   
   #
-  # development? test
-  #
-  
-  def test_development_is_true_if_environment_is_development
-    assert_equal :development, server.environment
-    assert server.development?
-    
-    server.environment = :production
-    assert !server.development?
-  end
-  
-  #
   # call tests
   #
   
