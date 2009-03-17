@@ -161,7 +161,14 @@ module Tap
       when self.class.actions.include?(action)
       when self.class.rest_action == action
         action = case request.request_method
-        when /GET/i  then args.empty? ? :index : :show
+        when /GET/i  
+          case
+          when args.empty? then :index
+          when args[-1] =~ /(.*);edit$/
+            args[-1] = $1
+            :edit
+          else :show
+          end
         when /POST/i then :create
         when /PUT/i  then :update
         when /DELETE/i then :destroy

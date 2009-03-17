@@ -89,6 +89,11 @@ class ControllerTest < Test::Unit::TestCase
       "show #{id}"
     end
     
+    # GET /projects/1;edit
+    def edit(id)
+      "edit #{id}"
+    end
+    
     # POST /projects/1
     def create(id)
       "create #{id}"
@@ -111,6 +116,7 @@ class ControllerTest < Test::Unit::TestCase
     
     assert_equal "index", request.get("/projects").body
     assert_equal "show 1", request.get("/projects/1").body
+    assert_equal "edit 1", request.get("/projects/1;edit").body
     assert_equal "create 1", request.post("/projects/1").body
     assert_equal "update 1", request.put("/projects/1").body
     assert_equal "destroy 1", request.delete("/projects/1").body
