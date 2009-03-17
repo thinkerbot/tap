@@ -25,7 +25,7 @@ module Tap
         child.set(:actions, actions.dup)
         child.set(:default_layout, default_layout)
         child.set(:define_action, true)
-        child.set(:rest_action, rest_action)
+        child.set(:use_rest_routes, use_rest_routes)
       end
       
       # An array of methods that can be called as actions.  Actions must be
@@ -35,11 +35,10 @@ module Tap
       # The default layout rendered when the render option :layout is true.
       attr_reader :default_layout
       
-      # An action routed with RESTful routes.  For example if rest_action
-      # is :projects then:
+      # Set to true to enable RESTful routing.  For example:
       #
-      #   class RESTController < Tap::Controller
-      #     set :rest_action, :projects
+      #   class Projects < Tap::Controller
+      #     set :use_rest_routes, true
       #   
       #     # GET /projects
       #     def index...
@@ -57,8 +56,7 @@ module Tap
       #     def destroy(*args)...
       #   end
       #
-      # May be nil to indicate no RESTful routing, and must be a symbol if set.
-      attr_reader :rest_action
+      attr_reader :use_rest_routes
       
       # The base path prepended to render paths (ie render(<path>) renders
       # <templates_dir/name/path>).
@@ -83,13 +81,6 @@ module Tap
       #
       def set(variable, input)
         instance_variable_set("@#{variable}", input)
-      end
-      
-      # Sets :rest_action assuring that action is symbolized.  By default
-      # use_rest_routes sets the rest action to the underscored constant
-      # name (ie Example => 'example').
-      def use_rest_routes(action=File.basename(name))
-        set :rest_action, action.to_sym
       end
       
       protected
@@ -122,7 +113,7 @@ module Tap
     
     set :actions, []
     set :default_layout, nil
-    set :rest_action, nil
+    set :use_rest_routes, false
     
     # Ensures methods (even public methods) on Controller will
     # not be actions in subclasses. 
@@ -160,19 +151,18 @@ module Tap
       
       # route to an action
       blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-      action = "index" if action == nil || action.empty?
-      action = action.chomp(File.extname(action)).to_sym
-      
-      @action = case
-      when self.class.actions.include?(action) then action
-      when self.class.rest_action == action
+
+      @action = if self.class.use_rest_routes
+        args.unshift(action)
+        
         case request.request_method
         when /GET/i  
-          case
-          when args.empty?
+          case action
+          when nil
+            args.shift
             :index
-          when args[-1] =~ /(.*);edit$/
-            args[-1] = $1
+          when /(.*);edit$/
+            args[0] = $1
             :edit
           else 
             :show
@@ -183,8 +173,15 @@ module Tap
         else raise ServerError.new("unknown request method: #{request.request_method}")
         end
       else
-        raise ServerError.new("404 Error: page not found", 404)
-      end
+        action = "index" if action == nil || action.empty?
+        action = action.chomp(File.extname(action)).to_sym
+        
+        unless self.class.actions.include?(action)
+          raise ServerError.new("404 Error: page not found", 404)
+        end
+        
+        action
+      end    
       
       result = send(@action, *args)
       if result.kind_of?(String) 

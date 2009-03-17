@@ -73,65 +73,32 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
-  # use_rest_routes test
-  #
-  
-  class UseRestRoutes < Tap::Controller
-  end
-  
-  def test_use_rest_routes_sets_rest_action
-    assert_equal nil, UseRestRoutes.rest_action
-    
-    UseRestRoutes.use_rest_routes :action
-    assert_equal :action, UseRestRoutes.rest_action
-    
-    UseRestRoutes.use_rest_routes 'alt'
-    assert_equal :alt, UseRestRoutes.rest_action
-  end
-  
-  module Nested
-    class UseRestRoutes < Tap::Controller
-      use_rest_routes
-    end
-  end
-  
-  def test_use_rest_routes_sets_reset_action_to_controller_name
-    assert_equal :use_rest_routes, Nested::UseRestRoutes.rest_action
-  end
-  
-  #
   # rest routes test
   #
   
   class RESTController < Tap::Controller
-    use_rest_routes :projects
+    set :use_rest_routes, true
     
-    # GET /projects
     def index
       "index"
     end
     
-    # GET /projects/1
     def show(id)
       "show #{id}"
     end
     
-    # GET /projects/1;edit
     def edit(id)
       "edit #{id}"
     end
     
-    # POST /projects/1
     def create(id)
       "create #{id}"
     end
     
-    # PUT /projects/1
     def update(id)
       "update #{id}"
     end
     
-    # DELETE /projects/1
     def destroy(id)
       "destroy #{id}"
     end
@@ -141,16 +108,16 @@ class ControllerTest < Test::Unit::TestCase
     controller = RESTController.new server
     request = Rack::MockRequest.new controller
     
-    assert_equal "index", request.get("/projects").body
-    assert_equal "show 1", request.get("/projects/1").body
-    assert_equal "edit 1", request.get("/projects/1;edit").body
-    assert_equal "create 1", request.post("/projects/1").body
-    assert_equal "update 1", request.put("/projects/1").body
-    assert_equal "destroy 1", request.delete("/projects/1").body
+    assert_equal "index", request.get("/").body
+    assert_equal "show 1", request.get("/1").body
+    assert_equal "edit 1", request.get("/1;edit").body
+    assert_equal "create 1", request.post("/1").body
+    assert_equal "update 1", request.put("/1").body
+    assert_equal "destroy 1", request.delete("/1").body
   end
   
   def test_rest_routing_raises_error_for_unknown_request_method
-    env = Rack::MockRequest.env_for("/projects", 'REQUEST_METHOD' => 'UNKNOWN')
+    env = Rack::MockRequest.env_for("/", 'REQUEST_METHOD' => 'UNKNOWN')
     controller = RESTController.new server
     
     e = assert_raises(Tap::ServerError) { controller.call(env) }
@@ -435,11 +402,7 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   class PersistenceController < Tap::Controller
-    use_rest_routes :resource
-    
-    def persistence_root
-      persistence.root.root
-    end
+    set :use_rest_routes, true
     
     def index
       persistence.index.join(", ")
@@ -467,32 +430,30 @@ class ControllerTest < Test::Unit::TestCase
     request = Rack::MockRequest.new controller
     opts = {'tap.server' => server}
     
-    assert_equal method_root.root, request.get("/persistence_root", opts).body
-    
-    assert_equal "", request.get("/resource", opts).body
-    assert_equal "", request.get("/resource/1", opts).body
+    assert_equal "", request.get("/", opts).body
+    assert_equal "", request.get("/1", opts).body
     
     # create
     path = method_root.filepath(:data, "1")
-    assert_equal path, request.post("/resource/1", opts).body
+    assert_equal path, request.post("/1", opts).body
     assert_equal "create", File.read(path)
     
-    assert_equal "1", request.get("/resource", opts).body
-    assert_equal "create", request.get("/resource/1", opts).body
+    assert_equal "1", request.get("/", opts).body
+    assert_equal "create", request.get("/1", opts).body
     
     # update
-    assert_equal path, request.put("/resource/1", opts).body
+    assert_equal path, request.put("/1", opts).body
     assert_equal "update", File.read(path)
     
-    assert_equal "1", request.get("/resource", opts).body
-    assert_equal "update", request.get("/resource/1", opts).body
+    assert_equal "1", request.get("/", opts).body
+    assert_equal "update", request.get("/1", opts).body
     
     # destroy
-    assert_equal "true", request.delete("/resource/1", opts).body
+    assert_equal "true", request.delete("/1", opts).body
     assert !File.exists?(path)
     
-    assert_equal "", request.get("/resource", opts).body
-    assert_equal "", request.get("/resource/1", opts).body
+    assert_equal "", request.get("/", opts).body
+    assert_equal "", request.get("/1", opts).body
   end
   
   #
