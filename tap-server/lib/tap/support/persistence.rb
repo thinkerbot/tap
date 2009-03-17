@@ -19,6 +19,15 @@ module Tap
         root.subpath(:data, id.to_s)
       end
       
+      # Returns a list of existing ids.
+      def index
+        root.glob(:data).select do |path|
+          File.file?(path)
+        end.collect do |path|
+          root.relative_filepath(:data, path)
+        end
+      end
+      
       # Creates the file for the specified id.  If a block is given, an io to
       # the file will be yielded to it; otherwise the file will be created
       # without content.  Returns the path to the persistence file.

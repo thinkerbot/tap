@@ -41,6 +41,22 @@ class PersistenceTest < Test::Unit::TestCase
   end
   
   #
+  # index test
+  #
+  
+  def test_index_returns_a_list_of_existing_ids
+    p.create("a")
+    p.create("b/c")
+    p.create("d")
+    
+    assert_equal ['a', 'b/c', 'd'], p.index
+  end
+  
+  def test_index_returns_an_empty_array_if_no_ids_exist
+    assert_equal [], p.index
+  end
+  
+  #
   # create test
   #
   
