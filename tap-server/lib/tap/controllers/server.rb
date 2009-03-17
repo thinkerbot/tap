@@ -1,5 +1,4 @@
 require 'tap/controller'
-require 'json'
 
 module Tap
   module Controllers
@@ -18,12 +17,14 @@ module Tap
         "pong"
       end
       
-      # Returns a JSON hash of public server configurations.
+      # Returns the public server configurations as xml.
       def config
-        response['Content-Type'] = 'application/json'
-        { :uri => uri,
-          :shutdown_key => shutdown_key
-        }.to_json
+        response['Content-Type'] = 'text/xml'
+        %Q{<?xml version="1.0"?>
+<server>
+<uri>#{uri}</uri>
+<shutdown_key>#{shutdown_key}</shutdown_key>
+</server>}
       end
       
       # Shuts down the server.  Shutdown requires a shutdown key which
