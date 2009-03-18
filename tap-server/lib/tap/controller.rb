@@ -1,4 +1,5 @@
 require 'tap/server'
+require 'tap/support/persistence'
 autoload(:ERB, 'erb')
 
 module Tap
@@ -16,13 +17,62 @@ module Tap
   # * define it private or protected then call public(:method)
   #
   class Controller
+    
+    # Adds REST routing (a-la Rails[http://www.b-simple.de/download/restful_rails_en.pdf])
+    # to a Tap::Controller.
+    #
+    #   class Projects < Tap::Controller
+    #     include RestRoutes
+    #
+    #     # GET /projects
+    #     def index...
+    # 
+    #     # GET /projects/*args
+    #     def show(*args)...
+    # 
+    #     # GET /projects/arg;edit/*args
+    #     def edit(arg, *args)...
+    #
+    #     # POST /projects/*args
+    #     def create(*args)...
+    # 
+    #     # PUT /projects/*args
+    #     def update(*args)...
+    # 
+    #     # DELETE /projects/*args
+    #     def destroy(*args)...
+    #   end
+    #
+    module RestRoutes
+      def route
+        blank, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
+        action = case request.request_method
+        when /GET/i  
+          case
+          when args.empty?
+            :index
+          when args[0] =~ /(.*);edit$/
+            args[0] = $1
+            :edit
+          else 
+            :show
+          end
+        when /POST/i then :create
+        when /PUT/i  then :update
+        when /DELETE/i then :destroy
+        else raise ServerError.new("unknown request method: #{request.request_method}")
+        end
+
+        [action, args]
+      end
+    end
+        
     class << self
       
       # Initialize instance variables on the child and inherit as necessary.
       def inherited(child) # :nodoc:
         super
         child.set(:actions, actions.dup)
-        child.set(:middleware, middleware.dup)
         child.set(:default_layout, default_layout)
         child.set(:define_action, true)
       end
@@ -30,10 +80,6 @@ module Tap
       # An array of methods that can be called as actions.  Actions must be
       # stored as symbols.  Actions are inherited.
       attr_reader :actions
-      
-      # An array of Rack middleware that will be applied when handing requests
-      # through the class call method.  Middleware is inherited.
-      attr_reader :middleware
       
       # The default layout rendered when the render option :layout is true.
       attr_reader :default_layout
@@ -44,30 +90,9 @@ module Tap
         @name ||= to_s.underscore
       end
       
-      # Adds the specified middleware.  Middleware classes are initialized
-      # with the specified args and block, and applied to in the order in
-      # which they are declared (ie first use processes requests first).
-      #
-      # Middleware is applied through the class call method, and on a per-call
-      # basis... middleware like Rack::Session::Pool that is supposed to
-      # persist for the life of an application will not work properly.
-      # 
-      # Middleware is inherited.
-      def use(middleware, *args, &block)
-        @middleware << [middleware, args, block]
-      end
-      
-      # Instantiates self and performs call.  Middleware is applied in the
-      # order in which it was declared.
-      #--
-      # Note that middleware needs to be initialized in reverese, so that
-      # the first declared middleware runs first.
+      # Instantiates self and performs call.
       def call(env)
-        app = new
-        middleware.reverse_each do |(m, args, block)|
-          app = m.new(app, *args, &block)
-        end
-        app.call(env)
+        new.call(env)
       end
       
       # Sets an instance variable for self, short for:
@@ -113,8 +138,10 @@ module Tap
     end
     
     set :actions, []
-    set :middleware, []
     set :default_layout, nil
+    
+    # Ensures methods (even public methods) on Controller will
+    # not be actions in subclasses. 
     set :define_action, false
     
     include Rack::Utils
@@ -130,12 +157,16 @@ module Tap
     # the action result and response is ignored.
     attr_accessor :response
     
+    # The action currently being called by self.
+    attr_accessor :action
+    
     # Initializes a new instance of self.  The input attributes are reset by
     # call and are only provided for convenience during testing.
     def initialize(server=nil, request=nil, response=nil)
       @server = server
       @request = request
       @response = response
+      @action = nil
     end
     
     def call(env)
@@ -144,14 +175,12 @@ module Tap
       @response = Rack::Response.new
       
       # route to an action
-      blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-      action = "index" if action == nil || action.empty?
-      
-      unless self.class.actions.include?(action.to_sym)
+      @action, args = route
+      unless self.class.actions.include?(@action)
         raise ServerError.new("404 Error: page not found", 404)
       end
       
-      result = send(action, *args)
+      result = send(@action, *args)
       if result.kind_of?(String) 
         response.write result
         response.finish
@@ -160,15 +189,23 @@ module Tap
       end
     end
     
+    def route
+      blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
+      action = "index" if action == nil || action.empty?
+      action = action.chomp(File.extname(action)).to_sym
+      
+      [action, args]
+    end
+    
     def render(path, options={})
       options, path = path, nil if path.kind_of?(Hash)
       
       # lookup template
       template_path = case
       when options.has_key?(:template)
-        server.template_path(options[:template])
+        server.search(:views, options[:template])
       else
-        server.template_path("#{self.class.name}/#{path}")
+        server.search(:views, "#{self.class.name}/#{path}")
       end
       
       unless template_path
@@ -176,7 +213,7 @@ module Tap
       end
       
       # render template
-      template = server.content(template_path)
+      template = File.read(template_path)
       content = render_erb(template, options)
       
       # render layout
@@ -226,6 +263,16 @@ module Tap
     # Returns the root for the current session.
     def root
       server.root(session[:id] ||= server.initialize_session)
+    end
+    
+    # Returns the file-based controller persistence.
+    def persistence
+      @persistence ||= Support::Persistence.new(root)
+    end
+    
+    # Returns a controller uri.
+    def uri(action=nil, params={})
+      server.uri(self.class.name, action, params)
     end
     
     # Generates an empty binding to self without any locals assigned.

@@ -356,11 +356,6 @@ module Tap
       self
     end
     
-    # Returns a string like: "#<Tap::App:#{object_id} root: #{root} >"
-    def inspect
-      "#<#{self.class.to_s}:#{object_id} root: #{root} >"
-    end
-    
     # TerminateErrors are raised to kill executing tasks when terminate is 
     # called on an running App.  They are handled by the run rescue code.
     class TerminateError < RuntimeError 

@@ -1,7 +1,7 @@
-require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'schema_controller'
+require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require 'tap/controllers/schema'
 
-class SchemaControllerTest < Test::Unit::TestCase
+class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   include Tap::Support
   
   acts_as_tap_test
@@ -13,7 +13,7 @@ class SchemaControllerTest < Test::Unit::TestCase
     super
     @server = Tap::Server.new Tap::Env.new(:root => method_root, :env_paths => TEST_ROOT)
     @opts = {'tap.server' => @server}
-    @controller = SchemaController.new
+    @controller = Tap::Controllers::Schema.new
     @request = Rack::MockRequest.new(@controller)
   end
   
@@ -56,7 +56,7 @@ class SchemaControllerTest < Test::Unit::TestCase
     method_root.prepare(:views, "layout.erb") do |file|
       file << "<%= content %>"
     end
-    method_root.prepare(:views, "schema_controller/schema.erb") do |file|
+    method_root.prepare(:views, "tap/controllers/schema/schema.erb") do |file|
       file << "<%= id %>: <%= schema.to_s %>"
     end
     

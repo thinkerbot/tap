@@ -1,3 +1,18 @@
+== 0.3.0 / 2009-03-17
+
+Significant updates.
+
+* added optional REST routes to Tap::Controller
+* added persistence wrapper for session root
+* significant cleanup
+* removed middleware support
+* added bindings for running server from
+  Firefox/Ubiquity
+
+== 0.2.0 / 2009-03-07
+
+* Reworked server routing to route by ::controller
+
 == 0.1.1 / 2009-02-23
 
 Update executable to use Tap-0.12.2.

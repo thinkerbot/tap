@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap-server"
-  s.version = "0.1.1"
+  s.version = "0.3.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.summary = "A web interface for tap."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 0.12.2")
+  s.add_dependency("tap", ">= 0.12.3")
   s.add_dependency("rack", ">= 0.9.1")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\sServer}
@@ -20,32 +20,35 @@ Gem::Specification.new do |s|
   
   s.files = %W{
     cmd/server.rb
-    controllers/app_controller.rb
-    controllers/schema_controller.rb
     lib/tap/controller.rb
+    lib/tap/controllers/app.rb
+    lib/tap/controllers/schema.rb
+    lib/tap/controllers/server.rb
     lib/tap/server.rb
     lib/tap/server_error.rb
     lib/tap/tasks/echo.rb
     lib/tap/tasks/server.rb
+    lib/tap/support/persistence.rb
     public/javascripts/prototype.js
     public/javascripts/tap.js
     public/stylesheets/tap.css
     tap.yml
     views/404.erb
     views/500.erb
-    views/app_controller/index.erb
-    views/app_controller/info.erb
-    views/app_controller/tail.erb
     views/layout.erb
-    views/schema_controller/config/default.erb
-    views/schema_controller/config/flag.erb
-    views/schema_controller/config/switch.erb
-    views/schema_controller/configurations.erb
-    views/schema_controller/join.erb
-    views/schema_controller/node.erb
-    views/schema_controller/preview.erb
-    views/schema_controller/round.erb
-    views/schema_controller/schema.erb
+    views/tap/controllers/app/index.erb
+    views/tap/controllers/app/info.erb
+    views/tap/controllers/app/tail.erb
+    views/tap/controllers/schema/config/default.erb
+    views/tap/controllers/schema/config/flag.erb
+    views/tap/controllers/schema/config/switch.erb
+    views/tap/controllers/schema/configurations.erb
+    views/tap/controllers/schema/join.erb
+    views/tap/controllers/schema/node.erb
+    views/tap/controllers/schema/preview.erb
+    views/tap/controllers/schema/round.erb
+    views/tap/controllers/schema/schema.erb
+    views/tap/controllers/server/index.erb
     views/tap/tasks/echo/result.html
     }
 end

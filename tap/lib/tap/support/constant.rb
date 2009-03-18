@@ -72,9 +72,8 @@ module Tap
       # The path to load to initialize a missing constant
       attr_reader :require_path
       
-      # Initializes a new Constant with the specified constant
-      # name and require_path.  The name should be a valid
-      # constant name.
+      # Initializes a new Constant with the specified constant name and
+      # require_path.  The name should be a valid constant name.
       def initialize(name, require_path=nil)
         @name = name
         @require_path = require_path
@@ -100,7 +99,7 @@ module Tap
         @const_name ||= (name =~ /.*::(.*)$/ ? $1 : name)
       end
       
-      # Returns an array of the nesting constants of name.
+      # Returns the nesting constants of name.
       def nesting
         @nesting ||= (name =~ /(.*)::.*$/ ? $1 : '')
       end
@@ -123,9 +122,8 @@ module Tap
         another.require_path == self.require_path
       end
       
-      # Looks up and returns the constant indicated by name.
-      # If the constant cannot be found, the constantize
-      # requires require_path and tries again.  
+      # Looks up and returns the constant indicated by name. If the constant
+      # cannot be found, constantize requires require_path and tries again.  
       #
       # Raises a NameError if the constant cannot be found.
       def constantize

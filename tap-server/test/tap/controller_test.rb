@@ -3,7 +3,7 @@ require 'tap/controller'
 
 class ControllerTest < Test::Unit::TestCase
   acts_as_tap_test
-  cleanup_dirs << :views
+  cleanup_dirs << :views << :data << :log
   
   attr_reader :controller, :server
   
@@ -31,11 +31,6 @@ class ControllerTest < Test::Unit::TestCase
     assert ParentController.actions.object_id != ChildController.actions.object_id
   end
   
-  def test_middleware_inherited_by_duplication
-    assert_equal [[Rack::Session::Cookie, [], nil]], ChildController.middleware
-    assert ParentController.middleware.object_id != ChildController.middleware.object_id
-  end
-  
   def test_default_layout_is_inherited
     assert_equal 'default', ChildController.default_layout
   end
@@ -43,21 +38,6 @@ class ControllerTest < Test::Unit::TestCase
   def test_name_is_underscored_class_name
     assert_equal "controller_test/parent_controller", ParentController.name
     assert_equal "controller_test/child_controller", ChildController.name
-  end
-  
-  #
-  # use test
-  #
-  
-  def test_use_adds_args_to_middleware
-    controller_class = Class.new(Tap::Controller)
-    assert_equal [], controller_class.middleware
-    
-    controller_class.use(:a)
-    block = lambda {}
-    controller_class.use(:b, 1,2,3, &block)
-    
-    assert_equal [[:a, [], nil], [:b, [1,2,3], block]], controller_class.middleware
   end
   
   #
@@ -197,6 +177,11 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal "a.b.c", request.get("/action/a/b/c").body
   end
   
+  def test_controller_chomps_extname_off_action_if_specified
+    request = Rack::MockRequest.new CallController
+    assert_equal "a.b.c", request.get("/action.ext/a/b/c").body
+  end
+  
   def test_call_correctly_routes_path_info_with_escapes
     request = Rack::MockRequest.new CallController
     assert_equal "a+b.c d", request.get("/%61ction/a%2Bb/c%20d").body
@@ -246,42 +231,19 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal "result", request.get("/").body
   end
   
-  #
-  # middleware test
-  #
-  
-  class MiddlewareA
-    def initialize(app)
-      @app = app
-    end
-    def call(env)
-      env['middleware.a'] = "a"
-      env['middleware.b'] = "a"
-      @app.call(env)
+  class AccessorsController < Tap::Controller
+    def act
+      ""
     end
   end
   
-  class MiddlewareB
-    def initialize(app)
-      @app = app
-    end
-    def call(env)
-      env['middleware.b'] = "b"
-      @app.call(env)
-    end
-  end
-  
-  class UseController < Tap::Controller
-    use MiddlewareA
-    use MiddlewareB
-    def action
-      [200, {}, [request.env['middleware.a'], request.env['middleware.b']]]
-    end
-  end
-  
-  def test_middleware_is_applied_to_class_calls_in_order
-    request = Rack::MockRequest.new UseController
-    assert_equal "ab", request.get("/action").body
+  def test_call_sets_server_and_action
+    controller = AccessorsController.new
+    request = Rack::MockRequest.new controller
+    request.get("/act", 'tap.server' => 'server')
+    
+    assert_equal :act, controller.action
+    assert_equal 'server', controller.server
   end
   
   #
@@ -332,6 +294,59 @@ class ControllerTest < Test::Unit::TestCase
     assert !request.env.has_key?('rack.session')
     assert_equal 'app_1', controller.app
     assert_equal({:id => 1}, request.env['rack.session'])
+  end
+  
+  #
+  # root test
+  #
+  
+  class MockRootServer
+    def initialize_session
+      1
+    end
+    def root(id)
+      "root_#{id}"
+    end
+  end
+  
+  def test_root_returns_server_root_for_session_id
+    request = Rack::Request.new Rack::MockRequest.env_for("/", 'rack.session' => {:id => 0})
+    controller = Tap::Controller.new MockRootServer.new, request
+    assert_equal 'root_0', controller.root
+  end
+  
+  def test_root_initializes_session_id_if_unspecified
+    request = Rack::Request.new Rack::MockRequest.env_for("/")
+    controller = Tap::Controller.new MockRootServer.new, request
+    
+    assert !request.env.has_key?('rack.session')
+    assert_equal 'root_1', controller.root
+    assert_equal({:id => 1}, request.env['rack.session'])
+  end
+  
+  #
+  # persistence test
+  #
+  
+  class MockPersistenceServer
+    def initialize(root)
+      @root = root
+    end
+    def initialize_session
+      1
+    end
+    def root(id)
+      @root
+    end
+  end
+  
+  def test_persistence_returns_a_Persistence_object_initialized_to_root
+    request = Rack::Request.new Rack::MockRequest.env_for("/")
+    controller = Tap::Controller.new MockPersistenceServer.new(method_root), request
+    
+    p = controller.persistence
+    assert_equal Tap::Support::Persistence, p.class
+    assert_equal method_root, p.root
   end
   
   #
