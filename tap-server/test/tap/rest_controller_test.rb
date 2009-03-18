@@ -1,5 +1,5 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/rest_controller'
+require 'tap/controller'
 
 class RestControllerTest < Test::Unit::TestCase
   acts_as_tap_test
@@ -16,7 +16,9 @@ class RestControllerTest < Test::Unit::TestCase
   # rest routes test
   #
   
-  class RestfulController < Tap::RestController
+  class RestfulController < Tap::Controller
+    include RestRoutes
+    
     def index
       "index"
     end
@@ -62,8 +64,8 @@ class RestControllerTest < Test::Unit::TestCase
     assert_equal "unknown request method: UNKNOWN", e.message
   end
   
-  class PersistenceController < Tap::RestController
-    set :use_rest_routes, true
+  class PersistenceController < Tap::Controller
+    include RestRoutes
     
     def index
       persistence.index.join(", ")

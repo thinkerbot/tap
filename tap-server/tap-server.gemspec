@@ -24,7 +24,6 @@ Gem::Specification.new do |s|
     lib/tap/controllers/app.rb
     lib/tap/controllers/schema.rb
     lib/tap/controllers/server.rb
-    lib/tap/rest_controller.rb
     lib/tap/server.rb
     lib/tap/server_error.rb
     lib/tap/tasks/echo.rb
