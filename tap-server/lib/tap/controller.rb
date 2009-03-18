@@ -25,7 +25,6 @@ module Tap
         child.set(:actions, actions.dup)
         child.set(:default_layout, default_layout)
         child.set(:define_action, true)
-        child.set(:use_rest_routes, use_rest_routes)
       end
       
       # An array of methods that can be called as actions.  Actions must be
@@ -34,29 +33,6 @@ module Tap
       
       # The default layout rendered when the render option :layout is true.
       attr_reader :default_layout
-      
-      # Set to true to enable RESTful routing.  For example:
-      #
-      #   class Projects < Tap::Controller
-      #     set :use_rest_routes, true
-      #   
-      #     # GET /projects
-      #     def index...
-      # 
-      #     # GET /projects/*args
-      #     def show(*args)...
-      # 
-      #     # POST /projects/*args
-      #     def create(*args)...
-      # 
-      #     # PUT /projects/*args
-      #     def update(*args)...
-      # 
-      #     # DELETE /projects/*args
-      #     def destroy(*args)...
-      #   end
-      #
-      attr_reader :use_rest_routes
       
       # The base path prepended to render paths (ie render(<path>) renders
       # <templates_dir/name/path>).
@@ -113,7 +89,6 @@ module Tap
     
     set :actions, []
     set :default_layout, nil
-    set :use_rest_routes, false
     
     # Ensures methods (even public methods) on Controller will
     # not be actions in subclasses. 
@@ -150,38 +125,10 @@ module Tap
       @response = Rack::Response.new
       
       # route to an action
-      blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-
-      @action = if self.class.use_rest_routes
-        args.unshift(action)
-        
-        case request.request_method
-        when /GET/i  
-          case action
-          when nil
-            args.shift
-            :index
-          when /(.*);edit$/
-            args[0] = $1
-            :edit
-          else 
-            :show
-          end
-        when /POST/i then :create
-        when /PUT/i  then :update
-        when /DELETE/i then :destroy
-        else raise ServerError.new("unknown request method: #{request.request_method}")
-        end
-      else
-        action = "index" if action == nil || action.empty?
-        action = action.chomp(File.extname(action)).to_sym
-        
-        unless self.class.actions.include?(action)
-          raise ServerError.new("404 Error: page not found", 404)
-        end
-        
-        action
-      end    
+      @action, args = route
+      unless self.class.actions.include?(@action)
+        raise ServerError.new("404 Error: page not found", 404)
+      end
       
       result = send(@action, *args)
       if result.kind_of?(String) 
@@ -190,6 +137,14 @@ module Tap
       else 
         result
       end
+    end
+    
+    def route
+      blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
+      action = "index" if action == nil || action.empty?
+      action = action.chomp(File.extname(action)).to_sym
+      
+      [action, args]
     end
     
     def render(path, options={})
