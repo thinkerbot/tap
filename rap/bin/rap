@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-# usage: rap taskname {options} [args]
+# usage: rap taskname {options} [args] [-d-]
 
 $:.unshift "#{File.dirname(__FILE__)}/../lib"
 require 'rap/declarations'
@@ -7,9 +7,7 @@ require 'rap/declarations'
 # setup the environment
 begin
   
-  # handle super options
-  $DEBUG = true if ARGV.delete('-d-')
-  env = Tap::Exe.instantiate
+  env = Tap::Exe.setup(ARGV)
   env.unshift(Rap::Declarations.env)
   
   Dir.glob('[TtRr]apfile{,.rb}').each do |task_file|
