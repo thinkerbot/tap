@@ -5,6 +5,15 @@ require 'tap/support/schema'
 module Tap
   class Exe < Env
     class << self
+      def setup(argv=ARGV)
+        if argv[-1] == '-d-'
+          argv.pop
+          $DEBUG = true 
+        end
+        
+        instantiate
+      end
+      
       def instantiate(path_or_root=Dir.pwd)
         exe = super
         

@@ -16,14 +16,7 @@ require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 
 # setup the environment
 begin
-  
-  # handle debug super option
-  if ARGV[-1] == '-d-'
-    ARGV.pop
-    $DEBUG = true 
-  end
-  env = Tap::Exe.instantiate
-  
+  env = Tap::Exe.setup(ARGV)
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
