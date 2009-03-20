@@ -2,7 +2,8 @@
 
 * changed the default load/dump configs to load and
   dump data without serialization
-  
+* made stdin the default input to load
+
 == 0.12.4
 
 * fixed bug in App#inspect
