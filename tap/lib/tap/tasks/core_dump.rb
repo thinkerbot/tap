@@ -14,21 +14,15 @@ module Tap
     #
     class CoreDump < Tap::FileTask
       
-      config :date, true, &c.switch              # include a date
-      config :date_format, '%Y-%m-%d %H:%M:%S'   # the date format
-      config :info, true, &c.switch              # dump the app state information
-      config :aggregator, true, &c.switch        # dump aggregator results
-      config :audit, true, &c.switch             # include the audit trails with results
+      config :date, true, &c.switch              # Include a date
+      config :date_format, '%Y-%m-%d %H:%M:%S'   # The date format
+      config :info, true, &c.switch              # Dump the app state information
+      config :aggregator, true, &c.switch        # Dump aggregator results
+      config :audit, true, &c.switch             # Include the audit trails with results
       
-      def process(target=$stdout)
-        case target
-        when IO then dump_to(target)
-        when String
-          log_basename(:dump, target)
-          prepare(target)
-          File.open(target, "wb") {|file| dump_to(file) }
-        else
-          raise "cannot dump to: #{target.inspect}"
+      def process(target=$stderr)
+        open_io(target) do |io|
+          dump_to(io)
         end
       end
     
@@ -52,6 +46,8 @@ module Tap
           YAML::dump(results, io)
         end
       end
+      
+      
     end
   end
 end

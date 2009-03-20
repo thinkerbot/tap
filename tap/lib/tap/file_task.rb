@@ -34,11 +34,11 @@ module Tap
     include Tap::Support::ShellUtils
     
     # The backup directory
-    config_attr :backup_dir, 'backup'            # the backup directory
+    config_attr :backup_dir, 'backup'            # The backup directory
     
     # A flag indicating whether or track changes
     # for rollback on execution error
-    config :rollback_on_error, true, &c.switch   # rollback changes on error
+    config :rollback_on_error, true, &c.switch   # Rollback changes on error
     
     def initialize(config={}, name=nil, app=App.instance)
       super
@@ -370,6 +370,16 @@ module Tap
     def on_execute_error(original_error)
       rollback if rollback_on_error
       raise original_error
+    end
+    
+    # helper to open and yield the io specified by target.  open_io
+    # ensures file targets are closed when the block returns.
+    def open_io(io)
+      case io
+      when IO, StringIO then yield(io)
+      when String then File.open(io, 'a') {|file| yield(file) }  
+      else raise "cannot open io: #{target.inspect}"
+      end
     end
     
     private 

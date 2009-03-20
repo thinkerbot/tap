@@ -90,7 +90,7 @@ module Tap
       # Prints the _audit to the target.  The return value of process is
       # not recorded in the audit trail.
       def process(_audit)
-        open_io do |io|
+        open_io(target) do |io|
           if date
             io.puts "# date: #{Time.now.strftime(date_format)}"
           end
@@ -105,18 +105,6 @@ module Tap
           else
             io << _audit.value.to_s
           end
-        end
-      end
-      
-      protected
-      
-      # helper to open and yield the io specified by target.  open_io
-      # ensures file targets are closed when the block returns.
-      def open_io # :nodoc:
-        case target
-        when IO, StringIO then yield(target)
-        when String then File.open(target, 'a') {|io| yield(io) }  
-        else raise "cannot open target: #{target.inspect}"
         end
       end
     end
