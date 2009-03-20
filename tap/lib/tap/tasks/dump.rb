@@ -2,17 +2,16 @@ module Tap
   module Tasks
     # :startdoc::manifest the default dump task
     #
-    # A dump task to print results as YAML.  Unlike most tasks, dump arguments
+    # A dump task to print results.  Unlike most tasks, dump arguments
     # do not enque to the task; instead the arguments are used to setup a
     # dump and the dump uses whatever results come to them in a workflow.
     #
     # Multiple dumps to the same file append rather than overwrite.  If no file
-    # is specified, the dump goes to $stdout.
+    # is specified, then dump goes to $stdout.
     #
     #   % tap run -- [task] --: dump FILEPATH
     #
-    # Results may be printed directly, without conversion to YAML by using the
-    # --no-yaml option.
+    # Results may be printed as YAML by using the --yaml option.
     #
     # :startdoc::manifest-
     #
@@ -39,10 +38,10 @@ module Tap
       lazy_attr :args, :setup
       lazy_register :setup, Lazydoc::Arguments
       
-      config :date_format, '%Y-%m-%d %H:%M:%S'   # the date format
-      config :audit, true, &c.switch             # include the audit trails
-      config :date, true, &c.switch              # include a date
-      config :yaml, true, &c.switch              # dump as yaml (vs string)
+      config :date_format, '%Y-%m-%d %H:%M:%S'   # The date format
+      config :audit, false, &c.switch            # Include the audit trails
+      config :date, false, &c.switch             # Include a date
+      config :yaml, false, &c.switch             # Dump as YAML (vs string)
       
       # The dump target, by default $stdout.  Target may be a filepath,
       # in which case dumps append the file.

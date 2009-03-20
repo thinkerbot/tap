@@ -21,23 +21,25 @@ class Tap::Tasks::LoadTest < Test::Unit::TestCase
   # process test
   #
   
-  def test_process_loads_input_as_yaml
+  def test_process_reads_input
+    str = {'one' => 1, 'two' => 2, 'three' => 3}.to_yaml
+    io = StringIO.new(str)
+    assert_equal(str, load.process(io))
+  end
+  
+  def test_process_loads_input_as_yaml_if_specified
+    load.yaml = true
+    
     io = StringIO.new([1,2,3].to_yaml)
     assert_equal [1,2,3], load.process(io)
     
     io = StringIO.new({'one' => 1, 'two' => 2, 'three' => 3}.to_yaml)
     assert_equal({'one' => 1, 'two' => 2, 'three' => 3}, load.process(io))
   end
-  
-  def test_process_reads_input_if_no_yaml_is_specified
-    load.yaml = false
-    
-    str = {'one' => 1, 'two' => 2, 'three' => 3}.to_yaml
-    io = StringIO.new(str)
-    assert_equal(str, load.process(io))
-  end
-  
+
   def test_process_loads_input_from_filepaths
+    load.yaml = true
+    
     path = method_root.prepare(:tmp, 'input.yml') do |file|
       file << {'one' => 1, 'two' => 2, 'three' => 3}.to_yaml
     end

@@ -72,27 +72,28 @@ class DumpTest < Test::Unit::TestCase
   # process test
   #
   
-  def test_process_dumps_the_audit_value_to_io_as_YAML
+  def test_process_dumps_the_audit_value_as_a_string
     a = Audit.new('a', 'value')
     
+    dump.process(a)
+    assert_equal "value", io.string
+  end
+  
+  def test_process_dumps_the_audit_value_to_io_as_YAML_if_specified
+    a = Audit.new('a', 'value')
+    
+    dump.yaml = true
     dump.process(a)
     assert_equal %Q{
 --- value
 }, "\n" + io.string
-  end
-  
-  def test_process_dumps_the_audit_value_as_a_string_if_specified
-    a = Audit.new('a', 'value')
-    
-    dump.yaml = false
-    dump.process(a)
-    assert_equal "value", io.string
   end
     
   def test_process_dumps_the_audit_if_specified
     a = Audit.new('a', 1)
     b = Audit.new('b', 2, a)
     
+    dump.yaml = true
     dump.audit = true
     dump.process(b)
     assert_equal %Q{
@@ -110,7 +111,7 @@ class DumpTest < Test::Unit::TestCase
 
     dump.target = path
     dump.process(a)
-    assert_equal %Q{--- value\n}, File.read(path)
+    assert_equal "value", File.read(path)
   end
   
   def test_sequential_dumps_append_a_file_target
@@ -121,6 +122,6 @@ class DumpTest < Test::Unit::TestCase
     dump.process(a)
     dump.process(a)
     dump.process(a)
-    assert_equal %Q{--- value\n--- value\n--- value\n}, File.read(path)
+    assert_equal "valuevaluevalue", File.read(path)
   end
 end

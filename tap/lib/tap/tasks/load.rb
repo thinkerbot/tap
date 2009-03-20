@@ -2,8 +2,9 @@ module Tap
   module Tasks
     # :startdoc::manifest the default load task
     #
-    # Loads YAML-formatted data and makes the result available for other tasks.
-    # Use the --no-yaml configuration to read the data without loading as YAML.
+    # Loads data from the input and makes it available for other tasks.  The
+    # input may be an IO or a filepath.  YAML-formatted data may be loaded by
+    # specifying the --yaml configuration.
     #
     # Load is typically used as a gateway task to other tasks.
     #
@@ -11,7 +12,7 @@ module Tap
     #
     class Load < Tap::Task
       
-      config :yaml, true, &c.switch              # load as yaml (vs string)
+      config :yaml, false, &c.switch              # load as yaml (vs string)
       
       # Loads the input as YAML.  Input may be an IO, StringIO, or a filepath.
       # The loaded object is returned directly.
