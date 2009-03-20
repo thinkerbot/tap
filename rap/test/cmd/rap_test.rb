@@ -21,7 +21,7 @@ class RapTest < Test::Unit::TestCase
     script_test do |cmd|
       cmd.check "Prints help and summary for rap", %Q{
 % #{cmd}
-usage: rap taskname {options} [args]
+usage: rap taskname {options} [args] [-d-]
 
 ===  tap tasks ===
   core_dump   # dumps the application
@@ -31,7 +31,7 @@ usage: rap taskname {options} [args]
 === rake tasks ===
 :...:
 % #{cmd} -T
-usage: rap taskname {options} [args]
+usage: rap taskname {options} [args] [-d-]
 
 ===  tap tasks ===
   core_dump   # dumps the application
@@ -65,7 +65,7 @@ end
     script_test do |cmd|
       cmd.check "Prints summary of declarations", %Q{
 % #{cmd}
-usage: rap taskname {options} [args]
+usage: rap taskname {options} [args] [-d-]
 
 ===  tap tasks ===
 test_rap_help_with_declarations:
