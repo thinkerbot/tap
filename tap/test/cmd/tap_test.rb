@@ -23,7 +23,9 @@ class TapTest < Test::Unit::TestCase
   end
   
   TAP_HELP = %Q{
-usage: tap <command> {options} [args]
+usage: tap <command> {options} [args] [-d-]
+
+Launches a tap command. To enable debugging, append the -d- superflag.
 
 examples:
   tap generate root .                  # generates a root dir

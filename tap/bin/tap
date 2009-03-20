@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
-# usage: tap <command> {options} [args]
+# usage: tap <command> {options} [args] [-d-]
+#
+# Launches a tap command. To enable debugging, append the -d- superflag.
 #
 # examples:
 #   tap generate root .                  # generates a root dir
@@ -15,8 +17,11 @@ require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 # setup the environment
 begin
   
-  # handle super options
-  $DEBUG = true if ARGV.delete('-d-')
+  # handle debug super option
+  if ARGV[-1] == '-d-'
+    ARGV.pop
+    $DEBUG = true 
+  end
   env = Tap::Exe.instantiate
   
 rescue(Tap::Env::ConfigError)
