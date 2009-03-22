@@ -52,7 +52,6 @@ Tap pulls documentation out of task classes to generate manifests:
     sample:
       goodnight   # your basic goodnight moon task
     tap:
-      core_dump   # dumps the application
       dump        # the default dump task
       load        # the default load task
       
