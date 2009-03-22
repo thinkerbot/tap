@@ -130,7 +130,7 @@ module Tap
       end
     end
     
-    def set_signals
+    def set_signals(app=Tap::App.instance)
       # info signal -- Note: some systems do 
       # not support the INFO signal 
       # (windows, fedora, at least)
