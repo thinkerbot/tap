@@ -1,3 +1,5 @@
+require 'stringio'
+
 module Tap
   # :startdoc::manifest the default load task
   #
@@ -39,6 +41,12 @@ module Tap
     # The default process simply reads the input data and returns it.
     # See load.
     def process(input=$stdin)
+      # read on an empty stdin ties up the command line;
+      # this facilitates the intended behavior
+      if input == $stdin && input.stat.size == 0
+        input = '' 
+      end
+      
       case input
       when StringIO, IO
         load(input)
