@@ -27,46 +27,6 @@ class DumpTest < Test::Unit::TestCase
     assert_equal true, dump.date
     assert_equal false, dump.audit
   end
-
-  #
-  # _execute test
-  #
-
-  def test__execute_merges_inputs
-    a = Audit.new('a', 'A')
-    c = Audit.new('c', 'C')
-    
-    _result = dump._execute(a, 'B', c)
-    
-    assert_equal [[['a'], [nil], ['c']], dump], _result.trail {|audit| audit.key }
-    assert_equal [[['A'], ['B'], ['C']], ['A', 'B', 'C']], _result.trail {|audit| audit.value }
-  end
-  
-  def test__execute_does_not_join_audits_if_app_audit_is_false
-    a = Audit.new('a', 'A')
-    c = Audit.new('c', 'C')
-    
-    app.audit = false
-    _result = dump._execute(a, 'B', c)
-    
-    assert_equal [dump], _result.trail {|audit| audit.key }
-    assert_equal [['A', 'B', 'C']], _result.trail {|audit| audit.value }
-  end
-  
-  def test_process_receives_the_merged_input
-    a = Audit.new('a', 'A')
-    c = Audit.new('c', 'C')
-    
-    was_in_block = false
-    dump = Dump.intern do |task, _audit|
-      assert_equal [[['a'], [nil], ['c']], dump], _audit.trail {|audit| audit.key }
-      assert_equal [[['A'], ['B'], ['C']], ['A', 'B', 'C']], _audit.trail {|audit| audit.value } 
-      was_in_block = true
-    end
-    
-    dump._execute(a, 'B', c)
-    assert was_in_block
-  end
   
   #
   # process test
