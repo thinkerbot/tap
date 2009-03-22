@@ -2,25 +2,43 @@ module Tap
 
   # :startdoc::manifest the default dump task
   #
-  # A dump task to print results.  Unlike most tasks, dump arguments
-  # do not enque to the task; instead the arguments are used to setup a
-  # dump and the dump uses whatever results come to them in a workflow.
-  #
-  # Multiple dumps to the same file append rather than overwrite.  If no file
-  # is specified, then dump goes to $stdout.
+  # A dump task to output results.  Unlike most tasks, dump does not enque
+  # arguments from the command line; instead command line arguments are only
+  # used to setup the dump.  Specifically dump accepts a filepath.  Results
+  # that come to dump are appended to the specified file.
   #
   #   % tap run -- [task] --: dump FILEPATH
   #
+  # Note that dump uses $stdout by default so you can pipe or redirect dumps
+  # as normal.
+  #
+  #   % tap run -- load hello --: dump | cat
+  #   hello
+  #
+  #   % tap run -- load hello --: dump 1> results.txt
+  #   % cat results.txt
+  #   hello
+  #
   # :startdoc::manifest-
   #
-  # Dumps are organized so that arguments passed on the command line are
-  # directed at setup rather than process.  Moreover, process will always
-  # receive the audits passed to _execute, rather than the audit values.
-  # This allows a user to provide setup arguments (such as a dump path)
-  # on the command line, and provides dump the opportunity to inspect
-  # audit trails.
+  # Dump serves as a baseclass for more complicated dump tasks.  A YAML dump
+  # task (see {tap-tasks}[http://tap.rubyforge.org/tap-tasks]) looks like this:
   #
-  class Dump < Tap::FileTask
+  #   class Yaml < Tap::Dump
+  #     def dump(obj, io)
+  #       YAML.dump(obj, io)
+  #     end
+  #   end
+  #
+  # === Implementation Notes
+  #
+  # Dump passes on the command line arguments to setup rather than process.
+  # Moreover, process will always receive the audits passed to _execute, rather
+  # than the audit values. This allows a user to provide setup arguments (such
+  # as a dump path) on the command line, and provides dump the opportunity to
+  # inspect audit trails within process.
+  #
+  class Dump < Tap::Task
     class << self
       
       # Same as an ordinary parse!, except the arguments normally reserved for
@@ -44,15 +62,16 @@ module Tap
     # in which case dumps append the file.
     attr_accessor :target
     
-    def initialize(config={}, name=nil, app=App.instance, target=$stdout)
+    def initialize(config={}, name=nil, app=App.instance)
       super(config, name, app)
-      @target = target
+      @target = $stdout
     end
     
-    # Setup self with the input target.  Setup is typically called from
-    # parse! and receives arguments passed from the command line.
-    def setup(path=target)
-      @target = path
+    # Setup self with the input target.  Setup receives arguments passed from
+    # the command line, via parse!
+    def setup(output=$stdout)
+      @target = output
+      self
     end
     
     # Overrides the standard _execute to send process the audits and not
@@ -84,23 +103,43 @@ module Tap
       audit
     end
     
+    # The default process prints dump headers as specified in the config,
+    # then append the audit value to io.
     def process(_audit)
       open_io(target) do |io|
         if date
           io.puts "# date: #{Time.now.strftime(date_format)}"
         end
-        
+
         if audit
           io.puts "# audit:"
           io.puts "# #{_audit.dump.gsub("\n", "\n# ")}"
         end
         
-        dump(io, _audit.value)
+        dump(_audit.value, io)
       end
     end
     
-    def dump(io, value)
-      io.puts value.to_s
+    # Dumps the object to io, by default dump puts (not prints) obj.to_s.
+    def dump(obj, io)
+      io.puts obj.to_s
+    end
+    
+    protected
+    
+    # helper to open and yield the io specified by target.  open_io
+    # ensures file targets are closed when the block returns.
+    def open_io(io) # :nodoc:
+      case io
+      when IO, StringIO 
+        yield(io)
+      when String
+        dir = File.dirname(io)
+        FileUtils.mkdir_p(dir) unless File.directory?(dir)
+        File.open(io, 'a') {|file| yield(file) }  
+      else
+        raise "cannot open io: #{target.inspect}"
+      end
     end
   end
 end

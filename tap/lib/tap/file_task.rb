@@ -372,16 +372,6 @@ module Tap
       raise original_error
     end
     
-    # helper to open and yield the io specified by target.  open_io
-    # ensures file targets are closed when the block returns.
-    def open_io(io)
-      case io
-      when IO, StringIO then yield(io)
-      when String then File.open(io, 'a') {|file| yield(file) }  
-      else raise "cannot open io: #{target.inspect}"
-      end
-    end
-    
     private 
 
     # utility method for backup_filepath; increments index until the

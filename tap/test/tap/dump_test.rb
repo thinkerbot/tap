@@ -12,7 +12,7 @@ class DumpTest < Test::Unit::TestCase
   def setup
     super
     @io = StringIO.new
-    @dump = Dump.new({:date => false, :audit => false}, nil, app, io)
+    @dump = Dump.new.setup(io)
   end
   
   #

@@ -197,8 +197,8 @@ module Tap
       self.logger = logger
     end
     
-    # The default App logger writes to $stdout at level INFO.
-    DEFAULT_LOGGER = Logger.new($stdout)
+    # The default App logger writes to $stderr at level INFO.
+    DEFAULT_LOGGER = Logger.new($stderr)
     DEFAULT_LOGGER.level = Logger::INFO
     DEFAULT_LOGGER.formatter = lambda do |severity, time, progname, msg|
       "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
