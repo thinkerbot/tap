@@ -1,9 +1,9 @@
-require File.join(File.dirname(__FILE__), '../../tap_test_helper') 
-require 'tap/tasks/dump'
+require File.join(File.dirname(__FILE__), '../tap_test_helper') 
+require 'tap/dump'
 require 'stringio'
 
 class DumpTest < Test::Unit::TestCase
-  include Tap::Tasks
+  include Tap
   Audit = Tap::Support::Audit
   acts_as_tap_test 
   
@@ -76,24 +76,13 @@ class DumpTest < Test::Unit::TestCase
     a = Audit.new('a', 'value')
     
     dump.process(a)
-    assert_equal "value", io.string
+    assert_equal "value\n", io.string
   end
   
-  def test_process_dumps_the_audit_value_to_io_as_YAML_if_specified
-    a = Audit.new('a', 'value')
-    
-    dump.yaml = true
-    dump.process(a)
-    assert_equal %Q{
---- value
-}, "\n" + io.string
-  end
-    
   def test_process_dumps_the_audit_if_specified
     a = Audit.new('a', 1)
     b = Audit.new('b', 2, a)
     
-    dump.yaml = true
     dump.audit = true
     dump.process(b)
     assert_equal %Q{
@@ -101,7 +90,7 @@ class DumpTest < Test::Unit::TestCase
 # o-[a] 1
 # o-[b] 2
 # 
---- 2
+2
 }, "\n" + io.string
   end
   
@@ -111,7 +100,7 @@ class DumpTest < Test::Unit::TestCase
 
     dump.target = path
     dump.process(a)
-    assert_equal "value", File.read(path)
+    assert_equal "value\n", File.read(path)
   end
   
   def test_sequential_dumps_append_a_file_target
@@ -122,6 +111,6 @@ class DumpTest < Test::Unit::TestCase
     dump.process(a)
     dump.process(a)
     dump.process(a)
-    assert_equal "valuevaluevalue", File.read(path)
+    assert_equal "value\nvalue\nvalue\n", File.read(path)
   end
 end

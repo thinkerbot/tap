@@ -244,7 +244,7 @@ unknown task: --help
   def test_run_with_dump
     script_test do |cmd|
       cmd.check "Runs and dumps workflow", %Q{
-% #{cmd} run -- echo --name 1 --: echo --name 2 --: echo --name 3 --: dump --audit --yaml
+% #{cmd} run -- echo --name 1 --: echo --name 2 --: echo --name 3 --: dump --audit
 ["1"]
 ["1", "2"]
 ["1", "2", "3"]
@@ -252,26 +252,20 @@ unknown task: --help
 # o-[1] ["1"]
 # o-[2] ["1", "2"]
 # o-[3] ["1", "2", "3"]
-# o-[tap/tasks/dump] [["1", "2", "3"]]
+# o-[tap/dump] [["1", "2", "3"]]
 # 
---- 
-- - "1"
-  - "2"
-  - "3"
+123
 }
 
-      cmd.check "Workflow without auditing", %Q{
-% #{cmd} run --no-audit -- echo --name 1 --: echo --name 2 --: echo --name 3 --: dump --audit --yaml
+      cmd.check "Workflow with auditing disabled", %Q{
+% #{cmd} run --no-audit -- echo --name 1 --: echo --name 2 --: echo --name 3 --: dump --audit
 ["1"]
 ["1", "2"]
 ["1", "2", "3"]
 # audit:
-# o-[tap/tasks/dump] [["1", "2", "3"]]
+# o-[tap/dump] [["1", "2", "3"]]
 # 
---- 
-- - "1"
-  - "2"
-  - "3"
+123
 }
     end
   end
