@@ -29,13 +29,14 @@ class RootGeneratorTest < Test::Unit::TestCase
       test/tap_test_helper.rb
     }, g.process(Dir.pwd, 'project').sort
     
+    assert g.preview['tap.yml'].empty?
     assert g.preview['README'] =~ /MIT-LICENSE/
     assert g.preview['project.gemspec'] =~ /MIT-LICENSE/
   end
   
-  def test_config_file_false_prevents_creation_of_tap_yml
+  def test_config_file_true_populates_tap_yml
     g = RootGenerator.new.extend Preview
-    g.config_file = false
+    g.config_file = true
     
     assert_equal %w{
       .
@@ -44,9 +45,12 @@ class RootGeneratorTest < Test::Unit::TestCase
       Rakefile
       lib
       project.gemspec
+      tap.yml
       test
       test/tap_test_helper.rb
     }, g.process(Dir.pwd, 'project').sort
+    
+    assert !g.preview['tap.yml'].empty?
   end
   
   def test_license_false_prevents_creation_of_license

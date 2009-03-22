@@ -19,8 +19,8 @@ Gem::Specification.new do |s|
   }
   
   # list the files you want to include here. you can
-  # check this manifest using 'rake :print_manifest'
+  # check this manifest using 'rap print_manifest'
   s.files = %W{
-<%= config_file ? "    tap.yml\n" : '' %>
+    tap.yml
   }
 end

@@ -19,7 +19,7 @@ module Tap::Generator::Generators
   #
   class RootGenerator < Tap::Generator::Base
     
-    config :config_file, true, &c.switch   # Create a tap.yml file
+    config :config_file, false, &c.switch  # Create a full tap.yml file
     config :license, true, &c.switch       # Create an MIT-LICENSE
     config :rapfile, false, &c.switch      # Create a Rapfile
     
@@ -69,8 +69,8 @@ module Tap::Generator::Generators
           leader = key == 'root' || default == nil ? '# ' : ''
           config = YAML.dump({key => default})[5..-1].strip.gsub(/\n+/, "\n#{leader}")
           "#{lines.join("\n")}#{leader}#{config}\n\n"
-        end
-      end if config_file
+        end if config_file
+      end
     end
     
   end
