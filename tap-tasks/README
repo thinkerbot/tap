@@ -1,0 +1,22 @@
+= Tap Tasks
+
+A set of standard Tap tasks.
+
+== Description
+
+Tap Tasks is a standard library of utility tasks.
+
+== Usage
+
+== Installation
+
+Tap Tasks is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+
+  % gem install tap-tasks
+  
+== Info
+
+Copyright (c) 2009, Regents of the University of Colorado.
+Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com], {Biomolecular Structure Program}[http://biomol.uchsc.edu/], {Hansen Lab}[http://hsc-proteomics.uchsc.edu/hansenlab/] 
+Support:: CU Denver School of Medicine Deans Academic Enrichment Fund
+License:: {MIT-Style}[link:files/MIT-LICENSE.html]

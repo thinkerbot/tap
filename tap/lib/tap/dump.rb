@@ -4,10 +4,15 @@ module Tap
   #
   # A dump task to output results.  Unlike most tasks, dump does not enque
   # arguments from the command line; instead command line arguments are only
-  # used to setup the dump.  Specifically dump accepts a filepath.  Results
-  # that come to dump are appended to the specified file.
+  # used to setup the dump.  Specifically dump accepts a filepath.
   #
   #   % tap run -- [task] --: dump FILEPATH
+  #
+  # Results that come to dump are appended to the file.  Dump only accepts
+  # one object at a time, so joins that produce an array need to iterate
+  # outputs to dump:
+  #
+  #   % tap run -- load hello -- load world "--2(0,1)i" dump 
   #
   # Note that dump uses $stdout by default so you can pipe or redirect dumps
   # as normal.
@@ -76,22 +81,14 @@ module Tap
     
     # Overrides the standard _execute to send process the audits and not
     # the audit values.  This allows process to inspect audit trails.
-    def _execute(*inputs)
+    def _execute(input)
       resolve_dependencies
       
-      previous = []
-      inputs.collect! do |input| 
-        if input.kind_of?(Support::Audit) 
-          previous << input
-          input.value
-        else
-          previous << Support::Audit.new(nil, input)
-          input
-        end
-      end
+      previous = input.kind_of?(Support::Audit) ? input : Support::Audit.new(nil, input)
+      input = previous.value
       
       # this is the overridden part
-      audit = Support::Audit.new(self, inputs, app.audit ? previous : nil)
+      audit = Support::Audit.new(self, input, app.audit ? previous : nil)
       send(method_name, audit)
       
       if complete_block = on_complete_block || app.on_complete_block

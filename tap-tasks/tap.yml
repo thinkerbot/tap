@@ -1,0 +1,28 @@
+# The Root directory structure for self.
+# root: 
+#   :relative_paths: {}
+#   :absolute_paths: {}
+#   :root: .
+
+# Specify gems to load as nested Envs.  Gems may be specified by name and/or
+# version, like 'gemname >= 1.2'; by default the latest version of the gem is
+# selected.
+# 
+# Gems are immediately loaded (via gem) through this method.
+gems: []
+
+# Specify configuration files to load as nested Envs.
+env_paths: []
+
+# Designate load paths.
+load_paths: 
+- lib
+
+# Designate paths for discovering and executing commands.
+command_paths: 
+- cmd
+
+# Designate paths for discovering generators.
+generator_paths: 
+- lib
+
