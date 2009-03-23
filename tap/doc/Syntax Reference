@@ -227,8 +227,3 @@ tasks.  These are equivalents:
   % tap run --+ b --++ d -- a --+ c
   % tap run -- a -- b -- c -- d --+1[1,2] --+2[3]
 
-Rounds are particularly useful for dump tasks; add a dump task as a final round
-to capture all results from previous rounds:
-
-  % tap run -- task -- task --+ dump
-
