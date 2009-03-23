@@ -11,7 +11,7 @@ module Tap
     #   # - - dump/yaml
     #   # - 0[1]
     #
-    #   % tap run workflow.yml a b c
+    #   % tap run -w workflow.yml a b c
     #   ---
     #   - a
     #   - b

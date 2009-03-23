@@ -1,0 +1,6 @@
+==
+
+Initial release with:
+
+* dump/load YAML tasks
+* inspect/argv tasks
