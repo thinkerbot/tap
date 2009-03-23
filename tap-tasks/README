@@ -6,8 +6,6 @@ A set of standard Tap tasks.
 
 Tap Tasks is a standard library of utility tasks.
 
-== Usage
-
 == Installation
 
 Tap Tasks is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
