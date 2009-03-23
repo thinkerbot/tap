@@ -1,13 +1,13 @@
-==
-
-* changed the default load/dump configs to load and
-  dump data without serialization
-* made stdin the default input to load
-
-== 0.12.4
+== 0.12.4 / 2009-03-23
 
 * fixed bug in App#inspect
 * documentation updates
+* changed the default load/dump configs to load and
+  dump data without serialization
+* made stdin the default input to load
+* updated run syntax to allow arguments to be passed
+  to saved workflows
+* updates to RootGenerator
 
 == 0.12.3 / 2009-03-05
 
