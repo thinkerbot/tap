@@ -24,7 +24,6 @@ class RapTest < Test::Unit::TestCase
 usage: rap taskname {options} [args] [-d-]
 
 ===  tap tasks ===
-  core_dump   # dumps the application
   dump        # the default dump task
   load        # the default load task
 
@@ -34,7 +33,6 @@ usage: rap taskname {options} [args] [-d-]
 usage: rap taskname {options} [args] [-d-]
 
 ===  tap tasks ===
-  core_dump   # dumps the application
   dump        # the default dump task
   load        # the default load task
 
@@ -72,7 +70,6 @@ test_rap_help_with_declarations:
   task_with_doc     # task summary
   task_with_desc    # desc
 tap:
-  core_dump         # dumps the application
   dump              # the default dump task
   load              # the default load task
 
