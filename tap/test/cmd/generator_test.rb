@@ -18,6 +18,7 @@ class GeneratorTest < Test::Unit::TestCase
         
         expected = %w{
           lib
+          History
           MIT-LICENSE
           output.gemspec
           Rakefile

@@ -21,6 +21,7 @@ module Tap::Generator::Generators
     
     config :config_file, false, &c.switch  # Create a full tap.yml file
     config :license, true, &c.switch       # Create an MIT-LICENSE
+    config :history, true, &c.switch       # Create History file
     config :rapfile, false, &c.switch      # Create a Rapfile
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
@@ -38,7 +39,12 @@ module Tap::Generator::Generators
           m.directory r[target]
           next
         when source =~ /gemspec$/
-          m.template r[project_name + '.gemspec'], source, :project_name => project_name, :config_file => config_file, :license => license
+          m.template r[project_name + '.gemspec'], source, {
+            :project_name => project_name, 
+            :config_file => config_file, 
+            :license => license,
+            :history => history
+          }
           next
         when source =~ /Rapfile$/
           next unless rapfile
@@ -49,6 +55,7 @@ module Tap::Generator::Generators
         m.template r[target], source, :project_name => project_name, :license => license
       end
       
+      m.file(r['History']) if history
       m.file(r['tap.yml']) do |file|
         Configurable::Utils.dump(Tap::Env.configurations, file) do |key, delegate|
           default = delegate.default(false)

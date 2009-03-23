@@ -19,6 +19,7 @@ class RootGeneratorTest < Test::Unit::TestCase
     
     assert_equal %w{
       .
+      History
       MIT-LICENSE
       README
       Rakefile
@@ -40,6 +41,7 @@ class RootGeneratorTest < Test::Unit::TestCase
     
     assert_equal %w{
       .
+      History
       MIT-LICENSE
       README
       Rakefile
@@ -53,12 +55,30 @@ class RootGeneratorTest < Test::Unit::TestCase
     assert !g.preview['tap.yml'].empty?
   end
   
+  def test_history_false_prevents_creation_of_History
+    g = RootGenerator.new.extend Preview
+    
+    g.history = false
+    assert_equal %w{
+      .
+      MIT-LICENSE
+      README
+      Rakefile
+      lib
+      project.gemspec
+      tap.yml
+      test
+      test/tap_test_helper.rb
+    }, g.process(Dir.pwd, 'project').sort
+  end
+  
   def test_license_false_prevents_creation_of_license
     g = RootGenerator.new.extend Preview
     g.license = false
     
     assert_equal %w{
       .
+      History
       README
       Rakefile
       lib
@@ -78,6 +98,7 @@ class RootGeneratorTest < Test::Unit::TestCase
     
     assert_equal %w{
       .
+      History
       MIT-LICENSE
       README
       Rakefile
