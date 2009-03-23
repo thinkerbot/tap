@@ -22,25 +22,9 @@ class RunTest < Test::Unit::TestCase
   
   def test_run_help
     script_test do |cmd|
-      cmd.check "Prints help for run", %Q{
+      cmd.match "Prints help for run", %Q{
 % #{cmd} run --help
-usage: tap run FILEPATHS... [options] -- [SCHEMA]
-
-examples:
-  tap run --help                     Prints this help
-  tap run -- task --help             Prints help for task
-
-configurations:
-        --[no-]audit                 Signal auditing
-        --debug                      Flag debugging
-        --force                      Force execution at checkpoints
-        --quiet                      Suppress logging
-        --verbose                    Enables extra logging (overrides quiet)
-
-options:
-    -h, --help                       Show this message
-    -T, --manifest                   Print a list of available tasks
-}, false
+}, /-h, --help/
       
       cmd.check "Prints the sample task help", %Q{
 % #{cmd} run -- sample --help
@@ -119,8 +103,14 @@ no task specified
 no task specified
 }, false
 
-      cmd.check "Prints no such file", %Q{
+      cmd.check "Prints no task specified", %Q{
 % #{cmd} run unknown
+no task specified
+(did you mean 'tap run -- unknown'?)
+}, false
+
+      cmd.check "Prints no such file", %Q{
+% #{cmd} run -w unknown
 No such file or directory - unknown
 (did you mean 'tap run -- unknown'?)
 }, false
@@ -136,8 +126,16 @@ unknown task: --help
         file << "- [sample, one]"
       end
       cmd.match "Runs the workflow successfully", 
-      "% #{cmd} run #{path}",
+      "% #{cmd} run -w #{path}",
       /I\[\d\d:\d\d:\d\d\]             sample one was processed with value/
+      
+      path = method_root.prepare(:tmp, 'workflow.yml') do |file|
+        file << "- [argv]"
+      end
+      
+      cmd.match "Runs the workflow with ARGV", 
+      "% #{cmd} run -w #{path} a b c",
+      /argv was \["a", "b", "c"\]/
       
       cmd.match "Runs the sample task successfully", 
       "% #{cmd} run -- sample one",
