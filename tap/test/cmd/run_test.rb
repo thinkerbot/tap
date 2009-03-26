@@ -126,7 +126,7 @@ unknown task: --help
         file << "- [sample, one]"
       end
       cmd.match "Runs the workflow successfully", 
-      "% #{cmd} run -w #{path}",
+      "% #{cmd} run -w '#{path}'",
       /I\[\d\d:\d\d:\d\d\]             sample one was processed with value/
       
       path = method_root.prepare(:tmp, 'workflow.yml') do |file|
@@ -134,7 +134,7 @@ unknown task: --help
       end
       
       cmd.match "Runs the workflow with ARGV", 
-      "% #{cmd} run -w #{path} a b c",
+      "% #{cmd} run -w '#{path}' a b c",
       /argv was \["a", "b", "c"\]/
       
       cmd.match "Runs the sample task successfully", 
