@@ -173,8 +173,8 @@ module Tap
       # setup expiration information...
       
       # setup a session log
-      log_path = session_root.prepare(:log, 'session.log')
-      session_app.logger = Logger.new(log_path)
+      #log_path = session_root.prepare(:log, 'session.log')
+      #session_app.logger = Logger.new(log_path)
       session_app.on_complete do |_result|
         # find the template
         class_name = _result.key.class.to_s.underscore
