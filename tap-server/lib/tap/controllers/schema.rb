@@ -103,7 +103,7 @@ module Tap
         outputs = (request['outputs[]'] || []).collect {|index| index.to_i }
         inputs = (request['inputs[]'] || []).collect {|index| index.to_i }
         nodes = request['nodes[]'] || []
-          
+        
         load_schema(id) do |schema|
           nodes.each do |arg|
             next unless arg && !arg.empty?
