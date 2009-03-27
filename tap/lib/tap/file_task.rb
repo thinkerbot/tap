@@ -120,7 +120,7 @@ module Tap
     # TODO: add check vs date reference (ex config_file date)
     def uptodate?(targets, sources=[])
       if app.force
-        log_basename(:force, *targets)
+        log_basename(:force, targets)
         false
       else
         targets = [targets] unless targets.kind_of?(Array)
