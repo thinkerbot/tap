@@ -1,3 +1,8 @@
+<span>Schema: <%= id %></span>
+<ul>
+  <li><a href="<%= uri("#{id}.txt") %>">preview</a></li>
+  <li><a href="<%= uri("#{id}.yml") %>">download</a></li>
+</ul>
 <% globals = schema.globals %>
 <% unless globals.empty? %>
 <%= render 'round.erb', :locals => {:schema => schema, :nodes => globals, :round => nil, :id => id} %>
@@ -9,10 +14,10 @@
 <% end %>
 <%= render 'round.erb', :locals => {:schema => schema, :nodes => [], :round => index, :id => id} %>
 
-<form id="submit_form_<%= id %>" class="submit_form" enctype="multipart/form-data" method="post" action="/schema/submit/<%= id %>">
-  <ol id="schema_<%= id %>" class="schema">
+<form id="node_form_<%= id %>" class="node_form" enctype="multipart/form-data" method="post" action="<%= uri(id) %>">
+  <ol id="nodes_<%= id %>" class="schema">
 <% schema.nodes.each_with_index do |node, index| %>
-  <li id="node_<%= index %>" class="node">
+  <li id="node_<%= id %>_<%= index %>" class="node">
 <%= render('node.erb', :locals => {:id => id, :node => node, :index => index} ) %> 
   </li>
 <% end %>
@@ -20,9 +25,7 @@
 <% schema.dump.select {|obj| !obj.kind_of?(Array) }.each do |str| %>
   <input name="argv[]" type="hidden" value="--<%= str %>" />
 <% end %>
-  <input class="submit_form_action" type="radio" name="action" value="save" checked="true">save</input>
-  <input class="submit_form_action" type="radio" name="action" value="preview">preview</input>
-  <input class="submit_form_action" type="radio" name="action" value="echo">echo</input>
-  <input class="submit_form_action" type="radio" name="action" value="run">run</input>
-  <input id="submit_form_submit" type="submit" value="Submit" />
+  <input class="action" type="radio" name="action" value="update" checked="true">update</input>
+  <input class="action" type="radio" name="action" value="echo">echo (debug http)</input>
+  <input id="node_form_<%= id %>_submit" type="submit" value="Update" />
 </form>

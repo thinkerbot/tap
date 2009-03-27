@@ -1,4 +1,4 @@
-<form id="update_<%= id %>" class="update_form" enctype="multipart/form-data" method="post" action="/schema/update/<%= id %>">
+<form id="round_form_<%= id %>_<%= round %>" class="round_form" enctype="multipart/form-data" method="post" action="<%= uri(id) %>">
   <span>round <%= round %></span>
   <input name="round" type="hidden" value="<%= round %>">
   <ol>
@@ -23,8 +23,8 @@
 <%   end %>
 <% end %>
   </ul>
-  <input class="update_action" type="radio" name="action" value="add" checked="true">add</input>
-  <input class="update_action" type="radio" name="action" value="remove">remove</input>
-  <input class="update_action" type="radio" name="action" value="echo">echo</input>
-  <input id="update_form_submit" type="submit" value="Update" />
+  <input class="action" type="radio" name="action" value="add" checked="true">add</input>
+  <input class="action" type="radio" name="action" value="remove">remove</input>
+  <input class="action" type="radio" name="action" value="echo">echo (debug http)</input>
+  <input id="round_form_<%= id %>_<%= round %>_submit" type="submit" value="Update" />
 </form>

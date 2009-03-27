@@ -13,6 +13,18 @@ module Tap
         @root = root
       end
       
+      # Returns an available integer id, usually the number of entries in self,
+      # but a random integer is generated if that number is taken.
+      def next_id
+        # try the next in the sequence
+        length = root.glob(:data).length
+        id = length
+        
+        # if that already exists, go for a random id
+        id = random_key(length) while has?(id) 
+        id
+      end
+      
       # Returns the filepath for the specified id.  Non-string ids are allowed;
       # they will be converted to strings using to_s.
       def path(id)
@@ -66,6 +78,23 @@ module Tap
         end
       end
       
+      # Returns true if a file for the id exists.
+      def has?(id)
+        File.file?(path(id))
+      end
+      
+      # Reads the specified file if it exists, or creates one for id.
+      def read_or_create(id)
+        has?(id) ? read(id) : create(id)
+      end
+      
+      protected
+      
+      # Generates a random integer key.
+      def random_key(length) # :nodoc:
+        length = 1 if length < 1
+        rand(length * 10000).to_s
+      end
     end
   end
 end
