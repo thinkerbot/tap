@@ -1,4 +1,11 @@
     <input name="argv[]" type="hidden" value="<%= switch %>" />
+<% case value %>
+<% when Hash, Array %>
+    <textarea name="argv[]"><%= value.to_yaml[4..-1] %></textarea>
+<% when Regexp %>
+    <input name="argv[]" type="text" value="<%= value.inspect %>" />
+<% else %>
     <input name="argv[]" type="text" value="<%= value %>" />
+<% end %>
     <span><%= key %></span>:
     <span><%= config[:desc].to_s %></span>
