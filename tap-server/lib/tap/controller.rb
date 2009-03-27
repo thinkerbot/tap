@@ -214,7 +214,7 @@ module Tap
       
       # render template
       template = File.read(template_path)
-      content = render_erb(template, options)
+      content = render_erb(template, {:filename => template_path }.merge(options) )
       
       # render layout
       layout = options[:layout]
@@ -237,7 +237,9 @@ module Tap
         eval("#{key} = remove_instance_variable(:@assignment_value)", binding)
       end if locals
       
-      ERB.new(template, nil, "<>").result(binding)
+      erb = ERB.new(template, nil, "<>")
+      erb.filename = options[:filename]
+      erb.result(binding)
     end
     
     # Redirects to the specified uri.
