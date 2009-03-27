@@ -18,7 +18,12 @@
   <ol id="nodes_<%= id %>" class="schema">
 <% schema.nodes.each_with_index do |node, index| %>
   <li id="node_<%= id %>_<%= index %>" class="node">
-<%= render('node.erb', :locals => {:id => id, :node => node, :index => index} ) %> 
+    <!-- tasc identifier -->
+    <input name="argv[]" type="hidden" value="--" />
+    <input name="argv[]" type="hidden" value="<%= node.argv[0] %>" />
+<% task, args = instantiate(*node.argv) %>
+<% template_file = server.search(:views, "#{task.class.to_s.underscore}/node.erb") %>
+<%= render('node.erb', :template_file => template_file, :locals => {:id => id, :index => index, :task => task, :args => args} ) %> 
   </li>
 <% end %>
   </ol>

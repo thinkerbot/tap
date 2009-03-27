@@ -1,0 +1,4 @@
+    <input name="argv[]" type="radio" value="<%= switch %>" <%= value ? 'checked="true" ' : '' %>>on</input>
+    <input name="argv[]" type="radio" value="--no-<%= switch %>" <%= value ? '' : 'checked="true" ' %>>off</input>
+    <span><%= key %></span>:
+    <span><%= config[:desc].to_s %></span>

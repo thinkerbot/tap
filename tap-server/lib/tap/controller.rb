@@ -202,7 +202,9 @@ module Tap
       
       # lookup template
       template_path = case
-      when options.has_key?(:template)
+      when options[:template_file]
+        options[:template_file]
+      when options[:template]
         server.search(:views, options[:template])
       else
         server.search(:views, "#{self.class.name}/#{path}")

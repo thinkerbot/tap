@@ -1,47 +1,35 @@
-<% task, args = instantiate(*node.argv) %>
 <% tasc = task.class %>
     <span class="class"><%= tasc %></span>: 
     <span class="summary"><%= tasc.manifest.subject %></span>
     <pre><%= tasc.manifest.wrap %></pre>
     
-    <!-- tasc identifier -->
-    <input name="argv[]" type="hidden" value="--" />
-    <input name="argv[]" type="hidden" value="<%= node.argv[0] %>" />
-    
-    <ul>
-    <!-- inputs -->
-<% attributes = node.input_join ? "disabled='true' ": " " %>
+    <ul class="inputs">
 <% tasc.args.arguments.each do |argument| %>
     <li class="input">
-    <input name="argv[]" <%= attributes %>value="<%= args.shift %>" />
+    <input name="argv[]" value="<%= args.shift %>" />
     <span><%= argument %></span>
     </li>
 <% end %>
-   <!-- for extra args... should be limited to *arg -->
-<% args << '' %>
+
+<% args << '' if task.method(:process).arity < 0 %>
 <% args.each do |arg| %>
     <li class="input">
-    <input name="argv[]" <%= attributes %>value="<%= arg %>" />
+    <input name="argv[]" value="<%= arg %>" />
     <span>...</span>
     </li>
 <% end %>
+    </ul>
     
-    <!-- configurations -->
 <%=  render("configurations.erb", :locals => {
        :configurations => tasc.configurations, 
        :values => task.config, 
        :nest => "", 
        :index => index}) %> 
 
-    <!-- options -->
-    <li class="options">
+    <ul class="options">
+    <li class="option">
     <input name="argv[]" type="hidden" value="--name" />
     <input name="argv[]" value="<%= task.name %>" />
     <span>Name</span>
     </li>
-    
-    <!--
-    <input class="globalize" name="nodes[<%= index %>][2]" type="checkbox" value="--*<%= index %>" />
-    <span class="name">Globalize</span> -->
-    
     </ul>
