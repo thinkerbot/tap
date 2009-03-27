@@ -180,7 +180,7 @@ unknown task: --help
 
       cmd.match "Prints the list config help",
       "% #{cmd} run -- with_list_config --help", 
-      /--list A,B,C                 a list config/
+      /--list LIST                  a list config/
 
       # array
       cmd.match "Run with array syntax",
@@ -189,7 +189,7 @@ unknown task: --help
 
       cmd.match "Prints the array config help",
       "% #{cmd} run -- with_array_config --help", 
-      /--array '\[a, b, c\]'          an array config/
+      /--array ARRAY                an array config/
 
       # hash
       cmd.match "Run with hash syntax",
@@ -198,7 +198,7 @@ unknown task: --help
 
       cmd.match "Prints the hash config help",
       "% #{cmd} run -- with_hash_config --help", 
-      /--hc '\{one: 1, two: 2\}'      a hash config/
+      /--hc HC                      a hash config/
 
       # string
       cmd.match "Run with empty string syntax",

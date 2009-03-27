@@ -103,7 +103,7 @@ module Tap
     # The default process prints dump headers as specified in the config,
     # then append the audit value to io.
     def process(_audit)
-      open_io(target) do |io|
+      open_io(target, 'a') do |io|
         if date
           io.puts "# date: #{Time.now.strftime(date_format)}"
         end
@@ -120,23 +120,6 @@ module Tap
     # Dumps the object to io, by default dump puts (not prints) obj.to_s.
     def dump(obj, io)
       io.puts obj.to_s
-    end
-    
-    protected
-    
-    # helper to open and yield the io specified by target.  open_io
-    # ensures file targets are closed when the block returns.
-    def open_io(io) # :nodoc:
-      case io
-      when IO, StringIO 
-        yield(io)
-      when String
-        dir = File.dirname(io)
-        FileUtils.mkdir_p(dir) unless File.directory?(dir)
-        File.open(io, 'a') {|file| yield(file) }  
-      else
-        raise "cannot open io: #{target.inspect}"
-      end
     end
   end
 end
