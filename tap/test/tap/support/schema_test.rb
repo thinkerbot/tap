@@ -28,59 +28,27 @@ class SchemaUtilsTest < Test::Unit::TestCase
   def test_format_round_documentation
     assert_equal "+1[1,2,3]", format_round(1, [1,2,3])
   end
-
-  #
-  # format_sequence test
-  #
   
-  def test_format_sequence_documentation
-    assert_equal "1:2:3", format_sequence(1, [2,3], {}) 
+  #
+  # format_prerequisites test
+  #
+
+  def test_format_prerequisites_documentation
+    assert_equal "*[1]", format_prerequisites([1])
+    assert_equal "*[1,2,3]", format_prerequisites([1,2,3])
   end
   
   #
-  # format_instance test
+  # format_join test
   #
 
-  def test_format_instance_documentation
-    assert_equal "*1", format_instance(1)
+  def test_format_join_documentation
+    assert_equal "[1][2,3]is.type", format_join('type', [1], [2,3], "is") 
   end
   
-  #
-  # format_fork test
-  #
-
-  def test_format_fork_documentation
-    assert_equal "1[2,3]", format_fork(1, [2,3], {}) 
-  end
-  
-  #
-  # format_merge test
-  #
-
-  def test_format_merge_documentation
-    assert_equal "1{2,3}", format_merge(1, [2,3], {}) 
-  end
-  
-  #
-  # format_sync_merge test
-  #
-
-  def test_format_sync_merge_documentation
-    assert_equal "1(2,3)", format_sync_merge(1, [2,3], {}) 
-  end
-  
-  #
-  # format_options test
-  #
-
-  def test_format_options
-    assert_equal "", format_options({})
-    assert_equal "ik", format_options({:iterate => true, :stack => true})
-    assert_equal "", format_options({:iterate => false, :stack => false})
-  end
-  
-  def test_format_options_raises_error_for_unknown_options
-    assert_raises(RuntimeError) { format_options(:key => 'value') }
+  def test_format_join
+    assert_equal "[1][2,3]is", format_join('join', [1], [2,3], "is") 
+    assert_equal "[1][2,3]", format_join('join', [1], [2,3], "") 
   end
 end
 
@@ -113,11 +81,11 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal schema.dump, loaded_schema.dump
   end
   
-  def test_load_file_reloads_globals
-    schema = Schema.parse("-- a -- b -- c --*0 --*1 --*2")
+  def test_load_file_reloads_prerequisites
+    schema = Schema.parse("-- a -- b -- c --*[0,1] --*[2]")
     path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
     
-    assert_equal "-- a -- b -- c --*0 --*1 --*2", Schema.load_file(path).to_s
+    assert_equal "-- a -- b -- c --*[0,1,2]", Schema.load_file(path).to_s
   end
   
   def test_load_file_reloads_rounds
@@ -131,28 +99,21 @@ class SchemaTest < Test::Unit::TestCase
     schema = Schema.parse("-- a --: b")
     path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
     
-    assert_equal "-- a -- b --0:1", Schema.load_file(path).to_s
+    assert_equal "-- a -- b --[0][1]", Schema.load_file(path).to_s
   end
   
   def test_load_file_reloads_fork
-    schema = Schema.parse("-- a -- b -- c --0[1,2]")
+    schema = Schema.parse("-- a -- b -- c --[0][1,2]")
     path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
     
-    assert_equal "-- a -- b -- c --0[1,2]", Schema.load_file(path).to_s
+    assert_equal "-- a -- b -- c --[0][1,2]", Schema.load_file(path).to_s
   end
   
   def test_load_file_reloads_merge
-    schema = Schema.parse("-- a -- b -- c --2{0,1}")
+    schema = Schema.parse("-- a -- b -- c --[0,1][2]")
     path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
     
-    assert_equal "-- a -- b -- c --2{0,1}", Schema.load_file(path).to_s
-  end
-  
-  def test_load_file_reloads_sync_merge
-    schema = Schema.parse("-- a -- b -- c --2(0,1)")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-    
-    assert_equal "-- a -- b -- c --2(0,1)", Schema.load_file(path).to_s
+    assert_equal "-- a -- b -- c --[0,1][2]", Schema.load_file(path).to_s
   end
   
   def test_load_file_initializes_new_Schema_for_empty_file
@@ -171,7 +132,6 @@ class SchemaTest < Test::Unit::TestCase
     e = assert_raises(Errno::ENOENT) { Schema.load_file(path) }
     assert_equal "No such file or directory - #{path}", e.message
   end
-  
   
   #
   # [] test
@@ -211,16 +171,16 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   def test_set_returns_a_new_join_array
-    join, inputs, outputs = schema.set(Join, [0], [1], :iterate => true)
+    join_type, inputs, outputs, modifier = schema.set("join", [0], [1], "i")
     
-    assert_equal Join, join.class
-    assert_equal({:iterate => true}, join.options)
+    assert_equal "join", join_type
+    assert_equal "i", modifier
     assert_equal [schema[0]], inputs
     assert_equal [schema[1]], outputs
   end
   
   def test_set_sets_inputs_and_outputs_for_nodes_to_join_array
-    join_array = schema.set(Join, [0], [1,2])
+    join_array = schema.set("join", [0], [1,2])
     
     assert_equal join_array, schema[0].output
     assert_equal join_array, schema[1].input
@@ -228,26 +188,26 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   def test_set_allows_single_value_inputs_and_outputs
-    join_array = schema.set(Join, [0], [1])
+    join_array = schema.set("join", [0], [1])
     
     assert_equal join_array, schema[0].output
     assert_equal join_array, schema[1].input
   end
   
   def test_set_raises_error_for_orphan_join
-    e = assert_raises(ArgumentError) { schema.set(Join, [], [0]) }
+    e = assert_raises(ArgumentError) { schema.set("join", [], [0]) }
     assert_equal "no input nodes specified", e.message
-
-    e = assert_raises(ArgumentError) { schema.set(Join, nil, [0]) }
+  
+    e = assert_raises(ArgumentError) { schema.set("join", nil, [0]) }
     assert_equal "no input nodes specified", e.message
   end
   
   def test_set_does_not_raise_error_for_joins_with_no_target
-    assert schema.set(Join, [0], [])
+    assert schema.set("join", [0], [])
   end
   
   def test_set_adds_join_array_to_joins
-    join_array = schema.set(Join, [0], [1,2])
+    join_array = schema.set("join", [0], [1,2])
     assert_equal([join_array], schema.joins)
   end
   
@@ -296,16 +256,16 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   #
-  # globals test
+  # prerequisites test
   #
   
-  def test_globals_returns_a_collection_of_node_indicies_for_global_nodes
+  def test_prerequisites_returns_a_collection_of_node_indicies_for_prerequisite_nodes
     n0, n1, n2 = Array.new(3) {|index| schema[index] }
-    n0.globalize
-    n2.globalize
+    n0.make_prerequisite
+    n2.make_prerequisite
     
-    assert !n1.global?
-    assert_equal [n0, n2], schema.globals
+    assert !n1.prerequisite?
+    assert_equal [n0, n2], schema.prerequisites
   end
   
   #
@@ -346,7 +306,7 @@ class SchemaTest < Test::Unit::TestCase
     n3 = Node.new [4,5,6]
     
     schema = Schema.new [n0, n1, n2, n3]
-    join = schema.set(Join, [0,1], [2,3])
+    join = schema.set("join", [0,1], [2,3])
     
     assert_equal [n0, n1, n2, n3], schema.nodes
     assert_equal [join], schema.joins
@@ -366,7 +326,7 @@ class SchemaTest < Test::Unit::TestCase
     n1 = Node.new [1,2,3]
     
     schema = Schema.new [n0, n1]
-    join = schema.set(Join, [0], [1])
+    join = schema.set("join", [0], [1])
     
     assert_equal [n0, n1], schema.nodes
     assert_equal [join], schema.joins
@@ -396,7 +356,7 @@ class SchemaTest < Test::Unit::TestCase
     f = Node.new [7,8,9]
     
     schema = Schema.new [a,b,c,d,e,f]
-    join = schema.set(Join, [1,2,3], [4,5])
+    join = schema.set("join", [1,2,3], [4,5])
     
     assert_equal 0, a.input
     assert_equal 1, e.natural_round
@@ -413,7 +373,7 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   def test_cleanup_removes_orphan_joins
-    join = [Join.new, [], []]
+    join = ["join", [], [], ""]
     a = Node.new ["a"], join
     b = Node.new ["b"], join
     
@@ -471,7 +431,7 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   def test_to_s_and_dump_perform_cleanup
-    join = [Join.new, [], []]
+    join = ["join", [], [], ""]
     a = Node.new ["a"], 2
     b = Node.new ["b"], join
     c = Node.new ["c"], join
@@ -503,63 +463,55 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal [[0],[1],[2],"+1[1,2]"], schema.dump
   end
   
-  def test_to_s_and_dump_adds_global_breaks_for_global_nodes
+  def test_to_s_and_dump_adds_global_breaks_for_prerequisite_nodes
     nodes = node_set
-    nodes[1].globalize
-    nodes[2].globalize
+    nodes[1].make_prerequisite
+    nodes[2].make_prerequisite
     
     schema = Schema.new nodes
-    assert_equal "-- 0 -- 1 -- 2 --*1 --*2", schema.to_s
-    assert_equal [[0],[1],[2],"*1","*2"], schema.dump
+    assert_equal "-- 0 -- 1 -- 2 --*[1,2]", schema.to_s
+    assert_equal [[0],[1],[2],"*[1,2]"], schema.dump
   end
   
   def test_to_s_and_dump_adds_sequence_breaks_for_sequence_joins
     schema = Schema.new node_set
-    schema.set Join, [0], [1]
-    schema.set Join, [1], [2]
+    schema.set "join", [0], [1]
+    schema.set "join", [1], [2]
     
-    assert_equal "-- 0 -- 1 -- 2 --0:1 --1:2", schema.to_s
-    assert_equal [[0],[1],[2],"0:1", "1:2"], schema.dump
+    assert_equal "-- 0 -- 1 -- 2 --[0][1] --[1][2]", schema.to_s
+    assert_equal [[0],[1],[2],"[0][1]", "[1][2]"], schema.dump
   end
   
   def test_to_s_and_dump_adds_fork_breaks_for_fork_joins
     schema = Schema.new node_set
-    schema.set Join, [0], [1,2]
+    schema.set "join", [0], [1,2]
   
-    assert_equal "-- 0 -- 1 -- 2 --0[1,2]", schema.to_s
-    assert_equal [[0],[1],[2],"0[1,2]"], schema.dump
+    assert_equal "-- 0 -- 1 -- 2 --[0][1,2]", schema.to_s
+    assert_equal [[0],[1],[2],"[0][1,2]"], schema.dump
   end
   
   def test_to_s_and_dump_adds_merge_breaks_for_merge_joins
     schema = Schema.new node_set
-    schema.set Join, [0,1], [2]
+    schema.set "join", [0,1], [2]
   
-    assert_equal "-- 0 -- 1 -- 2 --2{0,1}", schema.to_s
-    assert_equal [[0],[1],[2],"2{0,1}"], schema.dump
+    assert_equal "-- 0 -- 1 -- 2 --[0,1][2]", schema.to_s
+    assert_equal [[0],[1],[2],"[0,1][2]"], schema.dump
   end
   
-  def test_to_s_and_dump_adds_sync_merge_breaks_for_sync_merge_joins
+  def test_to_s_and_dump_adds_sync_merge_breaks_for_arbitrary_joins
     schema = Schema.new node_set
-    schema.set Joins::SyncMerge, [0,1], [2]
+    schema.set "type", [0,1], [2]
   
-    assert_equal "-- 0 -- 1 -- 2 --2(0,1)", schema.to_s
-    assert_equal [[0],[1],[2],"2(0,1)"], schema.dump
+    assert_equal "-- 0 -- 1 -- 2 --[0,1][2].type", schema.to_s
+    assert_equal [[0],[1],[2],"[0,1][2].type"], schema.dump
   end
   
-  # def test_to_s_and_dump_raises_error_for_unknown_join_type
-  #   schema = Schema.new node_set
-  #   schema.set :unknown, 0, [1]
-  # 
-  #   assert_raises(RuntimeError) { schema.to_s }
-  #   assert_raises(RuntimeError) { schema.dump }
-  # end
-
   #
   # misc tests
   #
   
   def test_schema_loads_terminal_joins_correctly
-    schema = Schema.load [["a"], ["b"], "0[]"]
+    schema = Schema.load [["a"], ["b"], "[0][]"]
     assert_equal 2, schema.nodes.length
     
     a,b = schema.nodes

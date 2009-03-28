@@ -213,27 +213,27 @@ class NodeTest < Test::Unit::TestCase
   end
   
   #
-  # globalize test
+  # make_prerequisite test
   #
   
-  def test_globalize_sets_input_to_nil
+  def test_make_prerequisite_sets_input_to_nil
     assert_equal 0, node.input
-    node.globalize
+    node.make_prerequisite
     assert_equal nil, node.input
   end
   
   #
-  # global? test
+  # prerequisite? test
   #
   
   def test_is_true_if_input_is_nil
     node = Node.new [], nil, nil
     
     assert_equal nil, node.input
-    assert node.global?
+    assert node.prerequisite?
     
     node.input = :input
-    assert !node.global?
+    assert !node.prerequisite?
   end
   
   #

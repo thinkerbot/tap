@@ -38,65 +38,22 @@ module Tap
           "+#{round}[#{indicies.join(',')}]"
         end
 
-        # Formats a sequence string.
+        # Formats a prerequisite string.
         #
-        #   format_sequence(1, [2,3], {})       # => "1:2:3"
+        #   format_prerequisites([1])                # => "*[1]"
+        #   format_prerequisites([1,2,3])            # => "*[1,2,3]"
         #
-        def format_sequence(source_index, outputs, options)
-          ([source_index] + outputs).join(":") + format_options(options)
+        def format_prerequisites(indicies)
+          indicies.empty? ? nil : "*[#{indicies.join(',')}]"
         end
 
-        # Formats a global instance string.
+        # Formats a join string.
         #
-        #   format_instance(1)                  # => "*1"
+        #   format_join('type', [1], [2,3], {})   # => "[1][2,3].type"
         #
-        def format_instance(index)
-          "*#{index}"
-        end
-
-        # Formats a fork string.
-        #
-        #   format_fork(1, [2,3],{})            # => "1[2,3]"
-        #
-        def format_fork(source_index, outputs, options)
-          "#{source_index[0]}[#{outputs.join(',')}]#{format_options(options)}"
-        end
-
-        # Formats a merge string (note the target index is
-        # provided first).
-        #
-        #   format_merge(1, [2,3],{})           # => "1{2,3}"
-        #
-        def format_merge(target_index, inputs, options)
-          "#{target_index[0]}{#{inputs.join(',')}}#{format_options(options)}"
-        end
-
-        # Formats a sync_merge string (note the target index 
-        # is provided first).
-        #
-        #   format_sync_merge(1, [2,3],{})      # => "1(2,3)"
-        #
-        def format_sync_merge(target_index, inputs, options)
-          "#{target_index[0]}(#{inputs.join(',')})#{format_options(options)}"
-        end
-
-        # Formats an options hash into a string.  Raises an error
-        # for unknown options.
-        #
-        #   format_options({:iterate => true})  # => "i"
-        #
-        def format_options(options)
-          options_str = []
-          options.each_pair do |key, value|
-            unless config = Join.configurations[key]
-              raise "unknown key in: #{options} (#{key})"
-            end
-            
-            if value
-              options_str << config.attributes[:short]
-            end
-          end
-          options_str.sort.join
+        def format_join(join_type, inputs, outputs, modifier)
+          identifier = join_type.empty? || join_type == "join" ? "" : ".#{join_type}"
+          "[#{inputs.join(',')}][#{outputs.join(',')}]#{modifier}#{identifier}"
         end
       end
       
@@ -114,7 +71,7 @@ module Tap
         end
         
         # Loads a schema from the specified path.  Raises an error if no such
-        # file exists.
+        # file existts.
         def load_file(path)
           argv = YAML.load_file(path)
           argv ? load(argv) : new
@@ -175,14 +132,14 @@ module Tap
       end
       
       # Returns a collection of global nodes.
-      def globals
-        globals = []
+      def prerequisites
+        prerequisites = []
         nodes.each do |node|
-          if node && node.global?
-            globals << node
+          if node && node.prerequisite?
+            prerequisites << node
           end
         end
-        globals
+        prerequisites
       end
       
       # Returns an array of joins among nodes in self.
@@ -208,12 +165,12 @@ module Tap
       
       # Sets a join between the nodes at the input and output indicies.
       # Returns the new join.
-      def set(join_class, inputs, outputs, options={})
+      def set(join_type, inputs, outputs, modifier="")
         unless inputs && !inputs.empty?
           raise ArgumentError, "no input nodes specified"
         end
         
-        join = [join_class.new(options), [],[]]
+        join = [join_type, [],[], modifier]
         
         inputs.each {|index| self[index].output = join }
         outputs.each {|index| self[index].input = join }
@@ -276,9 +233,9 @@ module Tap
           tasks[node] = yield(node.argv) if node
         end
         
-        # instantiate and reconfigure globals
+        # instantiate and reconfigure prerequisites
         instances = []
-        globals.each do |node|
+        prerequisites.each do |node|
           task, args = tasks.delete(node)
           instance = task.class.instance
           
@@ -292,11 +249,12 @@ module Tap
         end
 
         # build the workflow
-        joins.each do |join, input_nodes, output_nodes|
+        joins.each do |join_type, input_nodes, output_nodes, modifier|
           sources = input_nodes.collect {|node| tasks[node][0] }
           targets = output_nodes.collect {|node| tasks[node][0] }
           
-          join.join(sources, targets)
+          # !TEMPORARY
+          Join.join(sources, targets, modifier)
         end
 
         # build rounds
@@ -322,10 +280,9 @@ module Tap
         # add argvs
         array = argvs
         
-        # add global declarations
-        globals.each do |node|
-          array << format_instance(index(node))
-        end
+        # add prerequisites declaration
+        indicies = prerequisites.collect {|node| index(node) }
+        array << format_prerequisites(indicies) unless indicies.empty?
         
         # add round declarations
         index = 0
@@ -341,24 +298,10 @@ module Tap
         end
         
         # add join declarations
-        joins.each do |join, input_nodes, output_nodes|
+        joins.each do |join_type, input_nodes, output_nodes, modifier|
           inputs = input_nodes.collect {|node| nodes.index(node) }
           outputs = output_nodes.collect {|node| nodes.index(node) }
-
-          array << case join
-          when Joins::SyncMerge  then format_sync_merge(outputs, inputs, join.options)
-          when Join
-            if inputs.length == 1
-              if outputs.length == 1
-                format_sequence(inputs, outputs, join.options)
-              else
-                format_fork(inputs, outputs, join.options)
-              end
-            else
-              format_merge(outputs, inputs, join.options)
-            end
-          else raise "unknown join type: #{join.class} ([#{inputs.join(',')}], [#{outputs.join(',')}])"
-          end
+          array << format_join(join_type, inputs, outputs, modifier)
         end
         
         array

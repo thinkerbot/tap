@@ -48,9 +48,10 @@ module Tap
     #
     #   schema = Parser.new("a --: b -- c --1:2i").schema
     #   a, b, c = schema.nodes
-    #   schema.joins.collect do |join, inputs, outputs|
-    #     [join.options, inputs, outputs]
-    #   end                             # => [[{},[a],[b]], [{:iterate => true},[b],[c]]]
+    #   schema.joins.collect .collect do |join_type, inputs, outputs, modifier|
+    #     [join_type, inputs, outputs, modifier]
+    #   end
+    #   # => [['join',[a],[b],""], ["join",[b],[c],"i"]]
     #
     # ==== Globals
     # Global prerequisites of task (used, for example, by dependencies) may
@@ -102,14 +103,14 @@ module Tap
         #   --+
         #   --1:2
         #   --[1][2]
-        #   --.join[1,2,3][4,5,6]
+        #   --[1,2,3][4,5,6]is.join
         #
         # After the match:
         #
         #   $1:: The string after the break
-        #        (ex: '--' => '', '--++' => '++', '--.join[1,2][3,4]' => '.join[1,2][3,4]')
+        #        (ex: '--' => '', '--++' => '++', '--[1,2][3,4]is.join' => '[1,2][3,4]is.join')
         #
-        BREAK =  /\A--(\z|[\+\d\:\*\.\[].*\z)/
+        BREAK =  /\A--(\z|[\+\d\:\*\[].*\z)/
 
         # Matches an execution-round break. Examples:
         #
@@ -157,22 +158,22 @@ module Tap
         
         # Matches a generic join break. Examples:
         #
-        #   .join[1,2,3][4,5,6]is
-        #   .[1,2][3,4]
+        #   [1,2,3][4,5,6]is.join
+        #   [1,2][3,4]
         #   [1][2]
         #
         # After the match:
         #
-        #   $1:: The join type, if present.
-        #        (ex: '.join[][]' => 'join', '.[][]' => '', '[][]' => nil)
-        #   $2:: The inputs string.
+        #   $1:: The inputs string.
         #        (ex: '[1,2,3][4,5,6]' => '1,2,3')
-        #   $3:: The outputs string.
+        #   $2:: The outputs string.
         #        (ex: '[1,2,3][4,5,6]' => '4,5,6')
-        #   $4:: The modifier string.
+        #   $3:: The modifier string.
         #        (ex: '[][]is' => 'is')
+        #   $4:: The join type, if present.
+        #        (ex: '.join[][]' => 'join', '.[][]' => '', '[][]' => nil)
         #
-        JOIN = /\A(?:.(\w*[\w:]*))?\[([\d,]*)\]\[([\d,]*)\]([A-z]*)\z/
+        JOIN = /\A\[([\d,]*)\]\[([\d,]*)\]([A-z]*)(?:.(\w*[\w:]*))?\z/
         
         # Parses an indicies str along commas, and collects the indicies
         # as integers. Ex:
@@ -206,67 +207,60 @@ module Tap
           [index, two && !two.empty? ? parse_indicies(two): [current_index]]
         end
 
-        # Parses the match of a SEQUENCE regexp into an [indicies, options] 
-        # array. The inputs corresponds to $1 and $2 for the match. The 
-        # previous and current index are assumed if $1 starts and/or ends 
-        # with a semi-colon.
+        # Parses the match of a SEQUENCE regexp an array of [join_type,
+        # input_indicies, output_indicies, modifiers] arrays. The inputs
+        # corresponds to $1 and $2 for the match. The previous and current
+        # index are assumed if $1 starts and/or ends with a semi-colon.
         #
-        #   parse_sequence("1:2:3", '')         # => [[1,2,3], {}]
-        #   parse_sequence(":1:2:", '')         # => [[:previous_index,1,2,:current_index], {}]
+        #   parse_sequence("1:2:3", '')
+        #   # => [
+        #   # ['join', [1], [2], ""],
+        #   # ['join', [2], [3], ""]
+        #   # ]
+        #
+        #   parse_sequence(":1:2:", '')
+        #   # => [
+        #   # ['join', [:previous_index], [1], ""],
+        #   # ['join', [1], [2], ""],
+        #   # ['join', [2], [:current_index], ""],
+        #   # ]
         #
         def parse_sequence(one, two)
-          seq = parse_indicies(one, /:+/)
-          seq.unshift previous_index if one[0] == ?:
-          seq << current_index if one[-1] == ?:
-          [seq, parse_options(two)]
+          indicies = parse_indicies(one, /:+/)
+          indicies.unshift previous_index if one[0] == ?:
+          indicies << current_index if one[-1] == ?:
+          
+          sequences = []
+          while indicies.length > 1
+            sequences << ['join', [indicies.shift], [indicies[0]], two]
+          end
+          sequences
         end
 
         # Parses the match of an PREREQUISITE regexp into an [indicies] array.
         # The input corresponds to $1 for the match. If $1 is empty then 
         # indicies of [:current_index] are assumed.
         #
-        #   parse_prerequisite("1")                 # => [1]
-        #   parse_prerequisite("")                  # => [:current_index]
+        #   parse_prerequisite("1")             # => [1]
+        #   parse_prerequisite("")              # => [:current_index]
         #
         def parse_prerequisite(one)
           one && !one.empty? ? parse_indicies(one) : [current_index]
         end
 
-        # Parses the match of a JOIN regexp into a [type, input_indicies,
-        # output_indicies, options] array. The inputs corresponds to $1,
-        # $2, $3, and $4 for a match to a JOIN regexp. The previous and
-        # current index are assumed if $2 and/or $3 is empty.
+        # Parses the match of a JOIN regexp into a [join_type, input_indicies,
+        # output_indicies, modifiers] array. The inputs corresponds to $1,
+        # $2, $3, and $4 for a match to a JOIN regexp. A join type of 
+        # 'join' is assumed unless otherwise specified.
         #
-        #   parse_join(nil, "1", "2,3", "")       # => ['join', [1], [2,3], {}]
+        #   parse_join("1", "2,3", "", "")      # => ['join', [1], [2,3], ""]
+        #   parse_join("", "", "is", "type")    # => ['type', [], [], "is"]
         #
         def parse_join(one, two, three, four)
-          join = Join #one && !one.empty? ? one : Join
-          inputs = parse_indicies(two)
-          outputs = parse_indicies(three)
-          [join, inputs, outputs, parse_options(four)]
-        end
-         
-        # Parses an options string into a hash.  The input corresponds
-        # to $3 in a SEQUENCE or bracket_regexp match.  Raises an error
-        # if the options string contains unknown options.
-        #
-        #   parse_options("")                   # => {}
-        #   parse_options("ik")                 # => {:iterate => true, :stack => true}
-        #
-        def parse_options(three)
-          options = {}
-          0.upto(three.length - 1) do |char_index|
-            char = three[char_index, 1]
-            
-            entry = Join.configurations.find do |key, config| 
-              config.attributes[:short] == char
-            end
-            key, config = entry
-            
-            raise "unknown option in: #{three} (#{char})" unless key 
-            options[key] = true
-          end
-          options
+          join_type = four && !four.empty? ? four : 'join'
+          inputs = parse_indicies(one)
+          outputs = parse_indicies(two)
+          [join_type, inputs, outputs, three]
         end
       end
       
@@ -386,20 +380,17 @@ module Tap
         case arg
         when ""
           schema[current_index].round = 0
-          
         when ROUND
           round, indicies = parse_round($1, $2)
           indicies.each {|index| schema[index].round = round }
-          
-        when SEQUENCE
-          indicies, options = parse_sequence($1, $2)
-          while indicies.length > 1
-            schema.set(Join, [indicies.shift], [indicies[0]], options)
-          end
-          
-        when JOIN            then schema.set(*parse_join($1,$2,$3,$4))
-        when PREREQUISITE    then parse_prerequisite($1).each {|index| schema[index].globalize }
-        else raise ArgumentError, "invalid break argument: #{arg}"
+        when SEQUENCE     
+          parse_sequence($1, $2).each {|join| schema.set(*join) }
+        when JOIN         
+          schema.set(*parse_join($1, $2, $3, $4))
+        when PREREQUISITE 
+          parse_prerequisite($1).each {|index| schema[index].make_prerequisite }
+        else
+          raise ArgumentError, "invalid break argument: #{arg}"
         end
       end
     end

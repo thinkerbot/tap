@@ -9,6 +9,33 @@ module Tap
     # to subsequent tasks.
     #
     class Join
+      class << self
+        def join(inputs, outputs, modifier)
+          new(parse_modifier(modifier)).join(inputs, outputs)
+        end
+        
+        # Parses a modifier string into configurations.  Raises an error
+        # if the options string contains unknown options.
+        #
+        #   parse_modifier("")                   # => {}
+        #   parse_modifier("ik")                 # => {:iterate => true, :stack => true}
+        #
+        def parse_modifier(str)
+          options = {}
+          0.upto(str.length - 1) do |char_index|
+            char = str[char_index, 1]
+            
+            entry = configurations.find do |key, config| 
+              config.attributes[:short] == char
+            end
+            key, config = entry
+            
+            raise "unknown option in: #{str} (#{char})" unless key 
+            options[key] = true
+          end
+          options
+        end
+      end
       include Configurable
       
       # Causes the join to iterate the results

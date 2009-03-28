@@ -142,12 +142,12 @@ module Tap
       end
       
       # Sets the input to nil.
-      def globalize
+      def make_prerequisite
         self.input = nil
       end
       
       # True if the input is nil.
-      def global?
+      def prerequisite?
         input == nil
       end
       
