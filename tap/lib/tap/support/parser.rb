@@ -87,21 +87,6 @@ module Tap
       module Utils
         module_function
 
-        # Defines a break regexp that matches a bracketed-pairs
-        # break.  The left and right brackets are specified as
-        # inputs.  After a match:
-        #
-        #   $1:: The source string after the break. 
-        #        (ex: '[]' => '', '1[]' => '1')
-        #   $2:: The target string. 
-        #        (ex: '[]' => '', '1[1,2,3]' => '1,2,3')
-        #   $3:: The modifier string.
-        #        (ex: '[]i' => 'i', '1[1,2,3]is' => 'is')
-        #
-        def bracket_regexp(l, r)
-          /\A(\d*)#{Regexp.escape(l)}([\d,]*)#{Regexp.escape(r)}([A-z]*)\z/
-        end
-
         # The escape begin argument
         ESCAPE_BEGIN = "-."
 
@@ -111,48 +96,84 @@ module Tap
         # The parser end flag
         END_FLAG = "---"
 
-        # Matches any breaking arg (ex: '--', '--+', '--1:2')
+        # Matches any breaking arg. Examples:
+        #
+        #   --
+        #   --+
+        #   --1:2
+        #   --[1][2]
+        #   --.join[1,2,3][4,5,6]
+        #
         # After the match:
         #
         #   $1:: The string after the break
-        #        (ex: '--' => '', '--++' => '++', '--1(2,3)' => '1(2,3)')
+        #        (ex: '--' => '', '--++' => '++', '--.join[1,2][3,4]' => '.join[1,2][3,4]')
         #
-        BREAK =  /\A--(\z|[\+\d\:\*\[\{\(].*\z)/
+        BREAK =  /\A--(\z|[\+\d\:\*\.\[].*\z)/
 
-        # Matches an execution-round break.  After the match:
+        # Matches an execution-round break. Examples:
         #
-        #   $2:: The round string, or nil.
-        #        (ex: '' => nil, '++' => '++', '+1' => '+1')
-        #   $5:: The target string, or nil. 
+        #   +
+        #   ++
+        #   +1
+        #   +1[1,2,3]
+        #
+        # After the match:
+        #
+        #   $1:: The round string, or nil.
+        #        (ex: '++' => '++', '+1' => '+1')
+        #   $2:: The target string, or nil. 
         #        (ex: '+' => nil, '+[1,2,3]' => '1,2,3')
         #
-        ROUND = /\A((\+(\d*|\+*))(\[([\d,]*)\])?)?\z/
+        ROUND = /\A(\+(?:\d*|\+*))(?:\[([\d,]*)\])?\z/
 
-        # Matches a sequence break.  After the match:
+        # Matches a sequence break. Examples:
+        #
+        #   :
+        #   1:
+        #   :2
+        #   1:2:3
+        #
+        # After the match:
         #
         #   $1:: The sequence string after the break. 
         #        (ex: ':' => ':', '1:2' => '1:2', '1:' => '1:', ':2' => ':2')
-        #   $3:: The modifier string.
+        #   $2:: The modifier string.
         #        (ex: ':i' => 'i', '1:2is' => 'is')
         #
-        SEQUENCE = /\A(\d*(:\d*)+)([A-z]*)\z/
+        SEQUENCE = /\A(\d*(?::\d*)+)([A-z]*)\z/
 
-        # Matches an prerequisite break.  After the match:
+        # Matches an prerequisite break. Examples:
+        #
+        #   *
+        #   *[1,2,3]
+        #
+        # After the match:
         #
         #   $1:: The index string after the break.
-        #        (ex: '*' => '', '*1' => '1')
+        #        (ex: '*' => nil, '*[1,2,3]' => '1,2,3')
         #
-        PREREQUISITE = /\A\*(\d*)\z/
-
-        # A break regexp using "[]"
-        FORK = bracket_regexp("[", "]")
-
-        # A break regexp using "{}"
-        MERGE = bracket_regexp("{", "}")
-
-        # A break regexp using "()"
-        SYNC_MERGE = bracket_regexp("(", ")")
-
+        PREREQUISITE = /\A\*(?:\[([\d,]*)\])?\z/
+        
+        # Matches a generic join break. Examples:
+        #
+        #   .join[1,2,3][4,5,6]is
+        #   .[1,2][3,4]
+        #   [1][2]
+        #
+        # After the match:
+        #
+        #   $1:: The join type, if present.
+        #        (ex: '.join[][]' => 'join', '.[][]' => '', '[][]' => nil)
+        #   $2:: The inputs string.
+        #        (ex: '[1,2,3][4,5,6]' => '1,2,3')
+        #   $3:: The outputs string.
+        #        (ex: '[1,2,3][4,5,6]' => '4,5,6')
+        #   $4:: The modifier string.
+        #        (ex: '[][]is' => 'is')
+        #
+        JOIN = /\A(?:.(\w*[\w:]*))?\[([\d,]*)\]\[([\d,]*)\]([A-z]*)\z/
+        
         # Parses an indicies str along commas, and collects the indicies
         # as integers. Ex:
         #
@@ -170,72 +191,61 @@ module Tap
 
         # Parses the match of a ROUND regexp into a round index and an array
         # of task indicies that should be added to the round. The inputs
-        # correspond to $2 and $5 for the match.
+        # correspond to $1 and $2 for the match.
         #
-        # If $2 is nil, a round index of zero is assumed; if $5 is nil or
-        # empty, then indicies of [:current_index] are assumed.
+        # If $2 is empty then indicies of [:current_index] are assumed.
         #
         #   parse_round("+", "")                # => [1, [:current_index]]
         #   parse_round("+2", "1,2,3")          # => [2, [1,2,3]]
-        #   parse_round(nil, nil)               # => [0, [:current_index]]
         #
-        def parse_round(two, five)
-          index = case two
-          when nil then 0
-          when /\d/ then two[1, two.length-1].to_i
-          else two.length
+        def parse_round(one, two)
+          index = case one
+          when /\d/ then one[1, one.length-1].to_i
+          else one.length
           end
-          [index, five.to_s.empty? ? [current_index] : parse_indicies(five)]
+          [index, two && !two.empty? ? parse_indicies(two): [current_index]]
         end
 
         # Parses the match of a SEQUENCE regexp into an [indicies, options] 
-        # array. The inputs corresponds to $1 and $3 for the match. The 
+        # array. The inputs corresponds to $1 and $2 for the match. The 
         # previous and current index are assumed if $1 starts and/or ends 
         # with a semi-colon.
         #
         #   parse_sequence("1:2:3", '')         # => [[1,2,3], {}]
         #   parse_sequence(":1:2:", '')         # => [[:previous_index,1,2,:current_index], {}]
         #
-        def parse_sequence(one, three)
+        def parse_sequence(one, two)
           seq = parse_indicies(one, /:+/)
           seq.unshift previous_index if one[0] == ?:
           seq << current_index if one[-1] == ?:
-          [seq, parse_options(three)]
+          [seq, parse_options(two)]
         end
 
-        # Parses the match of an PREREQUISITE regexp into an index.
-        # The input corresponds to $1 for the match. The current
-        # index is assumed if $1 is empty.
+        # Parses the match of an PREREQUISITE regexp into an [indicies] array.
+        # The input corresponds to $1 for the match. If $1 is empty then 
+        # indicies of [:current_index] are assumed.
         #
-        #   parse_prerequisite("1")                 # => 1
-        #   parse_prerequisite("")                  # => :current_index
+        #   parse_prerequisite("1")                 # => [1]
+        #   parse_prerequisite("")                  # => [:current_index]
         #
         def parse_prerequisite(one)
-          one.empty? ? current_index : one.to_i
+          one && !one.empty? ? parse_indicies(one) : [current_index]
         end
 
-        # Parses the match of an bracket_regexp into a [input_indicies,
+        # Parses the match of a JOIN regexp into a [type, input_indicies,
         # output_indicies, options] array. The inputs corresponds to $1,
-        # $2, and $3 for a match to a bracket regexp. The previous and
-        # current index are assumed if $1 and/or $2 is empty.
+        # $2, $3, and $4 for a match to a JOIN regexp. The previous and
+        # current index are assumed if $2 and/or $3 is empty.
         #
-        #   parse_bracket("1", "2,3", "")       # => [[1], [2,3], {}]
-        #   parse_bracket("", "", "")           # => [[:previous_index], [:current_index], {}]
-        #   parse_bracket("1", "", "")          # => [[1], [:current_index], {}]
-        #   parse_bracket("", "2,3", "")        # => [[:previous_index], [2,3], {}]
+        #   parse_join(nil, "1", "2,3", "")       # => ['join', [1], [2,3], {}]
         #
-        def parse_bracket(one, two, three)
-          targets = parse_indicies(two)
-          targets << current_index if targets.empty?
-          [[one.empty? ? previous_index : one.to_i], targets, parse_options(three)]
+        def parse_join(one, two, three, four)
+          join = Join #one && !one.empty? ? one : Join
+          inputs = parse_indicies(two)
+          outputs = parse_indicies(three)
+          [join, inputs, outputs, parse_options(four)]
         end
-        
-        # Same as parse_bracket but reverses the input and output indicies.
-        def parse_reverse_bracket(one, two, three)
-          inputs, outputs, options = parse_bracket(one, two, three)
-          [outputs, inputs, options]
-        end
-        
+         
         # Parses an options string into a hash.  The input corresponds
         # to $3 in a SEQUENCE or bracket_regexp match.  Raises an error
         # if the options string contains unknown options.
@@ -257,55 +267,6 @@ module Tap
             options[key] = true
           end
           options
-        end
-        
-        # Parses an arg hash into a schema argv.  An arg hash is a hash
-        # using numeric keys to specify the [row][col] in a two-dimensional
-        # array where a set of values should go.  Breaks are added between
-        # rows (if necessary) and the array is collapsed to yield the
-        # argv:
-        #
-        #   argh = {
-        #     0 => {
-        #       0 => 'a',
-        #       1 => ['b', 'c']},
-        #     1 => 'z'
-        #   }
-        #   parse_argh(argh)    # => ['--', 'a', 'b', 'c', '--', 'z']
-        # 
-        # Non-numeric keys are converted to integers using to_i and
-        # existing breaks (such as workflow breaks) occuring at the
-        # start of a row are preseved.
-        #
-        #   argh = {
-        #     '0' => {
-        #       '0' => 'a',
-        #       '1' => ['b', 'c']},
-        #     '1' => ['--:', 'z']
-        #   }
-        #   parse_argh(argh)    # => ['--', 'a', 'b', 'c', '--:', 'z']
-        #
-        def parse_argh(argh)
-          rows = []
-          argh.each_pair do |row, values|
-            if values.kind_of?(Hash)
-              arry =  []
-              values.each_pair {|col, value| arry[col.to_i] = value }
-              values = arry
-            end
-
-            rows[row.to_i] = values
-          end
-          
-          argv = []
-          rows.each do |row|
-            row = [row].flatten.compact
-            if row.empty? || row[0] !~ BREAK
-              argv << '--'
-            end
-            argv.concat row
-          end
-          argv
         end
       end
       
@@ -339,12 +300,7 @@ module Tap
         # prevent the addition of an empty node to schema
         return if argv.empty?
         
-        argv = case argv
-        when Array then argv
-        when String then Shellwords.shellwords(argv) 
-        when Hash then parse_argh(argv)
-        else argv
-        end
+        argv = Shellwords.shellwords(argv) if argv.kind_of?(String)
         argv.unshift('--')
         
         escape = false
@@ -428,20 +384,21 @@ module Tap
       # determines the type of break and modifies self appropriately
       def parse_break(arg) # :nodoc:
         case arg
+        when ""
+          schema[current_index].round = 0
+          
         when ROUND
-          round, indicies = parse_round($2, $5)
+          round, indicies = parse_round($1, $2)
           indicies.each {|index| schema[index].round = round }
           
         when SEQUENCE
-          indicies, options = parse_sequence($1, $3)
+          indicies, options = parse_sequence($1, $2)
           while indicies.length > 1
             schema.set(Join, [indicies.shift], [indicies[0]], options)
           end
-
-        when PREREQUISITE    then schema[parse_prerequisite($1)].globalize
-        when FORK        then schema.set(Join, *parse_bracket($1, $2, $3))
-        when MERGE       then schema.set(Join, *parse_reverse_bracket($1, $2, $3))
-        when SYNC_MERGE  then schema.set(Joins::SyncMerge, *parse_reverse_bracket($1, $2, $3))
+          
+        when JOIN            then schema.set(*parse_join($1,$2,$3,$4))
+        when PREREQUISITE    then parse_prerequisite($1).each {|index| schema[index].globalize }
         else raise ArgumentError, "invalid break argument: #{arg}"
         end
       end
