@@ -114,7 +114,7 @@ module Tap
         end
         
         # Loads a schema from the specified path.  Raises an error if no such
-        # file existts.
+        # file exists.
         def load_file(path)
           argv = YAML.load_file(path)
           argv ? load(argv) : new

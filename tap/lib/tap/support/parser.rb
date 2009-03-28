@@ -53,7 +53,7 @@ module Tap
     #   end                             # => [[{},[a],[b]], [{:iterate => true},[b],[c]]]
     #
     # ==== Globals
-    # Global instances of task (used, for example, by dependencies) may
+    # Global prerequisites of task (used, for example, by dependencies) may
     # be assigned in the parse syntax as well.  The break for a global
     # is '--*'.
     #
@@ -137,12 +137,12 @@ module Tap
         #
         SEQUENCE = /\A(\d*(:\d*)+)([A-z]*)\z/
 
-        # Matches an instance break.  After the match:
+        # Matches an prerequisite break.  After the match:
         #
         #   $1:: The index string after the break.
         #        (ex: '*' => '', '*1' => '1')
         #
-        INSTANCE = /\A\*(\d*)\z/
+        PREREQUISITE = /\A\*(\d*)\z/
 
         # A break regexp using "[]"
         FORK = bracket_regexp("[", "]")
@@ -203,14 +203,14 @@ module Tap
           [seq, parse_options(three)]
         end
 
-        # Parses the match of an INSTANCE regexp into an index.
+        # Parses the match of an PREREQUISITE regexp into an index.
         # The input corresponds to $1 for the match. The current
         # index is assumed if $1 is empty.
         #
-        #   parse_instance("1")                 # => 1
-        #   parse_instance("")                  # => :current_index
+        #   parse_prerequisite("1")                 # => 1
+        #   parse_prerequisite("")                  # => :current_index
         #
-        def parse_instance(one)
+        def parse_prerequisite(one)
           one.empty? ? current_index : one.to_i
         end
 
@@ -438,7 +438,7 @@ module Tap
             schema.set(Join, [indicies.shift], [indicies[0]], options)
           end
 
-        when INSTANCE    then schema[parse_instance($1)].globalize
+        when PREREQUISITE    then schema[parse_prerequisite($1)].globalize
         when FORK        then schema.set(Join, *parse_bracket($1, $2, $3))
         when MERGE       then schema.set(Join, *parse_reverse_bracket($1, $2, $3))
         when SYNC_MERGE  then schema.set(Joins::SyncMerge, *parse_reverse_bracket($1, $2, $3))

@@ -243,11 +243,11 @@ class ParserUtilsTest < Test::Unit::TestCase
   end
   
   #
-  # INSTANCE test
+  # PREREQUISITE test
   #
   
-  def test_INSTANCE_regexp
-    r = INSTANCE
+  def test_PREREQUISITE_regexp
+    r = PREREQUISITE
     
     assert "*" =~ r
     assert_equal "", $1
@@ -318,12 +318,12 @@ class ParserUtilsTest < Test::Unit::TestCase
   end
   
   #
-  # parse_instance test
+  # parse_prerequisite test
   #
   
-  def test_parse_instance_documentation
-    assert_equal 1, parse_instance("1")
-    assert_equal :current_index, parse_instance("")
+  def test_parse_prerequisite_documentation
+    assert_equal 1, parse_prerequisite("1")
+    assert_equal :current_index, parse_prerequisite("")
   end
   
   #
