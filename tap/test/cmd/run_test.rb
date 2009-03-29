@@ -49,7 +49,6 @@ options:
         --help                       Print this help
         --name NAME                  Specifies the task name
         --config FILE                Specifies a config file
-        --use FILE                   Loads inputs to ARGV
 % #{cmd} run -- sample_without_doc --help
 SampleWithoutDoc
 
@@ -62,7 +61,6 @@ options:
         --help                       Print this help
         --name NAME                  Specifies the task name
         --config FILE                Specifies a config file
-        --use FILE                   Loads inputs to ARGV
 % #{cmd} run -- sample_with_splat --help
 SampleWithSplat
 
@@ -85,7 +83,6 @@ options:
         --help                       Print this help
         --name NAME                  Specifies the task name
         --config FILE                Specifies a config file
-        --use FILE                   Loads inputs to ARGV
 }
     end
   end
@@ -242,7 +239,7 @@ unknown task: --help
   def test_run_with_dump
     script_test do |cmd|
       cmd.check "Runs and dumps workflow", %Q{
-% #{cmd} run -- echo --name 1 --: echo --name 2 --: echo --name 3 --: dump --audit
+% #{cmd} run -- echo --name 1 --: echo --name 2 --: echo --name 3 --: dump --audit -d-
 ["1"]
 ["1", "2"]
 ["1", "2", "3"]

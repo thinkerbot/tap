@@ -135,10 +135,10 @@ class TaskTest < Test::Unit::TestCase
   # Task.parse test
   #
   
-  def test_parse_returns_instance_and_argv
-    instance, argv = Task.parse([1,2,3])
-    assert_equal Task, instance.class
-    assert_equal [1,2,3], argv
+  def test_parse_returns_instance_and_args
+    instance, args = Task.parse([1,2,3])
+    assert_equal 'tap/task', instance.name
+    assert_equal [1,2,3], args
   end
   
   def test_parse_uses_ARGV_if_unspecified
@@ -147,8 +147,9 @@ class TaskTest < Test::Unit::TestCase
       ARGV.clear
       ARGV.concat([1,2,3])
       
-      instance, argv = Task.parse
-      assert_equal [1,2,3], argv
+      instance, args = Task.parse
+      assert_equal 'tap/task', instance.name
+      assert_equal [1,2,3], args
     ensure
       ARGV.clear
       ARGV.concat(current_argv)
@@ -163,7 +164,7 @@ class TaskTest < Test::Unit::TestCase
     instance, argv = ParseClass.parse([])
     assert_equal ParseClass, instance.class
   end
-  
+
   def test_parse_instance_is_initialized_with_default_name_and_config
     instance, argv = ParseClass.parse([])
     assert_equal(ParseClass.default_name, instance.name)
@@ -215,19 +216,86 @@ class TaskTest < Test::Unit::TestCase
     assert_equal %w{1 2 3}, argv
   end
   
-  class NestedParseClass < Tap::Task
+  #
+  # instantiate test
+  #
+  
+  class InstantiateClass < Tap::Task
+    config :key, 'value'
+  end
+
+  def test_instantiate_returns_instance_of_subclass
+    instance, args = InstantiateClass.instantiate
+    assert_equal InstantiateClass, instance.class
+  end
+
+  def test_instance_is_initialized_default_config
+    instance, args = InstantiateClass.instantiate
+    assert_equal({:key => 'value'}, instance.config)
+  end
+  
+  def test_instantiate_reconfigures_instance_using_config
+    instance, args = InstantiateClass.instantiate :config => {:key => 'alt'}
+    assert_equal({:key => 'alt'}, instance.config)
+  end
+  
+  def test_instantiate_sets_name_using_name_option
+    instance, args = InstantiateClass.instantiate :name => 'alt'
+    assert_equal('alt', instance.name)
+  end
+  
+  def test_instantiate_reconfigures_instance_using_config_file
+    path = method_root.prepare(:tmp, 'config.yml') do |file| 
+      file << {:key => 'alt'}.to_yaml
+    end
+    
+    instance, args = InstantiateClass.instantiate :config_file => path
+    assert_equal({:key => 'alt'}, instance.config)
+  end
+  
+  def test_config_files_may_have_string_keys
+    path = method_root.prepare(:tmp, 'config.yml') do |file| 
+      file << {'key' => 'alt'}.to_yaml
+    end
+    
+    instance, args = InstantiateClass.instantiate :config_file => path
+    assert_equal({:key => 'alt'}, instance.config)
+  end
+  
+  def test_configs_override_config_file
+    path = method_root.prepare(:tmp, 'config.yml') do |file| 
+      file << {'key' => 'one'}.to_yaml
+    end
+    
+    instance, args = InstantiateClass.instantiate :config_file => path, :config => {:key => 'two'}
+    assert_equal({:key => 'two'}, instance.config)
+    
+    instance, args = InstantiateClass.instantiate :config_file => path, :config => {'key' => 'two'}
+    assert_equal({:key => 'two'}, instance.config)
+  end
+  
+  def test_instantiate_returns_args
+    instance, args = InstantiateClass.instantiate :args => %w{1 2 3}
+    assert_equal %w{1 2 3}, args
+  end
+  
+  class NestedInstantiateClass < Tap::Task
     config :key, nil
   end
   
-  class NestingParseClass < Tap::Task
+  class NestingInstantiateClass < Tap::Task
     config :key, nil
-    define :nest, NestedParseClass do |config|
-      NestedParseClass.new(config)
+    define :nest, NestedInstantiateClass do |config|
+      NestedInstantiateClass.new(config)
     end
   end
   
-  def test_parse_reconfigures_nested_tasks
-    instance, argv = NestingParseClass.parse(%w{--key one --nest:key two})
+  def test_instantiate_reconfigures_nested_tasks
+    instance, args = NestingInstantiateClass.instantiate :config => {
+      'key' => 'one',
+      'nest' => {'key' => 'two'}
+    }
+    
     assert_equal({:key => 'one', :nest => {:key => 'two'}}, instance.config.to_hash)
     assert_equal({:key => 'two'}, instance.nest.config)
   end
@@ -327,33 +395,6 @@ class TaskTest < Test::Unit::TestCase
            
     e = assert_raises(RuntimeError) { Task.load_config(path) }
     assert_equal "multiple files load the same key: [\"b.yaml\", \"b.yml\"]", e.message
-  end
-  
-  #
-  # Task.use test
-  #
-  
-  def test_use_returns_argv
-    argv = []
-    assert_equal argv.object_id, Task.use("path.yml", argv).object_id
-  end
-  
-  def test_use_loads_path_as_YAML_and_concatenates_array_results_to_argv
-    path = prepare_yaml("path.yml", [1,2,3])
-    assert_equal [0,1,2,3], Task.use(path, [0])
-  end
-  
-  def test_use_loads_path_as_YAML_and_pushes_non_hash_non_array_values_onto_argv
-    path = prepare_yaml("path.yml", "string")
-    assert_equal [0,"string"], Task.use(path, [0])
-    
-    path = prepare_yaml("path.yml", {:key => 'value'})
-    assert_equal [0,{:key => 'value'}], Task.use(path, [0])
-  end
-  
-  def test_use_does_nothing_if_path_does_not_exist
-    assert !File.exists?("path.yml")
-    assert_equal [], Task.use("path.yml", [])
   end
   
   #

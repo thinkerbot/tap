@@ -46,10 +46,10 @@ module Tap
   class Dump < Tap::Task
     class << self
       
-      # Same as an ordinary parse!, except the arguments normally reserved for
-      # executing the task are used to call setup.  The return will always be
-      # an instance and an empty array.
-      def parse!(argv=ARGV, app=Tap::App.instance)
+      # Same as an ordinary instantiate, except the arguments normally reserved
+      # for executing the task are used to call setup.  The return will always
+      # be an instance and an empty array.
+      def instantiate(argh={}, app=Tap::App.instance)
         instance, args = super
         instance.setup(*args)
         [instance, []]

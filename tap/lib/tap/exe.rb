@@ -110,22 +110,15 @@ module Tap
     end
     
     def build(schema, app=Tap::App.instance)
-      schema.build(app) do |args|
-        task = args.shift
-        const = tasks.search(task) 
-        
-        task_class = case
-        when const then const.constantize 
-        when block_given?
-          args.unshift(task)
-          yield(args)
-        else nil
-        end
-        
-        task_class or raise ArgumentError, "unknown task: #{task}"
-        task_class.parse(args, app) do |help|
-          puts help
-          exit
+      schema.build(app) do |type, id|
+        case
+        when type == :join
+          # TEMPORARY!
+          Support::Join
+        when const = tasks.search(id) 
+          const.constantize
+        else
+          raise ArgumentError, "unknown #{type}: #{id}"
         end
       end
     end

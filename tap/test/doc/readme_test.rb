@@ -51,7 +51,6 @@ options:
         --help                       Print this help
         --name NAME                  Specifies the task name
         --config FILE                Specifies a config file
-        --use FILE                   Loads inputs to ARGV
 }, false
 
       cmd.check "Runs the goodnight moon task", %Q{

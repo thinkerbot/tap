@@ -224,13 +224,42 @@ module Tap
         self
       end
       
-      def build(app)
+      #
+      # Block must return the constant specified by id.  In the case of tasks
+      # the constant needs to respond to:
+      #
+      #   parse(argv, app)                 # => [instance, argv]
+      #   instantiate(argh, app)           # => [instance, argv]
+      #
+      # Parse will be called if the node is defined by an array.  Typically
+      # this means the data will come from the command line and so parse usually
+      # handles options.  Instantiate will be called if the node is defined by
+      # a hash.  Typically this means the data will come from a YAML file.  There
+      # are no fixed requirements of the hash except that it contains an :id
+      # entry that identifies the required class.
+      #
+      # Joins need to respond to:
+      #
+      #   join(inputs, outputs, modifier)  # => instance
+      #
+      #
+      def build(app) # :yields: type, id
         cleanup
         
         # instantiate the nodes
         tasks = {}
         nodes.each do |node|
-          tasks[node] = yield(node.argv) if node
+          next unless node
+          
+          argv = node.argv.dup
+          tasks[node] = case argv
+          when Array 
+            yield(:task, argv.shift).parse(argv, app)
+          when Hash 
+            yield(:task, argv.delete(:id)).instantiate(argv, app)
+          else 
+            raise "unknown node specification: #{argv}"
+          end
         end
         
         # instantiate and reconfigure prerequisites
@@ -240,7 +269,7 @@ module Tap
           instance = task.class.instance
           
           if instances.include?(instance)
-            raise "global specified multple times: #{instance}"
+            raise "prerequisite specified multple times: #{instance}"
           end
           
           instance.reconfigure(task.config.to_hash)
@@ -253,8 +282,7 @@ module Tap
           sources = input_nodes.collect {|node| tasks[node][0] }
           targets = output_nodes.collect {|node| tasks[node][0] }
           
-          # !TEMPORARY
-          Join.join(sources, targets, modifier)
+          yield(:join, join_type).join(sources, targets, modifier)
         end
 
         # build rounds

@@ -159,14 +159,24 @@ module Tap
         instance
       end
       
-      # Parses the argv into an instance of self and an array of arguments 
-      # (implicitly to be enqued to the instance).
+      # Parses the argv into an instance of self and an array of arguments
+      # (implicitly to be enqued to the instance).  By default parse 
+      # parses an argh then calls instantiate, but there is no requirement
+      # that this occurs.
       def parse(argv=ARGV, app=Tap::App.instance)
-        parse!(argv.dup, app)
+        parse!(argv.dup)
       end
       
       # Same as parse, but removes switches destructively.
       def parse!(argv=ARGV, app=Tap::App.instance)
+        instantiate(parse_argh(argv), app)
+      end
+      
+      def parse_argh(argv=ARGV)
+        parse_argh!(argv.dup)
+      end
+      
+      def parse_argh!(argv=ARGV)
         opts = ConfigParser.new
         
         unless configurations.empty?
@@ -197,27 +207,31 @@ module Tap
         end
         
         # add option to specify a config file
-        config_path = nil
+        config_file = nil
         opts.on('--config FILE', 'Specifies a config file') do |value|
-          config_path = value
-        end
- 
-        # add option to load args to ARGV
-        use_args = []
-        opts.on('--use FILE', 'Loads inputs to ARGV') do |path|
-          use(path, use_args)
+          config_file = value
         end
         
         # parse!
         argv = opts.parse!(argv, {}, false)
         
-        # load configurations
-        config = load_config(config_path)
+        { :name => name,
+          :config => opts.nested_config,
+          :config_file => config_file,
+          :args => argv
+        }
+      end
+      
+      def instantiate(argh={}, app=Tap::App.instance)
+        name = argh[:name]
+        config = argh[:config]
+        config_file = argh[:config_file]
+        args = argh[:args] || []
         
-        # build and reconfigure the instance
-        instance = new({}, name, app).reconfigure(config).reconfigure(opts.nested_config)
-        
-        [instance, (argv + use_args)]
+        instance = new({}, name, app)
+        instance.reconfigure(load_config(config_file)) if config_file
+        instance.reconfigure(config) if config
+        [instance, args]
       end
       
       # A convenience method to parse the argv and execute the instance
@@ -258,18 +272,6 @@ module Tap
         Configurable::Utils.load_file(path, true) do |base, key, value|
           base[key] ||= value if base.kind_of?(Hash)
         end
-      end
-      
-      # Loads the contents of path onto argv.
-      def use(path, argv=ARGV)
-        obj = Root.trivial?(path) ? [] : (YAML.load_file(path) || [])
-        
-        case obj
-        when Array then argv.concat(obj)
-        else argv << obj
-        end
-        
-        argv
       end
       
       protected

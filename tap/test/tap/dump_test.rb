@@ -16,16 +16,14 @@ class DumpTest < Test::Unit::TestCase
   end
   
   #
-  # parse! test
+  # instantiate test
   #
   
-  def test_parse_uses_args_to_setup_dump
-    dump, args = Dump.parse %w{path/to/target.yml --date --no-audit}
+  def test_instantiate_uses_args_to_setup_dump
+    dump, args = Dump.instantiate :args => %w{path/to/target.yml}
     
     assert_equal [], args
     assert_equal "path/to/target.yml", dump.target
-    assert_equal true, dump.date
-    assert_equal false, dump.audit
   end
   
   #
