@@ -30,12 +30,44 @@ module Tap
           end
         end
         
+        # Formats a node argh into an argv, like you would get on the command
+        # line.  Note that this requires some inference to map configs to
+        # options.
+        #
+        #   format_argv()            # => ""
+        #
+        def format_argv(argh, full=false)
+          return argh if full
+          
+          argv = []
+          argh.each_pair do |key, value|
+            case key
+            when :id
+              argv.unshift(value)
+            when :argv, :args 
+              argv.concat(value)
+            when :config
+              value.each_pair do |k,v|
+                argv << "--#{k}" << YAML.dump(v)
+              end
+            else
+              # for name, config_file, unlisted options
+              argv << "--#{key}" << YAML.dump(value)
+            end
+          end
+          argv
+        end
+        
         # Formats a round string.
         #
         #   format_round(1, [1,2,3])            # => "+1[1,2,3]"
         #
         def format_round(round, indicies)
           "+#{round}[#{indicies.join(',')}]"
+        end
+        
+        def argh_round(round, indicies)
+          {:round => round, :indicies => indicies}
         end
 
         # Formats a prerequisite string.
@@ -46,14 +78,27 @@ module Tap
         def format_prerequisites(indicies)
           indicies.empty? ? nil : "*[#{indicies.join(',')}]"
         end
+        
+        def argh_prerequisites(indicies)
+          {:prerequisites => indicies}
+        end
 
         # Formats a join string.
         #
-        #   format_join('type', [1], [2,3], {})   # => "[1][2,3].type"
+        #   format_join([1], [2,3], :join => 'type')   # => "[1][2,3].type"
         #
-        def format_join(join_type, inputs, outputs, modifier)
-          identifier = join_type.empty? || join_type == "join" ? "" : ".#{join_type}"
+        def format_join(inputs, outputs, argh={})
+          join_type = argh[:join]
+          modifier = argh[:modifier]
+        
+          identifier = join_type == nil || join_type.empty? || join_type == "join" ? "" : ".#{join_type}"
           "[#{inputs.join(',')}][#{outputs.join(',')}]#{modifier}#{identifier}"
+        end
+        
+        def argh_join(inputs, outputs, argh={})
+          result = {:inputs => inputs, :outputs => outputs}
+          result[:argh] = argh unless argh.empty?
+          result
         end
       end
       
@@ -102,11 +147,16 @@ module Tap
         nodes ? nodes.collect {|node| index(node) } : nodes
       end
        
-      # Returns an array of the argvs for each nodes.
-      def argvs
+      # Returns an array of the arghs for each nodes.
+      def arghs
         nodes.collect do |node|
-          node == nil ? nil : node.argv
+          node == nil ? nil : node.argh
         end
+      end
+      
+      # Returns an array of the argh[:argv] for each node.
+      def argvs
+        arghs.collect {|argh| argh[:argv] }
       end
       
       # Returns a collection of nodes sorted into arrays by round.
@@ -163,14 +213,20 @@ module Tap
         joins.uniq
       end
       
+      # Sets the round for the node at each index.
+      def set_round(round, indicies)
+        indicies.each {|index| self[index].round = round }
+      end
+      
+      # Sets the specified nodes as prerequisites.
+      def set_prerequisites(indicies)
+        indicies.each {|index| self[index].make_prerequisite }
+      end
+      
       # Sets a join between the nodes at the input and output indicies.
       # Returns the new join.
-      def set(join_type, inputs, outputs, modifier="")
-        unless inputs && !inputs.empty?
-          raise ArgumentError, "no input nodes specified"
-        end
-        
-        join = [join_type, [],[], modifier]
+      def set_join(inputs, outputs, argh={})
+        join = [[],[], argh]
         
         inputs.each {|index| self[index].output = join }
         outputs.each {|index| self[index].input = join }
@@ -189,11 +245,11 @@ module Tap
       def cleanup
         # remove nil and empty nodes
         nodes.delete_if do |node|
-          node == nil || node.argv.empty?
+          node == nil || node.compact!.empty?
         end
         
         # cleanup joins
-        joins.each do |join, input_nodes, output_nodes|
+        joins.each do |input_nodes, output_nodes, argh|
           
           # remove missing output nodes
           output_nodes.delete_if {|node| !nodes.include?(node) }
@@ -251,7 +307,7 @@ module Tap
         nodes.each do |node|
           next unless node
           
-          argv = node.argv.dup
+          argv = node.argh[:argv].dup
           tasks[node] = case argv
           when Array 
             yield(:task, argv.shift).parse(argv, app)
@@ -278,10 +334,12 @@ module Tap
         end
 
         # build the workflow
-        joins.each do |join_type, input_nodes, output_nodes, modifier|
+        joins.each do |input_nodes, output_nodes, argh|
           sources = input_nodes.collect {|node| tasks[node][0] }
           targets = output_nodes.collect {|node| tasks[node][0] }
           
+          join_type = argh[:join] || 'join'
+          modifier = argh[:modifier]
           yield(:join, join_type).join(sources, targets, modifier)
         end
 
@@ -302,15 +360,25 @@ module Tap
       end
       
       # Creates an array dump of the contents of self.
-      def dump
+      def dump(format=false)
         cleanup
         
-        # add argvs
-        array = argvs
+        # add arghs
+        array = if format
+          arghs.collect {|argh| format_argv(argh) }
+        else
+          arghs
+        end
         
         # add prerequisites declaration
         indicies = prerequisites.collect {|node| index(node) }
-        array << format_prerequisites(indicies) unless indicies.empty?
+        unless indicies.empty?
+          array << if format 
+            format_prerequisites(indicies)
+          else 
+            argh_prerequisites(indicies)
+          end
+        end
         
         # add round declarations
         index = 0
@@ -319,17 +387,25 @@ module Tap
           # skip round 0 as it is implicit
           if index > 0
             indicies = nodes.collect {|node| index(node) }
-            array << format_round(index, indicies)
+            array << if format 
+              format_round(index, indicies)
+            else 
+              argh_round(index, indicies)
+            end
           end
           
           index += 1
         end
         
         # add join declarations
-        joins.each do |join_type, input_nodes, output_nodes, modifier|
+        joins.each do |input_nodes, output_nodes, argh|
           inputs = input_nodes.collect {|node| nodes.index(node) }
           outputs = output_nodes.collect {|node| nodes.index(node) }
-          array << format_join(join_type, inputs, outputs, modifier)
+          array << if format 
+            format_join(inputs, outputs, argh)
+          else
+            argh_join(inputs, outputs, argh)
+          end
         end
         
         array
@@ -339,8 +415,9 @@ module Tap
       # '-- a -- b --0:1'.
       def to_s
         args = []
-        dump.each do |obj|
-          if obj.kind_of?(Array)
+        dump(true).each do |obj|
+          case obj
+          when Array
             args << "--"
             args.concat obj.collect {|arg| shell_quote(arg) }
           else

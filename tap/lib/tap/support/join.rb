@@ -21,6 +21,8 @@ module Tap
         #   parse_modifier("ik")                 # => {:iterate => true, :stack => true}
         #
         def parse_modifier(str)
+          return {} unless str
+          
           options = {}
           0.upto(str.length - 1) do |char_index|
             char = str[char_index, 1]

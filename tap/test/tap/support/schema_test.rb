@@ -43,12 +43,13 @@ class SchemaUtilsTest < Test::Unit::TestCase
   #
 
   def test_format_join_documentation
-    assert_equal "[1][2,3]is.type", format_join('type', [1], [2,3], "is") 
+    assert_equal "[1][2,3].type", format_join([1], [2,3], :join => 'type') 
   end
   
   def test_format_join
-    assert_equal "[1][2,3]is", format_join('join', [1], [2,3], "is") 
-    assert_equal "[1][2,3]", format_join('join', [1], [2,3], "") 
+    assert_equal "[1][2,3]is.type", format_join([1], [2,3], :join => 'type', :modifier => "is") 
+    assert_equal "[1][2,3]is", format_join([1], [2,3], :join => 'join', :modifier => "is") 
+    assert_equal "[1][2,3]", format_join([1], [2,3]) 
   end
 end
 
@@ -65,73 +66,73 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   def node_set(n=3)
-    Array.new(n) {|index| Node.new([index], 0) }
+    Array.new(n) {|index| Node.new({:argv => [index]}) }
   end
   
-  #
-  # Schema#load_file test
-  #
-  
-  def test_load_file_reloads_a_yaml_dump
-    path = method_root.prepare(:tmp, 'dump.yml') do |file|
-      file << schema.dump.to_yaml
-    end
-    
-    loaded_schema = Schema.load_file(path)
-    assert_equal schema.dump, loaded_schema.dump
-  end
-  
-  def test_load_file_reloads_prerequisites
-    schema = Schema.parse("-- a -- b -- c --*[0,1] --*[2]")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-    
-    assert_equal "-- a -- b -- c --*[0,1,2]", Schema.load_file(path).to_s
-  end
-  
-  def test_load_file_reloads_rounds
-    schema = Schema.parse("-- a --+ b --++ c")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-    
-    assert_equal "-- a -- b -- c --+1[1] --+2[2]", Schema.load_file(path).to_s
-  end
-  
-  def test_load_file_reloads_sequence
-    schema = Schema.parse("-- a --: b")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-    
-    assert_equal "-- a -- b --[0][1]", Schema.load_file(path).to_s
-  end
-  
-  def test_load_file_reloads_fork
-    schema = Schema.parse("-- a -- b -- c --[0][1,2]")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-    
-    assert_equal "-- a -- b -- c --[0][1,2]", Schema.load_file(path).to_s
-  end
-  
-  def test_load_file_reloads_merge
-    schema = Schema.parse("-- a -- b -- c --[0,1][2]")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-    
-    assert_equal "-- a -- b -- c --[0,1][2]", Schema.load_file(path).to_s
-  end
-  
-  def test_load_file_initializes_new_Schema_for_empty_file
-    path = method_root.prepare(:tmp, 'empty.yml') {}
-    
-    assert_equal "", File.read(path)
-    schema = Schema.load_file(path)
-    assert schema.kind_of?(Schema)
-    assert schema.nodes.empty?
-  end
-  
-  def test_load_file_raises_error_for_non_existant_file
-    path = method_root.filepath('non_existant.yml')
-    
-    assert !File.exists?(path)
-    e = assert_raises(Errno::ENOENT) { Schema.load_file(path) }
-    assert_equal "No such file or directory - #{path}", e.message
-  end
+  # #
+  # # Schema#load_file test
+  # #
+  # 
+  # def test_load_file_reloads_a_yaml_dump
+  #   path = method_root.prepare(:tmp, 'dump.yml') do |file|
+  #     file << schema.dump.to_yaml
+  #   end
+  #   
+  #   loaded_schema = Schema.load_file(path)
+  #   assert_equal schema.dump, loaded_schema.dump
+  # end
+  # 
+  # def test_load_file_reloads_prerequisites
+  #   schema = Schema.parse("-- a -- b -- c --*[0,1] --*[2]")
+  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+  #   
+  #   assert_equal "-- a -- b -- c --*[0,1,2]", Schema.load_file(path).to_s
+  # end
+  # 
+  # def test_load_file_reloads_rounds
+  #   schema = Schema.parse("-- a --+ b --++ c")
+  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+  #   
+  #   assert_equal "-- a -- b -- c --+1[1] --+2[2]", Schema.load_file(path).to_s
+  # end
+  # 
+  # def test_load_file_reloads_sequence
+  #   schema = Schema.parse("-- a --: b")
+  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+  #   
+  #   assert_equal "-- a -- b --[0][1]", Schema.load_file(path).to_s
+  # end
+  # 
+  # def test_load_file_reloads_fork
+  #   schema = Schema.parse("-- a -- b -- c --[0][1,2]")
+  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+  #   
+  #   assert_equal "-- a -- b -- c --[0][1,2]", Schema.load_file(path).to_s
+  # end
+  # 
+  # def test_load_file_reloads_merge
+  #   schema = Schema.parse("-- a -- b -- c --[0,1][2]")
+  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
+  #   
+  #   assert_equal "-- a -- b -- c --[0,1][2]", Schema.load_file(path).to_s
+  # end
+  # 
+  # def test_load_file_initializes_new_Schema_for_empty_file
+  #   path = method_root.prepare(:tmp, 'empty.yml') {}
+  #   
+  #   assert_equal "", File.read(path)
+  #   schema = Schema.load_file(path)
+  #   assert schema.kind_of?(Schema)
+  #   assert schema.nodes.empty?
+  # end
+  # 
+  # def test_load_file_raises_error_for_non_existant_file
+  #   path = method_root.filepath('non_existant.yml')
+  #   
+  #   assert !File.exists?(path)
+  #   e = assert_raises(Errno::ENOENT) { Schema.load_file(path) }
+  #   assert_equal "No such file or directory - #{path}", e.message
+  # end
   
   #
   # [] test
@@ -167,60 +168,78 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   #
-  # set test
+  # set_round test
   #
   
-  def test_set_returns_a_new_join_array
-    join_type, inputs, outputs, modifier = schema.set("join", [0], [1], "i")
+  def test_set_round_sets_the_round_for_the_specified_nodes
+    n0, n1, n2 = Array.new(3) {|index| schema[index] }
+    n0.round = 0
+    n1.round = 0
+    n2.round = 2
+  
+    assert_equal [[n0, n1], nil, [n2]], schema.rounds
     
-    assert_equal "join", join_type
-    assert_equal "i", modifier
+    schema.set_round(1, [0,2])
+    
+    assert_equal [[n1], [n0, n2]], schema.rounds
+  end
+  
+  #
+  # set_prerequisites test
+  #
+  
+  def test_set_prerequisites_sets_the_specified_nodes_as_prerequisites
+    n0, n1, n2 = Array.new(3) {|index| schema[index] }
+    assert !n0.prerequisite?
+    assert !n1.prerequisite?
+    assert !n2.prerequisite?
+    
+    schema.set_prerequisites([0,2])
+    assert_equal [n0, n2], schema.prerequisites
+  end
+  
+  #
+  # set_join test
+  #
+  
+  def test_set_join_returns_a_new_join_array
+    inputs, outputs, argh = schema.set_join([0], [1], :modifier => "i")
+    
+    assert_equal({:modifier => "i"}, argh)
     assert_equal [schema[0]], inputs
     assert_equal [schema[1]], outputs
   end
   
-  def test_set_sets_inputs_and_outputs_for_nodes_to_join_array
-    join_array = schema.set("join", [0], [1,2])
+  def test_set_join_sets_inputs_and_outputs_for_nodes_to_join_array
+    join_array = schema.set_join([0], [1,2])
     
     assert_equal join_array, schema[0].output
     assert_equal join_array, schema[1].input
     assert_equal join_array, schema[2].input
   end
   
-  def test_set_allows_single_value_inputs_and_outputs
-    join_array = schema.set("join", [0], [1])
+  def test_set_join_allows_single_value_inputs_and_outputs
+    join_array = schema.set_join([0], [1])
     
     assert_equal join_array, schema[0].output
     assert_equal join_array, schema[1].input
   end
   
-  def test_set_raises_error_for_orphan_join
-    e = assert_raises(ArgumentError) { schema.set("join", [], [0]) }
-    assert_equal "no input nodes specified", e.message
-  
-    e = assert_raises(ArgumentError) { schema.set("join", nil, [0]) }
-    assert_equal "no input nodes specified", e.message
-  end
-  
-  def test_set_does_not_raise_error_for_joins_with_no_target
-    assert schema.set("join", [0], [])
-  end
-  
-  def test_set_adds_join_array_to_joins
-    join_array = schema.set("join", [0], [1,2])
+  def test_set_join_adds_join_array_to_joins
+    join_array = schema.set_join([0], [1,2])
     assert_equal([join_array], schema.joins)
   end
   
   #
-  # argvs test
+  # arghs test
   #
   
-  def test_argvs_returns_a_collection_of_all_argvs_across_nodes
+  def test_arghs_returns_a_collection_of_all_argvs_across_nodes
     schema = Schema.new
-    schema[0].argv = [1,2,3]
-    schema[2].argv = [4,5,6]
+    schema[0].argh = {:argv => [1,2,3]}
+    schema[2].argh = {:argv => [4,5,6]}
     
-    assert_equal [[1,2,3], nil, [4,5,6]], schema.argvs
+    assert_equal [{:argv => [1,2,3]}, nil, {:argv => [4,5,6]}], schema.arghs
   end
   
   #
@@ -245,11 +264,11 @@ class SchemaTest < Test::Unit::TestCase
     #           |
     # (2)-o-[B]-o
   
-    join1, join2 = Array.new(2) { [:join, [], []] }
-    a = Node.new [], 3, join1
-    b = Node.new [], 2, join1
-    c = Node.new [], join1, join2
-    d = Node.new [], join2
+    join1, join2 = Array.new(2) { [[], []] }
+    a = Node.new({}, 3, join1)
+    b = Node.new({}, 2, join1)
+    c = Node.new({}, join1, join2)
+    d = Node.new({}, join2)
     
     schema = Schema.new([a,b,c,d])
     assert_equal [nil, nil, [b,c,d], [a]], schema.natural_rounds
@@ -274,8 +293,8 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_joins_returns_array_of_join_arrays
     n0, n1, n2, n3, n4, n5 = Array.new(6) {|index| schema[index] }
-    a = schema.set(Join, [0], [1,2])
-    b = schema.set(Join, [3,4], [5])
+    a = schema.set_join([0], [1,2])
+    b = schema.set_join([3,4], [5])
     
     assert_equal([a,b], schema.joins)
   end
@@ -284,49 +303,49 @@ class SchemaTest < Test::Unit::TestCase
   # cleanup test
   #
   
-  def test_cleanup_removes_nil_nodes_and_nodes_where_argv_is_empty
+  def test_cleanup_removes_nil_and_emtpty_nodes
     n0 = schema[0]
     n3 = schema[3]
     n5 = schema[5]
     
-    n0.argv.concat [1,2,3]
-    n5.argv.concat [4,5,6]
+    n0.argh[:argv] = [1,2,3]
+    n5.argh[:argv] = [4,5,6]
     
     assert_equal [n0, nil, nil, n3, nil, n5], schema.nodes
-    assert n3.argv.empty?
+    assert n3.empty?
     
     schema.cleanup
     assert_equal [n0, n5], schema.nodes
   end
   
   def test_cleanup_removes_removed_input_and_output_nodes_from_joins
-    n0 = Node.new []
-    n1 = Node.new [1,2,3]
-    n2 = Node.new []
-    n3 = Node.new [4,5,6]
+    n0 = Node.new
+    n1 = Node.new :argv => [1,2,3]
+    n2 = Node.new
+    n3 = Node.new :argv => [4,5,6]
     
     schema = Schema.new [n0, n1, n2, n3]
-    join = schema.set("join", [0,1], [2,3])
+    join = schema.set_join([0,1], [2,3])
     
     assert_equal [n0, n1, n2, n3], schema.nodes
     assert_equal [join], schema.joins
-    assert_equal [n0, n1], join[1]
-    assert_equal [n2, n3], join[2]
+    assert_equal [n0, n1], join[0]
+    assert_equal [n2, n3], join[1]
     
     schema.cleanup
     
     assert_equal [n1, n3], schema.nodes
     assert_equal [join], schema.joins
-    assert_equal [n1], join[1]
-    assert_equal [n3], join[2]
+    assert_equal [n1], join[0]
+    assert_equal [n3], join[1]
   end
   
   def test_cleanup_removes_orphaned_joins
-    n0 = Node.new []
-    n1 = Node.new [1,2,3]
+    n0 = Node.new
+    n1 = Node.new :argv => [1,2,3]
     
     schema = Schema.new [n0, n1]
-    join = schema.set("join", [0], [1])
+    join = schema.set_join([0], [1])
     
     assert_equal [n0, n1], schema.nodes
     assert_equal [join], schema.joins
@@ -348,15 +367,15 @@ class SchemaTest < Test::Unit::TestCase
     #           |
     #           o-[F]
     
-    a = Node.new [1,2,3], 0
-    b = Node.new [], nil
-    c = Node.new [], 2
-    d = Node.new [], 1
-    e = Node.new [4,5,6]
-    f = Node.new [7,8,9]
+    a = Node.new({:argv => [1,2,3]}, 0)
+    b = Node.new({}, nil)
+    c = Node.new({}, 2)
+    d = Node.new({}, 1)
+    e = Node.new :argv => [4,5,6]
+    f = Node.new :argv => [7,8,9]
     
     schema = Schema.new [a,b,c,d,e,f]
-    join = schema.set("join", [1,2,3], [4,5])
+    join = schema.set_join([1,2,3], [4,5])
     
     assert_equal 0, a.input
     assert_equal 1, e.natural_round
@@ -373,13 +392,14 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   def test_cleanup_removes_orphan_joins
-    join = ["join", [], [], ""]
-    a = Node.new ["a"], join
-    b = Node.new ["b"], join
+    join = [[], []]
+    a = Node.new({:argv => ['a']}, join)
+    b = Node.new({:argv => ['b']}, join)
     
     schema = Schema.new [a,b]
     assert_equal join, a.input
     assert_equal join, b.input
+    assert_equal [[],[a,b]], join
     
     schema.cleanup
     
@@ -389,18 +409,18 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_cleanup_removes_nils_from_rounds
     n0 = schema[0] 
-    n0.argv.concat [1,2,3]
+    n0.argh[:argv] = [1,2,3]
     n0.round = 0
     
     n3 = schema[3]
     n3.round = 3
     
     n5 = schema[5]
-    n5.argv.concat [4,5,6]
+    n5.argh[:argv] = [4,5,6]
     n5.round = 5
     
     assert_equal [[n0], nil, nil, [n3], nil, [n5]], schema.rounds
-    assert n3.argv.empty?
+    assert n3.empty?
     
     schema.cleanup
     assert_equal [[n0],[n5]], schema.rounds
@@ -427,18 +447,18 @@ class SchemaTest < Test::Unit::TestCase
   def test_to_s_and_dump_formats_argvs_separated_by_break
     schema = Schema.new node_set
     assert_equal "-- 0 -- 1 -- 2", schema.to_s
-    assert_equal [[0],[1],[2]], schema.dump
+    assert_equal [[0],[1],[2]], schema.dump(true)
   end
   
   def test_to_s_and_dump_perform_cleanup
-    join = ["join", [], [], ""]
-    a = Node.new ["a"], 2
-    b = Node.new ["b"], join
-    c = Node.new ["c"], join
+    join = [[], [], ""]
+    a = Node.new({:argv => ["a"]}, 2)
+    b = Node.new({:argv => ["b"]}, join)
+    c = Node.new({:argv => ["c"]}, join)
     
     schema = Schema.new [a,b,nil,c]
     assert_equal "-- a -- b -- c --+1[0]", schema.to_s
-    assert_equal [['a'],['b'],['c'], "+1[0]"], schema.dump
+    assert_equal [['a'],['b'],['c'], "+1[0]"], schema.dump(true)
   end
   
   def test_to_s_and_dump_adds_round_breaks_for_non_zero_rounds
@@ -449,7 +469,7 @@ class SchemaTest < Test::Unit::TestCase
     
     schema = Schema.new nodes
     assert_equal "-- 0 -- 1 -- 2 --+1[1] --+2[2]", schema.to_s
-    assert_equal [[0],[1],[2],"+1[1]","+2[2]"], schema.dump
+    assert_equal [[0],[1],[2],"+1[1]","+2[2]"], schema.dump(true)
   end
   
   def test_to_s_and_dump_properly_handles_multiple_tasks_in_a_round
@@ -460,7 +480,7 @@ class SchemaTest < Test::Unit::TestCase
     
     schema = Schema.new nodes
     assert_equal "-- 0 -- 1 -- 2 --+1[1,2]", schema.to_s
-    assert_equal [[0],[1],[2],"+1[1,2]"], schema.dump
+    assert_equal [[0],[1],[2],"+1[1,2]"], schema.dump(true)
   end
   
   def test_to_s_and_dump_adds_global_breaks_for_prerequisite_nodes
@@ -470,53 +490,53 @@ class SchemaTest < Test::Unit::TestCase
     
     schema = Schema.new nodes
     assert_equal "-- 0 -- 1 -- 2 --*[1,2]", schema.to_s
-    assert_equal [[0],[1],[2],"*[1,2]"], schema.dump
+    assert_equal [[0],[1],[2],"*[1,2]"], schema.dump(true)
   end
   
   def test_to_s_and_dump_adds_sequence_breaks_for_sequence_joins
     schema = Schema.new node_set
-    schema.set "join", [0], [1]
-    schema.set "join", [1], [2]
+    schema.set_join [0], [1]
+    schema.set_join [1], [2]
     
     assert_equal "-- 0 -- 1 -- 2 --[0][1] --[1][2]", schema.to_s
-    assert_equal [[0],[1],[2],"[0][1]", "[1][2]"], schema.dump
+    assert_equal [[0],[1],[2],"[0][1]", "[1][2]"], schema.dump(true)
   end
   
   def test_to_s_and_dump_adds_fork_breaks_for_fork_joins
     schema = Schema.new node_set
-    schema.set "join", [0], [1,2]
+    schema.set_join [0], [1,2]
   
     assert_equal "-- 0 -- 1 -- 2 --[0][1,2]", schema.to_s
-    assert_equal [[0],[1],[2],"[0][1,2]"], schema.dump
+    assert_equal [[0],[1],[2],"[0][1,2]"], schema.dump(true)
   end
   
   def test_to_s_and_dump_adds_merge_breaks_for_merge_joins
     schema = Schema.new node_set
-    schema.set "join", [0,1], [2]
+    schema.set_join [0,1], [2]
   
     assert_equal "-- 0 -- 1 -- 2 --[0,1][2]", schema.to_s
-    assert_equal [[0],[1],[2],"[0,1][2]"], schema.dump
+    assert_equal [[0],[1],[2],"[0,1][2]"], schema.dump(true)
   end
   
   def test_to_s_and_dump_adds_sync_merge_breaks_for_arbitrary_joins
     schema = Schema.new node_set
-    schema.set "type", [0,1], [2]
+    schema.set_join [0,1], [2], :join => "type"
   
     assert_equal "-- 0 -- 1 -- 2 --[0,1][2].type", schema.to_s
-    assert_equal [[0],[1],[2],"[0,1][2].type"], schema.dump
+    assert_equal [[0],[1],[2],"[0,1][2].type"], schema.dump(true)
   end
   
   #
   # misc tests
   #
   
-  def test_schema_loads_terminal_joins_correctly
-    schema = Schema.load [["a"], ["b"], "[0][]"]
-    assert_equal 2, schema.nodes.length
-    
-    a,b = schema.nodes
-    
-    assert_equal [[a,b]], schema.rounds
-    assert_equal [[a,b]], schema.natural_rounds
-  end
+  # def test_schema_loads_terminal_joins_correctly
+  #   schema = Schema.load [["a"], ["b"], "[0][]"]
+  #   assert_equal 2, schema.nodes.length
+  #   
+  #   a,b = schema.nodes
+  #   
+  #   assert_equal [[a,b]], schema.rounds
+  #   assert_equal [[a,b]], schema.natural_rounds
+  # end
 end

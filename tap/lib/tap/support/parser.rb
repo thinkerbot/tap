@@ -230,9 +230,12 @@ module Tap
           indicies.unshift previous_index if one[0] == ?:
           indicies << current_index if one[-1] == ?:
           
+          argh = two.empty? ? nil : {:modifier => two }
           sequences = []
           while indicies.length > 1
-            sequences << ['join', [indicies.shift], [indicies[0]], two]
+            join = [[indicies.shift], [indicies[0]]]
+            join << argh if argh
+            sequences << join
           end
           sequences
         end
@@ -257,10 +260,16 @@ module Tap
         #   parse_join("", "", "is", "type")    # => ['type', [], [], "is"]
         #
         def parse_join(one, two, three, four)
-          join_type = four && !four.empty? ? four : 'join'
           inputs = parse_indicies(one)
           outputs = parse_indicies(two)
-          [join_type, inputs, outputs, three]
+          
+          argh = {}
+          argh[:join] = four if four && !four.empty? && four != "join"
+          argh[:modifier] = three if !three.empty?
+          
+          join = [inputs, outputs]
+          join << argh unless argh.empty?
+          join
         end
       end
       
@@ -270,8 +279,6 @@ module Tap
       attr_reader :schema
       
       def initialize(argv=[])
-        @current_index = 0
-        @schema = Schema.new
         parse(argv)
       end
 
@@ -291,6 +298,9 @@ module Tap
 
       # Same as parse, but removes parsed args from argv.
       def parse!(argv)
+        @current_index = 0
+        @schema = Schema.new
+        
         # prevent the addition of an empty node to schema
         return if argv.empty?
         
@@ -308,7 +318,7 @@ module Tap
             if arg == ESCAPE_END
               escape = false
             else
-              (current_argv ||= schema[current_index].argv) << arg
+              (current_argv ||= argv(current_index)) << arg
             end
 
             next
@@ -340,7 +350,7 @@ module Tap
             # add all other non-breaking args to
             # the current argv; this includes
             # both inputs and configurations
-            (current_argv ||= schema[current_index].argv) << arg
+            (current_argv ||= argv(current_index)) << arg
             
           end
         end
@@ -351,11 +361,28 @@ module Tap
       def load(argv)
         argv.each do |args|
           case args
+          when Hash
+            case
+            when args.has_key?('round')
+              schema.set_round(args['round'], args['indicies'])
+            when args.has_key?('join')
+              schema.set_join(args['join'], args['inputs'], args['outputs'])#, args['config'])
+            when args.has_key?('prerequisite')
+              args['prerequisite'].each {|index| schema[index].make_prerequisite }
+            else
+              schema.nodes << Node.new(args)
+              self.current_index += 1
+            end
           when Array
-            schema.nodes << Node.new(args, 0)
+            schema.nodes << Node.new(args)
             self.current_index += 1
+          when String
+            args.split(/\s/).each do |arg|
+              parse_break(arg)
+            end
+          when nil
           else
-            parse_break(args)
+            raise "invalid arg: #{args}"
           end
         end
         
@@ -369,6 +396,10 @@ module Tap
       # The index of the node currently being parsed.
       attr_accessor :current_index # :nodoc:
       
+      def argv(index)
+        schema[index].argh[:argv] ||= []
+      end
+      
       # Returns current_index-1, or raises an error if current_index < 1.
       def previous_index # :nodoc:
         raise ArgumentError, 'there is no previous index' if current_index < 1
@@ -381,14 +412,13 @@ module Tap
         when ""
           schema[current_index].round = 0
         when ROUND
-          round, indicies = parse_round($1, $2)
-          indicies.each {|index| schema[index].round = round }
+          schema.set_round(*parse_round($1, $2))
         when SEQUENCE     
-          parse_sequence($1, $2).each {|join| schema.set(*join) }
+          parse_sequence($1, $2).each {|join| schema.set_join(*join) }
         when JOIN         
-          schema.set(*parse_join($1, $2, $3, $4))
+          schema.set_join(*parse_join($1, $2, $3, $4))
         when PREREQUISITE 
-          parse_prerequisite($1).each {|index| schema[index].make_prerequisite }
+          schema.set_prerequisites(parse_prerequisite($1))
         else
           raise ArgumentError, "invalid break argument: #{arg}"
         end
