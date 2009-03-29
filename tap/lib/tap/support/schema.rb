@@ -299,23 +299,13 @@ module Tap
       #   join(inputs, outputs, modifier)  # => instance
       #
       #
-      def build(app) # :yields: type, id
+      def build # :yields: type, argh
         cleanup
         
         # instantiate the nodes
         tasks = {}
         nodes.each do |node|
-          next unless node
-          
-          argv = node.argh[:argv].dup
-          tasks[node] = case argv
-          when Array 
-            yield(:task, argv.shift).parse(argv, app)
-          when Hash 
-            yield(:task, argv.delete(:id)).instantiate(argv, app)
-          else 
-            raise "unknown node specification: #{argv}"
-          end
+          tasks[node] = yield(:task, node.argh)
         end
         
         # instantiate and reconfigure prerequisites
@@ -337,10 +327,7 @@ module Tap
         joins.each do |input_nodes, output_nodes, argh|
           sources = input_nodes.collect {|node| tasks[node][0] }
           targets = output_nodes.collect {|node| tasks[node][0] }
-          
-          join_type = argh[:join] || 'join'
-          modifier = argh[:modifier]
-          yield(:join, join_type).join(sources, targets, modifier)
+          yield(:join, argh).join(sources, targets)
         end
 
         # build rounds
@@ -354,9 +341,7 @@ module Tap
           warn "warning: ignoring args for node (#{index(node)}) #{task} [#{args.join(' ')}]"
         end
         
-        # enque
-        queues.each {|queue| app.queue.concat(queue) }
-        app
+        queues
       end
       
       # Creates an array dump of the contents of self.

@@ -10,8 +10,17 @@ module Tap
     #
     class Join
       class << self
-        def join(inputs, outputs, modifier)
-          new(parse_modifier(modifier)).join(inputs, outputs)
+        def parse(argv=ARGV)
+          parse!(argv.dup)
+        end
+        
+        def parse!(argv=ARGV)
+          config = parse_modifier(argv)
+          instantitate(config)
+        end
+        
+        def instantiate(argh)
+          new(argh[:config] || {})
         end
         
         # Parses a modifier string into configurations.  Raises an error

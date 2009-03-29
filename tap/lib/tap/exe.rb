@@ -109,17 +109,49 @@ module Tap
       end
     end
     
-    def build(schema, app=Tap::App.instance)
-      schema.build(app) do |type, id|
-        case
-        when type == :join
-          # TEMPORARY!
-          Support::Join
-        when const = tasks.search(id) 
-          const.constantize
+    def build(schema, app=Tap::App.instance) 
+      queues = schema.build do |type, argh|
+        if type == :join
+          instantiate_join(argh)
         else
-          raise ArgumentError, "unknown #{type}: #{id}"
+          instantiate_task(argh, app)
         end
+      end
+      
+      queues.each {|queue| app.queue.concat(queue) }
+      app
+    end
+    
+    def instantiate_join(argh)
+      # Temporary!
+      join_class = Support::Join
+      if argv = argh[:modifier]
+        join_class.parse!(argv)
+      else
+        join_class.instantiate(argh)
+      end
+    end
+    
+    def instantiate_task(argh, app)
+      id = argh[:id]
+      argv = argh[:argv]
+      
+      if id && argv
+        raise "id and argv specified for task: #{argh.inspect}"
+      end
+      
+      if argv
+        argv = argv.dup
+        id = argv.shift
+      end
+      
+      const = tasks.search(id) or raise ArgumentError, "unknown task: #{id}"
+      tasc = const.constantize
+      
+      if argv
+        tasc.parse!(argv, app)
+      else
+        tasc.instantiate(argh, app)
       end
     end
     
