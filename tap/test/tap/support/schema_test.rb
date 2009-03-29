@@ -43,12 +43,15 @@ class SchemaUtilsTest < Test::Unit::TestCase
   #
 
   def test_format_join_documentation
-    assert_equal "[1][2,3].type", format_join([1], [2,3], :join => 'type') 
+    assert_equal "[1][2,3].type", format_join([1], [2,3], :argv => ['type']) 
   end
   
   def test_format_join
-    assert_equal "[1][2,3]is.type", format_join([1], [2,3], :join => 'type', :modifier => "is") 
-    assert_equal "[1][2,3]is", format_join([1], [2,3], :join => 'join', :modifier => "is") 
+    assert_equal "[1][2,3]is.type", format_join([1], [2,3], :argv => ['type', 'is']) 
+    assert_equal "[1][2,3]is", format_join([1], [2,3], :argv => ['join', 'is'])
+    assert_equal "[1][2,3]", format_join([1], [2,3], :argv => ['join', '']) 
+    assert_equal "[1][2,3]", format_join([1], [2,3], :argv => ['join', nil]) 
+    assert_equal "[1][2,3]", format_join([1], [2,3], :argv => []) 
     assert_equal "[1][2,3]", format_join([1], [2,3]) 
   end
 end
@@ -520,7 +523,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_sync_merge_breaks_for_arbitrary_joins
     schema = Schema.new node_set
-    schema.set_join [0,1], [2], :join => "type"
+    schema.set_join [0,1], [2], :argv => ["type"]
   
     assert_equal "-- 0 -- 1 -- 2 --[0,1][2].type", schema.to_s
     assert_equal [[0],[1],[2],"[0,1][2].type"], schema.dump(true)

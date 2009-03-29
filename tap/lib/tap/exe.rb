@@ -123,11 +123,14 @@ module Tap
     end
     
     def instantiate_join(argh)
-      # Temporary!
-      join_class = Support::Join
-      if argv = argh[:modifier]
+      if argv = argh[:argv]
+        argv = argv.dup
+        argv.shift # remove id that would normally look up join class
+        
+        join_class = Support::Join
         join_class.parse!(argv)
       else
+        join_class = Support::Join
         join_class.instantiate(argh)
       end
     end

@@ -230,12 +230,9 @@ module Tap
           indicies.unshift previous_index if one[0] == ?:
           indicies << current_index if one[-1] == ?:
           
-          argh = two.empty? ? nil : {:modifier => two }
           sequences = []
           while indicies.length > 1
-            join = [[indicies.shift], [indicies[0]]]
-            join << argh if argh
-            sequences << join
+            sequences << [[indicies.shift], [indicies[0]], {:argv => ['join', two]}]
           end
           sequences
         end
@@ -262,14 +259,8 @@ module Tap
         def parse_join(one, two, three, four)
           inputs = parse_indicies(one)
           outputs = parse_indicies(two)
-          
-          argh = {}
-          argh[:join] = four if four && !four.empty? && four != "join"
-          argh[:modifier] = three if !three.empty?
-          
-          join = [inputs, outputs]
-          join << argh unless argh.empty?
-          join
+          join_type = four && !four.empty? ? four : 'join'
+          [inputs, outputs, {:argv => [join_type, three]}]
         end
       end
       

@@ -88,9 +88,7 @@ module Tap
         #   format_join([1], [2,3], :join => 'type')   # => "[1][2,3].type"
         #
         def format_join(inputs, outputs, argh={})
-          join_type = argh[:join]
-          modifier = argh[:modifier]
-        
+          join_type, modifier = argh[:argv]
           identifier = join_type == nil || join_type.empty? || join_type == "join" ? "" : ".#{join_type}"
           "[#{inputs.join(',')}][#{outputs.join(',')}]#{modifier}#{identifier}"
         end
