@@ -1,3 +1,7 @@
+
+Significant rework of Node, Schema, Parser.  The workflow syntax
+for joins has changed in incompatible ways.
+
 == 0.12.4 / 2009-03-23
 
 * fixed bug in App#inspect
