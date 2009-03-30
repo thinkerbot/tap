@@ -230,9 +230,10 @@ module Tap
           indicies.unshift previous_index if one[0] == ?:
           indicies << current_index if one[-1] == ?:
           
+          metadata = ['join', two]
           sequences = []
           while indicies.length > 1
-            sequences << [[indicies.shift], [indicies[0]], {:argv => ['join', two]}]
+            sequences << [[indicies.shift], [indicies[0]], metadata]
           end
           sequences
         end
@@ -260,7 +261,7 @@ module Tap
           inputs = parse_indicies(one)
           outputs = parse_indicies(two)
           join_type = four && !four.empty? ? four : 'join'
-          [inputs, outputs, {:argv => [join_type, three]}]
+          [inputs, outputs, [join_type, three]]
         end
       end
       
@@ -388,7 +389,7 @@ module Tap
       attr_accessor :current_index # :nodoc:
       
       def argv(index)
-        schema[index].argh[:argv] ||= []
+        schema[index].metadata ||= []
       end
       
       # Returns current_index-1, or raises an error if current_index < 1.

@@ -22,37 +22,37 @@ class SchemaUtilsTest < Test::Unit::TestCase
   end
   
   #
-  # format_round test
+  # round_arg test
   #
   
-  def test_format_round_documentation
-    assert_equal "+1[1,2,3]", format_round(1, [1,2,3])
+  def test_round_arg_documentation
+    assert_equal "+1[1,2,3]", round_arg(1, [1,2,3])
   end
   
   #
-  # format_prerequisites test
+  # prerequiste_arg test
   #
 
-  def test_format_prerequisites_documentation
-    assert_equal "*[1]", format_prerequisites([1])
-    assert_equal "*[1,2,3]", format_prerequisites([1,2,3])
+  def test_prerequiste_arg_documentation
+    assert_equal "*[1]", prerequiste_arg([1])
+    assert_equal "*[1,2,3]", prerequiste_arg([1,2,3])
   end
   
   #
-  # format_join test
+  # join_arg test
   #
 
-  def test_format_join_documentation
-    assert_equal "[1][2,3].type", format_join([1], [2,3], :argv => ['type']) 
+  def test_join_arg_documentation
+    assert_equal "[1][2,3].type", join_arg([1], [2,3], ['type']) 
   end
   
-  def test_format_join
-    assert_equal "[1][2,3]is.type", format_join([1], [2,3], :argv => ['type', 'is']) 
-    assert_equal "[1][2,3]is", format_join([1], [2,3], :argv => ['join', 'is'])
-    assert_equal "[1][2,3]", format_join([1], [2,3], :argv => ['join', '']) 
-    assert_equal "[1][2,3]", format_join([1], [2,3], :argv => ['join', nil]) 
-    assert_equal "[1][2,3]", format_join([1], [2,3], :argv => []) 
-    assert_equal "[1][2,3]", format_join([1], [2,3]) 
+  def test_join_arg
+    assert_equal "[1][2,3]is.type", join_arg([1], [2,3], ['type', 'is']) 
+    assert_equal "[1][2,3]is", join_arg([1], [2,3], ['join', 'is'])
+    assert_equal "[1][2,3]", join_arg([1], [2,3], ['join', '']) 
+    assert_equal "[1][2,3]", join_arg([1], [2,3], ['join', nil]) 
+    assert_equal "[1][2,3]", join_arg([1], [2,3], []) 
+    assert_equal "[1][2,3]", join_arg([1], [2,3]) 
   end
 end
 
@@ -69,7 +69,7 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   def node_set(n=3)
-    Array.new(n) {|index| Node.new({:argv => [index]}) }
+    Array.new(n) {|index| Node.new([index]) }
   end
   
   # #
@@ -171,6 +171,18 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   #
+  # metadata test
+  #
+  
+  def test_metadata_returns_a_collection_of_metadata_across_all_nodes
+    schema = Schema.new
+    schema[0].metadata = {:args => [1,2,3]}
+    schema[2].metadata = [4,5,6]
+    
+    assert_equal [{:args => [1,2,3]}, nil, [4,5,6]], schema.metadata
+  end
+  
+  #
   # set_round test
   #
   
@@ -206,9 +218,9 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   def test_set_join_returns_a_new_join_array
-    inputs, outputs, argh = schema.set_join([0], [1], :modifier => "i")
+    inputs, outputs, metadata = schema.set_join([0], [1], :modifier => "i")
     
-    assert_equal({:modifier => "i"}, argh)
+    assert_equal({:modifier => "i"}, metadata)
     assert_equal [schema[0]], inputs
     assert_equal [schema[1]], outputs
   end
@@ -231,18 +243,6 @@ class SchemaTest < Test::Unit::TestCase
   def test_set_join_adds_join_array_to_joins
     join_array = schema.set_join([0], [1,2])
     assert_equal([join_array], schema.joins)
-  end
-  
-  #
-  # arghs test
-  #
-  
-  def test_arghs_returns_a_collection_of_all_argvs_across_nodes
-    schema = Schema.new
-    schema[0].argh = {:argv => [1,2,3]}
-    schema[2].argh = {:argv => [4,5,6]}
-    
-    assert_equal [{:argv => [1,2,3]}, nil, {:argv => [4,5,6]}], schema.arghs
   end
   
   #
@@ -306,13 +306,13 @@ class SchemaTest < Test::Unit::TestCase
   # cleanup test
   #
   
-  def test_cleanup_removes_nil_and_emtpty_nodes
+  def test_cleanup_removes_nil_and_empty_nodes
     n0 = schema[0]
     n3 = schema[3]
     n5 = schema[5]
     
-    n0.argh[:argv] = [1,2,3]
-    n5.argh[:argv] = [4,5,6]
+    n0.metadata = [1,2,3]
+    n5.metadata = [4,5,6]
     
     assert_equal [n0, nil, nil, n3, nil, n5], schema.nodes
     assert n3.empty?
@@ -323,9 +323,9 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_cleanup_removes_removed_input_and_output_nodes_from_joins
     n0 = Node.new
-    n1 = Node.new :argv => [1,2,3]
+    n1 = Node.new [1,2,3]
     n2 = Node.new
-    n3 = Node.new :argv => [4,5,6]
+    n3 = Node.new [4,5,6]
     
     schema = Schema.new [n0, n1, n2, n3]
     join = schema.set_join([0,1], [2,3])
@@ -345,7 +345,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_cleanup_removes_orphaned_joins
     n0 = Node.new
-    n1 = Node.new :argv => [1,2,3]
+    n1 = Node.new [1,2,3]
     
     schema = Schema.new [n0, n1]
     join = schema.set_join([0], [1])
@@ -370,12 +370,12 @@ class SchemaTest < Test::Unit::TestCase
     #           |
     #           o-[F]
     
-    a = Node.new({:argv => [1,2,3]}, 0)
+    a = Node.new([1,2,3], 0)
     b = Node.new({}, nil)
     c = Node.new({}, 2)
     d = Node.new({}, 1)
-    e = Node.new :argv => [4,5,6]
-    f = Node.new :argv => [7,8,9]
+    e = Node.new [4,5,6]
+    f = Node.new [7,8,9]
     
     schema = Schema.new [a,b,c,d,e,f]
     join = schema.set_join([1,2,3], [4,5])
@@ -396,8 +396,8 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_cleanup_removes_orphan_joins
     join = [[], []]
-    a = Node.new({:argv => ['a']}, join)
-    b = Node.new({:argv => ['b']}, join)
+    a = Node.new [1,2,3], join
+    b = Node.new [3,4,5], join
     
     schema = Schema.new [a,b]
     assert_equal join, a.input
@@ -412,14 +412,14 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_cleanup_removes_nils_from_rounds
     n0 = schema[0] 
-    n0.argh[:argv] = [1,2,3]
+    n0.metadata = [1,2,3]
     n0.round = 0
     
     n3 = schema[3]
     n3.round = 3
     
     n5 = schema[5]
-    n5.argh[:argv] = [4,5,6]
+    n5.metadata = [4,5,6]
     n5.round = 5
     
     assert_equal [[n0], nil, nil, [n3], nil, [n5]], schema.rounds
@@ -455,9 +455,9 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_perform_cleanup
     join = [[], [], ""]
-    a = Node.new({:argv => ["a"]}, 2)
-    b = Node.new({:argv => ["b"]}, join)
-    c = Node.new({:argv => ["c"]}, join)
+    a = Node.new(["a"], 2)
+    b = Node.new(["b"], join)
+    c = Node.new(["c"], join)
     
     schema = Schema.new [a,b,nil,c]
     assert_equal "-- a -- b -- c --+1[0]", schema.to_s
@@ -523,7 +523,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_to_s_and_dump_adds_sync_merge_breaks_for_arbitrary_joins
     schema = Schema.new node_set
-    schema.set_join [0,1], [2], :argv => ["type"]
+    schema.set_join [0,1], [2], ["type"]
   
     assert_equal "-- 0 -- 1 -- 2 --[0,1][2].type", schema.to_s
     assert_equal [[0],[1],[2],"[0,1][2].type"], schema.dump(true)

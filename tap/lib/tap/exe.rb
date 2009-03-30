@@ -118,44 +118,40 @@ module Tap
         end
       end
       
+      # Note this should happen in build... may need updates
+      # to queue to do so
       queues.each {|queue| app.queue.concat(queue) }
       app
     end
     
-    def instantiate_join(argh)
-      if argv = argh[:argv]
-        argv = argv.dup
-        argv.shift # remove id that would normally look up join class
+    def instantiate_join(metadata)
+      # Temporary!
+      case metadata
+      when Array
+        metadata = metadata.dup
+        metadata.shift # remove id that would normally look up join class
         
         join_class = Support::Join
-        join_class.parse!(argv)
-      else
+        join_class.parse!(metadata)
+      when Hash
         join_class = Support::Join
-        join_class.instantiate(argh)
+        join_class.instantiate(metadata)
       end
     end
     
-    def instantiate_task(argh, app)
-      id = argh[:id]
-      argv = argh[:argv]
-      
-      if id && argv
-        raise "id and argv specified for task: #{argh.inspect}"
+    def instantiate_task(metadata, app)
+      case metadata
+      when Array
+        metadata = metadata.dup
+        tasc(metadata.shift).parse!(metadata, app)
+      when Hash
+        tasc(metadata[:id]).instantiate(metadata, app)
       end
-      
-      if argv
-        argv = argv.dup
-        id = argv.shift
-      end
-      
+    end
+    
+    def tasc(id)
       const = tasks.search(id) or raise ArgumentError, "unknown task: #{id}"
-      tasc = const.constantize
-      
-      if argv
-        tasc.parse!(argv, app)
-      else
-        tasc.instantiate(argh, app)
-      end
+      const.constantize
     end
     
     def set_signals(app=Tap::App.instance)

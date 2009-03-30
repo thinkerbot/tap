@@ -93,7 +93,7 @@ class NodeTest < Test::Unit::TestCase
   
   def test_default_initialize
     node = Node.new
-    assert_equal({}, node.argh)
+    assert_equal nil, node.metadata
     assert_equal 0, node.input
     assert_equal nil, node.output
   end
@@ -113,31 +113,20 @@ class NodeTest < Test::Unit::TestCase
   end
   
   #
-  # compact! test
-  #
-  
-  def test_compact_removes_nil_and_empty_values_from_argh
-    node = Node.new :nil => nil, :array => [], :hash => {}, :key => 'value'
-    
-    assert_equal 4, node.argh.length
-    node.compact!
-    assert_equal({:key => 'value'}, node.argh)
-  end
-  
-  def test_compact_returns_self
-    node = Node.new 
-    assert_equal node, node.compact!
-  end
-  
-  #
   # empty? test
   #
   
-  def test_empty_is_true_if_argh_is_empty
+  def test_empty_is_true_if_metadata_is_nil
     node = Node.new
+    assert_equal nil, node.metadata
+    assert node.empty?
+  end
+  
+  def test_empty_is_true_if_metadata_is_empty
+    node = Node.new({})
     assert node.empty?
     
-    node.argh[:key] = 'value'
+    node.metadata[:key] = 'value'
     assert !node.empty?
   end
   

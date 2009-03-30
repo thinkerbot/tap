@@ -63,8 +63,8 @@ module Tap
         end
       end
       
-      # An hash used to instantiate the node
-      attr_accessor :argh
+      # Metadata used to instantiate the node.  May be a hash or an array.
+      attr_accessor :metadata
       
       # The input for the node.  Input may be:
       #
@@ -81,25 +81,17 @@ module Tap
       #
       attr_reader :output
 
-      def initialize(argh={}, input=0, output=nil)
-        @argh = argh
+      def initialize(metadata=nil, input=0, output=nil)
+        @metadata = metadata
         @input = @output = nil
         
         self.input = input
         self.output = output
       end
       
-      # Removes entries with nil or empty values from argh.  Returns self.
-      def compact!
-        argh.delete_if do |key, value|
-          value == nil || (value.respond_to?(:empty?) && value.empty?)
-        end
-        self
-      end
-      
-      # Returns true if argh is empty.
+      # Returns true if metadata is not set or is empty.
       def empty?
-        argh.empty? 
+        metadata == nil || metadata.empty? 
       end
       
       # Returns the input join if the input to self is a join array.
