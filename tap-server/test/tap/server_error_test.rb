@@ -16,7 +16,7 @@ class ServerTest < Test::Unit::TestCase
     rescue
       assert_equal [
         500,
-        {'Content-Type' => ['text/plain']},
+        {'Content-Type' => 'text/plain'},
         ["500 ArgumentError: message\n#{$!.backtrace.join("\n")}"]
       ], ServerError.response($!)
       
@@ -35,7 +35,7 @@ class ServerTest < Test::Unit::TestCase
     assert_equal "500 Server Error", e.message
     assert_equal "500 Server Error", e.body
     assert_equal 500, e.status
-    assert_equal({'Content-Type' => ['text/plain']}, e.headers)
+    assert_equal({'Content-Type' => 'text/plain'}, e.headers)
   end
   
   def test_initialize

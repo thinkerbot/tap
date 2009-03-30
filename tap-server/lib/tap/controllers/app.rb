@@ -16,9 +16,9 @@ module Tap
         if path = server.search(:public, env['PATH_INFO'])
           content = File.read(path)
           headers = {
-            "Last-Modified" => [File.mtime(path).httpdate],
-            "Content-Type" => [Rack::Mime.mime_type(File.extname(path), 'text/plain')], 
-            "Content-Length" => [content.size.to_s]
+            "Last-Modified" => File.mtime(path).httpdate,
+            "Content-Type" => Rack::Mime.mime_type(File.extname(path), 'text/plain'), 
+            "Content-Length" => content.size.to_s
           }
       
           [200, headers, [content]]
