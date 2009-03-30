@@ -1,5 +1,4 @@
-    <input name="argv[]" type="hidden" value="<%= switch %>" />
-    <select name="argv[]">
+    <select name="<%= name %>">
 <% config[:values].each do |value| %>
       <option value="<%= value %>"><%= value %></option>
 <% end %>

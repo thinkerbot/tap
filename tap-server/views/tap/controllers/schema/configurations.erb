@@ -8,7 +8,7 @@
 <%=  render("configurations.erb", :locals => {
        :configurations => config.default(false).delegates, 
        :values => values[key], 
-       :nest => "#{nest}#{nest.empty? ? '' : ':'}#{key}", 
+       :name => "#{name}[#{key}]", 
        :index => index}) %>
     </li>
 <%   else %>
@@ -16,9 +16,9 @@
 
 <%   template_file = server.search(:views, "#{self.class.name}/configurations/#{config[:type]}.erb") %>
 <%=  render("configurations/default.erb", :template_file => template_file, :locals => {
-       :key => key, 
-       :config => config, 
-       :switch => "--#{nest}#{nest.empty? ? '' : ':'}#{key.to_s.gsub('_', '-')}", 
+       :key => key,
+       :name => "#{name}[#{key}]",
+       :config => config,
        :value => values[key], 
        :index => index}) %> 
     </li>
