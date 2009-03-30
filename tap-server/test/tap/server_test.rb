@@ -153,20 +153,20 @@ end
     server.controllers['route'] = AdjustController
     
     headers = request.get("/route").headers
-    assert_equal "/route", headers['script_name']
-    assert_equal "/", headers['path_info']
+    assert_equal ["/route"], headers['script_name']
+    assert_equal ["/"], headers['path_info']
     
     headers = request.get("/route/path").headers
-    assert_equal "/route", headers['script_name']
-    assert_equal "/path", headers['path_info']
+    assert_equal ["/route"], headers['script_name']
+    assert_equal ["/path"], headers['path_info']
   end
   
   def test_call_correctly_routes_path_info_with_escapes
     server.controllers['action'] = AdjustController
     
     headers = request.get("/%61ction/a%2Bb/c%20d")
-    assert_equal "/%61ction", headers['script_name']
-    assert_equal "/a%2Bb/c%20d", headers['path_info']
+    assert_equal ["/%61ction"], headers['script_name']
+    assert_equal ["/a%2Bb/c%20d"], headers['path_info']
   end
   
   class EnvController
@@ -232,7 +232,7 @@ end
   
     res = request.get('/err')
     assert_equal 500, res.status
-    assert_equal({'Content-Type' => 'text/plain'}, res.headers)
+    assert_equal({'Content-Type' => ['text/plain']}, res.headers)
     assert_equal "500 #{err.class}: #{err.message}\n#{err.backtrace.join("\n")}", res.body
   end
   
@@ -242,7 +242,7 @@ end
   
     res = request.get('/err')
     assert_equal 500, res.status
-    assert_equal({'Content-Type' => 'text/plain'}, res.headers)
+    assert_equal({'Content-Type' => ['text/plain']}, res.headers)
     assert_equal "msg", res.body
   end
   
