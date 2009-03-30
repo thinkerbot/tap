@@ -41,7 +41,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
     end
     
     response = request.get("/0", opts)
-    assert_equal "0: -- a 1 2 3 -- b -- c --+1[1] --0:2", response.body
+    assert_equal "0: -- a 1 2 3 -- b -- c --+1[1] --[0][2]", response.body
   end
   
   #
@@ -77,7 +77,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
     assert_equal 302, request.post("/0?action=add&inputs[]=0&outputs[]=1", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b --0:1", schema.to_s
+    assert_equal "-- a -- b --[0][1]", schema.to_s
   end
   
   def test_add_joins_one_input_to_many_output_as_fork
@@ -85,7 +85,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
     assert_equal 302, request.post("/0?action=add&inputs[]=0&outputs[]=1&outputs[]=2", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --0[1,2]", schema.to_s
+    assert_equal "-- a -- b -- c --[0][1,2]", schema.to_s
   end
   
   def test_add_joins_many_inputs_to_one_output_as_merge
@@ -93,23 +93,23 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
     assert_equal 302, request.post("/0?action=add&inputs[]=0&inputs[]=1&outputs[]=2", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --2{0,1}", schema.to_s
+    assert_equal "-- a -- b -- c --[0,1][2]", schema.to_s
   end
   
   def test_add_sets_join_output_to_nil_for_inputs_without_a_output
-    path = prepare_schema(0, "a -- b -- c -- d --0{1,2,3}")
+    path = prepare_schema(0, "a -- b -- c -- d --[1,2,3][0]")
     assert_equal 302, request.post("/0?action=add&inputs[]=1&inputs[]=2", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c -- d --3:0", schema.to_s
+    assert_equal "-- a -- b -- c -- d --[3][0]", schema.to_s
   end
   
   def test_add_sets_join_input_to_nil_for_outputs_without_a_input
-    path = prepare_schema(0, "a -- b -- c -- d --0[1,2,3]")
+    path = prepare_schema(0, "a -- b -- c -- d --[0][1,2,3]")
     assert_equal 302, request.post("/0?action=add&outputs[]=1&outputs[]=2", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c -- d --0:3", schema.to_s
+    assert_equal "-- a -- b -- c -- d --[0][3]", schema.to_s
   end
   
   #
@@ -129,7 +129,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
     assert_equal 302, request.post("/0?action=remove&inputs[]=0", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --1:2", schema.to_s
+    assert_equal "-- a -- b -- c --[1][2]", schema.to_s
   end
   
   def test_remove_removes_join_inputs_for_outputs
@@ -137,7 +137,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
     assert_equal 302, request.post("/0?action=remove&outputs[]=1", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --0[] --1:2", schema.to_s
+    assert_equal "-- a -- b -- c --[0][] --[1][2]", schema.to_s
   end
   
   def test_remove_removes_join_and_not_node_when_joins_exist
@@ -145,7 +145,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
     assert_equal 302, request.post("/0?action=remove&inputs[]=1&outputs[]=1", opts).status
     
     schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --0[]", schema.to_s
+    assert_equal "-- a -- b -- c --[0][]", schema.to_s
   end
   
   def test_remove_removes_join_when_two_joined_nodes_are_both_selected

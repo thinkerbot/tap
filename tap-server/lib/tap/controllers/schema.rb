@@ -100,9 +100,9 @@ module Tap
       #
       def add(id)
         round = (request['round'] || 0).to_i
-        outputs = (request['outputs[]'] || []).collect {|index| index.to_i }
-        inputs = (request['inputs[]'] || []).collect {|index| index.to_i }
-        nodes = request['nodes[]'] || []
+        outputs = (request['outputs'] || []).collect {|index| index.to_i }
+        inputs = (request['inputs'] || []).collect {|index| index.to_i }
+        nodes = request['nodes'] || []
         
         load_schema(id) do |schema|
           nodes.each do |arg|
@@ -116,7 +116,7 @@ module Tap
             inputs.each {|index| schema[index].output = nil }
             outputs.each {|index| schema[index].input = round }
           else
-            schema.set(Tap::Support::Join, inputs, outputs)
+            schema.set_join(inputs, outputs)
           end
         end
         
@@ -141,8 +141,8 @@ module Tap
       #
       def remove(id)
         round = (request['round'] || 0).to_i
-        outputs = (request['outputs[]'] || []).collect {|index| index.to_i }
-        inputs = (request['inputs[]'] || []).collect {|index| index.to_i }
+        outputs = (request['outputs'] || []).collect {|index| index.to_i }
+        inputs = (request['inputs'] || []).collect {|index| index.to_i }
           
         load_schema(id) do |schema|
           # Remove joins.  Removed indicies are popped to ensure
