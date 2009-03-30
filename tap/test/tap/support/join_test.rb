@@ -13,6 +13,19 @@ class JoinTest < Test::Unit::TestCase
   end
   
   #
+  # parse_modifier test
+  #
+
+  def test_parse_modifiers_documentation
+    assert_equal({}, Join.parse_modifier(""))
+    assert_equal({:iterate => true, :stack => true}, Join.parse_modifier("ik"))
+  end
+
+  def test_parse_modifier_raises_error_for_unknown_options
+    assert_raises(RuntimeError) { Join.parse_modifier("q") }
+  end
+  
+  #
   # join tests
   #
   

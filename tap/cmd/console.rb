@@ -5,7 +5,8 @@
 # Tap::Env.instance through 'env'.  For example:
 #
 #   % tap console
-#   >> env.tasks.search('tap:dump').constantize=> Tap::Tasks::Dump
+#   >> env.tasks.search('tap/dump').constantize
+#   => Tap::Dump
 #   >> app.info
 #   => "state: 0 (READY) queue: 0 results: 0"
 #   >> 

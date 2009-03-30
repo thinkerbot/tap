@@ -14,65 +14,6 @@ class ParserUtilsTest < Test::Unit::TestCase
   end
   
   #
-  # bracket_regexp test
-  #
-  
-  def test_bracket_regexp
-    r = bracket_regexp("[", "]")
-    
-    assert "[]" =~ r
-    assert_equal "", $1
-    assert_equal "", $2
-    assert_equal "", $3
-    
-    assert "1[]" =~ r
-    assert_equal "1", $1
-    assert_equal "", $2
-    assert_equal "", $3
-    
-    assert "[2]" =~ r
-    assert_equal "", $1
-    assert_equal "2", $2
-    assert_equal "", $3
-    
-    assert "1[2]" =~ r
-    assert_equal "1", $1
-    assert_equal "2", $2
-    assert_equal "", $3
-    
-    assert "1[2,3,4]" =~ r
-    assert_equal "1", $1
-    assert_equal "2,3,4", $2
-    assert_equal "", $3
-  
-    assert "100[200,300,400]" =~ r
-    assert_equal "100", $1
-    assert_equal "200,300,400", $2
-    assert_equal "", $3
-    
-    assert "[]i" =~ r
-    assert_equal "", $1
-    assert_equal "", $2
-    assert_equal "i", $3
-    
-    assert "[]is" =~ r
-    assert_equal "", $1
-    assert_equal "", $2
-    assert_equal "is", $3
-    
-    assert "1[2,3,4]is" =~ r
-    assert_equal "1", $1
-    assert_equal "2,3,4", $2
-    assert_equal "is", $3
-    
-    # non-matching
-    assert "1" !~ r
-    assert "[]1" !~ r
-    assert "1[2,3,4]1" !~ r
-    assert "1[2, 3, 4]" !~ r
-  end
-  
-  #
   # BREAK test
   #
   
@@ -97,26 +38,23 @@ class ParserUtilsTest < Test::Unit::TestCase
     assert "--[]" =~ r
     assert_equal "[]", $1
     
+    assert "--[1][2]" =~ r
+    assert_equal "[1][2]", $1
+
     assert "--1[2,3]" =~ r
     assert_equal "1[2,3]", $1
     
-    assert "--()" =~ r
-    assert_equal "()", $1
+    assert "--[1,2]3" =~ r
+    assert_equal "[1,2]3", $1
     
-    assert "--1(2,3)" =~ r
-    assert_equal "1(2,3)", $1
-    
-    assert "--{}" =~ r
-    assert_equal "{}", $1
-    
-    assert "--1{2,3}" =~ r
-    assert_equal "1{2,3}", $1
+    assert "--[1,2][3,4]s.join" =~ r
+    assert_equal "[1,2][3,4]s.join", $1
     
     assert "--*" =~ r
     assert_equal "*", $1
     
-    assert "--*1" =~ r
-    assert_equal "*1", $1
+    assert "--*[1]" =~ r
+    assert_equal "*[1]", $1
     
     # non-matching
     assert "goodnight" !~ r
@@ -124,7 +62,6 @@ class ParserUtilsTest < Test::Unit::TestCase
     assert "8" !~ r
     
     assert "-" !~ r
-    assert "---" !~ r
     assert " -- " !~ r
     assert "-- " !~ r
     assert " --" !~ r
@@ -133,6 +70,11 @@ class ParserUtilsTest < Test::Unit::TestCase
     assert "-opt" !~ r
     assert "--opt" !~ r
     assert "--no-opt" !~ r
+    
+    # escapes
+    assert "---" !~ r
+    assert "-." !~ r
+    assert ".-" !~ r
   end
   
   #
@@ -143,52 +85,49 @@ class ParserUtilsTest < Test::Unit::TestCase
     r = ROUND
 
     # plus syntax
-    assert "" =~ r
-    assert_equal nil, $2
-    assert_equal nil, $5
-
     assert "+" =~ r
-    assert_equal "+", $2
-    assert_equal nil, $5
+    assert_equal "+", $1
+    assert_equal nil, $2
 
     assert "++" =~ r
-    assert_equal "++", $2
-    assert_equal nil, $5
+    assert_equal "++", $1
+    assert_equal nil, $2
 
     assert "+++" =~ r
-    assert_equal "+++", $2
-    assert_equal nil, $5
+    assert_equal "+++", $1
+    assert_equal nil, $2
 
     assert "++[]" =~ r
-    assert_equal "++", $2
-    assert_equal "", $5
+    assert_equal "++", $1
+    assert_equal "", $2
 
     assert "++[1,2,3]" =~ r
-    assert_equal "++", $2
-    assert_equal "1,2,3", $5
+    assert_equal "++", $1
+    assert_equal "1,2,3", $2
 
     # plus-number syntax
     assert "+0" =~ r
-    assert_equal "+0", $2
-    assert_equal nil, $5
+    assert_equal "+0", $1
+    assert_equal nil, $2
 
     assert "+1" =~ r
-    assert_equal "+1", $2
-    assert_equal nil, $5
+    assert_equal "+1", $1
+    assert_equal nil, $2
 
     assert "+100" =~ r
-    assert_equal "+100", $2
-    assert_equal nil, $5
+    assert_equal "+100", $1
+    assert_equal nil, $2
 
     assert "+1[]" =~ r
-    assert_equal "+1", $2
-    assert_equal "", $5
+    assert_equal "+1", $1
+    assert_equal "", $2
 
     assert "+1[1,2,3]" =~ r
-    assert_equal "+1", $2
-    assert_equal "1,2,3", $5
+    assert_equal "+1", $1
+    assert_equal "1,2,3", $2
 
     # non-matching
+    assert "" !~ r
     assert "-" !~ r
     assert "-a" !~ r
     assert "--a" !~ r
@@ -205,35 +144,35 @@ class ParserUtilsTest < Test::Unit::TestCase
     
     assert ":" =~ r
     assert_equal ":", $1
-    assert_equal "", $3
+    assert_equal "", $2
     
     assert "1:2" =~ r
     assert_equal "1:2", $1
-    assert_equal "", $3
+    assert_equal "", $2
     
     assert "1:" =~ r
     assert_equal "1:", $1
-    assert_equal "", $3
+    assert_equal "", $2
     
     assert ":2" =~ r
     assert_equal ":2", $1
-    assert_equal "", $3
+    assert_equal "", $2
     
     assert "100:200" =~ r
     assert_equal "100:200", $1
-    assert_equal "", $3
+    assert_equal "", $2
     
     assert "1:2:3" =~ r
     assert_equal "1:2:3", $1
-    assert_equal "", $3
+    assert_equal "", $2
   
     assert ":i" =~ r
     assert_equal ":", $1
-    assert_equal "i", $3
+    assert_equal "i", $2
     
     assert "1:2is" =~ r
     assert_equal "1:2", $1
-    assert_equal "is", $3
+    assert_equal "is", $2
     
     # non-matching
     assert "--1" !~ r
@@ -243,20 +182,59 @@ class ParserUtilsTest < Test::Unit::TestCase
   end
   
   #
-  # INSTANCE test
+  # PREREQUISITE test
   #
   
-  def test_INSTANCE_regexp
-    r = INSTANCE
+  def test_PREREQUISITE_regexp
+    r = PREREQUISITE
     
     assert "*" =~ r
-    assert_equal "", $1
-  
-    assert "*1" =~ r
+    assert_equal nil, $1
+    
+    assert "*[1]" =~ r
     assert_equal "1", $1
     
-    assert "*100" =~ r
+    assert "*[100]" =~ r
     assert_equal "100", $1
+    
+    assert "*[1,2,3]" =~ r
+    assert_equal "1,2,3", $1
+  end
+  
+  #
+  # JOIN test
+  #
+  
+  def test_JOIN_regexp
+    r = JOIN
+    
+    assert "[1,2,3][4,5,6]is.join" =~ r
+    assert_equal "1,2,3", $1
+    assert_equal "4,5,6", $2
+    assert_equal "is", $3
+    assert_equal "join", $4
+  
+    assert "[][]" =~ r
+    assert_equal "", $1
+    assert_equal "", $2
+    assert_equal "", $3
+    assert_equal nil, $4
+    
+    # join type variations
+    assert "[][]." =~ r
+    assert_equal "", $4
+    
+    assert "[][].Nested::Type" =~ r
+    assert_equal "Nested::Type", $4
+    
+    # input/output variations
+    assert "[1][2]" =~ r
+    assert_equal "1", $1
+    assert_equal "2", $2
+    
+    # non-matching
+    assert "1[2]" !~ r
+    assert "[1]2" !~ r
   end
   
   #
@@ -280,7 +258,6 @@ class ParserUtilsTest < Test::Unit::TestCase
   def test_parse_rounds_documentation
     assert_equal [1, [:current_index]], parse_round("+", "")
     assert_equal [2, [1,2,3]], parse_round("+2", "1,2,3")
-    assert_equal [0, [:current_index]], parse_round(nil, nil)
   end
   
   def test_parse_rounds
@@ -293,9 +270,6 @@ class ParserUtilsTest < Test::Unit::TestCase
     assert_equal [2, [:current_index]], parse_round("+2", "")
   
     assert_equal [0, [1,2,3]], parse_round("", "1,2,3")
-    assert_equal [0, [:current_index]], parse_round("", nil)
-    assert_equal [0, [:current_index]], parse_round(nil, "")
-    assert_equal [0, [:current_index]], parse_round(nil, nil)
   end
   
   #
@@ -303,149 +277,75 @@ class ParserUtilsTest < Test::Unit::TestCase
   #
   
   def test_parse_sequence_documentation
-    assert_equal [[1,2,3], {}], parse_sequence("1:2:3", '')
-    assert_equal [[:previous_index,1,2,:current_index], {}], parse_sequence(":1:2:", '')
+    expected = [
+      [[1], [2],['join', '']],
+      [[2], [3],['join', '']]
+    ]
+    assert_equal expected, parse_sequence("1:2:3", '')
+    
+    expected = [
+      [[:previous_index], [1], ['join', '']],
+      [[1], [2], ['join', '']],
+      [[2], [:current_index], ['join', '']],
+    ]
+    assert_equal expected, parse_sequence(":1:2:", '')
   end
   
   def test_parse_sequence
-    assert_equal [[:previous_index,:current_index], {}], parse_sequence(":", '')
-    assert_equal [[1,:current_index], {}], parse_sequence("1:", '')
-    assert_equal [[:previous_index,2], {}], parse_sequence(":2", '')
-    assert_equal [[1,2], {}], parse_sequence("1:2", '')
-    assert_equal [[1,2,3], {}], parse_sequence("1:2:3", '')
-    assert_equal [[100,200,300], {}], parse_sequence("100:200:300", '')
-    assert_equal [[:previous_index,1,2,3,:current_index], {}], parse_sequence(":1:2:3:", '')
-  end
-  
-  #
-  # parse_instance test
-  #
-  
-  def test_parse_instance_documentation
-    assert_equal 1, parse_instance("1")
-    assert_equal :current_index, parse_instance("")
-  end
-  
-  #
-  # parse_bracket test
-  #
-  
-  def test_parse_bracket_documentation
-    assert_equal [[1], [2,3],{}], parse_bracket("1", "2,3", "")
-    assert_equal [[:previous_index], [:current_index],{}], parse_bracket("", "", "")
-    assert_equal [[1], [:current_index],{}], parse_bracket("1", "", "")
-    assert_equal [[:previous_index], [2,3],{}], parse_bracket("", "2,3", "")
-  end
-  
-  def test_parse_bracket
-    assert_equal [[:previous_index], [:current_index],{}], parse_bracket("", "", "")
-    assert_equal [[1], [:current_index],{}], parse_bracket("1", "", "")
-    assert_equal [[:previous_index], [2],{}], parse_bracket("", "2", "")
-    assert_equal [[1], [2],{}], parse_bracket("1", "2", "")
-    assert_equal [[1], [2,3],{}], parse_bracket("1", "2,3", "")
-    assert_equal [[100], [200,300],{}], parse_bracket("100", "200,300", "")
-  end
-  
-  #
-  # parse_reverse_bracket test
-  #
-  
-  def test_parse_reveres_bracket
-    assert_equal [[:current_index], [:previous_index], {}], parse_reverse_bracket("", "", "")
-    assert_equal [[:current_index], [1], {}], parse_reverse_bracket("1", "", "")
-    assert_equal [[2], [:previous_index], {}], parse_reverse_bracket("", "2", "")
-    assert_equal [[2], [1], {}], parse_reverse_bracket("1", "2", "")
-    assert_equal [[2,3], [1], {}], parse_reverse_bracket("1", "2,3", "")
-    assert_equal [[200,300], [100], {}], parse_reverse_bracket("100", "200,300", "")
-  end
-  
-  #
-  # parse_options test
-  #
-  
-  def test_parse_options_documentation
-    assert_equal({}, parse_options(""))
-    assert_equal({:iterate => true, :stack => true}, parse_options("ik"))
-  end
-  
-  def test_parse_options_raises_error_for_unknown_options
-    assert_raises(RuntimeError) { parse_options("q") }
-  end
-  
-  #
-  # parse_argh test
-  #
-  
-  def test_parse_argh_documentation
-    argh = {
-      0 => {
-        0 => 'a',
-        1 => ['b', 'c']},
-      1 => 'z'
-    }
-    assert_equal ['--', 'a', 'b', 'c', '--', 'z'], parse_argh(argh)
+    expected = [[[:previous_index], [:current_index], ['join', '']]]
+    assert_equal expected, parse_sequence(":", '')
     
-    argh = {
-      '0' => {
-        '0' => 'a',
-        '1' => ['b', 'c']},
-      '1' => ['--:', 'z']
-    }
-    assert_equal ['--', 'a', 'b', 'c', '--:', 'z'], parse_argh(argh)
+    expected = [[[1], [:current_index], ['join', '']]]
+    assert_equal expected, parse_sequence("1:", '')
+    
+    expected = [[[:previous_index], [2], ['join', '']]]
+    assert_equal expected, parse_sequence(":2", '')
+    
+    expected = [[[1], [2], ['join', '']]]
+    assert_equal expected, parse_sequence("1:2", '')
+    
+    expected = [
+      [[1], [2], ['join', '']],
+      [[2], [3], ['join', '']]
+    ]
+    assert_equal expected, parse_sequence("1:2:3", '')
+    
+    expected = [
+      [[100], [200], ['join', '']],
+      [[200], [300], ['join', '']]
+    ]
+    assert_equal expected, parse_sequence("100:200:300", '')
+    
+    expected = [
+      [[:previous_index], [1], ['join', '']],
+      [[1], [2], ['join', '']],
+      [[2], [3], ['join', '']],
+      [[3], [:current_index], ['join', '']],
+    ]
+    assert_equal expected, parse_sequence(":1:2:3:", '')
   end
   
-  def test_parse_argh_adds_breaks
-    argh = {
-      '0' => ['a', 'b', 'c'], 
-      '2' => ['x', 'y', 'z'],
-    }
-    
-    result = parse_argh(argh)
-    assert_equal %w{-- a b c -- -- x y z}, result
+  #
+  # parse_prerequisite test
+  #
+  
+  def test_parse_prerequisite_documentation
+    assert_equal [1], parse_prerequisite("1")
+    assert_equal [:current_index], parse_prerequisite("")
   end
   
-  def test_parse_argh_preserves_breaks
-    argh = {
-      '0' => ['--', 'a', 'b', 'c'],
-      '1' => ['--'], 
-      '2' => ['--:', 'x', 'y', 'z'],
-      '3' => ['--0:2']
-    }
-    
-    result = parse_argh(argh)
-    assert_equal %w{-- a b c -- --: x y z --0:2}, result
+  def test_parse_prerequisite
+    assert_equal [:current_index], parse_prerequisite(nil)
+    assert_equal [1,2,3], parse_prerequisite("1,2,3")
   end
   
-  def test_parse_argh_collapses_and_compacts_hashes_by_index
-    argh = {
-      '0' => {
-        '0' => ['a', 'b'],
-        '1' => ['c'],
-        '2' => ['d', 'e', 'f'],
-        '10' => [],
-        '50' => [nil, nil],
-        '100' => ['g'],
-        '200' => ['h', nil, 'i', nil, 'j']}
-    }
-    
-    result = parse_argh(argh)
-    assert_equal %w{-- a b c d e f g h i j}, result
-  end
+  #
+  # parse_join test
+  #
   
-  def test_argh_values_need_not_be_arrays
-    argh = {
-      '0' => {
-        '0' => 'a',
-        '1' => 'b',
-        '2' => nil,
-        '3' => 'c'},
-
-      '2' => nil,
-      '3' => 'z'
-    }
-    
-    result = parse_argh(argh)
-    assert_equal %w{-- a b c -- -- -- z}, result
+  def test_parse_join_documentation
+    assert_equal [[1], [2,3], ['join', '']], parse_join("1", "2,3", "", nil)
+    assert_equal [[], [], ['type', 'is']], parse_join("", "", "is", "type")
   end
 end
 
@@ -461,15 +361,16 @@ class ParserTest < Test::Unit::TestCase
   end
 
   # helper
-  def assert_argvs_equal(expected, parser, msg=nil)
-    assert_equal expected, parser.schema.argvs, msg
+  def assert_nodes_equal(expected, parser, msg=nil)
+    actual = parser.schema.nodes.collect {|node| node.metadata }
+    assert_equal expected, actual, msg
   end
   
   # helper
   def assert_joins_equal(expected, parser, msg=nil)
     schema = parser.schema
-    joins = schema.joins.collect do |join, input_nodes, output_nodes|
-      [join.class, join.options, schema.indicies(input_nodes), schema.indicies(output_nodes)]
+    joins = schema.joins.collect do |input_nodes, output_nodes, argh|
+      [schema.indicies(input_nodes), schema.indicies(output_nodes), argh]
     end
     
     assert_equal expected, joins, msg
@@ -486,11 +387,11 @@ class ParserTest < Test::Unit::TestCase
   end
   
   # helper
-  def assert_globals_equal(expected, parser, msg=nil)
+  def assert_prerequisites_equal(expected, parser, msg=nil)
     schema = parser.schema
-    globals = schema.indicies(schema.globals)
+    prerequisites = schema.indicies(schema.prerequisites)
     
-    assert_equal expected, globals, msg
+    assert_equal expected, prerequisites, msg
   end
   
   #
@@ -504,24 +405,20 @@ class ParserTest < Test::Unit::TestCase
 
     schema = Parser.new("a --: b -- c --1:2i").schema
     a, b, c = schema.nodes
-    joins = schema.joins.collect do |join, inputs, outputs|
-      [join.options, inputs, outputs]
-    end
-    
-    assert_equal [[{},[a],[b]], [{:iterate => true},[b],[c]]], joins
+    assert_equal [[[a],[b],['join', '']], [[b],[c],['join', 'i']]], schema.joins
 
     schema = Parser.new("a -- b --* c").schema
     a, b, c = schema.nodes
-    assert_equal [c], schema.globals
+    assert_equal [c], schema.prerequisites
   
     schema = Parser.new("a -- b -- c").schema
-    assert_equal [["a"], ["b"], ["c"]], schema.argvs
+    assert_equal [["a"], ["b"], ["c"]], schema.metadata
   
     schema = Parser.new("a -. -- b .- -- c").schema
-    assert_equal [["a", "--", "b"], ["c"]], schema.argvs
+    assert_equal [["a", "--", "b"], ["c"]], schema.metadata
   
     schema = Parser.new("a -- b --- c").schema
-    assert_equal [["a"], ["b"]], schema.argvs
+    assert_equal [["a"], ["b"]], schema.metadata
   end
   
   #
@@ -541,17 +438,15 @@ class ParserTest < Test::Unit::TestCase
     %w{
       -- --+ --++ --+1 --+0[1,2,3]
       --: --1:2 --1:2is
-      --[] --1[2] --1[2]is
-      --{} --1{2} --1{2}is
-      --() --1(2) --1(2)is
-      --*  --*1
+      --[1][2] --[1,2][3,4]is.type
+      --*  --*[1]
     }.each do |split|
       parser = Parser.new ["a", "-b", "--c", split, "d", "-e", "--f", split, "x", "-y", "--z"]
       assert_equal [
         ["a", "-b", "--c"],
         ["d", "-e", "--f"],
         ["x", "-y", "--z"]
-      ], parser.schema.cleanup.argvs, split
+      ], parser.schema.cleanup.metadata, split
     end
   end
   
@@ -561,7 +456,7 @@ class ParserTest < Test::Unit::TestCase
       ["a", "-b", "--c"],
       ["d", "-e", "--f"],
       ["x", "-y", "--z"]
-    ], parser.schema.argvs
+    ], parser.schema.cleanup.metadata
   end
   
   #
@@ -617,121 +512,74 @@ class ParserTest < Test::Unit::TestCase
   def test_sequences_breaks_assign_sequences
     parser = Parser.new "a --: b --: c"
     assert_joins_equal [
-      [Join, {}, [0], [1]],
-      [Join, {}, [1], [2]]
+      [[0], [1], ['join', '']],
+      [[1], [2], ['join', '']]
     ], parser
   end
   
   def test_sequences_may_be_reassigned
     parser = Parser.new "a -- b -- c --0:1:2"
     assert_joins_equal [
-      [Join, {}, [0], [1]],
-      [Join, {}, [1], [2]],
+      [[0], [1], ['join', '']],
+      [[1], [2], ['join', '']],
     ], parser
    
     parser = Parser.new "a --: b --: c --1:0:2"
     assert_joins_equal [
-      [Join, {}, [0], [2]],
-      [Join, {}, [1], [0]],
+      [[0], [2], ['join', '']],
+      [[1], [0], ['join', '']],
     ], parser
   
     # now in reverse
     parser = Parser.new "--1:0:2 a --: b --: c "
     assert_joins_equal [
-      [Join, {}, [0], [1]],
-      [Join, {}, [1], [2]],
+      [[0], [1], ['join', '']],
+      [[1], [2], ['join', '']],
     ], parser
   end
    
   def test_sequence_uses_the_last_count_if_no_lead_index_is_specified
     parser = Parser.new "a -- b --:100 c --:200"
     assert_joins_equal [
-      [Join, {}, [1], [100]],
-      [Join, {}, [2], [200]],
+      [[1], [100], ['join', '']],
+      [[2], [200], ['join', '']],
     ], parser
   end
    
   def test_sequence_uses_the_next_count_if_no_end_index_is_specified
     parser = Parser.new  "a --100: b --200: c "
     assert_joins_equal [
-      [Join, {}, [100], [1]],
-      [Join, {}, [200], [2]],
+      [[100], [1], ['join', '']],
+      [[200], [2], ['join', '']],
     ], parser
   end
    
   def test_sequence_use_with_no_lead_or_end_index
     parser = Parser.new  "a --: b --: c "
     assert_joins_equal [
-      [Join, {}, [0], [1]],
-      [Join, {}, [1], [2]],
+      [[0], [1], ['join', '']],
+      [[1], [2], ['join', '']],
     ], parser
   end
    
   #
-  # bracketed workflow test
+  # join test
   # (fork, merge, sync_merge)
   
-  def bracket_test
-    yield(Join, '[', ']')
+  def test_joins_are_parsed
+    parser = Parser.new "--[1][2] --[3][4,5]"
+    assert_joins_equal [
+      [[1], [2], ['join', '']],
+      [[3], [4,5], ['join', '']],
+    ], parser
   end
   
-  def reverse_bracket_test
-    yield(Join, '{', '}')
-    yield(Joins::SyncMerge, '(', ')')
-  end
-  
-  def test_bracketed_workflows_are_parsed
-    bracket_test do |type, l, r|
-      parser = Parser.new "--1#{l}2#{r} --3#{l}4,5#{r}"
-      assert_joins_equal [
-        [type, {}, [1], [2]],
-        [type, {}, [3], [4,5]],
-      ], parser, type.to_s
-    end
-    
-    reverse_bracket_test do |type, l, r|
-      parser = Parser.new "--1#{l}2#{r} --3#{l}4,5#{r}"
-      assert_joins_equal [
-        [type, {}, [2], [1]],
-        [type, {}, [4,5], [3]],
-      ], parser, type.to_s
-    end
-  end
-  
-  def test_bracketed_workflows_may_be_reassigned
-    bracket_test do |type, l, r|
-      parser = Parser.new "--1#{l}2#{r} --3#{l}4,5#{r} --1#{l}4,5#{r} --3#{l}2#{r}"
-      assert_joins_equal [
-        [type, {}, [1], [4,5]],
-        [type, {}, [3], [2]]
-      ], parser, type.to_s
-    end
-    
-    reverse_bracket_test do |type, l, r|
-      parser = Parser.new "--1#{l}2#{r} --3#{l}4,5#{r} --1#{l}4,5#{r} --3#{l}2#{r}"
-      assert_joins_equal [
-        [type, {}, [2], [3]],
-        [type, {}, [4,5], [1]]
-      ], parser, type.to_s
-    end
-  end
-  
-  def test_bracketed_workflows_uses_the_last_count_if_no_lead_index_is_specified
-    bracket_test do |type, l, r|
-      parser = Parser.new "a -- b --#{l}100#{r} c --#{l}200,300#{r}"
-      assert_joins_equal [
-        [type, {}, [1], [100]],
-        [type, {}, [2], [200,300]]
-      ], parser, type.to_s
-    end
-    
-    reverse_bracket_test do |type, l, r|
-      parser = Parser.new "a -- b --#{l}100#{r} c --#{l}200,300#{r}"
-      assert_joins_equal [
-        [type, {}, [100], [1]],
-        [type, {}, [200,300], [2]]
-      ], parser, type.to_s
-    end
+  def test_joins_may_be_reassigned
+    parser = Parser.new "--[1][2] --[3][4,5] --[1][4,5] --[3][2]"
+    assert_joins_equal [
+      [[1], [4,5], ['join', '']],
+      [[3], [2], ['join', '']]
+    ], parser
   end
   
   #
@@ -746,75 +594,47 @@ class ParserTest < Test::Unit::TestCase
       "--+2[0,1,2]",
       "--0:1:2"]
     
-    assert_argvs_equal [
+    assert_nodes_equal [
       ["a", "a1", "a2", "--key", "value", "--another", "another value"],
       ["b", "b1"],
       ["c"]
     ], parser
     
     assert_joins_equal [
-      [Join, {}, [0], [1]],
-      [Join, {}, [1], [2]]
+      [[0], [1], ['join', '']],
+      [[1], [2], ['join', '']]
     ], parser
     
     assert_rounds_equal [nil, nil, [0]], parser
-    assert_globals_equal [], parser
+    assert_prerequisites_equal [], parser
   end
   
   def test_schema_cleanup
     parser = Parser.new %w{a -- b -- c --0:1 --1:2}
     parser.schema.cleanup
     
-    assert_argvs_equal [["a"],["b"],["c"]], parser
+    assert_nodes_equal [["a"],["b"],["c"]], parser
     assert_joins_equal [
-      [Join, {}, [0], [1]],
-      [Join, {}, [1], [2]]
+      [[0], [1], ['join', '']],
+      [[1], [2], ['join', '']]
     ], parser
     
     assert_rounds_equal [[0]], parser
-    assert_globals_equal [], parser
+    assert_prerequisites_equal [], parser
   end
   
   def test_parse_splits_string_argv_using_shellwords
     parser = Parser.new "a a1 a2 --key value --another 'another value' -- b b1 -- c --+2[0,1,2] --0:1:2"
    
-    assert_argvs_equal [
+    assert_nodes_equal [
       ["a", "a1", "a2", "--key", "value", "--another", "another value"],
       ["b", "b1"],
       ["c"]
     ], parser
     
     assert_joins_equal [
-      [Join, {}, [0], [1]],
-      [Join, {}, [1], [2]]
-    ], parser
-    
-    assert_rounds_equal [nil, nil, [0]], parser
-  end
-  
-  def test_parse_converts_hash_argvs_to_arrays_using_parse_argh
-    argh = {
-      '0' => {
-        '0' => ['a', 'a1', 'a2'],
-        '1' => ['--key', 'value', '--another', 'another value']},
-      '1' => {
-        '0' => ['b', 'b1']},
-      '2' => {
-        '0' => ['c']},
-      '3' => ['--+2[0,1,2]'],
-      '4' => ['--0:1:2']
-    }
-    
-    parser = Parser.new(argh)
-    assert_argvs_equal [
-      ["a", "a1", "a2", "--key", "value", "--another", "another value"],
-      ["b", "b1"],
-      ["c"]
-    ], parser
-    
-    assert_joins_equal [
-      [Join, {}, [0], [1]],
-      [Join, {}, [1], [2]]
+      [[0], [1], ['join', '']],
+      [[1], [2], ['join', '']]
     ], parser
     
     assert_rounds_equal [nil, nil, [0]], parser
@@ -835,7 +655,7 @@ class ParserTest < Test::Unit::TestCase
   
   def test_parse_does_not_parse_escaped_args
     parser = Parser.new "a -. -- --: --1[2,3] 4{5,6} x y .- z -- b -- c"
-    assert_argvs_equal [
+    assert_nodes_equal [
       ["a", "--", "--:", "--1[2,3]", "4{5,6}", "x", "y", "z"],
       ["b"],
       ["c"]
@@ -843,17 +663,17 @@ class ParserTest < Test::Unit::TestCase
   end
   
   def test_parse_stops_at_end_flag
-    assert_argvs_equal [["a"], ["b"]], Parser.new("a -- b --- c")
+    assert_nodes_equal [["a"], ["b"]], Parser.new("a -- b --- c")
   end
   
-  def test_parse_correctly_assigns_join_inputs_and_outputs_for_forward_join
+  def test_parse_correctly_assigns_join_inputs_and_outputs_for_sequence
     schema = Parser.new("a -- b --0:1").schema
     assert_equal schema[0].output, schema[1].input
   end
   
-  def test_parse_correctly_assigns_join_inputs_and_outputs_for_reverse_join
-    schema = Parser.new("a -- b --0{1}").schema
-    assert_equal schema[0].input, schema[1].output
+  def test_parse_correctly_assigns_join_inputs_and_outputs_for_join
+    schema = Parser.new("a -- b --[0][1]").schema
+    assert_equal schema[0].output, schema[1].input
   end
   
   #
@@ -877,7 +697,7 @@ class ParserTest < Test::Unit::TestCase
     argv = ["a", "--", "b", "---", "c"]
   
     schema = Parser.new.parse! argv
-    assert_equal [["a"], ["b"]], schema.argvs
+    assert_equal [["a"], ["b"]], schema.metadata
     assert_equal ["c"], argv
   end
   
@@ -885,6 +705,19 @@ class ParserTest < Test::Unit::TestCase
   # benchmark test
   #
   
+  def test_match_speed
+    benchmark_test(20) do |x|
+      
+      str = ".join[1,2,3][4,5,6]is"
+      
+      r = /\A(?:.(?:\w*[\w:]*))?\[(?:[\d,]*)\]\[(?:[\d,]*)\](?:[A-z]*)\z/
+      x.report("without back reference") {100000.times { str =~ r } }
+      
+      r = /\A(.(\w*[\w:]*))?\[([\d,]*)\]\[([\d,]*)\]([A-z]*)\z/
+      x.report("with back reference") {100000.times { str =~ r } }
+    end
+  end
+   
   def test_parse_speed
     benchmark_test(20) do |x|
       
@@ -893,14 +726,14 @@ class ParserTest < Test::Unit::TestCase
       str = nodes.collect {|args| "-- #{args.join(' ')}"}.join(" ")
       argv = Shellwords.shellwords(str)
       
-      assert_argvs_equal nodes, Parser.new(argv)
+      assert_nodes_equal nodes, Parser.new(argv)
       x.report("1000x10 nodes") {1000.times { Parser.new(argv) } }
       
       nodes = Array.new(10) {|i| [i.to_s] + %w{a b c d e}}
       str = nodes.collect {|args| "-- #{args.join(' ')}"}.join(" ")
       argv = Shellwords.shellwords(str)
       
-      assert_argvs_equal nodes, Parser.new(argv)
+      assert_nodes_equal nodes, Parser.new(argv)
       x.report("1000x10 nodes+5args") {1000.times { Parser.new(argv) } }
       
       ### 100 nodes
@@ -908,14 +741,14 @@ class ParserTest < Test::Unit::TestCase
       str = nodes.collect {|args| "-- #{args.join(' ')}"}.join(" ")
       argv = Shellwords.shellwords(str)
       
-      assert_argvs_equal nodes, Parser.new(argv)
+      assert_nodes_equal nodes, Parser.new(argv)
       x.report("100x100 nodes") {100.times { Parser.new(argv) } }
       
       nodes = Array.new(100) {|i| [i.to_s] + %w{a b c d e}}
       str = nodes.collect {|args| "-- #{args.join(' ')}"}.join(" ")
       argv = Shellwords.shellwords(str)
       
-      assert_argvs_equal nodes, Parser.new(argv)
+      assert_nodes_equal nodes, Parser.new(argv)
       x.report("100x100 nodes+5arg") {100.times { Parser.new(argv) } }
     end
   end

@@ -14,7 +14,7 @@ class GeneratorTest < Test::Unit::TestCase
   def test_generators
     script_test(method_root[:output]) do |cmd|
       cmd.check "Generates a root directory", 
-      "% #{cmd} generate root ." do |result|
+      "% #{cmd} generate root . -d-" do |result|
         
         expected = %w{
           lib

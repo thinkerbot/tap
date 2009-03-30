@@ -30,73 +30,82 @@ module Tap
           end
         end
         
-        # Formats a round string.
+        # Formats a node argh into an argv, like you would get on the command
+        # line.  Note that this requires some inference to map configs to
+        # options.
         #
-        #   format_round(1, [1,2,3])            # => "+1[1,2,3]"
+        #   node_argv()            # => ""
         #
-        def format_round(round, indicies)
-          "+#{round}[#{indicies.join(',')}]"
-        end
-
-        # Formats a sequence string.
-        #
-        #   format_sequence(1, [2,3], {})       # => "1:2:3"
-        #
-        def format_sequence(source_index, outputs, options)
-          ([source_index] + outputs).join(":") + format_options(options)
-        end
-
-        # Formats a global instance string.
-        #
-        #   format_instance(1)                  # => "*1"
-        #
-        def format_instance(index)
-          "*#{index}"
-        end
-
-        # Formats a fork string.
-        #
-        #   format_fork(1, [2,3],{})            # => "1[2,3]"
-        #
-        def format_fork(source_index, outputs, options)
-          "#{source_index[0]}[#{outputs.join(',')}]#{format_options(options)}"
-        end
-
-        # Formats a merge string (note the target index is
-        # provided first).
-        #
-        #   format_merge(1, [2,3],{})           # => "1{2,3}"
-        #
-        def format_merge(target_index, inputs, options)
-          "#{target_index[0]}{#{inputs.join(',')}}#{format_options(options)}"
-        end
-
-        # Formats a sync_merge string (note the target index 
-        # is provided first).
-        #
-        #   format_sync_merge(1, [2,3],{})      # => "1(2,3)"
-        #
-        def format_sync_merge(target_index, inputs, options)
-          "#{target_index[0]}(#{inputs.join(',')})#{format_options(options)}"
-        end
-
-        # Formats an options hash into a string.  Raises an error
-        # for unknown options.
-        #
-        #   format_options({:iterate => true})  # => "i"
-        #
-        def format_options(options)
-          options_str = []
-          options.each_pair do |key, value|
-            unless config = Join.configurations[key]
-              raise "unknown key in: #{options} (#{key})"
-            end
-            
-            if value
-              options_str << config.attributes[:short]
+        def node_argv(metadata)
+          return metadata if metadata.kind_of?(Array)
+          
+          argv = []
+          metadata.each_pair do |key, value|
+            case key
+            when :id
+              argv.unshift(value)
+            when :argv, :args 
+              argv.concat(value)
+            when :config
+              value.each_pair do |k,v|
+                argv << "--#{k}" << YAML.dump(v)
+              end
+            else
+              # for name, config_file, unlisted options
+              argv << "--#{key}" << YAML.dump(value)
             end
           end
-          options_str.sort.join
+          argv
+        end
+        
+        # Formats a round string.
+        #
+        #   round_arg(1, [1,2,3])            # => "+1[1,2,3]"
+        #
+        def round_arg(round, indicies)
+          "+#{round}[#{indicies.join(',')}]"
+        end
+        
+        def round_metadata(round, indicies)
+          {:round => round, :indicies => indicies}
+        end
+
+        # Formats a prerequisite string.
+        #
+        #   prerequiste_arg([1])                # => "*[1]"
+        #   prerequiste_arg([1,2,3])            # => "*[1,2,3]"
+        #
+        def prerequiste_arg(indicies)
+          indicies.empty? ? nil : "*[#{indicies.join(',')}]"
+        end
+        
+        def prerequiste_metadata(indicies)
+          {:prerequisites => indicies}
+        end
+
+        # Formats a join string.
+        #
+        #   join_arg([1], [2,3], :join => 'type')   # => "[1][2,3].type"
+        #
+        def join_arg(inputs, outputs, metadata=nil)
+          join_type, modifier = case metadata
+          when Array, nil then metadata
+          else 
+            if (metadata.keys - [:join, :modifier]).empty?
+              [metadata[:join], metadata[:modifier]]
+            else
+              raise "cannot format join_arg from metadata: #{metadata}"
+            end
+          end
+          
+          identifier = join_type == nil || join_type.empty? || join_type == "join" ? "" : ".#{join_type}"
+          "[#{inputs.join(',')}][#{outputs.join(',')}]#{modifier}#{identifier}"
+        end
+        
+        def join_metadata(inputs, outputs, metadata=nil)
+          result = {:inputs => inputs, :outputs => outputs}
+          result[:metadata] = metadata if metadata && !metadata.empty?
+          result
         end
       end
       
@@ -139,17 +148,17 @@ module Tap
         nodes.index(node)
       end
       
+      # Returns an array of the metadata for each nodes.
+      def metadata
+        nodes.collect do |node|
+          node == nil ? nil : node.metadata
+        end
+      end
+      
       # Shortcut to collect the indicies of each node in nodes.  Returns nil if
       # nodes is nil.
       def indicies(nodes)
         nodes ? nodes.collect {|node| index(node) } : nodes
-      end
-       
-      # Returns an array of the argvs for each nodes.
-      def argvs
-        nodes.collect do |node|
-          node == nil ? nil : node.argv
-        end
       end
       
       # Returns a collection of nodes sorted into arrays by round.
@@ -175,14 +184,14 @@ module Tap
       end
       
       # Returns a collection of global nodes.
-      def globals
-        globals = []
+      def prerequisites
+        prerequisites = []
         nodes.each do |node|
-          if node && node.global?
-            globals << node
+          if node && node.prerequisite?
+            prerequisites << node
           end
         end
-        globals
+        prerequisites
       end
       
       # Returns an array of joins among nodes in self.
@@ -206,14 +215,20 @@ module Tap
         joins.uniq
       end
       
+      # Sets the round for the node at each index.
+      def set_round(round, indicies)
+        indicies.each {|index| self[index].round = round }
+      end
+      
+      # Sets the specified nodes as prerequisites.
+      def set_prerequisites(indicies)
+        indicies.each {|index| self[index].make_prerequisite }
+      end
+      
       # Sets a join between the nodes at the input and output indicies.
       # Returns the new join.
-      def set(join_class, inputs, outputs, options={})
-        unless inputs && !inputs.empty?
-          raise ArgumentError, "no input nodes specified"
-        end
-        
-        join = [join_class.new(options), [],[]]
+      def set_join(inputs, outputs, argh={})
+        join = [[],[], argh]
         
         inputs.each {|index| self[index].output = join }
         outputs.each {|index| self[index].input = join }
@@ -232,11 +247,11 @@ module Tap
       def cleanup
         # remove nil and empty nodes
         nodes.delete_if do |node|
-          node == nil || node.argv.empty?
+          node == nil || node.empty?
         end
         
         # cleanup joins
-        joins.each do |join, input_nodes, output_nodes|
+        joins.each do |input_nodes, output_nodes, argh|
           
           # remove missing output nodes
           output_nodes.delete_if {|node| !nodes.include?(node) }
@@ -267,23 +282,42 @@ module Tap
         self
       end
       
-      def build(app)
+      #
+      # Block must return the constant specified by id.  In the case of tasks
+      # the constant needs to respond to:
+      #
+      #   parse(argv, app)                 # => [instance, argv]
+      #   instantiate(argh, app)           # => [instance, argv]
+      #
+      # Parse will be called if the node is defined by an array.  Typically
+      # this means the data will come from the command line and so parse usually
+      # handles options.  Instantiate will be called if the node is defined by
+      # a hash.  Typically this means the data will come from a YAML file.  There
+      # are no fixed requirements of the hash except that it contains an :id
+      # entry that identifies the required class.
+      #
+      # Joins need to respond to:
+      #
+      #   join(inputs, outputs, modifier)  # => instance
+      #
+      #
+      def build # :yields: type, metadata
         cleanup
         
         # instantiate the nodes
         tasks = {}
         nodes.each do |node|
-          tasks[node] = yield(node.argv) if node
+          tasks[node] = yield(:task, node.metadata)
         end
         
-        # instantiate and reconfigure globals
+        # instantiate and reconfigure prerequisites
         instances = []
-        globals.each do |node|
+        prerequisites.each do |node|
           task, args = tasks.delete(node)
           instance = task.class.instance
           
           if instances.include?(instance)
-            raise "global specified multple times: #{instance}"
+            raise "prerequisite specified multple times: #{instance}"
           end
           
           instance.reconfigure(task.config.to_hash)
@@ -292,11 +326,10 @@ module Tap
         end
 
         # build the workflow
-        joins.each do |join, input_nodes, output_nodes|
+        joins.each do |input_nodes, output_nodes, metadata|
           sources = input_nodes.collect {|node| tasks[node][0] }
           targets = output_nodes.collect {|node| tasks[node][0] }
-          
-          join.join(sources, targets)
+          yield(:join, metadata).join(sources, targets)
         end
 
         # build rounds
@@ -310,21 +343,27 @@ module Tap
           warn "warning: ignoring args for node (#{index(node)}) #{task} [#{args.join(' ')}]"
         end
         
-        # enque
-        queues.each {|queue| app.queue.concat(queue) }
-        app
+        queues
       end
       
       # Creates an array dump of the contents of self.
-      def dump
+      def dump(argv=false)
         cleanup
         
-        # add argvs
-        array = argvs
+        # add nodes
+        array = nodes.collect do |node|
+          metadata = node.metadata
+          argv ? node_argv(metadata) : metadata
+        end
         
-        # add global declarations
-        globals.each do |node|
-          array << format_instance(index(node))
+        # add prerequisites declaration
+        indicies = prerequisites.collect {|node| index(node) }
+        unless indicies.empty?
+          array << if argv 
+            prerequiste_arg(indicies)
+          else 
+            prerequiste_metadata(indicies)
+          end
         end
         
         # add round declarations
@@ -334,30 +373,24 @@ module Tap
           # skip round 0 as it is implicit
           if index > 0
             indicies = nodes.collect {|node| index(node) }
-            array << format_round(index, indicies)
+            array << if argv 
+              round_arg(index, indicies)
+            else 
+              round_metadata(index, indicies)
+            end
           end
           
           index += 1
         end
         
         # add join declarations
-        joins.each do |join, input_nodes, output_nodes|
+        joins.each do |input_nodes, output_nodes, argh|
           inputs = input_nodes.collect {|node| nodes.index(node) }
           outputs = output_nodes.collect {|node| nodes.index(node) }
-
-          array << case join
-          when Joins::SyncMerge  then format_sync_merge(outputs, inputs, join.options)
-          when Join
-            if inputs.length == 1
-              if outputs.length == 1
-                format_sequence(inputs, outputs, join.options)
-              else
-                format_fork(inputs, outputs, join.options)
-              end
-            else
-              format_merge(outputs, inputs, join.options)
-            end
-          else raise "unknown join type: #{join.class} ([#{inputs.join(',')}], [#{outputs.join(',')}])"
+          array << if argv 
+            join_arg(inputs, outputs, argh)
+          else
+            join_metadata(inputs, outputs, argh)
           end
         end
         
@@ -368,8 +401,9 @@ module Tap
       # '-- a -- b --0:1'.
       def to_s
         args = []
-        dump.each do |obj|
-          if obj.kind_of?(Array)
+        dump(true).each do |obj|
+          case obj
+          when Array
             args << "--"
             args.concat obj.collect {|arg| shell_quote(arg) }
           else

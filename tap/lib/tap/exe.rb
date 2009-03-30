@@ -109,25 +109,49 @@ module Tap
       end
     end
     
-    def build(schema, app=Tap::App.instance)
-      schema.build(app) do |args|
-        task = args.shift
-        const = tasks.search(task) 
-        
-        task_class = case
-        when const then const.constantize 
-        when block_given?
-          args.unshift(task)
-          yield(args)
-        else nil
-        end
-        
-        task_class or raise ArgumentError, "unknown task: #{task}"
-        task_class.parse(args, app) do |help|
-          puts help
-          exit
+    def build(schema, app=Tap::App.instance) 
+      queues = schema.build do |type, argh|
+        if type == :join
+          instantiate_join(argh)
+        else
+          instantiate_task(argh, app)
         end
       end
+      
+      # Note this should happen in build... may need updates
+      # to queue to do so
+      queues.each {|queue| app.queue.concat(queue) }
+      app
+    end
+    
+    def instantiate_join(metadata)
+      # Temporary!
+      case metadata
+      when Array
+        metadata = metadata.dup
+        metadata.shift # remove id that would normally look up join class
+        
+        join_class = Support::Join
+        join_class.parse!(metadata)
+      when Hash
+        join_class = Support::Join
+        join_class.instantiate(metadata)
+      end
+    end
+    
+    def instantiate_task(metadata, app)
+      case metadata
+      when Array
+        metadata = metadata.dup
+        tasc(metadata.shift).parse!(metadata, app)
+      when Hash
+        tasc(metadata[:id]).instantiate(metadata, app)
+      end
+    end
+    
+    def tasc(id)
+      const = tasks.search(id) or raise ArgumentError, "unknown task: #{id}"
+      const.constantize
     end
     
     def set_signals(app=Tap::App.instance)

@@ -63,8 +63,8 @@ module Tap
         end
       end
       
-      # An array of arguments used to instantiate the node
-      attr_accessor :argv
+      # Metadata used to instantiate the node.  May be a hash or an array.
+      attr_accessor :metadata
       
       # The input for the node.  Input may be:
       #
@@ -81,18 +81,25 @@ module Tap
       #
       attr_reader :output
 
-      def initialize(argv=[], input=0, output=nil)
-        @argv = argv
+      def initialize(metadata=nil, input=0, output=nil)
+        @metadata = metadata
         @input = @output = nil
         
         self.input = input
         self.output = output
       end
       
+      # Returns true if metadata is not set or is empty.
+      def empty?
+        metadata == nil || metadata.empty? 
+      end
+      
+      # Returns the input join if the input to self is a join array.
       def input_join
         input.kind_of?(Array) ? input : nil
       end
       
+      # Returns the output join if the output of self is a join array.
       def output_join
         output.kind_of?(Array) ? output : nil
       end
@@ -100,23 +107,23 @@ module Tap
       # Returns an array of nodes that pass inputs to self via an input join.
       # If input is not a join, parents is an empty array.
       def parents
-        input.kind_of?(Array) ? input[1] : []
+        input.kind_of?(Array) ? input[0] : []
       end
       
       # Returns an array of nodes that receive the outputs self via an output
       # join.  If output is not a join, children is an empty array.
       def children
-        output.kind_of?(Array) ? output[2] : []
+        output.kind_of?(Array) ? output[1] : []
       end
       
       # Sets the input for self.
       def input=(value)
         if input.kind_of?(Array)
-          input[2].delete(self)
+          input[1].delete(self)
         end
         
         if value.kind_of?(Array)
-          value[2] << self
+          value[1] << self
         end
         
         @input = value
@@ -125,29 +132,29 @@ module Tap
       # Sets the output for self.
       def output=(value)
         if output.kind_of?(Array)
-          output[1].delete(self)
+          output[0].delete(self)
           
           # cleanup orphan joins
-          if output[1].empty?
+          if output[0].empty?
             orphan_round = natural_round
-            output[2].dup.each {|node| node.input = orphan_round }
+            output[1].dup.each {|node| node.input = orphan_round }
           end
         end
         
         if value.kind_of?(Array)
-          value[1] << self
+          value[0] << self
         end
         
         @output = value
       end
       
       # Sets the input to nil.
-      def globalize
+      def make_prerequisite
         self.input = nil
       end
       
       # True if the input is nil.
-      def global?
+      def prerequisite?
         input == nil
       end
       
@@ -168,7 +175,7 @@ module Tap
       end
       
       def inspect
-        "#<#{self.class}:#{object_id} argv=[#{argv.join(' ')}] input=#{input.inspect} output=#{output.inspect}>"
+        "#<#{self.class}:#{object_id} argh=#{argh.inspect} input=#{input.inspect} output=#{output.inspect}>"
       end
 
     end

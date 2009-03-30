@@ -49,7 +49,6 @@ options:
         --help                       Print this help
         --name NAME                  Specifies the task name
         --config FILE                Specifies a config file
-        --use FILE                   Loads inputs to ARGV
 % #{cmd} run -- sample_without_doc --help
 SampleWithoutDoc
 
@@ -62,7 +61,6 @@ options:
         --help                       Print this help
         --name NAME                  Specifies the task name
         --config FILE                Specifies a config file
-        --use FILE                   Loads inputs to ARGV
 % #{cmd} run -- sample_with_splat --help
 SampleWithSplat
 
@@ -85,7 +83,6 @@ options:
         --help                       Print this help
         --name NAME                  Specifies the task name
         --config FILE                Specifies a config file
-        --use FILE                   Loads inputs to ARGV
 }
     end
   end
@@ -126,7 +123,7 @@ unknown task: --help
         file << "- [sample, one]"
       end
       cmd.match "Runs the workflow successfully", 
-      "% #{cmd} run -w #{path}",
+      "% #{cmd} run -w '#{path}'",
       /I\[\d\d:\d\d:\d\d\]             sample one was processed with value/
       
       path = method_root.prepare(:tmp, 'workflow.yml') do |file|
@@ -134,7 +131,7 @@ unknown task: --help
       end
       
       cmd.match "Runs the workflow with ARGV", 
-      "% #{cmd} run -w #{path} a b c",
+      "% #{cmd} run -w '#{path}' a b c",
       /argv was \["a", "b", "c"\]/
       
       cmd.match "Runs the sample task successfully", 
@@ -180,7 +177,7 @@ unknown task: --help
 
       cmd.match "Prints the list config help",
       "% #{cmd} run -- with_list_config --help", 
-      /--list A,B,C                 a list config/
+      /--list LIST                  a list config/
 
       # array
       cmd.match "Run with array syntax",
@@ -189,7 +186,7 @@ unknown task: --help
 
       cmd.match "Prints the array config help",
       "% #{cmd} run -- with_array_config --help", 
-      /--array '\[a, b, c\]'          an array config/
+      /--array ARRAY                an array config/
 
       # hash
       cmd.match "Run with hash syntax",
@@ -198,7 +195,7 @@ unknown task: --help
 
       cmd.match "Prints the hash config help",
       "% #{cmd} run -- with_hash_config --help", 
-      /--hc '\{one: 1, two: 2\}'      a hash config/
+      /--hc HC                      a hash config/
 
       # string
       cmd.match "Run with empty string syntax",
@@ -242,7 +239,7 @@ unknown task: --help
   def test_run_with_dump
     script_test do |cmd|
       cmd.check "Runs and dumps workflow", %Q{
-% #{cmd} run -- echo --name 1 --: echo --name 2 --: echo --name 3 --: dump --audit
+% #{cmd} run -- echo --name 1 --: echo --name 2 --: echo --name 3 --: dump --audit -d-
 ["1"]
 ["1", "2"]
 ["1", "2", "3"]
