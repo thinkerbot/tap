@@ -5,6 +5,7 @@ autoload(:ERB, 'erb')
 module Tap
   
   # === Declaring Actions
+  #
   # By default all public methods in subclasses are declared as actions.  You
   # can declare a private or protected method as an action by:
   #
@@ -73,6 +74,7 @@ module Tap
       def inherited(child) # :nodoc:
         super
         child.set(:actions, actions.dup)
+        child.set(:default_action, default_action)
         child.set(:default_layout, default_layout)
         child.set(:define_action, true)
       end
@@ -81,28 +83,26 @@ module Tap
       # stored as symbols.  Actions are inherited.
       attr_reader :actions
       
+      # The default action called for the request path '/'
+      attr_reader :default_action
+      
       # The default layout rendered when the render option :layout is true.
       attr_reader :default_layout
-      
-      # The base path prepended to render paths (ie render(<path>) renders
-      # <templates_dir/name/path>).
-      def name
-        @name ||= to_s.underscore
-      end
       
       # Instantiates self and performs call.
       def call(env)
         new.call(env)
       end
       
-      # Sets an instance variable for self, short for:
+      # Sets an instance variable for self (ie the class), short for:
       #
       #   instance_variable_set(:@attribute, input)
       #
-      # Typically only these variables should be set:
+      # These variables are meaningful to a default Tap::Controller and will
+      # be inherited by subclasses:
       #
       #   actions:: sets actions
-      #   name:: the name of the controller
+      #   default_action:: the default action (:index)
       #   default_layout:: the default layout (used by render)
       #
       def set(variable, input)
@@ -139,6 +139,7 @@ module Tap
     
     set :actions, []
     set :default_layout, nil
+    set :default_action, :index
     
     # Ensures methods (even public methods) on Controller will
     # not be actions in subclasses. 
@@ -157,30 +158,56 @@ module Tap
     # the action result and response is ignored.
     attr_accessor :response
     
-    # The action currently being called by self.
-    attr_accessor :action
-    
-    # Initializes a new instance of self.  The input attributes are reset by
-    # call and are only provided for convenience during testing.
-    def initialize(server=nil, request=nil, response=nil)
-      @server = server
-      @request = request
-      @response = response
-      @action = nil
+    # Initializes a new instance of self.
+    def initialize(app=nil)
+      @server = @request = @response = nil
+      @app = app
     end
     
+    # Routes the request to an action and returns the response.  Routing is
+    # simple and fixed (see route):
+    #
+    #   route                  calls
+    #   /                      default_action (ie 'index')
+    #   /action/*args          action(*args)
+    #
+    # Call sets up instance variables that may be used in the action:
+    #
+    #   server:: the Tap::Server specified in the env, or a new Tap::Server
+    #   request: a Rack::Request for env
+    #   response:: a Rack::Response
+    #
+    # If the action returns a string, it will be written to response.
+    # Otherwise, call returns the result of action.  This allows actions like:
+    #
+    #   class ActionsController < Tap::Controller
+    #     def simple
+    #       "html body"
+    #     end
+    #
+    #     def standard
+    #       response["Content-Type"] = "text/plain"
+    #       response << "text"
+    #       response.finish
+    #     end
+    #
+    #     def custom
+    #       [200, {"Content-Type" => "text/plain"}, ["text"]]
+    #     end
+    #   end
+    #
     def call(env)
       @server = env['tap.server'] || Tap::Server.new
       @request = Rack::Request.new(env)
       @response = Rack::Response.new
       
       # route to an action
-      @action, args = route
-      unless self.class.actions.include?(@action)
+      action, args = route
+      unless self.class.actions.include?(action)
         raise ServerError.new("404 Error: page not found", 404)
       end
       
-      result = send(@action, *args)
+      result = send(action, *args)
       if result.kind_of?(String) 
         response.write result
         response.finish
@@ -189,25 +216,72 @@ module Tap
       end
     end
     
+    # Returns the action, args, and extname for the request.path_info.  Routing
+    # is simple and fixed:
+    #
+    #   route             returns
+    #   /                 [:index, []]
+    #   /action/*args     [:action, args]
+    #
+    # The action and args are unescaped by route.  An alternate default action
+    # may be specified using set.  Override this method in subclasses for
+    # fancier routes.
     def route
       blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-      action = "index" if action == nil || action.empty?
-      action = action.chomp(File.extname(action)).to_sym
-      
-      [action, args]
+      action = self.class.default_action if action == nil || action.empty?
+
+      [action.to_sym, args]
     end
     
+    # Looks up a template associated with the class of obj, ie:
+    #
+    #   <views>/class_file_path/path
+    #
+    # The default class_file_path is 'obj.class.to_s.underscore', but classes
+    # can specify an alternative by providing a class_file_path method.
+    #
+    # If the specified path cannot be found, class file searches the superclass
+    # of obj.class.  Returns nil if no file can be found for any class in the
+    # inheritance hierarchy.
+    #
+    def class_file(path, obj=self)
+      current = obj.class
+      template_path = nil
+      loop do
+        class_file_path = if current.respond_to?(:class_file_path)
+          current.class_file_path
+        else
+          current.to_s.underscore
+        end
+        
+        template_path = server.search(:views, "#{class_file_path}/#{path}")
+        break if template_path || current == Object
+        
+        current = current.superclass
+      end
+        
+      template_path
+    end
+    
+    # Renders the class_file at path with the specified options.  Path can be
+    # omitted if options specifies an alternate path to render.  Options:
+    #
+    #   template:: renders the template relative to the template directory
+    #   file:: renders the specified file 
+    #   layout:: renders with the specified layout, or default_layout if true
+    #   locals:: a hash of local variables used in the template
+    #
     def render(path, options={})
       options, path = path, nil if path.kind_of?(Hash)
       
       # lookup template
       template_path = case
-      when options[:template_file]
-        options[:template_file]
+      when options[:file]
+        options[:file]
       when options[:template]
         server.search(:views, options[:template])
       else
-        server.search(:views, "#{self.class.name}/#{path}")
+        class_file(path)
       end
       
       unless template_path
@@ -216,19 +290,33 @@ module Tap
       
       # render template
       template = File.read(template_path)
-      content = render_erb(template, {:filename => template_path }.merge(options) )
+      content = render_erb(template, options, template_path)
       
       # render layout
-      layout = options[:layout]
-      layout = self.class.default_layout if layout == true
-      if layout
-        render(:template => layout, :locals => {:content => content})
-      else
-        content
-      end
+      render_layout(options[:layout], content)
     end
     
-    def render_erb(template, options={})
+    # Renders the specified layout with content as a local variable.  If layout
+    # is true, the class default_layout will be rendered. Returns content if no
+    # layout is specified.
+    def render_layout(layout, content)
+      case layout
+      when nil  
+        return content
+      when true 
+        layout = self.class.default_layout 
+      end
+      
+      render(:template => layout, :locals => {:content => content})
+    end
+    
+    # Renders the specified template as ERB using the options.  Options:
+    #
+    #   locals:: a hash of local variables used in the template
+    #
+    # The filename used to identify errors in an erb template to a specific
+    # file and is completely options (but handy).
+    def render_erb(template, options={}, filename=nil)
       # assign locals to the render binding
       # this almost surely may be optimized...
       locals = options[:locals]
@@ -240,7 +328,7 @@ module Tap
       end if locals
       
       erb = ERB.new(template, nil, "<>")
-      erb.filename = options[:filename]
+      erb.filename = filename
       erb.result(binding)
     end
     
@@ -276,7 +364,7 @@ module Tap
     
     # Returns a controller uri.
     def uri(action=nil, params={})
-      server.uri(self.class.name, action, params)
+      server.uri(self.class.to_s.underscore, action, params)
     end
     
     # Generates an empty binding to self without any locals assigned.

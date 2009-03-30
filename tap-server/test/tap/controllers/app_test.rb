@@ -43,10 +43,10 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
   
   def test_call_negotiates_public_page_content_type_by_extname
     method_root.prepare(:public, "page.html") {|file| }
-    assert_equal ["text/html"], request.get("/page.html", opts).content_type
+    assert_equal "text/html", request.get("/page.html", opts).content_type
     
     method_root.prepare(:public, "page.txt") {|file| }
-    assert_equal ["text/plain"], request.get("/page.txt", opts).content_type
+    assert_equal "text/plain", request.get("/page.txt", opts).content_type
   end
   
 end
