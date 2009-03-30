@@ -232,7 +232,7 @@ end
   
     res = request.get('/err')
     assert_equal 500, res.status
-    assert_equal({'Content-Type' => ['text/plain']}, res.headers)
+    assert_equal({'Content-Type' => 'text/plain'}, res.headers)
     assert_equal "500 #{err.class}: #{err.message}\n#{err.backtrace.join("\n")}", res.body
   end
   
@@ -242,7 +242,7 @@ end
   
     res = request.get('/err')
     assert_equal 500, res.status
-    assert_equal({'Content-Type' => ['text/plain']}, res.headers)
+    assert_equal({'Content-Type' => 'text/plain'}, res.headers)
     assert_equal "msg", res.body
   end
   
