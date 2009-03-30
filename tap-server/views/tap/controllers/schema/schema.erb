@@ -3,9 +3,9 @@
   <li><a href="<%= uri("#{id}.txt") %>">preview</a></li>
   <li><a href="<%= uri("#{id}.yml") %>">download</a></li>
 </ul>
-<% globals = schema.globals %>
-<% unless globals.empty? %>
-<%= render 'round.erb', :locals => {:schema => schema, :nodes => globals, :round => nil, :id => id} %>
+<% prerequisites = schema.prerequisites %>
+<% unless prerequisites.empty? %>
+<%= render 'round.erb', :locals => {:schema => schema, :nodes => prerequisites, :round => nil, :id => id} %>
 <% end %>
 <% index = 0 %>
 <% schema.natural_rounds.each do |nodes| %>
@@ -19,17 +19,16 @@
 <% schema.nodes.each_with_index do |node, index| %>
   <li id="node_<%= id %>_<%= index %>" class="node">
     <!-- tasc identifier -->
-    <input name="argv[]" type="hidden" value="--" />
-    <input name="argv[]" type="hidden" value="<%= node.argv[0] %>" />
-<% task, args = instantiate(*node.argv) %>
+    <input name="schema[]" type="hidden" value="~" />
+    <input name="schema[][id]" type="hidden" value="<%= node.metadata[:id] %>" />
+<% task, args = instantiate(node) %>
 <% template_file = server.search(:views, "#{task.class.to_s.underscore}/node.erb") %>
 <%= render('node.erb', :template_file => template_file, :locals => {:id => id, :index => index, :task => task, :args => args} ) %> 
   </li>
 <% end %>
   </ol>
-<% schema.dump.select {|obj| !obj.kind_of?(Array) }.each do |str| %>
-  <input name="argv[]" type="hidden" value="--<%= str %>" />
-<% end %>
+<% str = schema.dump(true).select {|obj| obj.kind_of?(String) }.join("\n") %>
+  <input name="schema[]" type="hidden" value="<%= str %>" />
   <input class="action" type="radio" name="action" value="update" checked="true">update</input>
   <input class="action" type="radio" name="action" value="echo">echo (debug http)</input>
   <input id="node_form_<%= id %>_submit" type="submit" value="Update" />

@@ -107,9 +107,9 @@ module Tap
         load_schema(id) do |schema|
           nodes.each do |arg|
             next unless arg && !arg.empty?
-      
+            
             outputs << schema.nodes.length
-            schema.nodes << Tap::Support::Node.new(Shellwords.shellwords(arg), round)
+            schema.nodes << Tap::Support::Node.new(arg, round)
           end
       
           if inputs.empty? || outputs.empty?
@@ -184,7 +184,7 @@ module Tap
       
       # Parses a Tap::Support::Schema from the request.
       def request_schema
-        argv = request['argv[]'] || []
+        argv = request['schema[]'] || []
         argv.delete_if {|arg| arg.empty? }
         Tap::Support::Schema.parse(argv)
       end
@@ -211,10 +211,10 @@ module Tap
         end
       end
         
-      def instantiate(*argv)
-        key = argv.shift
-        tasc = server.env.tasks.search(key).constantize 
-        tasc.parse(argv)
+      def instantiate(node)
+        metadata = node.metadata
+        tasc = server.env.tasks.search(metadata[:id]).constantize
+        tasc.instantiate(metadata, app)
       end        
     end
   end

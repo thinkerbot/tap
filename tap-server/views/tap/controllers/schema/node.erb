@@ -6,7 +6,7 @@
     <ul class="inputs">
 <% tasc.args.arguments.each do |argument| %>
     <li class="input">
-    <input name="argv[]" value="<%= args.shift %>" />
+    <input name="schema[][args][]" value="<%= args.shift %>" />
     <span><%= argument %></span>
     </li>
 <% end %>
@@ -14,7 +14,7 @@
 <% args << '' if task.method(:process).arity < 0 %>
 <% args.each do |arg| %>
     <li class="input">
-    <input name="argv[]" value="<%= arg %>" />
+    <input name="schema[][args][]" value="<%= arg %>" />
     <span>...</span>
     </li>
 <% end %>
@@ -23,13 +23,12 @@
 <%=  render("configurations.erb", :locals => {
        :configurations => tasc.configurations, 
        :values => task.config, 
-       :nest => "", 
+       :name => "schema[]", 
        :index => index}) %> 
 
     <ul class="options">
     <li class="option">
-    <input name="argv[]" type="hidden" value="--name" />
-    <input name="argv[]" value="<%= task.name %>" />
+    <input name="schema[][name]" value="<%= task.name %>" />
     <span>Name</span>
     </li>
     </ul>

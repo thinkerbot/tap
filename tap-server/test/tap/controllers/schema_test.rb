@@ -50,7 +50,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   
   def test_add_adds_nodes_in_the_nodes_parameter
     path = prepare_schema(0, "")
-    assert_equal 302, request.post("/0?action=add&nodes[]=tap%3Atask", opts).status
+    assert_equal 302, request.post("/0?action=add&nodes[][id]=tap%3Atask", opts).status
     
     schema = Schema.load_file(path)
     assert_equal "-- tap:task", schema.to_s
@@ -58,7 +58,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   
   def test_add_may_specify_multiple_nodes
     path = prepare_schema(0, "")
-    assert_equal 302, request.post("/0?action=add&nodes[]=a&nodes[]=b", opts).status
+    assert_equal 302, request.post("/0?action=add&nodes[][id]=a&nodes[][id]=b", opts).status
     
     schema = Schema.load_file(path)
     assert_equal "-- a -- b", schema.to_s
@@ -66,7 +66,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   
   def test_add_node_is_split_into_and_argv_using_shellwords
     path = prepare_schema(0, "")
-    assert_equal 302, request.post("/0?action=add&nodes[]=tap%3atask%20a%20b%20c", opts).status
+    assert_equal 302, request.post("/0?action=add&nodes[][id]=tap%3atask&nodes[][args][]=a&nodes[][args][]=b&nodes[][args][]=c", opts).status
     
     schema = Schema.load_file(path)
     assert_equal "-- tap:task a b c", schema.to_s
