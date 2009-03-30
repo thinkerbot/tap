@@ -10,7 +10,8 @@ class ControllerTest < Test::Unit::TestCase
   def setup
     super
     @server = Tap::Server.new Tap::Env.new(method_root)
-    @controller = Tap::Controller.new @server
+    @controller = Tap::Controller.new
+    @controller.server = server
   end
   
   #
@@ -19,7 +20,7 @@ class ControllerTest < Test::Unit::TestCase
   
   class ParentController < Tap::Controller
     set :actions, [:a, :b, :c]
-    set :middleware, [[Rack::Session::Cookie, [], nil]]
+    set :default_action, 'alt'
     set :default_layout, 'default'
   end
   
@@ -31,13 +32,12 @@ class ControllerTest < Test::Unit::TestCase
     assert ParentController.actions.object_id != ChildController.actions.object_id
   end
   
-  def test_default_layout_is_inherited
-    assert_equal 'default', ChildController.default_layout
+  def test_default_action_is_inherited
+    assert_equal 'alt', ChildController.default_action
   end
   
-  def test_name_is_underscored_class_name
-    assert_equal "controller_test/parent_controller", ParentController.name
-    assert_equal "controller_test/child_controller", ChildController.name
+  def test_default_layout_is_inherited
+    assert_equal 'default', ChildController.default_layout
   end
   
   #
@@ -70,6 +70,190 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_public_methods_in_subclasses_are_automatically_registered_as_actions
     assert_equal [:public_method, :another_public_method], ActionController.actions
+  end
+  
+  #
+  # call test
+  #
+  
+  class CallController < Tap::Controller
+    set :default_action, :default
+    
+    def default
+      "default response"
+    end
+    
+    def action(*args)
+      args.join(".")
+    end
+  end
+  
+  def test_call_sets_server
+    controller = CallController.new
+    assert_equal nil, controller.server
+    
+    request = Rack::MockRequest.new controller
+    request.get("/action", 'tap.server' => 'server')
+    
+    assert_equal 'server', controller.server
+  end
+  
+  def test_call_routes_empty_path_info_default_action
+    request = Rack::MockRequest.new CallController
+    assert_equal "default response", request.get("").body
+    
+    request = Rack::MockRequest.new CallController
+    assert_equal "default response", request.get("/").body
+  end
+  
+  def test_call_routes_path_info_to_action_and_args
+    request = Rack::MockRequest.new CallController
+    assert_equal "a.b.c", request.get("/action/a/b/c").body
+  end
+  
+  def test_call_correctly_routes_path_info_with_escapes
+    request = Rack::MockRequest.new CallController
+    assert_equal "a+b.c d", request.get("/%61ction/a%2Bb/c%20d").body
+  end
+  
+  def test_call_raises_a_server_error_if_path_info_cannot_be_routed_to_an_action
+    request = Rack::MockRequest.new CallController
+    e = assert_raises(Tap::ServerError) { request.get("/not_an_action") }
+    assert_equal "404 Error: page not found", e.message
+  end
+  
+  class CallActionController < Tap::Controller
+    def simple
+      "simple body"
+    end
+
+    def standard
+      response["Content-Type"] = "text/plain"
+      response.body << "standard body"
+      response.finish
+    end
+
+    def custom
+      [200, {"Content-Type" => "text/plain"}, ["custom body"]]
+    end
+  end
+  
+  def test_call_uses_string_returns_as_response_body
+    request = Rack::MockRequest.new CallActionController
+    response = request.get("/simple")
+    assert_equal "simple body", response.body
+  end
+  
+  def test_call_returns_non_string_responses_directly
+    request = Rack::MockRequest.new CallActionController
+    response = request.get("/standard")
+    assert_equal "text/plain", response["Content-Type"]
+    assert_equal "standard body", response.body
+    
+    request = Rack::MockRequest.new CallActionController
+    response = request.get("/custom")
+    assert_equal "text/plain", response["Content-Type"]
+    assert_equal "custom body", response.body
+  end
+  
+  class CallIndexController < Tap::Controller
+    def index
+      "result"
+    end
+  end
+  
+  def test_empty_path_routes_to_index
+    request = Rack::MockRequest.new CallIndexController
+    assert_equal "result", request.get("/").body
+  end
+  
+  #
+  # class_file
+  #
+  
+  def test_class_file_returns_template_file_under_the_obj_class_path
+    path = method_root.prepare(:views, 'tap/controller/sample.erb') {|file| }
+    assert_equal path, controller.class_file('sample.erb')
+    
+    path = method_root.prepare(:views, 'array/sample.erb') {|file| }
+    assert_equal path, controller.class_file('sample.erb', [])
+    
+    path = method_root.prepare(:views, 'object/sample.erb') {|file| }
+    assert_equal path, controller.class_file('sample.erb', Object.new)
+  end
+  
+  def test_class_file_seeks_up_class_hierarchy
+    path = method_root.prepare(:views, 'object/sample.erb') {|file| }
+    assert_equal path, controller.class_file('sample.erb', [])
+  end
+  
+  def test_class_file_returns_nil_if_no_class_file_is_found
+    assert_equal nil, controller.class_file('sample.erb', [])
+  end
+  
+  class ClassFilePath
+    def self.class_file_path
+      "alt"
+    end
+  end
+  
+  def test_class_file_uses_class_class_file_path_if_specified
+    path = method_root.prepare(:views, 'alt/sample.erb') {|file| }
+    assert_equal path, controller.class_file('sample.erb', ClassFilePath.new)
+  end
+  
+  #
+  # render test
+  #
+  
+  class RenderController < Tap::Controller
+  end
+  
+  def test_render_renders_class_file_for_path
+    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+    method_root.prepare(:views, 'controller_test/render_controller/sample.erb') {|file| file << "<%= %w{one two three}.join(':') %>" }
+    
+    assert_equal "one:two", controller.render('sample.erb')
+    
+    render_controller = RenderController.new
+    render_controller.server = server
+    assert_equal "one:two:three", render_controller.render('sample.erb')
+  end
+  
+  def test_render_looks_up_template_under_template_dir
+    method_root.prepare(:views, 'alt/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+    assert_equal "one:two", controller.render(:template => 'alt/sample.erb')
+  end
+  
+  def test_render_renders_file
+    path = method_root.prepare(:views, 'sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+    assert_equal "one:two", controller.render(:file => path)
+  end
+  
+  def test_render_assigns_locals
+    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= local %>" }
+    assert_equal "value", controller.render('sample.erb', :locals => {:local => 'value'})
+  end
+  
+  def test_render_renders_a_layout_template_with_content_if_specified
+    method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
+    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+    
+    assert_equal "<html>one:two</html>", controller.render('sample.erb', :layout => 'layout.erb')
+  end
+  
+  class DefaultLayoutController < Tap::Controller
+    set :default_layout, 'layout.erb'
+    set :name, ""
+  end
+  
+  def test_render_uses_default_layout_for_layout_true
+    method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
+    method_root.prepare(:views, 'sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+    
+    controller = DefaultLayoutController.new
+    controller.server = server
+    assert_equal "<html>one:two</html>", controller.render(:template => 'sample.erb', :layout => true)
   end
   
   #
@@ -111,156 +295,22 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
-  # render test
-  #
-  
-  class NamedController < Tap::Controller
-    set :name, "name"
-  end
-  
-  def test_render_prepends_controller_name_to_path
-    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
-    method_root.prepare(:views, 'name/sample.erb') {|file| file << "<%= %w{one two three}.join(':') %>" }
-    
-    name_controller = NamedController.new server
-    
-    assert_equal "one:two", controller.render('sample.erb')
-    assert_equal "one:two:three", name_controller.render('sample.erb')
-  end
-  
-  def test_render_looks_up_template_directly
-    method_root.prepare(:views, 'alt/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
-    
-    name_controller = NamedController.new server
-    
-    assert_equal "one:two", controller.render(:template => 'alt/sample.erb')
-    assert_equal "one:two", name_controller.render(:template => 'alt/sample.erb')
-  end
-  
-  def test_render_assigns_locals
-    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= local %>" }
-    assert_equal "value", controller.render('sample.erb', :locals => {:local => 'value'})
-  end
-  
-  def test_render_renders_a_layout_template_with_content_if_specified
-    method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
-    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
-    
-    assert_equal "<html>one:two</html>", controller.render('sample.erb', :layout => 'layout.erb')
-  end
-  
-  class DefaultLayoutController < Tap::Controller
-    set :default_layout, 'layout.erb'
-    set :name, ""
-  end
-  
-  def test_render_uses_default_layout_for_layout_true
-    method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
-    method_root.prepare(:views, 'sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
-    
-    controller = DefaultLayoutController.new server
-    assert_equal "<html>one:two</html>", controller.render('sample.erb', :layout => true)
-  end
-  
-  #
-  # call test
-  #
-  
-  class CallController < Tap::Controller
-    def action(*args)
-      args.join(".")
-    end
-  end
-  
-  def test_controller_routes_path_info_to_action_and_args
-    request = Rack::MockRequest.new CallController
-    assert_equal "a.b.c", request.get("/action/a/b/c").body
-  end
-  
-  def test_controller_chomps_extname_off_action_if_specified
-    request = Rack::MockRequest.new CallController
-    assert_equal "a.b.c", request.get("/action.ext/a/b/c").body
-  end
-  
-  def test_call_correctly_routes_path_info_with_escapes
-    request = Rack::MockRequest.new CallController
-    assert_equal "a+b.c d", request.get("/%61ction/a%2Bb/c%20d").body
-  end
-  
-  def test_call_raises_a_server_error_if_path_info_cannot_be_routed_to_an_action
-    request = Rack::MockRequest.new CallController
-    e = assert_raises(Tap::ServerError) { request.get("/not_an_action") }
-    assert_equal "404 Error: page not found", e.message
-  end
-  
-  class ResponseController < Tap::Controller
-    def action
-      response.status = 201
-      "body"
-    end
-  end
-  
-  def test_actions_may_modifiy_response
-    request = Rack::MockRequest.new ResponseController
-    response = request.get("/action")
-    assert_equal 201, response.status
-    assert_equal "body", response.body
-  end
-  
-  class NonStringResponseController < Tap::Controller
-    def action
-      [201, {}, ["body"]]
-    end
-  end
-  
-  def test_non_string_responses_are_returned_directly
-    request = Rack::MockRequest.new NonStringResponseController
-    response = request.get("/action")
-    assert_equal 201, response.status
-    assert_equal "body", response.body
-  end
-  
-  class IndexController < Tap::Controller
-    def index
-      "result"
-    end
-  end
-  
-  def test_empty_path_routes_to_index
-    request = Rack::MockRequest.new IndexController
-    assert_equal "result", request.get("/").body
-  end
-  
-  class AccessorsController < Tap::Controller
-    def act
-      ""
-    end
-  end
-  
-  def test_call_sets_server_and_action
-    controller = AccessorsController.new
-    request = Rack::MockRequest.new controller
-    request.get("/act", 'tap.server' => 'server')
-    
-    assert_equal :act, controller.action
-    assert_equal 'server', controller.server
-  end
-  
-  #
   # session test
   #
   
   def test_session_returns_the_rack_session
     session = {}
     request = Rack::Request.new Rack::MockRequest.env_for("/", 'rack.session' => session)
-    controller = Tap::Controller.new nil, request
+    controller = Tap::Controller.new
+    controller.request = request
     
     assert_equal session.object_id, controller.session.object_id
   end
   
   def test_session_initializes_rack_session_as_a_hash_if_necessary
     request = Rack::Request.new Rack::MockRequest.env_for("/")
-    controller = Tap::Controller.new nil, request
+    controller = Tap::Controller.new
+    controller.request = request
     
     assert !request.env.has_key?('rack.session')
     session = controller.session
@@ -283,13 +333,17 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_app_returns_server_app_for_session_id
     request = Rack::Request.new Rack::MockRequest.env_for("/", 'rack.session' => {:id => 0})
-    controller = Tap::Controller.new MockAppServer.new, request
+    controller = Tap::Controller.new
+    controller.server = MockAppServer.new
+    controller.request = request
+    
     assert_equal 'app_0', controller.app
   end
   
   def test_app_initializes_session_id_if_unspecified
     request = Rack::Request.new Rack::MockRequest.env_for("/")
-    controller = Tap::Controller.new MockAppServer.new, request
+    controller.server = MockAppServer.new
+    controller.request = request
     
     assert !request.env.has_key?('rack.session')
     assert_equal 'app_1', controller.app
@@ -311,13 +365,16 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_root_returns_server_root_for_session_id
     request = Rack::Request.new Rack::MockRequest.env_for("/", 'rack.session' => {:id => 0})
-    controller = Tap::Controller.new MockRootServer.new, request
+    controller.server = MockRootServer.new
+    controller.request = request
+    
     assert_equal 'root_0', controller.root
   end
   
   def test_root_initializes_session_id_if_unspecified
     request = Rack::Request.new Rack::MockRequest.env_for("/")
-    controller = Tap::Controller.new MockRootServer.new, request
+    controller.server = MockRootServer.new
+    controller.request = request
     
     assert !request.env.has_key?('rack.session')
     assert_equal 'root_1', controller.root
@@ -342,8 +399,9 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_persistence_returns_a_Persistence_object_initialized_to_root
     request = Rack::Request.new Rack::MockRequest.env_for("/")
-    controller = Tap::Controller.new MockPersistenceServer.new(method_root), request
-    
+    controller.server = MockPersistenceServer.new(method_root)
+    controller.request = request
+
     p = controller.persistence
     assert_equal Tap::Support::Persistence, p.class
     assert_equal method_root, p.root
