@@ -72,70 +72,70 @@ class SchemaTest < Test::Unit::TestCase
     Array.new(n) {|index| Node.new([index]) }
   end
   
-  # #
-  # # Schema#load_file test
-  # #
-  # 
-  # def test_load_file_reloads_a_yaml_dump
-  #   path = method_root.prepare(:tmp, 'dump.yml') do |file|
-  #     file << schema.dump.to_yaml
-  #   end
-  #   
-  #   loaded_schema = Schema.load_file(path)
-  #   assert_equal schema.dump, loaded_schema.dump
-  # end
-  # 
-  # def test_load_file_reloads_prerequisites
-  #   schema = Schema.parse("-- a -- b -- c --*[0,1] --*[2]")
-  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-  #   
-  #   assert_equal "-- a -- b -- c --*[0,1,2]", Schema.load_file(path).to_s
-  # end
-  # 
-  # def test_load_file_reloads_rounds
-  #   schema = Schema.parse("-- a --+ b --++ c")
-  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-  #   
-  #   assert_equal "-- a -- b -- c --+1[1] --+2[2]", Schema.load_file(path).to_s
-  # end
-  # 
-  # def test_load_file_reloads_sequence
-  #   schema = Schema.parse("-- a --: b")
-  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-  #   
-  #   assert_equal "-- a -- b --[0][1]", Schema.load_file(path).to_s
-  # end
-  # 
-  # def test_load_file_reloads_fork
-  #   schema = Schema.parse("-- a -- b -- c --[0][1,2]")
-  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-  #   
-  #   assert_equal "-- a -- b -- c --[0][1,2]", Schema.load_file(path).to_s
-  # end
-  # 
-  # def test_load_file_reloads_merge
-  #   schema = Schema.parse("-- a -- b -- c --[0,1][2]")
-  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump.to_yaml}
-  #   
-  #   assert_equal "-- a -- b -- c --[0,1][2]", Schema.load_file(path).to_s
-  # end
-  # 
-  # def test_load_file_initializes_new_Schema_for_empty_file
-  #   path = method_root.prepare(:tmp, 'empty.yml') {}
-  #   
-  #   assert_equal "", File.read(path)
-  #   schema = Schema.load_file(path)
-  #   assert schema.kind_of?(Schema)
-  #   assert schema.nodes.empty?
-  # end
-  # 
-  # def test_load_file_raises_error_for_non_existant_file
-  #   path = method_root.filepath('non_existant.yml')
-  #   
-  #   assert !File.exists?(path)
-  #   e = assert_raises(Errno::ENOENT) { Schema.load_file(path) }
-  #   assert_equal "No such file or directory - #{path}", e.message
-  # end
+  #
+  # Schema#load_file test
+  #
+  
+  def test_load_file_reloads_a_yaml_dump
+    path = method_root.prepare(:tmp, 'dump.yml') do |file|
+      file << YAML.dump(schema.dump)
+    end
+    
+    loaded_schema = Schema.load_file(path)
+    assert_equal schema.dump, loaded_schema.dump
+  end
+  
+  def test_load_file_reloads_prerequisites
+    schema = Schema.parse("-- a -- b -- c --*[0,1] --*[2]")
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << YAML.dump(schema.dump)}
+    
+    assert_equal "-- a -- b -- c --*[0,1,2]", Schema.load_file(path).to_s
+  end
+  
+  def test_load_file_reloads_rounds
+    schema = Schema.parse("-- a --+ b --++ c")
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << YAML.dump(schema.dump)}
+    
+    assert_equal "-- a -- b -- c --+1[1] --+2[2]", Schema.load_file(path).to_s
+  end
+  
+  def test_load_file_reloads_sequence
+    schema = Schema.parse("-- a --: b")
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << YAML.dump(schema.dump)}
+    
+    assert_equal "-- a -- b --[0][1]", Schema.load_file(path).to_s
+  end
+  
+  def test_load_file_reloads_fork
+    schema = Schema.parse("-- a -- b -- c --[0][1,2]")
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << YAML.dump(schema.dump)}
+    
+    assert_equal "-- a -- b -- c --[0][1,2]", Schema.load_file(path).to_s
+  end
+  
+  def test_load_file_reloads_merge
+    schema = Schema.parse("-- a -- b -- c --[0,1][2]")
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << YAML.dump(schema.dump)}
+    
+    assert_equal "-- a -- b -- c --[0,1][2]", Schema.load_file(path).to_s
+  end
+  
+  def test_load_file_initializes_new_Schema_for_empty_file
+    path = method_root.prepare(:tmp, 'empty.yml') {}
+    
+    assert_equal "", File.read(path)
+    schema = Schema.load_file(path)
+    assert schema.kind_of?(Schema)
+    assert schema.nodes.empty?
+  end
+  
+  def test_load_file_raises_error_for_non_existant_file
+    path = method_root.filepath('non_existant.yml')
+    
+    assert !File.exists?(path)
+    e = assert_raises(Errno::ENOENT) { Schema.load_file(path) }
+    assert_equal "No such file or directory - #{path}", e.message
+  end
   
   #
   # [] test

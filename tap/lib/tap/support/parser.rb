@@ -354,27 +354,33 @@ module Tap
         argv.each do |args|
           case args
           when Hash
+            args = args.inject({}) {|hash, (k,v)| hash[k.to_sym] = v; hash }
+            
             case
-            when args.has_key?('round')
-              schema.set_round(args['round'], args['indicies'])
-            when args.has_key?('join')
-              schema.set_join(args['join'], args['inputs'], args['outputs'])#, args['config'])
-            when args.has_key?('prerequisite')
-              args['prerequisite'].each {|index| schema[index].make_prerequisite }
-            else
+            when args.has_key?(:round) && args.has_key?(:indicies)
+              schema.set_round(args[:round], args[:indicies])
+            when args.has_key?(:inputs) && args.has_key?(:outputs)
+              schema.set_join(args[:inputs], args[:outputs], args[:metadata])
+            when args.has_key?(:prerequisites)
+              schema.set_prerequisites args[:prerequisites]
+            when args.has_key?(:id)
               schema.nodes << Node.new(args)
               self.current_index += 1
+            else
+              raise "invalid arg: #{args}"
             end
+            
           when Array
             schema.nodes << Node.new(args)
             self.current_index += 1
+            
           when String
             args.split(/\s/).each do |arg|
               parse_break(arg)
             end
+            
           when nil
-          else
-            raise "invalid arg: #{args}"
+          else raise "invalid arg: #{args}"
           end
         end
         
@@ -388,7 +394,7 @@ module Tap
       # The index of the node currently being parsed.
       attr_accessor :current_index # :nodoc:
       
-      def argv(index)
+      def argv(index) # :nodoc:
         schema[index].metadata ||= []
       end
       

@@ -36,7 +36,7 @@ module Tap
         #
         #   node_argv()            # => ""
         #
-        def node_args(metadata)
+        def node_argv(metadata)
           return metadata if metadata.kind_of?(Array)
           
           argv = []
@@ -66,7 +66,7 @@ module Tap
           "+#{round}[#{indicies.join(',')}]"
         end
         
-        def round_argh(round, indicies)
+        def round_metadata(round, indicies)
           {:round => round, :indicies => indicies}
         end
 
@@ -79,7 +79,7 @@ module Tap
           indicies.empty? ? nil : "*[#{indicies.join(',')}]"
         end
         
-        def prerequiste_argh(indicies)
+        def prerequiste_metadata(indicies)
           {:prerequisites => indicies}
         end
 
@@ -94,7 +94,7 @@ module Tap
             if (metadata.keys - [:join, :modifier]).empty?
               [metadata[:join], metadata[:modifier]]
             else
-              raise "cannot format join_arg from metadatadata: #{metadata}"
+              raise "cannot format join_arg from metadata: #{metadata}"
             end
           end
           
@@ -102,7 +102,7 @@ module Tap
           "[#{inputs.join(',')}][#{outputs.join(',')}]#{modifier}#{identifier}"
         end
         
-        def join_argh(inputs, outputs, metadata=nil)
+        def join_metadata(inputs, outputs, metadata=nil)
           result = {:inputs => inputs, :outputs => outputs}
           result[:metadata] = metadata if metadata && !metadata.empty?
           result
@@ -301,7 +301,7 @@ module Tap
       #   join(inputs, outputs, modifier)  # => instance
       #
       #
-      def build # :yields: type, argh
+      def build # :yields: type, metadata
         cleanup
         
         # instantiate the nodes
@@ -347,22 +347,22 @@ module Tap
       end
       
       # Creates an array dump of the contents of self.
-      def dump(args=false)
+      def dump(argv=false)
         cleanup
         
         # add nodes
         array = nodes.collect do |node|
           metadata = node.metadata
-          args ? node_args(metadata) : metadata
+          argv ? node_argv(metadata) : metadata
         end
         
         # add prerequisites declaration
         indicies = prerequisites.collect {|node| index(node) }
         unless indicies.empty?
-          array << if args 
+          array << if argv 
             prerequiste_arg(indicies)
           else 
-            prerequiste_argh(indicies)
+            prerequiste_metadata(indicies)
           end
         end
         
@@ -373,10 +373,10 @@ module Tap
           # skip round 0 as it is implicit
           if index > 0
             indicies = nodes.collect {|node| index(node) }
-            array << if args 
+            array << if argv 
               round_arg(index, indicies)
             else 
-              round_argh(index, indicies)
+              round_metadata(index, indicies)
             end
           end
           
@@ -387,10 +387,10 @@ module Tap
         joins.each do |input_nodes, output_nodes, argh|
           inputs = input_nodes.collect {|node| nodes.index(node) }
           outputs = output_nodes.collect {|node| nodes.index(node) }
-          array << if args 
+          array << if argv 
             join_arg(inputs, outputs, argh)
           else
-            join_argh(inputs, outputs, argh)
+            join_metadata(inputs, outputs, argh)
           end
         end
         
