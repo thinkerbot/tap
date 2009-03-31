@@ -136,6 +136,8 @@ module Tap
       when Hash
         join_class = Support::Join
         join_class.instantiate(metadata)
+      when nil
+        Support::Join.new
       end
     end
     
