@@ -1,7 +1,6 @@
-    <select name="<%= name %>" multiple="true">
-<% config[:values].each do |value| %>
-      <option value="<%= value %>"><%= value %></option>
+<% raise "list select configuration is currently not supported" %>
+    <select name="<%= name %>[]" multiple="true">
+<% config[:values].each do |v| %>
+      <option value="<%= v %>" <%= value.include?(v) ? "selected='true' " : ""%>><%= v %></option>
 <% end %>
     </select>
-    <span><%= key %></span>:
-    <span><%= config[:desc].to_s %></span>

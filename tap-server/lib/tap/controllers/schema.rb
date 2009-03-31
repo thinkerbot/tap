@@ -62,7 +62,7 @@ module Tap
       
       # PUT /projects/*args
       def update(id)
-        save_schema(id, request_schema)
+        save_schema(id, validate_schema(request_schema))
         redirect("/schema/#{id}")
       end
       
@@ -105,11 +105,12 @@ module Tap
         nodes = request['nodes'] || []
         
         load_schema(id) do |schema|
-          nodes.each do |arg|
-            next unless arg && !arg.empty?
+          nodes.each do |argh|
+            next unless argh && !argh.empty?
             
+            argh = argh.inject({}) {|hash, (key, value)| hash[key.to_sym] = value; hash }
             outputs << schema.nodes.length
-            schema.nodes << Tap::Support::Node.new(arg, round)
+            schema.nodes << Tap::Support::Node.new(argh, round)
           end
       
           if inputs.empty? || outputs.empty?
@@ -184,9 +185,7 @@ module Tap
       
       # Parses a Tap::Support::Schema from the request.
       def request_schema
-        argv = request['schema[]'] || []
-        argv.delete_if {|arg| arg.empty? }
-        Tap::Support::Schema.parse(argv)
+        Tap::Support::Schema.load(request['schema'])
       end
       
       def load_schema(id)
@@ -203,6 +202,11 @@ module Tap
         else
           schema
         end
+      end
+      
+      def validate_schema(schema)
+        server.env.build(schema, app)
+        schema
       end
         
       def save_schema(id, schema=nil)

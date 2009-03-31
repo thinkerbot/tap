@@ -1,7 +1,5 @@
     <select name="<%= name %>">
-<% config[:values].each do |value| %>
-      <option value="<%= value %>"><%= value %></option>
+<% config[:values].each do |v| %>
+      <option value="<%= v %>" <%= value == v ? "selected='true' " : ""%>><%= v %></option>
 <% end %>
     </select>
-    <span><%= key %></span>:
-    <span><%= config[:desc].to_s %></span>
