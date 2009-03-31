@@ -44,16 +44,12 @@ module Tap
         end
       end
   
-      #--
-      # Currently tail is hard-coded to tail the server log only.
-      def tail(id=nil)
-        begin
-          path = root.subpath(:log, 'server.log')
-          raise unless File.exists?(path)
-        rescue
-          raise Tap::ServerError.new("invalid path", 404)
+      def tail(id)
+        unless persistence.has?("#{id}.log")
+          raise Tap::ServerError.new("invalid id: #{id}", 404)
         end
-    
+        
+        path = persistence.path("#{id}.log")
         pos = request['pos'].to_i
         if pos > File.size(path)
           raise Tap::ServerError.new("tail position out of range (try update)", 500)
@@ -76,19 +72,38 @@ module Tap
         end
       end
   
-      def run
+      def run(id=nil)
+        unless request.post?
+          return redirect server.uri(:schema, id)
+        end
+        
+        if persistence.has?(id)
+          schema = Tap::Support::Schema.load_file(persistence.path(id))
+          server.env.build(schema, app)
+        end
+        
+        persistence.update("#{id}.log") {|io| "waiting for results" }
+        
+        app.on_complete(true) do |_result|
+          persistence.update("#{id}.log") do |io|
+            file = class_file("result.erb", _result.key)
+            locals = {:_result => _result, :value => _result.value}
+            io << render(:file => file, :locals => locals)
+          end
+        end
+
         Thread.new { app.run }
-        redirect("/app/tail")
+        redirect uri("tail/#{id}")
       end
   
       def stop
         app.stop
-        redirect("/app/info")
+        redirect uri("info")
       end
   
       def terminate
         app.terminate
-        redirect("/app/info")
+        redirect uri("info")
       end
   
       def help(key=nil)
