@@ -172,30 +172,6 @@ module Tap
       
       # setup expiration information...
       
-      # setup a session log
-      #log_path = session_root.prepare(:log, 'session.log')
-      #session_app.logger = Logger.new(log_path)
-      session_app.on_complete do |_result|
-        # find the template
-        class_name = _result.key.class.to_s.underscore
-        pattern = "#{class_name}/result\.*"
-        template = nil
-        env.each do |e|
-          templates = e.root.glob(views_dir, pattern)
-          unless templates.empty?
-            template = templates[0]
-            break
-          end
-        end
-        
-        if template
-          extname = File.extname(template)
-          env.root.prepare(:results, id.to_s, "#{class_name}#{extname}") do |file|
-            file << Support::Templater.new(File.read(template)).build(:_result => _result)
-          end
-        end
-      end unless session_app.on_complete_block
-      
       id
     end
     

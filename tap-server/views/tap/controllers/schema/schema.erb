@@ -2,6 +2,11 @@
 <ul>
   <li><a href="<%= uri("#{id}.txt") %>">preview</a></li>
   <li><a href="<%= uri("#{id}.yml") %>">download</a></li>
+  <li>
+  <form id="run_form_<%= id %>" class="run_form" method="post" action="<%= server.uri(:app, "run/#{id}") %>">
+    <input id="run_form_<%= id %>_submit" type="submit" value="Run" />
+  </form>
+  </li>
 </ul>
 <% prerequisites = schema.prerequisites %>
 <% unless prerequisites.empty? %>

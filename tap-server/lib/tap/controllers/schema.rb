@@ -105,10 +105,15 @@ module Tap
         nodes = request['nodes'] || []
         
         load_schema(id) do |schema|
-          nodes.each do |argh|
-            next unless argh && !argh.empty?
+          nodes.each do |metadata|
+            next unless metadata && !metadata.empty?
             
-            argh = argh.inject({}) {|hash, (key, value)| hash[key.to_sym] = value; hash }
+            # argh metadata must be symbolized
+            argh = metadata.inject({}) do |hash, (key, value)| 
+              hash[key.to_sym] = value
+              hash
+            end
+            
             outputs << schema.nodes.length
             schema.nodes << Tap::Support::Node.new(argh, round)
           end
@@ -205,7 +210,14 @@ module Tap
       end
       
       def validate_schema(schema)
-        server.env.build(schema, app)
+        # validate by building...
+        schema.build do |type, argh|
+          if type == :join
+            server.env.instantiate_join(argh)
+          else
+            server.env.instantiate_task(argh, app)
+          end
+        end
         schema
       end
         
