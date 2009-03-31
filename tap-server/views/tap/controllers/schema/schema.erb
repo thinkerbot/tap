@@ -9,8 +9,8 @@
 <% end %>
 <% index = 0 %>
 <% schema.natural_rounds.each do |nodes| %>
-<%= render 'round.erb', :locals => {:schema => schema, :nodes => nodes, :round => index, :id => id} %>
-<% index += 1 %>
+<%=  render 'round.erb', :locals => {:schema => schema, :nodes => nodes, :round => index, :id => id} %>
+<%   index += 1 %>
 <% end %>
 <%= render 'round.erb', :locals => {:schema => schema, :nodes => [], :round => index, :id => id} %>
 
@@ -19,11 +19,10 @@
 <% schema.nodes.each_with_index do |node, index| %>
   <li id="node_<%= id %>_<%= index %>" class="node">
     <!-- tasc identifier -->
-    <input name="schema[]" type="hidden" value="~" />
+    <input name="schema[]" type="hidden" value="" />
     <input name="schema[][id]" type="hidden" value="<%= node.metadata[:id] %>" />
-<% task, args = instantiate(node) %>
-<% template_file = server.search(:views, "#{task.class.to_s.underscore}/node.erb") %>
-<%= render('node.erb', :template_file => template_file, :locals => {:id => id, :index => index, :task => task, :args => args} ) %> 
+<%   task, args = instantiate(node) %>
+<%=  render(:file => class_file('node.erb', task), :locals => {:id => id, :name => 'schema[]', :task => task, :args => args} ) %> 
   </li>
 <% end %>
   </ol>

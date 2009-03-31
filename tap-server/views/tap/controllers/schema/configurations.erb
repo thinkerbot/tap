@@ -1,26 +1,28 @@
     <ul class="configurations">
 <% configurations.each_pair do |key, config| %>
+<%   next if config[:type] == :hidden %>
 <%   if config.is_nest? %>
     <li class="nested-configuration">
     <span class="name"><%= key %></span>:
     <span class="desc"><%= config[:desc].to_s %></span>
     <ul class="nested_config">
-<%=  render("configurations.erb", :locals => {
-       :configurations => config.default(false).delegates, 
-       :values => values[key], 
-       :name => "#{name}[#{key}]", 
-       :index => index}) %>
+<%= render("configurations.erb", :locals => {
+      :configurations => config.default(false).delegates, 
+      :values => values[key], 
+      :name => "#{name}[#{key}]", 
+    }) %>
+    </ul>
     </li>
 <%   else %>
     <li class="configuration">
-
-<%   template_file = server.search(:views, "#{self.class.name}/configurations/#{config[:type]}.erb") %>
-<%=  render("configurations/default.erb", :template_file => template_file, :locals => {
-       :key => key,
-       :name => "#{name}[#{key}]",
-       :config => config,
-       :value => values[key], 
-       :index => index}) %> 
+<%   template_file = class_file("configurations/#{config[:type]}.erb") || class_file("configurations/default.erb") %>
+<%= render(:file => template_file, :locals => {
+      :name => "#{name}[#{key}]",
+      :config => config,
+      :value => values[key]
+    }) %>
+    <span><%= key %></span>:
+    <span><%= config[:desc].to_s %></span>
     </li>
 <%   end %>
 <% end %>
