@@ -13,6 +13,18 @@ class JoinTest < Test::Unit::TestCase
   end
   
   #
+  # parse test
+  #
+  
+  def test_parse_initializes_with_config_specified_by_modifier
+    join = Join.parse([])
+    assert_equal false, join.iterate
+    
+    join = Join.parse(["i"])
+    assert_equal true, join.iterate
+  end
+  
+  #
   # parse_modifier test
   #
 

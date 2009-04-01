@@ -15,7 +15,7 @@ module Tap
         end
         
         def parse!(argv=ARGV)
-          instantiate parse_modifier(argv.shift)
+          instantiate :config => parse_modifier(argv.shift)
         end
         
         def instantiate(argh)
