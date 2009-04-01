@@ -52,6 +52,30 @@ class DumpTest < Test::Unit::TestCase
 }, "\n" + io.string
   end
   
+  def test_process_generates_audit_for_non_audit_inputs
+    dump.audit = true
+    dump.process(1)
+    assert_equal %Q{
+# audit:
+# o-[] 1
+# o-[tap/dump] 1
+# 
+1
+}, "\n" + io.string
+  end
+  
+  def test_process_does_not_generate_a_nil_source_audit_when_app_is_not_auditing
+    app.audit = false
+    dump.audit = true
+    dump.process(1)
+    assert_equal %Q{
+# audit:
+# o-[tap/dump] 1
+# 
+1
+}, "\n" + io.string
+  end
+  
   def test_dumps_go_to_the_file_specified_by_target
     a = Audit.new('a', 'value')
     path = method_root.prepare(:tmp, 'dump.yml')

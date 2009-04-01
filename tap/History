@@ -1,6 +1,9 @@
+==
 
 Significant rework of Node, Schema, Parser.  The workflow syntax
 for joins has changed in incompatible ways.
+
+* dump now allows non-audit inputs
 
 == 0.12.4 / 2009-03-23
 

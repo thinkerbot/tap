@@ -103,6 +103,12 @@ module Tap
     # The default process prints dump headers as specified in the config,
     # then append the audit value to io.
     def process(_audit)
+      unless _audit.kind_of?(Support::Audit)
+        # note the nil-source audit is added for consistency with _execute
+        previous = app.audit ? Support::Audit.new(nil, _audit) : nil
+        _audit = Support::Audit.new(self, _audit, previous)
+      end
+      
       open_io(target, 'a') do |io|
         if date
           io.puts "# date: #{Time.now.strftime(date_format)}"
