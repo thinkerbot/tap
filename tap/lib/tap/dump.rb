@@ -2,11 +2,9 @@ module Tap
 
   # :startdoc::manifest the default dump task
   #
-  # A dump task to output results.  Unlike most tasks, dump does not enque
-  # arguments from the command line; instead command line arguments are only
-  # used to setup the dump.  Specifically dump accepts a filepath.
+  # A dump task to print results to $stdout or a file target.
   #
-  #   % tap run -- [task] --: dump FILEPATH
+  #   % tap run -- [task] --: dump --target FILEPATH
   #
   # Results that come to dump are appended to the file.  Dump only accepts
   # one object at a time, so joins that produce an array need to iterate
@@ -14,8 +12,7 @@ module Tap
   #
   #   % tap run -- load hello -- load world "--2(0,1)i" dump 
   #
-  # Note that dump uses $stdout by default so you can pipe or redirect dumps
-  # as normal.
+  # Note that dump faciliates normal redirection:
   #
   #   % tap run -- load hello --: dump | cat
   #   hello
@@ -44,40 +41,13 @@ module Tap
   # inspect audit trails within process.
   #
   class Dump < Tap::Task
-    class << self
-      
-      # Same as an ordinary instantiate, except the arguments normally reserved
-      # for executing the task are used to call setup.  The return will always
-      # be an instance and an empty array.
-      def instantiate(argh={}, app=Tap::App.instance)
-        instance, args = super
-        instance.setup(*args)
-        [instance, []]
-      end
-    end
-    
     lazy_attr :args, :setup
     lazy_register :setup, Lazydoc::Arguments
     
-    config :date_format, '%Y-%m-%d %H:%M:%S'   # The date format
-    config :audit, false, &c.switch            # Include the audit trails
-    config :date, false, &c.switch             # Include a date
-    
-    # The dump target, by default $stdout.  Target may be a filepath,
-    # in which case dumps append the file.
-    attr_accessor :target
-    
-    def initialize(config={}, name=nil, app=App.instance)
-      super(config, name, app)
-      @target = $stdout
-    end
-    
-    # Setup self with the input target.  Setup receives arguments passed from
-    # the command line, via parse!
-    def setup(output=$stdout)
-      @target = output
-      self
-    end
+    config :target, $stdout, &c.io(:<<, :puts, :print)   # The dump target
+    config :date_format, '%Y-%m-%d %H:%M:%S'             # The date format
+    config :audit, false, &c.switch                      # Include the audit trails
+    config :date, false, &c.switch                       # Include a date
     
     # Overrides the standard _execute to send process the audits and not
     # the audit values.  This allows process to inspect audit trails.

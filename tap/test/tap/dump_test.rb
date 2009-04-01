@@ -12,18 +12,7 @@ class DumpTest < Test::Unit::TestCase
   def setup
     super
     @io = StringIO.new
-    @dump = Dump.new.setup(io)
-  end
-  
-  #
-  # instantiate test
-  #
-  
-  def test_instantiate_uses_args_to_setup_dump
-    dump, args = Dump.instantiate :args => %w{path/to/target.yml}
-    
-    assert_equal [], args
-    assert_equal "path/to/target.yml", dump.target
+    @dump = Dump.new :target => io
   end
   
   #
