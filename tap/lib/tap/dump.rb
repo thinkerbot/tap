@@ -44,10 +44,11 @@ module Tap
     lazy_attr :args, :setup
     lazy_register :setup, Lazydoc::Arguments
     
-    config :target, $stdout, &c.io(:<<, :puts, :print)   # The dump target
-    config :date_format, '%Y-%m-%d %H:%M:%S'             # The date format
+    config :target, $stdout, &c.io(:<<, :puts, :print)   # The dump target file
+    config :overwrite, false, &c.switch                  # Overwrite the existing target
     config :audit, false, &c.switch                      # Include the audit trails
     config :date, false, &c.switch                       # Include a date
+    config :date_format, '%Y-%m-%d %H:%M:%S'             # The date format
     
     # Overrides the standard _execute to send process the audits and not
     # the audit values.  This allows process to inspect audit trails.
@@ -79,7 +80,7 @@ module Tap
         _audit = Support::Audit.new(self, _audit, previous)
       end
       
-      open_io(target, 'a') do |io|
+      open_io(target, overwrite ? 'w' : 'a') do |io|
         if date
           io.puts "# date: #{Time.now.strftime(date_format)}"
         end

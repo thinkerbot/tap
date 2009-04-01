@@ -5,6 +5,7 @@ for joins has changed in incompatible ways.
 
 * dump now allows non-audit inputs
 * reworked dump to use an io target config
+* added overwrite flag to dump
 
 == 0.12.4 / 2009-03-23
 

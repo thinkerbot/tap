@@ -84,4 +84,16 @@ class DumpTest < Test::Unit::TestCase
     dump.process(a)
     assert_equal "value\nvalue\nvalue\n", File.read(path)
   end
+  
+  def test_sequential_dumps_overwrite_a_file_target_with_overwrite
+    a = Audit.new('a', 'value')
+    path = method_root.prepare(:tmp, 'dump.yml')
+
+    dump.target = path
+    dump.overwrite = true
+    dump.process(a)
+    dump.process(a)
+    dump.process(a)
+    assert_equal "value\n", File.read(path)
+  end
 end
