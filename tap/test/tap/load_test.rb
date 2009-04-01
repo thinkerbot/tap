@@ -26,7 +26,13 @@ class Tap::LoadTest < Test::Unit::TestCase
     io = StringIO.new(str)
     assert_equal(str, load.process(io))
   end
-
+  
+  def test_process_loads_input_from_file_if_file_is_specified
+    path = method_root.prepare(:tmp, 'file.txt') {|file| file << "contents" }
+    load.file = true
+    assert_equal("contents", load.process(path))
+  end
+  
   def test_process_return_string_inputs
     assert_equal("string", load.process("string"))
   end

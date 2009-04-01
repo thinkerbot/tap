@@ -6,7 +6,12 @@ module Tap
   # Loads data from the input IO; string data is simply passed through.  Load
   # is typically used as a gateway to other tasks.
   #
-  #   % tap run -- load string --: [task]
+  #   % tap run -- load string --: dump
+  #
+  # String is taken literally as the input unless identified as a filepath.
+  # This will load data from FILE.  
+  #
+  #  % tap run -- load FILE --file --: dump
   #
   # Note that load takes $stdin by default, so you can pipe or redirect data
   # into to a workflow like so:
@@ -38,6 +43,8 @@ module Tap
   #
   class Load < Tap::Task
     
+    config :file, false, &c.flag           # Load from the input file
+    
     # The default process simply reads the input data and returns it.
     # See load.
     def process(input=$stdin)
@@ -47,11 +54,12 @@ module Tap
         input = '' 
       end
       
-      case input
-      when StringIO, IO
-        load(input)
-      else
-        load(StringIO.new(input))
+      if !file && input.kind_of?(String)
+        input = StringIO.new(input)
+      end
+      
+      open_io(input) do |io|
+        load(io)
       end
     end
     

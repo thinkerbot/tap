@@ -45,9 +45,9 @@ module Tap
     lazy_register :setup, Lazydoc::Arguments
     
     config :target, $stdout, &c.io(:<<, :puts, :print)   # The dump target file
-    config :overwrite, false, &c.switch                  # Overwrite the existing target
-    config :audit, false, &c.switch                      # Include the audit trails
-    config :date, false, &c.switch                       # Include a date
+    config :overwrite, false, &c.flag                    # Overwrite the existing target
+    config :audit, false, &c.flag                        # Include the audit trails
+    config :date, false, &c.flag                         # Include a date
     config :date_format, '%Y-%m-%d %H:%M:%S'             # The date format
     
     # Overrides the standard _execute to send process the audits and not
@@ -92,6 +92,7 @@ module Tap
         
         dump(_audit.value, io)
       end
+      target
     end
     
     # Dumps the object to io, by default dump puts (not prints) obj.to_s.
