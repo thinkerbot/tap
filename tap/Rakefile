@@ -91,23 +91,39 @@ end
 desc 'Default: Run tests.'
 task :default => :test
 
-desc 'Run tests.'
-Rake::TestTask.new(:test) do |t|
-  t.libs = ['lib']
+def test(tests)
+  libs = ['lib']
   unless ENV['gems']
-    t.libs << '../lazydoc/lib'
-    t.libs << '../configurable/lib'
+    libs << '../lazydoc/lib'
+    libs << '../configurable/lib'
   end
-  
-  t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
+
+  libs.collect! {|lib| ['-I', lib] }
+  cmd = ['ruby', "-w"] + libs.flatten + ["-e", "ARGV.each {|test| load test}"] + tests
+  sh(*cmd)
+end
+
+
+desc 'Run tests.'
+task :test do |t|
+  tests = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
     filename =~ /test\/check/ || filename =~ /test\/cmd\/.*\// || filename =~ /test\/functional\/.*/
   end
-  
-  t.verbose = true
-  t.warning = true
+  test(tests)
 end
 
 namespace :test do
+  desc 'run support tests'
+  task :support do
+    test Dir["test/tap/support/*_test.rb"]
+  end
+  
+  desc 'run benchmark tests'
+  task :benchmark do
+    test Dir["test/**/*_benchmark.rb"]
+  end
+  
+  
   desc "Run specs."
   task(:spec) do
     libs = ['lib']
