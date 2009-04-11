@@ -1,9 +1,9 @@
 require 'logger'
-
-require 'tap/support/aggregator'
-require 'tap/support/dependencies'
-require 'tap/support/executable_queue'
-require 'tap/task'
+require 'configurable'
+require 'tap/app/aggregator'
+require 'tap/app/dependencies'
+require 'tap/app/executable_queue'
+# require 'tap/task'
 
 module Tap
   
@@ -122,7 +122,9 @@ module Tap
   #   app.run
   #   array                          # => [1, 2, 3]
   #
-  class App < Monitor
+  class App
+    include MonitorMixin
+    
     class << self
       # Sets the current app instance
       attr_writer :instance
@@ -188,9 +190,9 @@ module Tap
       super() # monitor
       
       @state = State::READY
-      @queue = Support::ExecutableQueue.new
-      @aggregator = Support::Aggregator.new
-      @dependencies = Support::Dependencies.new
+      @queue = ExecutableQueue.new
+      @aggregator = Aggregator.new
+      @dependencies = Dependencies.new
       @on_complete_block = block
       
       initialize_config(config)

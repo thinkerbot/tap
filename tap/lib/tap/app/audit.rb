@@ -1,5 +1,5 @@
 module Tap
-  module Support
+  class App
     
     # Audit provides a way to track the values passed among tasks or, more 
     # generally, any Executable.  Audits collectively build a {directed

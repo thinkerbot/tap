@@ -1,8 +1,8 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/audit'
+require 'tap/app/audit'
 
 class AuditTest < Test::Unit::TestCase
-  include Tap::Support
+  Audit = Tap::App::Audit
   
   #
   # documentation test

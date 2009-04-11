@@ -1,8 +1,8 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/dependency'
+require 'tap/app/dependency'
 
 class DependencyTest < Test::Unit::TestCase
-  include Tap::Support
+  Dependency = Tap::App::Dependency
   
   attr_accessor :m
   
@@ -11,7 +11,7 @@ class DependencyTest < Test::Unit::TestCase
     
     def initialize(trace=[])
       @trace = trace
-      Tap::Support::Executable.initialize(self, :run)
+      Tap::App::Executable.initialize(self, :run)
     end
     
     def run

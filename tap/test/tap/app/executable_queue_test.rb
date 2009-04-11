@@ -1,8 +1,9 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/executable_queue'
+require 'tap/app/executable_queue'
 
 class ExecutableQueueTest < Test::Unit::TestCase
-  include Tap::Support
+  Executable = Tap::App::Executable
+  ExecutableQueue = Tap::App::ExecutableQueue
   
   attr_accessor :m, :queue
  

@@ -128,6 +128,12 @@ namespace :test do
     test Dir["test/tap/env_test.rb", "test/tap/env/*_test.rb"]
   end
   
+  desc 'run app tests'
+  task :app do
+    # "test/tap/app_test.rb", 
+    test Dir["test/tap/app/*_test.rb"]
+  end
+  
   desc 'run benchmark tests'
   task :benchmark do
     test Dir["test/**/*_benchmark.rb"]

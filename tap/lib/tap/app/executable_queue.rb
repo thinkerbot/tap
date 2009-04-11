@@ -1,7 +1,8 @@
-require 'tap/support/executable'
+require 'monitor'
+require 'tap/app/executable'
 
 module Tap
-  module Support
+  class App
     
     # ExecutableQueue allows thread-safe enqueing and dequeing of Executable
     # methods and inputs for execution.

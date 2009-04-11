@@ -1,15 +1,17 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/executable'
+require 'tap/app/executable'
+require 'tap/app'
 
 class ExecutableTest < Test::Unit::TestCase
-  include Tap::Support
+  Executable = Tap::App::Executable
+  Audit = Tap::App::Audit
+  Dependency = Tap::App::Dependency
+  Dependencies = Tap::App::Dependencies
   
-  acts_as_tap_test
-  
-  attr_accessor :m
+  attr_accessor :m, :app
   
   def setup
-    super
+    @app = Tap::App.new
     @m = Executable.initialize(Object.new, :object_id, app)
   end
   
@@ -111,7 +113,7 @@ class ExecutableTest < Test::Unit::TestCase
   class DependencyTrace
     def initialize(trace=[])
       @trace = trace
-      Tap::Support::Executable.initialize(self, :trace)
+      Tap::App::Executable.initialize(self, :trace)
     end
     
     def trace(*args)
@@ -249,7 +251,7 @@ class ExecutableTest < Test::Unit::TestCase
   #
   
   class MockExecutable
-    include Tap::Support::Executable
+    include Tap::App::Executable
     
     attr_reader :executed
     

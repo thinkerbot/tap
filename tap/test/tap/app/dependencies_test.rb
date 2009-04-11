@@ -1,8 +1,8 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/dependencies'
+require 'tap/app/dependencies'
 
 class DependenciesTest < Test::Unit::TestCase
-  include Tap::Support
+  Dependencies = Tap::App::Dependencies
   
   attr_reader :m
   

@@ -1,5 +1,5 @@
 module Tap
-  module Support
+  class App
     
     # Constrains an Executable to only _execute once, and provides several
     # methods making the Executable behave like a Dependency.

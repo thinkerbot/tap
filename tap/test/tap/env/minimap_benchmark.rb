@@ -7,7 +7,7 @@ class MinimapBenchmark < Test::Unit::TestCase
 
   def test_minimize_speed
     puts method_name
-    Benchmark.bm(30) do |x| 
+    Benchmark.bm(20) do |x| 
       paths = (0..100).collect {|i| "path#{i}/to/file"}
       x.report("100 dir paths ") { minimize(paths) }
       

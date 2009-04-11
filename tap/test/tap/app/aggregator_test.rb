@@ -1,9 +1,10 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/aggregator'
-require 'tap/support/audit'
+require 'tap/app/aggregator'
+require 'tap/app/audit'
 
 class AggregatorTest < Test::Unit::TestCase
-  include Tap::Support
+  Aggregator = Tap::App::Aggregator
+  Audit = Tap::App::Audit
   
   attr_accessor :audit, :aggregator
  

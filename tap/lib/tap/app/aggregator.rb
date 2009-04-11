@@ -1,5 +1,7 @@
+require 'monitor'
+
 module Tap
-  module Support
+  class App
   
     # Aggregator allows thread-safe collection of Audits, organized by
     # Audit#key.

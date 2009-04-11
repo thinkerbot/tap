@@ -1,7 +1,8 @@
-require 'tap/support/dependency'
+require 'monitor'
+require 'tap/app/dependency'
 
 module Tap
-  module Support
+  class App
     
     # Dependencies tracks Executable dependencies and results, and provides
     # for thread-safe resolution of dependencies.
