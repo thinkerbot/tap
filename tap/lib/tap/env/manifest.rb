@@ -1,158 +1,106 @@
-require 'tap/support/minimap'
-require 'tap/support/intern'
+require 'tap/env/minimap'
 
 module Tap
-  module Support
+  class Env
     
-    # Stores an array of paths and makes them available for lookup by
-    # minipath.  Manifests may be bound to a Tap::Env, allowing searches
-    # across a full environment (including nested environments).
-    #
-    # Manifest has a number of hooks used by subclasses like 
-    # ConstantManifest to lazily add entries as needed.
+    # Stores an array of objects and makes them available for lookup by minipath.
     class Manifest
-      class << self
-        
-        # Interns a new manifest, overriding the minikey
-        # method with the block (the minikey method converts
-        # entries to the path used during minimap and 
-        # minimatch lookup, see Minimap).
-        def intern(*args, &block)
-          instance = new(*args)
-          if block_given?
-            instance.extend Support::Intern(:minikey)
-            instance.minikey_block = block
-          end
-          instance
-        end
-      end
-      
       include Enumerable
       include Minimap
-      
-      # Matches a compound manifest search key.  After the match,
-      # if the key is compound then:
+    
+      # Matches a compound manifest search key.  After the match, if the key is
+      # compound then:
       #
       #  $1:: env_key
-      #  $4:: key
+      #  $2:: key
       #
-      # If the key is not compound, $4 is nil and $1 is the key.
-      SEARCH_REGEXP = /^(([A-z]:)?.*?)(:(.*))?$/
-      
-      # An array entries in self.
-      attr_reader :entries
-      
-      # The bound Tap::Env, or nil.
+      # If the key is not compound, $2 is nil and $1 is the key.
+      COMPOUND_REGEXP = /^((?:[A-z]:(?:\/|\\))?.*?)(?::(.*))?$/
+    
+      # The environment this manifest summarizes
       attr_reader :env
-      
-      # The reader on Tap::Env accessing manifests of the
-      # same type as self. reader is set during bind.
-      attr_reader :reader
-      
-      # Initializes a new, unbound Manifest.
-      def initialize(entries=[])
-        @entries = entries
-        @env = nil
-        @reader = nil
-      end
-      
-      # Binds self to an env and reader.  The manifests returned by env.reader
-      # will be used during traversal methods like search.  Raises an error if
-      # env does not respond to reader; returns self.
-      def bind(env, reader)
-        if env == nil
-          raise ArgumentError, "env may not be nil" 
-        end
-        
-        unless env.respond_to?(reader)
-          raise ArgumentError, "env does not respond to #{reader}"
-        end
-        
+    
+      # The key for accessing self in env.manifests
+      attr_reader :key
+    
+      # Initializes a new Manifest.
+      def initialize(env, key=nil)
+        @entries = nil
         @env = env
-        @reader = reader
-        self
+        @key = key
       end
-      
-      # Unbinds self from env.  Returns self.
-      def unbind
-        @env = nil
-        @reader = nil
-        self
-      end
-      
-      # True if the env and reader have been set.
-      def bound?
-        @env != nil && @reader != nil
-      end
-      
-      # A hook for dynamically building entries.  By default build simply
-      # returns self
+    
+      # Determines entries for env.  By default build does nothing and must be
+      # implemented in subclasses.
       def build
-        self
+        @entries = []
       end
-      
-      # A hook to flag when self is built.  By default built? returns true.
+    
+      # Identifies if self is built (ie entries are set).
       def built?
-        true
+        @entries != nil
       end
-      
-      # A hook to reset a build.  By default reset simply returns self.
+    
+      # Resets a build.
       def reset
-        self
+        @entries = nil
       end
-      
+    
+      # Returns the entries in self.  Builds self if necessary and allowed.
+      def entries(allow_build=true)
+        build if allow_build && !built?
+        @entries
+      end
+    
       # True if entries are empty.
       def empty?
         entries.empty?
       end
-      
-      # Iterates over each entry entry in self.
+    
+      # Iterates over each entry in self.
       def each
         entries.each {|entry| yield(entry) }
       end
-      
-      # Alias for Minimap#minimatch.
+    
+      # Alias for seek.
       def [](key)
-        minimatch(key)
+        seek(key)
       end
-      
-      # Search across env.each for the first entry minimatching key.
-      # A single env can be specified by using a compound key like
-      # 'env_key:key'.  Returns nil if no matching entry is found.
+    
+      # Searches across env.each for the first entry minimatching key. A single
+      # env can be specified by using a compound key like 'env_key:key'.
       #
-      # Search raises an error unless bound?
-      def search(key)
-        raise "cannot search unless bound" unless bound?
-        
-        key =~ SEARCH_REGEXP
-        envs = if $4 != nil
+      # Returns nil if no matching entry is found.
+      def seek(key)
+        key =~ COMPOUND_REGEXP
+        envs = if $2
           # compound key, match for env
-          key = $4
+          key = $2
           [env.minimatch($1)].compact
         else
-          # not a compound key, search all
-          # envs by iterating env itself
+          # not a compound key, search all envs by iterating
+          # env itself (ie treat env like an array)
           env
         end
-        
+      
         # traverse envs looking for the first
         # manifest entry matching key
         envs.each do |env|
-          if result = env.send(reader).minimatch(key)
+          if result = manifest(env).minimatch(key)
             return result
           end
         end
-        
+      
         nil
       end
-      
+    
       def inspect(traverse=true)
         if traverse && bound?
           lines = []
           env.each do |env|
-            manifest = env.send(reader).build
+            manifest = manifest(env)
             next if manifest.empty?
-            
+          
             lines << "== #{env.root.root}"
             manifest.minimap.each do |mini, value| 
               lines << "  #{mini}: #{value.inspect}"
@@ -160,11 +108,18 @@ module Tap
           end
           return lines.join("\n")
         end
-        
+      
         lines = minimap.collect do |mini, value| 
           "  #{mini}: #{value.inspect}"
         end
         "#{self.class}:#{object_id} (#{bound? ? env.root.root : ''})\n#{lines.join("\n")}"
+      end
+    
+      protected
+    
+      # helper method to lookup or initialize a manifest like self for env.
+      def manifest(env) # :nodoc:
+        env.manifests[key] || env.manifest(key, self.class)
       end
     end
   end

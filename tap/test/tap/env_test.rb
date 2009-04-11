@@ -1,201 +1,184 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/env'
-require 'yaml'
+require 'rubygems'
 
 class EnvTest < Test::Unit::TestCase
-  include Tap
+  include Tap::Env::Utils
+  Env = Tap::Env
   
-  acts_as_file_test
-  
-  attr_accessor :e
+  attr_reader :e, :method_root
   
   def setup
-    super
-    
-    @current_instance = Env.instance
-    @current_instances = Env.instances
-    Env.send(:class_variable_set, :@@instance, nil)
-    Env.send(:class_variable_set, :@@instances, {})
-    
-    @current_load_paths = $LOAD_PATH.dup
-    $LOAD_PATH.clear
-
     @e = Env.new
+    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
   end
   
   def teardown
-    super
-    
-    Env.send(:class_variable_set, :@@instance,  @current_instance)
-    Env.send(:class_variable_set, :@@instances, @current_instances)
-    
-    $LOAD_PATH.clear
-    $LOAD_PATH.concat(@current_load_paths)
-  end
-  
-  #
-  # Env#manifest test
-  #
-
-  def test_manifest_adds_method_to_access_manifest_produced_by_block
-    assert !e.respond_to?(:new_manifest)
-    Env.manifest(:new_manifest) do |env|
-      Support::Manifest.new ['a', 'b', 'c']
+    # clear out the output folder if it exists, unless flagged otherwise
+    unless ENV["KEEP_OUTPUTS"]
+      FileUtils.rm_r(method_root.root) if File.exists?(method_root.root)
     end
-    
-    assert e.respond_to?(:new_manifest)
-    assert_equal(['a', 'b', 'c'], e.new_manifest.entries)
-
-    another = Env.new
-    assert another.respond_to?(:new_manifest)
-    assert_equal(['a', 'b', 'c'], another.new_manifest.entries)
-
-    assert another.new_manifest.object_id !=  e.new_manifest.object_id
   end
   
   #
-  # Env#instantiate
-  #
-  
-  def test_instantiate_doc
-    e1 = Env.instantiate("./path/to/config.yml")
-    e2 = Env.instantiate("./path/to/dir")
-
-    assert_equal({
-     File.expand_path("./path/to/config.yml") => e1, 
-     File.expand_path("./path/to/dir/#{Env::DEFAULT_CONFIG_FILE}") => e2 },  
-    Env.instances)
-  end
-  
-  def test_instantiate_adds_new_env_to_instances_by_expanded_path
-    assert Env.instances.empty?
-    e = Env.instantiate("path.yml")
-    assert_equal({File.expand_path("path.yml") => e}, Env.instances)
-  end
-  
-  def test_instantiate_returns_env_with_root_directed_at_expanded_path_directory
-    e = Env.instantiate("path/to/config.yml")
-    assert_equal(File.expand_path("path/to/"), e.root.root)
-  end
-  
-  def test_instantiate_appends_DEFAULT_CONFIG_FILE_to_directories
-    e = Env.instantiate("path")
-    assert_equal({File.expand_path("path/#{Env::DEFAULT_CONFIG_FILE}") => e}, Env.instances)
-  end
-  
-  def test_instantiate_returns_existing_env_in_instances
-    e = Env.new
-    Env.instances[File.expand_path("path.yml")] = e
-    assert_equal(e, Env.instantiate("path.yml"))
-  end
-  
-  #
-  # initialization tests
+  # initialize test
   #
   
   def test_default_initialize
     e = Env.new
     assert_equal Dir.pwd, e.root.root
     assert_equal [], e.envs
-    assert !e.active?
   end
   
-  def test_Envs_may_be_initialized_from_paths
+  def test_initialize_from_path
     e = Env.new(".")
     assert_equal Dir.pwd, e.root.root
   end
   
-  def test_Envs_may_be_initialized_from_Roots
-    root = Root.new
+  def test_initialize_from_Env
+    root = Tap::Root.new
     e = Env.new(root)
     assert_equal root, e.root
   end
   
-  def test_Envs_may_be_initialized_from_config_hashes
-    e = Env.new(:root => {:relative_paths => {:key => 'value'}}, :load_paths => ['alt'])
+  def test_initialize_from_config
+    r = Tap::Root.new
+    e = Env.new(:root => r)
+    assert_equal r, e.root
+    
+    e = Env.new(:root => ".")
+    assert_equal Dir.pwd, e.root.root
+    
+    e = Env.new(:root => {:relative_paths => {:key => 'value'}})
     assert_equal({:key => 'value'}, e.root.relative_paths)
-    assert_equal Root, e.root.class
-    assert_equal [File.expand_path('alt')], e.load_paths
   end
   
   #
-  # load_paths= test
+  # env_paths test
   #
   
-  def test_set_load_paths_loads_string_inputs_as_yaml
-    e.load_paths = "[one, two]"
-    assert_equal [File.expand_path('one'), File.expand_path('two')], e.load_paths
-  end
-  
-  def test_set_load_paths_raises_error_once_active
-    e.activate
-    err = assert_raises(RuntimeError) { e.load_paths = ['/path/to/lib'] }
-    assert_equal "load_paths cannot be modified once active", err.message
-  end
-  
-  def test_set_load_paths_via_config_raises_error_once_active
-    e.activate
-    err = assert_raises(RuntimeError) { e.config[:load_paths] = ['/path/to/lib'] }
-    assert_equal "load_paths cannot be modified once active", err.message
-  end
-  
-  #
-  # env_paths= test
-  #
-  
-  def test_set_env_paths_instantiates_and_sets_envs
-    assert_equal [], e.envs
-    e.env_paths = ["path/to/file.yml", "path/to/dir"]
-    
-    e1 = Env.instances[File.expand_path("path/to/file.yml")]
-    e2 = Env.instances[File.expand_path( "path/to/dir/#{Env::DEFAULT_CONFIG_FILE}")]
-    
-    assert_equal [e1, e2], e.envs
-  end
-  
-  def test_set_env_paths_expands_and_sets_env_paths
-    assert_equal [], e.env_paths
-    e.env_paths = ["path/to/file.yml", "path/to/dir"]
-    assert_equal [File.expand_path("path/to/file.yml"), File.expand_path( "path/to/dir/#{Env::DEFAULT_CONFIG_FILE}")], e.env_paths
+  def test_initialize_adds_envs_for_env_paths
+    e = Env.new :env_paths => ["one", "two"]
+    assert_equal [
+      File.expand_path("one"), 
+      File.expand_path("two")
+    ], e.envs.collect {|env| env.root.root } 
   end
   
   def test_duplicate_envs_and_env_paths_are_filtered
-    e.env_paths = ["path/to/dir/tap.yml", "path/to/dir"]
-
-    path = File.expand_path( "path/to/dir/tap.yml" )
-    e1 = Env.instances[path]
-    
-    assert_equal [path], e.env_paths
-    assert_equal [e1], e.envs
+    e.env_paths = ["path/to/dir", "path/to/dir"]
+    assert_equal [
+      File.expand_path("path/to/dir")
+    ], e.envs.collect {|env| env.root.root } 
   end
   
   def test_set_env_paths_loads_string_inputs_as_yaml
     e.env_paths = "[one, two]"
-    
-    e1 = Env.instances[File.expand_path("one/#{Env::DEFAULT_CONFIG_FILE}")]
-    e2 = Env.instances[File.expand_path("two/#{Env::DEFAULT_CONFIG_FILE}")]
-    
-    assert_equal [e1, e2], e.envs
-  end
-  
-  def test_set_env_paths_raises_error_once_active
-    e.activate
-    err = assert_raises(RuntimeError) { e.env_paths = ['/path/to/env'] }
-    assert_equal "envs cannot be modified once active", err.message
+    assert_equal [
+      File.expand_path("one"),
+      File.expand_path("two")
+    ], e.envs.collect {|env| env.root.root }
   end
   
   #
-  # env_path test 
+  # gems test
   #
   
-  def test_env_path_returns_the_Env_instances_key_for_self
-    Env.instances['/path'] = e
-    assert_equal '/path', e.env_path
+  module MockGem
+    attr_accessor :full_gem_path
   end
   
-  def test_env_path_returns_nil_if_self_is_not_in_Env_instances
-    assert_equal({}, Env.instances)
-    assert_nil e.env_path
+  ONE = Gem::Specification.new do |s|
+    s.name = "gem_mock"
+    s.version = "1.0"
+    s.extend MockGem
+    s.full_gem_path = File.expand_path("mock_one")
+  end
+  TWO = Gem::Specification.new do |s|
+    s.name = "gem_mock"
+    s.version = "2.0"
+    s.extend MockGem
+    s.full_gem_path = File.expand_path("mock_two")
+  end
+  THREE = Gem::Specification.new do |s|
+    s.name = "mock_gem"
+    s.version = "1.0"
+    s.extend MockGem
+    s.full_gem_path = File.expand_path("mock_three")
+  end
+  
+  def gem_test
+    begin
+      Gem.source_index.add_specs(ONE, TWO, THREE)
+      yield
+    ensure
+      [ONE, TWO, THREE].each do |spec|
+        Gem.source_index.remove_spec(spec.full_name)
+      end
+    end
+  end
+  
+  def test_gem_test
+    one_two = Gem::Dependency.new("gem_mock", ">= 1.0")
+    two = Gem::Dependency.new("gem_mock", "> 1.0")
+    assert_equal [], Gem.source_index.search(one_two)
+    
+    was_in_block = false
+    gem_test do
+      assert_equal [ONE, TWO], Gem.source_index.search(one_two)
+      assert_equal [TWO], Gem.source_index.search(two)
+      was_in_block = true
+    end
+    
+    assert_equal [], Gem.source_index.search(one_two)
+    assert was_in_block
+  end
+  
+  def test_initialize_adds_envs_for_gems
+    gem_test do
+      e = Env.new :gems => ["gem_mock", "mock_gem"]
+      assert_equal [TWO, THREE], e.gems
+      assert_equal [
+        TWO.full_gem_path, 
+        THREE.full_gem_path
+      ], e.envs.collect {|env| env.root.root } 
+    end
+  end
+  
+  def test_gems_respects_versions
+    gem_test do
+      e.gems = ["gem_mock < 2.0"]
+      assert_equal [ONE], e.gems
+    end
+  end
+  
+  def test_gems_may_be_set_to_nil_a_YAML_string_etc
+    gem_test do
+      e.gems = nil
+      assert_equal [], e.gems
+      
+      e.gems = "[gem_mock < 2.0, mock_gem]"
+      assert_equal [ONE, THREE], e.gems
+      
+      e.gems = ["gem_mock", nil, nil, "mock_gem", nil]
+      assert_equal [TWO, THREE], e.gems
+    end
+  end
+  
+  def test_gems_selects_all_with_all
+    gem_test do
+      e.gems = :all
+      gems = Gem.source_index.gems.collect {|(name, spec)| spec }
+      assert gems.sort == e.gems.sort
+    end
+  end
+  
+  def test_gems_selects_latest_with_latest
+    gem_test do
+      e.gems = :latest
+      gems = Gem.source_index.latest_specs
+      assert gems.sort == e.gems.sort
+    end
   end
   
   #
@@ -207,12 +190,6 @@ class EnvTest < Test::Unit::TestCase
     
     a.envs = [a, b, b, c]
     assert_equal [b, c], a.envs
-  end
-  
-  def test_set_envs_raises_error_once_active
-    e.activate
-    err = assert_raises(RuntimeError) { e.envs = [Env.new] }
-    assert_equal "envs cannot be modified once active", err.message
   end
   
   #
@@ -240,12 +217,6 @@ class EnvTest < Test::Unit::TestCase
     assert e.envs.empty?
   end
   
-  def test_unshift_raises_error_once_active
-    e.activate
-    err = assert_raises(RuntimeError) { e.unshift(Env.new) }
-    assert_equal "envs cannot be modified once active", err.message
-  end
-  
   #
   # push test
   #
@@ -269,12 +240,6 @@ class EnvTest < Test::Unit::TestCase
     assert e.envs.empty?
     e.push(e)
     assert e.envs.empty?
-  end
-  
-  def test_push_raises_error_once_active
-    e.activate
-    err = assert_raises(RuntimeError) { e.push(Env.new) }
-    assert_equal "envs cannot be modified once active", err.message
   end
   
   #
@@ -342,13 +307,13 @@ class EnvTest < Test::Unit::TestCase
   #
   # recursive_inject test
   #
-  
+
   def test_recursive_inject_documentation
-    a,b,c,d,e = ('a'..'e').collect {|name| Tap::Env.new.reconfigure(:name => name) }
-  
+    a,b,c,d,e = ('a'..'e').collect {|name| Env.new(:name => name) }
+
     a.push(b).push(c)
     b.push(d).push(e)
-  
+
     lines = []
     a.recursive_inject(0) do |nesting_depth, env|
       lines << "\n#{'..' * nesting_depth}#{env.config[:name]} (#{nesting_depth})"
@@ -363,19 +328,19 @@ a (0)
 ..c (1)}
     assert_equal expected, lines.join
   end
-  
+
   def test_recursive_inject_passes_same_block_result_to_each_child
     a, b, c, d = Array.new(4) { Env.new }
-    
+
     a.push(b).push(c)
     c.push(d)
-    
+
     results = []
     a.recursive_inject(0) {|n, env| results << [env, n]; n+1}
-    
+
     assert_equal [[a,0], [b,1], [c,1], [d,2]], results
   end
-  
+
   def test_recursive_inject_only_injects_first_occurence_of_an_env
     a, b, c, d = Array.new(4) { Env.new }
 
@@ -383,385 +348,87 @@ a (0)
     b.push c
     a.push d
     c.push b
-    
+
     result = a.recursive_inject([]) {|envs, env| envs << env }
     assert_equal [a, b, c, d], result
   end
   
   #
-  # reconfigure test
+  # manifest.seek test
   #
   
-  def test_reconfigure_reconfigures_root
-    assert_equal [File.join(e.root.root, 'lib')], e.load_paths
-    e.reconfigure(:load_paths => ['lib'], :root => {:relative_paths => {'lib' => 'alt'}})
+  def test_seek_for_manifest
+    a_one = method_root.prepare("a/one.txt") {|io| io << "::one"}
+    a_two = method_root.prepare("a/two.txt") {|io| io << "::two"}
+    b_one = method_root.prepare("b/one.txt") {|io| io << "::one"}
+    b_three = method_root.prepare("b/three.txt") {|io| io << "::three"}
     
-    assert_equal [File.join(e.root.root, 'alt')], e.load_paths
-  end
-
-  def test_reconfigure_recursively_loads_env_paths
-    config_file1 = method_root.prepare(:tmp, 'one')
-    config_file2 = method_root.prepare(:tmp, 'two')
-    config_file3 = method_root.prepare(:tmp, 'three')
-    
-    File.open(config_file1, "w") do |file| 
-      file << YAML.dump({:env_paths => config_file2})
-    end
-  
-    File.open(config_file2, "w") do |file| 
-      file << YAML.dump({:env_paths => config_file3})
-    end
-    
-    File.open(config_file3, "w") do |file| 
-    end
-    
-    e.reconfigure({:env_paths => config_file1})
-    
-    assert_equal [Env.instances[config_file1]], e.envs
-    assert_equal [Env.instances[config_file2]], e.envs[0].envs
-    assert_equal [Env.instances[config_file3]], e.envs[0].envs[0].envs
-  end
-  
-  def test_recursive_loading_does_not_infinitely_loop
-    config_file1 = method_root.prepare(:tmp, 'one')
-    config_file2 = method_root.prepare(:tmp, 'two')
-    
-    File.open(config_file1, "w") do |file| 
-      file << YAML.dump({:env_paths => config_file2})
-    end
-  
-    File.open(config_file2, "w") do |file| 
-      file << YAML.dump({:env_paths => config_file1})
-    end
-    
-    e.reconfigure({:env_paths => config_file1})
-    
-    assert_equal [Env.instances[config_file1]], e.envs
-    assert_equal [Env.instances[config_file2]], e.envs[0].envs
-    assert_equal [Env.instances[config_file1]], e.envs[0].envs[0].envs
-  end
-  
-  #
-  # activate test
-  #
-  
-  def test_activate_returns_false_if_active
-    assert !e.active?
-    assert e.activate
-    
-    assert e.active?
-    assert !e.activate
-  end
-  
-  def test_activate_freezes_envs
-    assert !e.envs.frozen?
-    e.activate
-    assert e.envs.frozen?
-  end
-  
-  def test_activate_freezes_load_paths
-    assert !e.load_paths.frozen?
-    e.activate
-    assert e.load_paths.frozen?
-  end
-  
-  def test_activate_unshifts_load_paths_to_LOAD_PATH
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
-    $LOAD_PATH.clear
-  
-    e.activate
-    
-    assert_equal [e.root["/path/to/lib"], e.root["/path/to/another/lib"]], $LOAD_PATH
-  end
-  
-  def test_activate_prioritizes_load_paths_in_LOAD_PATH
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
-    $LOAD_PATH.clear
-    $LOAD_PATH.concat ["post", e.root["/path/to/another/lib"], e.root["/path/to/lib"]]
-    
-    e.activate
-    
-    assert_equal [e.root["/path/to/lib"], e.root["/path/to/another/lib"], "post"], $LOAD_PATH
-  end
-  
-  def test_activate_assigns_self_as_Env_instance
-    assert_nil Env.instance
-    e.activate
-    assert_equal e, Env.instance
-  end
-  
-  def test_activate_does_not_assign_self_as_Env_instance_if_already_set
-    e.activate
-    assert_equal e, Env.instance
-    
-    e1 = Env.new
-    e1.activate
-    assert_equal e, Env.instance
-  end
-  
-  #
-  # deactivate test
-  #
-  
-  def test_deactivate_returns_false_unless_active
-    assert !e.active?
-    assert !e.deactivate
-    
-    e.activate
-    
-    assert e.active?
-    assert e.deactivate
-  end
-  
-  def test_deactivate_unfreezes_envs
-    e.activate
-    assert e.envs.frozen?
-    
-    e.deactivate
-    assert !e.envs.frozen?
-  end
-  
-  def test_deactivate_unfreezes_load_paths
-    e.activate
-    assert e.load_paths.frozen?
-    
-    e.deactivate
-    assert !e.load_paths.frozen?
-  end
-  
-  def test_deactivate_removes_load_paths_from_LOAD_PATH
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
-    e.activate
-    
-    $LOAD_PATH.clear
-    $LOAD_PATH.concat [e.root["/path/to/lib"], e.root["/path/to/another/lib"]]
-    $LOAD_PATH.unshift "pre"
-    $LOAD_PATH.push "post"
-    
-    e.deactivate
-    
-    assert_equal ["pre", "post"], $LOAD_PATH
-  end
-  
-  def test_deactivate_does_not_remove_load_paths_unless_deactivated
-    Env.send(:class_variable_set, :@@instance, Env.new)
-    
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
-    $LOAD_PATH.clear
-    $LOAD_PATH.concat ["/path/to/lib", "/path/to/another/lib"]
-    
-    assert !e.active?
-    assert !e.deactivate
-    assert_equal ["/path/to/lib", "/path/to/another/lib"], $LOAD_PATH
-  end
-  
-  def test_deactivate_unassigns_self_as_Env_instance
-    e.activate
-    assert_equal e, Env.instance
-    
-    e.deactivate
-    assert_nil Env.instance
-  end
-  
-  def test_deactivate_clears_manifests
-    e.activate
-    e.tasks.entries << "entry"
-    assert !e.tasks.empty?
-    e.deactivate
-    assert e.tasks.empty?
-  end
-  
-  #
-  # activate/deactivate test
-  #
-  
-  def test_activate_is_toggled_by_activate_and_deactivate
-    e.activate
-    assert e.active?
-    
-    e.deactivate
-    assert !e.active?
-  end
-  
-  def test_activate_deactivate_does_not_change_configs
-    current_configs = e.config
-    
-    e.activate
-    e.deactivate
-    
-    assert_equal current_configs, e.config
-  end
-  
-  def test_recursive_activate_and_dectivate
-    e1 = Env.new
-    e1.load_paths = ["/path/to/e1"]
-    e.push e1
-    
-    e2 = Env.new
-    e2.load_paths = ["/path/to/e2"]
+    e1 = Env.new(method_root['a'])
+    e2 = Env.new(method_root['b'])
     e1.push e2
     
-    e3 = Env.new
-    e3.load_paths = ["/path/to/e3"]
-    e.push e3
-    
-    e.load_paths = ["/path/to/e"]
-    $LOAD_PATH.clear
-    e.activate
-    
-    assert e1.active?
-    assert e2.active?
-    assert e3.active?
-    expected = ["/path/to/e", "/path/to/e1", "/path/to/e2",  "/path/to/e3"].collect {|p| e.root[p] }
-    assert_equal expected, $LOAD_PATH
-    
-    e.deactivate
-    
-    assert !e1.active?
-    assert !e2.active?
-    assert !e3.active?
-    assert_equal [], $LOAD_PATH
-  end
-  
-  def test_recursive_activate_and_dectivate_does_not_infinitely_loop
-    e1 = Env.new
-    e1.load_paths = ["/path/to/e1"]
-    e.push e1
-    
-    e2 = Env.new
-    e2.load_paths = ["/path/to/e2"]
-    e1.push e2
-    e2.push e
-    
-    e.load_paths = ["/path/to/e"]
-    $LOAD_PATH.clear
-    e.activate
-    
-    assert e1.active?
-    assert e2.active?
-    expected = ["/path/to/e", "/path/to/e1", "/path/to/e2"].collect {|p| e.root[p] }
-    assert_equal expected, $LOAD_PATH
-    
-    e.deactivate
-    
-    assert !e1.active?
-    assert !e2.active?
-    assert_equal [], $LOAD_PATH
-  end
-  
-  #
-  # search test
-  #
-  
-  def test_search_traverses_env_to_find_the_first_matching_file
-    e1 = Env.new( Root.new(method_root.filepath(:tmp, 'one')) )
-    e2 = Env.new( Root.new(method_root.filepath(:tmp, 'two')) )
-    e1.push e2
-    
-    a1 = e1.root.prepare(:dir, 'a.txt') {|file| file << "a1" }
-    b1 = e2.root.prepare(:dir, 'a.txt') {|file| }
-    b2 = e2.root.prepare(:dir, 'b.txt') {|file| }
-    
-    assert a1 != b1
-    assert b1 != b2
-    
-    assert_equal a1, e1.search(:dir, 'a.txt')
-    assert_equal b2, e1.search(:dir, 'b.txt')
-    assert_equal b1, e2.search(:dir, 'a.txt')
-    assert_equal(b1, e1.search(:dir, 'a.txt') {|file| File.read(file) != "a1" } )
-  end
-  
-  def test_search_returns_nil_if_no_matching_file_is_found
-    assert_equal nil, e.search(:dir, 'non_existant_file.txt')
-  end
-  
-  def test_search_raises_error_if_file_is_found_outside_of_dir
-    e = Env.new( method_root )
-    path = e.root.prepare(:tmp, 'one.txt') {}
-    err = assert_raises(RuntimeError) { e.search(:output, '../tmp/one.txt') }
-    assert_equal "not relative to search dir: #{path} (#{e.root[:output]})", err.message
-  end
-  
-  def test_search_returns_files_found_outside_of_dir_if_not_strict
-    e = Env.new( method_root )
-    path = e.root.prepare(:tmp, 'one.txt') {}
-    assert_equal path, e.search(:output, '../tmp/one.txt', false)
-  end
-  
-  def test_search_filters_results_based_on_block
-    e = Env.new( method_root )
-    path = e.root.prepare(:tmp, 'one.txt') {}
-    
-    was_in_block = false
-    result = e.search(:tmp, 'one.txt') do |file|
-      was_in_block = true
-      assert_equal path, file
-      true
+    m = e1.manifest do |env|
+      env.root.glob(:root)
     end
-    assert was_in_block
-    assert_equal path, result
     
-    was_in_block = false
-    result = e.search(:tmp, 'one.txt') do |file|
-      was_in_block = true
-      assert_equal path, file
-      false
-    end
-    assert was_in_block
-    assert_equal nil, result
+    assert_equal a_one, m.seek("one")
+    assert_equal a_two, m.seek("two")
+    assert_equal b_three, m.seek("three")
+    
+    assert_equal nil, m.seek("a:three")
+    assert_equal a_one, m.seek("a:one")
+    assert_equal b_one, m.seek("b:one")
+    assert_equal nil, m.seek("b:two")
+    assert_equal nil, m.seek("c:one")
+    assert_equal nil, m.seek("four")
   end
   
-  #
-  # manifest.search test
-  #
-  
-  def test_search_calls_find_in_each_env_manifest_until_a_matching_value_is_found
-    Env.manifest(:items) {|env| Support::Manifest.new }
-    
-    e1 = Env.new(Root.new("/path/to/e1"))
-    e2 = Env.new(Root.new("/path/to/e2"))
+  def test_manifest_seek_with_versions
+    e1 = Env.new(Env::Root.new("/path/to/e1"))
+    e2 = Env.new(Env::Root.new("/path/to/e2"))
     e1.push e2
     
-    [ "/path/to/one-0.1.0.txt",
-      "/path/to/two.txt",
-      "/path/to/another/one.txt",
-      "/path/to/one-0.2.0.txt", 
-    ].each do |entry|
-      e1.items.entries << "/e1#{entry}"
-      e2.items.entries << "/e2#{entry}"
+    m = e1.manifest(:items) do |env|
+      [ "/path/to/one-0.1.0.txt",
+        "/path/to/two.txt",
+        "/path/to/another/one.txt",
+        "/path/to/one-0.2.0.txt", 
+      ].collect do |entry|
+        "/#{File.basename(env.root.root)}#{entry}"
+      end
     end
     
     # simple search of e1
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("/path/to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("e1/path/to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("/e1/path/to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("one-0.1.0")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("one-0.1.0.txt")
+    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("/path/to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("e1/path/to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("/e1/path/to/one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("one-0.1.0")
+    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("one-0.1.0.txt")
     
-    assert_equal "/e1/path/to/two.txt", e1.items.search("two")
-    assert_equal "/e1/path/to/another/one.txt", e1.items.search("another/one")
-    assert_equal "/e1/path/to/one-0.2.0.txt", e1.items.search("one-0.2.0")
+    assert_equal "/e1/path/to/two.txt", m.seek("two")
+    assert_equal "/e1/path/to/another/one.txt", m.seek("another/one")
+    assert_equal "/e1/path/to/one-0.2.0.txt", m.seek("one-0.2.0")
     
     # check e1 searches e2
-    assert_equal "/e2/path/to/one-0.1.0.txt", e1.items.search("/e2/path/to/one")
-    assert_equal "/e2/path/to/one-0.1.0.txt", e1.items.search("/e2/path/to/one-0.1.0")
-    assert_equal "/e2/path/to/one-0.1.0.txt", e1.items.search("/e2/path/to/one-0.1.0.txt")
+    assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/e2/path/to/one")
+    assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/e2/path/to/one-0.1.0")
+    assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/e2/path/to/one-0.1.0.txt")
     
     # check with env pattern
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("e1:one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", e1.items.search("/path/to/e1:one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("e1:one")
+    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("/path/to/e1:one")
 
-    assert_equal "/e2/path/to/one-0.1.0.txt", e1.items.search("e2:one")
-    assert_equal "/e2/path/to/one-0.1.0.txt", e1.items.search("/path/to/e2:to/one")
+    assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("e2:one")
+    assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/path/to/e2:to/one")
     
     # a variety of nil cases
-    assert_nil e1.items.search("e3:one")
-    assert_nil e1.items.search("another/path/to/e1:one")
-    assert_nil e1.items.search("/another/path/to/one")
-    assert_nil e1.items.search("/path/to")
-    assert_nil e1.items.search("non_existant")
+    assert_nil m.seek("e3:one")
+    assert_nil m.seek("another/path/to/e1:one")
+    assert_nil m.seek("/another/path/to/one")
+    assert_nil m.seek("/path/to")
+    assert_nil m.seek("non_existant")
   end
-  
+
 end

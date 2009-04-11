@@ -212,7 +212,7 @@ module Tap
     
       # Returns a string like:
       #
-      #   "#<Env::Constant:object_id Const::Name (require_path)>"
+      #   "#<Tap::Env::Constant:object_id Const::Name (require_path)>"
       #
       def inspect
         "#<#{self.class}:#{object_id} #{const_name}#{@require_path == nil ? "" : " (#{@require_path})"}>"
