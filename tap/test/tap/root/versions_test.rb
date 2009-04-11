@@ -1,10 +1,9 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/versions'
+require 'tap/root/versions'
 
 class VersionTest < Test::Unit::TestCase
-  include Tap::Support::Versions
-  include Tap::Test::SubsetTest
-
+  include Tap::Root::Versions
+  
   def test_documentation
     assert_equal "path/to/file-1.0.txt", version("path/to/file.txt", 1.0)  
     assert_equal "path/to/file-1.0.1.txt", increment("path/to/file-1.0.txt", "0.0.1")  
@@ -24,7 +23,7 @@ class VersionTest < Test::Unit::TestCase
     assert_equal "path/to/file-1.1", version("path/to/file", "1.1")
   end
   
-  def test_version_defaults_to_filepath_when_no_version_is_specified
+  def test_version_defaults_to_path_when_no_version_is_specified
     assert_equal "path/to/file.txt", version("path/to/file.txt", "")
     assert_equal "path/to/file.txt", version("path/to/file.txt", "  ")
     assert_equal "path/to/file.txt", version("path/to/file.txt", nil)
@@ -36,7 +35,7 @@ class VersionTest < Test::Unit::TestCase
   # deversion tests
   #
 
-  def test_deversion_returns_filepath_and_version
+  def test_deversion_returns_path_and_version
     assert_equal ["path/to/file.txt", "1.1"], deversion("path/to/file-1.1.txt")
     assert_equal ["path/to/file", "1.1"], deversion("path/to/file-1.1")
     assert_equal ["path/to/file.txt", "1"], deversion("path/to/file-1.txt")
@@ -186,5 +185,4 @@ class VersionTest < Test::Unit::TestCase
     
     assert_equal expected, vniq(paths)
   end
-  
 end

@@ -1,18 +1,35 @@
 require 'test/unit'
-# setup testing with submodules
-# begin
-#   require File.join(File.dirname(__FILE__), '../lib/tap')
-# rescue(LoadError)
-#   puts %Q{
-# Tests probably cannot be run because the submodules have
-# not been initialized.  Use these commands and try again:
-# 
-#   % git submodule init
-#   % git submodule update
-# 
-# }
-#   raise
-# end
+
+begin
+  require 'lazydoc'
+  require 'configurable'
+rescue(LoadError)
+  puts %Q{
+Tests probably cannot be run because the submodules have
+not been initialized. Use these commands and try again:
+ 
+% git submodule init
+% git submodule update
+ 
+}
+  raise
+end
+
+module HelperMethods
+  def match_platform?(*platforms)
+    platforms.each do |platform|
+      platform.to_s =~ /^(non_)?(.*)/
+
+      non = true if $1
+      match_platform = !RUBY_PLATFORM.index($2).nil?
+      return false unless (non && !match_platform) || (!non && match_platform)
+    end
+
+    true
+  end
+end unless Object.const_defined?(:HelperMethods)
+
+Test::Unit::TestCase.extend HelperMethods
 
 # require 'tap/test'
 # 
