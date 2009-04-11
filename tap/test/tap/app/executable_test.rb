@@ -25,7 +25,7 @@ class ExecutableTest < Test::Unit::TestCase
     assert_equal :object_id, m.method_name
     assert_equal Tap::App.instance, m.app
     assert_equal [], m.dependencies
-    assert_nil m.on_complete_block
+    assert_nil m.join
   end
   
   def test_initialize
@@ -38,7 +38,7 @@ class ExecutableTest < Test::Unit::TestCase
     assert_equal :object_id, m.method_name
     assert_equal app, m.app
     assert_equal [1,2,3], m.dependencies
-    assert_equal b, m.on_complete_block
+    assert_equal b, m.join
   end
   
   #
@@ -67,39 +67,13 @@ class ExecutableTest < Test::Unit::TestCase
   # on_complete test
   #
   
-  def test_on_complete_sets_on_complete_block_for_self
-    assert_equal nil, m.on_complete_block
+  def test_on_complete_sets_join_for_self
+    assert_equal nil, m.join
 
     b = lambda {}
     m.on_complete(&b)
     
-    assert_equal b, m.on_complete_block
-  end
-  
-  def test_on_complete_raises_error_when_an_on_complete_block_is_already_set
-    m.on_complete {}
-    assert m.on_complete_block
-    
-    assert_raises(RuntimeError) { m.on_complete {} }
-    assert_raises(RuntimeError) { m.on_complete }
-  end
-  
-  def test_on_complete_with_override_overrides_on_complete_block
-    m.on_complete {}
-    b = lambda {}
-    
-    assert b.object_id != m.on_complete_block.object_id
-    m.on_complete(true, &b)
-    assert_equal b.object_id, m.on_complete_block.object_id
-  end
-  
-  def test_on_complete_with_override_and_no_block_sets_on_complete_block_to_nil
-    m.on_complete {}
-  
-    assert nil != m.on_complete_block
-    m.on_complete(true)
-    
-    assert_equal nil, m.on_complete_block
+    assert_equal b, m.join
   end
   
   def test_on_complete_returns_self
@@ -259,7 +233,7 @@ class ExecutableTest < Test::Unit::TestCase
       @method_name = :m
       @app = app
       @dependencies = []
-      @on_complete_block = nil
+      @join = nil
       @executed = false
     end
     
@@ -331,7 +305,7 @@ class ExecutableTest < Test::Unit::TestCase
     assert e1.executed
   end
   
-  def test__execute_calls_on_complete_block
+  def test__execute_calls_join
     e = MockExecutable.new(app)
     
     was_in_block = false
@@ -344,7 +318,7 @@ class ExecutableTest < Test::Unit::TestCase
     assert_equal true, was_in_block
   end
   
-  def test__execute_calls_app_on_complete_block_if_no_on_complete_block_is_set
+  def test__execute_calls_app_aggregator_if_no_join_is_set
     e = MockExecutable.new(app)
     
     was_in_block = false
@@ -353,20 +327,9 @@ class ExecutableTest < Test::Unit::TestCase
     end
     
     assert_equal false, was_in_block
-    assert_equal nil, e.on_complete_block
+    assert_equal nil, e.join
     e._execute
     assert_equal true, was_in_block
-  end
-  
-  def test__execute_sends_result_to_app_aggregator_if_no_on_complete_block_is_available
-    e = MockExecutable.new(app)
-    
-    assert_equal nil, e.on_complete_block
-    assert_equal nil, app.on_complete_block
-    assert app.aggregator.empty?
-    
-    audit = e._execute
-    assert_equal [audit], app.aggregator.retrieve(e)
   end
   
   #
@@ -394,5 +357,4 @@ class ExecutableTest < Test::Unit::TestCase
   
     assert_equal [[1],[2,3]], array
   end
-
 end

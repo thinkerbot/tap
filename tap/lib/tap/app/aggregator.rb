@@ -12,7 +12,7 @@ module Tap
     #   agg = Aggregator.new
     #   agg.store(a)
     #   agg.store(b)
-    #   agg.retrieve(:key)             # => [a, b]
+    #   agg.audits(:key)             # => [a, b]
     #
     class Aggregator < Monitor
       
@@ -43,19 +43,24 @@ module Tap
       
       # Stores the Audit according to _audit.key.
       def store(_audit)
+        call(_audit)
+      end
+      
+      # Alias for store.
+      def call(_audit)
         synchronize { (@hash[_audit.key] ||= []) << _audit }
       end
       
-      # Retreives all audits for the specified key.
-      def retrieve(key)
-        synchronize { @hash[key] }
-      end
-      
       # Retreives all audits for the input keys, joined as an array.
-      def retrieve_all(*keys)
+      def audits(*keys)
         synchronize do
+          keys = @hash.keys if keys.empty?
           keys.collect {|src| @hash[src] }.flatten.compact
         end
+      end
+      
+      def results(*keys)
+        audits(*keys).collect {|_audit| _audit.value }
       end
       
       # Converts self to a hash of (key, audits) pairs.

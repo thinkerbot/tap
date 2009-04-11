@@ -13,6 +13,8 @@ Executable#on_complete_block and Root#filepath).
 * switched const_name, name on Constant
 * added constant_glob to Root
 * renamed filepath methods in Root
+* refactored on_complete_block to join
+* reworked App to use aggregators that respond_to? call
 
 == 0.12.4 / 2009-03-23
 

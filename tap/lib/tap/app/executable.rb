@@ -12,8 +12,8 @@ module Tap
       # The method called during _execute
       attr_reader :method_name
     
-      # The block called when _execute completes
-      attr_reader :on_complete_block
+      # The join called when _execute completes
+      attr_accessor :join
       
       # An array of dependency indicies that will be resolved on _execute
       attr_reader :dependencies
@@ -22,11 +22,11 @@ module Tap
       
       # Extends obj with Executable and sets up all required variables.  The
       # specified method will be called on _execute.
-      def self.initialize(obj, method_name, app=App.instance, dependencies=[], &on_complete_block)
+      def self.initialize(obj, method_name, app=App.instance, dependencies=[], &block)
         obj.extend Executable
         obj.instance_variable_set(:@app, app)
         obj.instance_variable_set(:@method_name, method_name)
-        obj.instance_variable_set(:@on_complete_block, on_complete_block)
+        obj.instance_variable_set(:@join, block)
         obj.instance_variable_set(:@dependencies, dependencies)
         obj
       end
@@ -38,17 +38,9 @@ module Tap
         self
       end
       
-      # Sets a block to receive the results of _execute.  Raises an error if
-      # an on_complete_block is already set.  Override the existing 
-      # on_complete_block by specifying override = true.
-      #
-      # Note: the block recieves an audited result and not the result
-      # itself (see Audit for more information).
-      def on_complete(override=false, &block) # :yields: _result
-        unless on_complete_block == nil || override
-          raise "on_complete_block already set: #{self}" 
-        end
-        @on_complete_block = block
+      # Sets a block as the join for self.
+      def on_complete(&block) # :yields: _result
+        self.join = block
         self
       end
       
@@ -79,7 +71,7 @@ module Tap
       end
       
       # Auditing method call.  Resolves dependencies, executes method_name,
-      # and sends the audited result to the on_complete_block (if set).
+      # and sends the audited result to the join, or the app.aggregator.
       #
       # Returns the audited result.
       def _execute(*inputs)
@@ -96,11 +88,10 @@ module Tap
           end
         end
          
+        check_terminate
         audit = Audit.new(self, send(method_name, *inputs), app.audit ? previous : nil)
-        if complete_block = on_complete_block || app.on_complete_block
-          complete_block.call(audit)
-        else 
-          app.aggregator.store(audit)
+        if dispatch = join || app.aggregator
+          dispatch.call(audit)
         end
         
         audit

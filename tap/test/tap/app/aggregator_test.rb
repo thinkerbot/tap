@@ -3,8 +3,8 @@ require 'tap/app/aggregator'
 require 'tap/app/audit'
 
 class AggregatorTest < Test::Unit::TestCase
-  Aggregator = Tap::App::Aggregator
   Audit = Tap::App::Audit
+  Aggregator = Tap::App::Aggregator
   
   attr_accessor :audit, :aggregator
  
@@ -20,7 +20,7 @@ class AggregatorTest < Test::Unit::TestCase
     agg = Aggregator.new
     agg.store(a)
     agg.store(b)
-    assert_equal [a, b], agg.retrieve(:key)
+    assert_equal [a, b], agg.audits(:key)
   end
   
   #
@@ -90,24 +90,10 @@ class AggregatorTest < Test::Unit::TestCase
   end
   
   #
-  # retrieve test
+  # audits test
   #
   
-  def test_retrieve_returns_audits_for_key
-    aggregator.store(audit)
-    aggregator.store(audit)
-    assert_equal [audit, audit], aggregator.retrieve(audit.key)
-  end
-  
-  def test_retrieve_returns_nil_for_unknown_key
-    assert_nil aggregator.retrieve(:unknown)
-  end
-  
-  #
-  # retrieve_all test
-  #
-  
-  def test_retrieve_all_returns_concatenated_arrays_for_keys
+  def test_audits_returns_concatenated_arrays_for_keys
     a = Audit.new(:a, 'a')
     aggregator.store(a)
     aggregator.store(a)
@@ -115,14 +101,50 @@ class AggregatorTest < Test::Unit::TestCase
     b = Audit.new(:b, 'b')
     aggregator.store(b)
     
-    assert_equal [a,a], aggregator.retrieve_all(:a)
-    assert_equal [b], aggregator.retrieve_all(:b)
-    assert_equal [a,a,b], aggregator.retrieve_all(:a, :b)
-    assert_equal [b,a,a], aggregator.retrieve_all(:b, :a)
-    assert_equal [a,a,b], aggregator.retrieve_all(:a, :unknown, :b)
+    assert_equal [a,a], aggregator.audits(:a)
+    assert_equal [b], aggregator.audits(:b)
+    assert_equal [a,a,b], aggregator.audits(:a, :b)
+    assert_equal [b,a,a], aggregator.audits(:b, :a)
+    assert_equal [a,a,b], aggregator.audits(:a, :unknown, :b)
   end
   
-  def test_retrieve_all_returns_empty_array_for_unknown_keys
-    assert_equal [], aggregator.retrieve_all(:a, :unknown, :b)
+  def test_audits_returns_empty_array_for_unknown_keys
+    assert_equal [], aggregator.audits(:a, :unknown, :b)
+  end
+  
+  #
+  # results test
+  #
+  
+  def test_results_returns_current_values_of__results
+    a1 = Audit.new(:t1, 1)
+    a2 = Audit.new(:t2, 2)
+    
+    aggregator.store a1
+    aggregator.store a2
+    assert_equal [1], aggregator.results(:t1)
+    assert_equal [2, 1], aggregator.results(:t2, :t1)
+    assert_equal [1, 1], aggregator.results(:t1, :t1)
+  end
+  
+  #
+  # YAML test
+  #
+  
+  def test_aggregator_serializes_and_deserializes_cleanly
+    a1 = Audit.new(:t1, 1)
+    a2 = Audit.new(:t1, 2)
+    a3 = Audit.new(:t2, 3)
+    
+    aggregator.store a1
+    aggregator.store a2
+    aggregator.store a3
+    
+    str = YAML.dump(aggregator)
+    d = YAML.load(str)
+    
+    assert_equal [1,2], d.results(:t1)
+    assert_equal [3, 1, 2], d.results(:t2, :t1)
+    assert_equal [1, 2, 1, 2], d.results(:t1, :t1)
   end
 end

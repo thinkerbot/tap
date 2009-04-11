@@ -3,7 +3,6 @@ require 'configurable'
 require 'tap/app/aggregator'
 require 'tap/app/dependencies'
 require 'tap/app/executable_queue'
-# require 'tap/task'
 
 module Tap
   
@@ -123,8 +122,6 @@ module Tap
   #   array                          # => [1, 2, 3]
   #
   class App
-    include MonitorMixin
-    
     class << self
       # Sets the current app instance
       attr_writer :instance
@@ -137,6 +134,7 @@ module Tap
     end
     
     include Configurable
+    include MonitorMixin
     
     # The application logger
     attr_reader :logger
@@ -147,18 +145,13 @@ module Tap
     # The state of the application (see App::State)
     attr_reader :state
     
-    # A Tap::Support::Aggregator that collects the results of 
-    # methods that have no on_complete block
-    attr_reader :aggregator
+    # The aggregator receives results of executables that have no
+    # join.  By default aggregator is an App::Aggregator, but may
+    # be set to any object that responds to call.
+    attr_accessor :aggregator
     
     # A Tap::Support::Dependencies to track dependencies.
     attr_reader :dependencies
-    
-    # The block called when an executable completes and has no
-    # on_complete_block set.  An on_complete_block effectively
-    # takes the place of aggregation (ie when set, no results
-    # will be collected by self).
-    attr_reader :on_complete_block
     
     config :audit, true, &c.switch                # Signal auditing
     config :debug, false, &c.flag                 # Flag debugging
@@ -191,9 +184,8 @@ module Tap
       
       @state = State::READY
       @queue = ExecutableQueue.new
-      @aggregator = Aggregator.new
+      @aggregator = block || Aggregator.new
       @dependencies = Dependencies.new
-      @on_complete_block = block
       
       initialize_config(config)
       self.logger = logger
@@ -293,10 +285,10 @@ module Tap
     
     # Returns an information string for the App.  
     #
-    #   App.instance.info   # => 'state: 0 (READY) queue: 0 results: 0'
+    #   App.instance.info   # => 'state: 0 (READY) queue: 0'
     #
     def info
-      "state: #{state} (#{State.state_str(state)}) queue: #{queue.size} results: #{aggregator.size}"
+      "state: #{state} (#{State.state_str(state)}) queue: #{queue.size}"
     end
     
     # Enques the task (or Executable) with the inputs.  Raises an error if the
@@ -320,41 +312,11 @@ module Tap
       m = object._method(method_name)
       enq(m, *inputs)
     end
-        
-    # Returns all aggregated, audited results for the specified tasks.  
-    # Results are joined into a single array.  Arrays of tasks are 
-    # allowed as inputs. See results.
-    def _results(*tasks)
-      aggregator.retrieve_all(*tasks.flatten)
-    end
     
-    # Returns all aggregated results for the specified tasks.  Results are
-    # joined into a single array.  Arrays of tasks are allowed as inputs.    
-    #
-    #   t0 = Task.intern  {|task, input| "#{input}.0" }
-    #   t1 = Task.intern  {|task, input| "#{input}.1" }
-    #
-    #   t0.enq(0)
-    #   t1.enq(1)
-    #
-    #   app.run
-    #   app.results(t1, t0)           # => ["1.1", "0.0"]
-    #
-    def results(*tasks)
-      _results(tasks).collect {|_result| _result.value }
-    end
-    
-    # Sets a block to receive the results tasks with no on_complete_block
-    # set.  Raises an error if an on_complete_block is already set.
-    # Override the existing on_complete_block by specifying override = true.
-    #
-    # Note: the block recieves an audited result and not the result
-    # itself (see Audit for more information).
-    def on_complete(override=false, &block) # :yields: _result
-      unless on_complete_block == nil || override
-        raise "on_complete_block already set: #{self}" 
-      end
-      @on_complete_block = block
+    # Sets the block to receive the audited result of tasks with no join
+    # (ie the block is set as aggregator).
+    def on_complete(&block) # :yields: _result
+      self.aggregator = block
       self
     end
     

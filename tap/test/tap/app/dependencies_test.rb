@@ -3,6 +3,7 @@ require 'tap/app/dependencies'
 
 class DependenciesTest < Test::Unit::TestCase
   Dependencies = Tap::App::Dependencies
+  Dependency = Tap::App::Dependency
   
   attr_reader :m
   
