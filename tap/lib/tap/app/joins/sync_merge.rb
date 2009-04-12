@@ -1,5 +1,5 @@
 module Tap
-  class Schema
+  class App
     module Joins
       
       # SyncMerge passes the collected results of the inputs to the outputs. The

@@ -1,9 +1,9 @@
-require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/schema/join'
+require File.join(File.dirname(__FILE__), '../../app_test_helper')
+require 'tap/app/join'
 
 class JoinTest < Test::Unit::TestCase
   include JoinTestMethods
-  Join = Tap::Schema::Join
+  Join = Tap::App::Join
   
   attr_accessor :join
   

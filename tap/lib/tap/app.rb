@@ -1,5 +1,4 @@
 require 'logger'
-require 'configurable'
 require 'tap/app/aggregator'
 require 'tap/app/dependencies'
 require 'tap/app/executable_queue'

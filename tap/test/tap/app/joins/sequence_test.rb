@@ -1,5 +1,5 @@
-require File.join(File.dirname(__FILE__), '../../../tap_test_helper')
-require 'tap/schema/joins'
+require File.join(File.dirname(__FILE__), '../../../app_test_helper')
+require 'tap/app/joins'
 
 class SequenceTest < Test::Unit::TestCase
   include JoinTestMethods

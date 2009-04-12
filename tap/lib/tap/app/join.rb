@@ -1,7 +1,8 @@
 require 'configurable'
+require 'tap/app/audit'
 
 module Tap
-  class Schema
+  class App
     
     # Joins create on_complete blocks which link together tasks (or more
     # generally, Executable objects) into workflows.  Joins support a 
@@ -177,8 +178,8 @@ module Tap
       def _splat(_results)  # :nodoc:
         array = []
         _results.each do |_result|
-          unless _result.kind_of?(Tap::App::Audit)
-            _result = Tap::App::Audit.new(nil, _result)
+          unless _result.kind_of?(Audit)
+            _result = Audit.new(nil, _result)
           end
           
           array.concat(_result.splat)

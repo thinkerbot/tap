@@ -97,12 +97,15 @@ def test(tests)
     libs << '../lazydoc/lib'
     libs << '../configurable/lib'
   end
-
+  
   libs.collect! {|lib| ['-I', lib] }
   cmd = ['ruby', "-w"] + libs.flatten + ["-e", "ARGV.each {|test| load test}"] + tests
   sh(*cmd)
 end
 
+def test_section(type)
+  test Dir["test/tap/#{type}_test.rb", "test/tap/#{type}/**/*_test.rb"].uniq
+end
 
 desc 'Run tests.'
 task :test do |t|
@@ -115,27 +118,27 @@ end
 namespace :test do
   desc 'run support tests'
   task :support do
-    test Dir["test/tap/support/*_test.rb"]
+    test_section :support
   end
   
   desc 'run root tests'
   task :root do
-    test Dir["test/tap/root_test.rb", "test/tap/root/*_test.rb"]
+    test_section :root
   end
   
   desc 'run env tests'
   task :env do
-    test Dir["test/tap/env_test.rb", "test/tap/env/*_test.rb"]
+    test_section :env
   end
   
   desc 'run app tests'
   task :app do
-    test Dir["test/tap/app_test.rb", "test/tap/app/*_test.rb"]
+    test_section :app
   end
   
   desc 'run schema tests'
   task :schema do
-    test Dir["test/tap/schema_test.rb", "test/tap/schema/**/*_test.rb"]
+    test_section :schema
   end
   
   desc 'run benchmark tests'

@@ -1,4 +1,4 @@
-require 'tap/app/audit'
+require 'tap/app/joins'
 
 module Tap
   class App
@@ -51,7 +51,7 @@ module Tap
         
         current_task = self
         tasks.each do |next_task|
-          Tap::Schema::Join.new(options).join([current_task], [next_task])
+          Join.new(options).join([current_task], [next_task])
           current_task = next_task
         end
       end
@@ -60,7 +60,7 @@ module Tap
       # results of self.
       def fork(*targets) # :yields: _result
         options = targets[-1].kind_of?(Hash) ? targets.pop : {}
-        Tap::Schema::Join.new(options).join([self], targets)
+        Join.new(options).join([self], targets)
       end
 
       # Sets a simple merge workflow pattern for the source tasks. Each 
@@ -68,7 +68,7 @@ module Tap
       # nor are results grouped before being enqued.
       def merge(*sources) # :yields: _result
         options = sources[-1].kind_of?(Hash) ? sources.pop : {}
-        Tap::Schema::Join.new(options).join(sources, [self])
+        Join.new(options).join(sources, [self])
       end
 
       # Sets a synchronized merge workflow for the source tasks.  Results 
@@ -77,7 +77,7 @@ module Tap
       # have completed.  See Joins::SyncMerge.
       def sync_merge(*sources) # :yields: _result
         options = sources[-1].kind_of?(Hash) ? sources.pop : {}
-        Tap::Schema::Joins::SyncMerge.new(options).join(sources, [self])
+        Joins::SyncMerge.new(options).join(sources, [self])
       end
 
       # Sets a switch workflow pattern for self.  On complete, switch yields
@@ -87,7 +87,7 @@ module Tap
       # found for the specified index. See Joins::Switch.
       def switch(*targets, &block) # :yields: _result
         options = targets[-1].kind_of?(Hash) ? targets.pop : {}
-        Tap::Schema::Joins::Switch.new(options).join([self], targets, &block)
+        Joins::Switch.new(options).join([self], targets, &block)
       end
       
       # Adds the dependencies to self.  Dependencies are resolved during

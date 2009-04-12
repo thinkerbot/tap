@@ -1,5 +1,5 @@
 module Tap
-  class Schema
+  class App
     module Joins
       
       # A Switch join allows a block to determine which output from an array

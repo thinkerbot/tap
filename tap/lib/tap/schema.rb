@@ -1,5 +1,5 @@
+require 'tap/app/joins'
 require 'tap/schema/node'
-require 'tap/schema/joins'
 autoload(:Shellwords, 'shellwords')
 
 module Tap

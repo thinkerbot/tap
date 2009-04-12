@@ -5,12 +5,19 @@ require 'yaml'
 class ParserBenchmark < Test::Unit::TestCase
   Parser = Tap::Schema::Parser
   
+  # helper
+  def assert_nodes_equal(expected, parser, msg=nil)
+    actual = parser.schema.nodes.collect {|node| node.metadata }
+    assert_equal expected, actual, msg
+  end
+  
   #
   # benchmark test
   #
   
   def test_match_speed
-    benchmark_test(20) do |x|
+    puts method_name
+    Benchmark.bm(20) do |x|
       
       str = ".join[1,2,3][4,5,6]is"
       
@@ -23,7 +30,8 @@ class ParserBenchmark < Test::Unit::TestCase
   end
    
   def test_parse_speed
-    benchmark_test(20) do |x|
+    puts method_name
+    Benchmark.bm(20) do |x|
       
       # 10 nodes
       nodes = Array.new(10) {|i| [i.to_s]}
