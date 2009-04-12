@@ -1,9 +1,8 @@
 module Tap
   class App
     
-    # Audit provides a way to track the values passed among tasks or, more 
-    # generally, any Executable.  Audits collectively build a {directed
-    # acyclic graph}[http://en.wikipedia.org/wiki/Directed_acyclic_graph] 
+    # Audit provides a way to track the values passed among Nodes.  Audits 
+    # collectively build a {directed acyclic graph}[http://en.wikipedia.org/wiki/Directed_acyclic_graph] 
     # of task execution and have great utility in debugging and record keeping.
     #
     # Audits record a key, a current value, and the previous audit(s) in the

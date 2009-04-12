@@ -12,35 +12,25 @@ module JoinTestMethods
     end
     @runlist = []
   end
-  
-  def intern(&block)
-    Tap::App::Executable.initialize(block, :call, app)
+
+  def single(id)
+    lambda do |input| 
+      @runlist << id.to_s
+      "#{input} #{id}".strip
+    end.extend Tap::App::Node
   end
   
-  def single_tracers(*ids)
-    ids.collect do |id|
-      intern do |input| 
-        @runlist << id.to_s
-        "#{input} #{id}".strip
-      end
-    end
+  def array(id)
+    lambda do |input| 
+      @runlist << id.to_s
+      input.collect {|str| "#{str} #{id}".strip }
+    end.extend Tap::App::Node
   end
   
-  def multi_tracers(*ids)
-    ids.collect do |id|
-      intern do |input| 
-        @runlist << id.to_s
-        input.collect {|str| "#{str} #{id}".strip }
-      end
-    end
-  end
-  
-  def splat_tracers(*ids)
-    ids.collect do |id|
-      intern do |*inputs| 
-        @runlist << id.to_s
-        inputs.collect {|str| "#{str} #{id}".strip }
-      end
-    end
+  def splat(*ids)
+    lambda do |*inputs| 
+      @runlist << id.to_s
+      inputs.collect {|str| "#{str} #{id}".strip }
+    end.extend Tap::App::Node
   end
 end unless Object.const_defined?(:JoinTestMethods)

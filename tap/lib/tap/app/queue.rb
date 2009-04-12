@@ -1,14 +1,14 @@
 require 'monitor'
-require 'tap/app/executable'
+require 'tap/app/node'
 
 module Tap
   class App
     
-    # ExecutableQueue allows thread-safe enqueing and dequeing of Executable
-    # methods and inputs for execution.
-    class ExecutableQueue < Monitor
+    # Queue allows thread-safe enqueing and dequeing of nodes and inputs for
+    # execution.
+    class Queue < Monitor
       
-      # Creates a new ExecutableQueue
+      # Creates a new Queue
       def initialize
         super
         @rounds = [[]]
@@ -51,7 +51,7 @@ module Tap
       end
       
       # Enqueues the method and inputs. Raises an error if the  
-      # method is not an Executable.
+      # method is not a Node.
       def enq(method, inputs)
         synchronize do
           check_method(method)
@@ -117,9 +117,9 @@ module Tap
         @rounds[0]
       end
       
-      # Checks if the input method is extended with Executable
+      # Checks if the input method is extended with Node
       def check_method(method) # :nodoc:
-        raise "not executable: #{method.inspect}" unless method.kind_of?(Executable)
+        raise "not a node: #{method.inspect}" unless method.kind_of?(Node)
       end
     end 
   end

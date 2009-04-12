@@ -9,21 +9,15 @@ class AppTest < Test::Unit::TestCase
     
   def setup
     @results = []
-    @app = Tap::App.new(:quiet => true) do |audit|
+    @app = Tap::App.new(:debug => true) do |audit|
       result = audit.trail {|a| [a.key, a.value] }
       @results << result
     end
-    
-    Tap::App.instance = @app
     @runlist = []
   end
   
-  def teardown
-    Tap::App.instance = nil
-  end
-  
   def intern(&block)
-    App::Executable.initialize(block, :call, app)
+    block.extend App::Node
   end
   
   # returns a tracing executable. tracer adds the key to 
@@ -33,24 +27,6 @@ class AppTest < Test::Unit::TestCase
       @runlist << key
       input += key
     end
-  end
-  
-  #
-  # instance tests
-  #
-  
-  def test_instance_returns_current_instance_or_a_default_app
-    a = App.new
-    App.instance = a
-    assert_equal a, App.instance
-    
-    App.instance = nil
-    assert_equal App, App.instance.class
-  end
-  
-  def test_instance_initializes_new_App_if_not_set
-    Tap::App.instance = nil
-    assert Tap::App.instance.kind_of?(Tap::App)
   end
   
   #
@@ -250,7 +226,7 @@ o-[add_five] 8
   def test_default_app
     app = App.new
 
-    assert_equal(App::ExecutableQueue, app.queue.class)
+    assert_equal(App::Queue, app.queue.class)
     assert app.queue.empty?
     
     assert_equal(App::Aggregator, app.aggregator.class)
@@ -280,14 +256,49 @@ o-[add_five] 8
     app.logger = logger
     assert_equal Logger::DEBUG, logger.level
   end
+
+  #
+  # enq test
+  #
+  
+  def test_enq
+    t = intern {}
+    assert app.queue.empty?
+    app.enq(t)
+    assert_equal [[t, []]], app.queue.to_a
+  end
+  
+  def test_enq_raises_error_if_input_is_not_an_Executable
+    e = assert_raises(ArgumentError) { app.enq(:not_a_node) }
+    assert_equal "not a Node: :not_a_node", e.message
+  end
+  
+  def test_enq_returns_enqued_task
+    t = intern {}
+    assert_equal t, app.enq(t)
+  end
+  
+  #
+  # bq test
+  #
+  
+  def test_bq
+    assert app.queue.empty?
+    t = app.bq(1,2,3) {|*args| args}
+    t1 = app.bq { "result" }
+    
+    assert_equal [3,4,5], t.call(3,4,5)
+    assert_equal "result", t1.call
+    assert_equal [[t, [1,2,3]], [t1, []]], app.queue.to_a
+  end
   
   #
   # run tests
   #
-
+  
   def test_run_single_executable
     t = tracer('a')
-    t.enq ''
+    app.enq t, ''
     app.run
     
     assert_equal 1, results.length
@@ -300,10 +311,9 @@ o-[add_five] 8
   end
   
   def test_run_executes_each_task_in_queue_in_order
-    tracer('a').enq ''
-    tracer('b').enq ''
-    tracer('c').enq ''
-    
+    app.enq tracer('a'), ''
+    app.enq tracer('b'), ''
+    app.enq tracer('c'), ''
     app.run
   
     assert_equal ['a', 'b', 'c'], runlist
@@ -319,8 +329,8 @@ o-[add_five] 8
     end
     t2 = intern {}
     
-    t1.enq
-    t2.enq
+    app.enq t1
+    app.enq t2
     app.run
     
     assert_equal [[t2, []]], queue_before
@@ -329,7 +339,7 @@ o-[add_five] 8
   
   def test_run_resets_state_to_ready
     in_block_state = nil
-    intern { in_block_state = app.state }.enq
+    app.bq { in_block_state = app.state }
     
     assert_equal App::State::READY, app.state
     assert_equal nil, in_block_state
@@ -342,10 +352,10 @@ o-[add_five] 8
   
   def test_run_resets_state_to_ready_when_stopped
     in_block_state = nil
-    intern do
+    app.bq intern do
       app.stop
       in_block_state = app.state
-    end.enq
+    end
     
     assert_equal App::State::READY, app.state
     assert_equal nil, in_block_state
@@ -358,14 +368,13 @@ o-[add_five] 8
   
   def test_run_resets_state_to_ready_when_terminated
     in_block_state = nil
-    t = intern do
+    app.bq intern do
       app.terminate
       in_block_state = app.state
       
-      t.check_terminate
+      app.check_terminate
       flunk "should have been terminated"
     end
-    t.enq
     
     assert_equal App::State::READY, app.state
     assert_equal nil, in_block_state
@@ -378,10 +387,10 @@ o-[add_five] 8
   
   def test_run_resets_state_to_ready_after_unhandled_error
     was_in_block = false
-    intern do
+    app.bq do
       was_in_block = true
       raise "error!"
-    end.enq
+    end
     
     assert_equal App::State::READY, app.state
     assert_equal false, was_in_block
@@ -411,35 +420,34 @@ o-[add_five] 8
   #
   
   class DumpExecutable
-    include Tap::App::Executable
+    include Tap::App::Node
     
-    def initialize(name, app)
+    def initialize(name)
       @name = name
-      @app = app
-      @method_name = :process
+      @app = nil
       @join = nil
       @dependencies = []
     end
     
-    def process(input)
+    def call(input)
       input + ".#{@name}"
     end
   end
   
   def test_apps_can_be_dumped_and_reloaded_as_yaml
     app = Tap::App.new
-    t1 = DumpExecutable.new('b', app)
-    t2 = DumpExecutable.new('c', app)
-    t3 = DumpExecutable.new('d', app)
+    t1 = DumpExecutable.new('b')
+    t2 = DumpExecutable.new('c')
+    t3 = DumpExecutable.new('d')
     
     t1.sequence(t2)
-    t1.enq('a')
-    t3.enq('a')
+    app.enq(t1, 'a')
+    app.enq(t3, 'a')
     
     app.run
     assert_equal 0, app.queue.size
     
-    t1.enq('A')
+    app.enq(t1, 'A')
     dump = app.dump(StringIO.new(''))
     d = YAML.load(dump.string)
     
@@ -453,47 +461,6 @@ o-[add_five] 8
     d.run
     keys = d.aggregator.to_hash.keys
     assert_equal ['A.b.c', 'a.b.c', 'a.d'], d.aggregator.results(*keys).sort
-  end
-  
-  #
-  # enq test
-  #
-  
-  def test_enq
-    t = intern {}
-    assert app.queue.empty?
-    app.enq(t)
-    assert_equal [[t, []]], app.queue.to_a
-  end
-  
-  def test_enq_raises_error_if_input_is_not_an_Executable
-    e = assert_raises(ArgumentError) { app.enq(:not_an_executable) }
-    assert_equal "not an Executable: :not_an_executable", e.message
-  end
-  
-  def test_enq_raises_error_task_is_not_assigned_to_app
-    another = App.new
-    t = intern {}
-    
-    assert t.app != another
-    e = assert_raises(ArgumentError) { another.enq(t) }
-    assert_equal "not assigned to enqueing app: #{t.inspect}", e.message
-  end
-  
-  def test_enq_returns_enqued_task
-    t = intern {}
-    assert_equal t, app.enq(t)
-  end
-  
-  #
-  # mq test
-  #
-  
-  def test_mq
-    a = []
-    assert app.queue.empty?
-    m = app.mq(a, :push, 1, 2)
-    assert_equal [[m, [1,2]]], app.queue.to_a
   end
   
   #
@@ -525,17 +492,15 @@ o-[add_five] 8
     output.string
   end
   
-  def test_unhandled_exception_is_logged_by_default
+  def test_unhandled_exception_is_logged_when_debug_is_false
     was_in_block = false
-    t = intern do
+    app.bq do
       was_in_block = true
       raise "error"
     end
      
     string = set_stringio_logger
-    t.enq
-    
-    app.quiet = false
+    app.debug = false
     app.run
     
     assert was_in_block
@@ -544,13 +509,12 @@ o-[add_five] 8
   
   def test_terminate_errors_are_ignored
     was_in_block = false
-    t = intern do
+    app.bq do
       was_in_block = true
       raise Tap::App::TerminateError
       flunk "should have been terminated"
     end
-     
-    t.enq
+    
     app.run
     assert was_in_block
   end

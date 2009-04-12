@@ -4,74 +4,61 @@ require 'tap/app/dependency'
 class DependencyTest < Test::Unit::TestCase
   Dependency = Tap::App::Dependency
   
-  attr_accessor :m
-  
-  class SimpleExecutable
-    attr_reader :trace
-    
-    def initialize(trace=[])
-      @trace = trace
-      Tap::App::Executable.initialize(self, :run)
-    end
-    
-    def run
-      @trace << self
-      "result"
-    end
-  end
+  attr_accessor :m, :n
   
   def setup
-    @m = SimpleExecutable.new.extend Dependency
+    @n = 0
+    @m = lambda do
+      @n += 1
+      "result"
+    end.extend Dependency
   end
   
   #
   # extend tests
   #
   
-  def test__execute_sets__result
-    m = SimpleExecutable.new
-    m.extend Dependency
-    
+  def test_call_sets__result
     assert_equal nil, m._result
-    m._execute
-    assert_equal "result", m._result.value
+    m.call
+    assert_equal "result", m._result
   end
   
   #
-  # _execute test
+  # call test
   #
   
-  def test__execute_conditionally_runs_only_when_not_resolved
+  def test_call_conditionally_runs_only_when_not_resolved
     assert !m.resolved?
-    assert_equal [], m.trace
+    assert_equal 0, n
     
-    m._execute
-    assert_equal [m], m.trace
+    m.call
+    assert_equal 1, n
     
     assert m.resolved?
 
-    m._execute
-    assert_equal [m], m.trace
+    m.call
+    assert_equal 1, n
     
     m._result = nil
     assert !m.resolved?
     
-    m._execute
-    assert_equal [m, m], m.trace
+    m.call
+    assert_equal 2, n
   end
   
   #
   # resolve test
   #
   
-  def test_resolve_is_an_alias_for__execute
+  def test_resolve_is_an_alias_for_call
     assert !m.resolved?
 
     m.resolve
     
     assert m.resolved?
-    assert_equal "result", m._result.value
-    assert_equal [m], m.trace
+    assert_equal "result", m._result
+    assert_equal 1, n
   end
   
   #

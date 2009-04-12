@@ -1,8 +1,8 @@
 module Tap
   class App
     
-    # Constrains an Executable to only _execute once, and provides several
-    # methods making the Executable behave like a Dependency.
+    # Constrains an Node to only execute once as a dependency.  Dependencies
+    # cannot take inputs and track their audited result.
     module Dependency
       
       # The audited result of self
@@ -12,21 +12,19 @@ module Tap
         base.instance_variable_set(:@_result, nil)
       end
       
-      # Conditional _execute; only calls method_name if
-      # resolved? is false (thus assuring self will only
-      # be executed once).
+      # Conditional call; only calls if resolved? is false (thus assuring
+      # self will only be executed once).  Note that call does not take
+      # any inputs, and neither should the superclass call.
       #
       # Returns _result.
-      def _execute(*args)
-        app.dependencies.resolve(self) do
-          @_result = super
-        end unless resolved?
+      def call
+        @_result = super unless resolved?
         _result
       end
       
-      # Alias for _execute().
+      # Alias for call.
       def resolve
-        _execute
+        call
       end
       
       # True if _result is non-nil.
@@ -38,7 +36,6 @@ module Tap
       def reset
         @_result = nil
       end
-      
     end
   end
 end

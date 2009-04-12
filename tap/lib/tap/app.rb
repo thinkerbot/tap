@@ -1,7 +1,6 @@
 require 'logger'
 require 'tap/app/aggregator'
-require 'tap/app/dependencies'
-require 'tap/app/executable_queue'
+require 'tap/app/queue'
 
 module Tap
   
@@ -104,10 +103,10 @@ module Tap
   #   app.run
   #   runlist                        # => [t1, t0, t0]
   #
-  # === Executables
+  # === Nodes
   #
-  # App can enque and run any Executable object. Arbitrary methods may be
-  # made into Executables using Object#_method.
+  # App can enque and run any Node object. Arbitrary methods may be
+  # made into Nodes using Object#_method.
   #
   #   array = []
   #
@@ -121,17 +120,6 @@ module Tap
   #   array                          # => [1, 2, 3]
   #
   class App
-    class << self
-      # Sets the current app instance
-      attr_writer :instance
-      
-      # Returns the current instance of App.  If no instance has been set,
-      # then instance initializes a new App with the default configuration. 
-      def instance
-        @instance ||= App.new
-      end
-    end
-    
     include Configurable
     include MonitorMixin
     
@@ -148,9 +136,6 @@ module Tap
     # join.  By default aggregator is an App::Aggregator, but may
     # be set to any object that responds to call.
     attr_accessor :aggregator
-    
-    # A Tap::Support::Dependencies to track dependencies.
-    attr_reader :dependencies
     
     config :audit, true, &c.switch                # Signal auditing
     config :debug, false, &c.flag                 # Flag debugging
@@ -182,9 +167,12 @@ module Tap
       super() # monitor
       
       @state = State::READY
-      @queue = ExecutableQueue.new
-      @aggregator = block || Aggregator.new
-      @dependencies = Dependencies.new
+      @queue = Queue.new
+      if block_given?
+        on_complete(&block)
+      else
+        @aggregator = Aggregator.new
+      end
       
       initialize_config(config)
       self.logger = logger
@@ -218,6 +206,24 @@ module Tap
       logger.add(level, msg, action.to_s) if !quiet || verbose
     end
     
+    # Enques the executable with the inputs.  Raises an error if the input is
+    # not a Node, or is not assigned to self.  Returns the executable.
+    def enq(node, *inputs)
+      unless node.kind_of?(Node)
+        raise ArgumentError, "not a Node: #{node.inspect}"
+      end
+      
+      queue.enq(node, inputs)
+      node
+    end
+    
+    # Generates a Node from the block and enques. Returns the new node.
+    def bq(*inputs, &block)
+      node = block.extend Node
+      queue.enq(node, inputs)
+      node
+    end
+    
     # Sequentially calls execute with the (executable, inputs) pairs in
     # queue; run continues until the queue is empty and then returns self.
     #
@@ -243,8 +249,7 @@ module Tap
       # TODO: log starting run
       begin
         until queue.empty? || state != State::RUN
-          executable, inputs = queue.deq
-          executable._execute(*inputs)
+          execute(*queue.deq)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors
@@ -258,6 +263,32 @@ module Tap
       
       # TODO: log run complete
       self
+    end
+    
+    # Executes the node with the specified inputs.
+    def execute(node, inputs)
+      claim(node) do
+        node.resolve_dependencies
+
+        sources = []
+        inputs.collect! do |input| 
+          if input.kind_of?(Audit) 
+            sources << input
+            input.value
+          else
+            sources << Audit.new(nil, input)
+            input
+          end
+        end
+      
+        check_terminate
+        _result = Audit.new(node, node.call(*inputs), audit ? sources : nil)
+        if join = (node.join || aggregator)
+          claim(join) { join.call(_result) }
+        end
+      
+        _result
+      end
     end
     
     # Signals a running application to stop executing tasks in the 
@@ -274,12 +305,21 @@ module Tap
     # state = State::TERMINATE.  In this state, an executing task 
     # will then raise a TerminateError upon check_terminate, thus 
     # allowing the invocation of task-specific termination, perhaps 
-    # performing rollbacks. (see Tap::Support::Executable#check_terminate).
+    # performing rollbacks. (see check_terminate).
     #
     # Does nothing if state == State::READY.
     def terminate
       synchronize { @state = State::TERMINATE unless state == State::READY }
       self
+    end
+    
+    # Raises a TerminateError if state == State::TERMINATE.
+    # check_terminate may be called at any time to provide a 
+    # breakpoint in long-running processes.
+    def check_terminate
+      if state == App::State::TERMINATE
+        raise App::TerminateError.new
+      end
     end
     
     # Returns an information string for the App.  
@@ -337,33 +377,27 @@ module Tap
       target
     end
     
-    # Enques the executable with the inputs.  Raises an error if the input is
-    # not an Executable, or is not assigned to self.  Returns the executable.
-    def enq(executable, *inputs)
-      unless executable.kind_of?(Executable)
-        raise ArgumentError, "not an Executable: #{executable.inspect}"
-      end
-      
-      unless executable.app == self
-        raise ArgumentError, "not assigned to enqueing app: #{executable.inspect}"
-      end
-      
-      queue.enq(executable, inputs)
-      executable
-    end
-
-    # Method enque.  Enques the specified method from object with the inputs.
-    # Returns the enqued method.
-    def mq(object, method_name, *inputs)
-      m = object._method(method_name)
-      enq(m, *inputs)
-    end
-    
     # Sets the block to receive the audited result of tasks with no join
     # (ie the block is set as aggregator).
     def on_complete(&block) # :yields: _result
-      self.aggregator = block
+      self.aggregator = block_given? ? Join.intern(&block) : nil
       self
+    end
+    
+    protected
+    
+    # claims an object during execution
+    def claim(obj) # :nodoc:
+      unless obj.app == nil
+        raise "not assigned to self: #{obj.inspect}"
+      end
+      
+      begin
+        obj.app = self
+        yield
+      ensure
+        obj.app = nil
+      end
     end
     
     # TerminateErrors are raised to kill executing tasks when terminate is 

@@ -1,15 +1,15 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/app/executable_queue'
+require 'tap/app/queue'
 
-class ExecutableQueueTest < Test::Unit::TestCase
-  Executable = Tap::App::Executable
-  ExecutableQueue = Tap::App::ExecutableQueue
+class QueueTest < Test::Unit::TestCase
+  Node = Tap::App::Node
+  Queue = Tap::App::Queue
   
   attr_accessor :m, :queue
  
   def setup
-    @m = Object.new.extend Executable
-    @queue = ExecutableQueue.new
+    @m = lambda {}.extend Node
+    @queue = Queue.new
   end
   
   #
@@ -17,7 +17,7 @@ class ExecutableQueueTest < Test::Unit::TestCase
   #
   
   def test_initialize
-    q = ExecutableQueue.new
+    q = Queue.new
     assert q.empty?
   end
   
@@ -69,7 +69,7 @@ class ExecutableQueueTest < Test::Unit::TestCase
   end
   
   def test_enqued_methods_go_to_the_active_round
-    m1, m2, m3 = Array.new(3) { Object.new.extend Executable }
+    m1, m2, m3 = Array.new(3) { lambda {}.extend Node }
     
     queue.enq(m1, [1,2])
     queue.concat [[m2, [3,4]]]
@@ -81,9 +81,9 @@ class ExecutableQueueTest < Test::Unit::TestCase
     ], queue.to_a(false)
   end
   
-  def test_enq_raises_error_for_non_executables
+  def test_enq_raises_error_for_non_node_objects
     e = assert_raises(RuntimeError) { queue.enq(:obj, [1]) }
-    assert_equal "not executable: :obj", e.message
+    assert_equal "not a node: :obj", e.message
   end
   
   #
@@ -101,7 +101,7 @@ class ExecutableQueueTest < Test::Unit::TestCase
   end
 
   def test_unshifted_methods_go_to_the_active_round
-    m1, m2, m3 = Array.new(3) { Object.new.extend Executable }
+    m1, m2, m3 = Array.new(3) { lambda {}.extend Node }
     
     queue.unshift(m3, [5,6])
     queue.concat [[m2, [3,4]]]
@@ -115,7 +115,7 @@ class ExecutableQueueTest < Test::Unit::TestCase
   
   def test_unshift_raises_error_for_non_executables
     e = assert_raises(RuntimeError) { queue.unshift(:obj, [1]) }
-    assert_equal "not executable: :obj", e.message
+    assert_equal "not a node: :obj", e.message
   end
   
   #
@@ -143,7 +143,7 @@ class ExecutableQueueTest < Test::Unit::TestCase
   #
   
   def test_concat_enques_input_as_a_round
-    m1, m2, m3 = Array.new(3) { Object.new.extend Executable }
+    m1, m2, m3 = Array.new(3) { lambda {}.extend Node }
     
     assert_equal [[]], queue.to_a(false)
     
@@ -159,7 +159,7 @@ class ExecutableQueueTest < Test::Unit::TestCase
   
   def test_concat_raises_error_for_non_executables
     e = assert_raises(RuntimeError) { queue.concat [[:obj, [1]]] }
-    assert_equal "not executable: :obj", e.message
+    assert_equal "not a node: :obj", e.message
   end
   
   #

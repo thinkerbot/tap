@@ -16,10 +16,14 @@ module Tap
     #
     class Aggregator < Monitor
       
+      # The App calling self (set by App during execute, required by API)
+      attr_accessor :app
+      
       # Creates a new Aggregator.
       def initialize
         super
         @hash = {}
+        @app = nil
       end
       
       # Clears self of all audits. Returns the existing audits as a hash
