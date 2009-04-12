@@ -1,5 +1,5 @@
 module Tap
-  module Support
+  class Schema
 
     # Represents a task node in a Schema.
     class Node

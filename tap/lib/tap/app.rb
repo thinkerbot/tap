@@ -291,6 +291,53 @@ module Tap
       "state: #{state} (#{State.state_str(state)}) queue: #{queue.size}"
     end
     
+    # Dumps self to the target as YAML.
+    #
+    # === Implementation Notes
+    #
+    # Platforms that use syck (ex MRI) require a fix because syck misformats
+    # certain dumps, such that they cannot be reloaded (even by syck).
+    # Specifically:
+    #
+    #   &id001 !ruby/object:Tap::Task ?
+    #
+    # should be:
+    #
+    #   ? &id001 !ruby/object:Tap::Task
+    #
+    # In addition, dump removes Thread and Proc dumps because they can't be
+    # allocated on load
+    def dump(target=$stdout, options={})
+      synchronize do
+        raise "cannot dump unless READY" unless state == State::READY
+        
+        options = {
+          :date_format => '%Y-%m-%d %H:%M:%S',
+          :date => true,
+          :info => true
+        }.merge(options)
+        
+        # print basic headers
+        target.puts "# date: #{Time.now.strftime(options[:date_format])}" if options[:date]
+        target.puts "# info: #{info}" if options[:info]
+        
+        # # print load paths and requires
+        # target.puts "# load paths"
+        # target.puts $:.to_yaml
+        # 
+        # target.puts "# requires"
+        # target.puts $".to_yaml
+        
+        # dump yaml, fixing as necessary
+        yaml = YAML.dump(self)
+        yaml.gsub!(/\&(.*!ruby\/object:.*?)\s*\?/) {"? &#{$1} " } if YAML.const_defined?(:Syck)
+        yaml.gsub!(/!ruby\/object:(Thread|Proc) \{\}/, '')
+        target << yaml
+      end
+      
+      target
+    end
+    
     # Enques the executable with the inputs.  Raises an error if the input is
     # not an Executable, or is not assigned to self.  Returns the executable.
     def enq(executable, *inputs)

@@ -1,7 +1,7 @@
 require 'configurable'
 
 module Tap
-  module Support
+  class Schema
     
     # Joins create on_complete blocks which link together tasks (or more
     # generally, Executable objects) into workflows.  Joins support a 
@@ -64,8 +64,14 @@ module Tap
       # in a trailing round.
       config :aggregate, false, :short => 'a', &c.boolean
       
+      attr_reader :inputs
+      
+      attr_reader :outputs
+      
       # Initializes a new join with the specified configuration.
       def initialize(config={})
+        @inputs = nil
+        @outputs = nil
         initialize_config(config)
       end
       
@@ -77,13 +83,16 @@ module Tap
       
       # Creates a join that passes the results of each input to each output.
       def join(inputs, outputs)
-        inputs.each do |input|
-          input.on_complete do |_result|
-            outputs.each do |output| 
-              yield(_result) if block_given?
-              enq(output, _result)
-            end
-          end
+        @inputs = inputs.each do |input|
+          input.join = self
+        end
+        @outputs = outputs
+        self
+      end
+      
+      def call(_result)
+        outputs.each do |output|
+          enq(output, _result)
         end
       end
       
@@ -168,8 +177,8 @@ module Tap
       def _splat(_results)  # :nodoc:
         array = []
         _results.each do |_result|
-          unless _result.kind_of?(Audit)
-            _result = Audit.new(nil, _result)
+          unless _result.kind_of?(Tap::App::Audit)
+            _result = Tap::App::Audit.new(nil, _result)
           end
           
           array.concat(_result.splat)

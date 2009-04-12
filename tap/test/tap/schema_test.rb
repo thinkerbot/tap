@@ -1,8 +1,9 @@
-require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/schema'
+require File.join(File.dirname(__FILE__), '../tap_test_helper')
+require 'tap/schema'
+require 'tap/root'
 
 class SchemaUtilsTest < Test::Unit::TestCase
-  include Tap::Support::Schema::Utils
+  include Tap::Schema::Utils
 
   #
   # shell_quote test
@@ -57,15 +58,21 @@ class SchemaUtilsTest < Test::Unit::TestCase
 end
 
 class SchemaTest < Test::Unit::TestCase
-  include Tap::Support
+  Schema = Tap::Schema
+  Node = Tap::Schema::Node
   
-  acts_as_file_test
-  
-  attr_reader :schema
+  attr_reader :schema, :method_root
   
   def setup
-    super
     @schema = Schema.new
+    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
+  end
+  
+  def teardown
+    # clear out the output folder if it exists, unless flagged otherwise
+    unless ENV["KEEP_OUTPUTS"]
+      FileUtils.rm_r(method_root.root) if File.exists?(method_root.root)
+    end
   end
   
   def node_set(n=3)
@@ -130,7 +137,7 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   def test_load_file_raises_error_for_non_existant_file
-    path = method_root.filepath('non_existant.yml')
+    path = method_root.path('non_existant.yml')
     
     assert !File.exists?(path)
     e = assert_raises(Errno::ENOENT) { Schema.load_file(path) }

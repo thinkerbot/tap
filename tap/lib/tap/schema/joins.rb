@@ -1,12 +1,12 @@
-require 'tap/support/join'
+require 'tap/schema/join'
 
 module Tap
-  module Support
+  class Schema
     
     # A module of the standard Join classes supported by Tap.
     module Joins
-      autoload(:SyncMerge, 'tap/support/joins/sync_merge')
-      autoload(:Switch, 'tap/support/joins/switch')  
+      autoload(:SyncMerge, 'tap/schema/joins/sync_merge')
+      autoload(:Switch, 'tap/schema/joins/switch')  
     end
   end
 end

@@ -1,24 +1,32 @@
 module Tap
-  module Support
+  class Schema
     module Joins
       
       # A Switch join allows a block to determine which output from an array
       # of outputs will receive the results of the input.
       class Switch < Join
-        def join(inputs, outputs)
-          inputs.each do |input|
-            input.on_complete do |_result| 
-              if index = yield(_result)        
-                unless output = outputs[index] 
-                  raise "no switch target for index: #{index}"
-                end
+        
+        attr_accessor :selector
+        
+        def initialize(config={}, &block)
+          super(config)
+          @selector = block
+        end
+        
+        # Creates a join that passes the results of each input to each output.
+        def join(inputs, outputs, &block)
+          @selector = block
+          super(inputs, outputs)
+        end
 
-                enq(output, _result)
-              else
-                input.app.aggregator.store(_result)
-              end
-            end
+        def call(_result)
+          index = selector.call(_result)
+          
+          unless index && output = outputs[index] 
+            raise "no switch target for _result: #{_result}"
           end
+
+          enq(output, _result)
         end
       end
       

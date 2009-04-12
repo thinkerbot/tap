@@ -10,9 +10,7 @@ class AppTest < Test::Unit::TestCase
   def setup
     @results = []
     @app = Tap::App.new(:quiet => true) do |audit|
-      result = audit.trail do |audit|
-        [audit.key, audit.value]
-      end
+      result = audit.trail {|a| [a.key, a.value] }
       @results << result
     end
     
@@ -408,6 +406,55 @@ o-[add_five] 8
     assert_equal 'state: 0 (READY) queue: 0', app.info
   end
 
+  #
+  # dump test
+  #
+  
+  class DumpExecutable
+    include Tap::App::Executable
+    
+    def initialize(name, app)
+      @name = name
+      @app = app
+      @method_name = :process
+      @join = nil
+      @dependencies = []
+    end
+    
+    def process(input)
+      input + ".#{@name}"
+    end
+  end
+  
+  def test_apps_can_be_dumped_and_reloaded_as_yaml
+    app = Tap::App.new
+    t1 = DumpExecutable.new('b', app)
+    t2 = DumpExecutable.new('c', app)
+    t3 = DumpExecutable.new('d', app)
+    
+    t1.sequence(t2)
+    t1.enq('a')
+    t3.enq('a')
+    
+    app.run
+    assert_equal 0, app.queue.size
+    
+    t1.enq('A')
+    dump = app.dump(StringIO.new(''))
+    d = YAML.load(dump.string)
+    
+    assert_equal Tap::App, d.class
+    assert_equal 1, d.queue.size
+    assert_equal 2, d.aggregator.size
+
+    keys = d.aggregator.to_hash.keys
+    assert_equal ['a.b.c', 'a.d'], d.aggregator.results(*keys).sort
+    
+    d.run
+    keys = d.aggregator.to_hash.keys
+    assert_equal ['A.b.c', 'a.b.c', 'a.d'], d.aggregator.results(*keys).sort
+  end
+  
   #
   # enq test
   #

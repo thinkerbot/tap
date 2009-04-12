@@ -133,6 +133,11 @@ namespace :test do
     test Dir["test/tap/app_test.rb", "test/tap/app/*_test.rb"]
   end
   
+  desc 'run schema tests'
+  task :schema do
+    test Dir["test/tap/schema_test.rb", "test/tap/schema/**/*_test.rb"]
+  end
+  
   desc 'run benchmark tests'
   task :benchmark do
     test Dir["test/**/*_benchmark.rb"]

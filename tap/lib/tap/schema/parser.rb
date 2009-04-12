@@ -1,5 +1,5 @@
 module Tap
-  module Support
+  class Schema
     
     # == Syntax
     #

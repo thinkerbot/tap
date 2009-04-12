@@ -1,9 +1,9 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/join'
+require 'tap/schema/join'
 
 class JoinTest < Test::Unit::TestCase
-  include Tap::Support
-  acts_as_tap_test
+  include JoinTestMethods
+  Join = Tap::Schema::Join
   
   attr_accessor :join
   
@@ -42,8 +42,7 @@ class JoinTest < Test::Unit::TestCase
   #
   
   def test_simple_join
-    runlist = []
-    t0, t1, t2, t3 = Tracer.intern(4, runlist)
+    t0, t1, t2, t3 = single_tracers(0,1,2,3)
 
     join.join([t0,t1], [t2,t3])
     t0.enq ''
@@ -55,20 +54,19 @@ class JoinTest < Test::Unit::TestCase
       1 2 3
     }, runlist
     
-    assert_audits_equal([
+    assert_equal [
       [[nil, ''],[t0, '0'],[t2, '0 2']], 
       [[nil, ''],[t1, '1'],[t2, '1 2']],
-    ], app._results(t2))
+    ], results[t2]
     
-    assert_audits_equal([
+    assert_equal [
       [[nil, ''],[t0, '0'],[t3, '0 3']], 
       [[nil, ''],[t1, '1'],[t3, '1 3']],
-    ], app._results(t3))
+    ], results[t3]
   end
   
   def test_stack_join
-    runlist = []
-    t0, t1, t2, t3 = Tracer.intern(4, runlist)
+    t0, t1, t2, t3 = single_tracers(0,1,2,3)
     
     join.stack = true
     join.join([t0,t1], [t2,t3])
@@ -82,27 +80,20 @@ class JoinTest < Test::Unit::TestCase
       2 3
     }, runlist
     
-    assert_audits_equal([
+    assert_equal [
       [[nil, ''],[t0, '0'],[t2, '0 2']], 
       [[nil, ''],[t1, '1'],[t2, '1 2']],
-    ], app._results(t2))
+    ], results[t2]
     
-    assert_audits_equal([
+    assert_equal [
       [[nil, ''],[t0, '0'],[t3, '0 3']], 
       [[nil, ''],[t1, '1'],[t3, '1 3']],
-    ], app._results(t3))
+    ], results[t3]
   end
   
   def test_iterate_join
-    runlist = []
-    t0 = Tracer.new(0, runlist) do |task, input|
-      input.collect {|str| task.mark(str) }
-    end
-    t1 = Tracer.new(1, runlist) do |task, input|
-      input.collect {|str| task.mark(str) }
-    end
-    t2 = Tracer.new(2, runlist)
-    t3 = Tracer.new(3, runlist)
+    t0, t1 = multi_tracers(0,1)
+    t2, t3 = single_tracers(2,3)
     
     join.iterate = true
     join.join([t0,t1], [t2,t3])
@@ -121,35 +112,24 @@ class JoinTest < Test::Unit::TestCase
         3
     }, runlist
   
-    assert_audits_equal([
+    assert_equal [
       [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t2, 'a 0 2']],
       [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t2, 'b 0 2']],
       [[nil,['c', 'd']],[t1,['c 1', 'd 1']],[0, 'c 1'],[t2, 'c 1 2']],
       [[nil,['c', 'd']],[t1,['c 1', 'd 1']],[1, 'd 1'],[t2, 'd 1 2']]
-    ], app._results(t2))
+    ], results[t2]
     
-    assert_audits_equal([
+    assert_equal [
       [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t3, 'a 0 3']],
       [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t3, 'b 0 3']],
       [[nil,['c', 'd']],[t1,['c 1', 'd 1']],[0, 'c 1'],[t3, 'c 1 3']],
       [[nil,['c', 'd']],[t1,['c 1', 'd 1']],[1, 'd 1'],[t3, 'd 1 3']]
-    ], app._results(t3))
+    ], results[t3]
   end
   
   def test_splat_join
-    runlist = []
-    t0 = Tracer.new(0, runlist) do |task, input|
-      input.collect {|str| task.mark(str) }
-    end
-    t1 = Tracer.new(1, runlist) do |task, input|
-      input.collect {|str| task.mark(str) }
-    end 
-    t2 = Tracer.new(2, runlist) do |task, *inputs|
-      inputs.collect {|str| task.mark(str) }
-    end
-    t3 = Tracer.new(3, runlist) do |task, *inputs|
-      inputs.collect {|str| task.mark(str) }
-    end
+    t0, t1 = multi_tracers(0,1)
+    t2, t3 = splat_tracers(2,3)
     
     join.splat = true
     join.join([t0,t1], [t2,t3])
@@ -168,26 +148,20 @@ class JoinTest < Test::Unit::TestCase
     m1a = [[nil, ["a", "b"]], [t1, ["a 1", "b 1"]], [0, "a 1"]]
     m1b = [[nil, ["a", "b"]], [t1, ["a 1", "b 1"]], [1, "b 1"]]
     
-    assert_audits_equal([
+    assert_equal [
       [[m0a, m0b], [t2, ['a 0 2', 'b 0 2']]],
       [[m1a, m1b], [t2, ['a 1 2', 'b 1 2']]]
-    ], app._results(t2))
+    ], results[t2]
     
-    assert_audits_equal([
+    assert_equal [
       [[m0a, m0b], [t3, ['a 0 3', 'b 0 3']]],
       [[m1a, m1b], [t3, ['a 1 3', 'b 1 3']]]
-    ], app._results(t3))
+    ], results[t3]
   end
   
   def test_aggregate_join
-    runlist = []
-    t0, t1 = Tracer.intern(2, runlist)
-    t2 = Tracer.new(2, runlist) do |task, *inputs|
-      inputs.collect {|str| task.mark(str) }
-    end
-    t3 = Tracer.new(3, runlist) do |task, *inputs|
-      inputs.collect {|str| task.mark(str) }
-    end
+    t0, t1 = single_tracers(0,1)
+    t2, t3 = splat_tracers(2,3)
     
     join.aggregate = true
     join.join([t0,t1], [t2,t3])
@@ -203,24 +177,18 @@ class JoinTest < Test::Unit::TestCase
     m0 = [[nil, ''],[t0, '0']]
     m1 = [[nil, ''],[t1, '1']]
     
-    assert_audits_equal([
+    assert_equal [
       [[m0, m1], [t2, ["0 2", "1 2"]]]
-    ], app._results(t2))
+    ], results[t2]
     
-    assert_audits_equal([
+    assert_equal [
       [[m0, m1], [t3, ["0 3", "1 3"]]]
-    ], app._results(t3))
+    ], results[t3]
   end
   
   def test_aggregate_join_does_not_carry_over
-    runlist = []
-    t0, t1 = Tracer.intern(2, runlist)
-    t2 = Tracer.new(2, runlist) do |task, *inputs|
-      inputs.collect {|str| task.mark(str) }
-    end
-    t3 = Tracer.new(3, runlist) do |task, *inputs|
-      inputs.collect {|str| task.mark(str) }
-    end
+    t0, t1 = single_tracers(0,1)
+    t2, t3 = splat_tracers(2,3)
     
     join.aggregate = true
     join.join([t0,t1], [t2,t3])
@@ -237,23 +205,20 @@ class JoinTest < Test::Unit::TestCase
       2 3
     }, runlist
     
-    assert_audits_equal([
+    assert_equal [
       [[nil, ''], [t0, '0'], [t2, ["0 2"]]],
       [[nil, ''], [t1, '1'], [t2, ["1 2"]]]
-    ], app._results(t2))
+    ], results[t2]
     
-    assert_audits_equal([
+    assert_equal [
       [[nil, ''], [t0, '0'], [t3, ["0 3"]]],
       [[nil, ''], [t1, '1'], [t3, ["1 3"]]]
-    ], app._results(t3))
+    ], results[t3]
   end
   
   def test_aggregate_join_does_not_carryover_when_aggregate_enques_task
-    runlist = []
-    t0, t1, t2 = Tracer.intern(3, runlist)
-    t3 = Tracer.new(3, runlist) do |task, *inputs|
-      inputs.collect {|str| task.mark(str) }
-    end
+    t0, t1, t2 = single_tracers(0,1,2)
+    t3 = *splat_tracers(3)
     
     results = []
     t3.on_complete do |_result|
@@ -261,7 +226,8 @@ class JoinTest < Test::Unit::TestCase
         t2.enq ''
         t1.enq ''
       end
-      results << _result
+      result = _result.trail {|a| [a.key, a.value] }
+      results << result
     end
     
     join.aggregate = true
@@ -277,22 +243,19 @@ class JoinTest < Test::Unit::TestCase
       3
     }, runlist
     
-    assert_audits_equal([
+    assert_equal [
       [[nil, ''], [t0, '0'], [t3, ["0 3"]]],
       [[nil, ''], [t1, '1'], [t3, ["1 3"]]]
-    ], results)
+    ], results
   end
   
   def test_aggregate_join_does_not_double_execute_when_task_enques_to_aggregate_round
-    runlist = []
-    t0, t1, t2 = Tracer.intern(3, runlist)
+    t0, t1, t2 = single_tracers(0,1,2)
     t2.on_complete do |_result|
       app.queue.unshift(t1, [''])
       app.queue.unshift(t1, [''])
     end
-    t3 = Tracer.new(3, runlist) do |task, *inputs|
-      inputs.collect {|str| task.mark(str) }
-    end
+    t3 = *splat_tracers(3)
     
     join.aggregate = true
     join.join([t0,t1], [t3])
@@ -312,8 +275,8 @@ class JoinTest < Test::Unit::TestCase
     m0 = [[nil, ''],[t0, '0']]
     m1 = [[nil, ''],[t1, '1']]
     
-    assert_audits_equal([
+    assert_equal [
       [[m0, m1, m1], [t3, ["0 3", "1 3", "1 3"]]]
-    ], app._results(t3))
+    ], results[t3]
   end
 end

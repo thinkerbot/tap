@@ -1,8 +1,8 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/node'
+require 'tap/schema/node'
 
 class NodeTest < Test::Unit::TestCase
-  include Tap::Support
+  Node = Tap::Schema::Node
   
   attr_reader :node
   
