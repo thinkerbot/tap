@@ -228,10 +228,7 @@ o-[add_five] 8
 
     assert_equal(App::Queue, app.queue.class)
     assert app.queue.empty?
-    
-    assert_equal(App::Aggregator, app.aggregator.class)
-    assert app.aggregator.empty?
-    
+    assert_equal nil, app.aggregator
     assert_equal App::State::READY, app.state
   end
   

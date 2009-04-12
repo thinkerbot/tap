@@ -1,5 +1,4 @@
 require 'logger'
-require 'tap/app/aggregator'
 require 'tap/app/queue'
 
 module Tap
@@ -132,9 +131,7 @@ module Tap
     # The state of the application (see App::State)
     attr_reader :state
     
-    # The aggregator receives results of executables that have no
-    # join.  By default aggregator is an App::Aggregator, but may
-    # be set to any object that responds to call.
+    # The aggregator receives results of executables that have no join.
     attr_accessor :aggregator
     
     config :audit, true, &c.switch                # Signal auditing
@@ -168,11 +165,7 @@ module Tap
       
       @state = State::READY
       @queue = Queue.new
-      if block_given?
-        on_complete(&block)
-      else
-        @aggregator = Aggregator.new
-      end
+      on_complete(&block)
       
       initialize_config(config)
       self.logger = logger
