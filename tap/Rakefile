@@ -130,8 +130,7 @@ namespace :test do
   
   desc 'run app tests'
   task :app do
-    # "test/tap/app_test.rb", 
-    test Dir["test/tap/app/*_test.rb"]
+    test Dir["test/tap/app_test.rb", "test/tap/app/*_test.rb"]
   end
   
   desc 'run benchmark tests'

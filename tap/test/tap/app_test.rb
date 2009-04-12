@@ -1,16 +1,40 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/app'
 require 'stringio'
-require 'logger'
 
 class AppTest < Test::Unit::TestCase
   include Tap
-  include TapTestMethods
   
-  acts_as_tap_test
+  attr_reader :app, :runlist, :results
+    
+  def setup
+    @results = []
+    @app = Tap::App.new(:quiet => true) do |audit|
+      result = audit.trail do |audit|
+        [audit.key, audit.value]
+      end
+      @results << result
+    end
+    
+    Tap::App.instance = @app
+    @runlist = []
+  end
   
-  def app_config
-    method_root.config.to_hash
+  def teardown
+    Tap::App.instance = nil
+  end
+  
+  def intern(&block)
+    App::Executable.initialize(block, :call, app)
+  end
+  
+  # returns a tracing executable. tracer adds the key to 
+  # runlist then returns input + key
+  def tracer(key)
+    intern do |input| 
+      @runlist << key
+      input += key
+    end
   end
   
   #
@@ -228,20 +252,19 @@ o-[add_five] 8
   def test_default_app
     app = App.new
 
-    assert_equal(Support::ExecutableQueue, app.queue.class)
+    assert_equal(App::ExecutableQueue, app.queue.class)
     assert app.queue.empty?
     
-    assert_equal(Support::Aggregator, app.aggregator.class)
+    assert_equal(App::Aggregator, app.aggregator.class)
     assert app.aggregator.empty?
     
-    assert_equal nil, app.on_complete_block
     assert_equal App::State::READY, app.state
   end
   
-  def test_initialization_with_block_sets_on_complete_block
+  def test_initialization_with_block_sets_aggregator
     b = lambda {}
     app = App.new(&b)
-    assert_equal b, app.on_complete_block
+    assert_equal b, app.aggregator
   end
   
   #
@@ -264,95 +287,113 @@ o-[add_five] 8
   # run tests
   #
 
-  def test_run_single_task
-    t = Task.intern(&add_one)
-    t.enq 1
+  def test_run_single_executable
+    t = tracer('a')
+    t.enq ''
     app.run
-
-    assert_audit_equal([[nil, 1], [t,2]], app._results(t).first)
-    assert_equal [1], runlist
+    
+    assert_equal 1, results.length
+    assert_equal [
+      [nil, ''], 
+      [t, 'a']
+    ], results[0]
+    
+    assert_equal ['a'], runlist
   end
   
   def test_run_executes_each_task_in_queue_in_order
-    Task.intern(&echo).enq 1
-    Task.intern(&echo).enq 2
-    Task.intern(&echo).enq 3
+    tracer('a').enq ''
+    tracer('b').enq ''
+    tracer('c').enq ''
     
     app.run
-
-    assert_equal [[1],[2],[3]], runlist
+  
+    assert_equal ['a', 'b', 'c'], runlist
   end
   
-  def test_run_returns_self_when_running
+  def test_run_returns_immediately_when_already_running
     queue_before = nil
     queue_after = nil
-    t1 = Task.intern do |task| 
+    t1 = intern do 
       queue_before = app.queue.to_a
       app.run
       queue_after = app.queue.to_a
     end
-    t2 = Task.new
+    t2 = intern {}
     
     t1.enq
     t2.enq
     app.run
     
-    assert nil != queue_before
-    assert nil != queue_after
-    assert_equal queue_before, queue_after
+    assert_equal [[t2, []]], queue_before
+    assert_equal [[t2, []]], queue_after
   end
   
   def test_run_resets_state_to_ready
-    t1 = Task.intern do |task|
-      app.state
-    end
+    in_block_state = nil
+    intern { in_block_state = app.state }.enq
     
-    t1.enq
     assert_equal App::State::READY, app.state
+    assert_equal nil, in_block_state
+    
     app.run
+    
     assert_equal App::State::READY, app.state
-    assert_equal App::State::RUN, app.results(t1)[0]
+    assert_equal App::State::RUN, in_block_state
   end
   
   def test_run_resets_state_to_ready_when_stopped
-    t1 = Task.intern do |task|
+    in_block_state = nil
+    intern do
       app.stop
-      app.state
-    end
+      in_block_state = app.state
+    end.enq
     
-    t1.enq
     assert_equal App::State::READY, app.state
+    assert_equal nil, in_block_state
+    
     app.run
+    
     assert_equal App::State::READY, app.state
-    assert_equal App::State::STOP, app.results(t1)[0]
+    assert_equal App::State::STOP, in_block_state
   end
   
   def test_run_resets_state_to_ready_when_terminated
-    t1 = Task.intern do |task|
+    in_block_state = nil
+    t = intern do
       app.terminate
-      task.check_terminate
+      in_block_state = app.state
+      
+      t.check_terminate
       flunk "should have been terminated"
     end
+    t.enq
     
-    t1.enq
     assert_equal App::State::READY, app.state
+    assert_equal nil, in_block_state
+    
     app.run
+    
     assert_equal App::State::READY, app.state
+    assert_equal App::State::TERMINATE, in_block_state
   end
   
   def test_run_resets_state_to_ready_after_unhandled_error
-    t1 = Task.intern do |task|
+    was_in_block = false
+    intern do
+      was_in_block = true
       raise "error!"
-    end
+    end.enq
     
-    t1.enq
     assert_equal App::State::READY, app.state
+    assert_equal false, was_in_block
     
     app.debug = true
-    e = assert_raises(RuntimeError) { app.run }
-    assert_equal "error!", e.message
+    err = assert_raises(RuntimeError) { app.run }
+    assert_equal "error!", err.message
     
     assert_equal App::State::READY, app.state
+    assert_equal true, was_in_block
   end
   
   def test_run_returns_self
@@ -364,7 +405,7 @@ o-[add_five] 8
   #
   
   def test_info_provides_information_string
-    assert_equal 'state: 0 (READY) queue: 0 results: 0', app.info
+    assert_equal 'state: 0 (READY) queue: 0', app.info
   end
 
   #
@@ -372,33 +413,28 @@ o-[add_five] 8
   #
   
   def test_enq
-    t = Task.new
+    t = intern {}
     assert app.queue.empty?
     app.enq(t)
     assert_equal [[t, []]], app.queue.to_a
   end
   
-  def test_enq_allows_Executable_methods
-    m = []._method(:push)
-    assert app.queue.empty?
-    app.enq(m)
-    assert_equal [[m, []]], app.queue.to_a
-  end
-  
-  def test_enq_raises_error_if_task_is_not_an_Executable
-    e = assert_raises(ArgumentError) { app.enq(:task) }
-    assert_equal "not an Executable: :task", e.message
+  def test_enq_raises_error_if_input_is_not_an_Executable
+    e = assert_raises(ArgumentError) { app.enq(:not_an_executable) }
+    assert_equal "not an Executable: :not_an_executable", e.message
   end
   
   def test_enq_raises_error_task_is_not_assigned_to_app
-    app2 = App.new
-    task = Task.new({}, nil, app2)
-    e = assert_raises(ArgumentError) { app.enq(task) }
-    assert_equal "not assigned to enqueing app: #{task.inspect}", e.message
+    another = App.new
+    t = intern {}
+    
+    assert t.app != another
+    e = assert_raises(ArgumentError) { another.enq(t) }
+    assert_equal "not assigned to enqueing app: #{t.inspect}", e.message
   end
   
   def test_enq_returns_enqued_task
-    t = Task.new
+    t = intern {}
     assert_equal t, app.enq(t)
   end
   
@@ -414,95 +450,17 @@ o-[add_five] 8
   end
   
   #
-  # _results test
-  #
-
-  def test__results_returns_audited_results_for_listed_sources
-    a1 = Tap::Support::Audit.new(:t1, 1)
-    a2 = Tap::Support::Audit.new(:t2, 2)
-    
-    app.aggregator.store a1
-    app.aggregator.store a2
-    assert_equal [a1], app._results(:t1)
-    assert_equal [a2, a1], app._results(:t2, :t1)
-    assert_equal [a1, a1], app._results(:t1, :t1)
-  end
-  
-  #
-  # results test
-  #
-  
-  def test_results_documentation
-    t0 = Task.intern  {|task, input| "#{input}.0" }
-    t1 = Task.intern  {|task, input| "#{input}.1" }
-  
-    t0.enq(0)
-    t1.enq(1)
-  
-    app.run
-    assert_equal ["1.1", "0.0"], app.results(t1, t0)
-  end
-  
-  def test_results_returns_current_values_of__results
-    a1 = Tap::Support::Audit.new(:t1, 1)
-    a2 = Tap::Support::Audit.new(:t2, 2)
-    
-    app.aggregator.store a1
-    app.aggregator.store a2
-    assert_equal [1], app.results(:t1)
-    assert_equal [2, 1], app.results(:t2, :t1)
-    assert_equal [1, 1], app.results(:t1, :t1)
-  end
-  
-  def test_results_for_various_objects
-    t1 = Task.intern {|task, input| input}
-
-    t1.enq({:key => 'value'})
-    t1.enq([1,2,3])
-    t1.enq(2)
-    t1.enq("str")
-    
-    app.run
-    assert_equal [{:key => 'value'}, [1,2,3], 2, "str"], app.results(t1)
-  end
-  
-  #
   # on_complete test
   #
   
-  def test_on_complete_sets_on_complete_block_for_self
-    assert_equal nil, app.on_complete_block
+  def test_on_complete_sets_on_aggregator_for_self
+    app.aggregator = nil
+    assert_equal nil, app.aggregator
 
     b = lambda {}
     app.on_complete(&b)
     
-    assert_equal b, app.on_complete_block
-  end
-  
-  def test_on_complete_raises_error_when_an_on_complete_block_is_already_set
-    app.on_complete {}
-    assert app.on_complete_block
-    
-    assert_raises(RuntimeError) { app.on_complete {} }
-    assert_raises(RuntimeError) { app.on_complete }
-  end
-  
-  def test_on_complete_with_override_overrides_on_complete_block
-    app.on_complete {}
-    b = lambda {}
-    
-    assert b.object_id != app.on_complete_block.object_id
-    app.on_complete(true, &b)
-    assert_equal b.object_id, app.on_complete_block.object_id
-  end
-  
-  def test_on_complete_with_override_and_no_block_sets_on_complete_block_to_nil
-    app.on_complete {}
-  
-    assert nil != app.on_complete_block
-    app.on_complete(true)
-    
-    assert_equal nil, app.on_complete_block
+    assert_equal b, app.aggregator
   end
   
   def test_on_complete_returns_self
@@ -521,40 +479,32 @@ o-[add_five] 8
   end
   
   def test_unhandled_exception_is_logged_by_default
-    task = Task.intern {|t| raise "error"}
+    was_in_block = false
+    t = intern do
+      was_in_block = true
+      raise "error"
+    end
      
     string = set_stringio_logger
-    task.enq
+    t.enq
+    
+    app.quiet = false
     app.run
     
+    assert was_in_block
     assert string =~ /RuntimeError error/
   end
   
   def test_terminate_errors_are_ignored
     was_in_block = false
-    task = Task.intern do |t| 
+    t = intern do
       was_in_block = true
       raise Tap::App::TerminateError
       flunk "should have been terminated"
     end
      
-    task.enq
+    t.enq
     app.run
     assert was_in_block
-  end
-  
-  #
-  # benchmarks
-  #
-  
-  def test_run_speed
-    t = Tap::Task.new 
-    benchmark_test(20) do |x|
-      n = 10000
-          
-      x.report("10k enq ") { n.times { t.enq(1) } }
-      x.report("10k run ") { n.times {}; app.run }
-      x.report("10k _execute ") { n.times { t._execute(1) } }
-    end
   end
 end

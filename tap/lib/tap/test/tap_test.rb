@@ -26,6 +26,10 @@ module Tap
         Tap::App.instance = @app
       end
       
+      def teardown
+        Tap::App.instance = nil
+      end
+      
       # Asserts that an array of audits are all equal, basically feeding
       # each pair of audits to assert_audit_equal.
       def assert_audits_equal(expected, audits, msg=nil, &block)

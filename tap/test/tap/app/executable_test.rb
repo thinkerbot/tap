@@ -272,11 +272,11 @@ class ExecutableTest < Test::Unit::TestCase
     _result = e._execute(one, 2, three)
     
     assert_equal "received: [1, 2, 3]", _result.value
-    assert_audits_equal [
-      [[:one, 1]], 
-      [[nil, 2]], 
-      [[:three, 3]]
-    ], _result.sources
+    assert_equal [
+      [:one, 1], 
+      [nil, 2], 
+      [:three, 3]
+    ], _result.sources.collect {|a| [a.key, a.value]}
   end
   
   def test__execute_does_not_join_audits_if_app_audit_is_false
@@ -288,7 +288,7 @@ class ExecutableTest < Test::Unit::TestCase
     _result = e._execute(one, 2, three)
     
     assert_equal "received: [1, 2, 3]", _result.value
-    assert_audits_equal [], _result.sources
+    assert_equal [], _result.sources
   end
   
   def test__execute_resolves_dependencies
