@@ -9,7 +9,7 @@ class NodeTest < Test::Unit::TestCase
   attr_accessor :m
   
   def setup
-    @m = lambda {}.extend Node
+    @m = Node.intern {}
   end
   
   #

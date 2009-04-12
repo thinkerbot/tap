@@ -109,7 +109,7 @@ end
 
 desc 'Run tests.'
 task :test do |t|
-  tests = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
+  tests = Dir.glob( File.join('test/tap', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
     filename =~ /test\/check/ || filename =~ /test\/cmd\/.*\// || filename =~ /test\/functional\/.*/
   end
   test(tests)
