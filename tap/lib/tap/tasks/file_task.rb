@@ -1,3 +1,4 @@
+require 'tap/task'
 require 'tap/support/shell_utils'
 
 module Tap
@@ -40,7 +41,7 @@ module Tap
     # for rollback on execution error
     config :rollback_on_error, true, &c.switch   # Rollback changes on error
     
-    def initialize(config={}, name=nil, app=App.instance)
+    def initialize(config={}, name=nil)
       super
       @actions = []
     end
@@ -68,7 +69,7 @@ module Tap
       case extname
       when false, nil then path.chomp(File.extname(path))
       when true then path
-      else Root.exchange(path, extname)
+      else Root::Utils.exchange(path, extname)
       end
     end
     
@@ -119,7 +120,7 @@ module Tap
     #--
     # TODO: add check vs date reference (ex config_file date)
     def uptodate?(targets, sources=[])
-      if app.force
+      if app && app.force
         log_basename(:force, targets)
         false
       else
@@ -245,7 +246,7 @@ module Tap
     def rmdir(dir)
       dir = File.expand_path(dir)
       
-      unless Root.empty?(dir)
+      unless Root::Utils.empty?(dir)
         raise "not an empty directory: #{dir}"
       end
       
@@ -340,7 +341,7 @@ module Tap
     # Removes the directory if empty, and all empty parent directories. This
     # method cannot be rolled back.
     def cleanup_dir(dir)
-      while Root.empty?(dir)
+      while Root::Utils.empty?(dir)
         log :rmdir, dir, Logger::DEBUG
         FileUtils.rmdir(dir)
         dir = File.dirname(dir)
@@ -353,24 +354,23 @@ module Tap
       log(action, msg, level)
     end
     
+    def call(*_inputs)
+      actions.clear
+      
+      begin
+        super
+      rescue(Exception)
+        rollback if rollback_on_error
+        raise
+      end
+    end
+    
     protected
     
     # An array tracking actions (backup, rm, mv, etc) performed by self,
     # allowing rollback on an execution error.  Not intended to be
     # modified manually.
     attr_reader :actions
-    
-    # Clears actions so that a failure will not affect previous executions
-    def before_execute
-      actions.clear
-    end
-    
-    # Removes made files/dirs and restores backed-up files upon 
-    # an execute error.
-    def on_execute_error(original_error)
-      rollback if rollback_on_error
-      raise original_error
-    end
     
     private 
 

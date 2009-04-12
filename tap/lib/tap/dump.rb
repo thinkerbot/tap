@@ -1,3 +1,5 @@
+require 'tap/task'
+
 module Tap
 
   # :startdoc::manifest the default dump task

@@ -1,3 +1,4 @@
+require 'tap/task'
 require 'stringio'
 
 module Tap

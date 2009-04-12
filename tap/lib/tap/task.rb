@@ -468,7 +468,7 @@ module Tap
     # Logs the inputs to the application logger (via app.log)
     def log(action, msg="", level=Logger::INFO)
       # TODO - add a task identifier?
-      app.log(action, msg, level)
+      app.log(action, msg, level) if app
     end
     
     # Sets a sequence workflow pattern for the tasks; each task
