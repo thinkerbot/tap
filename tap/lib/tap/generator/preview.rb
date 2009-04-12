@@ -4,7 +4,7 @@ module Tap
   module Generator
     
     # Preview is a testing module designed so that process will return an array
-    # of relative filepaths for the created files/directories (which are easy
+    # of relative paths for the created files/directories (which are easy
     # to specify in a test).  Preview also collects the content of created files
     # to be tested as needed.
     #
@@ -27,7 +27,7 @@ module Tap
     #
     #   assert_equal "content", s.preview['dir/file.txt']
     #
-    # Note that relative filepaths are relative to destination_root.
+    # Note that relative paths are relative to destination_root.
     module Preview
       
       # A hash of (relative_path, content) pairs representing
@@ -41,7 +41,7 @@ module Tap
       # Returns the path of path, relative to destination_root.  If path
       # is destination_root, '.' will be returned.
       def relative_path(path)
-        path = Root.relative_filepath(destination_root, path, destination_root) || path
+        path = Root::Utils.relative_path(destination_root, path, destination_root) || path
         path.empty? ? "." : path
       end
       

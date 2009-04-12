@@ -6,10 +6,6 @@ class RootGeneratorTest < Test::Unit::TestCase
   include Tap::Generator
   include Generators
   
-  def setup
-    Tap::App.instance = Tap::App.new
-  end
-  
   #
   # process test
   #

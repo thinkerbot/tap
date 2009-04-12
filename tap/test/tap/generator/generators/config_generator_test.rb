@@ -5,8 +5,21 @@ require 'tap/generator/preview.rb'
 class ConfigGeneratorTest < Test::Unit::TestCase
   include Tap::Generator
   include Generators
+
+  attr_accessor :method_root
   
-  acts_as_tap_test
+  def setup
+    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
+  end
+  
+  def teardown
+    # clear out the output folder if it exists, unless flagged otherwise
+    unless ENV["KEEP_OUTPUTS"]
+      if File.exists?(method_root.root)
+        FileUtils.rm_r(method_root.root)
+      end
+    end
+  end
   
   module MockTaskLookup
     def set_tasc(name, tasc)
@@ -427,7 +440,7 @@ another: config
     c = ConfigGenerator.new.extend Generate
     c.extend MockTaskLookup
     c.destination_root = method_root[:tmp]
-    expected_config_file = method_root.filepath(:tmp, 'config/sample.yml')
+    expected_config_file = method_root.path(:tmp, 'config/sample.yml')
     
     c.set_tasc('sample', DoubleNestedSampleValues)
     c.nest = true

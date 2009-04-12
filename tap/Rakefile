@@ -154,6 +154,11 @@ namespace :test do
     test_section :schema
   end
   
+  desc 'run generator tests'
+  task :generator do
+    test Dir['test/tap/generator/**/*_test.rb']
+  end
+  
   desc 'run benchmark tests'
   task :benchmark do
     test Dir["test/**/*_benchmark.rb"]

@@ -1,4 +1,5 @@
 require 'tap/generator/base'
+require 'tap/constants'
 
 module Tap::Generator::Generators
   

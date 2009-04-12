@@ -3,13 +3,21 @@ require 'tap/generator/base'
 
 class BaseTest < Test::Unit::TestCase
   include Tap::Generator
-  acts_as_file_test
 
-  attr_accessor :b
+  attr_accessor :b, :method_root
   
   def setup
     @b = Base.new
-    super
+    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
+  end
+  
+  def teardown
+    # clear out the output folder if it exists, unless flagged otherwise
+    unless ENV["KEEP_OUTPUTS"]
+      if File.exists?(method_root.root)
+        FileUtils.rm_r(method_root.root)
+      end
+    end
   end
   
   #
@@ -130,7 +138,7 @@ class BaseTest < Test::Unit::TestCase
     t.template('target', source, {:key => 'value'}, {:opt => 'value'})
     assert_equal [['target', {:opt => 'value'}], "value was templated"], t.file_call
     
-    relative_source = method_root.relative_filepath(:root, source)
+    relative_source = method_root.relative_path(:root, source)
     t.template('target', relative_source, {:key => 'value'}, {:opt => 'value'})
     assert_equal [['target', {:opt => 'value'}], "value was templated"], t.file_call
   end
