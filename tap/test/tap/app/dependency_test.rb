@@ -18,10 +18,10 @@ class DependencyTest < Test::Unit::TestCase
   # extend tests
   #
   
-  def test_call_sets__result
-    assert_equal nil, m._result
+  def test_call_sets_result
+    assert_equal nil, m.result
     m.call
-    assert_equal "result", m._result
+    assert_equal "result", m.result
   end
   
   #
@@ -40,7 +40,7 @@ class DependencyTest < Test::Unit::TestCase
     m.call
     assert_equal 1, n
     
-    m._result = nil
+    m.result = nil
     assert !m.resolved?
     
     m.call
@@ -57,7 +57,7 @@ class DependencyTest < Test::Unit::TestCase
     m.resolve
     
     assert m.resolved?
-    assert_equal "result", m._result
+    assert_equal "result", m.result
     assert_equal 1, n
   end
   
@@ -65,11 +65,11 @@ class DependencyTest < Test::Unit::TestCase
   # resolved? test
   #
   
-  def test_resolved_is_true_if__result_is_non_nil
-    assert_equal nil, m._result
+  def test_resolved_is_true_if_result_is_non_nil
+    assert_equal nil, m.result
     assert !m.resolved?
     
-    m._result = "result"
+    m.result = "result"
     assert m.resolved?
   end
   
@@ -77,10 +77,10 @@ class DependencyTest < Test::Unit::TestCase
   # reset test
   #
   
-  def test_reset_sets__result_to_nil
-    m._result = "result"
-    assert_equal "result", m._result
+  def test_reset_sets_result_to_nil
+    m.result = "result"
+    assert_equal "result", m.result
     m.reset
-    assert_equal nil, m._result
+    assert_equal nil, m.result
   end
 end

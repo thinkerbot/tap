@@ -1,5 +1,5 @@
-require File.join(File.dirname(__FILE__), '../../../app_test_helper')
-require 'tap/app/joins'
+require File.join(File.dirname(__FILE__), '../../app_test_helper')
+require 'tap/joins'
 
 class SyncMergeTest < Test::Unit::TestCase
   include JoinTestMethods
@@ -9,12 +9,13 @@ class SyncMergeTest < Test::Unit::TestCase
   #
   
   def test_simple_sync_merge
-    t0, t1 = single_tracers(0,1)
-    t2 = *splat_tracers(2)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = splat(2)
     
     t2.sync_merge(t0, t1)
-    t0.enq ''
-    t1.enq ''
+    app.enq t0, ''
+    app.enq t1, ''
     app.run
   
     assert_equal %w{
@@ -31,12 +32,13 @@ class SyncMergeTest < Test::Unit::TestCase
   end
   
   def test_stack_sync_merge
-    t0, t1 = single_tracers(0,1)
-    t2 = *splat_tracers(2)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = splat(2)
     
     t2.sync_merge(t0, t1, :stack => true)
-    t0.enq ''
-    t1.enq ''
+    app.enq t0, ''
+    app.enq t1, ''
     app.run
   
     assert_equal %w{
@@ -53,12 +55,13 @@ class SyncMergeTest < Test::Unit::TestCase
   end
   
   def test_iterate_sync_merge
-    t0, t1 = multi_tracers(0,1)
-    t2 = *single_tracers(2)
+    t0 = array(0)
+    t1 = array(1)
+    t2 = single(2)
     
     t2.sync_merge(t0, t1, :iterate => true)
-    t0.enq ['a','b']
-    t1.enq ['x','y']
+    app.enq t0, ['a','b']
+    app.enq t1, ['x','y']
     app.run
   
     assert_equal %w{
@@ -79,12 +82,13 @@ class SyncMergeTest < Test::Unit::TestCase
   end
   
   def test_splat_sync_merge
-    t0, t1 = multi_tracers(0,1)
-    t2 = *splat_tracers(2)
+    t0 = array(0)
+    t1 = array(1)
+    t2 = splat(2)
     
     t2.sync_merge(t0, t1, :splat => true)
-    t0.enq(['a', 'b'])
-    t1.enq(['a', 'b'])
+    app.enq t0, ['a', 'b']
+    app.enq t1, ['a', 'b']
     app.run
   
     assert_equal %w{
@@ -104,13 +108,14 @@ class SyncMergeTest < Test::Unit::TestCase
   end
   
   def test_sync_merge_raises_error_if_target_cannot_be_enqued_before_a_source_executes_twice
-    t0, t1 = single_tracers(0,1)
-    t2 = *splat_tracers(2)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = splat(2)
     
     t2.sync_merge(t0, t1, :stack => true)
-    t0.enq ''
-    t0.enq ''
-    t1.enq ''
+    app.enq t0, ''
+    app.enq t0, ''
+    app.enq t1, ''
     
     assert_raises(RuntimeError) { app.run }
     assert_equal %w{

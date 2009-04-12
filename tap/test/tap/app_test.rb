@@ -17,7 +17,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def intern(&block)
-    block.extend App::Node
+    App::Node.intern(&block)
   end
   
   # returns a tracing executable. tracer adds the key to 
@@ -284,7 +284,6 @@ o-[add_five] 8
     t = app.bq(1,2,3) {|*args| args}
     t1 = app.bq { "result" }
     
-    assert_equal [3,4,5], t.call(3,4,5)
     assert_equal "result", t1.call
     assert_equal [[t, [1,2,3]], [t1, []]], app.queue.to_a
   end

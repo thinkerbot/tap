@@ -4,15 +4,22 @@ require 'stringio'
 
 class DumpTest < Test::Unit::TestCase
   include Tap
-  Audit = Tap::Support::Audit
-  acts_as_tap_test 
-  
-  attr_reader :io, :dump
+  Audit = Tap::App::Audit
+
+  attr_reader :io, :dump, :method_root
   
   def setup
     super
     @io = StringIO.new
     @dump = Dump.new :target => io
+    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
+  end
+  
+  def teardown
+    # clear out the output folder if it exists, unless flagged otherwise
+    unless ENV["KEEP_OUTPUTS"]
+      FileUtils.rm_r(method_root.root) if File.exists?(method_root.root)
+    end
   end
   
   #
@@ -47,18 +54,6 @@ class DumpTest < Test::Unit::TestCase
     assert_equal %Q{
 # audit:
 # o-[] 1
-# o-[tap/dump] 1
-# 
-1
-}, "\n" + io.string
-  end
-  
-  def test_process_does_not_generate_a_nil_source_audit_when_app_is_not_auditing
-    app.audit = false
-    dump.audit = true
-    dump.process(1)
-    assert_equal %Q{
-# audit:
 # o-[tap/dump] 1
 # 
 1

@@ -50,34 +50,18 @@ module Tap
     config :date, false, &c.flag                         # Include a date
     config :date_format, '%Y-%m-%d %H:%M:%S'             # The date format
     
-    # Overrides the standard _execute to send process the audits and not
-    # the audit values.  This allows process to inspect audit trails.
-    def _execute(input)
-      resolve_dependencies
-      
-      previous = input.kind_of?(Support::Audit) ? input : Support::Audit.new(nil, input)
-      input = previous.value
-      
-      # this is the overridden part
-      audit = Support::Audit.new(self, input, app.audit ? previous : nil)
-      send(method_name, audit)
-      
-      if complete_block = on_complete_block || app.on_complete_block
-        complete_block.call(audit)
-      else 
-        app.aggregator.store(audit)
-      end
-      
-      audit
+    def call(_input)
+      _audit = Support::Audit.new(self, _input.value, app.audit ? _input : nil)
+      process(_audit)
     end
     
     # The default process prints dump headers as specified in the config,
     # then append the audit value to io.
     def process(_audit)
-      unless _audit.kind_of?(Support::Audit)
+      unless _audit.kind_of?(App::Audit)
         # note the nil-source audit is added for consistency with _execute
-        previous = app.audit ? Support::Audit.new(nil, _audit) : nil
-        _audit = Support::Audit.new(self, _audit, previous)
+        previous = App::Audit.new(nil, _audit)
+        _audit = App::Audit.new(self, _audit, previous)
       end
       
       open_io(target, overwrite ? 'w' : 'a') do |io|

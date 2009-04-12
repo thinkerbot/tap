@@ -212,7 +212,7 @@ module Tap
     
     # Generates a Node from the block and enques. Returns the new node.
     def bq(*inputs, &block)
-      node = block.extend Node
+      node = Node.intern(&block)
       queue.enq(node, inputs)
       node
     end
@@ -242,7 +242,8 @@ module Tap
       # TODO: log starting run
       begin
         until queue.empty? || state != State::RUN
-          execute(*queue.deq)
+          node, inputs = queue.deq
+          execute(node, *inputs)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors
@@ -259,23 +260,20 @@ module Tap
     end
     
     # Executes the node with the specified inputs.
-    def execute(node, inputs)
+    def execute(node, *_inputs)
       claim(node) do
         node.resolve_dependencies
 
-        sources = []
-        inputs.collect! do |input| 
-          if input.kind_of?(Audit) 
-            sources << input
-            input.value
+        _inputs.collect! do |_input| 
+          if _input.kind_of?(Audit) 
+            _input
           else
-            sources << Audit.new(nil, input)
-            input
+            Audit.new(nil, _input)
           end
         end
       
         check_terminate
-        _result = Audit.new(node, node.call(*inputs), audit ? sources : nil)
+        _result = Audit.new(node, node.call(*_inputs), audit ? _inputs : nil)
         if join = (node.join || aggregator)
           claim(join) { join.call(_result) }
         end

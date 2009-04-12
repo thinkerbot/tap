@@ -5,21 +5,21 @@ module Tap
     # cannot take inputs and track their audited result.
     module Dependency
       
-      # The audited result of self
-      attr_accessor :_result
+      # The result of self
+      attr_accessor :result
       
       def self.extended(base) # :nodoc:
-        base.instance_variable_set(:@_result, nil)
+        base.instance_variable_set(:@result, nil)
       end
       
       # Conditional call; only calls if resolved? is false (thus assuring
       # self will only be executed once).  Note that call does not take
       # any inputs, and neither should the superclass call.
       #
-      # Returns _result.
+      # Returns result.
       def call
-        @_result = super unless resolved?
-        _result
+        @result = super unless resolved?
+        result
       end
       
       # Alias for call.
@@ -29,12 +29,12 @@ module Tap
       
       # True if _result is non-nil.
       def resolved?
-        @_result != nil
+        @result != nil
       end
       
       # Resets the dependency by setting _result to nil.
       def reset
-        @_result = nil
+        @result = nil
       end
     end
   end

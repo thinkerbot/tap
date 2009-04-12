@@ -20,7 +20,10 @@ module Tap
       
       # Interns a new Node by extending the block with Node. 
       def self.intern(&block)
-        block.extend self
+        lambda do |*_inputs|
+          _inputs.collect! {|_input| _input.value }
+          block.call(*_inputs)
+        end.extend self
       end
       
       # Sets up required variables for extended objects.

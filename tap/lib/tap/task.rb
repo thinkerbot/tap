@@ -1,8 +1,10 @@
+require 'tap/app'
+require 'tap/joins'
+require 'tap/root'
+
 autoload(:ConfigParser, 'config_parser')
 
 module Tap
-  autoload(:FileTask, 'tap/file_task')
-  
   module Support
     autoload(:Templater, 'tap/support/templater')
     autoload(:Intern, 'tap/support/intern')
@@ -111,7 +113,7 @@ module Tap
   #
   class Task
     include Configurable
-    include Support::Executable
+    include App::Node
     
     class << self
       # Returns class dependencies
@@ -132,7 +134,7 @@ module Tap
       # Returns an instance of self; the instance is a kind of 'global'
       # instance used in class-level dependencies.  See depends_on.
       def instance
-        @instance ||= new.extend(Support::Dependency)
+        @instance ||= new.extend(App::Dependency)
       end
       
       def inherited(child) # :nodoc:
@@ -163,13 +165,13 @@ module Tap
       # (implicitly to be enqued to the instance).  By default parse 
       # parses an argh then calls instantiate, but there is no requirement
       # that this occurs.
-      def parse(argv=ARGV, app=Tap::App.instance)
+      def parse(argv=ARGV)
         parse!(argv.dup)
       end
       
       # Same as parse, but removes switches destructively.
-      def parse!(argv=ARGV, app=Tap::App.instance)
-        instantiate(parse_argh(argv), app)
+      def parse!(argv=ARGV)
+        instantiate(parse_argh(argv))
       end
       
       def parse_argh(argv=ARGV)
@@ -222,26 +224,16 @@ module Tap
         }
       end
       
-      def instantiate(argh={}, app=Tap::App.instance)
+      def instantiate(argh={})
         name = argh[:name]
         config = argh[:config]
         config_file = argh[:config_file]
         args = argh[:args] || []
         
-        instance = new({}, name, app)
+        instance = new({}, name)
         instance.reconfigure(load_config(config_file)) if config_file
         instance.reconfigure(config) if config
         [instance, args]
-      end
-      
-      # A convenience method to parse the argv and execute the instance
-      # with the remaining arguments.  If 'help' is specified in the argv, 
-      # execute prints the help and exits.
-      #
-      # Returns the non-audited result.
-      def execute(argv=ARGV)
-        instance, args = parse(ARGV)
-        instance.execute(*args)
       end
 
       DEFAULT_HELP_TEMPLATE = %Q{<% manifest = task_class.manifest %>
@@ -267,57 +259,11 @@ module Tap
       # Recursively loads path into a nested configuration file.
       def load_config(path)
         # optimization to check for trivial paths
-        return {} if Root.trivial?(path)
+        return {} if Root::Utils.trivial?(path)
         
         Configurable::Utils.load_file(path, true) do |base, key, value|
           base[key] ||= value if base.kind_of?(Hash)
         end
-      end
-      
-      # Sets a sequence workflow pattern for the tasks; each task
-      # enques the next task with it's results, starting with self.
-      def sequence(*tasks) # :yields: _result
-        options = tasks[-1].kind_of?(Hash) ? tasks.pop : {}
-        
-        current_task = self
-        tasks.each do |next_task|
-          Join.new(options).join([current_task], [next_task])
-          current_task = next_task
-        end
-      end
-
-      # Sets a fork workflow pattern for self; each target will enque the
-      # results of self.
-      def fork(*targets) # :yields: _result
-        options = targets[-1].kind_of?(Hash) ? targets.pop : {}
-        Join.new(options).join([self], targets)
-      end
-
-      # Sets a simple merge workflow pattern for the source tasks. Each 
-      # source enques self with it's result; no synchronization occurs, 
-      # nor are results grouped before being enqued.
-      def merge(*sources) # :yields: _result
-        options = sources[-1].kind_of?(Hash) ? sources.pop : {}
-        Join.new(options).join(sources, [self])
-      end
-
-      # Sets a synchronized merge workflow for the source tasks.  Results 
-      # from each source are collected and enqued as a single group to
-      # self.  The collective results are not enqued until all sources
-      # have completed.  See Joins::SyncMerge.
-      def sync_merge(*sources) # :yields: _result
-        options = sources[-1].kind_of?(Hash) ? sources.pop : {}
-        Joins::SyncMerge.new(options).join(sources, [self])
-      end
-
-      # Sets a switch workflow pattern for self.  On complete, switch yields
-      # the audited result to the block and the block should return the index
-      # of the target to enque with the results. No target will be enqued if
-      # the index is false or nil.  An error is raised if no target can be
-      # found for the specified index. See Joins::Switch.
-      def switch(*targets, &block) # :yields: _result
-        options = targets[-1].kind_of?(Hash) ? targets.pop : {}
-        Joins::Switch.new(options).join([self], targets, &block)
       end
       
       protected
@@ -361,7 +307,7 @@ module Tap
         if name
           # returns the resolved result of the dependency
           define_method(name) do
-            dependency_class.instance.resolve.value
+            dependency_class.instance.resolve
           end
         
           public(name)
@@ -478,11 +424,10 @@ module Tap
     attr_accessor :name
 
     # Initializes a new Task.
-    def initialize(config={}, name=nil, app=App.instance)
+    def initialize(config={}, name=nil)
       @name = name || self.class.default_name
-      @app = app
-      @method_name = :execute_with_callbacks
-      @on_complete_block = nil
+      @app = nil
+      @join = nil
       @dependencies = []
       
       # initialize configs
@@ -492,8 +437,11 @@ module Tap
       self.class.dependencies.each do |dependency_class|
         depends_on(dependency_class.instance)
       end
-      
-      workflow
+    end
+    
+    def call(*_inputs)
+      inputs = _inputs.collect {|_input| _input.value }
+      process(*inputs)
     end
     
     # The method for processing inputs into outputs.  Override this method in
@@ -523,6 +471,52 @@ module Tap
       app.log(action, msg, level)
     end
     
+    # Sets a sequence workflow pattern for the tasks; each task
+    # enques the next task with it's results, starting with self.
+    def sequence(*tasks) # :yields: _result
+      options = tasks[-1].kind_of?(Hash) ? tasks.pop : {}
+      
+      current_task = self
+      tasks.each do |next_task|
+        Join.new(options).join([current_task], [next_task])
+        current_task = next_task
+      end
+    end
+
+    # Sets a fork workflow pattern for self; each target will enque the
+    # results of self.
+    def fork(*targets) # :yields: _result
+      options = targets[-1].kind_of?(Hash) ? targets.pop : {}
+      Join.new(options).join([self], targets)
+    end
+
+    # Sets a simple merge workflow pattern for the source tasks. Each 
+    # source enques self with it's result; no synchronization occurs, 
+    # nor are results grouped before being enqued.
+    def merge(*sources) # :yields: _result
+      options = sources[-1].kind_of?(Hash) ? sources.pop : {}
+      Join.new(options).join(sources, [self])
+    end
+
+    # Sets a synchronized merge workflow for the source tasks.  Results 
+    # from each source are collected and enqued as a single group to
+    # self.  The collective results are not enqued until all sources
+    # have completed.  See Joins::SyncMerge.
+    def sync_merge(*sources) # :yields: _result
+      options = sources[-1].kind_of?(Hash) ? sources.pop : {}
+      Joins::SyncMerge.new(options).join(sources, [self])
+    end
+
+    # Sets a switch workflow pattern for self.  On complete, switch yields
+    # the audited result to the block and the block should return the index
+    # of the target to enque with the results. No target will be enqued if
+    # the index is false or nil.  An error is raised if no target can be
+    # found for the specified index. See Joins::Switch.
+    def switch(*targets, &block) # :yields: _result
+      options = targets[-1].kind_of?(Hash) ? targets.pop : {}
+      Joins::Switch.new(options).join([self], targets, &block)
+    end
+    
     # Returns self.name
     def to_s
       name.to_s
@@ -533,39 +527,5 @@ module Tap
     def inspect
       "#<#{self.class.to_s}:#{object_id} #{name} #{config.to_hash.inspect} >"
     end
-    
-    protected
-
-    # Hook to define a workflow for defined tasks.
-    def workflow
-    end
-    
-    # Hook to execute code before inputs are processed.
-    def before_execute() end
-  
-    # Hook to execute code after inputs are processed.
-    def after_execute() end
-
-    # Hook to handle unhandled errors from processing inputs on a task level.  
-    # By default on_execute_error simply re-raises the unhandled error.
-    def on_execute_error(err)
-      raise err
-    end
-    
-    private
-    
-    # execute_with_callbacks is the method called by _execute
-    def execute_with_callbacks(*inputs) # :nodoc:
-      before_execute
-      begin
-        result = process(*inputs)
-      rescue
-        on_execute_error($!)
-      end
-      after_execute
-       
-      result
-    end
-    
   end
 end

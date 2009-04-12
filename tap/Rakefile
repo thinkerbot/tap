@@ -136,6 +136,16 @@ namespace :test do
     test_section :app
   end
   
+  desc 'run task tests'
+  task :task do
+    test %w{
+      test/tap/task_test.rb
+      test/tap/load_test.rb
+      test/tap/dump_test.rb
+      test/tap/join_test.rb
+    } + Dir['test/tap/joins/*_test.rb']
+  end
+  
   desc 'run schema tests'
   task :schema do
     test_section :schema

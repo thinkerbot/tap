@@ -1,4 +1,4 @@
-require 'tap/app/joins'
+require 'tap/joins'
 require 'tap/schema/node'
 autoload(:Shellwords, 'shellwords')
 

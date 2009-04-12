@@ -1,5 +1,5 @@
-require File.join(File.dirname(__FILE__), '../../../app_test_helper')
-require 'tap/app/joins'
+require File.join(File.dirname(__FILE__), '../../app_test_helper')
+require 'tap/joins'
 
 class SequenceTest < Test::Unit::TestCase
   include JoinTestMethods
@@ -9,10 +9,11 @@ class SequenceTest < Test::Unit::TestCase
   #
   
   def test_simple_sequence
-    t0, t1 = single_tracers(0,1)
+    t0 = single(0)
+    t1 = single(1)
     
     t0.sequence(t1)
-    t0.enq ""
+    app.enq t0, ""
     app.run
   
     assert_equal %w{
@@ -25,10 +26,11 @@ class SequenceTest < Test::Unit::TestCase
   end
   
   def test_stack_sequence
-    t0, t1 = single_tracers(0,1)
+    t0 = single(0)
+    t1 = single(1)
     
     t0.sequence(t1, :stack => true)
-    t0.enq ""
+    app.enq t0, ""
     app.run
   
     assert_equal %w{
@@ -41,11 +43,11 @@ class SequenceTest < Test::Unit::TestCase
   end
   
   def test_iterate_sequence
-    t0 = *multi_tracers(0)
-    t1 = *single_tracers(1)
+    t0 = array(0)
+    t1 = single(1)
   
     t0.sequence(t1, :iterate => true)
-    t0.enq ['a', 'b']
+    app.enq t0, ['a', 'b']
     app.run
   
     assert_equal %w{
@@ -60,11 +62,11 @@ class SequenceTest < Test::Unit::TestCase
   end
   
   def test_splat_sequence
-    t0 = *multi_tracers(0)
-    t1 = *splat_tracers(1)
+    t0 = array(0)
+    t1 = splat(1)
     
     t0.sequence(t1, :splat => true)
-    t0.enq ['a', 'b']
+    app.enq t0, ['a', 'b']
     app.run
   
     assert_equal %w{

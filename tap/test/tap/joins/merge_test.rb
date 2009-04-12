@@ -1,5 +1,5 @@
-require File.join(File.dirname(__FILE__), '../../../app_test_helper')
-require 'tap/app/joins'
+require File.join(File.dirname(__FILE__), '../../app_test_helper')
+require 'tap/joins'
 
 class MergeTest < Test::Unit::TestCase
   include JoinTestMethods
@@ -9,11 +9,13 @@ class MergeTest < Test::Unit::TestCase
   #
   
   def test_simple_merge
-    t0, t1, t2 = single_tracers(0,1,2)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = single(2)
     
     t2.merge(t0, t1)
-    t0.enq ''
-    t1.enq ''
+    app.enq t0, ''
+    app.enq t1, ''
     app.run
   
     assert_equal %w{
@@ -28,11 +30,13 @@ class MergeTest < Test::Unit::TestCase
   end
   
   def test_stack_merge
-    t0, t1, t2 = single_tracers(0,1,2)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = single(2)
     
     t2.merge(t0, t1, :stack => true)
-    t0.enq ''
-    t1.enq ''
+    app.enq t0, ''
+    app.enq t1, ''
     app.run
   
     assert_equal %w{
@@ -47,12 +51,13 @@ class MergeTest < Test::Unit::TestCase
   end
   
   def test_iterate_merge
-    t0, t1 = multi_tracers(0,1)
-    t2 = *single_tracers(2)
+    t0 = array(0)
+    t1 = array(1)
+    t2 = single(2)
   
     t2.merge(t0, t1, :iterate => true)
-    t0.enq ['a', 'b']
-    t1.enq ['c', 'd']
+    app.enq t0, ['a', 'b']
+    app.enq t1, ['c', 'd']
     app.run
   
     assert_equal %w{
@@ -71,12 +76,13 @@ class MergeTest < Test::Unit::TestCase
   end
   
   def test_splat_merge
-    t0, t1 = multi_tracers(0,1)
-    t2 = *splat_tracers(2)
+    t0 = array(0)
+    t1 = array(1)
+    t2 = splat(2)
     
     t2.merge(t0, t1, :splat => true)
-    t0.enq(['a', 'b'])
-    t1.enq(['a', 'b'])
+    app.enq t0, ['a', 'b']
+    app.enq t1, ['a', 'b']
     app.run
   
     assert_equal %w{

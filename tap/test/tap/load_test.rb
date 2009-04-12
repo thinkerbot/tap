@@ -2,19 +2,25 @@ require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/load'
 
 class Tap::LoadTest < Test::Unit::TestCase
-  include Tap
+  include Tap 
   
-  acts_as_tap_test 
-  
-  attr_accessor :load
+  attr_accessor :load, :method_root
   
   def setup
     super
     @load = Load.new
+    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
+  end
+  
+  def teardown
+    # clear out the output folder if it exists, unless flagged otherwise
+    unless ENV["KEEP_OUTPUTS"]
+      FileUtils.rm_r(method_root.root) if File.exists?(method_root.root)
+    end
   end
   
   def io(obj)
-    StringIO.new(obj.to_yaml)
+    StringIO.new YAML.dump(obj)
   end
   
   #
@@ -22,7 +28,7 @@ class Tap::LoadTest < Test::Unit::TestCase
   #
   
   def test_process_reads_input
-    str = {'one' => 1, 'two' => 2, 'three' => 3}.to_yaml
+    str = YAML.dump({'one' => 1, 'two' => 2, 'three' => 3})
     io = StringIO.new(str)
     assert_equal(str, load.process(io))
   end

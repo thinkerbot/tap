@@ -1,7 +1,6 @@
-require 'tap/app/join'
-require 'tap/app/joins/simple'
-require 'tap/app/joins/sync_merge'
-require 'tap/app/joins/switch'
+require 'tap/join'
+require 'tap/joins/sync_merge'
+require 'tap/joins/switch'
 
 module Tap
   class App

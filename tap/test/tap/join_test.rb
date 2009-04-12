@@ -1,9 +1,9 @@
-require File.join(File.dirname(__FILE__), '../../app_test_helper')
+require File.join(File.dirname(__FILE__), '../app_test_helper')
 require 'tap/app/join'
 
 class JoinTest < Test::Unit::TestCase
   include JoinTestMethods
-  Join = Tap::App::Join
+  Join = Tap::Join
   
   attr_accessor :join
   
@@ -42,11 +42,14 @@ class JoinTest < Test::Unit::TestCase
   #
   
   def test_simple_join
-    t0, t1, t2, t3 = single_tracers(0,1,2,3)
-
+    t0 = single(0)
+    t1 = single(1)
+    t2 = single(2)
+    t3 = single(3)
+    
     join.join([t0,t1], [t2,t3])
-    t0.enq ''
-    t1.enq ''
+    app.enq t0, ''
+    app.enq t1, ''
     app.run
   
     assert_equal %w{
@@ -66,12 +69,15 @@ class JoinTest < Test::Unit::TestCase
   end
   
   def test_stack_join
-    t0, t1, t2, t3 = single_tracers(0,1,2,3)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = single(2)
+    t3 = single(3)
     
     join.stack = true
     join.join([t0,t1], [t2,t3])
-    t0.enq ''
-    t1.enq ''
+    app.enq t0, ''
+    app.enq t1, ''
     app.run
   
     assert_equal %w{
@@ -92,13 +98,15 @@ class JoinTest < Test::Unit::TestCase
   end
   
   def test_iterate_join
-    t0, t1 = multi_tracers(0,1)
-    t2, t3 = single_tracers(2,3)
+    t0 = array(0)
+    t1 = array(1)
+    t2 = single(2)
+    t3 = single(3)
     
     join.iterate = true
     join.join([t0,t1], [t2,t3])
-    t0.enq ['a', 'b']
-    t1.enq ['c', 'd']
+    app.enq t0, ['a', 'b']
+    app.enq t1, ['c', 'd']
     app.run
   
     assert_equal %w{
@@ -128,14 +136,16 @@ class JoinTest < Test::Unit::TestCase
   end
   
   def test_splat_join
-    t0, t1 = multi_tracers(0,1)
-    t2, t3 = splat_tracers(2,3)
+    t0 = array(0)
+    t1 = array(1)
+    t2 = splat(2)
+    t3 = splat(3)
     
     join.splat = true
     join.join([t0,t1], [t2,t3])
     
-    t0.enq(['a', 'b'])
-    t1.enq(['a', 'b'])
+    app.enq t0, ['a', 'b']
+    app.enq t1, ['c', 'd']
     app.run
   
     assert_equal %w{
@@ -145,28 +155,30 @@ class JoinTest < Test::Unit::TestCase
     
     m0a = [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]], [0, "a 0"]]
     m0b = [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]], [1, "b 0"]]
-    m1a = [[nil, ["a", "b"]], [t1, ["a 1", "b 1"]], [0, "a 1"]]
-    m1b = [[nil, ["a", "b"]], [t1, ["a 1", "b 1"]], [1, "b 1"]]
+    m1a = [[nil, ["c", "d"]], [t1, ["c 1", "d 1"]], [0, "c 1"]]
+    m1b = [[nil, ["c", "d"]], [t1, ["c 1", "d 1"]], [1, "d 1"]]
     
     assert_equal [
       [[m0a, m0b], [t2, ['a 0 2', 'b 0 2']]],
-      [[m1a, m1b], [t2, ['a 1 2', 'b 1 2']]]
+      [[m1a, m1b], [t2, ['c 1 2', 'd 1 2']]]
     ], results[t2]
     
     assert_equal [
       [[m0a, m0b], [t3, ['a 0 3', 'b 0 3']]],
-      [[m1a, m1b], [t3, ['a 1 3', 'b 1 3']]]
+      [[m1a, m1b], [t3, ['c 1 3', 'd 1 3']]]
     ], results[t3]
   end
   
   def test_aggregate_join
-    t0, t1 = single_tracers(0,1)
-    t2, t3 = splat_tracers(2,3)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = splat(2)
+    t3 = splat(3)
     
     join.aggregate = true
     join.join([t0,t1], [t2,t3])
-    t0.enq ''
-    t1.enq ''
+    app.enq t0, ''
+    app.enq t1, ''
     app.run
   
     assert_equal %w{
@@ -187,15 +199,17 @@ class JoinTest < Test::Unit::TestCase
   end
   
   def test_aggregate_join_does_not_carry_over
-    t0, t1 = single_tracers(0,1)
-    t2, t3 = splat_tracers(2,3)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = splat(2)
+    t3 = splat(3)
     
     join.aggregate = true
     join.join([t0,t1], [t2,t3])
-    t0.enq ''
+    app.enq t0, ''
     app.run
     
-    t1.enq ''
+    app.enq t1, ''
     app.run
   
     assert_equal %w{
@@ -217,14 +231,16 @@ class JoinTest < Test::Unit::TestCase
   end
   
   def test_aggregate_join_does_not_carryover_when_aggregate_enques_task
-    t0, t1, t2 = single_tracers(0,1,2)
-    t3 = *splat_tracers(3)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = single(2)
+    t3 = splat(3)
     
     results = []
     t3.on_complete do |_result|
       unless runlist.include?('2')
-        t2.enq ''
-        t1.enq ''
+        app.enq t2, ''
+        app.enq t1, ''
       end
       result = _result.trail {|a| [a.key, a.value] }
       results << result
@@ -232,7 +248,7 @@ class JoinTest < Test::Unit::TestCase
     
     join.aggregate = true
     join.join([t0,t1], [t3])
-    t0.enq ''
+    app.enq t0, ''
     app.run
   
     assert_equal %w{
@@ -250,17 +266,20 @@ class JoinTest < Test::Unit::TestCase
   end
   
   def test_aggregate_join_does_not_double_execute_when_task_enques_to_aggregate_round
-    t0, t1, t2 = single_tracers(0,1,2)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = single(2)
+    t3 = splat(3)
+    
     t2.on_complete do |_result|
       app.queue.unshift(t1, [''])
       app.queue.unshift(t1, [''])
     end
-    t3 = *splat_tracers(3)
     
     join.aggregate = true
     join.join([t0,t1], [t3])
     
-    t0.enq ''
+    app.enq t0, ''
     app.queue.concat [[t2, ['']]]
     app.run
     

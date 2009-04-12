@@ -1,11 +1,13 @@
-require File.join(File.dirname(__FILE__), '../../../app_test_helper')
-require 'tap/app/joins'
+require File.join(File.dirname(__FILE__), '../../app_test_helper')
+require 'tap/joins'
 
 class SwitchTest < Test::Unit::TestCase
   include JoinTestMethods
   
   def test_simple_switch
-    t0, t1, t2 = single_tracers(0,1,2)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = single(2)
     
     index = nil
     t0.switch(t1, t2) do |_results|
@@ -14,7 +16,7 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick t1
     index = 0
-    t0.enq ""
+    app.enq t0, ""
     app.run
   
     assert_equal %w{
@@ -29,7 +31,7 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick t2
     index = 1
-    t0.enq ""
+    app.enq t0, ""
     app.run
   
     assert_equal %w{
@@ -47,7 +49,9 @@ class SwitchTest < Test::Unit::TestCase
   end
   
   def test_stack_switch
-    t0, t1, t2 = single_tracers(0,1,2)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = single(2)
     
     index = nil
     t0.switch(t1, t2, :stack => true) do |_results|
@@ -56,7 +60,7 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick t1
     index = 0
-    t0.enq ""
+    app.enq t0, ""
     app.run
   
     assert_equal %w{
@@ -72,7 +76,7 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick t2
     index = 1
-    t0.enq ""
+    app.enq t0, ""
     app.run
   
     assert_equal %w{
@@ -92,8 +96,9 @@ class SwitchTest < Test::Unit::TestCase
   end
   
   def test_iterate_switch
-    t0 = *multi_tracers(0)
-    t1, t2 = single_tracers(1,2)
+    t0 = array(0)
+    t1 = single(1)
+    t2 = single(2)
     
     index = nil
     t0.switch(t1, t2, :iterate => true) do |_results|
@@ -102,7 +107,7 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick t1
     index = 0
-    t0.enq ['a', 'b']
+    app.enq t0, ['a', 'b']
     app.run
   
     assert_equal %w{
@@ -119,7 +124,7 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick t2
     index = 1
-    t0.enq ['a', 'b']
+    app.enq t0, ['a', 'b']
     app.run
   
     assert_equal %w{
@@ -141,8 +146,9 @@ class SwitchTest < Test::Unit::TestCase
   end
   
   def test_splat_switch
-    t0 = *multi_tracers(0)
-    t1, t2 = splat_tracers(1,2)
+    t0 = array(0)
+    t1 = splat(1)
+    t2 = splat(2)
     
     index = nil
     t0.switch(t1, t2, :splat => true) do |_results|
@@ -154,7 +160,7 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick t1
     index = 0
-    t0.enq ['a', 'b']
+    app.enq t0, ['a', 'b']
     app.run
   
     assert_equal %w{
@@ -169,7 +175,7 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick t2
     index = 1
-    t0.enq ['a', 'b']
+    app.enq t0, ['a', 'b']
     app.run
   
     assert_equal %w{
@@ -187,12 +193,15 @@ class SwitchTest < Test::Unit::TestCase
   end
   
   def test_switch_raises_error_for_out_of_bounds_index
-    t0, t1, t2 = single_tracers(0,1,2)
+    t0 = single(0)
+    t1 = single(1)
+    t2 = single(2)
+    
     t0.switch(t1, t2) do |_results|
       100
     end
   
-    t0.enq ''
+    app.enq t0, ''
     assert_raises(RuntimeError) { app.run }
   end
 end
