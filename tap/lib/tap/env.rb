@@ -9,12 +9,15 @@ module Tap
     autoload(:Gems, 'tap/env/gems')
   
     class << self
-    
-      # Interns a new Env, overriding the instantiate method with the block.
-      def intern(*args, &block) # :yields: env, path
-        instance = new(*args).extend Intern(:instantiate)
-        instance.instantiate_block = block
-        instance
+      
+      # Loads configurations from path as YAML.  Returns an empty hash if the path
+      # loads to nil or false (as happens for empty files), or doesn't exist.
+      def load_config(path)
+        begin
+          Root::Utils.trivial?(path) ? {} : (YAML.load_file(path) || {})
+        rescue(Exception)
+          raise ConfigError.new($!, path)
+        end
       end
     end
   
@@ -29,6 +32,13 @@ module Tap
     # A hash of cached manifests
     attr_reader :manifests
   
+    # A hash of (path, Env) pairs used to prevent infinite loops of Env
+    # dependencies by assigning a single Env to a given path.
+    attr_reader :instances
+    
+    # The basename for dynamically loading configurations.  See new.
+    attr_reader :basename
+    
     # The Root directory structure for self.
     nest(:root, Root, :set_default => false)
   
@@ -38,15 +48,26 @@ module Tap
     # by Env.
     config_attr :gems, [] do |input|
       input = YAML.load(input) if input.kind_of?(String)
+      
       specs = case input
+      when :LATEST, :ALL
+        # latest and all, no filter
+        Gems.select_gems(input == :LATEST)
+        
       when :latest, :all
-        Gems.select_gems(input == :latest)
+        # latest and all, filtering by basename
+        Gems.select_gems(input == :latest) do |spec|
+          basename == nil || File.exists?(File.join(spec.full_gem_path, basename))
+        end
+        
       else
+        # resolve gem names manually
         [*input].collect do |name|
           Gems.gemspec(name)
         end.compact
       end
     
+      # sort specs to ensure they appear in the natural order
       @gems = specs.uniq.sort_by do |spec|
         spec.full_name
       end
@@ -54,13 +75,24 @@ module Tap
       reset_envs
     end
 
-    # Specify configuration files to load as nested Envs.
+    # Specify directories to load as nested Envs.
     config_attr :env_paths, [] do |input|
       @env_paths = resolve_paths(input)
       reset_envs
     end
-  
-    def initialize(config_or_dir=Dir.pwd)
+    
+    # Initializes a new Env linked to the specified directory.  A config file
+    # basename may be specified to load configurations from 'dir/basename' as
+    # YAML.  If a basename is specified, the same basename will be used to 
+    # load configurations for nested envs.
+    #
+    # Configurations may be manually provided in the place of dir.  In that
+    # case, the same rules apply for loading configurations for nested envs,
+    # but no configurations will be loaded for the current instance.
+    #
+    # Instances is used internally to prevent infinite loops of nested envs
+    # and should not be modified manually.
+    def initialize(config_or_dir=Dir.pwd, basename=nil, instances={})
       @manifests = {}
     
       # setup root
@@ -73,17 +105,35 @@ module Tap
         root = config.delete(:root) || Dir.pwd
         root.kind_of?(Root) ? root : Root.new(root)
       end
+      
+      # load configurations if specified
+      @basename = basename
+      if basename && !config
+        config = Env.load_config(File.join(path, basename))
+      end
+      
+      # set instances
+      @instances = instances
+      if instances.has_key?(path)
+        raise "instances contains an instance for: #{path}"
+      end
+      instances[path] = self
     
       # set these for reset_env
       @gems = nil
       @env_paths = nil
       initialize_config(config || {})
     end
-  
+    
+    # The path for self (root.root).  Path is used to key self in instances.
+    def path
+      root.root
+    end
+    
     # Sets envs removing duplicates and instances of self.  Setting envs
     # overrides any environments specified by env_path and gem.
     def envs=(envs)
-      @envs = envs.uniq.delete_if {|e| e == self }
+      @envs = envs.uniq.delete_if {|env| env == self }
     end
   
     # Unshifts env onto envs. Self cannot be unshifted onto self.
@@ -165,16 +215,15 @@ module Tap
     end
   
     protected
-  
+    
     # Returns the minikey for an env (ie env.root.root).
     def entry_to_minikey(env)
-      env.root.root
+      env.path
     end
-  
-    # Instantiates a new Env for the specified paths.  Provided as a hook for
-    # fancier initialization methods (ex from a config file).
-    def instantiate(path)
-      Env.new(path)
+    
+    # Instantiates a new Env for the specified paths.
+    def instantiate(path) # :nodoc:
+      instances[path] || Env.new(path, basename, instances)
     end
   
     # resets envs using the current env_paths and gems.  does nothing

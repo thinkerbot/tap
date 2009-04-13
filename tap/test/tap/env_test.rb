@@ -53,6 +53,24 @@ class EnvTest < Test::Unit::TestCase
     assert_equal({:key => 'value'}, e.root.relative_paths)
   end
   
+  def test_initialize_loads_configurations_from_basename
+    method_root.prepare('config.yml') do |io|
+      io << YAML.dump(:key => 'value')
+    end
+    
+    e = Env.new(method_root, 'config.yml')
+    assert_equal "value", e.config[:key]
+  end
+  
+  def test_initialize_does_not_load_configurations_if_configs_initialize_self
+    method_root.prepare('config.yml') do |io|
+      io << YAML.dump(:key => 'value')
+    end
+    
+    e = Env.new({:root => method_root}, 'config.yml')
+    assert_equal nil, e.config[:key]
+  end
+  
   #
   # env_paths test
   #
@@ -78,6 +96,47 @@ class EnvTest < Test::Unit::TestCase
       File.expand_path("one"),
       File.expand_path("two")
     ], e.envs.collect {|env| env.root.root }
+  end
+  
+  def test_set_env_recursively_initializes_configured_envs
+    one = method_root[:one]
+    two = method_root[:two]
+    three = method_root[:three]
+    
+    method_root.prepare(:one, 'config.yml') do |file| 
+      file << YAML.dump({:env_paths => two})
+    end
+    method_root.prepare(:two, 'config.yml') do |file| 
+      file << YAML.dump({:env_paths => three})
+    end
+    
+    # one loads one/config.yml, which sets two as an env
+    # two loads two/config.yml, which sets three as an env
+    e = Env.new({:env_paths => one}, "config.yml")
+    
+    assert_equal [one], e.envs.collect {|env| env.path }
+    assert_equal [two], e.envs[0].envs.collect {|env| env.path }
+    assert_equal [three], e.envs[0].envs[0].envs.collect {|env| env.path }
+  end
+  
+  def test_recursive_envs_do_not_infinitely_loop
+    one = method_root[:one]
+    two = method_root[:two]
+
+    method_root.prepare(:one, 'config.yml') do |file| 
+      file << YAML.dump({:env_paths => two})
+    end
+    method_root.prepare(:two, 'config.yml') do |file| 
+      file << YAML.dump({:env_paths => one})
+    end
+    
+    # one loads one/config.yml, which sets two as an env
+    # two loads two/config.yml, which sets one as an env
+    e = Env.new({:env_paths => one}, "config.yml")
+    
+    assert_equal [one], e.envs.collect {|env| env.path }
+    assert_equal [two], e.envs[0].envs.collect {|env| env.path }
+    assert_equal [one], e.envs[0].envs[0].envs.collect {|env| env.path }
   end
   
   #
@@ -180,7 +239,7 @@ class EnvTest < Test::Unit::TestCase
       assert gems.sort == e.gems.sort
     end
   end
-  
+
   #
   # envs= test
   #
