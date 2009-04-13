@@ -79,6 +79,19 @@ module Tap
         end
         nil
       end
+      
+      # Returns minimap as a hash of (minikey, value) pairs.
+      def minihash(reverse=false)
+        hash = {}
+        minimap.each do |key, value|
+          if reverse
+            hash[value] = key
+          else
+            hash[key] = value
+          end
+        end
+        hash
+      end
     
       protected
     

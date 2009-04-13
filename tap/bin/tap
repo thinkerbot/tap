@@ -16,7 +16,7 @@ require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 
 # setup the environment
 begin
-  env = Tap::Exe.setup(ARGV)
+  env = Tap::Exe.setup(Dir.pwd, ARGV)
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
@@ -25,47 +25,21 @@ rescue(Tap::Env::ConfigError)
 end
 
 #
-# setup after script
-#
-
-at_exit do
-  begin
-    eval(env.after) if env.after != nil
-  rescue(Exception)
-    puts "Error in after script."
-    env.handle_error($!)
-    exit(1)
-  end
-end
-
-#
-# run before script
-#
-
-begin
-  eval(env.before) if env.before != nil
-rescue(Exception)
-  puts "Error in before script."
-  env.handle_error($!)
-  exit(1)
-end 
-
-#
 # run tap
 #
 
-begin
-  env.activate
-  env.execute(ARGV) do
-    puts Lazydoc.usage(__FILE__)
-    puts
-    puts "available commands:"
-    puts env.summarize(:commands)
-    puts
-    puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
-  end
-rescue
-  env.handle_error($!)
+env.execute(ARGV) do
+  puts Lazydoc.usage(__FILE__)
+  puts
+  puts "available commands:"
+  puts env.commands.summarize(%Q{<% if count > 1 %>
+<%= env_name %>:
+<% end %>
+<% entries.each do |name, const| %>
+  <%= name.ljust(width) %>
+<% end %>})
+  puts
+  puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
 end
 
 exit(0)

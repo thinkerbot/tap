@@ -1,6 +1,7 @@
 require 'tap/root'
 require 'tap/env/manifest'
 require 'tap/support/intern'
+require 'tap/support/templater'
 autoload(:YAML, 'yaml')
 
 module Tap
@@ -195,6 +196,8 @@ module Tap
     # Creates a manifest with entries defined by the return of the block.  The
     # manifest will be cached in manifests if a key is provided.
     def manifest(key=nil, klass=Manifest) # :yields: env
+      return manifests[key] if manifests.has_key?(key)
+      
       if block_given?
         klass = Class.new(klass)
         klass.send(:define_method, :build) do
@@ -206,17 +209,47 @@ module Tap
       # cache the manifest if a key is specified
       if key
         if manifests.has_key?(key)
-          raise "a manifest already exists for: #{key}"
+          raise "a manifest already exists for: #{key} (#{inspect})"
         end
         manifests[key] = manifest
       end
     
       manifest
     end
-  
+    
+    def inspect(template=nil) # :yields: templater, attrs
+      return "#<#{self.class}:#{object_id} path='#{path}'>" if template == nil
+      
+      attrs = {}
+      collect do |env|
+        templater = Support::Templater.new(template, :env => env)
+        block_given? ? (yield(templater, attrs) ? templater : nil) : templater
+      end.compact.collect do |templater|
+        templater.build(attrs)
+      end.join
+    end
+    
+    def recursive_inspect(template=nil, *args) # :yields: templater, attrs
+      return "#<#{self.class}:#{object_id} path='#{path}'>" if template == nil
+      
+      attrs = {}
+      templaters = []
+      recursive_inject(args) do |argv, env|
+        templater = Support::Templater.new(template, :env => env)
+        next_args = block_given? ? yield(templater, attrs, *argv) : argv
+        templaters << templater if next_args
+        
+        next_args
+      end
+      
+      templaters.collect do |templater|
+        templater.build(attrs)
+      end.join
+    end
+    
     protected
     
-    # Returns the minikey for an env (ie env.root.root).
+    # Returns the minikey for an env (ie env.path).
     def entry_to_minikey(env)
       env.path
     end
@@ -275,6 +308,23 @@ module Tap
       end
     
       visited
+    end
+    
+    # Raised when there is a configuration error from Env.load_config.
+    class ConfigError < StandardError
+      attr_reader :original_error, :env_path
+      
+      def initialize(original_error, env_path)
+        @original_error = original_error
+        @env_path = env_path
+        super()
+      end
+      
+      def message
+        "Configuration error: #{original_error.message}\n" +
+        ($DEBUG ? "#{original_error.backtrace}\n" : "") + 
+        "Check '#{env_path}' configurations"
+      end
     end
   end
 end

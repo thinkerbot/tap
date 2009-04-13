@@ -10,15 +10,15 @@
 #   tap run -- load hello --: dump     Say hello
 #
 
-env = Tap::Env.instance
-app = Tap::App.instance
+env = Tap::Exe.instance
+app = env.app
 
 #
 # divide argv
 #
 
 argv = []
-break_regexp = Tap::Support::Parser::BREAK
+break_regexp = Tap::Schema::Parser::BREAK
 while !ARGV.empty? && ARGV[0] !~ break_regexp
   argv << ARGV.shift
 end

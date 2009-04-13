@@ -94,14 +94,38 @@ module Tap
         nil
       end
     
+      def summarize(template)
+        count = 0
+        width = 10
+
+        env_names = env.minihash(true)
+        env.inspect(template) do |templater, share|
+          env = templater.env
+          entries = manifest(env).minimap
+          next(false) if entries.empty?
+
+          templater.env_name = env_names[env]
+          templater.entries = entries
+
+          count += 1
+          entries.each do |entry_name, entry|
+            width = entry_name.length if width < entry_name.length
+          end
+
+          share[:count] = count
+          share[:width] = width
+          true
+        end
+      end
+  
       def inspect(traverse=true)
-        if traverse && bound?
+        if traverse
           lines = []
           env.each do |env|
             manifest = manifest(env)
             next if manifest.empty?
           
-            lines << "== #{env.root.root}"
+            lines << "== #{env.path}"
             manifest.minimap.each do |mini, value| 
               lines << "  #{mini}: #{value.inspect}"
             end
@@ -112,14 +136,14 @@ module Tap
         lines = minimap.collect do |mini, value| 
           "  #{mini}: #{value.inspect}"
         end
-        "#{self.class}:#{object_id} (#{bound? ? env.root.root : ''})\n#{lines.join("\n")}"
+        "#{self.class}:#{object_id} (#{env.path})\n#{lines.join("\n")}"
       end
     
       protected
     
       # helper method to lookup or initialize a manifest like self for env.
       def manifest(env) # :nodoc:
-        env.manifests[key] || env.manifest(key, self.class)
+        env.manifest(key, self.class)
       end
     end
   end

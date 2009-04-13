@@ -1,106 +1,96 @@
 require 'tap/env'
-require 'tap/app'
-require 'tap/support/schema'
+require 'tap/task'
+require 'tap/schema'
 
 module Tap
-  class Exe < Env
-    class << self
-      def setup(argv=ARGV)
-        if argv[-1] == '-d-'
-          argv.pop
-          $DEBUG = true 
-        end
-        
-        instantiate
+  module Exe
+    
+    # Adapted from Gem.find_home
+    def self.user_home
+      ['HOME', 'USERPROFILE'].each do |homekey|
+        return ENV[homekey] if ENV[homekey]
       end
-      
-      def instantiate(path_or_root=Dir.pwd)
-        exe = super
-        
-        # add all gems if no gems are specified (Note this is VERY SLOW ~ 1/3 the overhead for tap)
-        exe.gems = :all if !File.exists?(Tap::Env::DEFAULT_CONFIG_FILE)
-  
-        # add the default tap instance
-        exe.push Env.instantiate("#{File.dirname(__FILE__)}/../..")
-        exe
-      end
-      
-      def load_config(path)
-        super(GLOBAL_CONFIG_FILE).merge super(path)
-      end
-      
-      # Adapted from Gem.find_home
-      def user_home
-        ['HOME', 'USERPROFILE'].each do |homekey|
-          return ENV[homekey] if ENV[homekey]
-        end
-      
-        if ENV['HOMEDRIVE'] && ENV['HOMEPATH'] then
-          return "#{ENV['HOMEDRIVE']}#{ENV['HOMEPATH']}"
-        end
 
-        begin
-          File.expand_path("~")
-        rescue
-          File::ALT_SEPARATOR ? "C:/" : "/"
-        end
+      if ENV['HOMEDRIVE'] && ENV['HOMEPATH'] then
+        return "#{ENV['HOMEDRIVE']}#{ENV['HOMEPATH']}"
+      end
+
+      begin
+        File.expand_path("~")
+      rescue
+        File::ALT_SEPARATOR ? "C:/" : "/"
       end
     end
+
+    # Setup an execution environment.
+    def self.setup(dir=Dir.pwd, argv=ARGV)
+      if argv[-1] == '-d-'
+        argv.pop
+        $DEBUG = true 
+      end
+      
+      # load global configurations
+      path = File.join(dir, CONFIG_FILE)
+      user = Env.load_config(path)
+      global = Env.load_config(GLOBAL_CONFIG_FILE)
+      config = {
+        :root => dir,
+        :gems => :all
+      }.merge(global).merge(user)
+      
+      # instantiate
+      @instance = Env.new(config, CONFIG_FILE).extend Exe
+      
+      # add the tap env if necessary
+      unless @instance.instances.has_key?(File.join(TAP_HOME))
+        @instance.push Env.new(TAP_HOME) 
+      end
+      
+      @instance
+    end
     
-    config :before, nil
-    config :after, nil
+    def self.instance
+      @instance
+    end
     
-    # Specify files to require when self is activated.
-    config :requires, [], &c.array_or_nil
+    def self.extended(exe)
+      exe.app = Tap::App.new
+    end
     
-    # Specify files to load when self is activated.
-    config :loads, [], &c.array_or_nil
-    config :aliases, {}, &c.hash_or_nil
+    # The config file path
+    CONFIG_FILE = "tap.yml"
+    
+    # The home directory for Tap
+    TAP_HOME = File.expand_path("#{File.dirname(__FILE__)}/../..")
     
     # The global home directory
-    GLOBAL_HOME = File.join(Exe.user_home, ".tap")
+    GLOBAL_HOME = File.join(user_home, ".tap")
     
     # The global config file path
-    GLOBAL_CONFIG_FILE = File.join(GLOBAL_HOME, "tap.yml")
+    GLOBAL_CONFIG_FILE = File.join(GLOBAL_HOME, CONFIG_FILE)
     
-    def activate
-      if super      
-      
-        # perform requires
-        requires.each do |path|
-          require path
-        end
-      
-        # perform loads
-        loads.each do |path|
-          load path
-        end
-      end
-    end
+    attr_accessor :app
     
-    def handle_error(err)
-      case
-      when $DEBUG
-        puts err.message
-        puts
-        puts err.backtrace
-      else puts err.message
+    def commands
+      manifest(:commands) do |env|
+        command_paths = env.config[:command_paths] || :cmd
+        
+        paths = []
+        [*command_paths].each do |path_root|
+          paths.concat env.root.glob(path_root)
+        end
+        paths
       end
     end
     
     def execute(argv=ARGV)
       command = argv.shift.to_s
       
-      if aliases && aliases.has_key?(command)
-        aliases[command].reverse_each {|arg| argv.unshift(arg)}
-        command = argv.shift
-      end
-
       case command  
       when '', '--help'
         yield
       else
-        if path = commands.search(command)
+        if path = commands.seek(command)
           load path # run the command, if it exists
         else
           puts "Unknown command: '#{command}'"
@@ -156,41 +146,56 @@ module Tap
       const.constantize
     end
     
-    def set_signals(app=Tap::App.instance)
+    def set_signals(app)
       # info signal -- Note: some systems do 
       # not support the INFO signal 
       # (windows, fedora, at least)
       signals = Signal.list.keys
-      if signals.include?("INFO")
-        Signal.trap("INFO") do
-          puts app.info
-        end
-      end
+      Signal.trap("INFO") do
+        puts app.info
+      end if signals.include?("INFO")
 
       # interuption signal
-      if signals.include?("INT")
-        Signal.trap("INT") do
-          puts " interrupted!"
-          # prompt for decision
-          while true
-            print "stop, terminate, exit, or resume? (s/t/e/r):"
-            case gets.strip
-            when /s(top)?/i 
-              app.stop
-              break
-            when /t(erminate)?/i 
-              app.terminate
-              break
-            when /e(xit)?/i 
-              exit
-            when /r(esume)?/i 
-              break
-            else
-              puts "unexpected response..."
-            end
+      Signal.trap("INT") do
+        puts " interrupted!"
+        # prompt for decision
+        while true
+          print "stop, terminate, exit, or resume? (s/t/e/r):"
+          case gets.strip
+          when /s(top)?/i 
+            app.stop
+            break
+          when /t(erminate)?/i 
+            app.terminate
+            break
+          when /e(xit)?/i 
+            exit
+          when /r(esume)?/i 
+            break
+          else
+            puts "unexpected response..."
           end
         end
-      end
+      end if signals.include?("INT")
     end
+    
+    TEMPLATES = {}
+    
+    TEMPLATES[:tasks] = %Q{<% if count > 1 %>
+<%= env_name %>:
+<% end %>
+<% entries.each do |name, const| %>
+<%   desc = const.document[const.name]['manifest'] %>
+  <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
+<% end %>}
+
+    TEMPLATES[:generators] = %Q{<% if count > 1 %>
+<%= env_name %>:
+<% end %>
+<% entries.each do |name, const| %>
+<%   desc = const.document[const.name]['generator'] %>
+  <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
+<% end %>}
+
   end
 end
