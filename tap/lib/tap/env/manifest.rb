@@ -29,11 +29,17 @@ module Tap
         @entries = nil
         @cache = {}
       end
-    
+      
       # Determines entries for env.  By default build does nothing and must be
       # implemented in subclasses.
       def build
         @entries = []
+      end
+      
+      def build_all
+        env.each do |e|
+          manifest(e).build
+        end
       end
     
       # Identifies if self is built (ie entries are set).
@@ -61,6 +67,14 @@ module Tap
       # Iterates over each entry in self.
       def each
         entries.each {|entry| yield(entry) }
+      end
+      
+      def recursive_each
+        env.each do |e|
+          manifest(e).each do |entry|
+            yield(entry)
+          end
+        end
       end
     
       # Alias for seek.

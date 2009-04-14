@@ -24,74 +24,90 @@ ConfigParser.new do |opts|
   
 end.parse!(ARGV)
 
-env = Tap::Env.instance
-env_names = {}
-env.minimap.each do |env_name, environment|
-  env_names[environment] = env_name
-end
+env = Tap::Exe.instance
+env_keys = env.minihash(true)
 
 filter = case
-when ARGV.empty? then env_names.keys
+when ARGV.empty? then env_keys.keys
 else
   ARGV.collect do |name| 
-    unless entry = env.find(:envs, name, false) 
-      raise "could not find an env matching: #{name}"
-    end
-
-    entry[1]
+    env.minimatch(name) or raise "could not find an env matching: #{name}"
   end
 end
 
-template = %Q{#{'-' * 80}
-<%= (env_name + ':').ljust(width) %> (<%= env.root.root %>)
-<% manifests.each do |manifest_name, entries| %>
-  <%= manifest_name %>
-<%   entries.each do |name, path| %>
-    <%= name.ljust(width-4) %> (<%= path %>)
+template = %Q{<% unless manifests.empty? %>
+#{'-' * 80}
+<%= (env_key + ':').ljust(width) %> (<%= env.path %>)
+<% manifests.each do |manifest_key, entries| %>
+  <%= manifest_key %>
+<%   entries.each do |key, value| %>
+    <%= key.ljust(width-4) %> (<%= value %>)
 <%   end %>
+<% end %>
 <% end %>
 }
 
-width = 10
-summary = env.inspect(template) do |templater, share|
-  current = templater.env
-  next unless filter.include?(current)
+# build and collect manifests by (env, manifest_key)
+envs = {}
+[:commands, :tasks].each do |manifest_key|
+  manifest = env.send(manifest_key)
+  manifest.build_all
+  next if manifest.empty?
+  
+  manifest.cache.each_pair do |key, value|
+    next unless key.kind_of?(Tap::Env)
+    manifests = (envs[key] ||= {})
+    manifests[manifest_key] = value
+  end
+end
 
+summary = env.inspect(template, :width => 10) do |templater, globals|
+  current = templater.env
   manifests = []
-  [:commands, :generators, :tasks].each do |name|
-    manifest = current.send(name)
-    next if manifest.build.empty?
-    
-    entries = manifest.minimap.collect do |(entry, path)|
-      path = case path
-      when Tap::Support::Constant then path.require_path
-      else path
+  templater.manifests = manifests
+  next unless filter.include?(current)
+  
+  width = globals[:width]
+  env_key = env_keys[current]
+  templater.env_key = env_key
+  width = env_key.length if width < env_key.length
+  
+  envs[current].each_pair do |manifest_key, manifest|
+    entries = manifest.minimap.collect do |key, entry|
+      path = case entry
+      when Tap::Env::Constant
+        entry.require_path
+      else
+        entry
       end
   
-      width = entry.length if width < entry.length
-      [entry, current.root.relative_filepath(:root, path) || path]
+      width = key.length if width < key.length
+      [key, current.root.relative_path(:root, path) || path]
     end
     
-    manifests << [name, entries]
-  end
-  templater.manifests = manifests.compact
-  templater.env_name = env_names[current]
+    manifests << [manifest_key, entries]
+  end if envs.has_key?(current)
   
-  width = templater.env_name.length if width < templater.env_name.length
-  share[:width] = width + 2
+  globals[:width] = width
 end
 puts summary
 
 if ARGV.empty?
-  tree = env.recursive_inspect("<%= leader %><%= env_name %> \n", 0, nil) do |templater, share, nesting_depth, last|
-    current = templater.env
-    
-    templater.leader = nesting_depth == 0 ? "" : '|   ' * (nesting_depth - 1) + (last == current ? "`- " : "|- ")
-    templater.env_name = env_names[current]
+  templaters = []
+  globals = env.recursive_inject([0, nil]) do |(nesting_depth, last), current|
+    leader = nesting_depth == 0 ? "" : '|   ' * (nesting_depth - 1) + (last == current ? "`- " : "|- ")
+    templaters << Tap::Support::Templater.new("<%= leader %><%= env_key %> \n", 
+      :env_key => env_keys[current],
+      :leader => leader
+    )
     
     [nesting_depth + 1, current.envs[-1]]
   end
-  
+
+  tree = templaters.collect do |templater|
+    templater.build
+  end.join
+
   puts '-' * 80
   puts
   puts tree
