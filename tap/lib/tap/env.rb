@@ -212,6 +212,21 @@ module Tap
       klass.new(self, const_attr)
     end
     
+    def glob_config(key, pattern="**/*", defaults=[:root])
+      dirs = config[key] || defaults
+      
+      results = []
+      [*dirs].compact.collect! do |dir|
+        root[dir]
+      end.collect! do |dir|
+        paths = Dir.glob(File.join(dir, pattern))
+        paths.collect! {|path| yield(dir, path) } if block_given?
+        results.concat paths
+      end
+      results.uniq!
+      results
+    end
+    
     # All templaters are yielded to the block before any are built.  This
     # allows globals to be determined for all environments.
     def inspect(template=nil, globals={}, filename=nil) # :yields: templater, globals
@@ -221,33 +236,11 @@ module Tap
       
       env_keys = minihash(true)
       collect do |env|
-        templater = Support::Templater.new(template, 
-          :env => env, 
-          :env_key => env_keys[env]
-        )
-        
+        templater = Support::Templater.new(template, :env => env, :env_key => env_keys[env])
         yield(templater, globals) if block_given? 
         templater
-      end.collect do |templater|
+      end.collect! do |templater|
         templater.build(globals, filename)
-      end.join
-    end
-    
-    def recursive_inspect(template=nil, *args) # :yields: templater, attrs
-      return "#<#{self.class}:#{object_id} path='#{path}'>" if template == nil
-      
-      attrs = {}
-      templaters = []
-      recursive_inject(args) do |argv, env|
-        templater = Support::Templater.new(template, :env => env)
-        next_args = block_given? ? yield(templater, attrs, *argv) : argv
-        templaters << templater if next_args
-        
-        next_args
-      end
-      
-      templaters.collect do |templater|
-        templater.build(attrs)
       end.join
     end
     

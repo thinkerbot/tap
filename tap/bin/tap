@@ -14,7 +14,10 @@
 
 require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 
+#
 # setup the environment
+#
+
 begin
   env = Tap::Exe.setup(Dir.pwd, ARGV)
 rescue(Tap::Env::ConfigError)
@@ -28,22 +31,35 @@ end
 # run tap
 #
 
-env.constant_manifest(:manifest) do
+env.run(ARGV) do
+  template = %Q{<% unless entries.empty? || count <= 1 %>
+<%= env_key %>:
+<% end %>
+<% entries.each do |key, path| %>
+  <%= key.ljust(width) %>
+<% end %>}
+  commands = env.commands.inspect(template,
+    :count => 0,
+    :width => 10
+  ) do |templater, globals|
+    entries = templater.manifest.minimap
+    templater.entries = entries
+    
+    # determine width, count
+    width = globals[:width]
+    entries.each do |key, path|
+      width = key.length if width < key.length
+    end
+    globals[:width] = width
+    globals[:count] += 1 unless entries.empty?
+  end
   
+  puts Lazydoc.usage(__FILE__)
+  puts
+  puts "available commands:"
+  puts commands
+  puts
+  puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
 end
-
-# env.execute(ARGV) do
-#   puts Lazydoc.usage(__FILE__)
-#   puts
-#   puts "available commands:"
-#   puts env.commands.summarize(%Q{<% if count > 1 %>
-# <%= env_name %>:
-# <% end %>
-# <% entries.each do |name, const| %>
-#   <%= name.ljust(width) %>
-# <% end %>})
-#   puts
-#   puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
-# end
 
 exit(0)

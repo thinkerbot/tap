@@ -217,6 +217,10 @@ module Tap
       def inspect
         "#<#{self.class}:#{object_id} #{const_name}#{@require_path == nil ? "" : " (#{@require_path})"}>"
       end
+      
+      def minikey
+        path
+      end
     end
   end
 end

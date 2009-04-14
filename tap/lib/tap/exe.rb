@@ -72,18 +72,20 @@ module Tap
     attr_accessor :app
     
     def commands
-      manifest(:commands) do |env|
-        command_paths = env.config[:command_paths] || :cmd
-        
-        paths = []
-        [*command_paths].each do |path_root|
-          paths.concat env.root.glob(path_root)
-        end
-        paths
+      @commands ||= manifest do |env|
+        env.glob_config(:cmd_paths, "**/*.rb", :cmd)
       end
     end
     
-    def execute(argv=ARGV)
+    def tasks
+      @tasks ||= constant_manifest('manifest') do |env|
+        env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
+          [dir, path]
+        end
+      end
+    end
+    
+    def run(argv=ARGV)
       command = argv.shift.to_s
       
       case command  

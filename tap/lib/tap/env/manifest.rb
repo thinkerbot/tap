@@ -106,12 +106,13 @@ module Tap
         end
       end
       
-      SUMMARY_TEMPLATE = %Q{#{'-' * 80}
+      SUMMARY_TEMPLATE = %Q{<% unless entries.empty? %>
+#{'-' * 80}
 <%= (env_key + ':').ljust(width) %> (<%= env_path %>)
 <% entries.each do |key, value| %>
   <%= key.ljust(width-2) %> (<%= value %>)
 <% end %>
-}
+<% end %>}
 
       def summarize
         inspect(SUMMARY_TEMPLATE, :width => 10) do |templater, globals|
@@ -123,15 +124,14 @@ module Tap
 
           # determine width
           width = env_key.length if width < env_key.length
-          entries.collect! do |key, value|
+          entries.each do |key, value|
             width = key.length if width < key.length
-            [key, Root::Utils.relative_path(env_path, value) || value]
           end
           globals[:width] = width
 
           # assign locals
           templater.entries = entries
-          templater.env_path = Root::Utils.relative_path(Dir.pwd, env.path) || env.path
+          templater.env_path = env.path
         end
       end
             
