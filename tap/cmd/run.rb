@@ -11,23 +11,22 @@
 #
 
 env = Tap::Exe.instance
-app = env.app
+app = Tap::App.new
 
 #
-# divide argv
+# parse argv
 #
 
+# separate out argv schema
 argv = []
 break_regexp = Tap::Schema::Parser::BREAK
 while !ARGV.empty? && ARGV[0] !~ break_regexp
   argv << ARGV.shift
 end
 
-#
-# handle options
-#
-
+# parse options
 dump = false
+schemas = []
 ConfigParser.new do |opts|
   opts.separator ""
   opts.separator "configurations:"
@@ -59,20 +58,26 @@ ConfigParser.new do |opts|
       puts "(did you mean 'tap run -- #{path}'?)"
       exit
     end
-
-    schema = Tap::Support::Schema.load_file(path)
-    env.build(schema, app)
+    
+    schemas << Tap::Schema.load_file(path)
   end
   
 end.parse!(argv, app.config)
 
+# parse argv schema
+schemas << Tap::Schema.parse(ARGV)
+ARGV.replace(argv)
+
 #
-# build and run the argv
+# build and run
 #
 
-schema = Tap::Support::Schema.parse(ARGV)
-env.build(schema, app)
-ARGV.replace(argv)
+manifests = env.manifests
+schemas.each do |schema|
+  env.build(schema, manifests).each do |queue|
+    app.queue.concat(queue)
+  end
+end
 
 if app.queue.empty?
   puts "no task specified"
@@ -82,5 +87,5 @@ if app.queue.empty?
   exit
 end
 
-env.set_signals
+env.set_signals(app)
 app.run

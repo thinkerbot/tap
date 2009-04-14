@@ -1,4 +1,6 @@
 module Tap
+  
+  # ::join
   class Join
     class << self
       def parse(argv=ARGV)

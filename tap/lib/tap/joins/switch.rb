@@ -1,6 +1,7 @@
 module Tap
   module Joins
-      
+    
+    # ::join
     # A Switch join allows a block to determine which output from an array
     # of outputs will receive the results of the input.
     class Switch < Join

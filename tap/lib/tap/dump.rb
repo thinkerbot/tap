@@ -53,7 +53,7 @@ module Tap
     config :date_format, '%Y-%m-%d %H:%M:%S'             # The date format
     
     def call(_input)
-      _audit = Support::Audit.new(self, _input.value, app.audit ? _input : nil)
+      _audit = App::Audit.new(self, _input.value, app.audit ? _input : nil)
       process(_audit)
     end
     
