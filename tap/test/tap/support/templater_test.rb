@@ -65,4 +65,12 @@ end}
     t = Templater.new erb, {:attr => 'value'}
     assert_equal "key: valuevalue", t.build
   end
+  
+  def test_build_sets_filename_if_specified
+    t = Templater.new %Q{<% raise 'error!' %>}
+    err = assert_raises(RuntimeError) { t.build({}, 'filename') }
+    assert_equal 'error!', err.message
+    assert err.backtrace[0] =~ /filename:1:in /
+  end
+  
 end
