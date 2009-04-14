@@ -5,7 +5,7 @@ require 'tap/root'
 class ManifestTest < Test::Unit::TestCase
   Manifest = Tap::Env::Manifest
   
-  attr_reader :m
+  attr_reader :m, :e
   
   class MockEnv
     attr_reader :root, :envs
@@ -16,7 +16,9 @@ class ManifestTest < Test::Unit::TestCase
   end
   
   def setup
-    @m = Manifest.new MockEnv.new
+    @e = MockEnv.new
+    builder = lambda { [] }
+    @m = Manifest.new(e, builder)
   end
   
   #
@@ -24,8 +26,12 @@ class ManifestTest < Test::Unit::TestCase
   #
   
   def test_initialize
-    m = Manifest.new MockEnv.new
+    b = lambda {}
+    m = Manifest.new e, b
+    assert_equal e, m.env
     assert_equal nil, m.entries(false)
+    assert_equal b, m.builder
+    assert_equal({}, m.cache)
     assert !m.built?
   end
   
@@ -33,10 +39,12 @@ class ManifestTest < Test::Unit::TestCase
   # build test
   #
   
-  def test_build_sets_entries_to_env_root_glob
+  def test_build_sets_entries_to_builder_result
+    builder = lambda { :result }
+    m = Manifest.new(e, builder) 
     assert_equal nil, m.entries(false)
     m.build
-    assert_equal [], m.entries(false)
+    assert_equal :result, m.entries(false)
   end
   
   #
@@ -65,6 +73,12 @@ class ManifestTest < Test::Unit::TestCase
     assert_equal [], m.entries(false)
     m.reset
     assert_equal nil, m.entries(false)
+  end
+  
+  def test_reset_clears_cache
+    m.cache[:key] = 'value'
+    m.reset
+    assert_equal({}, m.cache)
   end
   
   #

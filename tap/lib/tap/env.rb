@@ -1,5 +1,5 @@
 require 'tap/root'
-require 'tap/env/manifest'
+require 'tap/env/constant_manifest'
 require 'tap/support/intern'
 require 'tap/support/templater'
 autoload(:YAML, 'yaml')
@@ -30,16 +30,13 @@ module Tap
     # + gem environments (in that order).
     attr_reader :envs
   
-    # A hash of cached manifests
-    attr_reader :manifests
-  
     # A hash of (path, Env) pairs used to prevent infinite loops of Env
     # dependencies by assigning a single Env to a given path.
     attr_reader :instances
     
     # The basename for dynamically loading configurations.  See new.
     attr_reader :basename
-    
+
     # The Root directory structure for self.
     nest(:root, Root, :set_default => false)
   
@@ -94,8 +91,6 @@ module Tap
     # Instances is used internally to prevent infinite loops of nested envs
     # and should not be modified manually.
     def initialize(config_or_dir=Dir.pwd, basename=nil, instances={})
-      @manifests = {}
-    
       # setup root
       config = nil
       @root = case config_or_dir
@@ -195,26 +190,12 @@ module Tap
   
     # Creates a manifest with entries defined by the return of the block.  The
     # manifest will be cached in manifests if a key is provided.
-    def manifest(key=nil, klass=Manifest) # :yields: env
-      return manifests[key] if manifests.has_key?(key)
-      
-      if block_given?
-        klass = Class.new(klass)
-        klass.send(:define_method, :build) do
-          @entries = yield(env)
-        end
-      end
-      manifest = klass.new(self, key)
+    def manifest(&block) # :yields: env 
+      Manifest.new(self, block)
+    end
     
-      # cache the manifest if a key is specified
-      if key
-        if manifests.has_key?(key)
-          raise "a manifest already exists for: #{key} (#{inspect})"
-        end
-        manifests[key] = manifest
-      end
-    
-      manifest
+    def constant_manifest(const_attr, &block)
+      ConstantManifest.new(self, block, const_attr.to_s)
     end
     
     def inspect(template=nil) # :yields: templater, attrs

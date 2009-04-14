@@ -28,18 +28,22 @@ end
 # run tap
 #
 
-env.execute(ARGV) do
-  puts Lazydoc.usage(__FILE__)
-  puts
-  puts "available commands:"
-  puts env.commands.summarize(%Q{<% if count > 1 %>
-<%= env_name %>:
-<% end %>
-<% entries.each do |name, const| %>
-  <%= name.ljust(width) %>
-<% end %>})
-  puts
-  puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
+env.constant_manifest(:manifest) do
+  
 end
+
+# env.execute(ARGV) do
+#   puts Lazydoc.usage(__FILE__)
+#   puts
+#   puts "available commands:"
+#   puts env.commands.summarize(%Q{<% if count > 1 %>
+# <%= env_name %>:
+# <% end %>
+# <% entries.each do |name, const| %>
+#   <%= name.ljust(width) %>
+# <% end %>})
+#   puts
+#   puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
+# end
 
 exit(0)

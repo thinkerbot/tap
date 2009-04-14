@@ -20,20 +20,24 @@ module Tap
       # The environment this manifest summarizes
       attr_reader :env
     
-      # The key for accessing self in env.manifests
-      attr_reader :key
+      # The builder called to determine entries
+      attr_reader :builder
+      
+      # A hash of cached data
+      attr_reader :cache
     
       # Initializes a new Manifest.
-      def initialize(env, key=nil)
-        @entries = nil
+      def initialize(env, builder)
         @env = env
-        @key = key
+        @builder = builder
+        @entries = nil
+        @cache = {}
       end
     
       # Determines entries for env.  By default build does nothing and must be
       # implemented in subclasses.
       def build
-        @entries = []
+        @entries = builder.call(env)
       end
     
       # Identifies if self is built (ie entries are set).
@@ -44,6 +48,7 @@ module Tap
       # Resets a build.
       def reset
         @entries = nil
+        @cache.clear
       end
     
       # Returns the entries in self.  Builds self if necessary and allowed.
@@ -140,10 +145,14 @@ module Tap
       end
     
       protected
-    
+      
+      def another(env) # :nodoc:
+        Manifest.new(env, builder)
+      end
+      
       # helper method to lookup or initialize a manifest like self for env.
       def manifest(env) # :nodoc:
-        env.manifest(key, self.class)
+        cache[env] ||= (env == self.env ? self : another(env))
       end
     end
   end

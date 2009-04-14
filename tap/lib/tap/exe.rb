@@ -99,19 +99,16 @@ module Tap
       end
     end
     
-    def build(schema, app=Tap::App.instance) 
-      queues = schema.build do |type, argh|
+    def build(schema) 
+      schema.build do |type, argh|
+        
+        
         if type == :join
           instantiate_join(argh)
         else
           instantiate_task(argh, app)
         end
       end
-      
-      # Note this should happen in build... may need updates
-      # to queue to do so
-      queues.each {|queue| app.queue.concat(queue) }
-      app
     end
     
     def instantiate_join(metadata)

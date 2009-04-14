@@ -73,16 +73,11 @@ module Tap
     # (ex '/' on *nix or something like 'C:/' on Windows).
     attr_reader :path_root
   
-    # A cache of metadata associated with self.
-    attr_accessor :cache
-  
     # Creates a new Root from the specified configurations.  A directory may be
     # provided instead of a configuration hash; in that case no aliased relative
     # or absolute paths are specified.  By default root is the present working
     # directory.
-    def initialize(config_or_dir=Dir.pwd, cache={})
-      @cache = cache
-      
+    def initialize(config_or_dir=Dir.pwd)
       # root, relative_paths, and absolute_paths are assigned manually as
       # an optimization (otherwise assign_paths would get called once for
       # each configuration)
@@ -279,48 +274,6 @@ module Tap
     # will be returned.
     def version_glob(als, path, *vpatterns)
       super(path(als, path), *vpatterns)
-    end
-  
-    #--
-    # Implementation note:
-    #
-    # Note that the scanned constants are NOT cached in Documents.  Documents
-    # track constant attributes at a global level to ensure all attributes from
-    # all files are properly associated with one constant.  This works fine
-    # if a constant attribute is only declared once.  In environments, and 
-    # contexts where Roots get used, there are potentially several places a
-    # constant attribute will be defined (ex when multiple versions declare
-    # the same constant).  Hence the attribute value is not added to the
-    # Lazydoc environment.
-    #
-    def constant_glob(als, const_attr, *patterns)
-      const_attr = const_attr.to_s
-      constants = []
-      glob(als, *patterns).each do |path|
-        next unless File.file?(path)
-      
-        unless cache.has_key?(path)
-          const_names = cache[path] = {}
-        
-          default_const_name = relative_path(als, path).chomp(File.extname(path)).camelize
-          Lazydoc::Document.scan(File.read(path), "[a-z]+") do |const_name, key, value|
-            const_name = default_const_name if const_name.empty?
-          
-            # cache the key-value pair
-            attributes = const_names[const_name] ||= {}
-            attributes[key] = value
-          end
-        end
-      
-        # collect matching constants from the cache
-        cache[path].each_pair do |const_name, attributes|
-          if comment = attributes[const_attr]
-            constants << Env::Constant.new(const_name, path, comment)
-          end
-        end
-      end
-    
-      constants
     end
   
     # Changes pwd to the specified directory using Root.chdir.

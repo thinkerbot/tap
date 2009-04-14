@@ -9,8 +9,8 @@ class EnvTest < Test::Unit::TestCase
   attr_reader :e, :method_root
   
   def setup
-    @e = Env.new
     @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
+    @e = Env.new @method_root
   end
   
   def teardown
@@ -86,15 +86,15 @@ class EnvTest < Test::Unit::TestCase
   def test_duplicate_envs_and_env_paths_are_filtered
     e.env_paths = ["path/to/dir", "path/to/dir"]
     assert_equal [
-      File.expand_path("path/to/dir")
+      method_root.path("path/to/dir")
     ], e.envs.collect {|env| env.root.root } 
   end
   
   def test_set_env_paths_loads_string_inputs_as_yaml
     e.env_paths = "[one, two]"
     assert_equal [
-      File.expand_path("one"),
-      File.expand_path("two")
+      method_root.path("one"),
+      method_root.path("two")
     ], e.envs.collect {|env| env.root.root }
   end
   
@@ -447,7 +447,7 @@ a (0)
     e2 = Env.new(Env::Root.new("/path/to/e2"))
     e1.push e2
     
-    m = e1.manifest(:items) do |env|
+    m = e1.manifest do |env|
       [ "/path/to/one-0.1.0.txt",
         "/path/to/two.txt",
         "/path/to/another/one.txt",
@@ -490,4 +490,77 @@ a (0)
     assert_nil m.seek("non_existant")
   end
 
+  #
+  # constant_manifest test
+  #
+
+  def test_constant_manifest_caches_all_constant_attributes_along_globbed_paths
+    path = method_root.prepare("implicit.rb") do |io|
+      io << %q{
+# A::one comment a one
+# A::two comment a two
+# ::one comment implicit one
+# ::two comment implicit two
+}
+    end
+    
+    m = e.constant_manifest(:const) do |env|
+      env.root.glob(:root).collect {|path| [env.root.root, path] }
+    end
+    
+    assert_equal({}, m.cache)
+    m.build
+    assert_equal({
+      path => {
+        "A" => {
+          "one" => "comment a one",
+          "two" => "comment a two" },
+        "Implicit" => {
+          "one" => "comment implicit one",
+          "two" => "comment implicit two"}
+      }
+    }, m.cache)
+  end
+  
+  def test_constant_glob_stores_comment_in_constant
+    path = method_root.prepare("a.rb") do |io|
+      io << "# A::one comment"
+    end
+    
+    m = e.constant_manifest(:one) do |env|
+      env.root.glob(:root).collect {|path| [env.root.root, path] }
+    end
+    assert_equal ["comment"], m.collect {|c| c.comment }
+  end
+  
+  def test_constant_glob_returns_constants_in_the_globed_paths_with_the_specified_attribute
+    method_root.prepare("a.rb") do |io| 
+      io.puts "# A::a"
+      io.puts "# A::z"
+    end
+    method_root.prepare("b.rb") do |io| 
+      io.puts "# B::b"
+      io.puts "# B::z"
+    end
+    
+    m = e.constant_manifest(:a) do |env|
+      env.root.glob(:root).collect {|path| [env.root.root, path] }
+    end
+    assert_equal ["A"], m.collect {|c| c.const_name }
+  
+    m = e.constant_manifest(:b) do |env|
+      env.root.glob(:root).collect {|path| [env.root.root, path] }
+    end
+    assert_equal ["B"], m.collect {|c| c.const_name }
+  
+    m = e.constant_manifest(:z) do |env|
+      env.root.glob(:root).collect {|path| [env.root.root, path] }
+    end
+    assert_equal ["A", "B"], m.collect {|c| c.const_name }
+  
+    m = e.constant_manifest(:z) do |env|
+      env.root.glob(:root, 'a.rb').collect {|path| [env.root.root, path] }
+    end
+    assert_equal ["A"], m.collect {|c| c.const_name }
+  end
 end

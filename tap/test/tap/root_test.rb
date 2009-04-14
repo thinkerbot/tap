@@ -615,58 +615,6 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
-  # constant_glob test
-  #
-  
-  def test_constant_glob_caches_all_constant_attributes_along_globbed_paths
-    assert_equal({}, tr.cache)
-    tr.constant_glob(:constant_glob, :const, "implicit.rb")
-    
-    path = tr.path(:constant_glob, "implicit.rb")
-    assert_equal({
-      path => {
-        "A" => {
-          "one" => "comment a one",
-          "two" => "comment a two" },
-        "Implicit" => {
-          "one" => "comment implicit one",
-          "two" => "comment implicit two"}
-      }
-    }, tr.cache)
-  end
-  
-  def test_constant_glob_selects_constants_from_cache
-    path = tr.path(:constant_glob, "implicit.rb")
-    tr.cache = {
-      path => {
-        "B" => {"one" => ""}
-      }
-    }
-    
-    constants = tr.constant_glob(:constant_glob, :one, "implicit.rb")
-    assert_equal ["B"], constants.collect {|c| c.const_name }
-  end
-  
-  def test_constant_glob_stores_comment_in_constant
-    constants = tr.constant_glob(:constant_glob, :one, "implicit.rb")
-    assert_equal ["comment a one", "comment implicit one"], constants.collect {|c| c.comment }
-  end
-  
-  def test_constant_glob_returns_constants_in_the_globed_paths_with_the_specified_attribute
-    constants = tr.constant_glob(:constant_glob, :a)
-    assert_equal ["Const"], constants.collect {|c| c.const_name }
-    
-    constants = tr.constant_glob(:constant_glob, :b)
-    assert_equal ["Nest::Const"], constants.collect {|c| c.const_name }
-    
-    constants = tr.constant_glob(:constant_glob, :const)
-    assert_equal ["Const", "Nest::Const"], constants.collect {|c| c.const_name }
-    
-    constants = tr.constant_glob(:constant_glob, :const, "nest/const.rb")
-    assert_equal ["Nest::Const"], constants.collect {|c| c.const_name }
-  end
-  
-  #
   # prepare test
   #
   
