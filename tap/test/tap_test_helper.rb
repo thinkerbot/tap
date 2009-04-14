@@ -15,6 +15,23 @@ not been initialized. Use these commands and try again:
   raise
 end
 
+module MethodRoot
+  attr_reader :method_root
+  
+  def setup
+    super
+    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
+  end
+  
+  def teardown
+    # clear out the output folder if it exists, unless flagged otherwise
+    unless ENV["KEEP_OUTPUTS"]
+      FileUtils.rm_r(method_root.root) if File.exists?(method_root.root)
+    end
+    super
+  end
+end unless Object.const_defined?(:MethodRoot)
+
 module HelperMethods
   def match_platform?(*platforms)
     platforms.each do |platform|

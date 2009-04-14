@@ -417,10 +417,10 @@ a (0)
   #
   
   def test_seek_for_manifest
-    a_one = method_root.prepare("a/one.txt") {|io| io << "::one"}
-    a_two = method_root.prepare("a/two.txt") {|io| io << "::two"}
-    b_one = method_root.prepare("b/one.txt") {|io| io << "::one"}
-    b_three = method_root.prepare("b/three.txt") {|io| io << "::three"}
+    a_one = method_root.prepare("a/one.txt") { }
+    a_two = method_root.prepare("a/two.txt") { }
+    b_one = method_root.prepare("b/one.txt") { }
+    b_three = method_root.prepare("b/three.txt") { }
     
     e1 = Env.new(method_root['a'])
     e2 = Env.new(method_root['b'])
@@ -491,76 +491,83 @@ a (0)
   end
 
   #
-  # constant_manifest test
+  # manifest.inspect test
   #
-
-  def test_constant_manifest_caches_all_constant_attributes_along_globbed_paths
-    path = method_root.prepare("implicit.rb") do |io|
-      io << %q{
-# A::one comment a one
-# A::two comment a two
-# ::one comment implicit one
-# ::two comment implicit two
+  
+  def test_inspect_for_manifest
+    a_one = method_root.prepare("a/one.txt") {|io| io << "::one"}
+    a_two = method_root.prepare("a/two.txt") {|io| io << "::two"}
+    b_one = method_root.prepare("b/one.txt") {|io| io << "::one"}
+    b_three = method_root.prepare("b/three.txt") {|io| io << "::three"}
+    
+    e1 = Env.new(method_root['a'])
+    e2 = Env.new(method_root['b'])
+    e1.push e2
+    
+    m = e1.manifest do |env|
+      env.root.glob(:root)
+    end
+    
+    template = %Q{<%= env_key %>:
+<% manifest.minimap.each do |key, value| %>
+  <%= key %>: <%= File.basename(value) %>
+<% end %>
 }
-    end
-    
-    m = e.constant_manifest(:const) do |env|
-      env.root.glob(:root).collect {|path| [env.root.root, path] }
-    end
-    
-    assert_equal({}, m.cache)
-    m.build
-    assert_equal({
-      path => {
-        "A" => {
-          "one" => "comment a one",
-          "two" => "comment a two" },
-        "Implicit" => {
-          "one" => "comment implicit one",
-          "two" => "comment implicit two"}
-      }
-    }, m.cache)
+
+    assert_equal %q{
+a:
+  one: one.txt
+  two: two.txt
+b:
+  one: one.txt
+  three: three.txt
+}, "\n" + m.inspect(template)
   end
   
-  def test_constant_glob_stores_comment_in_constant
-    path = method_root.prepare("a.rb") do |io|
-      io << "# A::one comment"
-    end
+  #
+  # inspect test
+  #
+  
+  def test_inspect_visits_ERB_template_with_each_env_and_env_key
+    a,b,c,d,e = ('a'..'e').collect {|name| Env.new(name) }
+
+    a.push(b).push(c)
+    b.push(d).push(e)
     
-    m = e.constant_manifest(:one) do |env|
-      env.root.glob(:root).collect {|path| [env.root.root, path] }
-    end
-    assert_equal ["comment"], m.collect {|c| c.comment }
+    template = "\n<%= env_key %><%= env.object_id %>"
+    expected =  %Q{
+a#{a.object_id}
+b#{b.object_id}
+d#{d.object_id}
+e#{e.object_id}
+c#{c.object_id}}
+    assert_equal expected, a.inspect(template)
   end
   
-  def test_constant_glob_returns_constants_in_the_globed_paths_with_the_specified_attribute
-    method_root.prepare("a.rb") do |io| 
-      io.puts "# A::a"
-      io.puts "# A::z"
-    end
-    method_root.prepare("b.rb") do |io| 
-      io.puts "# B::b"
-      io.puts "# B::z"
-    end
+  def test_inspect_passes_templates_to_block_before_templating
+    a,b,c = ('a'..'c').collect {|name| Env.new(name) }
+
+    a.push(b)
+    b.push(c)
     
-    m = e.constant_manifest(:a) do |env|
-      env.root.glob(:root).collect {|path| [env.root.root, path] }
+    count = 0
+    result = a.inspect("<%= count %>") do |templater, globals|
+      count += 1
+      templater.count = count
     end
-    assert_equal ["A"], m.collect {|c| c.const_name }
+    assert_equal "123", result
+  end
   
-    m = e.constant_manifest(:b) do |env|
-      env.root.glob(:root).collect {|path| [env.root.root, path] }
+  def test_inspect_passes_globals_to_template
+    a,b,c = ('a'..'c').collect {|name| Env.new(name) }
+
+    a.push(b)
+    b.push(c)
+    
+    result = a.inspect("<%= count %>(<%= total %>)\n", :total => 0) do |templater, globals|
+      globals[:total] += 1
+      templater.count = globals[:total]
     end
-    assert_equal ["B"], m.collect {|c| c.const_name }
-  
-    m = e.constant_manifest(:z) do |env|
-      env.root.glob(:root).collect {|path| [env.root.root, path] }
-    end
-    assert_equal ["A", "B"], m.collect {|c| c.const_name }
-  
-    m = e.constant_manifest(:z) do |env|
-      env.root.glob(:root, 'a.rb').collect {|path| [env.root.root, path] }
-    end
-    assert_equal ["A"], m.collect {|c| c.const_name }
+    assert_equal "1(3)\n2(3)\n3(3)\n", result
   end
 end

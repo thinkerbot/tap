@@ -20,16 +20,12 @@ module Tap
       # The environment this manifest summarizes
       attr_reader :env
     
-      # The builder called to determine entries
-      attr_reader :builder
-      
       # A hash of cached data
-      attr_reader :cache
+      attr_accessor :cache
     
       # Initializes a new Manifest.
-      def initialize(env, builder)
+      def initialize(env)
         @env = env
-        @builder = builder
         @entries = nil
         @cache = {}
       end
@@ -37,7 +33,7 @@ module Tap
       # Determines entries for env.  By default build does nothing and must be
       # implemented in subclasses.
       def build
-        @entries = builder.call(env)
+        @entries = []
       end
     
       # Identifies if self is built (ie entries are set).
@@ -98,57 +94,53 @@ module Tap
       
         nil
       end
-    
-      def summarize(template)
-        count = 0
-        width = 10
-
-        env_names = env.minihash(true)
-        env.inspect(template) do |templater, share|
+      
+      # Same as env.inspect but adds manifest to the templater
+      def inspect(template=nil, globals={}, filename=nil)
+        return super() unless template
+        
+        env.inspect(template, globals, filename) do |templater, globals|
           env = templater.env
-          entries = manifest(env).minimap
-          next(false) if entries.empty?
+          templater.manifest = manifest(env)
+          yield(templater, globals) if block_given?
+        end
+      end
+      
+      SUMMARY_TEMPLATE = %Q{#{'-' * 80}
+<%= (env_key + ':').ljust(width) %> (<%= env_path %>)
+<% entries.each do |key, value| %>
+  <%= key.ljust(width-2) %> (<%= value %>)
+<% end %>
+}
 
-          templater.env_name = env_names[env]
+      def summarize
+        inspect(SUMMARY_TEMPLATE, :width => 10) do |templater, globals|
+          env_key = templater.env_key
+          env_path = templater.env.path
+          manifest = templater.manifest
+          entries = manifest.minimap
+          width = globals[:width]
+
+          # determine width
+          width = env_key.length if width < env_key.length
+          entries.collect! do |key, value|
+            width = key.length if width < key.length
+            [key, Root::Utils.relative_path(env_path, value) || value]
+          end
+          globals[:width] = width
+
+          # assign locals
           templater.entries = entries
-
-          count += 1
-          entries.each do |entry_name, entry|
-            width = entry_name.length if width < entry_name.length
-          end
-
-          share[:count] = count
-          share[:width] = width
-          true
+          templater.env_path = Root::Utils.relative_path(Dir.pwd, env.path) || env.path
         end
       end
-  
-      def inspect(traverse=true)
-        if traverse
-          lines = []
-          env.each do |env|
-            manifest = manifest(env)
-            next if manifest.empty?
-          
-            lines << "== #{env.path}"
-            manifest.minimap.each do |mini, value| 
-              lines << "  #{mini}: #{value.inspect}"
-            end
-          end
-          return lines.join("\n")
-        end
+            
+      # Creates a new instance of self, assigned with env.
+      def another(env)
+        self.class.new(env)
+      end
       
-        lines = minimap.collect do |mini, value| 
-          "  #{mini}: #{value.inspect}"
-        end
-        "#{self.class}:#{object_id} (#{env.path})\n#{lines.join("\n")}"
-      end
-    
       protected
-      
-      def another(env) # :nodoc:
-        Manifest.new(env, builder)
-      end
       
       # helper method to lookup or initialize a manifest like self for env.
       def manifest(env) # :nodoc:

@@ -190,23 +190,46 @@ module Tap
   
     # Creates a manifest with entries defined by the return of the block.  The
     # manifest will be cached in manifests if a key is provided.
-    def manifest(&block) # :yields: env 
-      Manifest.new(self, block)
+    def manifest(klass=Manifest) # :yields: env 
+      klass = Class.new(klass)
+      klass.send(:define_method, :build) do
+        @entries = yield(env)
+      end
+      klass.new(self)
     end
     
-    def constant_manifest(const_attr, &block)
-      ConstantManifest.new(self, block, const_attr.to_s)
+    # block must return an array of (dir, path) pairs
+    def constant_manifest(const_attr, klass=ConstantManifest) # :yields: env 
+      klass = Class.new(klass)
+      klass.send(:define_method, :build) do
+        @entries = []
+        yield(env).each do |dir, path|
+          scan(dir, path)
+          @entries.concat constants(path)
+        end
+        @entries.uniq!
+      end
+      klass.new(self, const_attr)
     end
     
-    def inspect(template=nil) # :yields: templater, attrs
-      return "#<#{self.class}:#{object_id} path='#{path}'>" if template == nil
+    # All templaters are yielded to the block before any are built.  This
+    # allows globals to be determined for all environments.
+    def inspect(template=nil, globals={}, filename=nil) # :yields: templater, globals
+      if template == nil
+        return "#<#{self.class}:#{object_id} path='#{path}'>" 
+      end
       
-      attrs = {}
+      env_keys = minihash(true)
       collect do |env|
-        templater = Support::Templater.new(template, :env => env)
-        block_given? ? (yield(templater, attrs) ? templater : nil) : templater
-      end.compact.collect do |templater|
-        templater.build(attrs)
+        templater = Support::Templater.new(template, 
+          :env => env, 
+          :env_key => env_keys[env]
+        )
+        
+        yield(templater, globals) if block_given? 
+        templater
+      end.collect do |templater|
+        templater.build(globals, filename)
       end.join
     end
     

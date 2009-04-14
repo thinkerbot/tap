@@ -1,7 +1,6 @@
 require 'configurable'
 require 'tap/root/utils'
 require 'tap/support/string_ext'
-require 'tap/env/constant'
 
 module Tap
   
