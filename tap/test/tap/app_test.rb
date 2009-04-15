@@ -229,14 +229,14 @@ class AppTest < Test::Unit::TestCase
     assert_equal(App::Queue, app.queue.class)
     assert app.queue.empty?
     assert_equal app, app.stack
-    assert_equal nil, app.aggregator
+    assert_equal nil, app.default_join
     assert_equal App::State::READY, app.state
   end
   
-  def test_initialization_with_block_sets_aggregator
+  def test_initialization_with_block_sets_default_join
     b = lambda {}
     app = App.new(&b)
-    assert_equal b, app.aggregator
+    assert_equal b, app.default_join
   end
   
   #
@@ -459,15 +459,15 @@ class AppTest < Test::Unit::TestCase
     assert_equal "join result", app.call(n)
   end
   
-  def test_call_calls_aggregator_if_no_join_is_specified
+  def test_call_calls_default_join_if_no_join_is_specified
     n = intern { "result" }
     
     app.on_complete do |result|
       assert_equal "result", result
-      "aggregator result"
+      "default result"
     end
     
-    assert_equal "aggregator result", app.call(n)
+    assert_equal "default result", app.call(n)
   end
   
   def test_call_resolves_dependencies_before_execution
@@ -653,14 +653,14 @@ class AppTest < Test::Unit::TestCase
   # on_complete test
   #
   
-  def test_on_complete_sets_on_aggregator_for_self
-    app.aggregator = nil
-    assert_equal nil, app.aggregator
+  def test_on_complete_sets_the_default_join_for_self
+    app.default_join = nil
+    assert_equal nil, app.default_join
 
     b = lambda {}
     app.on_complete(&b)
     
-    assert_equal b, app.aggregator
+    assert_equal b, app.default_join
   end
   
   def test_on_complete_returns_self

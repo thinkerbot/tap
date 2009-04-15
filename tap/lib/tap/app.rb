@@ -148,16 +148,16 @@ module Tap
     # The application queue
     attr_reader :queue
     
-    # The aggregator receives results of executables that have no join.
+    # A Dependencies object tracking application-level dependencies
     attr_reader :dependencies
     
     # The state of the application (see App::State)
     attr_reader :state
     
-    # The aggregator receives results of executables that have no join.
-    attr_accessor :aggregator
+    # The default_join for nodes that have no join set
+    attr_accessor :default_join
     
-    # The call stack for executing a node
+    # The application call stack for executing nodes
     attr_reader :stack
     
     config :audit, false, &c.flag                 # Flag auditing
@@ -199,6 +199,7 @@ module Tap
       self.logger = logger
     end
     
+    # Returns the application-level dependency instance for the specified class.
     def dependency(node_class)
       dependencies[node_class.to_s] ||= node_class.instantiate[0]
     end
@@ -224,8 +225,7 @@ module Tap
       logger.add(level, msg, action.to_s) if !quiet || verbose
     end
     
-    # Enques the executable with the inputs.  Raises an error if the input is
-    # not a Node, or is not assigned to self.  Returns the executable.
+    # Enques the node with the inputs.  Returns the node.
     def enq(node, *inputs)
       queue.enq(node, inputs)
       node
@@ -243,7 +243,7 @@ module Tap
       @stack = middleware.new(@stack)
     end
     
-    # Resolves the dependencies of node (if necessary).
+    # Resolves the node dependencies (if necessary).
     def resolve(node)
       node.dependencies.each do |dependency|
         dependencies.resolve(dependency) do
@@ -252,7 +252,7 @@ module Tap
       end
     end
     
-    # Resolves the dependencies of node (if necessary).
+    # Resets the node dependencies.
     def reset(node, recursive=true)
       node.dependencies.each do |dependency|
         dependencies.resolve(dependency) do 
@@ -268,37 +268,37 @@ module Tap
     end
     
     # Call is the base of the application stack.  Call:
-    #
     # - resolves node dependencies using resolve
     # - calls the node with the inputs (ex: node.call(*inputs))
     # - calls the node join with the results, if set, or
-    #   the aggregator if the node has no join set
+    #   the default_join if the node has no join set
     #
-    # Call returns the node result, or the join/aggregator result if set.
+    # Call returns the node result, or the join/default_join result if set.
     def call(node, inputs=[])
       resolve(node)
       result = node.call(*inputs)
       
-      if join = (node.join || aggregator)
+      if join = (node.join || default_join)
         join.call(result)
       else
         result
       end
     end
     
-    # Sequentially calls execute with the (executable, inputs) pairs in
-    # queue; run continues until the queue is empty and then returns self.
+    # Sequentially calls the application stack with each (node, inputs) pair
+    # in the queue; run continues until the queue is empty and then returns
+    # self.
     #
     # ==== Run State
     #
-    # Run checks the state of self before executing a method. If state
-    # changes from State::RUN, the following behaviors result:
+    # Run checks the state of self before calling the application stack. If
+    # the state changes from State::RUN, the following behaviors result:
     # 
-    # State::STOP:: No more executables will be executed; the current
-    #               executable will continute to completion.
-    # State::TERMINATE:: No more executables will be executed and the
-    #                    currently running executable will be
-    #                    discontinued as described in terminate.
+    # State::STOP:: No more nodes will be sent to the application stack; the
+    #               current node will continute to completion.
+    # State::TERMINATE:: No more nodes will be sent to the application stack
+    #                    and the currently running node will be discontinued
+    #                    as described in terminate.
     #
     # Calls to run when the state is not State::READY do nothing and
     # return immediately.
@@ -327,9 +327,9 @@ module Tap
       self
     end
     
-    # Signals a running application to stop executing tasks in the 
-    # queue by setting state = State::STOP.  The task currently 
-    # executing will continue uninterrupted to completion.
+    # Signals a running app to stop sending nodes to the application stack
+    # by setting state = State::STOP.  The node currently in the stack will
+    # will continue to completion.
     #
     # Does nothing unless state is State::RUN.
     def stop
@@ -338,10 +338,14 @@ module Tap
     end
 
     # Signals a running application to terminate execution by setting 
-    # state = State::TERMINATE.  In this state, an executing task 
-    # will then raise a TerminateError upon check_terminate, thus 
-    # allowing the invocation of task-specific termination, perhaps 
-    # performing rollbacks. (see check_terminate).
+    # state = State::TERMINATE.  In this state, calls to check_terminate
+    # will raise a TerminateError.  Run considers TerminateErrors a normal
+    # exit and rescues them quietly.
+    #
+    # Nodes can set breakpoints that call check_terminate to invoke
+    # node-specific termination.  If a node never calls check_terminate, then
+    # it will continue to completion and terminate is functionally the same
+    # as stop.
     #
     # Does nothing if state == State::READY.
     def terminate
@@ -349,9 +353,8 @@ module Tap
       self
     end
     
-    # Raises a TerminateError if state == State::TERMINATE.
-    # check_terminate may be called at any time to provide a 
-    # breakpoint in long-running processes.
+    # Raises a TerminateError if state == State::TERMINATE.  Nodes should call
+    # check_terminate to provide breakpoints in long-running processes.
     def check_terminate
       if state == App::State::TERMINATE
         raise App::TerminateError.new
@@ -414,9 +417,9 @@ module Tap
     end
     
     # Sets the block to receive the audited result of tasks with no join
-    # (ie the block is set as aggregator).
+    # (ie the block is set as default_join).
     def on_complete(&block) # :yields: _result
-      self.aggregator = block
+      self.default_join = block
       self
     end
     
