@@ -15,9 +15,97 @@ class DependencyTest < Test::Unit::TestCase
   end
   
   #
+  # intern tests
+  #
+  
+  def test_intern_makes_dependency_from_block
+    m = Dependency.intern { "result" }
+    assert m.kind_of?(Dependency)
+    assert_equal nil, m.result
+    assert_equal "result", m.call
+    assert_equal "result", m.result
+  end
+  
+  #
   # extend tests
   #
   
+  def test_extend_sets_result_to_nil
+    assert_equal nil, m.result
+  end
+  
+  #
+  # dependency? tests
+  #
+  
+  def test_dependency_returns_true_if_obj_satisifies_the_dependency_API
+    m = Dependency.intern {}
+    assert Dependency.dependency?(m)
+    
+    m = Object.new
+    assert !Dependency.dependency?(m)
+    
+    m.extend(Module.new {def call; end})
+    assert !Dependency.dependency?(m)
+    
+    m.extend(Module.new {def result; end})
+    assert !Dependency.dependency?(m)
+    
+    m.extend(Module.new {def reset; end})
+    assert Dependency.dependency?(m)
+  end
+  
+  #
+  # register test
+  #
+  
+  class MockDependency
+    attr_reader :call, :result, :reset
+  end
+  
+  def test_register_extends_the_input_object_if_it_does_not_satisfy_the_dependency_API
+    m = Object.new
+    Dependency.register(m)
+    assert m.kind_of?(Dependency)
+    
+    m = MockDependency.new
+    Dependency.register(m)
+    assert !m.kind_of?(Dependency)
+  end
+  
+  def test_register_returns_obj
+    m = Dependency.intern {}
+    assert_equal m, Dependency.register(m)
+    
+    m = Object.new
+    assert_equal m, Dependency.register(m)
+  end
+  
+  #
+  # call test
+  #
+  
+  def test_call_runs_only_once
+    assert_equal 0, n
+    
+    m.call
+    assert_equal 1, n
+    
+    m.call
+    assert_equal 1, n
+  end
+  
+  def test_call_runs_again_after_reset
+    assert_equal 0, n
+    
+    m.call
+    assert_equal 1, n
+    
+    m.reset
+    m.call
+    assert_equal 2, n
+  end
+
   def test_call_sets_result
     assert_equal nil, m.result
     m.call
@@ -25,60 +113,11 @@ class DependencyTest < Test::Unit::TestCase
   end
   
   #
-  # call test
-  #
-  
-  def test_call_conditionally_runs_only_when_not_resolved
-    assert !m.resolved?
-    assert_equal 0, n
-    
-    m.call
-    assert_equal 1, n
-    
-    assert m.resolved?
-
-    m.call
-    assert_equal 1, n
-    
-    m.result = nil
-    assert !m.resolved?
-    
-    m.call
-    assert_equal 2, n
-  end
-  
-  #
-  # resolve test
-  #
-  
-  def test_resolve_is_an_alias_for_call
-    assert !m.resolved?
-
-    m.resolve
-    
-    assert m.resolved?
-    assert_equal "result", m.result
-    assert_equal 1, n
-  end
-  
-  #
-  # resolved? test
-  #
-  
-  def test_resolved_is_true_if_result_is_non_nil
-    assert_equal nil, m.result
-    assert !m.resolved?
-    
-    m.result = "result"
-    assert m.resolved?
-  end
-  
-  #
   # reset test
   #
   
   def test_reset_sets_result_to_nil
-    m.result = "result"
+    m.call
     assert_equal "result", m.result
     m.reset
     assert_equal nil, m.result

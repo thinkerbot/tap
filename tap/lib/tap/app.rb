@@ -1,5 +1,7 @@
 require 'logger'
+require 'tap/app/audit'
 require 'tap/app/queue'
+require 'tap/app/dependencies'
 
 module Tap
   
@@ -122,11 +124,21 @@ module Tap
     include Configurable
     include MonitorMixin
     
+    # The default App logger writes to $stderr at level INFO.
+    DEFAULT_LOGGER = Logger.new($stderr)
+    DEFAULT_LOGGER.level = Logger::INFO
+    DEFAULT_LOGGER.formatter = lambda do |severity, time, progname, msg|
+      "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
+    end
+    
     # The application logger
     attr_reader :logger
     
     # The application queue
     attr_reader :queue
+    
+    # The aggregator receives results of executables that have no join.
+    attr_reader :dependencies
     
     # The state of the application (see App::State)
     attr_reader :state
@@ -134,7 +146,10 @@ module Tap
     # The aggregator receives results of executables that have no join.
     attr_accessor :aggregator
     
-    config :audit, true, &c.switch                # Signal auditing
+    # The call stack for executing a node
+    attr_reader :stack
+    
+    config :audit, false, &c.flag                 # Flag auditing
     config :debug, false, &c.flag                 # Flag debugging
     config :force, false, &c.flag                 # Force execution at checkpoints
     config :quiet, false, &c.flag                 # Suppress logging
@@ -163,19 +178,18 @@ module Tap
     def initialize(config={}, logger=DEFAULT_LOGGER, &block)
       super() # monitor
       
+      @stack = self
       @state = State::READY
       @queue = Queue.new
+      @dependencies = Dependencies.new
       on_complete(&block)
       
       initialize_config(config)
       self.logger = logger
     end
     
-    # The default App logger writes to $stderr at level INFO.
-    DEFAULT_LOGGER = Logger.new($stderr)
-    DEFAULT_LOGGER.level = Logger::INFO
-    DEFAULT_LOGGER.formatter = lambda do |severity, time, progname, msg|
-      "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
+    def dependency(node_class)
+      dependencies[node_class.to_s] ||= node_class.instantiate
     end
     
     # True if debug or the global variable $DEBUG is true.
@@ -202,10 +216,6 @@ module Tap
     # Enques the executable with the inputs.  Raises an error if the input is
     # not a Node, or is not assigned to self.  Returns the executable.
     def enq(node, *inputs)
-      unless node.kind_of?(Node)
-        raise ArgumentError, "not a Node: #{node.inspect}"
-      end
-      
       queue.enq(node, inputs)
       node
     end
@@ -215,6 +225,51 @@ module Tap
       node = Node.intern(&block)
       queue.enq(node, inputs)
       node
+    end
+    
+    # Adds the specified middleware to the stack.
+    def use(middleware)
+      @stack = middleware.new(@stack)
+    end
+    
+    # Calls the node with the inputs.
+    def call(node, inputs=[])
+      if audit
+        Audit.call(node, inputs)
+      else
+        node.call(*inputs)
+      end
+    end
+    
+    # Resolves the dependencies of node (if necessary).
+    def resolve(node)
+      node.dependencies.each do |dependency|
+        dependencies.resolve(dependency) do
+          execute(dependency)
+        end
+      end
+    end
+    
+    # Resolves the dependencies of node (if necessary).
+    def reset(node, recursive=true)
+      node.dependencies.each do |dependency|
+        dependencies.resolve(dependency) do 
+          dependency.reset
+          reset(dependency, recursive) if recursive
+        end
+      end
+    end
+    
+    # Executes the node with the specified inputs.
+    def execute(node, inputs=[])
+      resolve(node)
+      result = stack.call(node, inputs)
+      
+      if join = (node.join || aggregator)
+        join.call(result)
+      else
+        result
+      end
     end
     
     # Sequentially calls execute with the (executable, inputs) pairs in
@@ -242,8 +297,7 @@ module Tap
       # TODO: log starting run
       begin
         until queue.empty? || state != State::RUN
-          node, inputs = queue.deq
-          execute(node, *inputs)
+          execute(*queue.deq)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors
@@ -257,29 +311,6 @@ module Tap
       
       # TODO: log run complete
       self
-    end
-    
-    # Executes the node with the specified inputs.
-    def execute(node, *_inputs)
-      claim(node) do
-        node.resolve_dependencies
-
-        _inputs.collect! do |_input| 
-          if _input.kind_of?(Audit) 
-            _input
-          else
-            Audit.new(nil, _input)
-          end
-        end
-      
-        check_terminate
-        _result = Audit.new(node, node.call(*_inputs), audit ? _inputs : nil)
-        if join = (node.join || aggregator)
-          claim(join) { join.call(_result) }
-        end
-      
-        _result
-      end
     end
     
     # Signals a running application to stop executing tasks in the 
@@ -371,25 +402,11 @@ module Tap
     # Sets the block to receive the audited result of tasks with no join
     # (ie the block is set as aggregator).
     def on_complete(&block) # :yields: _result
-      self.aggregator = block_given? ? Join.intern(&block) : nil
+      self.aggregator = block
       self
     end
     
     protected
-    
-    # claims an object during execution
-    def claim(obj) # :nodoc:
-      unless obj.app == nil
-        raise "not assigned to self: #{obj.inspect}"
-      end
-      
-      begin
-        obj.app = self
-        yield
-      ensure
-        obj.app = nil
-      end
-    end
     
     # TerminateErrors are raised to kill executing tasks when terminate is 
     # called on an running App.  They are handled by the run rescue code.

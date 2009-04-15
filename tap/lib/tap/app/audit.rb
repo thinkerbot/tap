@@ -85,6 +85,39 @@ module Tap
     # truly use Audits as a DAG
     class Audit
       class << self
+        def call(node, inputs)
+          if node.respond_to?(:_call)
+            return _call(node, inputs)
+          end
+          
+          previous = []
+          inputs.collect! do |input| 
+            if input.kind_of?(Audit) 
+              previous << input
+              input.value
+            else
+              previous << new(nil, input)
+              input
+            end
+          end
+
+          # make an audited call if possible
+          result = node.call(*inputs)
+          new(node, result, previous)
+        end
+        
+        def _call(node, inputs)
+          inputs.collect! do |input| 
+            if input.kind_of?(Audit) 
+              input
+            else
+              new(nil, input)
+            end
+          end
+          
+          result = node._call(*inputs)
+          new(node, result, inputs)
+        end
         
         # Produces a pretty-print dump of the specified audits to target. 
         # A block may be provided to format the trailer of each line.

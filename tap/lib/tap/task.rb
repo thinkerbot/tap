@@ -131,12 +131,6 @@ module Tap
         @default_name ||= to_s.underscore
       end
       
-      # Returns an instance of self; the instance is a kind of 'global'
-      # instance used in class-level dependencies.  See depends_on.
-      def instance
-        @instance ||= new.extend(App::Dependency)
-      end
-      
       def inherited(child) # :nodoc:
         unless child.instance_variable_defined?(:@source_file)
           caller[0] =~ Lazydoc::CALLER_REGEXP
@@ -299,15 +293,12 @@ module Tap
           dependencies << dependency_class
         end
         
-        # update instance with the dependency if necessary
-        if instance_variable_defined?(:@instance)
-          instance.depends_on(dependency_class.instance)
-        end
-        
         if name
           # returns the resolved result of the dependency
           define_method(name) do
-            dependency_class.instance.resolve
+            dependency = app.dependency(dependency_class)
+            app.resolve(dependency) unless dependency.resolved?
+            dependency.value
           end
         
           public(name)
@@ -424,7 +415,7 @@ module Tap
     attr_accessor :name
 
     # Initializes a new Task.
-    def initialize(config={}, name=nil)
+    def initialize(config={}, name=nil, app=Tap::App.instance)
       @name = name || self.class.default_name
       @app = nil
       @join = nil
@@ -435,7 +426,7 @@ module Tap
       
       # setup class dependencies
       self.class.dependencies.each do |dependency_class|
-        depends_on(dependency_class.instance)
+        depends_on app.dependency(dependency_class)
       end
     end
     
