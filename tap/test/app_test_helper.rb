@@ -1,5 +1,6 @@
 require File.join(File.dirname(__FILE__), 'tap_test_helper')
 require 'tap/task'
+require 'tap/auditor'
 
 module JoinTestMethods
   include Tap
@@ -8,10 +9,11 @@ module JoinTestMethods
   
   def setup
     @results = {}
-    @app = App.new :debug => true, :audit => true do |audit|
+    @app = App.new :debug => true do |audit|
       result = audit.trail {|a| [a.key, a.value] }
       (@results[audit.key] ||= []) << result
     end
+    @app.use Tap::Auditor
     @runlist = []
   end
 

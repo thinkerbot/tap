@@ -136,6 +136,11 @@ namespace :test do
     test_section :app
   end
   
+  desc 'run auditor tests'
+  task :auditor do
+    test_section :auditor
+  end
+  
   desc 'run task tests'
   task :task do
     test %w{

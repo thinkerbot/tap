@@ -1,5 +1,4 @@
 require 'logger'
-require 'tap/app/audit'
 require 'tap/app/queue'
 require 'tap/app/dependencies'
 
@@ -160,7 +159,6 @@ module Tap
     # The application call stack for executing nodes
     attr_reader :stack
     
-    config :audit, false, &c.flag                 # Flag auditing
     config :debug, false, &c.flag                 # Flag debugging
     config :force, false, &c.flag                 # Force execution at checkpoints
     config :quiet, false, &c.flag                 # Suppress logging
