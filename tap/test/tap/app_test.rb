@@ -311,65 +311,6 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # call test
-  #
-  
-  def test_call_calls_node_with_inputs
-    was_in_block = false
-    n = intern do |*inputs|
-      assert_equal [1,2,3], inputs
-      was_in_block = true
-    end
-    
-    assert !was_in_block
-    app.call(n, [1,2,3])
-    assert was_in_block
-  end
-  
-  def test_call_returns_call_result
-    n = intern { "result" }
-    assert_equal "result", app.call(n)
-  end
-
-  def test_call_with_audit_audits_inputs_and_returns_audit_output
-    n = node('a')
-    app.audit = true
-    
-    _result = app.call(n, [''])
-    assert_equal App::Audit, _result.class
-    
-    trail = _result.trail {|a| [a.key, a.value]}
-    assert_equal [
-      [nil, ''],
-      [n, 'a']
-    ], trail
-  end
-  
-  def test_call_merges_mixed_audit_and_non_audit_inputs
-    n = intern {|a, b, c| [a,b,c].join }
-    app.audit = true
-    
-    a = App::Audit.new(:A, 'a')
-    b = 'b'
-    c = App::Audit.new(:C, 'c')
-    
-    _result = app.call(n, [a,b,c])
-    assert_equal 'abc', _result.value
-    
-    source_trail = _result.trail {|a| a.key }
-    assert_equal [
-      [[:A], [nil], [:C]],
-      n
-    ], source_trail
-    
-    value_trail = _result.trail {|a| a.value }
-    assert_equal [
-      [['a'], ['b'], ['c']],
-      'abc'
-    ], value_trail
-  end
-  
-  #
   # resolve test
   #
   
@@ -461,57 +402,6 @@ class AppTest < Test::Unit::TestCase
   # execute test
   #
   
-  def test_execute_calls_node_with_inputs
-    was_in_block = false
-    n = intern do |*inputs|
-      assert_equal [1,2,3], inputs
-      was_in_block = true
-    end
-    
-    assert !was_in_block
-    app.execute(n, [1,2,3])
-    assert was_in_block
-  end
-  
-  def test_execute_returns_call_result
-    n = intern { "result" }
-    assert_equal "result", app.execute(n)
-  end
-  
-  def test_execute_calls_join_if_specified
-    n = intern { "result" }
-    
-    n.on_complete do |result|
-      assert_equal "result", result
-      "join result"
-    end
-    
-    assert_equal "join result", app.execute(n)
-  end
-  
-  def test_execute_calls_aggregator_if_no_join_is_specified
-    n = intern { "result" }
-    
-    app.on_complete do |result|
-      assert_equal "result", result
-      "aggregator result"
-    end
-    
-    assert_equal "aggregator result", app.execute(n)
-  end
-  
-  def test_resolve_resolves_dependencies_before_execution
-    n1 = intern { runlist << 1 }
-    n2 = intern { runlist << 2 }
-    n3 = intern { runlist << 3 }
-    
-    n1.depends_on(n2)
-    n2.depends_on(n3)
-    
-    app.execute(n1)
-    assert_equal [3,2,1], runlist
-  end
-  
   class ExecuteStack
     def initialize(stack)
       @stack = stack
@@ -528,20 +418,75 @@ class AppTest < Test::Unit::TestCase
     
     was_in_block = false
     n = intern do |*inputs|
-      assert_equal ['stack'], inputs
+      assert_equal [1,2,3,'stack'], inputs
       was_in_block = true
     end
     
     assert !was_in_block
-    app.execute(n, [])
+    app.execute(n,1,2,3)
     assert was_in_block
+  end
+  
+  #
+  # call test
+  #
+  
+  def test_call_calls_node_with_splat_inputs
+    was_in_block = false
+    n = intern do |*inputs|
+      assert_equal [1,2,3], inputs
+      was_in_block = true
+    end
+    
+    assert !was_in_block
+    app.call(n, [1,2,3])
+    assert was_in_block
+  end
+  
+  def test_call_returns_node_result
+    n = intern { "result" }
+    assert_equal "result", app.call(n)
+  end
+  
+  def test_call_calls_join_if_specified
+    n = intern { "result" }
+    
+    n.on_complete do |result|
+      assert_equal "result", result
+      "join result"
+    end
+    
+    assert_equal "join result", app.call(n)
+  end
+  
+  def test_call_calls_aggregator_if_no_join_is_specified
+    n = intern { "result" }
+    
+    app.on_complete do |result|
+      assert_equal "result", result
+      "aggregator result"
+    end
+    
+    assert_equal "aggregator result", app.call(n)
+  end
+  
+  def test_call_resolves_dependencies_before_execution
+    n1 = intern { runlist << 1 }
+    n2 = intern { runlist << 2 }
+    n3 = intern { runlist << 3 }
+    
+    n1.depends_on(n2)
+    n2.depends_on(n3)
+    
+    app.call(n1)
+    assert_equal [3,2,1], runlist
   end
   
   #
   # run tests
   #
   
-  def test_run_single_executable
+  def test_simple_enque_and_run
     t = node('.b')
     app.enq t, 'a'
     app.run
@@ -551,7 +496,7 @@ class AppTest < Test::Unit::TestCase
     assert_equal ['.b'], runlist
   end
   
-  def test_run_executes_each_task_in_queue_in_order
+  def test_run_calls_each_node_in_order
     app.enq node('a'), ''
     app.enq node('b'), ''
     app.enq node('c'), ''

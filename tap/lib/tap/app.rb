@@ -243,20 +243,11 @@ module Tap
       @stack = middleware.new(@stack)
     end
     
-    # Calls the node with the inputs.
-    def call(node, inputs=[])
-      if audit
-        Audit.call(node, inputs)
-      else
-        node.call(*inputs)
-      end
-    end
-    
     # Resolves the dependencies of node (if necessary).
     def resolve(node)
       node.dependencies.each do |dependency|
         dependencies.resolve(dependency) do
-          execute(dependency)
+          stack.call(dependency)
         end
       end
     end
@@ -271,10 +262,22 @@ module Tap
       end
     end
     
-    # Executes the node with the specified inputs.
-    def execute(node, inputs=[])
+    # Calls the application stack with the node and inputs.
+    def execute(node, *inputs)
+      stack.call(node, inputs)
+    end
+    
+    # Call is the base of the application stack.  Call:
+    #
+    # - resolves node dependencies using resolve
+    # - calls the node with the inputs (ex: node.call(*inputs))
+    # - calls the node join with the results, if set, or
+    #   the aggregator if the node has no join set
+    #
+    # Call returns the node result, or the join/aggregator result if set.
+    def call(node, inputs=[])
       resolve(node)
-      result = stack.call(node, inputs)
+      result = node.call(*inputs)
       
       if join = (node.join || aggregator)
         join.call(result)
@@ -308,7 +311,7 @@ module Tap
       # TODO: log starting run
       begin
         until queue.empty? || state != State::RUN
-          execute(*queue.deq)
+          @stack.call(*queue.deq)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors
