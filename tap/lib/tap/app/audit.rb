@@ -127,7 +127,7 @@ module Tap
           end unless block_given?
           
           # arrayify audits
-          audits = [audits].flatten
+          audits = [*audits]#.flatten
           
           # the order of audits
           order = []
@@ -301,6 +301,16 @@ module Tap
           index += 1
         end
         collection
+      end
+      
+      def each
+        splat.each do |obj|
+          yield(obj)
+        end
+      end
+      
+      def to_ary
+        splat
       end
       
       # Recursively collects an audit trail leading to self.  Single sources

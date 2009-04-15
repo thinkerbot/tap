@@ -18,10 +18,10 @@ class JoinTest < Test::Unit::TestCase
   
   def test_parse_initializes_with_config_specified_by_modifier
     join = Join.parse([])
-    assert_equal false, join.iterate
+    assert_equal :none, join.modifier
     
     join = Join.parse(["i"])
-    assert_equal true, join.iterate
+    assert_equal :iterate, join.modifier
   end
   
   #
@@ -30,11 +30,11 @@ class JoinTest < Test::Unit::TestCase
 
   def test_parse_modifiers_documentation
     assert_equal({}, Join.parse_modifier(""))
-    assert_equal({:iterate => true, :stack => true}, Join.parse_modifier("ik"))
+    assert_equal({:modifier => :iterate, :mode => :enq}, Join.parse_modifier("iq"))
   end
 
   def test_parse_modifier_raises_error_for_unknown_options
-    assert_raises(RuntimeError) { Join.parse_modifier("q") }
+    assert_raises(RuntimeError) { Join.parse_modifier("k") }
   end
   
   #
@@ -68,13 +68,13 @@ class JoinTest < Test::Unit::TestCase
     ], results[t3]
   end
   
-  def test_stack_join
+  def test_enq_join
     t0 = single(0)
     t1 = single(1)
     t2 = single(2)
     t3 = single(3)
     
-    join.stack = true
+    join.mode = :enq
     join.join([t0,t1], [t2,t3])
     app.enq t0, ''
     app.enq t1, ''
@@ -103,7 +103,7 @@ class JoinTest < Test::Unit::TestCase
     t2 = single(2)
     t3 = single(3)
     
-    join.iterate = true
+    join.modifier = :iterate
     join.join([t0,t1], [t2,t3])
     app.enq t0, ['a', 'b']
     app.enq t1, ['c', 'd']
@@ -141,7 +141,7 @@ class JoinTest < Test::Unit::TestCase
     t2 = splat(2)
     t3 = splat(3)
     
-    join.splat = true
+    join.modifier = :splat
     join.join([t0,t1], [t2,t3])
     
     app.enq t0, ['a', 'b']
@@ -175,7 +175,7 @@ class JoinTest < Test::Unit::TestCase
     t2 = splat(2)
     t3 = splat(3)
     
-    join.aggregate = true
+    join.mode = :aggregate
     join.join([t0,t1], [t2,t3])
     app.enq t0, ''
     app.enq t1, ''
@@ -204,7 +204,7 @@ class JoinTest < Test::Unit::TestCase
     t2 = splat(2)
     t3 = splat(3)
     
-    join.aggregate = true
+    join.mode = :aggregate
     join.join([t0,t1], [t2,t3])
     app.enq t0, ''
     app.run
@@ -246,7 +246,7 @@ class JoinTest < Test::Unit::TestCase
       results << result
     end
     
-    join.aggregate = true
+    join.mode = :aggregate
     join.join([t0,t1], [t3])
     app.enq t0, ''
     app.run
@@ -276,7 +276,7 @@ class JoinTest < Test::Unit::TestCase
       app.queue.unshift(t1, [''])
     end
     
-    join.aggregate = true
+    join.mode = :aggregate
     join.join([t0,t1], [t3])
     
     app.enq t0, ''

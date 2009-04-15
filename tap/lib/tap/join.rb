@@ -19,22 +19,29 @@ module Tap
       # if the options string contains unknown options.
       #
       #   parse_modifier("")                   # => {}
-      #   parse_modifier("ik")                 # => {:iterate => true, :stack => true}
+      #   parse_modifier("iq")                 # => {:modifier => :iterate, :mode => :enq}
       #
       def parse_modifier(str)
         return {} unless str
         
         options = {}
         0.upto(str.length - 1) do |char_index|
-          char = str[char_index, 1]
-          
-          entry = configurations.find do |key, config| 
-            config.attributes[:short] == char
+          case char = str[char_index, 1]
+          when 'i' 
+            options[:modifier] = :iterate
+          when 's' 
+            options[:modifier] = :splat
+          when 'q' 
+            options[:mode] = :enq
+          when 'a' 
+            options[:mode] = :aggregate
+          when 'c' 
+            options[:mode] = :collect
+          when 'e' 
+            options[:mode] = :execute
+          else 
+            raise "unknown option in: #{str} (#{char})"
           end
-          key, config = entry
-          
-          raise "unknown option in: #{str} (#{char})" unless key 
-          options[key] = true
         end
         options
       end
@@ -42,21 +49,8 @@ module Tap
     
     include Configurable
     
-    # Causes the join to iterate the results
-    # of the source when enquing the targets.
-    config :iterate, false, :short => 'i', &c.boolean
-    
-    # Causes joins to splat ('*') the results
-    # of the source when enquing the targets.
-    config :splat, false, :short => 's', &c.boolean
-    
-    # Causes the targets to be enqued rather
-    # than executed immediately.
-    config :stack, false, :short => 'k', &c.boolean
-    
-    # Aggregates results and enques them to the target
-    # in a trailing round.
-    config :aggregate, false, :short => 'a', &c.boolean
+    config :mode, :execute, &c.select(:execute, :enq, :aggregate, :collect)
+    config :modifier, :none, &c.select(:none, :iterate, :splat)
     
     # The App receiving self during enq
     attr_accessor :app
@@ -88,9 +82,9 @@ module Tap
       self
     end
     
-    def call(_result)
+    def call(result)
       outputs.each do |output|
-        enq(output, _result)
+        enq(output, result)
       end
     end
     
@@ -116,25 +110,38 @@ module Tap
     #   splat        _results are splat enqued  _results are enqued directly
     #   stack        the executable is enqued   the executable is executed
     #
-    def enq(executable, *_results)
-      case
-      when aggregate
-        
-        case
-        when iterate, splat, stack
-          raise "iterate, splat, or stack and aggregate"
-        else collect(executable, _results)
+    def enq(node, result)
+      case mode
+      when :aggregate
+        aggregate(node) do |results|
+          results << result
         end
         
-      else
-        unpack(_results) do |_result|
-          case
-          when stack
-            app.enq(executable, *_result)            
-          else
-            app.execute(executable, [*_result])
-          end
+      when :collect
+        aggregate(node) do |results|
+          results.concat [*result]
         end
+        
+      when :execute
+        case modifier
+        when :iterate
+          result.each {|r| app.execute(node, [r]) }
+        when :splat
+          app.execute(node, [*result])
+        else
+          app.execute(node, [result])
+        end
+        
+      when :enq
+        case modifier
+        when :iterate
+          result.each {|r| app.enq(node, r) }
+        when :splat
+          app.enq(node, *result)
+        else
+          app.enq(node, result)
+        end
+        
       end
     end
     
@@ -144,44 +151,17 @@ module Tap
     end
     
     # helper method to aggregate audited results
-    def collect(executable, inputs) # :nodoc:
+    def aggregate(node) # :nodoc:
       queue = app.queue
-      entry = aggregator[executable]
+      entry = aggregator[node]
       
       queue.synchronize do
         unless queue.has?(entry)
-          entry = aggregator[executable] = [executable, []]
+          entry = aggregator[node] = [node, []]
           queue.concat [entry]
         end
-        entry[1].concat(inputs)
+        yield(entry[1])
       end
-    end
-    
-    # helper method to splat/iterate audited results
-    def unpack(_results) # :nodoc:
-      case
-      when iterate && splat
-        raise "splat and iterate"
-      when iterate
-        _splat(_results).each {|_result| yield(_result) }
-      when splat
-        yield(_splat(_results))
-      else
-        yield(_results)
-      end
-    end
-    
-    # helper to splat audits
-    def _splat(_results)  # :nodoc:
-      array = []
-      _results.each do |_result|
-        unless _result.kind_of?(App::Audit)
-          _result = App::Audit.new(nil, _result)
-        end
-        
-        array.concat(_result.splat)
-      end
-      array
     end
   end
 end
