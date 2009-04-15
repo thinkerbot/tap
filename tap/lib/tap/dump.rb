@@ -52,8 +52,8 @@ module Tap
     config :date, false, &c.flag                         # Include a date
     config :date_format, '%Y-%m-%d %H:%M:%S'             # The date format
     
-    def call(_input)
-      _audit = App::Audit.new(self, _input.value, app.audit ? _input : nil)
+    def _call(_input)
+      _audit = App::Audit.new(self, _input.value, _input)
       process(_audit)
     end
     

@@ -159,13 +159,13 @@ module Tap
       # (implicitly to be enqued to the instance).  By default parse 
       # parses an argh then calls instantiate, but there is no requirement
       # that this occurs.
-      def parse(argv=ARGV)
-        parse!(argv.dup)
+      def parse(argv=ARGV, app=Tap::App.instance)
+        parse!(argv.dup, app)
       end
       
       # Same as parse, but removes switches destructively.
-      def parse!(argv=ARGV)
-        instantiate(parse_argh(argv))
+      def parse!(argv=ARGV, app=Tap::App.instance)
+        instantiate(parse_argh(argv), app)
       end
       
       def parse_argh(argv=ARGV)
@@ -218,13 +218,13 @@ module Tap
         }
       end
       
-      def instantiate(argh={})
+      def instantiate(argh={}, app=Tap::App.instance)
         name = argh[:name]
         config = argh[:config]
         config_file = argh[:config_file]
         args = argh[:args] || []
         
-        instance = new({}, name)
+        instance = new({}, name, app)
         instance.reconfigure(load_config(config_file)) if config_file
         instance.reconfigure(config) if config
         [instance, args]
@@ -263,9 +263,12 @@ module Tap
       protected
       
       # Sets a class-level dependency; when task class B depends_on another
-      # task class A, instances of B are initialized to depend on A.instance.
+      # task class A, instances of B are initialized to depend on a shared
+      # instance of A.  The shared instance is stored in app.dependencies,
+      # and is specific to an app.
+      #
       # If a non-nil name is specified, depends_on will create a reader of 
-      # the resolved dependency value.
+      # the resolved dependency result.
       #
       #   class A < Tap::Task
       #     def process
@@ -277,16 +280,14 @@ module Tap
       #     depends_on :a, A
       #   end
       #
-      #   b = B.new
-      #   b.dependencies           # => [A.instance]
+      #   app = Tap::App.new
+      #   b = B.new({}, :name, app)
+      #   b.dependencies           # => [app.dependency(A)]
+      #   b.a                      # => nil
+      #
+      #   app.resolve(b)
       #   b.a                      # => "result"
-      #
-      #   A.instance.resolved?     # => true
       # 
-      # Normally class-level dependencies are not added to existing instances
-      # but, as a special case, depends_on updates instance to depend on
-      # dependency_class.instance.
-      #
       # Returns self.
       def depends_on(name, dependency_class)
         unless dependencies.include?(dependency_class)
@@ -296,9 +297,7 @@ module Tap
         if name
           # returns the resolved result of the dependency
           define_method(name) do
-            dependency = app.dependency(dependency_class)
-            app.resolve(dependency) unless dependency.resolved?
-            dependency.value
+            app.dependency(dependency_class).result
           end
         
           public(name)
@@ -309,12 +308,11 @@ module Tap
       
       # Defines a task subclass with the specified configurations and process block.
       # During initialization the subclass is instantiated and made accessible 
-      # through a reader by the specified name.  
+      # through the name method.  
       #
-      # Defined tasks may be configured during initialization, through config, or 
-      # directly through the instance; in effect you get tasks with nested configs 
-      # which greatly facilitates workflows.  Indeed, defined tasks are often 
-      # joined in the workflow method.
+      # Defined tasks may be configured during through config, or directly through
+      # the instance; in effect you get tasks with nested configs which can greatly
+      # facilitate workflows.
       #
       #   class AddALetter < Tap::Task
       #     config :letter, 'a'
@@ -326,7 +324,8 @@ module Tap
       #     define :b, AddALetter, {:letter => 'b'}
       #     define :c, AddALetter, {:letter => 'c'}
       #
-      #     def workflow
+      #     def initialize(*args)
+      #       super
       #       a.sequence(b, c)
       #     end
       # 
@@ -408,6 +407,9 @@ module Tap
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
     
+    # The App receiving self during enq
+    attr_reader :app
+    
     # The name of self
     #--
     # Currently names may be any object.  Audit makes use of name
@@ -417,7 +419,7 @@ module Tap
     # Initializes a new Task.
     def initialize(config={}, name=nil, app=Tap::App.instance)
       @name = name || self.class.default_name
-      @app = nil
+      @app = app
       @join = nil
       @dependencies = []
       
@@ -430,8 +432,15 @@ module Tap
       end
     end
     
-    def call(*_inputs)
-      inputs = _inputs.collect {|_input| _input.value }
+    # Auditing method call.  Resolves dependencies, executes method_name,
+    # and sends the audited result to the on_complete_block (if set).
+    #
+    # Returns the audited result.
+    def execute(*inputs)
+      app.execute(self, inputs)
+    end
+    
+    def call(*inputs)
       process(*inputs)
     end
     
@@ -446,20 +455,25 @@ module Tap
     #     end
     #   end
     #
-    #   t = TaskWithTwoInputs.new
+    #   results = []
+    #   app = Tap::App.new {|result| results << result }
+    #
+    #   t = TaskWithTwoInputs.new({}, :name, app)
     #   t.enq(1,2).enq(3,4)
-    #   t.app.run
-    #   t.app.results(t)         # => [[2,1], [4,3]]
+    #   
+    #   app.run
+    #   results                 # => [[2,1], [4,3]]
     #
     # By default, process simply returns the inputs.
     def process(*inputs)
       inputs
     end
     
-    # Logs the inputs to the application logger (via app.log)
-    def log(action, msg="", level=Logger::INFO)
-      # TODO - add a task identifier?
-      app.log(action, msg, level) if app
+    # Enqueues self to app with the inputs. The number of inputs provided
+    # should match the number of inputs for the method_name method.
+    def enq(*inputs)
+      app.queue.enq(self, inputs)
+      self
     end
     
     # Sets a sequence workflow pattern for the tasks; each task
@@ -469,7 +483,7 @@ module Tap
       
       current_task = self
       tasks.each do |next_task|
-        Join.new(options).join([current_task], [next_task])
+        Join.new(options, app).join([current_task], [next_task])
         current_task = next_task
       end
     end
@@ -478,7 +492,7 @@ module Tap
     # results of self.
     def fork(*targets) # :yields: _result
       options = targets[-1].kind_of?(Hash) ? targets.pop : {}
-      Join.new(options).join([self], targets)
+      Join.new(options, app).join([self], targets)
     end
 
     # Sets a simple merge workflow pattern for the source tasks. Each 
@@ -486,7 +500,7 @@ module Tap
     # nor are results grouped before being enqued.
     def merge(*sources) # :yields: _result
       options = sources[-1].kind_of?(Hash) ? sources.pop : {}
-      Join.new(options).join(sources, [self])
+      Join.new(options, app).join(sources, [self])
     end
 
     # Sets a synchronized merge workflow for the source tasks.  Results 
@@ -495,7 +509,7 @@ module Tap
     # have completed.  See Joins::SyncMerge.
     def sync_merge(*sources) # :yields: _result
       options = sources[-1].kind_of?(Hash) ? sources.pop : {}
-      Joins::SyncMerge.new(options).join(sources, [self])
+      Joins::SyncMerge.new(options, app).join(sources, [self])
     end
 
     # Sets a switch workflow pattern for self.  On complete, switch yields
@@ -505,7 +519,12 @@ module Tap
     # found for the specified index. See Joins::Switch.
     def switch(*targets, &block) # :yields: _result
       options = targets[-1].kind_of?(Hash) ? targets.pop : {}
-      Joins::Switch.new(options).join([self], targets, &block)
+      Joins::Switch.new(options, app).join([self], targets, &block)
+    end
+    
+    # Logs the inputs to the application logger (via app.log)
+    def log(action, msg="", level=Logger::INFO)
+      app.log(action, msg, level)
     end
     
     # Returns self.name

@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../app_test_helper')
-require 'tap/app/join'
+require 'tap/join'
 
 class JoinTest < Test::Unit::TestCase
   include JoinTestMethods
@@ -9,7 +9,7 @@ class JoinTest < Test::Unit::TestCase
   
   def setup
     super
-    @join = Join.new
+    @join = Join.new({}, app)
   end
   
   #

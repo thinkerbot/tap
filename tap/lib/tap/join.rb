@@ -66,8 +66,8 @@ module Tap
     attr_reader :outputs
     
     # Initializes a new join with the specified configuration.
-    def initialize(config={})
-      @app = nil
+    def initialize(config={}, app=Tap::App.instance)
+      @app = app
       @inputs = nil
       @outputs = nil
       initialize_config(config)
@@ -132,7 +132,7 @@ module Tap
           when stack
             app.enq(executable, *_result)            
           else
-            app.execute(executable, *_result)
+            app.execute(executable, [*_result])
           end
         end
       end

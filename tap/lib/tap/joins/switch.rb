@@ -8,8 +8,8 @@ module Tap
       
       attr_accessor :selector
       
-      def initialize(config={}, &block)
-        super(config)
+      def initialize(config={}, app=Tap::App.instance, &block)
+        super(config, app)
         @selector = block
       end
       

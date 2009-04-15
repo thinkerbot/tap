@@ -39,20 +39,15 @@ end
 
 class TaskTest < Test::Unit::TestCase
   include Tap
-
-  attr_accessor :t, :method_root
+  include MethodRoot
+  
+  attr_accessor :t, :app
   
   def setup
     super
+    Tap::App.instance = nil
+    @app = Tap::App.instance
     @t = Task.new
-    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
-  end
-  
-  def teardown
-    # clear out the output folder if it exists, unless flagged otherwise
-    unless ENV["KEEP_OUTPUTS"]
-      FileUtils.rm_r(method_root.root) if File.exists?(method_root.root)
-    end
   end
   
   # sample class repeatedly used in tests
@@ -412,11 +407,13 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_depends_on_documentation
-    b = B.new
-    assert_equal [A.instance], b.dependencies
-    assert_equal "result", b.a
+    app = Tap::App.new
+    b = B.new({}, :name, app)
+    assert_equal [app.dependency(A)], b.dependencies
+    assert_equal nil, b.a 
   
-    assert_equal true, A.instance.resolved?
+    app.resolve(b)
+    assert_equal "result", b.a
   end
   
   class DependencyClassOne < Tap::Task
@@ -440,19 +437,9 @@ class TaskTest < Test::Unit::TestCase
     d = DependentClass.new
     assert d.respond_to?(:one)
     
-    d.reset_dependencies
-    d.resolve_dependencies
-    
+    assert_equal nil, d.one
+    app.resolve(d)
     assert_equal 1, d.one
-  end
-  
-  def test_depends_on_reader_resolves_dependencies_if_needed
-    d = DependentClass.new
-    d.reset_dependencies
-    
-    assert_equal [false, false], d.dependencies.collect {|dep| dep.resolved? }
-    assert_equal 1, d.one
-    assert_equal [true, false], d.dependencies.collect {|dep| dep.resolved? }
   end
   
   def test_depends_on_returns_self
@@ -481,17 +468,6 @@ class TaskTest < Test::Unit::TestCase
     assert_equal [DependencyClassOne, DependencyClassTwo], DependentSubClass.dependencies
   end
   
-  class UpdateDependentClass < Tap::Task
-  end
-  
-  def test_depends_on_updates_dependencies_for_instance
-    d = UpdateDependentClass.instance
-    assert_equal [], d.dependencies
-    
-    UpdateDependentClass.send(:depends_on, :one, DependencyClassOne)
-    assert_equal [DependencyClassOne.instance], d.dependencies
-  end
-  
   #
   # Task.define test
   #
@@ -506,7 +482,8 @@ class TaskTest < Test::Unit::TestCase
     define :b, AddALetter, {:letter => 'b'}
     define :c, AddALetter, {:letter => 'c'}
   
-    def workflow
+    def initialize(*args)
+      super
       a.sequence(b, c)
     end
   
@@ -667,7 +644,7 @@ class TaskTest < Test::Unit::TestCase
   #
   
   def test_default_initialization
-    assert_equal nil, t.app
+    assert_equal Tap::App.instance, t.app
     assert_equal({}, t.config)
     assert_equal "tap/task", t.name
   end
@@ -703,17 +680,21 @@ class TaskTest < Test::Unit::TestCase
   # process test
   #
   
-  class TaskWithTwoInputsForProcessDoc < Tap::Task
+  class TaskWithTwoInputs < Tap::Task
     def process(a, b)
       [b,a]
     end
   end
   
   def test_process_documentation
-    t = TaskWithTwoInputsForProcessDoc.new
+    results = []
+    app = Tap::App.new {|result| results << result }
+  
+    t = TaskWithTwoInputs.new({}, :name, app)
     t.enq(1,2).enq(3,4)
-    t.app.run
-    assert_equal [[2,1], [4,3]], t.app.results(t)
+    
+    app.run
+    assert_equal [[2,1], [4,3]], results
   end
   
   def test_process_returns_inputs

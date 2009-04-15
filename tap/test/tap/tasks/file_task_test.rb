@@ -2,7 +2,9 @@ require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/tasks/file_task'
 
 class FileTaskTest < Test::Unit::TestCase
-  attr_reader :app, :method_root, :t
+  include MethodRoot
+  
+  attr_reader :app, :t
   
   @@ctr = Tap::Root.new("#{__FILE__.chomp("_test.rb")}")
   def ctr
@@ -10,21 +12,12 @@ class FileTaskTest < Test::Unit::TestCase
   end
   
   def setup
-    @app = Tap::App.new(:debug => true, :quiet => true)
-    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
+    super
+    @app = Tap::App.instance = Tap::App.new(:debug => true, :quiet => true)
     @t = Tap::FileTask.new
     @t.backup_dir = method_root[:backup]
   end
-  
-  def teardown
-    # clear out the output folder if it exists, unless flagged otherwise
-    unless ENV["KEEP_OUTPUTS"]
-      if File.exists?(method_root.root)
-        FileUtils.rm_r(method_root.root)
-      end
-    end
-  end
-  
+
   # simple overrides to backup file to provide a
   # pre-defined backup file.
   module BackupFile
@@ -206,7 +199,6 @@ class FileTaskTest < Test::Unit::TestCase
     of1, of2, nf1, nf2 = uptodate_test_setup
   
     assert t.uptodate?(nf1, of1)
-    t.app = app
     app.force = true
     assert !t.uptodate?(nf1, of1)
   end

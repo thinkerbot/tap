@@ -11,7 +11,7 @@ module Tap
       
       attr_reader :results
       
-      def initialize(config={})
+      def initialize(config={}, app=Tap::App.instance)
         super
         @results = nil
       end

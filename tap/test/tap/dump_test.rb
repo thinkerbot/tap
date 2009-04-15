@@ -23,6 +23,26 @@ class DumpTest < Test::Unit::TestCase
   end
   
   #
+  # _call test
+  #
+  
+  def test__call_adds_self_to_audit_trail
+    a = Audit.new('a', 1)
+    b = Audit.new('b', 2, a)
+    
+    dump.audit = true
+    dump._call(b)
+    assert_equal %Q{
+# audit:
+# o-[a] 1
+# o-[b] 2
+# o-[tap/dump] 2
+# 
+2
+}, "\n" + io.string
+  end
+  
+  #
   # process test
   #
   

@@ -121,6 +121,17 @@ module Tap
   #   array                          # => [1, 2, 3]
   #
   class App
+    class << self
+      # Sets the current app instance
+      attr_writer :instance
+      
+      # Returns the current instance of App.  If no instance has been set,
+      # then instance initializes a new App with the default configuration. 
+      def instance
+        @instance ||= App.new
+      end
+    end
+    
     include Configurable
     include MonitorMixin
     
@@ -189,7 +200,7 @@ module Tap
     end
     
     def dependency(node_class)
-      dependencies[node_class.to_s] ||= node_class.instantiate
+      dependencies[node_class.to_s] ||= node_class.instantiate[0]
     end
     
     # True if debug or the global variable $DEBUG is true.

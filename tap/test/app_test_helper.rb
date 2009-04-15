@@ -8,7 +8,7 @@ module JoinTestMethods
   
   def setup
     @results = {}
-    @app = App.new :debug => true do |audit|
+    @app = App.new :debug => true, :audit => true do |audit|
       result = audit.trail {|a| [a.key, a.value] }
       (@results[audit.key] ||= []) << result
     end
@@ -16,21 +16,21 @@ module JoinTestMethods
   end
 
   def single(id)
-    Task.intern do |task, input| 
+    Task.intern({}, id, app) do |task, input| 
       @runlist << id.to_s
       "#{input} #{id}".strip
     end
   end
   
   def array(id)
-    Task.intern do |task, input| 
+    Task.intern({}, id, app) do |task, input| 
       @runlist << id.to_s
       input.collect {|str| "#{str} #{id}".strip }
     end
   end
   
   def splat(id)
-    Task.intern do |task, *inputs| 
+    Task.intern({}, id, app) do |task, *inputs| 
       @runlist << id.to_s
       inputs.collect {|str| "#{str} #{id}".strip }
     end
