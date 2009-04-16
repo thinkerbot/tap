@@ -437,7 +437,7 @@ module Tap
     #
     # Returns the audited result.
     def execute(*inputs)
-      app.execute(self, inputs)
+      app.dispatch(self, inputs)
     end
     
     def call(*inputs)

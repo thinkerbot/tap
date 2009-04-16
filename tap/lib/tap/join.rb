@@ -122,26 +122,15 @@ module Tap
           results.concat [*result]
         end
         
-      when :execute
+      when :execute, :enq
         case modifier
         when :iterate
-          result.each {|r| app.execute(node, [r]) }
+          result.each {|r| app.send(mode, node, r) }
         when :splat
-          app.execute(node, [*result])
+          app.send(mode, node, *result)
         else
-          app.execute(node, [result])
+          app.send(mode, node, result)
         end
-        
-      when :enq
-        case modifier
-        when :iterate
-          result.each {|r| app.enq(node, r) }
-        when :splat
-          app.enq(node, *result)
-        else
-          app.enq(node, result)
-        end
-        
       end
     end
     

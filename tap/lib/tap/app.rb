@@ -1,6 +1,6 @@
 require 'logger'
 require 'tap/app/queue'
-require 'tap/app/dependencies'
+require 'tap/app/dependency'
 
 module Tap
   
@@ -141,6 +141,12 @@ module Tap
       "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
     end
     
+    # The default stack, which simply calls node with the splat inputs
+    # (ie node.call(*inputs)).
+    STACK = lambda do |node, inputs|
+      node.call(*inputs)
+    end
+    
     # The application logger
     attr_reader :logger
     
@@ -187,10 +193,11 @@ module Tap
     def initialize(config={}, logger=DEFAULT_LOGGER, &block)
       super() # monitor
       
-      @stack = self
+      @stack = STACK
       @state = State::READY
       @queue = Queue.new
-      @dependencies = Dependencies.new
+      @dependencies = {}
+      @trace = []
       on_complete(&block)
       
       initialize_config(config)
@@ -199,7 +206,7 @@ module Tap
     
     # Returns the application-level dependency instance for the specified class.
     def dependency(node_class)
-      dependencies[node_class.to_s] ||= node_class.instantiate[0]
+      dependencies[node_class.to_s] ||= Dependency.register(node_class.new)
     end
     
     # True if debug or the global variable $DEBUG is true.
@@ -244,38 +251,39 @@ module Tap
     # Resolves the node dependencies (if necessary).
     def resolve(node)
       node.dependencies.each do |dependency|
-        dependencies.resolve(dependency) do
-          stack.call(dependency)
+        trace(dependency) do
+          dispatch(dependency)
         end
       end
     end
-    
+
     # Resets the node dependencies.
     def reset(node, recursive=true)
       node.dependencies.each do |dependency|
-        dependencies.resolve(dependency) do 
+        trace(dependency) do 
           dependency.reset
           reset(dependency, recursive) if recursive
         end
       end
     end
     
-    # Calls the application stack with the node and inputs.
+    # Dispatches node to the application stack with the inputs.
     def execute(node, *inputs)
-      stack.call(node, inputs)
+      dispatch(node, inputs)
     end
     
-    # Call is the base of the application stack.  Call:
-    # - resolves node dependencies using resolve
-    # - calls the node with the inputs (ex: node.call(*inputs))
-    # - calls the node join with the results, if set, or
-    #   the default_join if the node has no join set
+    # Dispatch sends the node into the application stack with the inputs.
+    # Dispatch does the following in order:
     #
-    # Call returns the node result, or the join/default_join result if set.
-    def call(node, inputs=[])
+    # - resolve node dependencies using resolve
+    # - call stack with the node and inputs
+    # - call the node join, if set, or the default_join with the results
+    #
+    # Dispatch returns the node result, or the join/default_join result.
+    def dispatch(node, inputs=[])
       resolve(node)
-      result = node.call(*inputs)
-      
+      result = stack.call(node, inputs)
+
       if join = (node.join || default_join)
         join.call(result)
       else
@@ -283,20 +291,20 @@ module Tap
       end
     end
     
-    # Sequentially calls the application stack with each (node, inputs) pair
-    # in the queue; run continues until the queue is empty and then returns
+    # Sequentially dispatches each enqued (node, inputs) pair to the
+    # application stack.  A run continues until the queue is empty.  Returns
     # self.
     #
     # ==== Run State
     #
-    # Run checks the state of self before calling the application stack. If
-    # the state changes from State::RUN, the following behaviors result:
+    # Run checks the state of self before dispatching a node.  If the state
+    # changes from State::RUN, the following behaviors result:
     # 
-    # State::STOP:: No more nodes will be sent to the application stack; the
-    #               current node will continute to completion.
-    # State::TERMINATE:: No more nodes will be sent to the application stack
-    #                    and the currently running node will be discontinued
-    #                    as described in terminate.
+    # State::STOP:: No more nodes will be dispatched; the current node will
+    #               continute to completion.
+    # State::TERMINATE:: No more nodes will be dispatched and the currently
+    #                    running node will be discontinued as described in
+    #                    terminate.
     #
     # Calls to run when the state is not State::READY do nothing and
     # return immediately.
@@ -309,7 +317,7 @@ module Tap
       # TODO: log starting run
       begin
         until queue.empty? || state != State::RUN
-          @stack.call(*queue.deq)
+          dispatch(*queue.deq)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors
@@ -325,7 +333,7 @@ module Tap
       self
     end
     
-    # Signals a running app to stop sending nodes to the application stack
+    # Signals a running app to stop dispatching nodes to the application stack
     # by setting state = State::STOP.  The node currently in the stack will
     # will continue to completion.
     #
@@ -423,9 +431,30 @@ module Tap
     
     protected
     
+    # helper to check for circular dependencies
+    def trace(node) # :nodoc:
+      if @trace.include?(node)
+        @trace.push node
+        raise CircularDependencyError.new(@trace)
+      end
+      
+      # mark the results at the index to prevent
+      # infinite loops with circular dependencies
+      @trace.push node
+      yield
+      @trace.pop
+    end
+    
     # TerminateErrors are raised to kill executing tasks when terminate is 
     # called on an running App.  They are handled by the run rescue code.
     class TerminateError < RuntimeError 
+    end
+    
+    # Raised when Dependencies#resolve detects a circular dependency.
+    class CircularDependencyError < StandardError
+      def initialize(trace)
+        super "circular dependency: [#{trace.join(', ')}]"
+      end
     end
   end
 end

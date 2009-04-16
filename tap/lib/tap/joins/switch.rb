@@ -19,14 +19,14 @@ module Tap
         super(inputs, outputs)
       end
 
-      def call(_result)
-        index = selector.call(_result)
+      def call(result)
+        index = selector.call(result)
         
         unless index && output = outputs[index] 
-          raise "no switch target for _result: #{_result}"
+          raise "no switch target for result: #{result}"
         end
 
-        enq(output, _result)
+        enq(output, result)
       end
     end
   end

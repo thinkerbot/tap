@@ -228,7 +228,7 @@ class AppTest < Test::Unit::TestCase
 
     assert_equal(App::Queue, app.queue.class)
     assert app.queue.empty?
-    assert_equal app, app.stack
+    assert_equal App::STACK, app.stack
     assert_equal nil, app.default_join
     assert_equal App::State::READY, app.state
   end
@@ -296,18 +296,18 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_use_initializes_middleware_with_stack_and_sets_result_as_stack
-    assert_equal app, app.stack
+    assert_equal App::STACK, app.stack
     
     app.use(Middleware)
     assert_equal Middleware, app.stack.class
-    assert_equal app, app.stack.stack
+    assert_equal App::STACK, app.stack.stack
     
     stack = app.stack
     
     app.use(Middleware)
     assert_equal Middleware, app.stack.class
     assert_equal stack, app.stack.stack
-    assert_equal app, app.stack.stack.stack
+    assert_equal App::STACK, app.stack.stack.stack
   end
   
   #
@@ -355,7 +355,7 @@ class AppTest < Test::Unit::TestCase
     n0.depends_on(n1)
     n1.depends_on(n0)
     
-    assert_raises(App::Dependencies::CircularDependencyError) { app.resolve(n0) }
+    assert_raises(App::CircularDependencyError) { app.resolve(n0) }
   end
   
   #
@@ -428,10 +428,10 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # call test
+  # dispatch test
   #
   
-  def test_call_calls_node_with_splat_inputs
+  def test_dispatch_calls_node_with_splat_inputs
     was_in_block = false
     n = intern do |*inputs|
       assert_equal [1,2,3], inputs
@@ -439,16 +439,16 @@ class AppTest < Test::Unit::TestCase
     end
     
     assert !was_in_block
-    app.call(n, [1,2,3])
+    app.dispatch(n, [1,2,3])
     assert was_in_block
   end
   
-  def test_call_returns_node_result
+  def test_dispatch_returns_node_result
     n = intern { "result" }
-    assert_equal "result", app.call(n)
+    assert_equal "result", app.dispatch(n)
   end
   
-  def test_call_calls_join_if_specified
+  def test_dispatch_calls_join_if_specified
     n = intern { "result" }
     
     n.on_complete do |result|
@@ -456,10 +456,10 @@ class AppTest < Test::Unit::TestCase
       "join result"
     end
     
-    assert_equal "join result", app.call(n)
+    assert_equal "join result", app.dispatch(n)
   end
   
-  def test_call_calls_default_join_if_no_join_is_specified
+  def test_dispatch_calls_default_join_if_no_join_is_specified
     n = intern { "result" }
     
     app.on_complete do |result|
@@ -467,10 +467,10 @@ class AppTest < Test::Unit::TestCase
       "default result"
     end
     
-    assert_equal "default result", app.call(n)
+    assert_equal "default result", app.dispatch(n)
   end
   
-  def test_call_resolves_dependencies_before_execution
+  def test_dispatch_resolves_dependencies_before_execution
     n1 = intern { runlist << 1 }
     n2 = intern { runlist << 2 }
     n3 = intern { runlist << 3 }
@@ -478,7 +478,7 @@ class AppTest < Test::Unit::TestCase
     n1.depends_on(n2)
     n2.depends_on(n3)
     
-    app.call(n1)
+    app.dispatch(n1)
     assert_equal [3,2,1], runlist
   end
   

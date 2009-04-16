@@ -34,7 +34,7 @@ class MergeTest < Test::Unit::TestCase
     t1 = single(1)
     t2 = single(2)
     
-    t2.merge(t0, t1, :stack => true)
+    t2.merge(t0, t1, :mode => :enq)
     app.enq t0, ''
     app.enq t1, ''
     app.run
@@ -55,7 +55,7 @@ class MergeTest < Test::Unit::TestCase
     t1 = array(1)
     t2 = single(2)
   
-    t2.merge(t0, t1, :iterate => true)
+    t2.merge(t0, t1, :modifier => :iterate)
     app.enq t0, ['a', 'b']
     app.enq t1, ['c', 'd']
     app.run
@@ -80,7 +80,7 @@ class MergeTest < Test::Unit::TestCase
     t1 = array(1)
     t2 = splat(2)
     
-    t2.merge(t0, t1, :splat => true)
+    t2.merge(t0, t1, :modifier => :splat)
     app.enq t0, ['a', 'b']
     app.enq t1, ['a', 'b']
     app.run
