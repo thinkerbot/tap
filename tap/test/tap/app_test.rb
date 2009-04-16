@@ -230,6 +230,7 @@ class AppTest < Test::Unit::TestCase
     assert app.queue.empty?
     assert_equal App::STACK, app.stack
     assert_equal nil, app.default_join
+    assert_equal({}, app.class_dependencies)
     assert_equal App::State::READY, app.state
   end
   
@@ -263,12 +264,12 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_class_dependency_returns_or_initializes_instance_of_class
-    assert_equal({}, app.dependencies)
+    assert_equal({}, app.class_dependencies)
     d = app.class_dependency(ApplicationDependency)
     
     assert_equal ApplicationDependency, d.class
     assert App::Dependency.dependency?(d)
-    assert_equal({ApplicationDependency.to_s => d}, app.dependencies)
+    assert_equal({ApplicationDependency.to_s => d}, app.class_dependencies)
     
     assert_equal d.object_id, app.class_dependency(ApplicationDependency).object_id
   end

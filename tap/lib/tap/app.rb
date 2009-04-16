@@ -148,23 +148,23 @@ module Tap
       node.call(*inputs)
     end
     
-    # The application logger
-    attr_reader :logger
+    # The state of the application (see App::State)
+    attr_reader :state
+    
+    # The application call stack for executing nodes
+    attr_reader :stack
     
     # The application queue
     attr_reader :queue
     
     # A Dependencies object tracking application-level dependencies
-    attr_reader :dependencies
-    
-    # The state of the application (see App::State)
-    attr_reader :state
+    attr_reader :class_dependencies
     
     # The default_join for nodes that have no join set
     attr_accessor :default_join
     
-    # The application call stack for executing nodes
-    attr_reader :stack
+    # The application logger
+    attr_reader :logger
     
     config :debug, false, &c.flag                 # Flag debugging
     config :force, false, &c.flag                 # Force execution at checkpoints
@@ -175,10 +175,10 @@ module Tap
     def initialize(config={}, logger=DEFAULT_LOGGER, &block)
       super() # monitor
       
-      @stack = STACK
       @state = State::READY
+      @stack = STACK
       @queue = Queue.new
-      @dependencies = {}
+      @class_dependencies = {}
       @trace = []
       on_complete(&block)
       
@@ -209,7 +209,9 @@ module Tap
     
     # Returns the application-level dependency instance for the specified class.
     def class_dependency(klass)
-      dependencies[klass.to_s] ||= Node.new(Dependency.new(klass.new))
+      # note classes are turned to strings to allow 
+      # the keys to be dumped as YAML
+      class_dependencies[klass.to_s] ||= Node.new(Dependency.new(klass.new))
     end
     
     # Returns a new dependency that executes block on call.
