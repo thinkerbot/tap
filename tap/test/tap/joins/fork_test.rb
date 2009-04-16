@@ -36,7 +36,7 @@ class ForkTest < Test::Unit::TestCase
     t1 = single(1)
     t2 = single(2)
     
-    t0.fork(t1, t2, :mode => :enq)
+    t0.fork(t1, t2, :stack => true)
     app.enq t0, ""
     app.run
   
@@ -54,12 +54,12 @@ class ForkTest < Test::Unit::TestCase
     ], results[t2]
   end
   
-  def test_iterate_fork
+  def test_iterate_splat_fork
     t0 = array(0)
     t1 = single(1)
     t2 = single(2)
     
-    t0.fork(t1, t2, :modifier => :iterate)
+    t0.fork(t1, t2, :iterate => true, :splat => true)
     app.enq t0, ['a', 'b']
     app.run
   
@@ -86,7 +86,7 @@ class ForkTest < Test::Unit::TestCase
     t1 = splat(1)
     t2 = splat(2)
     
-    t0.fork(t1, t2, :modifier => :splat)
+    t0.fork(t1, t2, :splat => true)
     app.enq t0, ['a', 'b']
     app.run
   

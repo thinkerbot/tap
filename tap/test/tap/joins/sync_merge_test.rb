@@ -36,7 +36,7 @@ class SyncMergeTest < Test::Unit::TestCase
     t1 = single(1)
     t2 = splat(2)
     
-    t2.sync_merge(t0, t1, :mode => :enq)
+    t2.sync_merge(t0, t1, :stack => true)
     app.enq t0, ''
     app.enq t1, ''
     app.run
@@ -54,12 +54,12 @@ class SyncMergeTest < Test::Unit::TestCase
     ], results[t2]
   end
   
-  def test_iterate_sync_merge
+  def test_iterate_splat_sync_merge
     t0 = array(0)
     t1 = array(1)
     t2 = single(2)
     
-    t2.sync_merge(t0, t1, :modifier => :iterate)
+    t2.sync_merge(t0, t1, :iterate => true, :splat => true)
     app.enq t0, ['a','b']
     app.enq t1, ['x','y']
     app.run
@@ -86,7 +86,7 @@ class SyncMergeTest < Test::Unit::TestCase
     t1 = array(1)
     t2 = splat(2)
     
-    t2.sync_merge(t0, t1, :modifier => :splat)
+    t2.sync_merge(t0, t1, :splat => true)
     app.enq t0, ['a', 'b']
     app.enq t1, ['a', 'b']
     app.run
@@ -112,7 +112,7 @@ class SyncMergeTest < Test::Unit::TestCase
     t1 = single(1)
     t2 = splat(2)
     
-    t2.sync_merge(t0, t1, :mode => :enq)
+    t2.sync_merge(t0, t1, :stack => true)
     app.enq t0, ''
     app.enq t0, ''
     app.enq t1, ''

@@ -19,38 +19,39 @@ module Tap
       # if the options string contains unknown options.
       #
       #   parse_modifier("")                   # => {}
-      #   parse_modifier("iq")                 # => {:modifier => :iterate, :mode => :enq}
+      #   parse_modifier("is")                 # => {:iterate => true, :splat => true}
       #
       def parse_modifier(str)
         return {} unless str
         
         options = {}
         0.upto(str.length - 1) do |char_index|
-          case char = str[char_index, 1]
-          when 'i' 
-            options[:modifier] = :iterate
-          when 's' 
-            options[:modifier] = :splat
-          when 'q' 
-            options[:mode] = :enq
-          when 'a' 
-            options[:mode] = :aggregate
-          when 'c' 
-            options[:mode] = :collect
-          when 'e' 
-            options[:mode] = :execute
-          else 
-            raise "unknown option in: #{str} (#{char})"
+          char = str[char_index, 1]
+
+          entry = configurations.find do |key, config| 
+            config.attributes[:short] == char
           end
+          key, config = entry
+
+          raise "unknown option in: #{str} (#{char})" unless key 
+          options[key] = true
         end
         options
       end
     end
-    
     include Configurable
-    
-    config :mode, :execute, &c.select(:execute, :enq)
-    config :modifier, :none, &c.select(:none, :iterate, :splat)
+
+    # Causes the join to iterate the results
+    # of the source when enquing the targets.
+    config :iterate, false, :short => 'i', &c.flag
+
+    # Causes joins to splat ('*') the results
+    # of the source when enquing the targets.
+    config :splat, false, :short => 's', &c.flag
+
+    # Causes the targets to be enqued rather
+    # than executed immediately.
+    config :stack, false, :short => 'k', &c.flag
     
     # The App receiving self during enq
     attr_accessor :app
@@ -88,13 +89,6 @@ module Tap
       end
     end
     
-    # A hash of the configurations set to true.
-    def options
-      opts = config.to_hash
-      opts.delete_if {|key, value| value == false }
-      opts
-    end
-    
     # Returns a string like: "#<Join:object_id>"
     def inspect
       "#<Join:#{object_id}>"
@@ -111,17 +105,20 @@ module Tap
     #   stack        the executable is enqued   the executable is executed
     #
     def enq(node, *results)
-      case modifier
-      when :iterate
-        arrayify(results).each {|result| app.send(mode, node, result) }
-      when :splat
-        app.send(mode, node, *arrayify(results))
+      if splat
+        results = splat!(results)
+      end
+      
+      mode = stack ? :enq : :execute
+      
+      if iterate
+        results.each {|result| app.send(mode, node, result) }
       else
         app.send(mode, node, *results)
       end
     end
     
-    def arrayify(results)
+    def splat!(results)
       array = []
       results.each do |result|
         if result.respond_to?(:to_ary)

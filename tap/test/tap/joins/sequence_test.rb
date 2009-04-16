@@ -29,7 +29,7 @@ class SequenceTest < Test::Unit::TestCase
     t0 = single(0)
     t1 = single(1)
     
-    t0.sequence(t1, :mode => :enq)
+    t0.sequence(t1, :stack => true)
     app.enq t0, ""
     app.run
   
@@ -42,11 +42,11 @@ class SequenceTest < Test::Unit::TestCase
     ], results[t1]
   end
   
-  def test_iterate_sequence
+  def test_iterate_splat_sequence
     t0 = array(0)
     t1 = single(1)
   
-    t0.sequence(t1, :modifier => :iterate)
+    t0.sequence(t1, :iterate => true, :splat => true)
     app.enq t0, ['a', 'b']
     app.run
   
@@ -65,7 +65,7 @@ class SequenceTest < Test::Unit::TestCase
     t0 = array(0)
     t1 = splat(1)
     
-    t0.sequence(t1, :modifier => :splat)
+    t0.sequence(t1, :splat => true)
     app.enq t0, ['a', 'b']
     app.run
   

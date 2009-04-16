@@ -54,7 +54,7 @@ class SwitchTest < Test::Unit::TestCase
     t2 = single(2)
     
     index = nil
-    t0.switch(t1, t2, :mode => :enq) do |_results|
+    t0.switch(t1, t2, :stack => true) do |_results|
       index
     end
     
@@ -95,13 +95,13 @@ class SwitchTest < Test::Unit::TestCase
     ], results[t2]
   end
   
-  def test_iterate_switch
+  def test_iterate_splat_switch
     t0 = array(0)
     t1 = single(1)
     t2 = single(2)
     
     index = nil
-    t0.switch(t1, t2, :modifier => :iterate) do |_results|
+    t0.switch(t1, t2, :iterate => true, :splat => true) do |_results|
       index
     end
     
@@ -151,7 +151,7 @@ class SwitchTest < Test::Unit::TestCase
     t2 = splat(2)
     
     index = nil
-    t0.switch(t1, t2, :modifier => :splat) do |_results|
+    t0.switch(t1, t2, :splat => true) do |_results|
       index
     end
     
