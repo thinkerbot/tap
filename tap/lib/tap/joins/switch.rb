@@ -26,7 +26,7 @@ module Tap
           raise "no switch target for result: #{result}"
         end
 
-        enq(output, result)
+        execute(output, result)
       end
     end
   end

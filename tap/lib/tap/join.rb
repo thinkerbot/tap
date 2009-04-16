@@ -19,7 +19,7 @@ module Tap
       # if the options string contains unknown options.
       #
       #   parse_modifier("")                   # => {}
-      #   parse_modifier("is")                 # => {:iterate => true, :splat => true}
+      #   parse_modifier("iq")                 # => {:iterate => true, :enq => true}
       #
       def parse_modifier(str)
         return {} unless str
@@ -40,24 +40,52 @@ module Tap
       end
     end
     include Configurable
-
-    # Causes the join to iterate the results
-    # of the source when enquing the targets.
-    config :iterate, false, :short => 'i', &c.flag
-
-    # Causes joins to splat ('*') the results
-    # of the source when enquing the targets.
+    
+    # Causes the targets to be enqued rather than executed immediately.
+    config :enq, false, :short => 'q', &c.flag
+    
+    # Splats the results of each input before execution, allowing a
+    # many-to-one join from the perspective of the results. If inputs
+    # [A,B,C] produce results [a,b,c], the outputs will be executed like:
+    #
+    #   app.execute(output, *a, *b, *c)
+    #
+    # Note splat is applied before iterate.
     config :splat, false, :short => 's', &c.flag
-
-    # Causes the targets to be enqued rather
-    # than executed immediately.
-    config :stack, false, :short => 'k', &c.flag
+    
+    # Iterates each result, allowing a one-to-many or many-to-many
+    # join from the perspective of the results.  Like splat, iterate works
+    # at the level of input.  If inputs [A,B,C] produce results [a,b,c],
+    # the outputs will be executed like:
+    #
+    #   app.execute(output, a)
+    #   app.execute(output, b)
+    #   app.execute(output, c)
+    #
+    # Splat and iterate may be combined to iterate over each value of each
+    # result:
+    #
+    #   a.each {|r| app.execute(output, r) }
+    #   b.each {|r| app.execute(output, r) }
+    #   c.each {|r| app.execute(output, r) }
+    #
+    # In this case, non-array results are either converted to arrays using
+    # to_ary, or treated like single-member arrays.  For instance if
+    # [a,b,c] are [1, [2,3,[4,5]], 6]:
+    #
+    #  [1].each {|r| ... }
+    #  [2,3,[4,5]].each {|r| ... }
+    #  [6].each {|r| ... }
+    #
+    config :iterate, false, :short => 'i', &c.flag
     
     # The App receiving self during enq
     attr_accessor :app
     
+    # An array of input nodes, or nil if the join has not been set.
     attr_reader :inputs
     
+    # An array of output nodes, or nil if the join has not been set.
     attr_reader :outputs
     
     # Initializes a new join with the specified configuration.
@@ -68,13 +96,7 @@ module Tap
       initialize_config(config)
     end
     
-    # The name of the join, as a symbol.  By default name is the basename of
-    # the underscored class name.
-    def name
-      File.basename(self.class.to_s.underscore).to_sym
-    end
-    
-    # Creates a join that passes the results of each input to each output.
+    # Sets self as a join between the inputs and outputs.
     def join(inputs, outputs)
       @inputs = inputs.each do |input|
         input.join = self
@@ -83,9 +105,11 @@ module Tap
       self
     end
     
+    # Executes the join logic for self, which by default passes the result to
+    # each output.
     def call(result)
       outputs.each do |output|
-        enq(output, result)
+        execute(output, result)
       end
     end
     
@@ -96,20 +120,13 @@ module Tap
     
     protected
     
-    # Enques the executable with the results, respecting the
-    # configuration for self.
-    #
-    #                true                       false
-    #   iterate      _results are iterated      _results are enqued directly
-    #   splat        _results are splat enqued  _results are enqued directly
-    #   stack        the executable is enqued   the executable is executed
-    #
-    def enq(node, *results)
+    # Executes the node with the input results.
+    def execute(node, *results)
       if splat
         results = splat!(results)
       end
       
-      mode = stack ? :enq : :execute
+      mode = enq ? :enq : :execute
       
       if iterate
         results.each {|result| app.send(mode, node, result) }
@@ -118,7 +135,11 @@ module Tap
       end
     end
     
-    def splat!(results)
+    # Performs a splat operation on results, essentially this:
+    #
+    #   [*results[0], *results[1], ..., *results[-1]]
+    #
+    def splat!(results) # :nodoc:
       array = []
       results.each do |result|
         if result.respond_to?(:to_ary)

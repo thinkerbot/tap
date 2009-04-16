@@ -4,12 +4,6 @@ module Tap
   class Auditor
     class ArrayAudit < Audit
       
-      def each
-        to_ary.each do |audit|
-          yield(audit)
-        end
-      end
-      
       # Converts audits with an array value to an array of audits, one for each
       # item in value.  The audits use the index of the item as a key and are
       # effectively forks of the present audit.

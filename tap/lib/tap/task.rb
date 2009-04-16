@@ -506,10 +506,10 @@ module Tap
     # Sets a synchronized merge workflow for the source tasks.  Results 
     # from each source are collected and enqued as a single group to
     # self.  The collective results are not enqued until all sources
-    # have completed.  See Joins::SyncMerge.
+    # have completed.  See Joins::Sync.
     def sync_merge(*sources) # :yields: _result
       options = sources[-1].kind_of?(Hash) ? sources.pop : {}
-      Joins::SyncMerge.new(options, app).join(sources, [self])
+      Joins::Sync.new(options, app).join(sources, [self])
     end
 
     # Sets a switch workflow pattern for self.  On complete, switch yields

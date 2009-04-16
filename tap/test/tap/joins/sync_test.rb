@@ -1,7 +1,7 @@
 require File.join(File.dirname(__FILE__), '../../app_test_helper')
 require 'tap/joins'
 
-class SyncMergeTest < Test::Unit::TestCase
+class SyncTest < Test::Unit::TestCase
   include JoinTestMethods
   
   #
@@ -31,12 +31,12 @@ class SyncMergeTest < Test::Unit::TestCase
     ], results[t2]
   end
   
-  def test_stack_sync_merge
+  def test_enq_sync_merge
     t0 = single(0)
     t1 = single(1)
     t2 = splat(2)
     
-    t2.sync_merge(t0, t1, :stack => true)
+    t2.sync_merge(t0, t1, :enq => true)
     app.enq t0, ''
     app.enq t1, ''
     app.run
@@ -117,7 +117,7 @@ class SyncMergeTest < Test::Unit::TestCase
     app.enq t0, ''
     app.enq t1, ''
     
-    assert_raises(RuntimeError) { app.run }
+    assert_raises(Joins::Sync::SynchronizeError) { app.run }
     assert_equal %w{
       0
       0

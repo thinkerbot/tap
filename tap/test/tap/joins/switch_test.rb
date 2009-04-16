@@ -48,13 +48,13 @@ class SwitchTest < Test::Unit::TestCase
     ], results[t2]
   end
   
-  def test_stack_switch
+  def test_enq_switch
     t0 = single(0)
     t1 = single(1)
     t2 = single(2)
     
     index = nil
-    t0.switch(t1, t2, :stack => true) do |_results|
+    t0.switch(t1, t2, :enq => true) do |_results|
       index
     end
     

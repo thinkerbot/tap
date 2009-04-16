@@ -30,7 +30,7 @@ class JoinTest < Test::Unit::TestCase
 
   def test_parse_modifiers_documentation
     assert_equal({}, Join.parse_modifier(""))
-    assert_equal({:iterate => true, :splat => true}, Join.parse_modifier("is"))
+    assert_equal({:iterate => true, :enq => true}, Join.parse_modifier("iq"))
   end
 
   def test_parse_modifier_raises_error_for_unknown_options
@@ -74,7 +74,7 @@ class JoinTest < Test::Unit::TestCase
     t2 = single(2)
     t3 = single(3)
     
-    join.stack = true
+    join.enq = true
     join.join([t0,t1], [t2,t3])
     app.enq t0, ''
     app.enq t1, ''

@@ -25,11 +25,11 @@ class SequenceTest < Test::Unit::TestCase
     ], results[t1]
   end
   
-  def test_stack_sequence
+  def test_enq_sequence
     t0 = single(0)
     t1 = single(1)
     
-    t0.sequence(t1, :stack => true)
+    t0.sequence(t1, :enq => true)
     app.enq t0, ""
     app.run
   

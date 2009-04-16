@@ -29,12 +29,12 @@ class MergeTest < Test::Unit::TestCase
     ], results[t2]
   end
   
-  def test_stack_merge
+  def test_enq_merge
     t0 = single(0)
     t1 = single(1)
     t2 = single(2)
     
-    t2.merge(t0, t1, :stack => true)
+    t2.merge(t0, t1, :enq => true)
     app.enq t0, ''
     app.enq t1, ''
     app.run

@@ -31,12 +31,12 @@ class ForkTest < Test::Unit::TestCase
     ], results[t2]
   end
   
-  def test_stack_fork
+  def test_enq_fork
     t0 = single(0)
     t1 = single(1)
     t2 = single(2)
     
-    t0.fork(t1, t2, :stack => true)
+    t0.fork(t1, t2, :enq => true)
     app.enq t0, ""
     app.run
   
