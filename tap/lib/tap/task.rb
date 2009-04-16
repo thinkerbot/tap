@@ -297,7 +297,7 @@ module Tap
         if name
           # returns the resolved result of the dependency
           define_method(name) do
-            app.dependency(dependency_class).result
+            app.class_dependency(dependency_class).result
           end
         
           public(name)
@@ -428,7 +428,7 @@ module Tap
       
       # setup class dependencies
       self.class.dependencies.each do |dependency_class|
-        depends_on app.dependency(dependency_class)
+        depends_on app.class_dependency(dependency_class)
       end
     end
     

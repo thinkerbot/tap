@@ -409,7 +409,7 @@ class TaskTest < Test::Unit::TestCase
   def test_depends_on_documentation
     app = Tap::App.new
     b = B.new({}, :name, app)
-    assert_equal [app.dependency(A)], b.dependencies
+    assert_equal [app.class_dependency(A)], b.dependencies
     assert_equal nil, b.a 
   
     app.resolve(b)

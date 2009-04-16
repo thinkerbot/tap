@@ -49,7 +49,7 @@ module Tap
     
     include Configurable
     
-    config :mode, :execute, &c.select(:execute, :enq, :aggregate, :collect)
+    config :mode, :execute, &c.select(:execute, :enq)
     config :modifier, :none, &c.select(:none, :iterate, :splat)
     
     # The App receiving self during enq
@@ -110,47 +110,28 @@ module Tap
     #   splat        _results are splat enqued  _results are enqued directly
     #   stack        the executable is enqued   the executable is executed
     #
-    def enq(node, result)
-      case mode
-      when :aggregate
-        aggregate(node) do |results|
-          results << result
-        end
-        
-      when :collect
-        aggregate(node) do |results|
-          results.concat [*result]
-        end
-        
-      when :execute, :enq
-        case modifier
-        when :iterate
-          result.each {|r| app.send(mode, node, r) }
-        when :splat
-          app.send(mode, node, *result)
+    def enq(node, *results)
+      case modifier
+      when :iterate
+        arrayify(results).each {|result| app.send(mode, node, result) }
+      when :splat
+        app.send(mode, node, *arrayify(results))
+      else
+        app.send(mode, node, *results)
+      end
+    end
+    
+    def arrayify(results)
+      array = []
+      results.each do |result|
+        if result.respond_to?(:to_ary)
+          array.concat(result.to_ary)
         else
-          app.send(mode, node, result)
+          array << result
         end
       end
+      array
     end
-    
-    # returns the aggregator for self
-    def aggregator # :nodoc:
-      @aggregator ||= {}
-    end
-    
-    # helper method to aggregate audited results
-    def aggregate(node) # :nodoc:
-      queue = app.queue
-      entry = aggregator[node]
-      
-      queue.synchronize do
-        unless queue.has?(entry)
-          entry = aggregator[node] = [node, []]
-          queue.concat [entry]
-        end
-        yield(entry[1])
-      end
-    end
+
   end
 end
