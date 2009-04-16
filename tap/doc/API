@@ -1,6 +1,6 @@
 = Application Programming Interfaces
 
-Note these are all currently provisional.  The required methods are listed in the table with the parameter signature and expected return value.  Names that look like an inheritance means the 'superclass' API must also be satisfied.
+Note these are all currently provisional.  The required methods are listed in the table with the parameter signature and expected return value.
 
 method:: (a,b,c) => return value
 
@@ -14,17 +14,25 @@ join:: () => a Join or nil
 
 call:: (result) => any return
 
-== Dependency < Node
+== Dependency 
 
+call:: () => any return
+dependencies:: () => an array of Dependencies
+join:: () => a Join or nil
 reset:: () => any return
 result:: () => any return
 
-By convention dependencies are setup so that:
+Note that a dependency has the same requirements as a node, but call is restricted to take no inputs.  By convention dependencies are setup so that:
 - call will only execute once
 - the result of call is stored as result
 - reset allows call to execute again, and sets result to nil
 
 However, the exact behavior is up to the user.
+
+== Class Dependency
+
+DependencyClass.new:: () => instance of DependencyClass
+call:: (any parameter signature) => any return
 
 == Application Middleware
 

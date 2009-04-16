@@ -41,6 +41,15 @@ module Tap
         obj.respond_to?(:dependencies)
       end
       
+      # Extends obj with Node unless obj already satisfies the
+      # Node API.  Returns obj.
+      def self.new(obj)
+        unless Node.node?(obj)
+          obj.extend Node
+        end
+        obj
+      end
+      
       # Sets a block as the join for self.
       def on_complete(&block) # :yields: result
         self.join = block
@@ -52,7 +61,7 @@ module Tap
       def depends_on(dependency)
         raise "cannot depend on self" if dependency == self
         unless dependencies.include?(dependency)
-          dependencies << Dependency.register(dependency)
+          dependencies << Dependency.new(dependency)
         end
         self
       end

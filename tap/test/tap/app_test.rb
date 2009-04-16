@@ -254,7 +254,48 @@ class AppTest < Test::Unit::TestCase
     app.logger = logger
     assert_equal Logger::DEBUG, logger.level
   end
-
+  
+  #
+  # class_dependency test
+  #
+  
+  class ApplicationDependency
+  end
+  
+  def test_class_dependency_returns_or_initializes_instance_of_class
+    assert_equal({}, app.dependencies)
+    d = app.class_dependency(ApplicationDependency)
+    
+    assert_equal ApplicationDependency, d.class
+    assert App::Dependency.dependency?(d)
+    assert_equal({ApplicationDependency.to_s => d}, app.dependencies)
+    
+    assert_equal d.object_id, app.class_dependency(ApplicationDependency).object_id
+  end
+  
+  #
+  # dependency test
+  #
+  
+  def test_dependency_interns_dependency_with_block
+    d = app.dependency { "result" }
+    assert App::Dependency.dependency?(d)
+    
+    assert_equal nil, d.result
+    d.call
+    assert_equal "result", d.result
+  end
+  
+  #
+  # node test
+  #
+  
+  def test_node_interns_node_with_block
+    n = app.node {|input| input + " was provided" }
+    assert App::Node.node?(n)
+    assert_equal "str was provided", n.call("str")
+  end
+  
   #
   # enq test
   #

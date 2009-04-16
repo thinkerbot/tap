@@ -1,4 +1,5 @@
 require 'logger'
+require 'tap/app/state'
 require 'tap/app/queue'
 require 'tap/app/dependency'
 
@@ -170,25 +171,6 @@ module Tap
     config :quiet, false, &c.flag                 # Suppress logging
     config :verbose, false, &c.flag               # Enables extra logging (overrides quiet)
     
-    # The constants defining the possible App states.  
-    module State
-      READY = 0
-      RUN = 1
-      STOP = 2
-      TERMINATE = 3
-      
-      module_function
-      
-      # Returns a string corresponding to the input state value.  
-      # Returns nil for unknown states.
-      #
-      #   State.state_str(0)        # => 'READY'
-      #   State.state_str(12)       # => nil
-      def state_str(state)
-        constants.inject(nil) {|str, s| const_get(s) == state ? s.to_s : str}
-      end
-    end
-    
     # Creates a new App with the given configuration.  
     def initialize(config={}, logger=DEFAULT_LOGGER, &block)
       super() # monitor
@@ -202,11 +184,6 @@ module Tap
       
       initialize_config(config)
       self.logger = logger
-    end
-    
-    # Returns the application-level dependency instance for the specified class.
-    def dependency(node_class)
-      dependencies[node_class.to_s] ||= Dependency.register(node_class.new)
     end
     
     # True if debug or the global variable $DEBUG is true.
@@ -230,6 +207,21 @@ module Tap
       logger.add(level, msg, action.to_s) if !quiet || verbose
     end
     
+    # Returns the application-level dependency instance for the specified class.
+    def class_dependency(klass)
+      dependencies[klass.to_s] ||= Node.new(Dependency.new(klass.new))
+    end
+    
+    # Returns a new dependency that executes block on call.
+    def dependency(&block) # :yields: 
+      Dependency.intern(&block)
+    end
+    
+    # Returns a new node that executes block on call.
+    def node(&block) # :yields: *inputs
+      Node.intern(&block)
+    end
+    
     # Enques the node with the inputs.  Returns the node.
     def enq(node, *inputs)
       queue.enq(node, inputs)
@@ -237,8 +229,8 @@ module Tap
     end
     
     # Generates a Node from the block and enques. Returns the new node.
-    def bq(*inputs, &block)
-      node = Node.intern(&block)
+    def bq(*inputs, &block) # :yields: *inputs
+      node = self.node(&block)
       queue.enq(node, inputs)
       node
     end

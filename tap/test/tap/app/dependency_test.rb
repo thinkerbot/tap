@@ -56,29 +56,29 @@ class DependencyTest < Test::Unit::TestCase
   end
   
   #
-  # register test
+  # new test
   #
   
   class MockDependency
     attr_reader :call, :result, :reset
   end
   
-  def test_register_extends_the_input_object_if_it_does_not_satisfy_the_dependency_API
+  def test_new_extends_the_input_object_if_it_does_not_satisfy_the_dependency_API
     m = Object.new
-    Dependency.register(m)
+    Dependency.new(m)
     assert m.kind_of?(Dependency)
     
     m = MockDependency.new
-    Dependency.register(m)
+    Dependency.new(m)
     assert !m.kind_of?(Dependency)
   end
   
-  def test_register_returns_obj
+  def test_new_returns_obj
     m = Dependency.intern {}
-    assert_equal m, Dependency.register(m)
+    assert_equal m, Dependency.new(m)
     
     m = Object.new
-    assert_equal m, Dependency.register(m)
+    assert_equal m, Dependency.new(m)
   end
   
   #

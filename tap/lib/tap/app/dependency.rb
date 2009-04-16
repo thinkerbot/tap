@@ -41,7 +41,7 @@ module Tap
       
       # Extends obj with Dependency unless obj already satisfies the
       # Dependency API.  Returns obj.
-      def self.register(obj)
+      def self.new(obj)
         unless Dependency.dependency?(obj)
           obj.extend Dependency
         end
