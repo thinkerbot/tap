@@ -1,0 +1,35 @@
+= Application Programming Interfaces
+
+Note these are all currently provisional.  The required methods are listed in the table with the parameter signature and expected return value.  Names that look like an inheritance means the 'superclass' API must also be satisfied.
+
+method:: (a,b,c) => return value
+
+== Node
+
+call:: (any parameter signature) => any return
+dependencies:: () => an array of Dependencies
+join:: () => a Join or nil
+
+== Join
+
+call:: (result) => any return
+
+== Dependency < Node
+
+reset:: () => any return
+result:: () => any return
+
+By convention dependencies are setup so that:
+- call will only execute once
+- the result of call is stored as result
+- reset allows call to execute again, and sets result to nil
+
+However, the exact behavior is up to the user.
+
+== Application Middleware
+
+Middleware.new:: (stack) => instance of middleware
+call:: (node, [inputs array]) => any return
+stack:: () => the input stack
+
+The middleware API is essentially the same as for Rack.
