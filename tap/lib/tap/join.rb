@@ -49,38 +49,28 @@ module Tap
     # Causes the targets to be enqued rather than executed immediately.
     config :enq, false, :short => 'q', &c.flag
     
-    # Splats the results of each input before execution, allowing a
-    # many-to-one join from the perspective of the results. If inputs
-    # [A,B,C] produce results [a,b,c], the outputs will be executed like:
+    # Splats the result to the outputs, allowing a many-to-one join
+    # from the perspective of the results.
     #
-    #   app.execute(output, *a, *b, *c)
+    #   # results: [1,2,3]
+    #   # outputs: call(*inputs)
+    #   app.execute(output, *result)
     #
-    # Note splat is applied before iterate.
     config :splat, false, :short => 's', &c.flag
     
-    # Iterates each result, allowing a one-to-many or many-to-many
-    # join from the perspective of the results.  Like splat, iterate works
-    # at the level of input.  If inputs [A,B,C] produce results [a,b,c],
-    # the outputs will be executed like:
+    # Iterates the results to the outputs, allowing a many-to-one join
+    # from the perspective of the results.  Non-array results are converted
+    # to arrays using to_ary:
     #
-    #   app.execute(output, a)
-    #   app.execute(output, b)
-    #   app.execute(output, c)
+    #   # results: [1,2,3]
+    #   # outputs: call(input)
+    #   result.to_ary.each {|r| app.execute(output, r) }
     #
-    # Splat and iterate may be combined to iterate over each value of each
-    # result:
+    # Iterate may be combined with splat:
     #
-    #   a.each {|r| app.execute(output, r) }
-    #   b.each {|r| app.execute(output, r) }
-    #   c.each {|r| app.execute(output, r) }
-    #
-    # In this case, non-array results are either converted to arrays using
-    # to_ary, or treated like single-member arrays.  For instance if
-    # [a,b,c] are [1, [2,3,[4,5]], 6]:
-    #
-    #  [1].each {|r| ... }
-    #  [2,3,[4,5]].each {|r| ... }
-    #  [6].each {|r| ... }
+    #   # results: [[1,2],3]
+    #   # outputs: call(*inputs)
+    #   result.to_ary.each {|r| app.execute(output, *r) }
     #
     config :iterate, false, :short => 'i', &c.flag
     
@@ -121,7 +111,7 @@ module Tap
     # each output.
     def call(result)
       outputs.each do |output|
-        execute(output, result)
+        dispatch(output, result)
       end
     end
     
@@ -132,36 +122,23 @@ module Tap
     
     protected
     
-    # Executes the node with the input results.
-    def execute(node, *results)
-      if splat
-        results = splat!(results)
-      end
-      
+    # Dispatches the results to the node.
+    def dispatch(node, result) # :nodoc:
       mode = enq ? :enq : :execute
-      
       if iterate
-        results.each {|result| app.send(mode, node, result) }
+        result.to_ary.each {|r| execute(mode, node, r) }
       else
-        app.send(mode, node, *results)
+        execute(mode, node, result)
       end
     end
     
-    # Performs a splat operation on results, essentially this:
-    #
-    #   [*results[0], *results[1], ..., *results[-1]]
-    #
-    def splat!(results) # :nodoc:
-      array = []
-      results.each do |result|
-        if result.respond_to?(:to_ary)
-          array.concat(result.to_ary)
-        else
-          array << result
-        end
+    # Executes the node with the input results.
+    def execute(mode, node, result) # :nodoc:
+      if splat
+        app.send(mode, node, *result)
+      else
+        app.send(mode, node, result)
       end
-      array
     end
-
   end
 end

@@ -22,8 +22,8 @@ class SyncTest < Test::Unit::TestCase
   def test_simple_sync
     a = app.node { 'a' }
     b = app.node { 'b' }
-    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
+    c = app.node {|inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
     app.join([a,b], [c,d], {}, Sync)
     
@@ -50,8 +50,8 @@ class SyncTest < Test::Unit::TestCase
   def test_enq_sync
     a = app.node { 'a' }
     b = app.node { 'b' }
-    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
+    c = app.node {|inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
     app.join([a,b], [c,d], {:enq => true}, Sync)
     
@@ -108,8 +108,8 @@ class SyncTest < Test::Unit::TestCase
   end
   
   def test_splat_sync
-    a = app.node { ['a0', 'a1'] }
-    b = app.node { ['b0', 'b1'] }
+    a = app.node { 'a' }
+    b = app.node { 'b' }
     c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
     d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
@@ -127,19 +127,19 @@ class SyncTest < Test::Unit::TestCase
     ], runlist
     
     assert_equal [
-      ['a0.c', 'a1.c', 'b0.c', 'b1.c']
+      ['a.c', 'b.c']
     ], results[c]
     
     assert_equal [
-      ['a0.d', 'a1.d', 'b0.d', 'b1.d']
+      ['a.d', 'b.d']
     ], results[d]
   end
   
   def test_iterate_splat_sync
     a = app.node { ['a0', 'a1'] }
     b = app.node { ['b0', 'b1'] }
-    c = app.node {|input| "#{input}.c" }
-    d = app.node {|input| "#{input}.d" }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
     app.join([a,b], [c,d], {:iterate => true, :splat => true}, Sync)
     
@@ -150,22 +150,18 @@ class SyncTest < Test::Unit::TestCase
   
     assert_equal [
       a, 
-      b, c, c, c, c, d, d, d, d,
+      b, c, c, d, d,
       e,
     ], runlist
     
     assert_equal [
-      'a0.c',
-      'a1.c',
-      'b0.c',
-      'b1.c',
+      ['a0.c', 'a1.c'],
+      ['b0.c', 'b1.c']
     ], results[c]
     
     assert_equal [
-      'a0.d',
-      'a1.d',
-      'b0.d',
-      'b1.d',
+      ['a0.d', 'a1.d'],
+      ['b0.d', 'b1.d']
     ], results[d]
   end
   

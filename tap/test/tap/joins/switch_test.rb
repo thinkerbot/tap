@@ -50,14 +50,14 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    app.enq a
+    app.enq b
     app.enq e
     app.run
   
     assert_equal [
       a, c,
       e,
-      a, d,
+      b, d,
       e,
     ], runlist
     
@@ -66,7 +66,7 @@ class SwitchTest < Test::Unit::TestCase
     ], results[c]
     
     assert_equal [
-      'a.d'
+      'b.d'
     ], results[d]
   end
   
@@ -102,7 +102,7 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    app.enq a
+    app.enq b
     app.enq e
     app.run
   
@@ -110,7 +110,7 @@ class SwitchTest < Test::Unit::TestCase
       a,
       e,
       c,
-      a,
+      b,
       e,
       d,
     ], runlist
@@ -120,14 +120,13 @@ class SwitchTest < Test::Unit::TestCase
     ], results[c]
     
     assert_equal [
-      'a.d'
+      'b.d'
     ], results[d]
   end
   
   def test_iterate_switch
-    # same as join since there is no synchronization
-    a = app.node { 'a' }
-    b = app.node { 'b' }
+    a = app.node { ['a0', 'a1'] }
+    b = app.node { ['b0', 'b1'] }
     c = app.node {|input| "#{input}.c" }
     d = app.node {|input| "#{input}.d" }
     e = app.node { 'd' }
@@ -144,35 +143,38 @@ class SwitchTest < Test::Unit::TestCase
     app.run
   
     assert_equal [
-      a, c,
+      a, c, c,
       e,
     ], runlist
     
     assert_equal [
-      'a.c'
+      'a0.c', 
+      'a1.c'
     ], results[c]
     
     assert_equal nil, results[d]
     
     # pick d
     index = 1
-    app.enq a
+    app.enq b
     app.enq e
     app.run
   
     assert_equal [
-      a, c,
+      a, c, c,
       e,
-      a, d,
+      b, d, d,
       e,
     ], runlist
     
     assert_equal [
-      'a.c'
+      'a0.c', 
+      'a1.c'
     ], results[c]
     
     assert_equal [
-      'a.d'
+      'b0.d', 
+      'b1.d'
     ], results[d]
   end
   
@@ -207,14 +209,14 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    app.enq a
+    app.enq b
     app.enq e
     app.run
   
     assert_equal [
       a, c,
       e,
-      a, d,
+      b, d,
       e,
     ], runlist
     
@@ -223,15 +225,15 @@ class SwitchTest < Test::Unit::TestCase
     ], results[c]
     
     assert_equal [
-      ['a0.d', 'a1.d']
+      ['b0.d', 'b1.d']
     ], results[d]
   end
   
   def test_iterate_splat_switch
-    a = app.node { ['a0', 'a1'] }
-    b = app.node { ['b0', 'b1'] }
-    c = app.node {|input| "#{input}.c" }
-    d = app.node {|input| "#{input}.d" }
+    a = app.node { [%w{a0 a1}, "a2"] }
+    b = app.node { [%w{b0 b1}, "b2"] }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
     
     index = nil
@@ -251,33 +253,33 @@ class SwitchTest < Test::Unit::TestCase
     ], runlist
     
     assert_equal [
-      'a0.c', 
-      'a1.c',
+      ['a0.c', 'a1.c'],
+      ['a2.c']
     ], results[c]
     
     assert_equal nil, results[d]
     
     # pick d
     index = 1
-    app.enq a
+    app.enq b
     app.enq e
     app.run
   
     assert_equal [
       a, c, c,
       e,
-      a, d, d,
+      b, d, d,
       e,
     ], runlist
     
     assert_equal [
-      'a0.c', 
-      'a1.c',
+      ['a0.c', 'a1.c'],
+      ['a2.c']
     ], results[c]
     
     assert_equal [
-      'a0.d',
-      'a1.d',
+      ['b0.d', 'b1.d'],
+      ['b2.d']
     ], results[d]
   end
 
