@@ -32,10 +32,20 @@ Gem::Specification.new do |s|
     bin/tap
     lib/tap.rb
     lib/tap/app.rb
+    lib/tap/app/dependency.rb
+    lib/tap/app/node.rb
+    lib/tap/app/queue.rb
+    lib/tap/app/state.rb
+    lib/tap/app/tracer.rb
     lib/tap/constants.rb
+    lib/tap/dump.rb
     lib/tap/env.rb
+    lib/tap/env/constant.rb
+    lib/tap/env/constant_manifest.rb
+    lib/tap/env/gems.rb
+    lib/tap/env/manifest.rb
+    lib/tap/env/minimap.rb
     lib/tap/exe.rb
-    lib/tap/file_task.rb
     lib/tap/generator/arguments.rb
     lib/tap/generator/base.rb
     lib/tap/generator/destroy.rb
@@ -58,46 +68,22 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/task/templates/test.erb
     lib/tap/generator/manifest.rb
     lib/tap/generator/preview.rb
+    lib/tap/join.rb
+    lib/tap/joins.rb
+    lib/tap/joins/switch.rb
+    lib/tap/joins/sync.rb
+    lib/tap/load.rb
     lib/tap/root.rb
-    lib/tap/spec.rb
-    lib/tap/support/aggregator.rb
-    lib/tap/support/audit.rb
-    lib/tap/support/constant.rb
-    lib/tap/support/constant_manifest.rb
-    lib/tap/support/dependencies.rb
-    lib/tap/support/dependency.rb
-    lib/tap/support/executable.rb
-    lib/tap/support/executable_queue.rb
-    lib/tap/support/gems.rb
+    lib/tap/root/utils.rb
+    lib/tap/root/versions.rb
+    lib/tap/schema.rb
+    lib/tap/schema/node.rb
+    lib/tap/schema/parser.rb
     lib/tap/support/intern.rb
-    lib/tap/support/join.rb
-    lib/tap/support/joins.rb
-    lib/tap/support/joins/switch.rb
-    lib/tap/support/joins/sync_merge.rb
-    lib/tap/support/manifest.rb
-    lib/tap/support/minimap.rb
-    lib/tap/support/node.rb
-    lib/tap/support/parser.rb
-    lib/tap/support/schema.rb
     lib/tap/support/shell_utils.rb
     lib/tap/support/string_ext.rb
     lib/tap/support/templater.rb
-    lib/tap/support/versions.rb
     lib/tap/task.rb
-    lib/tap/dump.rb
-    lib/tap/load.rb
-    lib/tap/test.rb
-    lib/tap/test/assertions.rb
-    lib/tap/test/env_vars.rb
-    lib/tap/test/extensions.rb
-    lib/tap/test/file_test.rb
-    lib/tap/test/file_test_class.rb
-    lib/tap/test/regexp_escape.rb
-    lib/tap/test/script_test.rb
-    lib/tap/test/script_tester.rb
-    lib/tap/test/subset_test.rb
-    lib/tap/test/subset_test_class.rb
-    lib/tap/test/tap_test.rb
-    lib/tap/test/utils.rb
+    lib/tap/tasks/file_task.rb
     }
 end

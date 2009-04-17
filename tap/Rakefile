@@ -131,13 +131,10 @@ namespace :test do
       test/tap/join_test.rb
     } + Dir[
       'test/tap/task*_test.rb',
-      #'test/tap/joins/*_test.rb', 
+      'test/tap/joins/*_test.rb', 
       'test/tap/tasks/*_test.rb'
     ].uniq
   end
-  
-  desc 'run auditor tests'
-  task(:auditor) { test_section :auditor }
   
   desc 'run schema tests'
   task :schema do
