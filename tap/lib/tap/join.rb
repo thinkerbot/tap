@@ -1,4 +1,9 @@
 module Tap
+  class App
+    def join(inputs, outputs, config={}, klass=Join, &block)
+      klass.new(config, self).join(inputs, outputs, &block)
+    end
+  end
   
   # ::join
   class Join
@@ -98,9 +103,16 @@ module Tap
     
     # Sets self as a join between the inputs and outputs.
     def join(inputs, outputs)
-      @inputs = inputs.each do |input|
+      @inputs.each do |input|
+        input.join = nil
+      end if @inputs
+      
+      @inputs = inputs
+      
+      inputs.each do |input|
         input.join = self
-      end
+      end if inputs
+      
       @outputs = outputs
       self
     end

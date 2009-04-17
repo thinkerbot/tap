@@ -24,10 +24,14 @@ module Tap
         index = selector.call(result)
         
         unless index && output = outputs[index] 
-          raise "no switch target for result: #{result}"
+          raise SwitchError, "no switch target at index: #{index}"
         end
 
         execute(output, result)
+      end
+      
+      # Raised by a Switch join to indicate when a switch index is out of bounds.
+      class SwitchError < RuntimeError
       end
     end
   end

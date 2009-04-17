@@ -31,13 +31,20 @@ module Tap
       # callback is responsible for setting the result of each input into the
       # correct 'results' slot.
       def join(inputs, outputs)
+        @inputs.each do |input|
+          input.join = nil
+        end if @inputs
+
+        @inputs = inputs
+
         index = 0
-        @inputs = inputs.each do |input|
+        inputs.each do |input|
           input.join = Callback.new(self, index)
           index += 1
-        end
-        @outputs = outputs
+        end if inputs
         reset
+        
+        @outputs = outputs
         self
       end
       
@@ -50,7 +57,7 @@ module Tap
         end
         
         unless results[index] == NIL_VALUE
-          raise SynchronizeError, "already got a result for #{inputs[index]}"
+          raise SynchronizeError, "already got a result for: #{inputs[index]}"
         end
         results[index] = result
         

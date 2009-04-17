@@ -1,126 +1,196 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/joins'
+require 'tap/app/tracer'
 
 class SyncTest < Test::Unit::TestCase
-  include JoinTestMethods
+  Sync = Tap::Joins::Sync
+  
+  attr_reader :app, :results, :runlist
+  
+  def setup
+    @app = Tap::App.new
+    tracer = app.use(Tap::App::Tracer)
+    
+    @results = tracer.results
+    @runlist = tracer.runlist
+  end
   
   #
-  # sync_merge tests
+  # sync tests
   #
   
-  def test_simple_sync_merge
-    t0 = single(0)
-    t1 = single(1)
-    t2 = splat(2)
+  def test_simple_sync
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
+    e = app.node { 'd' }
+    app.join([a,b], [c,d], {}, Sync)
     
-    t2.sync_merge(t0, t1)
-    app.enq t0, ''
-    app.enq t1, ''
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0
-      1 2
-    }, runlist
-    
-    m0 = [[nil, ''],[t0, '0']]
-    m1 = [[nil, ''],[t1, '1']]
-
     assert_equal [
-      [[m0,m1], [t2,['0 2', '1 2']]]
-    ], results[t2]
+      a, 
+      b, c, d,
+      e,
+    ], runlist
+    
+    assert_equal [
+      ['a.c', 'b.c'],
+    ], results[c]
+    
+    assert_equal [
+      ['a.d', 'b.d'],
+    ], results[d]
   end
   
-  def test_enq_sync_merge
-    t0 = single(0)
-    t1 = single(1)
-    t2 = splat(2)
+  def test_enq_sync
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
+    e = app.node { 'd' }
+    app.join([a,b], [c,d], {:enq => true}, Sync)
     
-    t2.sync_merge(t0, t1, :enq => true)
-    app.enq t0, ''
-    app.enq t1, ''
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0
-      1 2
-    }, runlist
-    
-    m0 = [[nil,''],[t0,'0']]
-    m1 = [[nil,''],[t1,'1']]
-  
     assert_equal [
-      [[m0,m1], [t2,['0 2', '1 2']]]
-    ], results[t2]
+      a, 
+      b,
+      e,
+      c, 
+      d,
+    ], runlist
+    
+    assert_equal [
+      ['a.c', 'b.c'],
+    ], results[c]
+    
+    assert_equal [
+      ['a.d', 'b.d'],
+    ], results[d]
   end
   
-  def test_iterate_splat_sync_merge
-    t0 = array(0)
-    t1 = array(1)
-    t2 = single(2)
+  def test_iterate_sync
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|input| "#{input}.c" }
+    d = app.node {|input| "#{input}.d" }
+    e = app.node { 'd' }
+    app.join([a,b], [c,d], {:iterate => true}, Sync)
     
-    t2.sync_merge(t0, t1, :iterate => true, :splat => true)
-    app.enq t0, ['a','b']
-    app.enq t1, ['x','y']
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0
-      1 
-        2
-        2
-        2
-        2
-    }, runlist
+    assert_equal [
+      a, 
+      b, c, c, d, d,
+      e,
+    ], runlist
     
     assert_equal [
-      [[nil, ['a','b']],[t0, ['a 0', 'b 0']], [0, 'a 0'], [t2,'a 0 2']],
-      [[nil, ['a','b']],[t0, ['a 0', 'b 0']], [1, 'b 0'], [t2,'b 0 2']],
-      [[nil, ['x','y']],[t1, ['x 1', 'y 1']], [0, 'x 1'], [t2,'x 1 2']],
-      [[nil, ['x','y']],[t1, ['x 1', 'y 1']], [1, 'y 1'], [t2,'y 1 2']],
-    ], results[t2]
+      'a.c', 
+      'b.c',
+    ], results[c]
+    
+    assert_equal [
+      'a.d', 
+      'b.d',
+    ], results[d]
   end
   
-  def test_splat_sync_merge
-    t0 = array(0)
-    t1 = array(1)
-    t2 = splat(2)
+  def test_splat_sync
+    a = app.node { ['a0', 'a1'] }
+    b = app.node { ['b0', 'b1'] }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
+    e = app.node { 'd' }
+    app.join([a,b], [c,d], {:splat => true}, Sync)
     
-    t2.sync_merge(t0, t1, :splat => true)
-    app.enq t0, ['a', 'b']
-    app.enq t1, ['a', 'b']
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0
-      1
-        2
-    }, runlist
-    
-    m0a = [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]], [0, "a 0"]]
-    m0b = [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]], [1, "b 0"]]
-    m1a = [[nil, ["a", "b"]], [t1, ["a 1", "b 1"]], [0, "a 1"]]
-    m1b = [[nil, ["a", "b"]], [t1, ["a 1", "b 1"]], [1, "b 1"]]
+    assert_equal [
+      a, 
+      b, c, d,
+      e,
+    ], runlist
     
     assert_equal [
-      [[m0a, m0b, m1a, m1b], [t2, ['a 0 2', 'b 0 2', 'a 1 2', 'b 1 2']]],
-    ], results[t2]
+      ['a0.c', 'a1.c', 'b0.c', 'b1.c']
+    ], results[c]
+    
+    assert_equal [
+      ['a0.d', 'a1.d', 'b0.d', 'b1.d']
+    ], results[d]
+  end
+  
+  def test_iterate_splat_sync
+    a = app.node { ['a0', 'a1'] }
+    b = app.node { ['b0', 'b1'] }
+    c = app.node {|input| "#{input}.c" }
+    d = app.node {|input| "#{input}.d" }
+    e = app.node { 'd' }
+    app.join([a,b], [c,d], {:iterate => true, :splat => true}, Sync)
+    
+    app.enq a
+    app.enq b
+    app.enq e
+    app.run
+  
+    assert_equal [
+      a, 
+      b, c, c, c, c, d, d, d, d,
+      e,
+    ], runlist
+    
+    assert_equal [
+      'a0.c',
+      'a1.c',
+      'b0.c',
+      'b1.c',
+    ], results[c]
+    
+    assert_equal [
+      'a0.d',
+      'a1.d',
+      'b0.d',
+      'b1.d',
+    ], results[d]
   end
   
   def test_sync_merge_raises_error_if_target_cannot_be_enqued_before_a_source_executes_twice
-    t0 = single(0)
-    t1 = single(1)
-    t2 = splat(2)
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|*inputs| flunk "should not have executed" }
+    e = app.node { 'd' }
+    app.join([a,b], [c], {}, Sync)
     
-    t2.sync_merge(t0, t1, :stack => true)
-    app.enq t0, ''
-    app.enq t0, ''
-    app.enq t1, ''
+    app.enq a
+    app.enq a
+    app.enq e
     
-    assert_raises(Tap::Joins::Sync::SynchronizeError) { app.run }
-    assert_equal %w{
-      0
-      0
-    }, runlist
+    app.debug = true
+    err = assert_raises(Tap::Joins::Sync::SynchronizeError) { app.run }
+    assert_equal "already got a result for: #{a}", err.message
+    
+    assert_equal [
+      a,
+      a,
+    ], runlist
+    
+    assert_equal [
+      [e, []]
+    ], app.queue.to_a
   end
 end

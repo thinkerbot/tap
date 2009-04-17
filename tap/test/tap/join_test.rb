@@ -1,16 +1,18 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/join'
+require 'tap/app/tracer'
 
 class JoinTest < Test::Unit::TestCase
-  include JoinTestMethods
-  
   Join = Tap::Join
   
-  attr_accessor :join
+  attr_reader :app, :results, :runlist
   
   def setup
-    super
-    @join = Join.new({}, app)
+    @app = Tap::App.new
+    tracer = app.use(Tap::App::Tracer)
+    
+    @results = tracer.results
+    @runlist = tracer.runlist
   end
   
   #
@@ -43,131 +45,161 @@ class JoinTest < Test::Unit::TestCase
   #
   
   def test_simple_join
-    t0 = single(0)
-    t1 = single(1)
-    t2 = single(2)
-    t3 = single(3)
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|input| "#{input}.c" }
+    d = app.node {|input| "#{input}.d" }
+    e = app.node { 'd' }
+    app.join([a,b], [c,d])
     
-    join.join([t0,t1], [t2,t3])
-    app.enq t0, ''
-    app.enq t1, ''
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0 2 3
-      1 2 3
-    }, runlist
+    assert_equal [
+      a, c, d,
+      b, c, d,
+      e,
+    ], runlist
     
     assert_equal [
-      [[nil, ''],[t0, '0'],[t2, '0 2']], 
-      [[nil, ''],[t1, '1'],[t2, '1 2']],
-    ], results[t2]
+      'a.c', 
+      'b.c'
+    ], results[c]
     
     assert_equal [
-      [[nil, ''],[t0, '0'],[t3, '0 3']], 
-      [[nil, ''],[t1, '1'],[t3, '1 3']],
-    ], results[t3]
+      'a.d', 
+      'b.d'
+    ], results[d]
   end
   
   def test_enq_join
-    t0 = single(0)
-    t1 = single(1)
-    t2 = single(2)
-    t3 = single(3)
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|input| "#{input}.c" }
+    d = app.node {|input| "#{input}.d" }
+    e = app.node { 'd' }
+    join = app.join([a,b], [c,d], :enq => true)
     
-    join.enq = true
-    join.join([t0,t1], [t2,t3])
-    app.enq t0, ''
-    app.enq t1, ''
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
-  
-    assert_equal %w{
-      0 1
-      2 3
-      2 3
-    }, runlist
     
     assert_equal [
-      [[nil, ''],[t0, '0'],[t2, '0 2']], 
-      [[nil, ''],[t1, '1'],[t2, '1 2']],
-    ], results[t2]
+      a, 
+      b,
+      e,
+      c,
+      d,
+      c, 
+      d,
+    ], runlist
     
     assert_equal [
-      [[nil, ''],[t0, '0'],[t3, '0 3']], 
-      [[nil, ''],[t1, '1'],[t3, '1 3']],
-    ], results[t3]
+      'a.c', 
+      'b.c'
+    ], results[c]
+    
+    assert_equal [
+      'a.d', 
+      'b.d'
+    ], results[d]
   end
   
-  def test_iterate_splat_join
-    t0 = array(0)
-    t1 = array(1)
-    t2 = single(2)
-    t3 = single(3)
+  def test_iterate_join
+    # same as join since there is no synchronization
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|input| "#{input}.c" }
+    d = app.node {|input| "#{input}.d" }
+    e = app.node { 'd' }
+    join = app.join([a,b], [c,d], :iterate => true)
     
-    join.iterate = true
-    join.splat = true
-    join.join([t0,t1], [t2,t3])
-    app.enq t0, ['a', 'b']
-    app.enq t1, ['c', 'd']
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
-  
-    assert_equal %w{
-      0 2
-        2
-        3
-        3
-      1 2
-        2
-        3
-        3
-    }, runlist
-  
-    assert_equal [
-      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t2, 'a 0 2']],
-      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t2, 'b 0 2']],
-      [[nil,['c', 'd']],[t1,['c 1', 'd 1']],[0, 'c 1'],[t2, 'c 1 2']],
-      [[nil,['c', 'd']],[t1,['c 1', 'd 1']],[1, 'd 1'],[t2, 'd 1 2']]
-    ], results[t2]
     
     assert_equal [
-      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t3, 'a 0 3']],
-      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t3, 'b 0 3']],
-      [[nil,['c', 'd']],[t1,['c 1', 'd 1']],[0, 'c 1'],[t3, 'c 1 3']],
-      [[nil,['c', 'd']],[t1,['c 1', 'd 1']],[1, 'd 1'],[t3, 'd 1 3']]
-    ], results[t3]
+      a, c, d,
+      b, c, d,
+      e,
+    ], runlist
+    
+    assert_equal [
+      'a.c', 
+      'b.c'
+    ], results[c]
+    
+    assert_equal [
+      'a.d', 
+      'b.d'
+    ], results[d]
   end
   
   def test_splat_join
-    t0 = array(0)
-    t1 = array(1)
-    t2 = splat(2)
-    t3 = splat(3)
+    a = app.node { %w{a0 a1}  }
+    b = app.node { %w{b0 b1} }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
+    e = app.node { 'd' }
+    join = app.join([a,b], [c,d], :splat => true)
     
-    join.splat = true
-    join.join([t0,t1], [t2,t3])
-    
-    app.enq t0, ['a', 'b']
-    app.enq t1, ['c', 'd']
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
+    
+    assert_equal [
+      a, c, d,
+      b, c, d,
+      e,
+    ], runlist
+
+    assert_equal [
+      ['a0.c', 'a1.c'],
+      ['b0.c', 'b1.c'],
+    ], results[c]
+    
+    assert_equal [
+      ['a0.d', 'a1.d'],
+      ['b0.d', 'b1.d'],
+    ], results[d]
+  end
   
-    assert_equal %w{
-      0 2 3
-      1 2 3
-    }, runlist
+  def test_iterate_splat_join
+    a = app.node { %w{a0 a1}  }
+    b = app.node { %w{b0 b1} }
+    c = app.node {|input| "#{input}.c" }
+    d = app.node {|input| "#{input}.d" }
+    e = app.node { 'd' }
+    join = app.join([a,b], [c,d], :iterate => true, :splat => true)
     
-    m0a = [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]], [0, "a 0"]]
-    m0b = [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]], [1, "b 0"]]
-    m1a = [[nil, ["c", "d"]], [t1, ["c 1", "d 1"]], [0, "c 1"]]
-    m1b = [[nil, ["c", "d"]], [t1, ["c 1", "d 1"]], [1, "d 1"]]
-    
-    assert_equal [
-      [[m0a, m0b], [t2, ['a 0 2', 'b 0 2']]],
-      [[m1a, m1b], [t2, ['c 1 2', 'd 1 2']]]
-    ], results[t2]
+    app.enq a
+    app.enq b
+    app.enq e
+    app.run
     
     assert_equal [
-      [[m0a, m0b], [t3, ['a 0 3', 'b 0 3']]],
-      [[m1a, m1b], [t3, ['c 1 3', 'd 1 3']]]
-    ], results[t3]
+      a, c, c, d, d,
+      b, c, c, d, d,
+      e,
+    ], runlist
+
+    assert_equal [
+      'a0.c',
+      'a1.c',
+      'b0.c', 
+      'b1.c',
+    ], results[c]
+    
+    assert_equal [
+      'a0.d',
+      'a1.d',
+      'b0.d',
+      'b1.d',
+    ], results[d]
   end
 end

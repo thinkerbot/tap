@@ -1,207 +1,309 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/joins'
+require 'tap/app/tracer'
 
 class SwitchTest < Test::Unit::TestCase
-  include JoinTestMethods
+  Switch = Tap::Joins::Switch
+  
+  attr_reader :app, :results, :runlist
+  
+  def setup
+    @app = Tap::App.new
+    tracer = app.use(Tap::App::Tracer)
+    
+    @results = tracer.results
+    @runlist = tracer.runlist
+  end
+  
+  #
+  # switch test
+  #
   
   def test_simple_switch
-    t0 = single(0)
-    t1 = single(1)
-    t2 = single(2)
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|input| "#{input}.c" }
+    d = app.node {|input| "#{input}.d" }
+    e = app.node { 'd' }
     
     index = nil
-    t0.switch(t1, t2) do |_results|
+    app.join([a,b], [c,d], {}, Switch) do |result|
       index
     end
     
-    # pick t1
+    # pick c
     index = 0
-    app.enq t0, ""
+    app.enq a
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0 1
-    }, runlist
-    
-    assert_equal nil, results[t0]
     assert_equal [
-      [[nil, ''],[t0, '0'],[t1, '0 1']]
-    ], results[t1]
-    assert_equal nil, results[t2]
+      a, c,
+      e,
+    ], runlist
     
-    # pick t2
+    assert_equal [
+      'a.c'
+    ], results[c]
+    
+    assert_equal nil, results[d]
+    
+    # pick d
     index = 1
-    app.enq t0, ""
+    app.enq a
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0 1
-      0 2
-    }, runlist
+    assert_equal [
+      a, c,
+      e,
+      a, d,
+      e,
+    ], runlist
     
-    assert_equal nil, results[t0]
     assert_equal [
-      [[nil, ''],[t0, '0'],[t1, '0 1']]
-    ], results[t1]
+      'a.c'
+    ], results[c]
+    
     assert_equal [
-      [[nil, ''],[t0, '0'],[t2, '0 2']]
-    ], results[t2]
+      'a.d'
+    ], results[d]
   end
   
   def test_enq_switch
-    t0 = single(0)
-    t1 = single(1)
-    t2 = single(2)
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|input| "#{input}.c" }
+    d = app.node {|input| "#{input}.d" }
+    e = app.node { 'd' }
     
     index = nil
-    t0.switch(t1, t2, :enq => true) do |_results|
+    app.join([a,b], [c,d], {:enq => true}, Switch) do |result|
       index
     end
     
-    # pick t1
+    # pick c
     index = 0
-    app.enq t0, ""
+    app.enq a
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0 
-      1
-    }, runlist
-    
-    assert_equal nil, results[t0]
     assert_equal [
-      [[nil, ''],[t0, '0'],[t1, '0 1']]
-    ], results[t1]
-    assert_equal nil, results[t2]
+      a,
+      e,
+      c,
+    ], runlist
     
-    # pick t2
+    assert_equal [
+      'a.c'
+    ], results[c]
+    
+    assert_equal nil, results[d]
+    
+    # pick d
     index = 1
-    app.enq t0, ""
+    app.enq a
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0
-      1
-      0
-      2
-    }, runlist
+    assert_equal [
+      a,
+      e,
+      c,
+      a,
+      e,
+      d,
+    ], runlist
     
-    assert_equal nil, results[t0]
     assert_equal [
-      [[nil, ''],[t0, '0'],[t1, '0 1']]
-    ], results[t1]
+      'a.c'
+    ], results[c]
+    
     assert_equal [
-      [[nil, ''],[t0, '0'],[t2, '0 2']]
-    ], results[t2]
+      'a.d'
+    ], results[d]
   end
   
-  def test_iterate_splat_switch
-    t0 = array(0)
-    t1 = single(1)
-    t2 = single(2)
+  def test_iterate_switch
+    # same as join since there is no synchronization
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|input| "#{input}.c" }
+    d = app.node {|input| "#{input}.d" }
+    e = app.node { 'd' }
     
     index = nil
-    t0.switch(t1, t2, :iterate => true, :splat => true) do |_results|
+    app.join([a,b], [c,d], {:iterate => true}, Switch) do |result|
       index
     end
     
-    # pick t1
+    # pick c
     index = 0
-    app.enq t0, ['a', 'b']
+    app.enq a
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0 1
-        1
-    }, runlist
-    
-    assert_equal nil, results[t0]
     assert_equal [
-      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t1, 'a 0 1']],
-      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t1, 'b 0 1']]
-    ], results[t1]
-    assert_equal nil, results[t2]
+      a, c,
+      e,
+    ], runlist
     
-    # pick t2
+    assert_equal [
+      'a.c'
+    ], results[c]
+    
+    assert_equal nil, results[d]
+    
+    # pick d
     index = 1
-    app.enq t0, ['a', 'b']
+    app.enq a
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0 1
-        1
-      0 2
-        2
-    }, runlist
+    assert_equal [
+      a, c,
+      e,
+      a, d,
+      e,
+    ], runlist
     
-    assert_equal nil, results[t0]
     assert_equal [
-      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t1, 'a 0 1']],
-      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t1, 'b 0 1']]
-    ], results[t1]
+      'a.c'
+    ], results[c]
+    
     assert_equal [
-      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[0, 'a 0'],[t2, 'a 0 2']],
-      [[nil,['a', 'b']],[t0,['a 0', 'b 0']],[1, 'b 0'],[t2, 'b 0 2']]
-    ], results[t2]
+      'a.d'
+    ], results[d]
   end
   
   def test_splat_switch
-    t0 = array(0)
-    t1 = splat(1)
-    t2 = splat(2)
+    a = app.node { ['a0', 'a1'] }
+    b = app.node { ['b0', 'b1'] }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
+    e = app.node { 'd' }
     
     index = nil
-    t0.switch(t1, t2, :splat => true) do |_results|
+    app.join([a,b], [c,d], {:splat => true}, Switch) do |result|
       index
     end
     
-    m0a = [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]], [0, "a 0"]]
-    m0b = [[nil, ["a", "b"]], [t0, ["a 0", "b 0"]], [1, "b 0"]]
-    
-    # pick t1
+    # pick c
     index = 0
-    app.enq t0, ['a', 'b']
+    app.enq a
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0 1
-    }, runlist
-    
-    assert_equal nil, results[t0]
     assert_equal [
-      [[m0a, m0b], [t1, ['a 0 1', 'b 0 1']]]
-    ], results[t1]
-    assert_equal nil, results[t2]
+      a, c,
+      e,
+    ], runlist
     
-    # pick t2
+    assert_equal [
+      ['a0.c', 'a1.c']
+    ], results[c]
+    
+    assert_equal nil, results[d]
+    
+    # pick d
     index = 1
-    app.enq t0, ['a', 'b']
+    app.enq a
+    app.enq e
     app.run
   
-    assert_equal %w{
-      0 1
-      0 2
-    }, runlist
+    assert_equal [
+      a, c,
+      e,
+      a, d,
+      e,
+    ], runlist
     
-    assert_equal nil, results[t0]
     assert_equal [
-      [[m0a, m0b], [t1, ['a 0 1', 'b 0 1']]]
-    ], results[t1]
+      ['a0.c', 'a1.c']
+    ], results[c]
+    
     assert_equal [
-      [[m0a, m0b], [t2, ['a 0 2', 'b 0 2']]]
-    ], results[t2]
+      ['a0.d', 'a1.d']
+    ], results[d]
   end
   
-  def test_switch_raises_error_for_out_of_bounds_index
-    t0 = single(0)
-    t1 = single(1)
-    t2 = single(2)
+  def test_iterate_splat_switch
+    a = app.node { ['a0', 'a1'] }
+    b = app.node { ['b0', 'b1'] }
+    c = app.node {|input| "#{input}.c" }
+    d = app.node {|input| "#{input}.d" }
+    e = app.node { 'd' }
     
-    t0.switch(t1, t2) do |_results|
-      100
+    index = nil
+    app.join([a,b], [c,d], {:iterate => true, :splat => true}, Switch) do |result|
+      index
     end
+    
+    # pick c
+    index = 0
+    app.enq a
+    app.enq e
+    app.run
   
-    app.enq t0, ''
-    assert_raises(RuntimeError) { app.run }
+    assert_equal [
+      a, c, c,
+      e,
+    ], runlist
+    
+    assert_equal [
+      'a0.c', 
+      'a1.c',
+    ], results[c]
+    
+    assert_equal nil, results[d]
+    
+    # pick d
+    index = 1
+    app.enq a
+    app.enq e
+    app.run
+  
+    assert_equal [
+      a, c, c,
+      e,
+      a, d, d,
+      e,
+    ], runlist
+    
+    assert_equal [
+      'a0.c', 
+      'a1.c',
+    ], results[c]
+    
+    assert_equal [
+      'a0.d',
+      'a1.d',
+    ], results[d]
+  end
+
+  def test_switch_raises_error_for_out_of_bounds_index
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|input| flunk "should not have executed" }
+    e = app.node { 'd' }
+    
+    app.join([a,b], [c], {}, Switch) do |result|
+      3
+    end
+
+    app.enq a
+    app.enq e
+    
+    app.debug = true
+    err = assert_raises(Tap::Joins::Switch::SwitchError) { app.run }
+    assert_equal "no switch target at index: 3", err.message
+    
+    assert_equal [
+      a,
+    ], runlist
+    
+    assert_equal [
+      [e, []]
+    ], app.queue.to_a
   end
 end
