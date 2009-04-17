@@ -493,23 +493,27 @@ class AppTest < Test::Unit::TestCase
   def test_dispatch_calls_join_if_specified
     n = intern { "result" }
     
+    was_in_block = false
     n.on_complete do |result|
       assert_equal "result", result
-      "join result"
+      was_in_block = true
     end
     
-    assert_equal "join result", app.dispatch(n)
+    app.dispatch(n)
+    assert was_in_block
   end
   
   def test_dispatch_calls_default_join_if_no_join_is_specified
     n = intern { "result" }
     
+    was_in_block = false
     app.on_complete do |result|
       assert_equal "result", result
-      "default result"
+      was_in_block = true
     end
     
-    assert_equal "default result", app.dispatch(n)
+    app.dispatch(n)
+    assert was_in_block
   end
   
   def test_dispatch_resolves_dependencies_before_execution

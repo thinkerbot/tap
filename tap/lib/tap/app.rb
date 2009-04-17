@@ -273,16 +273,15 @@ module Tap
     # - call stack with the node and inputs
     # - call the node join, if set, or the default_join with the results
     #
-    # Dispatch returns the node result, or the join/default_join result.
+    # Dispatch returns the node result.
     def dispatch(node, inputs=[])
       resolve(node)
       result = stack.call(node, inputs)
 
       if join = (node.join || default_join)
         join.call(result)
-      else
-        result
       end
+      result
     end
     
     # Sequentially dispatches each enqued (node, inputs) pair to the

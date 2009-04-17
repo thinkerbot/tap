@@ -6,6 +6,8 @@ module Tap
     # of outputs will receive the results of the input.
     class Switch < Join
       
+      # An object responding to call that return the index of the output
+      # to that receives the result.
       attr_accessor :selector
       
       def initialize(config={}, app=Tap::App.instance, &block)
@@ -13,7 +15,6 @@ module Tap
         @selector = block
       end
       
-      # Creates a join that passes the results of each input to each output.
       def join(inputs, outputs, &block)
         @selector = block
         super(inputs, outputs)

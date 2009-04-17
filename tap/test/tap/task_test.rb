@@ -474,7 +474,7 @@ class TaskTest < Test::Unit::TestCase
   
   class AddALetter < Tap::Task
     config :letter, 'a'
-    def process(input); input << letter; end
+    def process(input); input << letter end
   end
   
   class AlphabetSoup < Tap::Task
