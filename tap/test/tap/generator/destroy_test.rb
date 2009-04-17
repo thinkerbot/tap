@@ -3,23 +3,15 @@ require 'tap/generator/destroy'
 
 class DestroyTest < Test::Unit::TestCase
   include Tap::Generator::Destroy
+  include MethodRoot
   
   # this establishes the essential interface provided by Base
-  attr_accessor :log, :pretend, :method_root
+  attr_accessor :log, :pretend
   
   def setup
+    super
     @pretend = false
     @log = []
-    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
-  end
-  
-  def teardown
-    # clear out the output folder if it exists, unless flagged otherwise
-    unless ENV["KEEP_OUTPUTS"]
-      if File.exists?(method_root.root)
-        FileUtils.rm_r(method_root.root)
-      end
-    end
   end
   
   def log_relative(*args)

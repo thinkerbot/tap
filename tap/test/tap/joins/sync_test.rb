@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), '../../app_test_helper')
+require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/joins'
 
 class SyncTest < Test::Unit::TestCase
@@ -117,7 +117,7 @@ class SyncTest < Test::Unit::TestCase
     app.enq t0, ''
     app.enq t1, ''
     
-    assert_raises(Joins::Sync::SynchronizeError) { app.run }
+    assert_raises(Tap::Joins::Sync::SynchronizeError) { app.run }
     assert_equal %w{
       0
       0

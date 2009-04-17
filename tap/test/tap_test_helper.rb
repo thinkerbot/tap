@@ -32,7 +32,61 @@ module MethodRoot
   end
 end unless Object.const_defined?(:MethodRoot)
 
-module HelperMethods
+module AppInstance
+  attr_reader :app
+  
+  def setup
+    super
+    @app = Tap::App.instance = Tap::App.new(:debug => true, :quiet => true)
+  end
+  
+  def teardown
+    Tap::App.instance = nil
+    super
+  end
+end unless Object.const_defined?(:AppInstance)
+
+module JoinTestMethods
+  attr_accessor :app, :runlist, :results
+  
+  def setup
+    require 'tap/task'
+    require 'tap/auditor'
+    
+    @results = {}
+    @app = Tap::App.new :debug => true do |audit|
+      result = audit.trail {|a| [a.key, a.value] }
+      (@results[audit.key] ||= []) << result
+    end
+    @app.use Tap::Auditor
+    @runlist = []
+  end
+
+  def single(id)
+    Tap::Task.intern({}, id, app) do |task, input| 
+      @runlist << id.to_s
+      "#{input} #{id}".strip
+    end
+  end
+  
+  def array(id)
+    Tap::Task.intern({}, id, app) do |task, input| 
+      @runlist << id.to_s
+      input.collect {|str| "#{str} #{id}".strip }
+    end
+  end
+  
+  def splat(id)
+    Tap::Task.intern({}, id, app) do |task, *inputs| 
+      @runlist << id.to_s
+      inputs.collect {|str| "#{str} #{id}".strip }
+    end
+  end
+end unless Object.const_defined?(:JoinTestMethods)
+
+module TestUtils
+  module_function
+  
   def match_platform?(*platforms)
     platforms.each do |platform|
       platform.to_s =~ /^(non_)?(.*)/
@@ -44,6 +98,4 @@ module HelperMethods
 
     true
   end
-end unless Object.const_defined?(:HelperMethods)
-
-Test::Unit::TestCase.extend HelperMethods
+end unless Object.const_defined?(:TestUtils)

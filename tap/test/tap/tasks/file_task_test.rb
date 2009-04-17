@@ -3,8 +3,9 @@ require 'tap/tasks/file_task'
 
 class FileTaskTest < Test::Unit::TestCase
   include MethodRoot
+  include AppInstance
   
-  attr_reader :app, :t
+  attr_reader :t
   
   @@ctr = Tap::Root.new("#{__FILE__.chomp("_test.rb")}")
   def ctr
@@ -13,7 +14,6 @@ class FileTaskTest < Test::Unit::TestCase
   
   def setup
     super
-    @app = Tap::App.instance = Tap::App.new(:debug => true, :quiet => true)
     @t = Tap::FileTask.new
     @t.backup_dir = method_root[:backup]
   end

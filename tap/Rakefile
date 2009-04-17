@@ -108,38 +108,20 @@ def test_section(type)
 end
 
 desc 'Run tests.'
-task :test do |t|
-  tests = Dir.glob( File.join('test/tap', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
-    filename =~ /test\/check/ || filename =~ /test\/cmd\/.*\// || filename =~ /test\/functional\/.*/
-  end
-  test(tests)
-end
+task :test => %w{
+  test:tap
+  
+}
 
 namespace :test do
   desc 'run support tests'
-  task :support do
-    test_section :support
-  end
-  
+  task(:support) { test_section :support }
+
   desc 'run root tests'
-  task :root do
-    test_section :root
-  end
-  
-  desc 'run env tests'
-  task :env do
-    test_section :env
-  end
+  task(:root) { test_section :root }
   
   desc 'run app tests'
-  task :app do
-    test_section :app
-  end
-  
-  desc 'run auditor tests'
-  task :auditor do
-    test_section :auditor
-  end
+  task(:app) { test_section :app }
   
   desc 'run task tests'
   task :task do
@@ -149,25 +131,34 @@ namespace :test do
       test/tap/join_test.rb
     } + Dir[
       'test/tap/task*_test.rb',
-      'test/tap/joins/*_test.rb', 
+      #'test/tap/joins/*_test.rb', 
       'test/tap/tasks/*_test.rb'
     ].uniq
   end
+  
+  desc 'run auditor tests'
+  task(:auditor) { test_section :auditor }
   
   desc 'run schema tests'
   task :schema do
     test_section :schema
   end
   
+  desc 'run env tests'
+  task(:env) { test_section :env }
+  
   desc 'run generator tests'
-  task :generator do
-    test Dir['test/tap/generator/**/*_test.rb']
-  end
+  task(:generator) { test Dir['test/tap/generator/**/*_test.rb'] }
+
+  desc 'run all tap tests'
+  task(:tap) { test(Dir.glob('test/tap/**/*_test.rb')) }
+  
+  #
+  # test submodules
+  #
   
   desc 'run benchmark tests'
-  task :benchmark do
-    test Dir["test/**/*_benchmark.rb"]
-  end
+  task(:benchmark) { test Dir["test/benchmark/**/*_benchmark.rb"] }
   
   desc "Run specs."
   task(:spec) do

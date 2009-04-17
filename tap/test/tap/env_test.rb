@@ -4,20 +4,15 @@ require 'rubygems'
 
 class EnvTest < Test::Unit::TestCase
   include Tap::Env::Utils
+  include MethodRoot
+  
   Env = Tap::Env
   
-  attr_reader :e, :method_root
+  attr_reader :e
   
   def setup
-    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
-    @e = Env.new @method_root
-  end
-  
-  def teardown
-    # clear out the output folder if it exists, unless flagged otherwise
-    unless ENV["KEEP_OUTPUTS"]
-      FileUtils.rm_r(method_root.root) if File.exists?(method_root.root)
-    end
+    super
+    @e = Env.new method_root
   end
   
   #

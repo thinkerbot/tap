@@ -3,21 +3,13 @@ require 'tap/generator/base'
 
 class BaseTest < Test::Unit::TestCase
   include Tap::Generator
-
-  attr_accessor :b, :method_root
+  include MethodRoot
+  
+  attr_accessor :b
   
   def setup
+    super
     @b = Base.new
-    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
-  end
-  
-  def teardown
-    # clear out the output folder if it exists, unless flagged otherwise
-    unless ENV["KEEP_OUTPUTS"]
-      if File.exists?(method_root.root)
-        FileUtils.rm_r(method_root.root)
-      end
-    end
   end
   
   #

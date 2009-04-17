@@ -107,9 +107,9 @@ class RootTest < Test::Unit::TestCase
   
   def test_path_root
     case
-    when self.class.match_platform?("mswin")
+    when TestUtils.match_platform?("mswin")
       assert r.path_root =~ /^[A-z]:\/$/i
-    when self.class.match_platform?("darwin")
+    when TestUtils.match_platform?("darwin")
       assert r.path_root == '/'
     else
       expected_path_root = File.expand_path(".")

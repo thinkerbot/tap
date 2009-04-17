@@ -40,13 +40,12 @@ end
 class TaskTest < Test::Unit::TestCase
   include Tap
   include MethodRoot
+  include AppInstance
   
-  attr_accessor :t, :app
+  attr_accessor :t
   
   def setup
     super
-    Tap::App.instance = nil
-    @app = Tap::App.instance
     @t = Task.new
   end
   

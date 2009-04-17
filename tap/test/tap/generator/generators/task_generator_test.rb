@@ -5,6 +5,7 @@ require 'tap/generator/preview.rb'
 class TaskGeneratorTest < Test::Unit::TestCase
   include Tap::Generator
   include Generators
+  include AppInstance
   
   #
   # process test
