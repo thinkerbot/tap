@@ -23,7 +23,7 @@ module Tap
       end
       
       def cache
-        env.registry[:constant_names] ||= {}
+        env.cache[:constant_cache] ||= {}
       end
       
       def build

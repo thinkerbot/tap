@@ -10,7 +10,7 @@ module Tap
       # The environment this manifest summarizes
       attr_reader :env
       
-      # The type of environment resource this manifest traverses
+      # The type used to register and lookup env resources
       attr_reader :type
       
       # An optional block to discover new entries in env
@@ -20,14 +20,14 @@ module Tap
       def initialize(env, type, &builder)
         @env = env
         @type = type
-        @entries = env.objects(type)
+        @entries = env.registered_objects(type)
         @built = false
         @builder = builder
         @cache = {}
       end
       
-      # Determines entries for env.  By default build does nothing and must be
-      # implemented in subclasses.
+      # Calls the builder to produce entries for the env.  All entries are
+      # registered with env.
       def build
         builder.call(env).each do |obj|
           env.register(type, obj)
@@ -35,7 +35,7 @@ module Tap
         @built = true
       end
     
-      # Identifies if self is built (ie entries are set).
+      # Identifies if self has been built.
       def built?
         @built
       end
@@ -61,12 +61,18 @@ module Tap
         entries.each {|entry| yield(entry) }
       end
       
+      # Recursively iterates over the entries of each env manifest.
       def recursive_each
         env.each do |e|
           manifest(e).each do |entry|
             yield(entry)
           end
         end
+      end
+      
+      # Registers the object in env, to type.
+      def register(obj)
+        env.register(type, obj)
       end
     
       # Alias for seek.

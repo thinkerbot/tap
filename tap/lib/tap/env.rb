@@ -42,9 +42,7 @@ module Tap
     # The basename for dynamically loading configurations.  See new.
     attr_reader :basename
     
-    # A hash of (path, Env) pairs used to prevent infinite loops of Env
-    # dependencies by assigning a single Env to a given path.
-    attr_reader :registry
+    attr_reader :cache
     
     # The Root directory structure for self.
     nest(:root, Root, :set_default => false)
@@ -88,6 +86,9 @@ module Tap
       reset_envs
     end
     
+    # A hash of resources registered with env, used to build manifests.
+    config :registry, {}, &c.hash
+    
     # Initializes a new Env linked to the specified directory.  A config file
     # basename may be specified to load configurations from 'dir/basename' as
     # YAML.  If a basename is specified, the same basename will be used to 
@@ -97,9 +98,9 @@ module Tap
     # case, the same rules apply for loading configurations for nested envs,
     # but no configurations will be loaded for the current instance.
     #
-    # Instances is used internally to prevent infinite loops of nested envs
-    # and should not be modified manually.
-    def initialize(config_or_dir=Dir.pwd, basename=nil, registry={})
+    # The cache is used internally to prevent infinite loops of nested envs,
+    # and to optimize the generation of manifests.
+    def initialize(config_or_dir=Dir.pwd, basename=nil, cache={})
       # setup root
       config = nil
       @root = case config_or_dir
@@ -118,11 +119,11 @@ module Tap
       end
       
       # set instances
-      @registry = registry
-      if registered?(:env, self) {|env| env.path }
-        raise "registry already has an env for: #{path}"
+      @cache = cache
+      if cached_env(self.path)
+        raise "cache already has an env for: #{path}"
       end
-      register(:env, self)
+      cache[:env] << self
       
       # set these for reset_env
       @gems = nil
@@ -135,33 +136,9 @@ module Tap
       root.root
     end
     
-    def objects(type)
-      objects = registry[type] ||= []
-      unless objects.kind_of?(Minimap)
-        objects.extend(Minimap)
-      end
-      objects
-    end
-    
-    def register(type, obj, &block)
-      objects = self.objects(type)
-      if objects.include?(obj)
-        false
-      else
-        objects << obj
-        true
-      end
-    end
-    
-    def registered?(type, obj)
-      objects = self.objects(type)
-      
-      if block_given?
-        objects = objects.collect {|o| yield(o) }
-        obj = yield(obj)
-      end
-      
-      objects.include?(obj)
+    # The minikey for self (path).
+    def minikey
+      path
     end
     
     # Sets envs removing duplicates and instances of self.  Setting envs
@@ -226,6 +203,31 @@ module Tap
       inject_envs(memo, &block)
     end
     
+    # Register an object for lookup by seek.
+    def register(type, obj, &block)
+      objects = registered_objects(type)
+      if objects.include?(obj)
+        false
+      else
+        objects << obj
+        true
+      end
+    end
+    
+    # Returns an array of objects registered to type.  The objects array is
+    # extended with Minimap to allow minikey lookup.
+    def registered_objects(type)
+      objects = registry[type] ||= []
+      unless objects.kind_of?(Minimap)
+        objects.extend(Minimap)
+      end
+      objects
+    end
+    
+    # Searches across each for the first registered object minimatching key. A
+    # single env can be specified by using a compound key like 'env_key:key'.
+    #
+    # Returns nil if no matching object is found.
     def seek(type, key)
       key =~ COMPOUND_KEY
       envs = if $2
@@ -240,7 +242,12 @@ module Tap
       # traverse envs looking for the first
       # manifest entry matching key
       envs.each do |env|
-        result = block_given? ? yield(env, key) : env.objects(type).minimatch(key)
+        result = if block_given? 
+          yield(env, key)
+        else
+          env.registered_objects(type).minimatch(key)
+        end
+        
         return result if result
       end
     
@@ -287,16 +294,16 @@ module Tap
     
     protected
     
-    # Returns the minikey for an env (ie env.path).
-    def entry_to_minikey(env)
-      env.path
+    # returns the env cached for path, if it exists (used to prevent infinite nests)
+    def cached_env(path) # :nodoc:
+      (cache[:env] ||= []).find {|env| env.path == path }
     end
     
-    # Instantiates a new Env for the specified paths.
+    # returns or instantiates an Env for the specified path
     def instantiate(path) # :nodoc:
-      objects(:env).find {|env| env.path == path } || Env.new(path, basename, registry)
+      cached_env(path) || Env.new(path, basename, cache)
     end
-  
+    
     # resets envs using the current env_paths and gems.  does nothing
     # until both env_paths and gems are set.
     def reset_envs # :nodoc:

@@ -72,7 +72,6 @@ class EnvTest < Test::Unit::TestCase
     e = Env.new
     assert_equal Dir.pwd, e.root.root
     assert_equal [], e.envs
-    assert_equal({:env => [e]}, e.registry)
   end
   
   def test_initialize_from_path
@@ -116,20 +115,20 @@ class EnvTest < Test::Unit::TestCase
     assert_equal nil, e.config[:key]
   end
   
-  def test_initialize_registers_self_in_registry_by_env
-    registry = {}
-    e = Env.new(method_root, nil, registry)
-    assert_equal [e], registry[:env]
+  def test_initialize_registers_self_in_cache
+    cache = {}
+    e = Env.new(method_root, nil, cache)
+    assert_equal [e], cache[:env]
   end
   
-  def test_initialize_raises_error_if_registry_contains_an_env_with_the_same_root_root
+  def test_initialize_raises_error_if_cache_contains_an_env_with_the_same_root_root
     r1 = Tap::Root.new
     r2 = Tap::Root.new
     assert_equal r1.root, r2.root
     
-    registry = {:env => [Env.new(r1)]}
-    err = assert_raises(RuntimeError) { Env.new(r2, nil, registry) }
-    assert_equal "registry already has an env for: #{r2.root}", err.message
+    cache = {:env => [Env.new(r1)]}
+    err = assert_raises(RuntimeError) { Env.new(r2, nil, cache) }
+    assert_equal "cache already has an env for: #{r2.root}", err.message
   end
   
   #
@@ -361,7 +360,7 @@ class EnvTest < Test::Unit::TestCase
     e.push(e)
     assert e.envs.empty?
   end
-  
+   
   #
   # each test
   #
@@ -477,17 +476,28 @@ a (0)
   # register test
   #
   
-  def test_register_stores_a_resource_in_the_registry
+  def test_register_stores_an_object_in_the_registry
     assert_equal nil, e.registry[:path]
+    e.register(:path, 'a/b/c')
+    e.register(:path, 'd/e/f')
+    assert_equal ['a/b/c', 'd/e/f'], e.registry[:path]
+  end
+  
+  def test_register_does_not_store_objects_twice
+    e.register(:path, 'a/b/c')
+    e.register(:path, 'a/b/c')
     e.register(:path, 'a/b/c')
     assert_equal ['a/b/c'], e.registry[:path]
   end
   
-  def test_register_does_not_store_duplicates
-    e.register(:path, 'a/b/c')
-    e.register(:path, 'a/b/c')
-    e.register(:path, 'a/b/c')
-    assert_equal ['a/b/c'], e.registry[:path]
+  #
+  # registered_objects test
+  #
+  
+  def test_registered_objects_returns_a_minimap_array
+    assert_equal nil, e.registry[:path]
+    assert_equal [], e.registered_objects(:path)
+    assert e.registered_objects(:path).kind_of?(Env::Minimap)
   end
   
   #
@@ -495,8 +505,8 @@ a (0)
   #
   
   def test_seek_traverses_env_for_first_matching_resource_of_the_specified_type
-    e1 = Env.new method_root['a'], nil, {:type => ["a/one.txt", "a/two.txt"] }
-    e2 = Env.new method_root['b'], nil, {:type => ["b/one.txt", "b/three.txt"] }
+    e1 = Env.new :root => method_root['a'], :registry => {:type => ["a/one.txt", "a/two.txt"] }
+    e2 = Env.new :root => method_root['b'], :registry => {:type => ["b/one.txt", "b/three.txt"] }
     e1.push e2
     
     assert_equal "a/one.txt", e1.seek(:type, "one")

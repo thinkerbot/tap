@@ -18,7 +18,7 @@ class ManifestTest < Test::Unit::TestCase
   #
   
   def test_initialize
-    env = Env.new Dir.pwd, nil, {:type => [1,2,3]}
+    env = Env.new :registry => {:type => [1,2,3]}
     m = Manifest.new(env, :type)
     assert_equal :type, m.type
     assert_equal env, m.env
@@ -46,27 +46,14 @@ class ManifestTest < Test::Unit::TestCase
     m.reset
     assert !m.built?
   end
-  
-  # def test_reset_sets_entries_to_nil
-  #   m.build
-  #   assert_equal [], m.entries(false)
-  #   m.reset
-  #   assert_equal nil, m.entries(false)
-  # end
-  # 
-  # def test_reset_clears_cache
-  #   m.cache[:key] = 'value'
-  #   m.reset
-  #   assert_equal({}, m.cache)
-  # end
-  
+
   #
   # entries test
   #
   
   def test_entries_are_the_env_objects_for_type
     objects = [1,2,3]
-    env = Env.new Dir.pwd, nil, {:type => objects}
+    env = Env.new :registry => {:type => objects}
     m = Manifest.new(env, :type)
     assert_equal objects.object_id, m.entries.object_id
   end
@@ -123,9 +110,9 @@ class ManifestTest < Test::Unit::TestCase
   end
   
   def test_seek_traverses_env_each_to_find_match
-    e1 = Env.new 'one', nil, {:type => %w{a/b/c}}
-    e2 = Env.new 'two', nil, {:type => %w{a/b/d}}
-    e3 = Env.new 'three', nil, {:type => %w{a/b/e}}
+    e1 = Env.new :registry => {:type => %w{a/b/c}}
+    e2 = Env.new :registry => {:type => %w{a/b/d}}
+    e3 = Env.new :registry => {:type => %w{a/b/e}}
     e1.envs = [e2, e3]
     
     m = Manifest.new(e1, :type)
@@ -141,9 +128,9 @@ class ManifestTest < Test::Unit::TestCase
   end
   
   def test_seek_selects_env_by_compound_key
-    e1 = Env.new 'one', nil, {:type => %w{a/b/c}}
-    e2 = Env.new 'two', nil, {:type => %w{a/b/d}}
-    e3 = Env.new 'three', nil, {:type => %w{a/b/e}}
+    e1 = Env.new :root => 'one', :registry => {:type => %w{a/b/c}}
+    e2 = Env.new :root => 'two', :registry => {:type => %w{a/b/d}}
+    e3 = Env.new :root => 'three', :registry => {:type => %w{a/b/e}}
     e1.envs = [e2, e3]
     
     m = Manifest.new(e1, :type)
