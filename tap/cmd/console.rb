@@ -30,7 +30,7 @@ def app
 end
 
 def env
-  @env ||= Tap::Exe.instance
+  @env ||= Tap::Env.instance
 end
 
 IRB.start

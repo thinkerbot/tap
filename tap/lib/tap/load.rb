@@ -2,7 +2,7 @@ require 'tap/task'
 require 'stringio'
 
 module Tap
-  # :startdoc::manifest the default load task
+  # :startdoc::task the default load task
   #
   # Loads data from the input IO; string data is simply passed through.  Load
   # is typically used as a gateway to other tasks.

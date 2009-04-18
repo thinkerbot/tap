@@ -2,7 +2,7 @@ require 'tap/task'
 
 module Tap
 
-  # :startdoc::manifest the default dump task
+  # :startdoc::task the default dump task
   #
   # A dump task to print results to $stdout or a file target.
   #

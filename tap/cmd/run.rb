@@ -10,7 +10,7 @@
 #   tap run -- load hello --: dump     Say hello
 #
 
-env = Tap::Exe.instance
+env = Tap::Env.instance
 app = Tap::App.new
 
 #

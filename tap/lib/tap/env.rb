@@ -10,6 +10,11 @@ module Tap
     autoload(:Gems, 'tap/env/gems')
   
     class << self
+      attr_writer :instance
+      
+      def instance
+        @instance ||= new
+      end
       
       # Loads configurations from path as YAML.  Returns an empty hash if the path
       # loads to nil or false (as happens for empty files), or doesn't exist.

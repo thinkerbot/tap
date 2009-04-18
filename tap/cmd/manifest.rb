@@ -24,7 +24,7 @@ ConfigParser.new do |opts|
   
 end.parse!(ARGV)
 
-env = Tap::Exe.instance
+env = Tap::Env.instance
 env_keys = env.minihash(true)
 
 filter = case

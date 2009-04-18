@@ -39,24 +39,14 @@ module Tap
       }.merge(global).merge(user)
       
       # instantiate
-      @instance = Env.new(config, CONFIG_FILE).extend Exe
+      Tap::Env.instance = env = Env.new(config, CONFIG_FILE).extend(Exe)
       
       # add the tap env if necessary
-      unless @instance.find {|env| env.path == TAP_HOME }
-        @instance.push Env.new(TAP_HOME) 
+      unless env.find {|env| env.path == TAP_HOME }
+        env.push Env.new(TAP_HOME) 
       end
       
-      @instance
-    end
-    
-    def self.instance(clear=true)
-      instance = @instance
-      self.clear if clear
-      instance
-    end
-    
-    def self.clear
-      @instance = nil
+      env
     end
     
     # The config file path
@@ -72,13 +62,13 @@ module Tap
     GLOBAL_CONFIG_FILE = File.join(GLOBAL_HOME, CONFIG_FILE)
     
     def commands
-      manifest(:commands) do |env|
+      manifest('commands') do |env|
         env.glob_config(:cmd_paths, "**/*.rb", :cmd)
       end
     end
     
     def tasks
-      manifest('manifest', Env::ConstantManifest) do |env|
+      manifest('task', Env::ConstantManifest) do |env|
         env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
           [dir, path]
         end
