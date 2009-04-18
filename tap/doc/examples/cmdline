@@ -1,9 +1,5 @@
 = Command Line Examples
 
-Examples to run tap from the command line.
-
-== Basic IO
-
 === Read data from $stdin
   # [goodnight.txt]
   # goodnight moon
@@ -28,26 +24,3 @@ Examples to run tap from the command line.
   % tap run -- load 'goodnight moon' --: dump | more
   goodnight moon
   
-== Workflows
-
-=== Sequence
-  % tap run -- load 'goodnight moon' --: dump
-  goodnight moon
-  
-=== Sequence (canonical)
-  % tap run -- load 'goodnight moon' -- dump --[0][1]
-  goodnight moon
-
-=== Fork
-  % tap run -- load 'goodnight moon' -- dump -- dump --[0][1,2]
-  goodnight moon
-  goodnight moon
-  
-=== Merge
-  % tap run -- load goodnight -- load moon -- dump --[0,1][2]
-  goodnight
-  moon
-
-=== Synchronized Merge
-  % tap run -- load goodnight -- load moon -- dump --[0,1][2].sync
-  goodnightmoon
