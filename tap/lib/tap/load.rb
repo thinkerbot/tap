@@ -44,18 +44,16 @@ module Tap
   #
   class Load < Tap::Task
     
-    config :file, false, &c.flag           # Load from the input file
-    
     # The default process simply reads the input data and returns it.
     # See load.
     def process(input=$stdin)
       # read on an empty stdin ties up the command line;
       # this facilitates the intended behavior
-      if input == $stdin && input.stat.size == 0
+      if input.kind_of?(IO) && input.stat.size == 0
         input = '' 
       end
       
-      if !file && input.kind_of?(String)
+      if input.kind_of?(String)
         input = StringIO.new(input)
       end
       

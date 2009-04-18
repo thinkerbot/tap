@@ -157,6 +157,9 @@ namespace :test do
   desc 'run benchmark tests'
   task(:benchmark) { test Dir["test/benchmark/**/*_benchmark.rb"] }
   
+  desc 'run documentation tests'
+  task(:doc) { test Dir["test/doc/**/*_doc.rb"] }
+  
   desc "Run specs."
   task(:spec) do
     libs = ['lib']

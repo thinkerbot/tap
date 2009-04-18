@@ -1,0 +1,23 @@
+=== Read data from $stdin
+  # [goodnight.txt]
+  # goodnight moon
+  
+  % tap run -- load --: dump < goodnight.txt
+  goodnight moon
+
+=== Pipe data from $stdin
+  % echo 'goodnight moon' | tap run -- load --: dump
+  goodnight moon
+
+=== Load data from argument
+  % tap run -- load 'goodnight moon' --: dump
+  goodnight moon
+
+=== Dump data to $stdout
+  % tap run -- load 'goodnight moon' --: dump > goodnight.txt
+  % cat goodnight.txt
+  goodnight moon
+
+=== Pipe data via $stdout
+  % tap run -- load 'goodnight moon' --: dump | cat
+  goodnight moon
