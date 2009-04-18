@@ -43,47 +43,21 @@ module Tap
   # inspect audit trails within process.
   #
   class Dump < Tap::Task
-    lazy_attr :args, :setup
-    lazy_register :setup, Lazydoc::Arguments
-    
-    config :target, $stdout, &c.io(:<<, :puts, :print)   # The dump target file
+    config :output, $stdout, &c.io(:<<, :puts, :print)   # The dump target file
     config :overwrite, false, &c.flag                    # Overwrite the existing target
-    config :audit, false, &c.flag                        # Include the audit trails
-    config :date, false, &c.flag                         # Include a date
-    config :date_format, '%Y-%m-%d %H:%M:%S'             # The date format
-    
-    def _call(_input)
-      _audit = App::Audit.new(self, _input.value, _input)
-      process(_audit)
-    end
     
     # The default process prints dump headers as specified in the config,
     # then append the audit value to io.
-    def process(_audit)
-      unless _audit.kind_of?(App::Audit)
-        # note the nil-source audit is added for consistency with _execute
-        previous = App::Audit.new(nil, _audit)
-        _audit = App::Audit.new(self, _audit, previous)
+    def process(input)
+      open_io(output, overwrite ? 'w' : 'a') do |io|
+        dump(input, io)
       end
-      
-      open_io(target, overwrite ? 'w' : 'a') do |io|
-        if date
-          io.puts "# date: #{Time.now.strftime(date_format)}"
-        end
-
-        if audit
-          io.puts "# audit:"
-          io.puts "# #{_audit.dump.gsub("\n", "\n# ")}"
-        end
-        
-        dump(_audit.value, io)
-      end
-      target
+      output
     end
     
     # Dumps the object to io, by default dump puts (not prints) obj.to_s.
-    def dump(obj, io)
-      io.puts obj.to_s
+    def dump(input, io)
+      io.puts input.to_s
     end
   end
 end

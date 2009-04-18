@@ -12,7 +12,7 @@ module Tap
   # String is taken literally as the input unless identified as a filepath.
   # This will load data from FILE.  
   #
-  #  % tap run -- load FILE --file --: dump
+  #   % tap run -- load FILE --file --: dump
   #
   # Note that load takes $stdin by default, so you can pipe or redirect data
   # into to a workflow like so:
