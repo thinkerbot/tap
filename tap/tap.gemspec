@@ -22,8 +22,8 @@ Gem::Specification.new do |s|
     doc/Command\sReference
     doc/Syntax\sReference
     doc/Tutorial
-    doc/examples/cmdline
-    doc/examples/workflow}
+    doc/Examples/Command\sLine
+    doc/Examples/Workflow}
   
   s.files = %W{
     cmd/console.rb
