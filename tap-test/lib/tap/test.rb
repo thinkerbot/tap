@@ -4,8 +4,9 @@ module Tap
   module Test
     autoload(:SubsetTest, 'tap/test/subset_test')
     autoload(:FileTest, 'tap/test/file_test')
-    autoload(:ScriptTest, 'tap/test/script_test')
+    autoload(:ShellTest, 'tap/test/shell_test')
     autoload(:Utils, 'tap/test/utils')
+    autoload(:RegexpEscape, 'tap/test/regexp_escape')
     
     def acts_as_subset_test
       include Tap::Test::SubsetTest
@@ -24,6 +25,10 @@ module Tap
       
       options[:root] ||= test_root_dir
       self.class_test_root = Tap::Root.new(options)
+    end
+    
+    def acts_as_shell_test
+      include Tap::Test::ShellTest
     end
     
     private

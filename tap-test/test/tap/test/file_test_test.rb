@@ -11,18 +11,6 @@ class FileTestTest < Test::Unit::TestCase
     :relative_paths => {:input => 'input', :output => 'output', :expected => 'expected'})
   
   #
-  # method_name_str test
-  #
-  
-  def test_method_name_str_returns_test_method_name1
-    assert_equal "test_method_name_str_returns_test_method_name1", method_name_str  
-  end
-  
-  def test_method_name_str_returns_test_method_name2
-    assert_equal "test_method_name_str_returns_test_method_name2", method_name_str  
-  end
-  
-  #
   # method_root test
   #
   
@@ -30,7 +18,7 @@ class FileTestTest < Test::Unit::TestCase
     assert method_root.kind_of?(Tap::Root)
     
     test_root_config = ctr.config.to_hash
-    test_root_config[:root] = ctr[method_name_str]
+    test_root_config[:root] = ctr[method_name.to_sym]
     assert_equal test_root_config, method_root.config.to_hash
   end
   

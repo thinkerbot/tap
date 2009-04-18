@@ -1,4 +1,5 @@
 require 'tap/test/file_test/class_methods'
+require 'tap/test/utils'
 
 module Tap
   module Test  
@@ -55,11 +56,6 @@ module Tap
         base.cleanup_dirs = [:output, :tmp]
       end
       
-      # Convenience method to access the class_test_root.
-      def ctr
-        self.class.class_test_root or raise "setup failure: no class_test_root has been set for #{self.class}"
-      end
-
       # The test-method-specific Tap::Root which may be used to
       # access test files.  method_root is a duplicate of ctr
       # reconfigured so that method_root.root is ctr[method_name.to_sym]
@@ -80,9 +76,9 @@ module Tap
       # Override as necessary in subclasses.
       def cleanup
         self.class.cleanup_dirs.each do |dir|
-          Utils.clear_dir(method_root[dir])
+          clear_dir(method_root[dir])
         end
-        Utils.try_remove_dir(method_root.root)
+        try_remove_dir(method_root.root)
       end
     
       # Calls cleanup unless flagged otherwise by an ENV variable. To prevent
@@ -110,12 +106,12 @@ module Tap
           end
         end
         
-        Utils.try_remove_dir(ctr.root)
+        try_remove_dir(ctr.root)
       end 
       
-      # Returns method_name as a string (Ruby 1.9 symbolizes method_name)
-      def method_name_str
-        method_name.to_s
+      # Convenience method to access the class_test_root.
+      def ctr
+        self.class.class_test_root or raise "setup failure: no class_test_root has been set for #{self.class}"
       end
       
       # Runs a file-based test that compares files created by the block with
@@ -282,6 +278,48 @@ module Tap
       
       private
       
+      # Yields to the input block for each pair of entries in the input 
+      # arrays.  An error is raised if the input arrays do not have equal 
+      # numbers of entries.
+      def each_pair(a, b, &block) # :yields: entry_a, entry_b,
+        each_pair_with_index(a,b) do |entry_a, entry_b, index|
+          yield(entry_a, entry_b)
+        end
+      end
+
+      # Same as each_pair but yields the index of the entries as well.
+      def each_pair_with_index(a, b, error_msg=nil, &block) # :yields: entry_a, entry_b, index
+        a = [a] unless a.kind_of?(Array)
+        b = [b] unless b.kind_of?(Array)
+        
+        unless a.length == b.length
+          raise ArgumentError, (error_msg || "The input arrays must have an equal number of entries.")
+        end
+        
+        0.upto(a.length-1) do |index|
+          yield(a[index], b[index], index)
+        end
+      end
+      
+      # Attempts to recursively remove the specified method directory and all 
+      # files within it.  Raises an error if the removal does not succeed.
+      def clear_dir(dir)
+        # clear out the folder if it exists
+        FileUtils.rm_r(dir) if File.exists?(dir)
+      end
+      
+      # Attempts to remove the specified directory.  The root 
+      # will not be removed if the directory does not exist, or
+      # is not empty.  
+      def try_remove_dir(dir)
+        # Remove the directory if possible
+        begin
+          FileUtils.rmdir(dir) if File.exists?(dir) && Dir.glob(File.join(dir, "*")).empty?
+        rescue
+          # rescue cases where there is a hidden file, for example .svn
+        end
+      end
+      
       def transform_test(block, options={}) # :yields: expected_files, output_files
         options = default_assert_files_options.merge(options)
         input_dir = options[:input_dir]
@@ -331,7 +369,7 @@ module Tap
         
           # check that the expected and output file contents are equal
           errors = []
-          Utils.each_pair(expected_files, output_files) do |expected_file, output_file|
+          each_pair(expected_files, output_files) do |expected_file, output_file|
             unless (File.directory?(expected_file) && File.directory?(output_file)) || FileUtils.cmp(expected_file, output_file)
               begin
                 yield(expected_file, output_file)
