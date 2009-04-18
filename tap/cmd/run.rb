@@ -48,7 +48,13 @@ ConfigParser.new do |opts|
   end
   
   opts.on('-T', '--manifest', 'Print a list of available tasks') do
-    puts env.summarize(:tasks)
+    puts env.tasks.summarize(%Q{<% unless entries.empty? %>
+<%= env_key %>:
+<% entries.each do |key, const| %>
+  <%= key.ljust(width-2) %> # <%= const.comment %>
+<% end %>
+<% end %>
+})
     exit
   end
   

@@ -31,4 +31,14 @@ module Doctest
       io.read
     end
   end
+  
+  def sh_test(msg, cmd)
+    blank, cmd, expected = cmd.split("\n", 3)
+    raise "not blank" unless blank.empty?
+    
+    start = Time.now
+    result = sh(cmd.sub(CMD_PATTERN, CMD))
+    puts "#{msg} (#{Time.now-start}s)"
+    assert_equal expected, result
+  end
 end unless Object.const_defined?(:Doctest)

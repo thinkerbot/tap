@@ -7,6 +7,7 @@ class CommandGeneratorTest < Test::Unit::TestCase
   include Tap::Generator
   include Generators
   include AppInstance
+  include MethodRoot
   
   def setup
     super

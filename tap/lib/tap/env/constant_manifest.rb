@@ -90,8 +90,8 @@ module Tap
 <% end %>
 <% end %>}
 
-      def summarize
-        inspect(SUMMARY_TEMPLATE, :width => 10) do |templater, globals|
+      def summarize(template=SUMMARY_TEMPLATE)
+        inspect(template, :width => 10) do |templater, globals|
           env_key = templater.env_key
           env_path = templater.env.path
           manifest = templater.manifest
@@ -111,12 +111,6 @@ module Tap
           templater.env_path = env_path
         end
       end
-      
-      # Creates a new instance of self, assigned with env.
-      def another(env)
-        self.class.new(env, const_attr)
-      end
-      
     end
   end
 end

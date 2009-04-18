@@ -39,14 +39,14 @@ module Tap
       }.merge(global).merge(user)
       
       # instantiate
-      Tap::Env.instance = env = Env.new(config, CONFIG_FILE).extend(Exe)
+      Tap::Env.instance = exe = Env.new(config, CONFIG_FILE).extend(Exe)
       
       # add the tap env if necessary
-      unless env.find {|env| env.path == TAP_HOME }
-        env.push Env.new(TAP_HOME) 
+      unless exe.any? {|env| env.path == TAP_HOME }
+        exe.push Env.new(TAP_HOME) 
       end
       
-      env
+      exe
     end
     
     # The config file path

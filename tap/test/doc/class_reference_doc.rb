@@ -1,13 +1,8 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
+require 'tap'
 
-class ClassReferenceTest < Test::Unit::TestCase 
-  acts_as_script_test
-
-  TAP_EXECUTABLE_PATH = File.expand_path(File.dirname(__FILE__) + "/../../bin/rap")
-
-  def default_command_path
-    %Q{ruby "#{TAP_EXECUTABLE_PATH}"}
-  end
+class ClassReferenceDoc < Test::Unit::TestCase 
+  include MethodRoot
   
   #
   # Configurable test
@@ -84,7 +79,7 @@ class ClassReferenceTest < Test::Unit::TestCase
     ####
     another_lazydoc_file = method_root.prepare(:tmp, 'two') do |file|
       file << %Q{
-# Sample::manifest a summary of the task
+# Sample::task a summary of the task
 class Sample < Tap::Task
   config :key, 'value'   # a simple configuration
 
@@ -95,7 +90,7 @@ end
     end
     
     load(another_lazydoc_file)
-    assert_equal "a summary of the task", Sample::manifest.to_s
+    assert_equal "a summary of the task", Sample::task.to_s
     assert_equal "A B='B' C...", Sample::args.to_s
 
     key = Sample.configurations[:key]
@@ -114,6 +109,8 @@ end
     assert_equal 3, t.process(1, 2)
 
     runlist = []
+    results = []
+    
     t1 = Tap::Task.intern(:key => 'one') do |task, input| 
       runlist << task
       "#{input}:#{task.config[:key]}"
@@ -127,25 +124,16 @@ end
       "#{input}:two"
     end
     t1.sequence(t2)
-    
-    t1.enq('input')
+    t2.on_complete do |result|
+      results << result
+    end
     
     app = Tap::App.instance
+    app.enq(t1, "input")
     app.run
-    
+
     assert_equal [t0, t1, t2], runlist
-    assert_equal ["input:one:two"], app.results(t2)
-
-    t1.name = 'un'
-    t2.name = 'deux'
-
-    result = app._results(t2)[0].dump
-    expected = %Q{o-[] "input"
-o-[un] "input:one"
-o-[deux] "input:one:two"
-}
-    
-    assert_equal expected, result
+    assert_equal ["input:one:two"], results
   end
   
   #
@@ -156,7 +144,7 @@ o-[deux] "input:one:two"
     root = Tap::Root.new '/path/to/root'
     assert_equal File.expand_path('/path/to/root'), root.root
     assert_equal File.expand_path('/path/to/root/config'), root['config']
-    assert_equal File.expand_path('/path/to/root/config/sample.yml'), root.filepath('config', 'sample.yml')
+    assert_equal File.expand_path('/path/to/root/config/sample.yml'), root.path('config', 'sample.yml')
   end
   
   #
@@ -164,22 +152,14 @@ o-[deux] "input:one:two"
   #
   
   def test_app
-    log = StringIO.new
-    app = Tap::App.instance
-    app.logger = Logger.new(log)
-    app.logger.formatter = lambda do |severity, time, progname, msg|
-      "  %s %s: %s\n" % [severity[0,1], progname, msg]
-    end
-
-    t = Tap::Task.intern {|task, *inputs| inputs }
-    t.log 'action', 'to app'
-    log.string                 # =>  "  I action: to app\n"
-
+    results = []
+    app = Tap::App.new {|result| results << result }
+    t = app.task {|task, *inputs| inputs }
     t.enq(1)
     t.enq(2,3)
 
     assert_equal [[t, [1]], [t, [2,3]]], app.queue.to_a
     app.run
-    assert_equal [[1], [2,3]], app.results(t)
+    assert_equal [[1], [2,3]], results
   end
 end

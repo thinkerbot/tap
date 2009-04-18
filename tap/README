@@ -34,14 +34,11 @@ A simple task illustrates the usage of tap:
 
   [lib/goodnight.rb]
   
-  # Goodnight::manifest your basic goodnight moon task
+  # Goodnight::task your basic goodnight moon task
   # Says goodnight with a configurable message.
   class Goodnight < Tap::Task
-
     config :message, 'goodnight'           # a goodnight message
-
     def process(name)
-      log(message, name)
       "#{message} #{name}"
     end
   end
@@ -74,8 +71,8 @@ And help:
 
 Tasks are immediately available to run through the tap executable:
 
-  % tap run -- goodnight moon
-    I[00:09:55]          goodnight moon
+  % tap run -- goodnight moon --: dump
+  goodnight moon
 
 Tap comes with generators. To get started:
 

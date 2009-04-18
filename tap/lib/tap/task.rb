@@ -10,6 +10,12 @@ module Tap
     autoload(:Intern, 'tap/support/intern')
   end
   
+  class App
+    def task(config={}, name=nil, klass=Task, &block)
+      klass.intern(config, name, self, &block)
+    end
+  end
+  
   # === Task Definition
   #
   # Tasks specify executable code by overridding the process method in
@@ -238,10 +244,10 @@ module Tap
         [instance, args]
       end
 
-      DEFAULT_HELP_TEMPLATE = %Q{<% manifest = task_class.manifest %>
-<%= task_class %><%= manifest.empty? ? '' : ' -- ' %><%= manifest.to_s %>
+      DEFAULT_HELP_TEMPLATE = %Q{<% desc = task_class.task %>
+<%= task_class %><%= desc.empty? ? '' : ' -- ' %><%= desc.to_s %>
 
-<% desc = manifest.kind_of?(Lazydoc::Comment) ? manifest.wrap(77, 2, nil) : [] %>
+<% desc = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : [] %>
 <% unless desc.empty? %>
 <%= '-' * 80 %>
 
@@ -411,7 +417,7 @@ module Tap
     instance_variable_set(:@default_name, 'tap/task')
     instance_variable_set(:@dependencies, [])
     
-    lazy_attr :manifest
+    lazy_attr :task
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
     
