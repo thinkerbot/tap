@@ -115,11 +115,6 @@ module Tap
       end
     end
     
-    # Returns a string like: "#<Join:object_id>"
-    def inspect
-      "#<Join:#{object_id}>"
-    end
-    
     protected
     
     # Dispatches the results to the node.

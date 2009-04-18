@@ -6,7 +6,7 @@
   goodnight moon
 
 === Pipe data from $stdin
-  % echo 'goodnight moon' | tap run -- load --: dump
+  % echo goodnight moon | tap run -- load --: dump
   goodnight moon
 
 === Load data from argument
@@ -15,9 +15,9 @@
 
 === Dump data to $stdout
   % tap run -- load 'goodnight moon' --: dump > goodnight.txt
-  % cat goodnight.txt
+  % more goodnight.txt
   goodnight moon
 
 === Pipe data via $stdout
-  % tap run -- load 'goodnight moon' --: dump | cat
+  % tap run -- load 'goodnight moon' --: dump | more
   goodnight moon
