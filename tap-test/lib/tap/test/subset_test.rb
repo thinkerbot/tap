@@ -70,7 +70,7 @@ module Tap
       
       def self.included(base) # :nodoc:
         super
-        base.extend ClassMethods
+        base.extend SubsetTest::ClassMethods
       end
       
       # Returns true if the specified conditions are satisfied.

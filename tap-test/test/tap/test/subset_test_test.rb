@@ -136,16 +136,3 @@ class SubsetOverrideTest < SubsetBaseTest
   end
 end
 
-#
-# skip test
-#
-
-class SkipTest < Test::Unit::TestCase
-  include Tap::Test::SubsetTest
-  skip_test "passed!"
-  
-  def test_flunk
-    flunk "this test should have been skipped"
-  end
-end
-
