@@ -11,6 +11,7 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def setup
     Rap::Declarations.env = Tap::Env.new.reconfigure(:load_paths => [], :command_paths => [], :generator_paths => [])
+    Rap::Declarations.app = Tap::App.new
   end
   
   def teardown
@@ -28,11 +29,11 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_documentation
-    assert_equal Rap.task(:sample), Sample.instance
+    assert_equal Rap.task(:sample), Sample.instance(Rap::Declarations.app)
     
     was_in_block = false
     Rap.namespace(:nested) do
-      assert_equal Rap.task(:sample), Nested::Sample.instance
+      assert_equal Rap.task(:sample), Nested::Sample.instance(Rap::Declarations.app)
       was_in_block = true
     end
     assert was_in_block
@@ -157,12 +158,12 @@ class DeclarationsTest < Test::Unit::TestCase
   # task declaration
   #
   
-  def test_task_generates_instance_of_subclass_of_DeclarationTask_by_name
+  def test_task_generates_a_class_dependency_instance
     assert !Object.const_defined?(:Task0)
     
     instance = task(:task0)
     assert_equal Task0, instance.class
-    assert_equal Task0.instance, instance
+    assert_equal Rap::Declarations.instance(Task0), instance
     assert_equal Rap::DeclarationTask, Task0.superclass
   end
   
@@ -270,7 +271,7 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def test_task_returns_instance_of_subclass
     result = task(:task0)
-    assert_equal Task0.instance, result 
+    assert_equal Rap::Declarations.instance(Task0), result 
   end
   
   def test_task_chains_block_to_subclass_actions
@@ -411,8 +412,8 @@ class DeclarationsTest < Test::Unit::TestCase
       task(:outer2) { arr << 'inner3' }
     end
     
-    ::Nest::Inner1.instance.execute
-    ::Nest::Inner2.instance.execute
+    Rap::Declarations.instance(::Nest::Inner1).execute
+    Rap::Declarations.instance(::Nest::Inner2).execute
     
     # this is the rake output
     #assert_equal ["outer1", "inner1", "inner3", "inner2"], arr

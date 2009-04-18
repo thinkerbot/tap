@@ -50,10 +50,14 @@ module Rap
     
     # The environment in which declared task classes are registered.
     # By default the Tap::Env for Dir.pwd.
-    def Declarations.env() @@env ||= Tap::Env.instantiate(Dir.pwd); end
+    def Declarations.env() @@env ||= Tap::Env.instance; end
     
     # Sets the declaration environment.
     def Declarations.env=(env) @@env=env; end
+    
+    def Declarations.app() @@app ||= Tap::App.instance; end
+    
+    def Declarations.app=(app) @@app=app; end
     
     # The base constant for all task declarations, prepended to the task name.
     def Declarations.current_namespace() @@current_namespace; end
@@ -63,6 +67,10 @@ module Rap
     # document the next task declaration.
     def Declarations.current_desc() @@current_desc; end
     @@current_desc = nil
+    
+    def Declarations.instance(tasc)
+      Declarations.app.class_dependency(tasc)
+    end
     
     # Declares a task with a rake-like syntax.  Task generates a subclass of
     # DeclarationTask, nested within the current namespace.
@@ -74,7 +82,8 @@ module Rap
       
       # generate the task class
       const_name = File.join(@@current_namespace, name.to_s).camelize
-      task_class = register declaration_class.subclass(const_name, configs, dependencies)
+      task_class = declaration_class.subclass(const_name, configs, dependencies)
+      register task_class
       
       # register documentation        
       manifest = Lazydoc.register_caller(Description)
@@ -89,7 +98,7 @@ module Rap
       task_class.actions << action if action
       
       # return the instance
-      task_class.instance
+      Declarations.app.class_dependency(task_class)
     end
     
     # Nests tasks within the named module for the duration of the block.
@@ -152,7 +161,7 @@ module Rap
         unless need.kind_of?(Class)
           # lookup or declare non-class dependencies
           name = normalize_name(need).camelize
-          need = Tap::Support::Constant.constantize(name) do |base, constants|
+          need = Tap::Env::Constant.constantize(name) do |base, constants|
             const = block_given? ? yield(name) : nil
             const or raise ArgumentError, "unknown task class: #{name}"
           end
@@ -187,10 +196,10 @@ module Rap
     # Registers a task class with the Declarations.env, if necessary.
     # Returns task_class.
     def register(task_class)
-      tasks = Declarations.env.tasks
+      tasks = Declarations.env.registered_objects(:task)
       const_name = task_class.to_s
-      unless tasks.entries.any? {|const| const.name == const_name }
-        tasks.entries << Tap::Support::Constant.new(const_name)
+      unless tasks.any? {|const| const.const_name == const_name }
+        Declarations.env.register('task', Tap::Env::Constant.new(const_name))
       end
       
       task_class

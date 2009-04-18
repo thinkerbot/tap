@@ -7,6 +7,7 @@ class RapTutorialTest < Test::Unit::TestCase
   def setup
     @declaration_base = "RapTutorialTest"
     @env = Tap::Env.new(:load_paths => [], :command_paths => [], :generator_paths => [])
+    @app = Rap::Declarations.app = Tap::App.new
   end
   
   def test_rap_documentation
@@ -25,7 +26,7 @@ class RapTutorialTest < Test::Unit::TestCase
     assert_equal 'abc!', str
 
     assert_equal C, c.class
-    assert c == C.instance
+    assert c == C.instance(@app)
     assert_equal Rap::DeclarationTask, C.superclass
 
   end

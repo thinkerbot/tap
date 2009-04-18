@@ -1,5 +1,6 @@
 # setup testing with submodules
 begin
+  require 'test/unit'
   require 'tap/test'
 rescue(LoadError)
   puts %Q{
@@ -12,3 +13,5 @@ not been initialized.  Use these commands and try again:
 }
   raise
 end
+
+Test::Unit::TestCase.extend Tap::Test

@@ -1,4 +1,5 @@
-require 'tap'
+require 'tap/task'
+require 'tap/env'
 require 'ostruct'
 require 'rap/description'
 
@@ -32,13 +33,6 @@ module Rap
         args
       end
       
-      # Initializes instance and registers it as a dependency.
-      def new(*args)
-        @instance ||= super
-        @instance.app.dependencies.register(@instance)
-        @instance
-      end
-      
       # Looks up or creates the DeclarationTask subclass specified by name
       # (nested within declaration_base), and adds the configs and dependencies.
       # Declare also registers the subclass in the declaration_env tasks
@@ -49,7 +43,7 @@ module Rap
       #
       def subclass(const_name, configs={}, dependencies=[])
         # lookup or generate the subclass
-        subclass = Tap::Support::Constant.constantize(const_name.to_s) do |base, constants|
+        subclass = Tap::Env::Constant.constantize(const_name.to_s) do |base, constants|
           subclass_const = constants.pop
           constants.inject(base) do |namespace, const|
             # nesting Task classes into other Task classes is required
