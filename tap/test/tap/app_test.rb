@@ -80,6 +80,15 @@ class AppTest < Test::Unit::TestCase
   #
   
   class ApplicationDependency
+    def self.dependency(app)
+      new(app)
+    end
+    
+    attr_reader :app
+    
+    def initialize(app)
+      @app = app
+    end
   end
   
   def test_class_dependency_returns_or_initializes_instance_of_class
@@ -91,6 +100,12 @@ class AppTest < Test::Unit::TestCase
     assert_equal({ApplicationDependency.to_s => d}, app.class_dependencies)
     
     assert_equal d.object_id, app.class_dependency(ApplicationDependency).object_id
+  end
+  
+  def test_initialized_instance_uses_app
+    app = Tap::App.new
+    d = app.class_dependency(ApplicationDependency)
+    assert_equal app, d.app
   end
   
   #

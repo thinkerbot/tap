@@ -211,7 +211,7 @@ module Tap
     def class_dependency(klass)
       # note classes are turned to strings to allow 
       # the keys to be dumped as YAML
-      class_dependencies[klass.to_s] ||= Node.new(Dependency.new(klass.new))
+      class_dependencies[klass.to_s] ||= Node.new(Dependency.new(klass.dependency(self)))
     end
     
     # Returns a new dependency that executes block on call.

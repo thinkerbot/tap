@@ -122,6 +122,14 @@ module Tap
       # Sets the class default_name
       attr_writer :default_name
       
+      def dependency(app=Tap::App.instance)
+        new({}, nil, app)
+      end
+      
+      def instance(app=Tap::App.instance)
+        app.class_dependency(self)
+      end
+      
       # Returns the default name for the class: to_s.underscore
       def default_name
         # lazy-setting default_name like this (rather than
