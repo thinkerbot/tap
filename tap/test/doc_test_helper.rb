@@ -32,13 +32,31 @@ module Doctest
     end
   end
   
-  def sh_test(msg, cmd)
-    blank, cmd, expected = cmd.split("\n", 3)
-    raise "not blank" unless blank.empty?
+  def sh_test(cmd)
+    unless cmd =~ /\A\s#{CMD_PATTERN}(.*?)\n(.+)\z/m
+      raise "invalid sh_test command: #{cmd}"
+    end
     
     start = Time.now
-    result = sh(cmd.sub(CMD_PATTERN, CMD))
-    puts "#{msg} (#{Time.now-start}s)"
-    assert_equal expected, result
+    result = sh(CMD + $1)
+    finish = Time.now
+    
+    assert_equal $2, result, CMD_PATTERN + $1
+    puts "(#{finish-start}s) #{CMD_PATTERN + $1}" if ENV['VERBOSE'] == 'true'
+  end
+  
+  def sh_match(cmd, *regexps)
+    unless cmd =~ /\A#{CMD_PATTERN}(.*?)\z/
+      raise "invalid sh_match command: #{cmd}"
+    end
+    
+    start = Time.now
+    result = sh(CMD + $1)
+    finish = Time.now
+    
+    regexps.each do |regexp|
+      assert_match regexp, result, CMD_PATTERN + $1
+    end
+    puts "(#{finish-start}s) #{CMD_PATTERN + $1}" if ENV['VERBOSE'] == 'true'
   end
 end unless Object.const_defined?(:Doctest)

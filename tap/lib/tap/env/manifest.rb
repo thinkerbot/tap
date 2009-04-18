@@ -50,7 +50,7 @@ module Tap
         build if allow_build && !built?
         @entries
       end
-    
+      
       # True if entries are empty.
       def empty?
         entries.empty?

@@ -179,7 +179,11 @@ module Tap
     def reverse_each
       visit_envs.reverse_each {|e| yield(e) }
     end
-  
+    
+    def size
+      inject(0) {|n, e| n + 1 }
+    end
+    
     # Recursively injects the memo to each env of self.  Each env in envs
     # receives the same memo from the parent.  This is different from the
     # inject provided via Enumerable, where each subsequent env receives

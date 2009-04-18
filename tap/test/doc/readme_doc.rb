@@ -21,7 +21,9 @@ class ReadmeDoc < Test::Unit::TestCase
     method_root.prepare(:sample, 'tap.yml') {|io| io << "gems: []"}
     
     method_root.chdir(:sample) do
-      sh_test "print manifest", %q{
+      
+      # print manifest
+      sh_test %q{
 % tap run -T
 sample:
   goodnight   # your basic goodnight moon task
@@ -30,7 +32,8 @@ tap:
   load        # the default load task
 }
       
-      sh_test "print help", %q{
+      # print help 
+      sh_test %q{
 % tap run -- goodnight --help
 Goodnight -- your basic goodnight moon task
 --------------------------------------------------------------------------------
@@ -46,8 +49,9 @@ options:
         --name NAME                  Specifies the task name
         --config FILE                Specifies a config file
 }
-
-      sh_test "run goodnight task", %q{
+      
+      # run goodnight task
+      sh_test %q{
 % tap run -- goodnight moon --: dump
 goodnight moon
 }
