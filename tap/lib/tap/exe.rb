@@ -42,7 +42,7 @@ module Tap
       @instance = Env.new(config, CONFIG_FILE).extend Exe
       
       # add the tap env if necessary
-      unless @instance.instances.has_key?(File.join(TAP_HOME))
+      unless @instance.find {|env| env.path == TAP_HOME }
         @instance.push Env.new(TAP_HOME) 
       end
       
@@ -72,13 +72,13 @@ module Tap
     GLOBAL_CONFIG_FILE = File.join(GLOBAL_HOME, CONFIG_FILE)
     
     def commands
-      manifest do |env|
+      manifest(:commands) do |env|
         env.glob_config(:cmd_paths, "**/*.rb", :cmd)
       end
     end
     
     def tasks
-      constant_manifest('manifest') do |env|
+      manifest('manifest', Env::ConstantManifest) do |env|
         env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
           [dir, path]
         end
@@ -86,7 +86,7 @@ module Tap
     end
     
     def joins
-      constant_manifest('join') do |env|
+      manifest('join', Env::ConstantManifest) do |env|
         env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
           [dir, path]
         end

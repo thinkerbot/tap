@@ -16,6 +16,55 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
+  # COMPOUND_KEY test
+  #
+  
+  def test_COMPOUND_KEY_regexp
+    r = Env::COMPOUND_KEY
+    
+    # key only
+    assert r =~ "key"
+    assert_equal ["key", nil], [$1, $2]
+    
+    assert r =~ "path/to/key"
+    assert_equal ["path/to/key", nil], [$1, $2]
+    
+    assert r =~ "/path/to/key"
+    assert_equal ["/path/to/key", nil], [$1, $2]
+    
+    assert r =~ "C:/path/to/key"
+    assert_equal ["C:/path/to/key", nil], [$1, $2]
+    
+    assert r =~ 'C:\path\to\key'
+    assert_equal ['C:\path\to\key', nil], [$1, $2]
+    
+    # env_key and key
+    assert r =~ "env_key:key"
+    assert_equal ["env_key", "key"], [$1, $2]
+    
+    assert r =~ "path/to/env_key:path/to/key"
+    assert_equal ["path/to/env_key", "path/to/key"], [$1, $2]
+    
+    assert r =~ "/path/to/env_key:/path/to/key"
+    assert_equal ["/path/to/env_key", "/path/to/key"], [$1, $2]
+    
+    assert r =~ "C:/path/to/env_key:C:/path/to/key"
+    assert_equal ["C:/path/to/env_key", "C:/path/to/key"], [$1, $2]
+    
+    assert r =~ 'C:\path\to\env_key:C:\path\to\key'
+    assert_equal ['C:\path\to\env_key', 'C:\path\to\key'], [$1, $2]
+    
+    assert r =~ "/path/to/env_key:C:/path/to/key"
+    assert_equal ["/path/to/env_key", "C:/path/to/key"], [$1, $2]
+    
+    assert r =~ "C:/path/to/env_key:/path/to/key"
+    assert_equal ["C:/path/to/env_key", "/path/to/key"], [$1, $2]
+    
+    assert r =~ "a:b"
+    assert_equal ["a", "b"], [$1, $2]
+  end
+  
+  #
   # initialize test
   #
   
@@ -23,6 +72,7 @@ class EnvTest < Test::Unit::TestCase
     e = Env.new
     assert_equal Dir.pwd, e.root.root
     assert_equal [], e.envs
+    assert_equal({:env => [e]}, e.registry)
   end
   
   def test_initialize_from_path
@@ -64,6 +114,22 @@ class EnvTest < Test::Unit::TestCase
     
     e = Env.new({:root => method_root}, 'config.yml')
     assert_equal nil, e.config[:key]
+  end
+  
+  def test_initialize_registers_self_in_registry_by_env
+    registry = {}
+    e = Env.new(method_root, nil, registry)
+    assert_equal [e], registry[:env]
+  end
+  
+  def test_initialize_raises_error_if_registry_contains_an_env_with_the_same_root_root
+    r1 = Tap::Root.new
+    r2 = Tap::Root.new
+    assert_equal r1.root, r2.root
+    
+    registry = {:env => [Env.new(r1)]}
+    err = assert_raises(RuntimeError) { Env.new(r2, nil, registry) }
+    assert_equal "registry already has an env for: #{r2.root}", err.message
   end
   
   #
@@ -408,6 +474,47 @@ a (0)
   end
   
   #
+  # register test
+  #
+  
+  def test_register_stores_a_resource_in_the_registry
+    assert_equal nil, e.registry[:path]
+    e.register(:path, 'a/b/c')
+    assert_equal ['a/b/c'], e.registry[:path]
+  end
+  
+  def test_register_does_not_store_duplicates
+    e.register(:path, 'a/b/c')
+    e.register(:path, 'a/b/c')
+    e.register(:path, 'a/b/c')
+    assert_equal ['a/b/c'], e.registry[:path]
+  end
+  
+  #
+  # seek test
+  #
+  
+  def test_seek_traverses_env_for_first_matching_resource_of_the_specified_type
+    e1 = Env.new method_root['a'], nil, {:type => ["a/one.txt", "a/two.txt"] }
+    e2 = Env.new method_root['b'], nil, {:type => ["b/one.txt", "b/three.txt"] }
+    e1.push e2
+    
+    assert_equal "a/one.txt", e1.seek(:type, "one")
+    assert_equal "a/two.txt", e1.seek(:type, "two")
+    assert_equal "b/three.txt", e1.seek(:type, "three")
+    
+    assert_equal nil, e1.seek(:type, "a:three")
+    assert_equal "a/one.txt", e1.seek(:type, "a:one")
+    assert_equal "b/one.txt", e1.seek(:type, "b:one")
+    assert_equal nil, e1.seek(:type, "b:two")
+    assert_equal nil, e1.seek(:type, "c:one")
+    assert_equal nil, e1.seek(:type, "four")
+    
+    assert_equal "b/one.txt", e2.seek(:type, "one")
+    assert_equal nil, e2.seek(:type, "two")
+  end
+  
+  #
   # manifest.seek test
   #
   
@@ -421,7 +528,7 @@ a (0)
     e2 = Env.new(method_root['b'])
     e1.push e2
     
-    m = e1.manifest do |env|
+    m = e1.manifest(:type) do |env|
       env.root.glob(:root)
     end
     
@@ -442,7 +549,7 @@ a (0)
     e2 = Env.new(Env::Root.new("/path/to/e2"))
     e1.push e2
     
-    m = e1.manifest do |env|
+    m = e1.manifest(:type) do |env|
       [ "/path/to/one-0.1.0.txt",
         "/path/to/two.txt",
         "/path/to/another/one.txt",
@@ -473,7 +580,7 @@ a (0)
     # check with env pattern
     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("e1:one")
     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("/path/to/e1:one")
-
+  
     assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("e2:one")
     assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/path/to/e2:to/one")
     
@@ -499,7 +606,7 @@ a (0)
     e2 = Env.new(method_root['b'])
     e1.push e2
     
-    m = e1.manifest do |env|
+    m = e1.manifest(:type) do |env|
       env.root.glob(:root)
     end
     

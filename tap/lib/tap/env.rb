@@ -25,18 +25,27 @@ module Tap
     include Enumerable
     include Configurable
     include Minimap
+    
+    # Matches a compound registry search key.  After the match, if the key is
+    # compound then:
+    #
+    #  $1:: env_key
+    #  $2:: key
+    #
+    # If the key is not compound, $2 is nil and $1 is the key.
+    COMPOUND_KEY = /^((?:[A-z]:(?:\/|\\))?.*?)(?::(.*))?$/
   
     # An array of nested Envs, by default comprised of the env_path
     # + gem environments (in that order).
     attr_reader :envs
-  
-    # A hash of (path, Env) pairs used to prevent infinite loops of Env
-    # dependencies by assigning a single Env to a given path.
-    attr_reader :instances
     
     # The basename for dynamically loading configurations.  See new.
     attr_reader :basename
-
+    
+    # A hash of (path, Env) pairs used to prevent infinite loops of Env
+    # dependencies by assigning a single Env to a given path.
+    attr_reader :registry
+    
     # The Root directory structure for self.
     nest(:root, Root, :set_default => false)
   
@@ -90,7 +99,7 @@ module Tap
     #
     # Instances is used internally to prevent infinite loops of nested envs
     # and should not be modified manually.
-    def initialize(config_or_dir=Dir.pwd, basename=nil, instances={})
+    def initialize(config_or_dir=Dir.pwd, basename=nil, registry={})
       # setup root
       config = nil
       @root = case config_or_dir
@@ -109,12 +118,12 @@ module Tap
       end
       
       # set instances
-      @instances = instances
-      if instances.has_key?(path)
-        raise "instances contains an instance for: #{path}"
+      @registry = registry
+      if registered?(:env, self) {|env| env.path }
+        raise "registry already has an env for: #{path}"
       end
-      instances[path] = self
-    
+      register(:env, self)
+      
       # set these for reset_env
       @gems = nil
       @env_paths = nil
@@ -124,6 +133,35 @@ module Tap
     # The path for self (root.root).  Path is used to key self in instances.
     def path
       root.root
+    end
+    
+    def objects(type)
+      objects = registry[type] ||= []
+      unless objects.kind_of?(Minimap)
+        objects.extend(Minimap)
+      end
+      objects
+    end
+    
+    def register(type, obj, &block)
+      objects = self.objects(type)
+      if objects.include?(obj)
+        false
+      else
+        objects << obj
+        true
+      end
+    end
+    
+    def registered?(type, obj)
+      objects = self.objects(type)
+      
+      if block_given?
+        objects = objects.collect {|o| yield(o) }
+        obj = yield(obj)
+      end
+      
+      objects.include?(obj)
     end
     
     # Sets envs removing duplicates and instances of self.  Setting envs
@@ -187,29 +225,32 @@ module Tap
     def recursive_inject(memo, &block) # :yields: memo, env
       inject_envs(memo, &block)
     end
-  
-    # Creates a manifest with entries defined by the return of the block.  The
-    # manifest will be cached in manifests if a key is provided.
-    def manifest(klass=Manifest) # :yields: env 
-      klass = Class.new(klass)
-      klass.send(:define_method, :build) do
-        @entries = yield(env)
+    
+    def seek(type, key)
+      key =~ COMPOUND_KEY
+      envs = if $2
+        # compound key, match for env
+        key = $2
+        [minimatch($1)].compact
+      else
+        # not a compound key, search all envs by iterating self
+        self
       end
-      klass.new(self)
+    
+      # traverse envs looking for the first
+      # manifest entry matching key
+      envs.each do |env|
+        result = block_given? ? yield(env, key) : env.objects(type).minimatch(key)
+        return result if result
+      end
+    
+      nil
     end
     
-    # block must return an array of (dir, path) pairs
-    def constant_manifest(const_attr, klass=ConstantManifest) # :yields: env 
-      klass = Class.new(klass)
-      klass.send(:define_method, :build) do
-        @entries = []
-        yield(env).each do |dir, path|
-          scan(dir, path)
-          @entries.concat constants(path)
-        end
-        @entries.uniq!
-      end
-      klass.new(self, const_attr)
+    # Creates a manifest with entries defined by the return of the block.  The
+    # manifest will be cached in manifests if a key is provided.
+    def manifest(type, klass=Manifest, &builder) # :yields: env 
+      klass.new(self, type, &builder)
     end
     
     def glob_config(key, pattern="**/*", defaults=[:root])
@@ -253,7 +294,7 @@ module Tap
     
     # Instantiates a new Env for the specified paths.
     def instantiate(path) # :nodoc:
-      instances[path] || Env.new(path, basename, instances)
+      objects(:env).find {|env| env.path == path } || Env.new(path, basename, registry)
     end
   
     # resets envs using the current env_paths and gems.  does nothing

@@ -18,16 +18,28 @@ module Tap
     #
     class ConstantManifest < Manifest
       
-      attr_accessor :const_attr
+      def const_attr
+        type
+      end
       
-      def initialize(env, const_attr)
-        super(env)
-        @const_attr = const_attr
+      def cache
+        env.registry[:constant_names] ||= {}
+      end
+      
+      def build
+        builder.call(env).each do |dir, path|
+          unless cache.has_key?(path)
+            cache[path] = scan(dir, path)
+          end
+          
+          constants(path).each do |const|
+            env.register(type, const)
+          end
+        end if builder
+        @built = true
       end
       
       def scan(dir, path)
-        return if cache.has_key?(path)
-        
         # determine the default constant name for the path;
         # this is used when no const_name is specified for
         # a constant attribute
@@ -42,9 +54,7 @@ module Tap
           attributes[key] = value
         end
         
-        # store any const_names that were found,
-        # or nil if none were found
-        cache[path] = const_names.empty? ? nil : const_names
+        const_names.empty? ? nil : const_names
       end
       
       def constants(path)

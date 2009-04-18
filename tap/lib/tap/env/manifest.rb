@@ -3,54 +3,46 @@ require 'tap/env/minimap'
 module Tap
   class Env
     
-    # Stores an array of objects and makes them available for lookup by minipath.
     class Manifest
       include Enumerable
       include Minimap
-    
-      # Matches a compound manifest search key.  After the match, if the key is
-      # compound then:
-      #
-      #  $1:: env_key
-      #  $2:: key
-      #
-      # If the key is not compound, $2 is nil and $1 is the key.
-      COMPOUND_REGEXP = /^((?:[A-z]:(?:\/|\\))?.*?)(?::(.*))?$/
-    
+      
       # The environment this manifest summarizes
       attr_reader :env
-    
-      # A hash of cached data
-      attr_accessor :cache
-    
+      
+      # The type of environment resource this manifest traverses
+      attr_reader :type
+      
+      # An optional block to discover new entries in env
+      attr_reader :builder
+      
       # Initializes a new Manifest.
-      def initialize(env)
+      def initialize(env, type, &builder)
         @env = env
-        @entries = nil
+        @type = type
+        @entries = env.objects(type)
+        @built = false
+        @builder = builder
         @cache = {}
       end
       
       # Determines entries for env.  By default build does nothing and must be
       # implemented in subclasses.
       def build
-        @entries = []
-      end
-      
-      def build_all
-        env.each do |e|
-          manifest(e).build
-        end
+        builder.call(env).each do |obj|
+          env.register(type, obj)
+        end if builder
+        @built = true
       end
     
       # Identifies if self is built (ie entries are set).
       def built?
-        @entries != nil
+        @built
       end
-    
-      # Resets a build.
+      
+      # Resets built? to false.
       def reset
-        @entries = nil
-        @cache.clear
+        @built = false
       end
     
       # Returns the entries in self.  Builds self if necessary and allowed.
@@ -87,26 +79,9 @@ module Tap
       #
       # Returns nil if no matching entry is found.
       def seek(key)
-        key =~ COMPOUND_REGEXP
-        envs = if $2
-          # compound key, match for env
-          key = $2
-          [env.minimatch($1)].compact
-        else
-          # not a compound key, search all envs by iterating
-          # env itself (ie treat env like an array)
-          env
+        self.env.seek(type, key) do |env, k|
+          manifest(env).minimatch(k)
         end
-      
-        # traverse envs looking for the first
-        # manifest entry matching key
-        envs.each do |env|
-          if result = manifest(env).minimatch(key)
-            return result
-          end
-        end
-      
-        nil
       end
       
       # Same as env.inspect but adds manifest to the templater
@@ -151,14 +126,14 @@ module Tap
             
       # Creates a new instance of self, assigned with env.
       def another(env)
-        self.class.new(env)
+        self.class.new(env, type, &builder)
       end
       
       protected
       
       # helper method to lookup or initialize a manifest like self for env.
       def manifest(env) # :nodoc:
-        cache[env] ||= (env == self.env ? self : another(env))
+        @cache[env] ||= (env == self.env ? self : another(env))
       end
     end
   end

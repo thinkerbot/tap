@@ -1,23 +1,26 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/env/constant_manifest'
+require 'tap/env'
 require 'tempfile'
 
 class ConstantManifestTest < Test::Unit::TestCase
+  Env = Tap::Env
   ConstantManifest = Tap::Env::ConstantManifest
   include MethodRoot
   
-  attr_reader :m
+  attr_reader :env, :m
   
   def setup
     super
-    @m = ConstantManifest.new(:env, :attr)
+    @env = Env.new
+    @m = ConstantManifest.new(env, :attr)
   end
   
   #
-  # scan test
+  # build test
   #
-
-  def test_scan_caches_all_constant_attributes_in_path
+  
+  def test_build_caches_all_constant_attributes_in_path
     path = method_root.prepare("implicit.rb") do |io|
       io << %q{
 # A::one comment a one
@@ -27,9 +30,13 @@ class ConstantManifestTest < Test::Unit::TestCase
 }
     end
     
+    m = ConstantManifest.new(env, :attr) do |env|
+      [[method_root.root, path]]
+    end
+
     assert_equal({}, m.cache)
-    m.scan(method_root.root, path)
-    
+    m.build
+
     assert_equal({
       path => {
         "A" => {
@@ -41,15 +48,19 @@ class ConstantManifestTest < Test::Unit::TestCase
       }
     }, m.cache)
   end
-  
-  def test_scan_does_nothing_if_path_is_in_cache
+
+  def test_build_does_nothing_if_path_is_in_cache
     path = method_root.prepare("implicit.rb") do |io|
       io << "# A::one"
     end
-
-    m.cache = {path => 1}
-    m.scan(method_root.root, path)
-    assert_equal({path => 1}, m.cache)
+    
+    m = ConstantManifest.new(env, :attr) do |env|
+      [[method_root.root, path]]
+    end
+    
+    m.cache[path] = {}
+    m.build
+    assert_equal({}, m.cache[path])
   end
   
   #
@@ -69,19 +80,19 @@ class ConstantManifestTest < Test::Unit::TestCase
       "B" => {"b" => "", "z" => ""}
     }
     
-    m.const_attr = 'a'
+    m = ConstantManifest.new(env, 'a')
     assert_equal ["A"], m.constants('path').collect {|c| c.const_name }
     
-    m.const_attr = 'b'
+    m = ConstantManifest.new(env, 'b')
     assert_equal ["B"], m.constants('path').collect {|c| c.const_name }
     
-    m.const_attr = 'z'
+    m = ConstantManifest.new(env, 'z')
     assert_equal ["A", "B"], m.constants('path').collect {|c| c.const_name }
     
-    m.const_attr = 'q'
+    m = ConstantManifest.new(env, 'q')
     assert_equal [], m.constants('path').collect {|c| c.const_name }
     
-    m.const_attr = /[a-z]/
+    m = ConstantManifest.new(env, /[a-z]/)
     assert_equal ["A", "A", "B", "B"], m.constants('path').collect {|c| c.const_name }
   end
 end

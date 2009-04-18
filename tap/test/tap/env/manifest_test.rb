@@ -1,32 +1,16 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/env/manifest'
+require 'tap/env'
 
 class ManifestTest < Test::Unit::TestCase
+  Env = Tap::Env
   Manifest = Tap::Env::Manifest
   
   attr_reader :env, :m
   
-  class MockEnv
-    attr_accessor :envs, :matches
-    
-    def initialize(envs=[], matches={})
-      @envs = envs
-      @matches = matches
-    end
-    
-    def each
-      yield(self)
-      envs.each {|env| yield(env) }
-    end
-    
-    def minimatch(key)
-      @matches[key]
-    end
-  end
-  
   def setup
-    @env = MockEnv.new
-    @m = Manifest.new(env)
+    @env = Env.new
+    @m = Manifest.new(env, :type)
   end
   
   #
@@ -34,10 +18,11 @@ class ManifestTest < Test::Unit::TestCase
   #
   
   def test_initialize
-    m = Manifest.new :env
-    assert_equal :env, m.env
-    assert_equal nil, m.entries(false)
-    assert_equal({}, m.cache)
+    env = Env.new Dir.pwd, nil, {:type => [1,2,3]}
+    m = Manifest.new(env, :type)
+    assert_equal :type, m.type
+    assert_equal env, m.env
+    assert_equal [1,2,3], m.entries(false)
     assert !m.built?
   end
   
@@ -45,23 +30,12 @@ class ManifestTest < Test::Unit::TestCase
   # build test
   #
   
-  def test_build_sets_entries
-    m = Manifest.new(:env) 
-    assert_equal nil, m.entries(false)
-    m.build
-    assert_equal [], m.entries(false)
-  end
-  
-  #
-  # built? test
-  #
-  
-  def test_built_returns_true_if_built
+  def test_build_sets_built
     assert !m.built?
     m.build
     assert m.built?
   end
-  
+
   #
   # reset test
   #
@@ -73,24 +47,35 @@ class ManifestTest < Test::Unit::TestCase
     assert !m.built?
   end
   
-  def test_reset_sets_entries_to_nil
-    m.build
-    assert_equal [], m.entries(false)
-    m.reset
-    assert_equal nil, m.entries(false)
-  end
+  # def test_reset_sets_entries_to_nil
+  #   m.build
+  #   assert_equal [], m.entries(false)
+  #   m.reset
+  #   assert_equal nil, m.entries(false)
+  # end
+  # 
+  # def test_reset_clears_cache
+  #   m.cache[:key] = 'value'
+  #   m.reset
+  #   assert_equal({}, m.cache)
+  # end
   
-  def test_reset_clears_cache
-    m.cache[:key] = 'value'
-    m.reset
-    assert_equal({}, m.cache)
+  #
+  # entries test
+  #
+  
+  def test_entries_are_the_env_objects_for_type
+    objects = [1,2,3]
+    env = Env.new Dir.pwd, nil, {:type => objects}
+    m = Manifest.new(env, :type)
+    assert_equal objects.object_id, m.entries.object_id
   end
   
   #
   # empty? test
   #
   
-  def test_empty_builds_self_if_necessary
+  def test_empty_builds_self
     assert !m.built?
     assert m.empty?
     assert m.built?
@@ -103,7 +88,7 @@ class ManifestTest < Test::Unit::TestCase
     m.entries << :one
     assert !m.empty?
   end
-  
+
   #
   # each test
   #
@@ -138,64 +123,38 @@ class ManifestTest < Test::Unit::TestCase
   end
   
   def test_seek_traverses_env_each_to_find_match
-    e1, e2, e3 = Array.new(3) { MockEnv.new }
+    e1 = Env.new 'one', nil, {:type => %w{a/b/c}}
+    e2 = Env.new 'two', nil, {:type => %w{a/b/d}}
+    e3 = Env.new 'three', nil, {:type => %w{a/b/e}}
     e1.envs = [e2, e3]
     
-    m1 = Manifest.new e1
-    m1.entries.concat %w{a/b/c}
-    
-    m2 = Manifest.new e2
-    m2.entries.concat %w{a/b/d}
-    
-    m3 = Manifest.new e3
-    m3.entries.concat %w{a/b/e}
-    
-    m1.cache = {
-      e1 => m1,
-      e2 => m2,
-      e3 => m3
-    }
+    m = Manifest.new(e1, :type)
     
     envs = []
     e1.each {|e| envs << e }
     assert_equal [e1, e2, e3], envs
     
-    assert_equal "a/b/c", m1.seek("c")
-    assert_equal "a/b/d", m1.seek("d")
-    assert_equal "a/b/e", m1.seek("e")
-    assert_equal nil, m1.seek("f")
+    assert_equal "a/b/c", m.seek("c")
+    assert_equal "a/b/d", m.seek("d")
+    assert_equal "a/b/e", m.seek("e")
+    assert_equal nil, m.seek("f")
   end
   
   def test_seek_selects_env_by_compound_key
-    e1, e2, e3 = Array.new(3) { MockEnv.new }
-    e1.matches = {
-      'one' => e1,
-      'two' => e2,
-      'three' => e3
-    }
+    e1 = Env.new 'one', nil, {:type => %w{a/b/c}}
+    e2 = Env.new 'two', nil, {:type => %w{a/b/d}}
+    e3 = Env.new 'three', nil, {:type => %w{a/b/e}}
+    e1.envs = [e2, e3]
     
-    m1 = Manifest.new e1
-    m1.entries.concat %w{a/b/c}
+    m = Manifest.new(e1, :type)
     
-    m2 = Manifest.new e2
-    m2.entries.concat %w{a/b/d}
+    assert_equal "a/b/c", m.seek("one:c")
+    assert_equal "a/b/d", m.seek("two:d")
+    assert_equal "a/b/e", m.seek("three:e")
     
-    m3 = Manifest.new e3
-    m3.entries.concat %w{a/b/e}
-    
-    m1.cache = {
-      e1 => m1,
-      e2 => m2,
-      e3 => m3
-    }
-    
-    assert_equal "a/b/c", m1.seek("one:c")
-    assert_equal "a/b/d", m1.seek("two:d")
-    assert_equal "a/b/e", m1.seek("three:e")
-    
-    assert_equal nil, m1.seek("one:d")
-    assert_equal nil, m1.seek("two:c")
-    assert_equal nil, m1.seek("nil:e")
+    assert_equal nil, m.seek("one:d")
+    assert_equal nil, m.seek("two:c")
+    assert_equal nil, m.seek("nil:e")
   end
   
   #
@@ -203,9 +162,10 @@ class ManifestTest < Test::Unit::TestCase
   #
   
   def test_another_makes_a_new_instance_of_self_assigned_to_env
-    another = m.another(:alt)
+    alt = Env.new
+    another = m.another(alt)
     assert_equal m.class, another.class
-    assert_equal :alt, another.env
+    assert_equal alt, another.env
     assert !another.built?
     
     assert m.entries.object_id != another.entries.object_id
@@ -215,56 +175,7 @@ class ManifestTest < Test::Unit::TestCase
   end
   
   def test_another_instantiates_the_same_class_as_self
-    m = Another.new :env
-    assert_equal Another, m.another(:alt).class
-  end
-
-  #
-  # COMPOUND_REGEXP test
-  #
-  
-  def test_COMPOUND_REGEXP_REGEXP
-    r = Manifest::COMPOUND_REGEXP
-    
-    # key only
-    assert r =~ "key"
-    assert_equal ["key", nil], [$1, $2]
-    
-    assert r =~ "path/to/key"
-    assert_equal ["path/to/key", nil], [$1, $2]
-    
-    assert r =~ "/path/to/key"
-    assert_equal ["/path/to/key", nil], [$1, $2]
-    
-    assert r =~ "C:/path/to/key"
-    assert_equal ["C:/path/to/key", nil], [$1, $2]
-    
-    assert r =~ 'C:\path\to\key'
-    assert_equal ['C:\path\to\key', nil], [$1, $2]
-    
-    # env_key and key
-    assert r =~ "env_key:key"
-    assert_equal ["env_key", "key"], [$1, $2]
-    
-    assert r =~ "path/to/env_key:path/to/key"
-    assert_equal ["path/to/env_key", "path/to/key"], [$1, $2]
-    
-    assert r =~ "/path/to/env_key:/path/to/key"
-    assert_equal ["/path/to/env_key", "/path/to/key"], [$1, $2]
-    
-    assert r =~ "C:/path/to/env_key:C:/path/to/key"
-    assert_equal ["C:/path/to/env_key", "C:/path/to/key"], [$1, $2]
-    
-    assert r =~ 'C:\path\to\env_key:C:\path\to\key'
-    assert_equal ['C:\path\to\env_key', 'C:\path\to\key'], [$1, $2]
-    
-    assert r =~ "/path/to/env_key:C:/path/to/key"
-    assert_equal ["/path/to/env_key", "C:/path/to/key"], [$1, $2]
-    
-    assert r =~ "C:/path/to/env_key:/path/to/key"
-    assert_equal ["C:/path/to/env_key", "/path/to/key"], [$1, $2]
-    
-    assert r =~ "a:b"
-    assert_equal ["a", "b"], [$1, $2]
+    m = Another.new(Env.new, :type)
+    assert_equal Another, m.another(Env.new).class
   end
 end
