@@ -3,7 +3,6 @@ require 'tempfile'
 
 class CmdlineDoc < Test::Unit::TestCase
   TAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/../../../")
-  WINDOWS = RUBY_PLATFORM =~ /mswin/
   CMD_PATTERN = "% tap"
   CMD = [
     "ruby",
@@ -13,7 +12,7 @@ class CmdlineDoc < Test::Unit::TestCase
   ].join(" ")
   
   def path(path)
-    if WINDOWS
+    if RUBY_PLATFORM =~ /mswin/
       File.expand_path(path).gsub("/", "\\")
     else
       "'#{File.expand_path(path)}'"
@@ -22,7 +21,7 @@ class CmdlineDoc < Test::Unit::TestCase
   
   def tempfile
     Tempfile.open(method_name) do |io|
-      yield(io, CmdlineDoc.path(io.path))
+      yield(io, path(io.path))
     end
   end
   
@@ -32,6 +31,10 @@ class CmdlineDoc < Test::Unit::TestCase
       io.read
     end
   end
+  
+  ######################################
+  # IO
+  ######################################
   
   # === Read data from $stdin
   #   # [goodnight.txt]
@@ -75,6 +78,8 @@ class CmdlineDoc < Test::Unit::TestCase
   #
   def test_dump_data_to_stdout
     tempfile do |tmp, path|
+      tmp.close
+      
       cmd = "% tap run -- load 'goodnight moon' --: dump > #{path}".sub(CMD_PATTERN, CMD)
       assert_equal "", sh(cmd)
       
@@ -89,5 +94,52 @@ class CmdlineDoc < Test::Unit::TestCase
   def test_pipe_data_via_stdout
     cmd = "% tap run -- load 'goodnight moon' --: dump | more".sub(CMD_PATTERN, CMD)
     assert_equal "goodnight moon", sh(cmd).strip
+  end
+  
+  ######################################
+  # Workflows
+  ######################################
+  
+  # === Sequence
+  #   % tap run -- load 'goodnight moon' --: dump
+  #   goodnight moon
+  def test_sequence
+    cmd = "% tap run -- load 'goodnight moon' --: dump".sub(CMD_PATTERN, CMD)
+    assert_equal "goodnight moon\n", sh(cmd)
+  end
+  
+  # === Sequence (canonical)
+  #   % tap run -- load 'goodnight moon' -- dump --[0][1]
+  #   goodnight moon
+  #
+  def test_sequence_canonical
+    cmd = "% tap run -- load 'goodnight moon' -- dump --[0][1]".sub(CMD_PATTERN, CMD)
+    assert_equal "goodnight moon\n", sh(cmd)
+  end
+  
+  # === Fork
+  #   % tap run -- load 'goodnight moon' -- dump -- dump --[0][1,2]
+  #   goodnight moon
+  #   goodnight moon
+  def test_fork
+    cmd = "% tap run -- load 'goodnight moon' -- dump -- dump --[0][1,2]".sub(CMD_PATTERN, CMD)
+    assert_equal "goodnight moon\ngoodnight moon\n", sh(cmd)
+  end
+  
+  # === Merge
+  #   % tap run -- load goodnight -- load moon -- dump --[0,1][2]
+  #   goodnight
+  #   moon
+  def test_merge
+    cmd = "% tap run -- load goodnight -- load moon -- dump --[0,1][2]".sub(CMD_PATTERN, CMD)
+    assert_equal "goodnight\nmoon\n", sh(cmd)
+  end
+  
+  # === Synchronized Merge
+  #   % tap run -- load goodnight --load moon -- dump --[0,1][2].sync
+  #   goodnightmoon
+  def test_syncrhonized_merge
+    cmd = "% tap run -- load goodnight -- load moon -- dump --[0,1][2].sync".sub(CMD_PATTERN, CMD)
+    assert_equal "goodnightmoon\n", sh(cmd)
   end
 end
