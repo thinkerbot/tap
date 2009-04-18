@@ -3,15 +3,15 @@ require 'tap/generator/destroy'
 
 class DestroyTest < Test::Unit::TestCase
   include Tap::Generator::Destroy
-  acts_as_file_test
+  include MethodRoot
   
   # this establishes the essential interface provided by Base
   attr_accessor :log, :pretend
   
   def setup
+    super
     @pretend = false
     @log = []
-    super
   end
   
   def log_relative(*args)
@@ -34,19 +34,19 @@ class DestroyTest < Test::Unit::TestCase
   #
   
   def test_directory_removes_target_and_logs_removal
-    target = method_root.filepath(:tmp, 'dir')
+    target = method_root.path(:tmp, 'dir')
     FileUtils.mkdir_p(target) unless File.exists?(target)
     assert File.exists?(target)
     
     directory(target)
     
     assert !File.exists?(target)
-    assert File.exists?(method_root.filepath(:tmp))
+    assert File.exists?(method_root.path(:tmp))
     assert_equal [[:rm, target]], log
   end
   
   def test_directory_removal_is_only_logged_on_pretend
-    target = method_root.filepath(:tmp, 'dir')
+    target = method_root.path(:tmp, 'dir')
     FileUtils.mkdir_p(target) unless File.exists?(target)
     
     self.pretend = true
@@ -57,7 +57,7 @@ class DestroyTest < Test::Unit::TestCase
   end
   
   def test_directory_logs_non_existant_targets
-    target = method_root.filepath(:tmp, 'dir')
+    target = method_root.path(:tmp, 'dir')
     assert !File.exists?(target)
 
     directory(target)

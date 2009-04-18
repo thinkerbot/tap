@@ -71,6 +71,11 @@ module Tap
           str.split("\n").collect {|line| "# #{line}" }.join("\n")
         end
         
+        # 
+        def natural_path(str)
+          str.empty? ? "." : str
+        end
+        
         # Nest the return of the block in the nesting lines.
         #
         #  nest([["\nmodule Some", "end\n"],["module Nested", "end"]]) { "class Const\nend" }
@@ -188,11 +193,12 @@ module Tap
       
       # Build the template.  All methods of self will be 
       # accessible in the template.
-      def build(attrs={})
+      def build(attrs={}, filename=nil)
         attrs.each_pair do |key, value|
           send("#{key}=", value)
         end
         
+        @template.filename = filename
         @template.result(binding)
         @_erbout
       end

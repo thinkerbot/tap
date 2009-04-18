@@ -1,6 +1,21 @@
+==
 
-Significant rework of Node, Schema, Parser.  The workflow syntax
-for joins has changed in incompatible ways.
+Significant reorganization and update to Tap internals.
+The workflow syntax for joins has changed in incompatible
+ways, and several key methods have been renamed (notably
+Executable#on_complete_block and Root#filepath).
+
+* dump now allows non-audit inputs
+* reworked dump to use an io target config
+* added overwrite flag to dump
+* added file flag to load
+* added unloading to Constant
+* switched const_name, name on Constant
+* added constant_glob to Root
+* renamed filepath methods in Root
+* refactored on_complete_block to join
+* reworked App to use aggregators that respond_to? call
+* reworked Join so that it may be dumped as YAML
 
 == 0.12.4 / 2009-03-23
 

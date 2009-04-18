@@ -1,12 +1,14 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/task'
 
-
 class TaskSyntaxTest < Test::Unit::TestCase
   include Tap
-  include TapTestMethods
   
-  acts_as_tap_test
+  attr_reader :app
+    
+  def setup
+    @app = Tap::App.new(:debug => true)
+  end
   
   #
   # syntax and arity tests
@@ -39,16 +41,14 @@ class TaskSyntaxTest < Test::Unit::TestCase
     t = ProcessWithNoInput.new
     assert !t.was_in_process
     
-    with_config :debug => true do
-      assert_raises(ArgumentError) do
-        t.enq 1
-        app.run
-      end
-      
-      t.enq
+    assert_raises(ArgumentError) do
+      app.enq t, 1
       app.run
-      assert t.was_in_process
     end
+    
+    app.enq t
+    app.run
+    assert t.was_in_process
   end
 
   def test_block_with_no_input
@@ -57,16 +57,14 @@ class TaskSyntaxTest < Test::Unit::TestCase
       was_in_block = true
     end
 
-    with_config :debug => true do
-      assert_raises(ArgumentError) do
-        t.enq 1
-        app.run
-      end
-      
-      t.enq
+    assert_raises(ArgumentError) do
+      app.enq t, 1
       app.run
-      assert was_in_block
     end
+    
+    app.enq t
+    app.run
+    assert was_in_block
   end
   
   ##
@@ -79,20 +77,18 @@ class TaskSyntaxTest < Test::Unit::TestCase
   def test_process_with_one_input
     t = ProcessWithOneInput.new
 
-    with_config :debug => true do
-      assert_raises(ArgumentError) do
-        t.enq
-        app.run
-      end
-
-      t.enq 1
+    assert_raises(ArgumentError) do
+      app.enq t
       app.run
-      assert_equal [1], t.runlist
-      
-      assert_raises(ArgumentError) do
-        t.enq 1, 2, 3
-        app.run
-      end
+    end
+
+    app.enq t, 1
+    app.run
+    assert_equal [1], t.runlist
+    
+    assert_raises(ArgumentError) do
+      app.enq t, 1, 2, 3
+      app.run
     end
   end
 
@@ -102,20 +98,18 @@ class TaskSyntaxTest < Test::Unit::TestCase
       runlist << input
     end
 
-    with_config :debug => true do
-      assert_raises(ArgumentError) do
-        t.enq
-        app.run
-      end
-      assert_raises(ArgumentError) do 
-        t.enq 1, 2
-        app.run
-      end
-      
-      t.enq 1
+    assert_raises(ArgumentError) do
+      app.enq t
       app.run
-      assert_equal [1], runlist
     end
+    assert_raises(ArgumentError) do 
+      app.enq t, 1, 2
+      app.run
+    end
+    
+    app.enq t, 1
+    app.run
+    assert_equal [1], runlist
   end
   
   ##
@@ -128,20 +122,18 @@ class TaskSyntaxTest < Test::Unit::TestCase
   def test_process_with_multiple_inputs
     t = ProcessWithMultipleInputs.new
 
-    with_config :debug => true do
-      assert_raises(ArgumentError) do
-        t.enq
-        app.run
-      end
-      assert_raises(ArgumentError) do 
-        t.enq 1
-        app.run
-      end
-      
-      t.enq 1, 2
+    assert_raises(ArgumentError) do
+      app.enq t
       app.run
-      assert_equal [[1, 2]], t.runlist
     end
+    assert_raises(ArgumentError) do 
+      app.enq t, 1
+      app.run
+    end
+    
+    app.enq t, 1, 2
+    app.run
+    assert_equal [[1, 2]], t.runlist
   end
   
   def test_block_with_multiple_inputs
@@ -150,20 +142,18 @@ class TaskSyntaxTest < Test::Unit::TestCase
       runlist << [a,b]
     end
   
-    with_config :debug => true do
-      assert_raises(ArgumentError) do
-        t.enq
-        app.run
-      end
-      assert_raises(ArgumentError) do 
-        t.enq 1
-        app.run
-      end
-      
-      t.enq 1, 2
+    assert_raises(ArgumentError) do
+      app.enq t
       app.run
-      assert_equal [[1, 2]], runlist
     end
+    assert_raises(ArgumentError) do 
+      app.enq t, 1
+      app.run
+    end
+    
+    app.enq t, 1, 2
+    app.run
+    assert_equal [[1, 2]], runlist
   end
   
   ##
@@ -176,19 +166,17 @@ class TaskSyntaxTest < Test::Unit::TestCase
   def test_process_with_arbitrary_inputs
     t = ProcessWithArbitraryInputs.new
   
-    with_config :debug => true do
-      t.enq
-      app.run
-      assert_equal [[]], t.runlist
-    
-      t.enq 1
-      app.run
-      assert_equal [[], [1]], t.runlist
-    
-      t.enq 1, 2, 3
-      app.run
-      assert_equal [[], [1], [1,2,3]], t.runlist
-    end
+    app.enq t
+    app.run
+    assert_equal [[]], t.runlist
+  
+    app.enq t, 1
+    app.run
+    assert_equal [[], [1]], t.runlist
+  
+    app.enq t, 1, 2, 3
+    app.run
+    assert_equal [[], [1], [1,2,3]], t.runlist
   end
 
   def test_block_with_arbitrary_inputs
@@ -197,19 +185,17 @@ class TaskSyntaxTest < Test::Unit::TestCase
       runlist << args
     end
 
-    with_config :debug => true do
-      t.enq
-      app.run
-      assert_equal [[]], runlist
-    
-      t.enq 1
-      app.run
-      assert_equal [[], [1]], runlist
-    
-      t.enq 1, 2, 3
-      app.run
-      assert_equal [[], [1], [1,2,3]], runlist
-    end
+    app.enq t
+    app.run
+    assert_equal [[]], runlist
+  
+    app.enq t, 1
+    app.run
+    assert_equal [[], [1]], runlist
+  
+    app.enq t, 1, 2, 3
+    app.run
+    assert_equal [[], [1], [1,2,3]], runlist
   end
 
   ##
@@ -222,24 +208,22 @@ class TaskSyntaxTest < Test::Unit::TestCase
   def test_process_with_mixed_arbitrary_inputs
     t = ProcessWithMixedArbitraryInputs.new
     
-    with_config :debug => true do
-      assert_raises(ArgumentError) do
-        t.enq
-        app.run
-      end
-      assert_raises(ArgumentError) do 
-        t.enq 1
-        app.run
-      end
-      
-      t.enq 1, 2
+    assert_raises(ArgumentError) do
+      app.enq t
       app.run
-      assert_equal [[1, 2, []]], t.runlist
-      
-      t.enq 1, 2, 3
-      app.run
-      assert_equal [[1, 2, []], [1, 2, [3]]], t.runlist
     end
+    assert_raises(ArgumentError) do 
+      app.enq t, 1
+      app.run
+    end
+    
+    app.enq t, 1, 2
+    app.run
+    assert_equal [[1, 2, []]], t.runlist
+    
+    app.enq t, 1, 2, 3
+    app.run
+    assert_equal [[1, 2, []], [1, 2, [3]]], t.runlist
   end
   
   def test_block_with_mixed_arbitrary_inputs
@@ -248,24 +232,22 @@ class TaskSyntaxTest < Test::Unit::TestCase
       runlist << [a, b, args]
     end
 
-    with_config :debug => true do
-      assert_raises(ArgumentError) do
-        t.enq
-        app.run
-      end
-      assert_raises(ArgumentError) do 
-        t.enq 1
-        app.run
-      end
-      
-      t.enq 1, 2
+    assert_raises(ArgumentError) do
+      app.enq t
       app.run
-      assert_equal [[1, 2, []]], runlist
-      
-      t.enq 1, 2, 3
-      app.run
-      assert_equal [[1, 2, []], [1, 2, [3]]], runlist
     end
+    assert_raises(ArgumentError) do 
+      app.enq t, 1
+      app.run
+    end
+    
+    app.enq t, 1, 2
+    app.run
+    assert_equal [[1, 2, []]], runlist
+    
+    app.enq t, 1, 2, 3
+    app.run
+    assert_equal [[1, 2, []], [1, 2, [3]]], runlist
   end
 
   #
@@ -281,20 +263,17 @@ class TaskSyntaxTest < Test::Unit::TestCase
   def test_process_with_default_values
     t = ProcessWithDefaultValues.new
     
-    with_config :debug => true do
-      t.enq
+    app.enq t
+    app.run
+    assert_equal [10], t.runlist
+    
+    app.enq t, 1
+    app.run
+    assert_equal [10, 1], t.runlist
+    
+    assert_raises(ArgumentError) do
+      app.enq t, 1, 2
       app.run
-      assert_equal [10], t.runlist
-      
-      t.enq 1
-      app.run
-      assert_equal [10, 1], t.runlist
-      
-      assert_raises(ArgumentError) do
-        t.enq 1, 2
-        app.run
-      end
     end
   end
-  
 end

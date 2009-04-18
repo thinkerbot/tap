@@ -1,8 +1,10 @@
+require 'tap/app'
+require 'tap/joins'
+require 'tap/root'
+
 autoload(:ConfigParser, 'config_parser')
 
 module Tap
-  autoload(:FileTask, 'tap/file_task')
-  
   module Support
     autoload(:Templater, 'tap/support/templater')
     autoload(:Intern, 'tap/support/intern')
@@ -111,7 +113,7 @@ module Tap
   #
   class Task
     include Configurable
-    include Support::Executable
+    include App::Node
     
     class << self
       # Returns class dependencies
@@ -127,12 +129,6 @@ module Tap
         # since many subclass operations end up setting
         # default_name themselves.
         @default_name ||= to_s.underscore
-      end
-      
-      # Returns an instance of self; the instance is a kind of 'global'
-      # instance used in class-level dependencies.  See depends_on.
-      def instance
-        @instance ||= new.extend(Support::Dependency)
       end
       
       def inherited(child) # :nodoc:
@@ -164,7 +160,7 @@ module Tap
       # parses an argh then calls instantiate, but there is no requirement
       # that this occurs.
       def parse(argv=ARGV, app=Tap::App.instance)
-        parse!(argv.dup)
+        parse!(argv.dup, app)
       end
       
       # Same as parse, but removes switches destructively.
@@ -233,16 +229,6 @@ module Tap
         instance.reconfigure(config) if config
         [instance, args]
       end
-      
-      # A convenience method to parse the argv and execute the instance
-      # with the remaining arguments.  If 'help' is specified in the argv, 
-      # execute prints the help and exits.
-      #
-      # Returns the non-audited result.
-      def execute(argv=ARGV)
-        instance, args = parse(ARGV)
-        instance.execute(*args)
-      end
 
       DEFAULT_HELP_TEMPLATE = %Q{<% manifest = task_class.manifest %>
 <%= task_class %><%= manifest.empty? ? '' : ' -- ' %><%= manifest.to_s %>
@@ -267,7 +253,7 @@ module Tap
       # Recursively loads path into a nested configuration file.
       def load_config(path)
         # optimization to check for trivial paths
-        return {} if Root.trivial?(path)
+        return {} if Root::Utils.trivial?(path)
         
         Configurable::Utils.load_file(path, true) do |base, key, value|
           base[key] ||= value if base.kind_of?(Hash)
@@ -277,9 +263,12 @@ module Tap
       protected
       
       # Sets a class-level dependency; when task class B depends_on another
-      # task class A, instances of B are initialized to depend on A.instance.
+      # task class A, instances of B are initialized to depend on a shared
+      # instance of A.  The shared instance is stored in app.dependencies,
+      # and is specific to an app.
+      #
       # If a non-nil name is specified, depends_on will create a reader of 
-      # the resolved dependency value.
+      # the resolved dependency result.
       #
       #   class A < Tap::Task
       #     def process
@@ -291,31 +280,24 @@ module Tap
       #     depends_on :a, A
       #   end
       #
-      #   b = B.new
-      #   b.dependencies           # => [A.instance]
+      #   app = Tap::App.new
+      #   b = B.new({}, :name, app)
+      #   b.dependencies           # => [app.dependency(A)]
+      #   b.a                      # => nil
+      #
+      #   app.resolve(b)
       #   b.a                      # => "result"
-      #
-      #   A.instance.resolved?     # => true
       # 
-      # Normally class-level dependencies are not added to existing instances
-      # but, as a special case, depends_on updates instance to depend on
-      # dependency_class.instance.
-      #
       # Returns self.
       def depends_on(name, dependency_class)
         unless dependencies.include?(dependency_class)
           dependencies << dependency_class
         end
         
-        # update instance with the dependency if necessary
-        if instance_variable_defined?(:@instance)
-          instance.depends_on(dependency_class.instance)
-        end
-        
         if name
           # returns the resolved result of the dependency
           define_method(name) do
-            dependency_class.instance.resolve.value
+            app.class_dependency(dependency_class).result
           end
         
           public(name)
@@ -326,12 +308,11 @@ module Tap
       
       # Defines a task subclass with the specified configurations and process block.
       # During initialization the subclass is instantiated and made accessible 
-      # through a reader by the specified name.  
+      # through the name method.  
       #
-      # Defined tasks may be configured during initialization, through config, or 
-      # directly through the instance; in effect you get tasks with nested configs 
-      # which greatly facilitates workflows.  Indeed, defined tasks are often 
-      # joined in the workflow method.
+      # Defined tasks may be configured during through config, or directly through
+      # the instance; in effect you get tasks with nested configs which can greatly
+      # facilitate workflows.
       #
       #   class AddALetter < Tap::Task
       #     config :letter, 'a'
@@ -343,7 +324,8 @@ module Tap
       #     define :b, AddALetter, {:letter => 'b'}
       #     define :c, AddALetter, {:letter => 'c'}
       #
-      #     def workflow
+      #     def initialize(*args)
+      #       super
       #       a.sequence(b, c)
       #     end
       # 
@@ -425,6 +407,9 @@ module Tap
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
     
+    # The App receiving self during enq
+    attr_reader :app
+    
     # The name of self
     #--
     # Currently names may be any object.  Audit makes use of name
@@ -432,11 +417,10 @@ module Tap
     attr_accessor :name
 
     # Initializes a new Task.
-    def initialize(config={}, name=nil, app=App.instance)
+    def initialize(config={}, name=nil, app=Tap::App.instance)
       @name = name || self.class.default_name
       @app = app
-      @method_name = :execute_with_callbacks
-      @on_complete_block = nil
+      @join = nil
       @dependencies = []
       
       # initialize configs
@@ -444,10 +428,20 @@ module Tap
       
       # setup class dependencies
       self.class.dependencies.each do |dependency_class|
-        depends_on(dependency_class.instance)
+        depends_on app.class_dependency(dependency_class)
       end
-      
-      workflow
+    end
+    
+    # Auditing method call.  Resolves dependencies, executes method_name,
+    # and sends the audited result to the on_complete_block (if set).
+    #
+    # Returns the audited result.
+    def execute(*inputs)
+      app.dispatch(self, inputs)
+    end
+    
+    def call(*inputs)
+      process(*inputs)
     end
     
     # The method for processing inputs into outputs.  Override this method in
@@ -461,19 +455,75 @@ module Tap
     #     end
     #   end
     #
-    #   t = TaskWithTwoInputs.new
+    #   results = []
+    #   app = Tap::App.new {|result| results << result }
+    #
+    #   t = TaskWithTwoInputs.new({}, :name, app)
     #   t.enq(1,2).enq(3,4)
-    #   t.app.run
-    #   t.app.results(t)         # => [[2,1], [4,3]]
+    #   
+    #   app.run
+    #   results                 # => [[2,1], [4,3]]
     #
     # By default, process simply returns the inputs.
     def process(*inputs)
       inputs
     end
     
+    # Enqueues self to app with the inputs. The number of inputs provided
+    # should match the number of inputs for the method_name method.
+    def enq(*inputs)
+      app.queue.enq(self, inputs)
+      self
+    end
+    
+    # Sets a sequence workflow pattern for the tasks; each task
+    # enques the next task with it's results, starting with self.
+    def sequence(*tasks) # :yields: _result
+      options = tasks[-1].kind_of?(Hash) ? tasks.pop : {}
+      
+      current_task = self
+      tasks.each do |next_task|
+        Join.new(options, app).join([current_task], [next_task])
+        current_task = next_task
+      end
+    end
+
+    # Sets a fork workflow pattern for self; each target will enque the
+    # results of self.
+    def fork(*targets) # :yields: _result
+      options = targets[-1].kind_of?(Hash) ? targets.pop : {}
+      Join.new(options, app).join([self], targets)
+    end
+
+    # Sets a simple merge workflow pattern for the source tasks. Each 
+    # source enques self with it's result; no synchronization occurs, 
+    # nor are results grouped before being enqued.
+    def merge(*sources) # :yields: _result
+      options = sources[-1].kind_of?(Hash) ? sources.pop : {}
+      Join.new(options, app).join(sources, [self])
+    end
+
+    # Sets a synchronized merge workflow for the source tasks.  Results 
+    # from each source are collected and enqued as a single group to
+    # self.  The collective results are not enqued until all sources
+    # have completed.  See Joins::Sync.
+    def sync_merge(*sources) # :yields: _result
+      options = sources[-1].kind_of?(Hash) ? sources.pop : {}
+      Joins::Sync.new(options, app).join(sources, [self])
+    end
+
+    # Sets a switch workflow pattern for self.  On complete, switch yields
+    # the audited result to the block and the block should return the index
+    # of the target to enque with the results. No target will be enqued if
+    # the index is false or nil.  An error is raised if no target can be
+    # found for the specified index. See Joins::Switch.
+    def switch(*targets, &block) # :yields: _result
+      options = targets[-1].kind_of?(Hash) ? targets.pop : {}
+      Joins::Switch.new(options, app).join([self], targets, &block)
+    end
+    
     # Logs the inputs to the application logger (via app.log)
     def log(action, msg="", level=Logger::INFO)
-      # TODO - add a task identifier?
       app.log(action, msg, level)
     end
     
@@ -487,39 +537,5 @@ module Tap
     def inspect
       "#<#{self.class.to_s}:#{object_id} #{name} #{config.to_hash.inspect} >"
     end
-    
-    protected
-
-    # Hook to define a workflow for defined tasks.
-    def workflow
-    end
-    
-    # Hook to execute code before inputs are processed.
-    def before_execute() end
-  
-    # Hook to execute code after inputs are processed.
-    def after_execute() end
-
-    # Hook to handle unhandled errors from processing inputs on a task level.  
-    # By default on_execute_error simply re-raises the unhandled error.
-    def on_execute_error(err)
-      raise err
-    end
-    
-    private
-    
-    # execute_with_callbacks is the method called by _execute
-    def execute_with_callbacks(*inputs) # :nodoc:
-      before_execute
-      begin
-        result = process(*inputs)
-      rescue
-        on_execute_error($!)
-      end
-      after_execute
-       
-      result
-    end
-    
   end
 end

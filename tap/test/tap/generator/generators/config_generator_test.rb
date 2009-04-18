@@ -5,8 +5,8 @@ require 'tap/generator/preview.rb'
 class ConfigGeneratorTest < Test::Unit::TestCase
   include Tap::Generator
   include Generators
-  
-  acts_as_tap_test
+  include MethodRoot
+  include AppInstance
   
   module MockTaskLookup
     def set_tasc(name, tasc)
@@ -427,7 +427,7 @@ another: config
     c = ConfigGenerator.new.extend Generate
     c.extend MockTaskLookup
     c.destination_root = method_root[:tmp]
-    expected_config_file = method_root.filepath(:tmp, 'config/sample.yml')
+    expected_config_file = method_root.path(:tmp, 'config/sample.yml')
     
     c.set_tasc('sample', DoubleNestedSampleValues)
     c.nest = true

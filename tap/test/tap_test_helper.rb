@@ -1,97 +1,63 @@
-# setup testing with submodules
+require 'test/unit'
+
 begin
-  require File.join(File.dirname(__FILE__), '../lib/tap')
+  require 'lazydoc'
+  require 'configurable'
 rescue(LoadError)
   puts %Q{
 Tests probably cannot be run because the submodules have
-not been initialized.  Use these commands and try again:
-
-  % git submodule init
-  % git submodule update
-
+not been initialized. Use these commands and try again:
+ 
+% git submodule init
+% git submodule update
+ 
 }
   raise
 end
 
-require 'tap/test'
-
-unless defined?(ObjectWithExecute)
-  class ObjectWithExecute
-    def execute(input)
-      input
-    end
-  end
-
-  class Tracer
-    include Tap::Support::Executable
-
-    class << self
-      def intern(n, runlist, &block)
-        Array.new(n) { |index| new(index, runlist, &block) }
-      end
-    end
-
-    def initialize(index, runlist, &block)
-      @index = index
-      @runlist = runlist
-
-      @app = Tap::App.instance
-      @method_name = :trace
-      @on_complete_block =nil
-      @dependencies = []
-      @block = block || lambda {|task, str| task.mark(str) }
-    end
-
-    def id
-      @index.to_s
-    end
-    
-    def mark(input)
-      "#{input} #{id}".strip
-    end
-    
-    def inspect
-      "Tracer(#{@index})"
-    end
-
-    def trace(*inputs)
-      @runlist << id
-      @block.call(self, *inputs)
-    end
+module MethodRoot
+  attr_reader :method_root
+  
+  def setup
+    super
+    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
   end
   
-  # Some convenience methods used in testing tasks, workflows, app, etc.
-  module TapTestMethods # :nodoc:
-    attr_accessor  :runlist
-    
-    # Setup clears the test using clear_tasks and assures that Tap::App.instance 
-    # is the test-specific application.
-    def setup
-      super
-      clear_runlist
+  def teardown
+    # clear out the output folder if it exists, unless flagged otherwise
+    unless ENV["KEEP_OUTPUTS"]
+      FileUtils.rm_r(method_root.root) if File.exists?(method_root.root)
     end
-
-    # Clears the runlist.
-    def clear_runlist
-      # clear the attributes
-      @runlist = []
-    end
-
-    # A tracing procedure.  echo adds input to runlist then returns input.
-    def echo
-      lambda do |task, *inputs| 
-        @runlist << inputs
-        inputs
-      end
-    end
-    
-    # A tracing procedure for numeric inputs.  add_one adds the input to 
-    # runlist then returns input + 1.
-    def add_one
-      lambda do |task, input| 
-        @runlist << input
-        input += 1
-      end
-    end
+    super
   end
-end
+end unless Object.const_defined?(:MethodRoot)
+
+module AppInstance
+  attr_reader :app
+  
+  def setup
+    super
+    @app = Tap::App.instance = Tap::App.new(:debug => true, :quiet => true)
+  end
+  
+  def teardown
+    Tap::App.instance = nil
+    super
+  end
+end unless Object.const_defined?(:AppInstance)
+
+module TestUtils
+  module_function
+  
+  def match_platform?(*platforms)
+    platforms.each do |platform|
+      platform.to_s =~ /^(non_)?(.*)/
+
+      non = true if $1
+      match_platform = !RUBY_PLATFORM.index($2).nil?
+      return false unless (non && !match_platform) || (!non && match_platform)
+    end
+
+    true
+  end
+end unless Object.const_defined?(:TestUtils)

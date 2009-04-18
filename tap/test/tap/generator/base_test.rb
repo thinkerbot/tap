@@ -3,13 +3,13 @@ require 'tap/generator/base'
 
 class BaseTest < Test::Unit::TestCase
   include Tap::Generator
-  acts_as_file_test
-
+  include MethodRoot
+  
   attr_accessor :b
   
   def setup
-    @b = Base.new
     super
+    @b = Base.new
   end
   
   #
@@ -130,7 +130,7 @@ class BaseTest < Test::Unit::TestCase
     t.template('target', source, {:key => 'value'}, {:opt => 'value'})
     assert_equal [['target', {:opt => 'value'}], "value was templated"], t.file_call
     
-    relative_source = method_root.relative_filepath(:root, source)
+    relative_source = method_root.relative_path(:root, source)
     t.template('target', relative_source, {:key => 'value'}, {:opt => 'value'})
     assert_equal [['target', {:opt => 'value'}], "value was templated"], t.file_call
   end

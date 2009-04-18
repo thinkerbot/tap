@@ -37,9 +37,9 @@ module Tap
       #   "> \"#{path}\" 2>&1 #{cmd}"
       #
       # This redirection has been tested on Windows, OS X, and Fedora.  See 
-      # http://www.robvanderwoude.com/redirection.html for pointers on
-      # redirection.  The website notes that this style of redirection SHOULD
-      # NOT be used with commands that contain other redirections.  
+      # http://en.wikipedia.org/wiki/Redirection_(Unix) for pointers on
+      # redirection.  This style of redirection SHOULD NOT be used with
+      # commands that contain other redirections.  
       def redirect_sh(cmd, path, &block) # :yields: ok, status
         sh( "> \"#{path}\" 2>&1 #{cmd}", &block)
       end

@@ -39,9 +39,9 @@ end
 
 class TaskTest < Test::Unit::TestCase
   include Tap
-  include TapTestMethods
+  include MethodRoot
+  include AppInstance
   
-  acts_as_tap_test
   attr_accessor :t
   
   def setup
@@ -90,7 +90,7 @@ class TaskTest < Test::Unit::TestCase
     t = ValidatingTask.new
     assert_raises(Configurable::Validation::ValidationError) { t.string = 1 }
     assert_raises(Configurable::Validation::ValidationError) { t.integer = 1.1 }
-
+  
     t.integer = "1"
     assert t.integer == 1
   end
@@ -102,7 +102,7 @@ class TaskTest < Test::Unit::TestCase
   def test_source_file_is_set_to_file_where_subclass_first_inherits_Task
     assert_equal File.expand_path(__FILE__), Sample.source_file
   end
-
+  
   #
   # Task.default_name test
   #
@@ -115,20 +115,6 @@ class TaskTest < Test::Unit::TestCase
   def test_default_name_is_underscored_class_name_by_default
     assert_equal "task_test/name_class", NameClass.default_name
     assert_equal "task_test/name_class/nested_class", NameClass::NestedClass.default_name
-  end
-  
-  #
-  # Task.instance test
-  #
-  
-  def test_instance_returns_class_level_instance
-    i = Task.instance
-    assert_equal Task, i.class
-    assert_equal i, Task.instance 
-  end
-  
-  def test_instance_is_a_Dependency
-    assert Task.instance.kind_of?(Support::Dependency)
   end
   
   #
@@ -164,7 +150,7 @@ class TaskTest < Test::Unit::TestCase
     instance, argv = ParseClass.parse([])
     assert_equal ParseClass, instance.class
   end
-
+  
   def test_parse_instance_is_initialized_with_default_name_and_config
     instance, argv = ParseClass.parse([])
     assert_equal(ParseClass.default_name, instance.name)
@@ -183,7 +169,7 @@ class TaskTest < Test::Unit::TestCase
   
   def test_parse_reconfigures_instance_using_config_option
     path = method_root.prepare(:tmp, 'config.yml') do |file| 
-      file << {:key => 'alt'}.to_yaml
+      file << YAML.dump({:key => 'alt'})
     end
     
     instance, argv = ParseClass.parse(["--config", path])
@@ -192,7 +178,7 @@ class TaskTest < Test::Unit::TestCase
   
   def test_parse_config_files_may_have_string_keys
     path = method_root.prepare(:tmp, 'config.yml') do |file| 
-      file << {'key' => 'alt'}.to_yaml
+      file << YAML.dump({'key' => 'alt'})
     end
     
     instance, argv = ParseClass.parse(["--config", path])
@@ -223,12 +209,12 @@ class TaskTest < Test::Unit::TestCase
   class InstantiateClass < Tap::Task
     config :key, 'value'
   end
-
+  
   def test_instantiate_returns_instance_of_subclass
     instance, args = InstantiateClass.instantiate
     assert_equal InstantiateClass, instance.class
   end
-
+  
   def test_instance_is_initialized_default_config
     instance, args = InstantiateClass.instantiate
     assert_equal({:key => 'value'}, instance.config)
@@ -246,7 +232,7 @@ class TaskTest < Test::Unit::TestCase
   
   def test_instantiate_reconfigures_instance_using_config_file
     path = method_root.prepare(:tmp, 'config.yml') do |file| 
-      file << {:key => 'alt'}.to_yaml
+      file << YAML.dump({:key => 'alt'})
     end
     
     instance, args = InstantiateClass.instantiate :config_file => path
@@ -255,7 +241,7 @@ class TaskTest < Test::Unit::TestCase
   
   def test_config_files_may_have_string_keys
     path = method_root.prepare(:tmp, 'config.yml') do |file| 
-      file << {'key' => 'alt'}.to_yaml
+      file << YAML.dump({'key' => 'alt'})
     end
     
     instance, args = InstantiateClass.instantiate :config_file => path
@@ -264,7 +250,7 @@ class TaskTest < Test::Unit::TestCase
   
   def test_configs_override_config_file
     path = method_root.prepare(:tmp, 'config.yml') do |file| 
-      file << {'key' => 'one'}.to_yaml
+      file << YAML.dump({'key' => 'one'})
     end
     
     instance, args = InstantiateClass.instantiate :config_file => path, :config => {:key => 'two'}
@@ -309,7 +295,7 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_load_config_returns_empty_array_for_non_existant_file
-    path = method_root.filepath("non_existant.yml")
+    path = method_root.path("non_existant.yml")
     assert !File.exists?(path)
     assert_equal({}, Task.load_config(path))
   end
@@ -404,7 +390,7 @@ class TaskTest < Test::Unit::TestCase
   def test_dependencies_are_empty_by_default
     assert_equal [], Task.dependencies
   end
-
+   
   #
   # Task.depends_on test
   #
@@ -414,17 +400,19 @@ class TaskTest < Test::Unit::TestCase
       "result"
     end
   end
-
+  
   class B < Tap::Task
     depends_on :a, A
   end
   
   def test_depends_on_documentation
-    b = B.new
-    assert_equal [A.instance], b.dependencies
+    app = Tap::App.new
+    b = B.new({}, :name, app)
+    assert_equal [app.class_dependency(A)], b.dependencies
+    assert_equal nil, b.a 
+  
+    app.resolve(b)
     assert_equal "result", b.a
-
-    assert_equal true, A.instance.resolved?
   end
   
   class DependencyClassOne < Tap::Task
@@ -448,19 +436,9 @@ class TaskTest < Test::Unit::TestCase
     d = DependentClass.new
     assert d.respond_to?(:one)
     
-    d.reset_dependencies
-    d.resolve_dependencies
-    
+    assert_equal nil, d.one
+    app.resolve(d)
     assert_equal 1, d.one
-  end
-  
-  def test_depends_on_reader_resolves_dependencies_if_needed
-    d = DependentClass.new
-    d.reset_dependencies
-    
-    assert_equal [false, false], d.dependencies.collect {|dep| dep.resolved? }
-    assert_equal 1, d.one
-    assert_equal [true, false], d.dependencies.collect {|dep| dep.resolved? }
   end
   
   def test_depends_on_returns_self
@@ -489,35 +467,25 @@ class TaskTest < Test::Unit::TestCase
     assert_equal [DependencyClassOne, DependencyClassTwo], DependentSubClass.dependencies
   end
   
-  class UpdateDependentClass < Tap::Task
-  end
-  
-  def test_depends_on_updates_dependencies_for_instance
-    d = UpdateDependentClass.instance
-    assert_equal [], d.dependencies
-    
-    UpdateDependentClass.send(:depends_on, :one, DependencyClassOne)
-    assert_equal [DependencyClassOne.instance], d.dependencies
-  end
-  
   #
   # Task.define test
   #
   
   class AddALetter < Tap::Task
     config :letter, 'a'
-    def process(input); input << letter; end
+    def process(input); input << letter end
   end
-
+  
   class AlphabetSoup < Tap::Task
     define :a, AddALetter, {:letter => 'a'}
     define :b, AddALetter, {:letter => 'b'}
     define :c, AddALetter, {:letter => 'c'}
-
-    def workflow
+  
+    def initialize(*args)
+      super
       a.sequence(b, c)
     end
-
+  
     def process
       a.execute("")
     end
@@ -525,10 +493,10 @@ class TaskTest < Test::Unit::TestCase
   
   def test_define_documentation
     assert_equal 'abc', AlphabetSoup.new.process
-
+  
     i = AlphabetSoup.new(:a => {:letter => 'x'}, :b => {:letter => 'y'}, :c => {:letter => 'z'})
     assert_equal 'xyz', i.process
-
+  
     i.config[:a] = {:letter => 'p'}
     i.config[:b][:letter] = 'q'
     i.c.letter = 'r'
@@ -675,41 +643,17 @@ class TaskTest < Test::Unit::TestCase
   #
   
   def test_default_initialization
-    assert_equal App.instance, t.app
+    assert_equal Tap::App.instance, t.app
     assert_equal({}, t.config)
     assert_equal "tap/task", t.name
   end
   
   def test_initialization_with_inputs
-    app = App.new
-    block = lambda {}
-    
-    t = Task.new({:key => 'value'}, "name", app) 
+    t = Task.new({:key => 'value'}, "name") 
     assert_equal "name", t.name
     assert_equal({:key => 'value'}, t.config)
-    assert_equal app, t.app
-  end
-
-  def test_task_init_speed
-    benchmark_test(20) do |x|
-      x.report("10k") { 10000.times { Task.new } }
-      x.report("10k {}") { 10000.times { Task.new {} } }
-      x.report("10k ({},name) {}") { 10000.times { Task.new({},'name') {} } }
-    end
   end
   
-  def test_app_is_initialized_to_App_instance_by_default
-    assert_equal Tap::App.instance, Task.new.app
-  end
-
-  def test_by_default_tasks_share_application_instance
-    t1 = Task.new
-    t2 = Task.new
-    
-    assert_equal t1.app, t2.app
-    assert_equal App.instance, t1.app
-  end
-
   def test_initialize_binds_delegate_hashes_to_self
     dhash = Configurable::DelegateHash.new
     assert !dhash.bound?
@@ -730,22 +674,26 @@ class TaskTest < Test::Unit::TestCase
     s = Sample.new
     assert_equal Sample.default_name, s.name
   end
-
+  
   #
   # process test
   #
   
-  class TaskWithTwoInputsForProcessDoc < Tap::Task
+  class TaskWithTwoInputs < Tap::Task
     def process(a, b)
       [b,a]
     end
   end
   
   def test_process_documentation
-    t = TaskWithTwoInputsForProcessDoc.new
+    results = []
+    app = Tap::App.new {|result| results << result }
+  
+    t = TaskWithTwoInputs.new({}, :name, app)
     t.enq(1,2).enq(3,4)
-    t.app.run
-    assert_equal [[2,1], [4,3]], t.app.results(t)
+    
+    app.run
+    assert_equal [[2,1], [4,3]], results
   end
   
   def test_process_returns_inputs
@@ -770,5 +718,4 @@ class TaskTest < Test::Unit::TestCase
     assert_equal :name, t.name
     assert_equal 'name', t.to_s
   end
-  
 end

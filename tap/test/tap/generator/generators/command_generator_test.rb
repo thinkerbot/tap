@@ -6,8 +6,7 @@ require 'stringio'
 class CommandGeneratorTest < Test::Unit::TestCase
   include Tap::Generator
   include Generators
- 
-  acts_as_tap_test
+  include AppInstance
   
   def setup
     super
@@ -41,7 +40,7 @@ class CommandGeneratorTest < Test::Unit::TestCase
     eval c.preview['cmd/command_name.rb']
     assert_equal %q{
 Received: 
-state: 0 (READY) queue: 0 results: 0
+state: 0 (READY) queue: 0
 }, "\n" + $stdout.string
 
     # now test the help
