@@ -14,9 +14,12 @@
 
 require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 
+#
 # setup the environment
+#
+
 begin
-  env = Tap::Exe.setup(ARGV)
+  env = Tap::Exe.setup(Dir.pwd, ARGV)
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
@@ -25,47 +28,38 @@ rescue(Tap::Env::ConfigError)
 end
 
 #
-# setup after script
-#
-
-at_exit do
-  begin
-    eval(env.after) if env.after != nil
-  rescue(Exception)
-    puts "Error in after script."
-    env.handle_error($!)
-    exit(1)
-  end
-end
-
-#
-# run before script
-#
-
-begin
-  eval(env.before) if env.before != nil
-rescue(Exception)
-  puts "Error in before script."
-  env.handle_error($!)
-  exit(1)
-end 
-
-#
 # run tap
 #
 
-begin
-  env.activate
-  env.execute(ARGV) do
-    puts Lazydoc.usage(__FILE__)
-    puts
-    puts "available commands:"
-    puts env.summarize(:commands)
-    puts
-    puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
+env.run(ARGV) do
+  template = %Q{<% unless entries.empty? || count <= 1 %>
+<%= env_key %>:
+<% end %>
+<% entries.each do |key, path| %>
+  <%= key.ljust(width) %>
+<% end %>}
+  commands = env.commands.inspect(template,
+    :count => 0,
+    :width => 10
+  ) do |templater, globals|
+    entries = templater.manifest.minimap
+    templater.entries = entries
+    
+    # determine width, count
+    width = globals[:width]
+    entries.each do |key, path|
+      width = key.length if width < key.length
+    end
+    globals[:width] = width
+    globals[:count] += 1 unless entries.empty?
   end
-rescue
-  env.handle_error($!)
+  
+  puts Lazydoc.usage(__FILE__)
+  puts
+  puts "available commands:"
+  puts commands
+  puts
+  puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
 end
 
 exit(0)

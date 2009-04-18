@@ -1,3 +1,5 @@
+require 'tap/env'
+
 module Tap::Generator::Generators
   
   # :startdoc: Tap::Generator::Generators::TaskGenerator::generator a task and test
@@ -8,7 +10,7 @@ module Tap::Generator::Generators
     config :test, true, &c.switch  # specifies creation of a test file
     
     def manifest(m, const_name)
-      const = Tap::Support::Constant.new(const_name.camelize)
+      const = Tap::Env::Constant.new(const_name.camelize)
       
       task_path = path('lib', "#{const.path}.rb")
       m.directory File.dirname(task_path)

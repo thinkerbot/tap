@@ -1,13 +1,14 @@
 # usage: tap console [options]
 #
 # Opens up an IRB session with the Tap environment initialized as specified
-# in tap.yml. Access the Tap::App.instance through 'app', and
-# Tap::Env.instance through 'env'.  For example:
+# in tap.yml. Access a Tap::App instance through 'app' and the execution
+# environment through 'env'.  For example:
 #
 #   % tap console
-#   >> env.tasks.search('tap:dump').constantize=> Tap::Tasks::Dump
+#   >> env.tasks['tap/dump']
+#   => Tap::Dump
 #   >> app.info
-#   => "state: 0 (READY) queue: 0 results: 0"
+#   => "state: 0 (READY) queue: 0"
 #   >> 
 #
 
@@ -25,11 +26,11 @@ end.parse!(ARGV)
 require "irb"
 
 def app
-  Tap::App.instance
+  @app ||= Tap::App.new
 end
 
 def env
-  Tap::Env.instance
+  @env ||= Tap::Exe.instance
 end
 
 IRB.start

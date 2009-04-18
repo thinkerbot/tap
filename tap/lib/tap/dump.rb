@@ -1,12 +1,12 @@
+require 'tap/task'
+
 module Tap
 
   # :startdoc::manifest the default dump task
   #
-  # A dump task to output results.  Unlike most tasks, dump does not enque
-  # arguments from the command line; instead command line arguments are only
-  # used to setup the dump.  Specifically dump accepts a filepath.
+  # A dump task to print results to $stdout or a file target.
   #
-  #   % tap run -- [task] --: dump FILEPATH
+  #   % tap run -- [task] --: dump --target FILEPATH
   #
   # Results that come to dump are appended to the file.  Dump only accepts
   # one object at a time, so joins that produce an array need to iterate
@@ -14,8 +14,7 @@ module Tap
   #
   #   % tap run -- load hello -- load world "--2(0,1)i" dump 
   #
-  # Note that dump uses $stdout by default so you can pipe or redirect dumps
-  # as normal.
+  # Note that dump faciliates normal redirection:
   #
   #   % tap run -- load hello --: dump | cat
   #   hello
@@ -44,99 +43,21 @@ module Tap
   # inspect audit trails within process.
   #
   class Dump < Tap::Task
-    class << self
-      
-      # Same as an ordinary parse!, except the arguments normally reserved for
-      # executing the task are used to call setup.  The return will always be
-      # an instance and an empty array.
-      def parse!(argv=ARGV, app=Tap::App.instance)
-        instance, args = super
-        instance.setup(*args)
-        [instance, []]
-      end
-    end
-    
-    lazy_attr :args, :setup
-    lazy_register :setup, Lazydoc::Arguments
-    
-    config :date_format, '%Y-%m-%d %H:%M:%S'   # The date format
-    config :audit, false, &c.switch            # Include the audit trails
-    config :date, false, &c.switch             # Include a date
-    
-    # The dump target, by default $stdout.  Target may be a filepath,
-    # in which case dumps append the file.
-    attr_accessor :target
-    
-    def initialize(config={}, name=nil, app=App.instance)
-      super(config, name, app)
-      @target = $stdout
-    end
-    
-    # Setup self with the input target.  Setup receives arguments passed from
-    # the command line, via parse!
-    def setup(output=$stdout)
-      @target = output
-      self
-    end
-    
-    # Overrides the standard _execute to send process the audits and not
-    # the audit values.  This allows process to inspect audit trails.
-    def _execute(input)
-      resolve_dependencies
-      
-      previous = input.kind_of?(Support::Audit) ? input : Support::Audit.new(nil, input)
-      input = previous.value
-      
-      # this is the overridden part
-      audit = Support::Audit.new(self, input, app.audit ? previous : nil)
-      send(method_name, audit)
-      
-      if complete_block = on_complete_block || app.on_complete_block
-        complete_block.call(audit)
-      else 
-        app.aggregator.store(audit)
-      end
-      
-      audit
-    end
+    config :output, $stdout, &c.io(:<<, :puts, :print)   # The dump target file
+    config :overwrite, false, &c.flag                    # Overwrite the existing target
     
     # The default process prints dump headers as specified in the config,
     # then append the audit value to io.
-    def process(_audit)
-      open_io(target) do |io|
-        if date
-          io.puts "# date: #{Time.now.strftime(date_format)}"
-        end
-
-        if audit
-          io.puts "# audit:"
-          io.puts "# #{_audit.dump.gsub("\n", "\n# ")}"
-        end
-        
-        dump(_audit.value, io)
+    def process(input)
+      open_io(output, overwrite ? 'w' : 'a') do |io|
+        dump(input, io)
       end
+      output
     end
     
     # Dumps the object to io, by default dump puts (not prints) obj.to_s.
-    def dump(obj, io)
-      io.puts obj.to_s
-    end
-    
-    protected
-    
-    # helper to open and yield the io specified by target.  open_io
-    # ensures file targets are closed when the block returns.
-    def open_io(io) # :nodoc:
-      case io
-      when IO, StringIO 
-        yield(io)
-      when String
-        dir = File.dirname(io)
-        FileUtils.mkdir_p(dir) unless File.directory?(dir)
-        File.open(io, 'a') {|file| yield(file) }  
-      else
-        raise "cannot open io: #{target.inspect}"
-      end
+    def dump(input, io)
+      io.puts input.to_s
     end
   end
 end

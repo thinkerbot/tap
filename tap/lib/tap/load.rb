@@ -1,3 +1,4 @@
+require 'tap/task'
 require 'stringio'
 
 module Tap
@@ -6,7 +7,12 @@ module Tap
   # Loads data from the input IO; string data is simply passed through.  Load
   # is typically used as a gateway to other tasks.
   #
-  #   % tap run -- load string --: [task]
+  #   % tap run -- load string --: dump
+  #
+  # String is taken literally as the input unless identified as a filepath.
+  # This will load data from FILE.  
+  #
+  #   % tap run -- load FILE --file --: dump
   #
   # Note that load takes $stdin by default, so you can pipe or redirect data
   # into to a workflow like so:
@@ -43,15 +49,16 @@ module Tap
     def process(input=$stdin)
       # read on an empty stdin ties up the command line;
       # this facilitates the intended behavior
-      if input == $stdin && input.stat.size == 0
+      if input.kind_of?(IO) && input.stat.size == 0
         input = '' 
       end
       
-      case input
-      when StringIO, IO
-        load(input)
-      else
-        load(StringIO.new(input))
+      if input.kind_of?(String)
+        input = StringIO.new(input)
+      end
+      
+      open_io(input) do |io|
+        load(io)
       end
     end
     

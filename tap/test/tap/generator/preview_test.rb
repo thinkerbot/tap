@@ -65,7 +65,7 @@ class PreviewTest < Test::Unit::TestCase
     path = File.expand_path("/path/to/dir")
     @destination_root = File.expand_path("/path/to/destination_root")
     
-    assert_equal nil, Tap::Root.relative_filepath(destination_root, path)
+    assert_equal nil, Tap::Root::Utils.relative_path(destination_root, path)
     assert_equal path, relative_path(path)
   end
 

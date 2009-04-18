@@ -4,19 +4,19 @@ require 'stringio'
 
 class GenerateTest < Test::Unit::TestCase
   include Tap::Generator::Generate
-  acts_as_file_test
+  include MethodRoot
   
   # this establishes the essential interface provided by Base
   attr_accessor :log, :pretend, :prompt_out, :prompt_in, :skip, :force
   
   def setup
+    super
     @pretend = false
     @log = []
     @prompt_out = StringIO.new('')
     @prompt_in = StringIO.new('')
     @skip = false
     @force = false
-    super
   end
   
   def log_relative(*args)
@@ -28,7 +28,7 @@ class GenerateTest < Test::Unit::TestCase
   #
 
   def test_directory_creates_target_and_logs_activity
-    target = method_root.filepath(:tmp, 'dir')
+    target = method_root.path(:tmp, 'dir')
     assert !File.exists?(target)
     
     directory(target)
@@ -38,7 +38,7 @@ class GenerateTest < Test::Unit::TestCase
   end
   
   def test_directory_simply_logs_activity_if_pretend_is_true
-    target = method_root.filepath(:tmp, 'dir')
+    target = method_root.path(:tmp, 'dir')
     assert !File.exists?(target)
     
     self.pretend = true
@@ -49,7 +49,7 @@ class GenerateTest < Test::Unit::TestCase
   end
   
   def test_directory_logs_existing_directories
-    target = method_root.filepath(:tmp, 'dir')
+    target = method_root.path(:tmp, 'dir')
     FileUtils.mkdir_p(target) unless File.exists?(target)
 
     directory(target)
@@ -61,7 +61,7 @@ class GenerateTest < Test::Unit::TestCase
   #
   
   def test_file_creates_target_and_logs_activity
-    target = method_root.filepath(:tmp, 'file.txt')
+    target = method_root.path(:tmp, 'file.txt')
     assert !File.exists?(target)
     
     file(target)
@@ -72,7 +72,7 @@ class GenerateTest < Test::Unit::TestCase
   end
   
   def test_file_creates_target_with_block
-    target = method_root.filepath(:tmp, 'file.txt')
+    target = method_root.path(:tmp, 'file.txt')
     assert !File.exists?(target)
     
     file(target) do |file|
@@ -85,7 +85,7 @@ class GenerateTest < Test::Unit::TestCase
   end
   
   def test_file_does_not_create_target_if_pretend_is_true
-    target = method_root.filepath(:tmp, 'file.txt')
+    target = method_root.path(:tmp, 'file.txt')
     assert !File.exists?(target)
     
     self.pretend = true

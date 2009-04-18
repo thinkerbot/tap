@@ -1,4 +1,4 @@
-require 'tap'
+require 'tap/task'
 require 'tap/generator/manifest'
 require 'tap/generator/arguments'
 
@@ -162,14 +162,14 @@ module Tap
         Dir.glob(template_dir + "/**/*").sort.each do |source|
           next unless File.file?(source)
           
-          target = Tap::Root.relative_filepath(template_dir, source)
+          target = Root::Utils.relative_path(template_dir, source)
           yield(source, target)
         end
       end
       
-      # Logs the action with the relative filepath from Dir.pwd to path.
+      # Logs the action with the relative path from Dir.pwd to path.
       def log_relative(action, path)
-        log(action, Root.relative_filepath(Dir.pwd, path))
+        log(action, Root::Utils.relative_path(Dir.pwd, path))
       end
     end
   end

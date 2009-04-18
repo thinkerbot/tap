@@ -51,25 +51,24 @@ environments are nested.
 
   % tap manifest
   --------------------------------------------------------------------------------
-  Desktop:           (/Users/username/Desktop)
+  Desktop:          (/Users/username/Desktop)
   --------------------------------------------------------------------------------
-  tap:               (/Library/Ruby/Gems/1.8/gems/tap-0.10.8)
-    generators
-      command        (lib/tap/generator/generators/command/command_generator.rb)
-      config         (lib/tap/generator/generators/config/config_generator.rb)
-      generator      (lib/tap/generator/generators/generator/generator_generator.rb)
-      root           (lib/tap/generator/generators/root/root_generator.rb)
-      task           (lib/tap/generator/generators/task/task_generator.rb)
+  tap:              (/Library/Ruby/Gems/1.8/gems/tap-0.12.4)
     commands
-      console        (cmd/console.rb)
-      destroy        (cmd/destroy.rb)
-      generate       (cmd/generate.rb)
-      manifest       (cmd/manifest.rb)
-      run            (cmd/run.rb)
+      console       (cmd/console.rb)
+      destroy       (cmd/destroy.rb)
+      generate      (cmd/generate.rb)
+      manifest      (cmd/manifest.rb)
+      run           (cmd/run.rb)
+    generators
+      command       (lib/tap/generator/generators/command/command_generator.rb)
+      config        (lib/tap/generator/generators/config/config_generator.rb)
+      generator     (lib/tap/generator/generators/generator/generator_generator.rb)
+      root          (lib/tap/generator/generators/root/root_generator.rb)
+      task          (lib/tap/generator/generators/task/task_generator.rb)
     tasks
-      dump           (lib/tap/tasks/dump.rb)
-      load           (lib/tap/tasks/load.rb)
-      rake           (lib/tap/tasks/rake.rb)
+      dump          (lib/tap/dump.rb)
+      load          (lib/tap/load.rb)
   --------------------------------------------------------------------------------
 
   Desktop

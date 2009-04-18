@@ -312,56 +312,50 @@ http://tap.rubyforge.org/images/Nested-Env.png
 
 To prevent conflicts between similarly-named resources under different Envs,
 Env allows selection of Envs, also by minimized paths.  Say you installed the
-'sample_tasks' gem.
+'tap-tasks' gem.
 
   % tap manifest
   --------------------------------------------------------------------------------
-  Desktop:           (/Users/username/Desktop)
+  Desktop:          (/Users/username/Desktop)
   --------------------------------------------------------------------------------
-  sample_tasks:      (/Library/Ruby/Gems/1.8/gems/sample_tasks-0.10.0)
+  tap-tasks:        (/Library/Ruby/Gems/1.8/gems/tap-tasks-0.1.0)
     tasks
-      concat         (lib/tap/tasks/concat.rb)
-      copy           (lib/tap/tasks/copy.rb)
-      grep           (lib/tap/tasks/grep.rb)
-      print_tree     (lib/tap/tasks/print_tree.rb)
+      argv          (lib/tap/tasks/argv.rb)
+      inspect       (lib/tap/tasks/dump/inspect.rb)
+      dump/yaml     (lib/tap/tasks/dump/yaml.rb)
+      load/yaml     (lib/tap/tasks/load/yaml.rb)
   --------------------------------------------------------------------------------
-  tap:               (/Library/Ruby/Gems/1.8/gems/tap-0.10.8)
-    generators
-      command        (lib/tap/generator/generators/command/command_generator.rb)
-      config         (lib/tap/generator/generators/config/config_generator.rb)
-      file_task      (lib/tap/generator/generators/file_task/file_task_generator.rb)
-      generator      (lib/tap/generator/generators/generator/generator_generator.rb)
-      root           (lib/tap/generator/generators/root/root_generator.rb)
-      task           (lib/tap/generator/generators/task/task_generator.rb)
+  tap:              (/Library/Ruby/Gems/1.8/gems/tap-0.12.4)
     commands
-      console        (cmd/console.rb)
-      destroy        (cmd/destroy.rb)
-      generate       (cmd/generate.rb)
-      manifest       (cmd/manifest.rb)
-      run            (cmd/run.rb)
-      server         (cmd/server.rb)
+      console       (cmd/console.rb)
+      destroy       (cmd/destroy.rb)
+      generate      (cmd/generate.rb)
+      manifest      (cmd/manifest.rb)
+      run           (cmd/run.rb)
+    generators
+      command       (lib/tap/generator/generators/command/command_generator.rb)
+      config        (lib/tap/generator/generators/config/config_generator.rb)
+      generator     (lib/tap/generator/generators/generator/generator_generator.rb)
+      root          (lib/tap/generator/generators/root/root_generator.rb)
+      task          (lib/tap/generator/generators/task/task_generator.rb)
     tasks
-      dump           (lib/tap/tasks/dump.rb)
-      load           (lib/tap/tasks/load.rb)
-      rake           (lib/tap/tasks/rake.rb)
+      dump          (lib/tap/dump.rb)
+      load          (lib/tap/load.rb)
   --------------------------------------------------------------------------------
 
   Desktop
-  |- sample_tasks 
+  |- tap-tasks 
   `- tap 
 
 In this printout of the manifest, you can see the resources available to tap on
-the Desktop (none), in the sample_tasks gem, and in tap itself.  Since there
-aren't any conflicts among tasks, the minipath of any of the tasks is sufficient
-for identification:
+the Desktop (none), in the tap-tasks gem, and in tap itself.  In most cases the
+minipath of any of the tasks is sufficient for identification:
 
-  % tap run -- print_tree
-  % tap run -- dump
+  % tap run -- load --: dump/yaml
   
 If there were a conflict, you'd have to specify the environment minipath like:
 
-  % tap run -- sample_tasks:print_tree
-  % tap run -- tap:dump
+  % tap run -- tap:load --: tap-tasks:dump/yaml
 
 ==== Tap::Exe
 

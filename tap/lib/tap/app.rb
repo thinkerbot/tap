@@ -1,9 +1,7 @@
 require 'logger'
-
-require 'tap/support/aggregator'
-require 'tap/support/dependencies'
-require 'tap/support/executable_queue'
-require 'tap/task'
+require 'tap/app/state'
+require 'tap/app/queue'
+require 'tap/app/dependency'
 
 module Tap
   
@@ -106,10 +104,10 @@ module Tap
   #   app.run
   #   runlist                        # => [t1, t0, t0]
   #
-  # === Executables
+  # === Nodes
   #
-  # App can enque and run any Executable object. Arbitrary methods may be
-  # made into Executables using Object#_method.
+  # App can enque and run any Node object. Arbitrary methods may be
+  # made into Nodes using Object#_method.
   #
   #   array = []
   #
@@ -122,7 +120,7 @@ module Tap
   #   app.run
   #   array                          # => [1, 2, 3]
   #
-  class App < Monitor
+  class App
     class << self
       # Sets the current app instance
       attr_writer :instance
@@ -135,73 +133,57 @@ module Tap
     end
     
     include Configurable
-    
-    # The application logger
-    attr_reader :logger
-    
-    # The application queue
-    attr_reader :queue
-    
-    # The state of the application (see App::State)
-    attr_reader :state
-    
-    # A Tap::Support::Aggregator that collects the results of 
-    # methods that have no on_complete block
-    attr_reader :aggregator
-    
-    # A Tap::Support::Dependencies to track dependencies.
-    attr_reader :dependencies
-    
-    # The block called when an executable completes and has no
-    # on_complete_block set.  An on_complete_block effectively
-    # takes the place of aggregation (ie when set, no results
-    # will be collected by self).
-    attr_reader :on_complete_block
-    
-    config :audit, true, &c.switch                # Signal auditing
-    config :debug, false, &c.flag                 # Flag debugging
-    config :force, false, &c.flag                 # Force execution at checkpoints
-    config :quiet, false, &c.flag                 # Suppress logging
-    config :verbose, false, &c.flag               # Enables extra logging (overrides quiet)
-    
-    # The constants defining the possible App states.  
-    module State
-      READY = 0
-      RUN = 1
-      STOP = 2
-      TERMINATE = 3
-      
-      module_function
-      
-      # Returns a string corresponding to the input state value.  
-      # Returns nil for unknown states.
-      #
-      #   State.state_str(0)        # => 'READY'
-      #   State.state_str(12)       # => nil
-      def state_str(state)
-        constants.inject(nil) {|str, s| const_get(s) == state ? s.to_s : str}
-      end
-    end
-    
-    # Creates a new App with the given configuration.  
-    def initialize(config={}, logger=DEFAULT_LOGGER, &block)
-      super() # monitor
-      
-      @state = State::READY
-      @queue = Support::ExecutableQueue.new
-      @aggregator = Support::Aggregator.new
-      @dependencies = Support::Dependencies.new
-      @on_complete_block = block
-      
-      initialize_config(config)
-      self.logger = logger
-    end
+    include MonitorMixin
     
     # The default App logger writes to $stderr at level INFO.
     DEFAULT_LOGGER = Logger.new($stderr)
     DEFAULT_LOGGER.level = Logger::INFO
     DEFAULT_LOGGER.formatter = lambda do |severity, time, progname, msg|
       "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
+    end
+    
+    # The default stack, which simply calls node with the splat inputs
+    # (ie node.call(*inputs)).
+    STACK = lambda do |node, inputs|
+      node.call(*inputs)
+    end
+    
+    # The state of the application (see App::State)
+    attr_reader :state
+    
+    # The application call stack for executing nodes
+    attr_reader :stack
+    
+    # The application queue
+    attr_reader :queue
+    
+    # A Dependencies object tracking application-level dependencies
+    attr_reader :class_dependencies
+    
+    # The default_join for nodes that have no join set
+    attr_accessor :default_join
+    
+    # The application logger
+    attr_reader :logger
+    
+    config :debug, false, &c.flag                 # Flag debugging
+    config :force, false, &c.flag                 # Force execution at checkpoints
+    config :quiet, false, &c.flag                 # Suppress logging
+    config :verbose, false, &c.flag               # Enables extra logging (overrides quiet)
+    
+    # Creates a new App with the given configuration.  
+    def initialize(config={}, logger=DEFAULT_LOGGER, &block)
+      super() # monitor
+      
+      @state = State::READY
+      @stack = STACK
+      @queue = Queue.new
+      @class_dependencies = {}
+      @trace = []
+      on_complete(&block)
+      
+      initialize_config(config)
+      self.logger = logger
     end
     
     # True if debug or the global variable $DEBUG is true.
@@ -225,19 +207,97 @@ module Tap
       logger.add(level, msg, action.to_s) if !quiet || verbose
     end
     
-    # Sequentially calls execute with the (executable, inputs) pairs in
-    # queue; run continues until the queue is empty and then returns self.
+    # Returns the application-level dependency instance for the specified class.
+    def class_dependency(klass)
+      # note classes are turned to strings to allow 
+      # the keys to be dumped as YAML
+      class_dependencies[klass.to_s] ||= Node.new(Dependency.new(klass.new))
+    end
+    
+    # Returns a new dependency that executes block on call.
+    def dependency(&block) # :yields: 
+      Dependency.intern(&block)
+    end
+    
+    # Returns a new node that executes block on call.
+    def node(&block) # :yields: *inputs
+      Node.intern(&block)
+    end
+    
+    # Enques the node with the inputs.  Returns the node.
+    def enq(node, *inputs)
+      queue.enq(node, inputs)
+      node
+    end
+    
+    # Generates a Node from the block and enques. Returns the new node.
+    def bq(*inputs, &block) # :yields: *inputs
+      node = self.node(&block)
+      queue.enq(node, inputs)
+      node
+    end
+    
+    # Adds the specified middleware to the stack.
+    def use(middleware)
+      @stack = middleware.new(@stack)
+    end
+    
+    # Resolves the node dependencies (if necessary).
+    def resolve(node)
+      node.dependencies.each do |dependency|
+        trace(dependency) do
+          dispatch(dependency)
+        end
+      end
+    end
+
+    # Resets the node dependencies.
+    def reset(node, recursive=true)
+      node.dependencies.each do |dependency|
+        trace(dependency) do 
+          dependency.reset
+          reset(dependency, recursive) if recursive
+        end
+      end
+    end
+    
+    # Dispatches node to the application stack with the inputs.
+    def execute(node, *inputs)
+      dispatch(node, inputs)
+    end
+    
+    # Dispatch sends the node into the application stack with the inputs.
+    # Dispatch does the following in order:
+    #
+    # - resolve node dependencies using resolve
+    # - call stack with the node and inputs
+    # - call the node join, if set, or the default_join with the results
+    #
+    # Dispatch returns the node result.
+    def dispatch(node, inputs=[])
+      resolve(node)
+      result = stack.call(node, inputs)
+
+      if join = (node.join || default_join)
+        join.call(result)
+      end
+      result
+    end
+    
+    # Sequentially dispatches each enqued (node, inputs) pair to the
+    # application stack.  A run continues until the queue is empty.  Returns
+    # self.
     #
     # ==== Run State
     #
-    # Run checks the state of self before executing a method. If state
+    # Run checks the state of self before dispatching a node.  If the state
     # changes from State::RUN, the following behaviors result:
     # 
-    # State::STOP:: No more executables will be executed; the current
-    #               executable will continute to completion.
-    # State::TERMINATE:: No more executables will be executed and the
-    #                    currently running executable will be
-    #                    discontinued as described in terminate.
+    # State::STOP:: No more nodes will be dispatched; the current node will
+    #               continute to completion.
+    # State::TERMINATE:: No more nodes will be dispatched and the currently
+    #                    running node will be discontinued as described in
+    #                    terminate.
     #
     # Calls to run when the state is not State::READY do nothing and
     # return immediately.
@@ -250,8 +310,7 @@ module Tap
       # TODO: log starting run
       begin
         until queue.empty? || state != State::RUN
-          executable, inputs = queue.deq
-          executable._execute(*inputs)
+          dispatch(*queue.deq)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors
@@ -267,9 +326,9 @@ module Tap
       self
     end
     
-    # Signals a running application to stop executing tasks in the 
-    # queue by setting state = State::STOP.  The task currently 
-    # executing will continue uninterrupted to completion.
+    # Signals a running app to stop dispatching nodes to the application stack
+    # by setting state = State::STOP.  The node currently in the stack will
+    # will continue to completion.
     #
     # Does nothing unless state is State::RUN.
     def stop
@@ -278,10 +337,14 @@ module Tap
     end
 
     # Signals a running application to terminate execution by setting 
-    # state = State::TERMINATE.  In this state, an executing task 
-    # will then raise a TerminateError upon check_terminate, thus 
-    # allowing the invocation of task-specific termination, perhaps 
-    # performing rollbacks. (see Tap::Support::Executable#check_terminate).
+    # state = State::TERMINATE.  In this state, calls to check_terminate
+    # will raise a TerminateError.  Run considers TerminateErrors a normal
+    # exit and rescues them quietly.
+    #
+    # Nodes can set breakpoints that call check_terminate to invoke
+    # node-specific termination.  If a node never calls check_terminate, then
+    # it will continue to completion and terminate is functionally the same
+    # as stop.
     #
     # Does nothing if state == State::READY.
     def terminate
@@ -289,76 +352,102 @@ module Tap
       self
     end
     
+    # Raises a TerminateError if state == State::TERMINATE.  Nodes should call
+    # check_terminate to provide breakpoints in long-running processes.
+    def check_terminate
+      if state == App::State::TERMINATE
+        raise App::TerminateError.new
+      end
+    end
+    
     # Returns an information string for the App.  
     #
-    #   App.instance.info   # => 'state: 0 (READY) queue: 0 results: 0'
+    #   App.instance.info   # => 'state: 0 (READY) queue: 0'
     #
     def info
-      "state: #{state} (#{State.state_str(state)}) queue: #{queue.size} results: #{aggregator.size}"
+      "state: #{state} (#{State.state_str(state)}) queue: #{queue.size}"
     end
     
-    # Enques the task (or Executable) with the inputs.  Raises an error if the
-    # input is not an Executable, or is not assigned to self.  Returns task.
-    def enq(task, *inputs)
-      unless task.kind_of?(Support::Executable)
-        raise ArgumentError, "not an Executable: #{task.inspect}"
-      end
-      
-      unless task.app == self
-        raise ArgumentError, "not assigned to enqueing app: #{task.inspect}"
-      end
-      
-      queue.enq(task, inputs)
-      task
-    end
-
-    # Method enque.  Enques the specified method from object with the inputs.
-    # Returns the enqued method.
-    def mq(object, method_name, *inputs)
-      m = object._method(method_name)
-      enq(m, *inputs)
-    end
+    # Dumps self to the target as YAML.
+    #
+    # === Implementation Notes
+    #
+    # Platforms that use syck (ex MRI) require a fix because syck misformats
+    # certain dumps, such that they cannot be reloaded (even by syck).
+    # Specifically:
+    #
+    #   &id001 !ruby/object:Tap::Task ?
+    #
+    # should be:
+    #
+    #   ? &id001 !ruby/object:Tap::Task
+    #
+    # In addition, dump removes Thread and Proc dumps because they can't be
+    # allocated on load
+    def dump(target=$stdout, options={})
+      synchronize do
+        raise "cannot dump unless READY" unless state == State::READY
         
-    # Returns all aggregated, audited results for the specified tasks.  
-    # Results are joined into a single array.  Arrays of tasks are 
-    # allowed as inputs. See results.
-    def _results(*tasks)
-      aggregator.retrieve_all(*tasks.flatten)
-    end
-    
-    # Returns all aggregated results for the specified tasks.  Results are
-    # joined into a single array.  Arrays of tasks are allowed as inputs.    
-    #
-    #   t0 = Task.intern  {|task, input| "#{input}.0" }
-    #   t1 = Task.intern  {|task, input| "#{input}.1" }
-    #
-    #   t0.enq(0)
-    #   t1.enq(1)
-    #
-    #   app.run
-    #   app.results(t1, t0)           # => ["1.1", "0.0"]
-    #
-    def results(*tasks)
-      _results(tasks).collect {|_result| _result.value }
-    end
-    
-    # Sets a block to receive the results tasks with no on_complete_block
-    # set.  Raises an error if an on_complete_block is already set.
-    # Override the existing on_complete_block by specifying override = true.
-    #
-    # Note: the block recieves an audited result and not the result
-    # itself (see Audit for more information).
-    def on_complete(override=false, &block) # :yields: _result
-      unless on_complete_block == nil || override
-        raise "on_complete_block already set: #{self}" 
+        options = {
+          :date_format => '%Y-%m-%d %H:%M:%S',
+          :date => true,
+          :info => true
+        }.merge(options)
+        
+        # print basic headers
+        target.puts "# date: #{Time.now.strftime(options[:date_format])}" if options[:date]
+        target.puts "# info: #{info}" if options[:info]
+        
+        # # print load paths and requires
+        # target.puts "# load paths"
+        # target.puts $:.to_yaml
+        # 
+        # target.puts "# requires"
+        # target.puts $".to_yaml
+        
+        # dump yaml, fixing as necessary
+        yaml = YAML.dump(self)
+        yaml.gsub!(/\&(.*!ruby\/object:.*?)\s*\?/) {"? &#{$1} " } if YAML.const_defined?(:Syck)
+        yaml.gsub!(/!ruby\/object:(Thread|Proc) \{\}/, '')
+        target << yaml
       end
-      @on_complete_block = block
+      
+      target
+    end
+    
+    # Sets the block to receive the audited result of tasks with no join
+    # (ie the block is set as default_join).
+    def on_complete(&block) # :yields: _result
+      self.default_join = block
       self
+    end
+    
+    protected
+    
+    # helper to check for circular dependencies
+    def trace(node) # :nodoc:
+      if @trace.include?(node)
+        @trace.push node
+        raise CircularDependencyError.new(@trace)
+      end
+      
+      # mark the results at the index to prevent
+      # infinite loops with circular dependencies
+      @trace.push node
+      yield
+      @trace.pop
     end
     
     # TerminateErrors are raised to kill executing tasks when terminate is 
     # called on an running App.  They are handled by the run rescue code.
     class TerminateError < RuntimeError 
+    end
+    
+    # Raised when Dependencies#resolve detects a circular dependency.
+    class CircularDependencyError < StandardError
+      def initialize(trace)
+        super "circular dependency: [#{trace.join(', ')}]"
+      end
     end
   end
 end

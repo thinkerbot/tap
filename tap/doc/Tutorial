@@ -45,7 +45,7 @@ Now from the command line:
   options:
       -h, --help                       Print this help
           --name NAME                  Specify a name
-          --use FILE                   Loads inputs from file
+          --config FILE                Specifies a config file
   
 Just like that you have a command-line application with inputs, configuration,
 and documentation.  
@@ -194,7 +194,7 @@ Now from the command line:
   options:
       -h, --help                       Print this help
           --name NAME                  Specify a name
-          --use FILE                   Loads inputs from file
+          --config FILE                Specifies a config file
 
 Take a quick look at the documentation.  Class definitions map documentation
 and, in some cases, metadata to the command line; the configurations now have
