@@ -144,9 +144,6 @@ namespace :test do
   
   desc 'run env tests'
   task(:env) { test_section :env }
-  
-  desc 'run generator tests'
-  task(:generator) { test Dir['test/tap/generator/**/*_test.rb'] }
 
   desc 'run all tap tests'
   task(:tap) { test(Dir.glob('test/tap/**/*_test.rb')) }
