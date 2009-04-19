@@ -144,7 +144,7 @@ task definition:
     end
   end
   
-  Sample::task.to_s                            # => "a summary of the task"
+  Sample::desc.to_s                            # => "a summary of the task"
   Sample::args.to_s                            # => "A B='B' C..."
   
   key = Sample.configurations[:key]

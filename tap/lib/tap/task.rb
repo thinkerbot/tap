@@ -160,10 +160,10 @@ module Tap
       # instance, plus any inputs.
       #
       # Simply instantiates a new task if no block is given.
-      def intern(*args, &block) # :yields: task, inputs...
-        instance = new(*args)
+      def intern(config={}, name=nil, app=Tap::App.instance, &block) # :yields: task, inputs...
+        instance = new(config, name, app)
         if block_given?
-          instance.extend Support::Intern
+          instance.extend Support::Intern(:process)
           instance.process_block = block
         end
         instance
@@ -179,14 +179,6 @@ module Tap
       
       # Same as parse, but removes switches destructively.
       def parse!(argv=ARGV, app=Tap::App.instance)
-        instantiate(parse_argh(argv), app)
-      end
-      
-      def parse_argh(argv=ARGV)
-        parse_argh!(argv.dup)
-      end
-      
-      def parse_argh!(argv=ARGV)
         opts = ConfigParser.new
         
         unless configurations.empty?
@@ -224,12 +216,14 @@ module Tap
         
         # parse!
         argv = opts.parse!(argv, {}, false)
-        
-        { :name => name,
+        argh = { 
+          :name => name,
           :config => opts.nested_config,
           :config_file => config_file,
           :args => argv
         }
+        
+        instantiate(argh, app)
       end
       
       def instantiate(argh={}, app=Tap::App.instance)
@@ -244,7 +238,7 @@ module Tap
         [instance, args]
       end
 
-      DEFAULT_HELP_TEMPLATE = %Q{<% desc = task_class::task %>
+      DEFAULT_HELP_TEMPLATE = %Q{<% desc = task_class::desc %>
 <%= task_class %><%= desc.empty? ? '' : ' -- ' %><%= desc.to_s %>
 
 <% desc = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : [] %>
@@ -417,14 +411,14 @@ module Tap
     instance_variable_set(:@default_name, 'tap/task')
     instance_variable_set(:@dependencies, [])
     
-    lazy_attr :task
+    lazy_attr :desc, 'task'
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
     
     ###############################################################
     # [depreciated] manifest will be removed at 1.0
     lazy_attr :manifest
-    def self.task
+    def self.desc
       comment = const_attrs['task'] ||= const_attrs['manifest'] ||= Lazydoc::Subject.new(nil, lazydoc)
       comment.kind_of?(Lazydoc::Comment) ? comment.resolve : comment
     end

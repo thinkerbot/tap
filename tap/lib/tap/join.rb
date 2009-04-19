@@ -20,6 +20,15 @@ module Tap
         new(argh[:config] || {}, app)
       end
       
+      def intern(config={}, app=Tap::App.instance, &block) # :yields: join, result
+        instance = new(config, app)
+        if block_given?
+          instance.extend Support::Intern(:call)
+          instance.call_block = block
+        end
+        instance
+      end
+      
       # Parses a modifier string into configurations.  Raises an error
       # if the options string contains unknown options.
       #
@@ -45,6 +54,8 @@ module Tap
       end
     end
     include Configurable
+    
+    lazy_attr :desc, 'join'
     
     # Causes the targets to be enqued rather than executed immediately.
     config :enq, false, :short => 'q', &c.flag

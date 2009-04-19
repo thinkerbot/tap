@@ -90,7 +90,7 @@ end
     end
     
     load(another_lazydoc_file)
-    assert_equal "a summary of the task", Sample::task.to_s
+    assert_equal "a summary of the task", Sample::desc.to_s
     assert_equal "A B='B' C...", Sample::args.to_s
 
     key = Sample.configurations[:key]
