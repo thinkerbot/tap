@@ -34,8 +34,8 @@ module Tap
       user = Env.load_config(path)
       global = Env.load_config(GLOBAL_CONFIG_FILE)
       config = {
-        :root => dir,
-        :gems => :all
+        'root' => dir,
+        'gems' => :all
       }.merge(global).merge(user)
       
       # instantiate
@@ -68,11 +68,16 @@ module Tap
     end
     
     def tasks
-      manifest('task', Env::ConstantManifest) do |env|
+      m = manifest('task', Env::ConstantManifest) do |env|
         env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
           [dir, path]
         end
       end
+      ###############################################################
+      # [depreciated] manifest will be removed at 1.0
+      m.const_attr = /task|manifest/
+      m
+      ###############################################################
     end
     
     def joins

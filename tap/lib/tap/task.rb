@@ -244,7 +244,7 @@ module Tap
         [instance, args]
       end
 
-      DEFAULT_HELP_TEMPLATE = %Q{<% desc = task_class.task %>
+      DEFAULT_HELP_TEMPLATE = %Q{<% desc = task_class::task %>
 <%= task_class %><%= desc.empty? ? '' : ' -- ' %><%= desc.to_s %>
 
 <% desc = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : [] %>
@@ -420,6 +420,15 @@ module Tap
     lazy_attr :task
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
+    
+    ###############################################################
+    # [depreciated] manifest will be removed at 1.0
+    lazy_attr :manifest
+    def self.task
+      comment = const_attrs['task'] ||= const_attrs['manifest'] ||= Lazydoc::Subject.new(nil, lazydoc)
+      comment.kind_of?(Lazydoc::Comment) ? comment.resolve : comment
+    end
+    ###############################################################
     
     # The App receiving self during enq
     attr_reader :app

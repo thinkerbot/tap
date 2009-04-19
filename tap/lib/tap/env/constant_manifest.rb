@@ -18,8 +18,11 @@ module Tap
     #
     class ConstantManifest < Manifest
       
-      def const_attr
-        type
+      attr_accessor :const_attr
+      
+      def initialize(env, type, const_attr=type, &builder)
+        super(env, type, &builder)
+        @const_attr = const_attr
       end
       
       def cache
@@ -45,10 +48,23 @@ module Tap
         # a constant attribute
         default_const_name = Root::Utils.relative_path(dir, path).chomp(File.extname(path)).camelize
         
+        # note: the default const name has to be set here to allow for implicit
+        # constant attributes (because a dir is needed to figure the relative path).
+        # A conflict could arise if the same path is globed from two different
+        # dirs... no surefire solution.
+        document = Lazydoc[path]
+        case document.default_const_name
+        when nil then document.default_const_name = default_const_name
+        when default_const_name
+        else raise "found a conflicting default const name"
+        end
+        
         # scan for all constant attributes
         const_names = {}
         Lazydoc::Document.scan(File.read(path), "[a-z]+") do |const_name, key, value|
-          const_name = default_const_name if const_name.empty?
+          if const_name.empty?
+            const_name = default_const_name
+          end
           
           attributes = const_names[const_name] ||= {}
           attributes[key] = value
@@ -110,6 +126,11 @@ module Tap
           templater.entries = entries
           templater.env_path = env_path
         end
+      end
+      
+      # Creates a new instance of self, assigned with env.
+      def another(env)
+        self.class.new(env, type, const_attr, &builder)
       end
     end
   end

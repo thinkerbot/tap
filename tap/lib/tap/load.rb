@@ -31,7 +31,7 @@ module Tap
   #   #
   #   contents of somefile
   #
-  # ::manifest-
+  # ::task-
   #
   # Load serves as a baseclass for more complicated load tasks.  A YAML load
   # task (see {tap-tasks}[http://tap.rubyforge.org/tap-tasks]) looks like this:
