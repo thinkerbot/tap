@@ -346,7 +346,7 @@ module Tap
     end
     
     # Creates an array dump of the contents of self.
-    def dump(argv=false)
+    def to_a(argv=false)
       cleanup
       
       # add nodes
@@ -400,7 +400,7 @@ module Tap
     # '-- a -- b --0:1'.
     def to_s
       args = []
-      dump(true).each do |obj|
+      to_a(true).each do |obj|
         case obj
         when Array
           args << "--"
@@ -413,5 +413,8 @@ module Tap
       args.join(' ')
     end
     
+    def dump(argv=false)
+      YAML.dump(to_a(argv))
+    end
   end
 end

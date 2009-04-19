@@ -79,7 +79,7 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_load_file_reloads_a_yaml_dump
     path = method_root.prepare(:tmp, 'dump.yml') do |file|
-      file << YAML.dump(schema.dump)
+      file << schema.dump
     end
     
     loaded_schema = Schema.load_file(path)
@@ -88,35 +88,35 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_load_file_reloads_prerequisites
     schema = Schema.parse("-- a -- b -- c --*[0,1] --*[2]")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << YAML.dump(schema.dump)}
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump}
     
     assert_equal "-- a -- b -- c --*[0,1,2]", Schema.load_file(path).to_s
   end
   
   def test_load_file_reloads_rounds
     schema = Schema.parse("-- a --+ b --++ c")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << YAML.dump(schema.dump)}
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump}
     
     assert_equal "-- a -- b -- c --+1[1] --+2[2]", Schema.load_file(path).to_s
   end
   
   def test_load_file_reloads_sequence
     schema = Schema.parse("-- a --: b")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << YAML.dump(schema.dump)}
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump}
     
     assert_equal "-- a -- b --[0][1]", Schema.load_file(path).to_s
   end
   
   def test_load_file_reloads_fork
     schema = Schema.parse("-- a -- b -- c --[0][1,2]")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << YAML.dump(schema.dump)}
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump}
     
     assert_equal "-- a -- b -- c --[0][1,2]", Schema.load_file(path).to_s
   end
   
   def test_load_file_reloads_merge
     schema = Schema.parse("-- a -- b -- c --[0,1][2]")
-    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << YAML.dump(schema.dump)}
+    path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump}
     
     assert_equal "-- a -- b -- c --[0,1][2]", Schema.load_file(path).to_s
   end
@@ -439,22 +439,22 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   #
-  # dump/to_s test
+  # to_a/to_s test
   #
   
-  def test_to_s_and_dump_for_an_empty_schema
+  def test_to_s_and_to_a_for_an_empty_schema
     schema = Schema.new
     assert_equal "", schema.to_s
-    assert_equal [], schema.dump
+    assert_equal [], schema.to_a
   end
   
-  def test_to_s_and_dump_formats_argvs_separated_by_break
+  def test_to_s_and_to_a_formats_argvs_separated_by_break
     schema = Schema.new node_set
     assert_equal "-- 0 -- 1 -- 2", schema.to_s
-    assert_equal [[0],[1],[2]], schema.dump(true)
+    assert_equal [[0],[1],[2]], schema.to_a(true)
   end
   
-  def test_to_s_and_dump_perform_cleanup
+  def test_to_s_and_to_a_perform_cleanup
     join = [[], [], ""]
     a = Node.new(["a"], 2)
     b = Node.new(["b"], join)
@@ -462,10 +462,10 @@ class SchemaTest < Test::Unit::TestCase
     
     schema = Schema.new [a,b,nil,c]
     assert_equal "-- a -- b -- c --+1[0]", schema.to_s
-    assert_equal [['a'],['b'],['c'], "+1[0]"], schema.dump(true)
+    assert_equal [['a'],['b'],['c'], "+1[0]"], schema.to_a(true)
   end
   
-  def test_to_s_and_dump_adds_round_breaks_for_non_zero_rounds
+  def test_to_s_and_to_a_adds_round_breaks_for_non_zero_rounds
     nodes = node_set
     nodes[0].round = 0
     nodes[1].round = 1
@@ -473,10 +473,10 @@ class SchemaTest < Test::Unit::TestCase
     
     schema = Schema.new nodes
     assert_equal "-- 0 -- 1 -- 2 --+1[1] --+2[2]", schema.to_s
-    assert_equal [[0],[1],[2],"+1[1]","+2[2]"], schema.dump(true)
+    assert_equal [[0],[1],[2],"+1[1]","+2[2]"], schema.to_a(true)
   end
   
-  def test_to_s_and_dump_properly_handles_multiple_tasks_in_a_round
+  def test_to_s_and_to_a_properly_handles_multiple_tasks_in_a_round
     nodes = node_set
     nodes[0].round = 0
     nodes[1].round = 1
@@ -484,50 +484,50 @@ class SchemaTest < Test::Unit::TestCase
     
     schema = Schema.new nodes
     assert_equal "-- 0 -- 1 -- 2 --+1[1,2]", schema.to_s
-    assert_equal [[0],[1],[2],"+1[1,2]"], schema.dump(true)
+    assert_equal [[0],[1],[2],"+1[1,2]"], schema.to_a(true)
   end
   
-  def test_to_s_and_dump_adds_global_breaks_for_prerequisite_nodes
+  def test_to_s_and_to_a_adds_global_breaks_for_prerequisite_nodes
     nodes = node_set
     nodes[1].make_prerequisite
     nodes[2].make_prerequisite
     
     schema = Schema.new nodes
     assert_equal "-- 0 -- 1 -- 2 --*[1,2]", schema.to_s
-    assert_equal [[0],[1],[2],"*[1,2]"], schema.dump(true)
+    assert_equal [[0],[1],[2],"*[1,2]"], schema.to_a(true)
   end
   
-  def test_to_s_and_dump_adds_sequence_breaks_for_sequence_joins
+  def test_to_s_and_to_a_adds_sequence_breaks_for_sequence_joins
     schema = Schema.new node_set
     schema.set_join [0], [1]
     schema.set_join [1], [2]
     
     assert_equal "-- 0 -- 1 -- 2 --[0][1] --[1][2]", schema.to_s
-    assert_equal [[0],[1],[2],"[0][1]", "[1][2]"], schema.dump(true)
+    assert_equal [[0],[1],[2],"[0][1]", "[1][2]"], schema.to_a(true)
   end
   
-  def test_to_s_and_dump_adds_fork_breaks_for_fork_joins
+  def test_to_s_and_to_a_adds_fork_breaks_for_fork_joins
     schema = Schema.new node_set
     schema.set_join [0], [1,2]
   
     assert_equal "-- 0 -- 1 -- 2 --[0][1,2]", schema.to_s
-    assert_equal [[0],[1],[2],"[0][1,2]"], schema.dump(true)
+    assert_equal [[0],[1],[2],"[0][1,2]"], schema.to_a(true)
   end
   
-  def test_to_s_and_dump_adds_merge_breaks_for_merge_joins
+  def test_to_s_and_to_a_adds_merge_breaks_for_merge_joins
     schema = Schema.new node_set
     schema.set_join [0,1], [2]
   
     assert_equal "-- 0 -- 1 -- 2 --[0,1][2]", schema.to_s
-    assert_equal [[0],[1],[2],"[0,1][2]"], schema.dump(true)
+    assert_equal [[0],[1],[2],"[0,1][2]"], schema.to_a(true)
   end
   
-  def test_to_s_and_dump_adds_sync_merge_breaks_for_arbitrary_joins
+  def test_to_s_and_to_a_adds_sync_merge_breaks_for_arbitrary_joins
     schema = Schema.new node_set
     schema.set_join [0,1], [2], ["type"]
   
     assert_equal "-- 0 -- 1 -- 2 --[0,1][2].type", schema.to_s
-    assert_equal [[0],[1],[2],"[0,1][2].type"], schema.dump(true)
+    assert_equal [[0],[1],[2],"[0,1][2].type"], schema.to_a(true)
   end
   
   #
