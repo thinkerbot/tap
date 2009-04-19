@@ -15,7 +15,7 @@ if ARGV.empty? || ARGV == ['--help']
   puts Lazydoc.usage(__FILE__)
   puts
   puts "generators:"
-  puts env.summarize(:generators)
+  puts env.generators.summarize
   exit
 end
 

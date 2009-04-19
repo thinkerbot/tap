@@ -67,6 +67,14 @@ module Tap
       end
     end
     
+    def generators
+      manifest('generator', Env::ConstantManifest) do |env|
+        env.glob_config(:lib_paths, '**/*.rb', :lib) do |dir, path|
+          [dir, path]
+        end
+      end
+    end
+    
     def tasks
       m = manifest('task', Env::ConstantManifest) do |env|
         env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|

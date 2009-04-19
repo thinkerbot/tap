@@ -98,33 +98,24 @@ module Tap
         constant ? constant.constantize : nil
       end
       
-      SUMMARY_TEMPLATE = %Q{<% unless entries.empty? %>
-#{'-' * 80}
-<%= (env_key + ':').ljust(width) %> (<%= env_path %>)
-<% entries.each do |key, const| %>
-  <%= key.ljust(width-2) %> (<%= const.require_path %>)
+      SUMMARY_TEMPLATE = %Q{<% if !manifest.empty? && count > 1 %>
+<%= env_key %>:
 <% end %>
-<% end %>}
+<% entries.each do |key, const| %>
+  <%= key.ljust(width) %> # <%= const.comment %>
+<% end %>
+}
 
       def summarize(template=SUMMARY_TEMPLATE)
-        inspect(template, :width => 10) do |templater, globals|
-          env_key = templater.env_key
-          env_path = templater.env.path
-          manifest = templater.manifest
-          entries = manifest.minimap
+        inspect(template, :width => 11, :count => 0) do |templater, globals|
           width = globals[:width]
-
-          # determine width
-          width = env_key.length if width < env_key.length
-          entries.collect! do |key, const|
+          templater.entries = templater.manifest.minimap.collect! do |key, const|
             width = key.length if width < key.length
             [key, const]
           end
-          globals[:width] = width
 
-          # assign locals
-          templater.entries = entries
-          templater.env_path = env_path
+          globals[:width] = width
+          globals[:count] += 1 unless templater.entries.empty?
         end
       end
       

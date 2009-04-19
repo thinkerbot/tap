@@ -48,25 +48,7 @@ ConfigParser.new do |opts|
   end
   
   opts.on('-T', '--manifest', 'Print a list of available tasks') do
-    template = %Q{<% if !manifest.empty? && count > 1 %>
-<%= env_key %>:
-<% end %>
-<% entries.each do |key, const| %>
-  <%= key.ljust(width) %># <%= const.comment %>
-<% end %>
-}
-    summary = env.tasks.inspect(template, :width => 12, :count => 0) do |templater, globals|
-      width = globals[:width]
-      templater.entries = templater.manifest.minimap.collect! do |key, const|
-        width = key.length if width < key.length
-        [key, const]
-      end
-      
-      globals[:width] = width
-      globals[:count] += 1 unless templater.entries.empty?
-    end
-    
-    puts summary
+    puts env.tasks.summarize
     exit(0)
   end
   
