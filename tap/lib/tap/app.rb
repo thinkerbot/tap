@@ -142,11 +142,10 @@ module Tap
       "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
     end
     
+    stack = lambda {|node, inputs| node.call(*inputs) }
     # The default stack, which simply calls node with the splat inputs
     # (ie node.call(*inputs)).
-    STACK = lambda do |node, inputs|
-      node.call(*inputs)
-    end
+    STACK = stack
     
     # The state of the application (see App::State)
     attr_reader :state
@@ -428,7 +427,7 @@ module Tap
     def trace(node) # :nodoc:
       if @trace.include?(node)
         @trace.push node
-        raise CircularDependencyError.new(@trace)
+        raise DependencyError.new(@trace)
       end
       
       # mark the results at the index to prevent
@@ -444,7 +443,7 @@ module Tap
     end
     
     # Raised when Dependencies#resolve detects a circular dependency.
-    class CircularDependencyError < StandardError
+    class DependencyError < StandardError
       def initialize(trace)
         super "circular dependency: [#{trace.join(', ')}]"
       end

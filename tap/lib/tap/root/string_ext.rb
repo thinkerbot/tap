@@ -1,5 +1,5 @@
 module Tap
-  module Support
+  class Root
     
     # StringExt provides two common string transformations, camelize and
     # underscore. StringExt is automatically included in String.
@@ -56,5 +56,5 @@ module Tap
 end
 
 class String # :nodoc:
-  include Tap::Support::StringExt
+  include Tap::Root::StringExt
 end

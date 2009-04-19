@@ -1,6 +1,6 @@
 require 'configurable'
 require 'tap/root/utils'
-require 'tap/support/string_ext'
+require 'tap/root/string_ext'
 
 module Tap
   

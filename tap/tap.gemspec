@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
     README
     MIT-LICENSE
     History
+    doc/API
     doc/Class\sReference
     doc/Command\sReference
     doc/Syntax\sReference
@@ -27,11 +28,8 @@ Gem::Specification.new do |s|
   
   s.files = %W{
     cmd/console.rb
-    cmd/destroy.rb
-    cmd/generate.rb
     cmd/manifest.rb
     cmd/run.rb
-    bin/tap
     lib/tap.rb
     lib/tap/app.rb
     lib/tap/app/dependency.rb
@@ -48,28 +46,6 @@ Gem::Specification.new do |s|
     lib/tap/env/manifest.rb
     lib/tap/env/minimap.rb
     lib/tap/exe.rb
-    lib/tap/generator/arguments.rb
-    lib/tap/generator/base.rb
-    lib/tap/generator/destroy.rb
-    lib/tap/generator/generate.rb
-    lib/tap/generator/generators/command/command_generator.rb
-    lib/tap/generator/generators/command/templates/command.erb
-    lib/tap/generator/generators/config/config_generator.rb
-    lib/tap/generator/generators/generator/generator_generator.rb
-    lib/tap/generator/generators/generator/templates/task.erb
-    lib/tap/generator/generators/generator/templates/test.erb
-    lib/tap/generator/generators/root/root_generator.rb
-    lib/tap/generator/generators/root/templates/MIT-LICENSE
-    lib/tap/generator/generators/root/templates/README
-    lib/tap/generator/generators/root/templates/Rakefile
-    lib/tap/generator/generators/root/templates/Rapfile
-    lib/tap/generator/generators/root/templates/gemspec
-    lib/tap/generator/generators/root/templates/test/tap_test_helper.rb
-    lib/tap/generator/generators/task/task_generator.rb
-    lib/tap/generator/generators/task/templates/task.erb
-    lib/tap/generator/generators/task/templates/test.erb
-    lib/tap/generator/manifest.rb
-    lib/tap/generator/preview.rb
     lib/tap/join.rb
     lib/tap/joins.rb
     lib/tap/joins/switch.rb
@@ -82,10 +58,8 @@ Gem::Specification.new do |s|
     lib/tap/schema/node.rb
     lib/tap/schema/parser.rb
     lib/tap/support/intern.rb
-    lib/tap/support/shell_utils.rb
-    lib/tap/support/string_ext.rb
+    lib/tap/root/string_ext.rb
     lib/tap/support/templater.rb
     lib/tap/task.rb
-    lib/tap/tasks/file_task.rb
     }
 end

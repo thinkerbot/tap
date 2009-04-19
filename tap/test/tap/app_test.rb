@@ -231,7 +231,7 @@ class AppTest < Test::Unit::TestCase
     n0.depends_on(n1)
     n1.depends_on(n0)
     
-    assert_raises(App::CircularDependencyError) { app.resolve(n0) }
+    assert_raises(App::DependencyError) { app.resolve(n0) }
   end
   
   #

@@ -1,6 +1,6 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/env/minimap'
-require 'tap/support/string_ext'
+require 'tap/root/string_ext'
 
 class MinimapTest < Test::Unit::TestCase
   Minimap = Tap::Env::Minimap
