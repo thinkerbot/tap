@@ -34,6 +34,12 @@ module Tap
         end if builder
         @built = true
       end
+      
+      def build_all
+        env.each do |e|
+          manifest(e).build
+        end
+      end
     
       # Identifies if self has been built.
       def built?

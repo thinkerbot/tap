@@ -1,7 +1,11 @@
-# usage: tap manifest [options]
+# usage: tap manifest [options] [filter]
 #
-# Prints a manifest of all resources in the current tap environment.
-
+# Prints a manifest of all resources in the current tap environment.  Env
+# keys may be provided to select a specific set of environments to list.
+#
+#   % tap manifest
+#   % tap manifest tap-tasks
+#
 options = {}
 ConfigParser.new do |opts|
   
@@ -13,33 +17,13 @@ ConfigParser.new do |opts|
     puts opts
     exit
   end
-  
-  # opts.on("-t", "--tree", "Just print the env tree.") do
-  #   options[:tree] = true
-  # end
-  
-  # opts.on("-r", "--require FILEPATH", "Require the specified file") do |value|
-  #   require value
-  # end
-  
 end.parse!(ARGV)
-
-env = Tap::Env.instance
-env_keys = env.minihash(true)
-
-filter = case
-when ARGV.empty? then env_keys.keys
-else
-  ARGV.collect do |name| 
-    env.minimatch(name) or raise "could not find an env matching: #{name}"
-  end
-end
 
 template = %Q{<% unless manifests.empty? %>
 #{'-' * 80}
 <%= (env_key + ':').ljust(width) %> (<%= env.path %>)
-<% manifests.each do |manifest_key, entries| %>
-  <%= manifest_key %>
+<% manifests.each do |type, entries| %>
+  <%= type %>
 <%   entries.each do |key, value| %>
     <%= key.ljust(width-4) %> (<%= value %>)
 <%   end %>
@@ -47,35 +31,43 @@ template = %Q{<% unless manifests.empty? %>
 <% end %>
 }
 
-# build and collect manifests by (env, manifest_key)
-envs = {}
-[:commands, :tasks].each do |manifest_key|
-  manifest = env.send(manifest_key)
-  manifest.build_all
-  next if manifest.empty?
-  
-  manifest.cache.each_pair do |key, value|
-    next unless key.kind_of?(Tap::Env)
-    manifests = (envs[key] ||= {})
-    manifests[manifest_key] = value
+# filter envs to manifest
+env = Tap::Env.instance
+env_keys = env.minihash(true)
+filter = if ARGV.empty?
+  env_keys.keys
+else
+  ARGV.collect do |name| 
+    env.minimatch(name) or raise "could not find an env matching: #{name}"
   end
 end
 
+# build the manifests
+[:commands, :tasks].each do |manifest_key|
+  env.send(manifest_key).build_all
+end
+
+# build the summary
 summary = env.inspect(template, :width => 10) do |templater, globals|
   current = templater.env
   manifests = []
   templater.manifests = manifests
   next unless filter.include?(current)
   
+  # determine the width of the keys
   width = globals[:width]
   env_key = env_keys[current]
   templater.env_key = env_key
   width = env_key.length if width < env_key.length
   
-  envs[current].each_pair do |manifest_key, manifest|
-    entries = manifest.minimap.collect do |key, entry|
-      path = case entry
-      when Tap::Env::Constant
+  # build up the entries for each type of resource
+  current.registry.to_a.sort_by do |(type, entries)|
+    type.to_s
+  end.each do |type, entries|
+    next if entries.empty?
+    
+    entries = entries.minimap.collect do |key, entry|
+      path = if entry.kind_of?(Tap::Env::Constant)
         entry.require_path
       else
         entry
@@ -85,8 +77,8 @@ summary = env.inspect(template, :width => 10) do |templater, globals|
       [key, current.root.relative_path(:root, path) || path]
     end
     
-    manifests << [manifest_key, entries]
-  end if envs.has_key?(current)
+    manifests << [type, entries]
+  end
   
   globals[:width] = width
 end

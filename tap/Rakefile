@@ -111,6 +111,7 @@ desc 'Run tests.'
 task :test => %w{
   test:tap
   test:doc
+  test:cmd
 }
 
 namespace :test do
