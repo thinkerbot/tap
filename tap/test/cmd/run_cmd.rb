@@ -26,6 +26,13 @@ class RunDoc < Test::Unit::TestCase
     /usage: tap run/
   end
   
+  def test_run_prints_task_help
+    sh_match "% tap run -- dump --help", 
+    /Tap::Dump -- the default dump task/,
+    /usage: tap run -- tap\/dump INPUT/,
+    /--output OUTPUT              The dump target file/
+  end
+  
   #
   # error cases
   #
