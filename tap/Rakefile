@@ -110,7 +110,7 @@ end
 desc 'Run tests.'
 task :test => %w{
   test:tap
-  
+  test:doc
 }
 
 namespace :test do
@@ -158,7 +158,10 @@ namespace :test do
   task(:benchmark) { test Dir["test/benchmark/**/*_benchmark.rb"] }
   
   desc 'run documentation tests'
-  task(:doc) { test Dir["test/doc/**/readme_doc.rb"] }
+  task(:doc) { test Dir["test/doc/**/*_doc.rb"] }
+  
+  desc 'run cmd tests'
+  task(:cmd) { test Dir["test/cmd/**/*_cmd.rb"] }
   
   desc "Run specs."
   task(:spec) do

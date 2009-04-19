@@ -8,16 +8,16 @@ module Tap
   # ::join
   class Join
     class << self
-      def parse(argv=ARGV)
-        parse!(argv.dup)
+      def parse(argv=ARGV, app=Tap::App.instance)
+        parse!(argv.dup, app)
       end
       
-      def parse!(argv=ARGV)
-        instantiate :config => parse_modifier(argv.shift)
+      def parse!(argv=ARGV, app=Tap::App.instance)
+        instantiate({:config => parse_modifier(argv.shift)}, app)
       end
       
-      def instantiate(argh)
-        new(argh[:config] || {})
+      def instantiate(argh, app=Tap::App.instance)
+        new(argh[:config] || {}, app)
       end
       
       # Parses a modifier string into configurations.  Raises an error

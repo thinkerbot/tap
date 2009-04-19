@@ -1,7 +1,0 @@
-before: |-
-  puts "before line one"
-  puts "before line two"
-  
-after: |-
-  puts "after line one"
-  puts "after line two"

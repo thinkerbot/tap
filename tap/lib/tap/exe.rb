@@ -103,7 +103,7 @@ module Tap
       {:task => tasks, :join => joins}
     end
     
-    def build(schema, manifests=self.manifests)
+    def build(schema, app=Tap::App.instance, manifests=self.manifests)
       schema.build do |type, metadata|
         key = case metadata
         when Array
@@ -119,8 +119,8 @@ module Tap
         klass    = manifest[key] or raise "unknown #{type}: #{key}"
         
         case metadata
-        when Array then klass.parse!(metadata)
-        when Hash  then klass.instantiate(metadata)
+        when Array then klass.parse!(metadata, app)
+        when Hash  then klass.instantiate(metadata, app)
         end
       end
     end

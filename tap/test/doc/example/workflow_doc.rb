@@ -45,4 +45,15 @@ class WorkflowDoc < Test::Unit::TestCase
     cmd = "% tap run -- load goodnight -- load moon -- dump --[0,1][2].sync".sub(CMD_PATTERN, CMD)
     assert_equal "goodnightmoon\n", sh(cmd)
   end
+  
+  # === Multiple Rounds
+  #   % tap run -- load hello --+ load goodnight -- load moon -- dump --[0,1,2][3]
+  #   hello
+  #   moon
+  #   goodnight
+  def test_multiple_rounds
+    cmd = "% tap run -- load hello --+ load goodnight -- load moon -- dump --[0,1,2][3]".sub(CMD_PATTERN, CMD)
+    assert_equal "hello\nmoon\ngoodnight\n", sh(cmd)
+  end
+  
 end

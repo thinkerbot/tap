@@ -11,6 +11,11 @@ module Doctest
     "'#{TAP_ROOT}/bin/tap'"
   ].join(" ")
   
+  def setup
+    super
+    puts method_name if ENV['VERBOSE'] == 'true'
+  end
+  
   def path(path)
     if RUBY_PLATFORM =~ /mswin/
       File.expand_path(path).gsub("/", "\\")
@@ -41,8 +46,8 @@ module Doctest
     result = sh(CMD + $1)
     finish = Time.now
     
-    assert_equal $2, result, CMD_PATTERN + $1
-    puts "(#{finish-start}s) #{CMD_PATTERN + $1}" if ENV['VERBOSE'] == 'true'
+    assert_equal $2, result, CMD + $1
+    puts "  (#{time(start, finish)}s) #{CMD_PATTERN + $1}" if ENV['VERBOSE'] == 'true'
   end
   
   def sh_match(cmd, *regexps)
@@ -57,6 +62,10 @@ module Doctest
     regexps.each do |regexp|
       assert_match regexp, result, CMD_PATTERN + $1
     end
-    puts "(#{finish-start}s) #{CMD_PATTERN + $1}" if ENV['VERBOSE'] == 'true'
+    puts "  (#{time(start, finish)}s) #{CMD_PATTERN + $1}" if ENV['VERBOSE'] == 'true'
+  end
+  
+  def time(start, finish)
+    "%.3f" % [finish-start]
   end
 end unless Object.const_defined?(:Doctest)

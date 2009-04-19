@@ -44,7 +44,7 @@ ConfigParser.new do |opts|
     Tap::App.lazydoc.resolve
     puts Lazydoc.usage(__FILE__)
     puts opts
-    exit
+    exit(0)
   end
   
   opts.on('-T', '--manifest', 'Print a list of available tasks') do
@@ -55,7 +55,7 @@ ConfigParser.new do |opts|
   <%= key.ljust(width) %># <%= const.comment %>
 <% end %>
 }
-    summary = env.tasks.inspect(template, :width => 10, :count => 0) do |templater, globals|
+    summary = env.tasks.inspect(template, :width => 12, :count => 0) do |templater, globals|
       width = globals[:width]
       templater.entries = templater.manifest.minimap.collect! do |key, const|
         width = key.length if width < key.length
@@ -67,14 +67,13 @@ ConfigParser.new do |opts|
     end
     
     puts summary
-    exit
+    exit(0)
   end
   
-  opts.on("-w", "--workflow FILE", "Build the workflow file") do |path|
+  opts.on("-s", "--schema FILE", "Build the schema file") do |path|
     unless File.exists?(path)
-      puts "No such file or directory - #{path}"
-      puts "(did you mean 'tap run -- #{path}'?)"
-      exit
+      puts "No such schema file - #{path}"
+      exit(1)
     end
     
     schemas << Tap::Schema.load_file(path)
@@ -90,11 +89,17 @@ ARGV.replace(argv)
 # build and run
 #
 
-manifests = env.manifests
-schemas.each do |schema|
-  env.build(schema, manifests).each do |queue|
-    app.queue.concat(queue)
+begin
+  manifests = env.manifests
+  schemas.each do |schema|
+    env.build(schema, app, manifests).each do |queue|
+      app.queue.concat(queue)
+    end
   end
+rescue
+  raise if $DEBUG
+  puts $!.message
+  exit(1)
 end
 
 if app.queue.empty?
@@ -102,7 +107,7 @@ if app.queue.empty?
   unless ARGV.empty?
     puts "(did you mean 'tap run -- #{ARGV.join(' ')}'?)"
   end
-  exit
+  exit(1)
 end
 
 env.set_signals(app)
