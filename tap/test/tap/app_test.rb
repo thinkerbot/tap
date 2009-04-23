@@ -81,7 +81,7 @@ class AppTest < Test::Unit::TestCase
   
   def test_node_interns_node_with_block
     n = app.node {|input| input + " was provided" }
-    assert App::Node.node?(n)
+    assert n.kind_of?(App::Node)
     assert_equal "str was provided", n.call("str")
   end
   

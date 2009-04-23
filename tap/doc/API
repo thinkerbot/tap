@@ -35,7 +35,7 @@ Joins are similarly identified, and in other modules so are generators and contr
 Join:: ::join
 Generator:: ::generator
 Controller:: ::controller
-  
+
 In each case the summary and description are available like:
 
   Sample::desc.summary         # => "summary"
@@ -48,20 +48,20 @@ In each case the summary and description are available like:
 Many base classes have a 'global' instance associated with them.  These instances are only for convenience and have no special meaning attributed to them; the can be used or ignored as needed for a specific application.
 
 Env.instance():: Useful for passing environment information from the tap
-               executable to commands.  Env.instance is set by
-               Tap::Exe.setup.
+                 executable to commands.  Env.instance is set by
+                 Tap::Exe.setup.
 App.instance():: Tasks, which require an app, are initialized to this
-               instance unless otherwise specified.
-TaskClass.instance(app):: An alias for app.class_dependency(TaskClass). 
-                          Class dependencies are shared among tasks on a
-                          per-app basis.  This returns the shared dependency
-                          for the specified app.
+                 instance unless otherwise specified.
+TaskClass.instance(app):: 
+                 Initializes or returns an app-specific instance of the 
+                 TaskClass.  Mainly used for class-level dependencies.  
+                 Instances are cached in app.cache.
+                          
 === intern
 
 Many Tap objects differ only by a block.  Intern wrangles a block into objects of a specific type:
 
 Node.intern:: |*inputs|
-Dependency.intern:: ||
 Task.intern(config={}, name=nil, app=App.instance):: |task, *inputs|
 Join.intern(config={}, app=pp.instance):: |join, result|
 

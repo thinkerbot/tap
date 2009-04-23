@@ -32,22 +32,6 @@ module Tap
         obj.instance_variable_set(:@dependencies, [])
       end
       
-      # Returns true if obj satisfies the Node API (node only the existence
-      # of the required methods are checked).
-      def self.node?(obj)
-        obj.respond_to?(:join) && 
-        obj.respond_to?(:dependencies)
-      end
-      
-      # Extends obj with Node unless obj already satisfies the
-      # Node API.  Returns obj.
-      def self.new(obj)
-        unless Node.node?(obj)
-          obj.extend Node
-        end
-        obj
-      end
-      
       # Sets a block as the join for self.
       def on_complete(&block) # :yields: result
         self.join = block

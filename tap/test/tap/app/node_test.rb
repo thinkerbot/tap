@@ -34,24 +34,6 @@ class NodeTest < Test::Unit::TestCase
   end
   
   #
-  # node? tests
-  #
-  
-  def test_node_returns_true_if_obj_satisifies_the_node_API
-    n = Node.intern {}
-    assert Node.node?(n)
-    
-    m = Object.new
-    assert !Node.node?(m)
-    
-    m.extend(Module.new {def join; end})
-    assert !Node.node?(m)
-    
-    m.extend(Module.new {def dependencies; end})
-    assert Node.node?(m)
-  end
-  
-  #
   # on_complete test
   #
   
