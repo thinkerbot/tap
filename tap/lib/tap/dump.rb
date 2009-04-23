@@ -4,15 +4,17 @@ module Tap
 
   # :startdoc::task the default dump task
   #
-  # A dump task to print results to $stdout or a file target.
+  # A dump task to print results to $stdout or a file output.
   #
-  #   % tap run -- [task] --: dump --target FILEPATH
+  #   % tap run -- dump content --output FILEPATH
   #
   # Results that come to dump are appended to the file.  Dump only accepts
-  # one object at a time, so joins that produce an array need to iterate
-  # outputs to dump:
+  # one object at a time, so joins that produce an array (like sync) need
+  # to iterate outputs to dump:
   #
-  #   % tap run -- load hello -- load world "--2(0,1)i" dump 
+  #   % tap run -- load hello -- load world -- dump --[0,1][2]i.sync
+  #   hello
+  #   world
   #
   # Note that dump faciliates normal redirection:
   #
@@ -33,14 +35,6 @@ module Tap
   #       YAML.dump(obj, io)
   #     end
   #   end
-  #
-  # === Implementation Notes
-  #
-  # Dump passes on the command line arguments to setup rather than process.
-  # Moreover, process will always receive the audits passed to _execute, rather
-  # than the audit values. This allows a user to provide setup arguments (such
-  # as a dump path) on the command line, and provides dump the opportunity to
-  # inspect audit trails within process.
   #
   class Dump < Tap::Task
     config :output, $stdout, &c.io(:<<, :puts, :print)   # The dump target file

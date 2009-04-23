@@ -8,27 +8,15 @@ module Tap
   # is typically used as a gateway to other tasks.
   #
   #   % tap run -- load string --: dump
-  #
-  # String is taken literally as the input unless identified as a filepath.
-  # This will load data from FILE.  
-  #
-  #   % tap run -- load FILE --file --: dump
+  #   string
   #
   # Note that load takes $stdin by default, so you can pipe or redirect data
-  # into to a workflow like so:
+  # into to a workflow:
   #
-  #   % echo 'hello' | tap run -- load --: dump --audit
-  #   # audit:
-  #   # o-[tap/load] "hello\n"
-  #   # o-[tap/dump] ["hello\n"]
-  #   #
-  #   hello
+  #   % echo goodnight moon | tap run -- load --: dump
+  #   goodnight moon
   #
-  #   % tap run -- load --: dump --audit < 'somefile.txt'
-  #   # audit:
-  #   # o-[tap/load] "contents of somefile\n"
-  #   # o-[tap/dump] ["contents of somefile\n"]
-  #   #
+  #   % tap run -- load --: dump < somefile.txt
   #   contents of somefile
   #
   # ::task-
