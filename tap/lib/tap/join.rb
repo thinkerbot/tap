@@ -5,7 +5,7 @@ module Tap
     end
   end
   
-  # ::join
+  # ::join simple join
   class Join
     class << self
       def parse(argv=ARGV, app=Tap::App.instance)

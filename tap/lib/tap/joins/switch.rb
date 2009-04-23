@@ -1,9 +1,15 @@
 module Tap
   module Joins
     
-    # ::join
     # A Switch join allows a block to determine which output from an array
     # of outputs will receive the results of the input.
+    #
+    #--
+    # Note that switch is NOT identified as a join that can be created from
+    # the command line.  Switch inherently requires a block to select which
+    # output receives the input, and so cannot be loaded from data alone.
+    #
+    # Switch facilitates in-code switch joins.
     class Switch < Join
       
       # An object responding to call that return the index of the output

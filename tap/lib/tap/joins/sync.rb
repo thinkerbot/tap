@@ -1,7 +1,7 @@
 module Tap
   module Joins
     
-    # ::join
+    # ::join synchronized join
     # Sync works the same as Join, but passes the collected results of the inputs
     # to the outputs. The results will not be passed until results from all of
     # the inputs are available; results are passed in one group.  Similarly, a
