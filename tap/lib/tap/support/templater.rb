@@ -71,11 +71,6 @@ module Tap
           str.split("\n").collect {|line| "# #{line}" }.join("\n")
         end
         
-        # 
-        def natural_path(str)
-          str.empty? ? "." : str
-        end
-        
         # Nest the return of the block in the nesting lines.
         #
         #  nest([["\nmodule Some", "end\n"],["module Nested", "end"]]) { "class Const\nend" }
@@ -126,8 +121,10 @@ module Tap
       end
       
       class << self
-        def build(template,  attributes={})
-          new(template, attributes).build
+        
+        # Builds the erb template with the specified attributes.
+        def build(template,  attributes={}, filename=nil)
+          new(template, attributes, filename).build
         end
       end
       
@@ -168,6 +165,8 @@ module Tap
       end
       
       unless RUBY_VERSION < "1.9"
+        #-- TODO
+        # check if this is still needed...
         def force_encoding(encoding)
           @_erbout.force_encoding(encoding)
           @_erbout

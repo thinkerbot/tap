@@ -218,6 +218,7 @@ module Tap
         "#<#{self.class}:#{object_id} #{const_name}#{@require_path == nil ? "" : " (#{@require_path})"}>"
       end
       
+      # Returns the minikey for self, ie path.
       def minikey
         path
       end
