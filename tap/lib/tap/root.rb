@@ -1,6 +1,5 @@
 require 'configurable'
 require 'tap/root/utils'
-require 'tap/root/string_ext'
 
 module Tap
   
@@ -198,43 +197,6 @@ module Tap
     # resulting path.
     def path(als, *paths)
       File.expand_path(File.join(self[als], *paths))
-    end
-  
-    # Retrieves a path associated with the class of obj, ie:
-    #
-    #   path(als, class_path, *paths)
-    #
-    # The default class_path is 'obj.class.to_s.underscore', but classes
-    # can specify an alternative by providing a class_path method.
-    #
-    # === Superclass Paths
-    #
-    # A block can be provided to search superclasses of obj, to select an
-    # existing file or to ensure the final path points to a directory, for
-    # instance.  The class_path for obj.class is yielded to the block; if the
-    # block returns false then the class_path for obj.class.superclass is
-    # yielded, and so on until the block returns true.
-    #
-    # Returns nil if the block never returns true.
-    #
-    def class_path(als, obj, *paths)
-      current = obj.class
-      path = nil
-      loop do
-        class_path = if current.respond_to?(:class_path)
-          current.class_path
-        else
-          current.to_s.underscore
-        end
-
-        path = path(als, class_path, *paths)
-        break if !block_given? || yield(path)
-        return nil if current == Object
-
-        current = current.superclass
-      end
-
-      path
     end
   
     # Returns true if the path is relative to the specified alias.

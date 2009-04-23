@@ -446,49 +446,6 @@ class RootTest < Test::Unit::TestCase
   end
   
   #
-  # class_path test
-  #
-  
-  class Classpath
-  end
-  
-  def test_class_path_returns_path_for_obj_class
-    assert_equal File.expand_path("./root/dir/object"), r.class_path(:dir, Object.new)
-    assert_equal File.expand_path("./root/dir/object/path"), r.class_path(:dir, Object.new, "path")
-    assert_equal File.expand_path("./root/dir/root_test/classpath/path"), r.class_path(:dir, Classpath.new, "path")
-  end
-  
-  def test_class_path_seeks_up_class_hierarchy_while_block_returns_false
-    paths = []
-    r.class_path(:dir, Classpath.new, "path") {|path| paths << path; false }
-  
-    assert_equal [
-      File.expand_path("./root/dir/root_test/classpath/path"),
-      File.expand_path("./root/dir/object/path")
-    ], paths
-  end
-  
-  def test_class_path_stops_seeking_when_block_returns_true
-    assert_equal File.expand_path("./root/dir/object/path"), r.class_path(:dir, Object.new, "path") {|path| true }
-    assert_equal File.expand_path("./root/dir/root_test/classpath/path"), r.class_path(:dir, Classpath.new, "path") {|path| true }
-  end
-  
-  def test_class_path_returns_nil_if_block_never_returns_true
-    assert_equal nil, r.class_path(:dir, Object.new, "path") {|path| false }
-    assert_equal nil, r.class_path(:dir, Classpath.new, "path") {|path| false }
-  end
-  
-  class ClassWithClasspath
-    def self.class_path
-      "alt"
-    end
-  end
-  
-  def test_class_path_uses_class_class_path_if_specified
-    assert_equal File.expand_path("./root/dir/alt/path"), r.class_path(:dir, ClassWithClasspath.new, "path")
-  end
-  
-  #
   # relative path tests
   #
   

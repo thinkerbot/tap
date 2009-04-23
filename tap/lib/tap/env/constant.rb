@@ -1,4 +1,4 @@
-require 'tap/root/string_ext'
+require 'tap/env/string_ext'
 
 module Tap
   class Env
