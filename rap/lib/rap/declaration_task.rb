@@ -7,7 +7,7 @@ module Rap
   
   # DeclarationTasks are a singleton version of tasks.  DeclarationTasks only
   # have one instance (DeclarationTask.instance) and the instance is
-  # registered as a dependency, so it will only execute once.
+  # constructed so it will only execute once.
   class DeclarationTask < Tap::Task
     class << self
       attr_writer :actions
@@ -72,13 +72,38 @@ module Rap
         
         subclass
       end
-      
-      private
-      
-      # overridden to provide self as the declaration_class
-      def declaration_class # :nodoc:
-        self
+    end
+    
+    # The result of self, set by call.
+    attr_reader :result
+    
+    def initialize(config={}, name=nil, app=Tap::App.instance)
+      super
+      @resolved = false
+      @result = nil
+    end
+    
+    # Conditional call to the super call; only calls once.  Note that call
+    # does not take any inputs, and neither should the super call.
+    #
+    # Returns result.
+    def call
+      unless @resolved
+        @resolved = true
+        @result = super
       end
+      result
+    end
+    
+    # Returns true if already resolved by call.
+    def resolved?
+      @resolved
+    end
+    
+    # Resets self so call will call again.  Also sets result to nil.
+    def reset
+      @resolved = false
+      @result = nil
     end
     
     # Collects the inputs into an OpenStruct according to the class arg_names,

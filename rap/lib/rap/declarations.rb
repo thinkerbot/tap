@@ -1,5 +1,4 @@
 require 'rap/declaration_task'
-require 'tap/support/shell_utils'
 
 module Rap
   
@@ -12,9 +11,9 @@ module Rap
   # VERY important to realize this is the case both to aid in thing like
   # testing and to prevent namespace conflicts.  For example:
   #
-  #   Rap.task(:sample)              # => Sample.instance
+  #   Rap.task(:sample)                  # => Sample.instance
   #   Rap.namespace(:nested) do
-  #     Rap.task(:sample)            # => Nested::Sample.instance
+  #     Rap.task(:sample)                # => Nested::Sample.instance
   #   end
   #
   # Normally all declared tasks are subclasses of DeclarationTask.  An easy
@@ -30,9 +29,9 @@ module Rap
   #
   #   desc "task one, a subclass of DeclarationTask"
   #   o = Rap.task(:one)
-  #   o.class                          # => One
-  #   o.class.superclass               # => DeclarationTask
-  #   o.class.manifest.desc            # => "task one, a subclass of DeclarationTask"
+  #   o.class                            # => One
+  #   o.class.superclass                 # => DeclarationTask
+  #   o.class.desc.to_s                  # => "task one, a subclass of DeclarationTask"
   #
   #   namespace(:nest) do
   #
@@ -40,14 +39,12 @@ module Rap
   #     t = Alt.declare(:two)
   #     t.class                          # => Nest::Two
   #     t.class.superclass               # => Alt
-  #     t.class.manifest.desc            # => "task two, a nested subclass of Alt"
+  #     t.class.desc.to_s                # => "task two, a nested subclass of Alt"
   #   
   #   end
   #
   # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for usage.
   module Declarations
-    include Tap::Support::ShellUtils
-    
     # The environment in which declared task classes are registered.
     # By default the Tap::Env for Dir.pwd.
     def Declarations.env() @@env ||= Tap::Env.instance; end
@@ -69,7 +66,7 @@ module Rap
     @@current_desc = nil
     
     def Declarations.instance(tasc)
-      Declarations.app.class_dependency(tasc)
+      tasc.instance(Declarations.app)
     end
     
     # Declares a task with a rake-like syntax.  Task generates a subclass of
@@ -82,23 +79,25 @@ module Rap
       
       # generate the task class
       const_name = File.join(@@current_namespace, name.to_s).camelize
-      task_class = declaration_class.subclass(const_name, configs, dependencies)
-      register task_class
+      tasc = declaration_class.subclass(const_name, configs, dependencies)
+      register tasc
       
       # register documentation        
-      manifest = Lazydoc.register_caller(Description)
-      manifest.desc = @@current_desc
+      desc = Lazydoc.register_caller(Description)
+      desc.desc = @@current_desc
       @@current_desc = nil
       
-      task_class.arg_names = arg_names
-      task_class.manifest = manifest
-      task_class.source_file = manifest.document.source_file
+      tasc.arg_names = arg_names
+      tasc.desc = desc
+      tasc.source_file = desc.document.source_file
       
       # add the action
-      task_class.actions << action if action
+      tasc.actions << action if action
       
       # return the instance
-      Declarations.app.class_dependency(task_class)
+      instance = Declarations.instance(tasc)
+      instance.config.bind(instance, true)
+      instance
     end
     
     # Nests tasks within the named module for the duration of the block.
@@ -115,6 +114,20 @@ module Rap
       @@current_desc = str
     end
     
+    # Run the system command +cmd+, passing the result to the block, if given.
+    # Raises an error if the command fails. Uses the same semantics as 
+    # Kernel::exec and Kernel::system.
+    #
+    # Based on FileUtils#sh from Rake.
+    def sh(*cmd) # :yields: ok, status
+      ok = system(*cmd)
+
+      if block_given?
+        yield(ok, $?)
+      else
+        ok or raise "Command failed with status (#{$?.exitstatus}): [#{ cmd.join(' ')}]"
+      end
+    end
     private
     
     # A helper to resolve the arguments for a task; returns the array
@@ -208,13 +221,25 @@ module Rap
   
   class DeclarationTask
     class << self
+      alias original_desc desc
       include Declarations
-      
+
       # alias task as declare, so that DeclarationTask and subclasses
       # may directly declare subclasses of themselves
-      
+
       alias declare task
       private :task, :desc, :namespace
+      
+      undef_method :desc
+      alias desc original_desc
+      private :task, :namespace
+      
+      private
+      
+      # overridden to provide self as the declaration_class
+      def declaration_class # :nodoc:
+        self
+      end
     end
   end
   

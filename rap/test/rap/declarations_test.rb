@@ -10,7 +10,7 @@ class DeclarationsTest < Test::Unit::TestCase
   include Rap::Declarations
   
   def setup
-    Rap::Declarations.env = Tap::Env.new.reconfigure(:load_paths => [], :command_paths => [], :generator_paths => [])
+    Rap::Declarations.env = Tap::Env.new
     Rap::Declarations.app = Tap::App.new
   end
   
@@ -42,7 +42,7 @@ class DeclarationsTest < Test::Unit::TestCase
     o = Rap.task(:one)
     assert_equal One, o.class
     assert_equal Rap::DeclarationTask, o.class.superclass
-    assert_equal "task one, a subclass of DeclarationTask", o.class.manifest.desc
+    assert_equal "task one, a subclass of DeclarationTask", o.class.desc.to_s
     
     was_in_block = false
     namespace(:nest) do
@@ -51,7 +51,7 @@ class DeclarationsTest < Test::Unit::TestCase
       t = Alt.declare(:two)
       assert_equal Nest::Two, t.class
       assert_equal Alt, t.class.superclass
-      assert_equal "task two, a nested subclass of Alt", t.class.manifest.desc
+      assert_equal "task two, a nested subclass of Alt", t.class.desc.to_s
       
       was_in_block = true
     end
@@ -77,6 +77,25 @@ class DeclarationsTest < Test::Unit::TestCase
     assert Rap.respond_to?(:desc)
     assert Rap.respond_to?(:task)
     assert Rap.respond_to?(:sh)
+  end
+  
+  def test_declaration_API_is_hidden_on_DeclarationTask
+    assert !Rap::DeclarationTask.respond_to?(:namespace)
+    assert Rap::DeclarationTask.respond_to?(:desc)
+    assert Rap::DeclarationTask.desc.kind_of?(Lazydoc::Comment)
+    assert !Rap::DeclarationTask.respond_to?(:register)
+  end
+  
+  #
+  # declare test
+  #
+  
+  class DeclarationSubclass < Rap::DeclarationTask
+  end
+  
+  def test_declare_returns_a_subclass_of_self
+    assert_equal Rap::DeclarationTask, Rap::DeclarationTask.declare(:task0).class.superclass
+    assert_equal DeclarationSubclass, DeclarationSubclass.declare(:task1).class.superclass
   end
   
   #
@@ -205,8 +224,8 @@ class DeclarationsTest < Test::Unit::TestCase
     task(:task0 => Tap::Task)
     assert_equal [Tap::Task], Task0.dependencies
     
-    instance = task(:task1 => [Tap::Task, Tap::FileTask])
-    assert_equal [Tap::Task, Tap::FileTask], Task1.dependencies
+    instance = task(:task1 => [Tap::Task, Rap::DeclarationTask])
+    assert_equal [Tap::Task, Rap::DeclarationTask], Task1.dependencies
   end
   
   def test_undefined_dependencies_are_resolved_into_tasks_using_declare
@@ -236,17 +255,17 @@ class DeclarationsTest < Test::Unit::TestCase
     task(:task0)
   
     Lazydoc[__FILE__].resolved = false
-    assert_equal Rap::Description, Task0.manifest.class
-    assert_equal "summary", Task0.manifest.to_s
-    assert_equal "a multiline comment", Task0.manifest.comment
+    assert_equal Rap::Description, Task0.desc.class
+    assert_equal "summary", Task0.desc.to_s
+    assert_equal "a multiline comment", Task0.desc.comment
   
     # a comment with no
     # description
     task(:task1)
   
     Lazydoc[__FILE__].resolved = false
-    assert_equal "", Task1.manifest.to_s
-    assert_equal "a comment with no description", Task1.manifest.comment
+    assert_equal "", Task1.desc.to_s
+    assert_equal "a comment with no description", Task1.desc.comment
   end
   
   def test_multiple_calls_to_task_reassigns_documentation
@@ -259,9 +278,9 @@ class DeclarationsTest < Test::Unit::TestCase
     task(:task0)
   
     Lazydoc[__FILE__].resolved = false
-    assert_equal Rap::Description, Task0.manifest.class
-    assert_equal "new summary", Task0.manifest.to_s
-    assert_equal "new comment", Task0.manifest.comment
+    assert_equal Rap::Description, Task0.desc.class
+    assert_equal "new summary", Task0.desc.to_s
+    assert_equal "new comment", Task0.desc.comment
   end
   
   #

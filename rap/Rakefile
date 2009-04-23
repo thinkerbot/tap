@@ -82,38 +82,25 @@ end
 desc 'Default: Run tests.'
 task :default => :test
 
-desc 'Run tests.'
-Rake::TestTask.new(:test) do |t|
-  t.libs = ['lib']
+def test(tests)
+  libs = ['lib']
   unless ENV['gems']
-    t.libs << '../lazydoc/lib'
-    t.libs << '../configurable/lib'
-    t.libs << '../tap/lib'
-    t.libs << '../tap-test/lib'
+    libs << '../lazydoc/lib'
+    libs << '../configurable/lib'
+    libs << '../tap/lib'
+    libs << '../tap-test/lib'
   end
   
-  t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') ).delete_if do |filename|
-    filename =~ /test\/check/ || filename =~ /test\/cmd\/.*\// || filename =~ /test\/functional\/.*/
-  end
-  
-  t.verbose = true
-  t.warning = true
+  libs.collect! {|lib| ['-I', lib] }
+  cmd = ['ruby', "-w"] + libs.flatten + ["-e", "ARGV.each {|test| load test}"] + tests
+  sh(*cmd)
 end
 
+desc 'Run tests.'
+task :test => %w{
+}
+
 namespace :test do
-  desc 'Run functional tests.'
-  task(:functional) do
-    failures = []
-    Dir.glob('test/functional/*_test.rb').each do |path|
-      begin
-        sh('ruby', "-w", path)
-      rescue(Exception)
-        failures << path
-      end
-    end
-    
-    unless failures.empty?
-      puts "\nFailures (#{failures.length}):\n#{failures.join("\n")}"
-    end
-  end
+  desc 'run app tests'
+  task(:rap) { test Dir["test/rap/**/*_test.rb"] }
 end

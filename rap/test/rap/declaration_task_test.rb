@@ -1,40 +1,14 @@
 require File.join(File.dirname(__FILE__), '../rap_test_helper')
-require 'rap/declarations'
+require 'rap/declaration_task'
 
 class DeclarationTaskTest < Test::Unit::TestCase
   include Rap
-  
-  def setup
-    Rap::Declarations.env = Tap::Env.new
-  end
   
   def teardown
     0.upto(3) do |n|    
       const_name = "Task#{n}".to_sym
       Object.send(:remove_const, const_name) if Object.const_defined?(const_name)
     end
-  end
-  
-  #
-  # interface tests
-  #
-  
-  def test_declaration_API_is_hidden_on_declaration_tasks
-    assert !DeclarationTask.respond_to?(:namespace)
-    assert !DeclarationTask.respond_to?(:desc)
-    assert !DeclarationTask.respond_to?(:register)
-  end
-  
-  #
-  # declare test
-  #
-  
-  class DeclarationSubclass < DeclarationTask
-  end
-  
-  def test_declare_returns_a_subclass_of_self
-    assert_equal DeclarationTask, DeclarationTask.declare(:task0).class.superclass
-    assert_equal DeclarationSubclass, DeclarationSubclass.declare(:task1).class.superclass
   end
   
   #
