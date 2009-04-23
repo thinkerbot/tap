@@ -49,6 +49,8 @@ module Tap
     # The basename for dynamically loading configurations.  See new.
     attr_reader :basename
     
+    # A cache of data internally used for optimization and to prevent infinite
+    # loops for nested envs.  Not recommended for casual use.
     attr_reader :cache
     
     # The Root directory structure for self.
@@ -62,7 +64,7 @@ module Tap
       input = yaml_load(input) if input.kind_of?(String)
       
       specs = case input
-      when false, :NONE, :none
+      when false, nil, :NONE, :none
         []
       when :LATEST, :ALL
         # latest and all, no filter
@@ -305,10 +307,6 @@ module Tap
     
     protected
     
-    def yaml_load(str) # :nodoc:
-      str.empty? ? false : YAML.load(str) 
-    end
-    
     # returns the env cached for path, if it exists (used to prevent infinite nests)
     def cached_env(path) # :nodoc:
       (cache[:env] ||= []).find {|env| env.path == path }
@@ -368,6 +366,14 @@ module Tap
       end
     
       visited
+    end
+    
+    private
+    
+    # A 'quick' yaml load where empty strings will not cause YAML to autoload.
+    # This is a silly song and dance, but provides for optimal launch times.
+    def yaml_load(str) # :nodoc:
+      str.empty? ? false : YAML.load(str) 
     end
     
     # Raised when there is a configuration error from Env.load_config.

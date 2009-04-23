@@ -126,7 +126,8 @@ module Tap
     # The application queue
     attr_reader :queue
     
-    # A cache of application-specific data
+    # A cache of application-specific data.  Internally used to store class
+    # instances of tasks.  Not recommended for casual use.
     attr_reader :cache
     
     # The default_join for nodes that have no join set

@@ -42,7 +42,7 @@ module Tap
         @built = true
       end
       
-      def scan(dir, path)
+      def scan(dir, path, key="[a-z]+")
         # determine the default constant name for the path;
         # this is used when no const_name is specified for
         # a constant attribute
@@ -61,7 +61,7 @@ module Tap
         
         # scan for all constant attributes
         const_names = {}
-        Lazydoc::Document.scan(File.read(path), "[a-z]+") do |const_name, key, value|
+        Lazydoc::Document.scan(File.read(path), key) do |const_name, key, value|
           if const_name.empty?
             const_name = default_const_name
           end

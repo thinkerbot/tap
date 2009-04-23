@@ -19,7 +19,7 @@ require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 #
 
 begin
-  env = Tap::Exe.setup
+  exe = Tap::Exe.setup
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
@@ -31,14 +31,15 @@ end
 # run tap
 #
 
-env.run(ARGV) do
+exe.run(ARGV) do
   template = %Q{<% unless entries.empty? || count <= 1 %>
 <%= env_key %>:
 <% end %>
 <% entries.each do |key, path| %>
   <%= key.ljust(width) %>
 <% end %>}
-  commands = env.commands.inspect(template,
+
+  commands = exe.commands.inspect(template,
     :count => 0,
     :width => 10
   ) do |templater, globals|
