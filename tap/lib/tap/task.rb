@@ -272,8 +272,8 @@ module Tap
       
       # Sets a class-level dependency; when task class B depends_on another
       # task class A, instances of B are initialized to depend on a shared
-      # instance of A.  The shared instance is stored in app.dependencies,
-      # and is specific to an app.
+      # instance of A.  The shared instance is specific to an app and can
+      # be accessed through app.class_dependency(dependency_class).
       #
       # If a non-nil name is specified, depends_on will create a reader of 
       # the resolved dependency result.
@@ -419,8 +419,14 @@ module Tap
     # [depreciated] manifest will be removed at 1.0
     lazy_attr :manifest
     def self.desc
-      comment = const_attrs['task'] ||= const_attrs['manifest'] ||= Lazydoc::Subject.new(nil, lazydoc)
+      comment = const_attrs['task'] ||= self.manifest
       comment.kind_of?(Lazydoc::Comment) ? comment.resolve : comment
+    end
+    def self.manifest
+      # :::-
+      #"warn manifest is depreciated, use ::task instead"
+      # :::+
+      const_attrs['manifest'] ||= Lazydoc::Subject.new(nil, lazydoc)
     end
     ###############################################################
     

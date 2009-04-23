@@ -20,9 +20,6 @@ Gem::Specification.new do |s|
     History
     doc/API
     doc/Class\sReference
-    doc/Command\sReference
-    doc/Syntax\sReference
-    doc/Tutorial
     doc/Examples/Command\sLine
     doc/Examples/Workflow}
   
@@ -35,6 +32,7 @@ Gem::Specification.new do |s|
     lib/tap/app/dependency.rb
     lib/tap/app/node.rb
     lib/tap/app/queue.rb
+    lib/tap/app/stack.rb
     lib/tap/app/state.rb
     lib/tap/app/tracer.rb
     lib/tap/constants.rb
@@ -45,6 +43,7 @@ Gem::Specification.new do |s|
     lib/tap/env/gems.rb
     lib/tap/env/manifest.rb
     lib/tap/env/minimap.rb
+    lib/tap/env/string_ext.rb
     lib/tap/exe.rb
     lib/tap/join.rb
     lib/tap/joins.rb
@@ -58,7 +57,6 @@ Gem::Specification.new do |s|
     lib/tap/schema/node.rb
     lib/tap/schema/parser.rb
     lib/tap/support/intern.rb
-    lib/tap/root/string_ext.rb
     lib/tap/support/templater.rb
     lib/tap/task.rb
     }
