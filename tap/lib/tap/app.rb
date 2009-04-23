@@ -1,5 +1,6 @@
 require 'logger'
 require 'tap/app/state'
+require 'tap/app/stack'
 require 'tap/app/queue'
 require 'tap/app/dependency'
 
@@ -14,83 +15,78 @@ module Tap
   #
   # Tasks may be enqued and run by an App:
   #
-  #   app = App.instance
-  #
-  #   t = Task.intern {|task, *inputs| inputs }
+  #   app = Tap::App.new
+  #   t = app.task {|task, *inputs| inputs }
   #   t.enq('a', 'b', 'c')
   #   t.enq(1)
   #   t.enq(2)
   #   t.enq(3)
   #
+  #   results = []
+  #   app.on_complete {|result| results << result }
+  #
   #   app.run
-  #   app.results(t)                 # => [['a', 'b', 'c'], [1], [2], [3]]
+  #   results                        # => [['a', 'b', 'c'], [1], [2], [3]]
   #
-  # By default apps simply run tasks and collect the results.  To construct
-  # a workflow, set an on_complete block to receive the audited result and
-  # enque or execute the next series of tasks.  Here is a simple sequence:
+  # To construct a workflow, set joins for individual tasks.  When a task
+  # completes, it calls its join with its result.  If no join is set, the
+  # result goes to the default join for the app (ie the on_complete block
+  # as set above).  Here is a simple sequence:
   #
-  #   t0 = Task.intern {|task| "0" }
-  #   t1 = Task.intern {|task, input| "#{input}:1" }
-  #   t2 = Task.intern {|task, input| "#{input}:2"}
+  #   t0 = app.task {|task| "a" }
+  #   t1 = app.task {|task, input| "#{input}.b" }
+  #   t2 = app.task {|task, input| "#{input}.c"}
   #
-  #   t0.on_complete {|_result| t1.enq(_result) }
-  #   t1.on_complete {|_result| t2.enq(_result) }
-  #   
+  #   t0.sequence(t1,t2)
   #   t0.enq
+  #
+  #   results.clear
   #   app.run
-  #   app.results(t0, t1)            # => []
-  #   app.results(t2)                # => ["0:1:2"]
+  #   results                        # => ["a.b.c"]
   #
-  # Apps may be assigned an on_complete block as well; the app on_complete
-  # block is called when a task has no on_complete block set.  If neither the
-  # task nor the app has an on_complete block, the app stores the audit in
-  # app.aggregator and makes it available through app.results.  Note how after
-  # the sequence, the t0 and t1 results are not in the app (they were handled
-  # by the on_complete block).
+  # Apps allow middleware to help track the progress of a workflow, and to
+  # implement other functionality that needs to wrap each task.  Middleware
+  # is initialized with the application stack and should call the stack
+  # within it's call method.
   #
-  # Tracking how inputs evolve through a workflow can be onerous.  To help,
-  # Tap audits changes to the inputs.  Audit values are by convention prefixed
-  # by an underscore; all on_complete block receive the audited values and not
-  # the actual result of a task.  Aggregated audits are available through
-  # app._results.
+  #   class AuditMiddleware
+  #     attr_reader :stack, :audit
   #
-  #   t2.enq("a")
-  #   t1.enq("b")
-  #   app.run
-  #   app.results(t2)                # => ["0:1:2", "a:2", "b:1:2"]
-  # 
-  #   t0.name = "zero"
-  #   t1.name = "one"
-  #   t2.name = "two"
+  #     def initialize(stack)
+  #       @stack = stack
+  #       @audit = []
+  #     end
   #
-  #   trails = app._results(t2).collect do |_result|
-  #     _result.dump
+  #     def call(node, inputs=[])
+  #       audit << node
+  #       stack.call(node, inputs)
+  #     end
   #   end
   #
-  #   "\n" + trails.join("\n")
-  #   # => %q{
-  #   # o-[zero] "0"
-  #   # o-[one] "0:1"
-  #   # o-[two] "0:1:2"
-  #   # 
-  #   # o-[] "a"
-  #   # o-[two] "a:2"
-  #   # 
-  #   # o-[] "b"
-  #   # o-[one] "b:1"
-  #   # o-[two] "b:1:2"
-  #   # }
+  #   auditor = app.use AuditMiddleware
   #
-  # See Audit for more details.
+  #   t0.enq
+  #   t2.enq("x")
+  #   t1.enq("y")
   #
+  #   results.clear
+  #   app.run
+  #   results                        # => ["a.b.c", "x.c", "y.b.c"]
+  #   auditor.audit                  
+  #   # => [
+  #   # t0, t1, t2, 
+  #   # t2,
+  #   # t1, t2
+  #   # ]
+  # 
   # === Dependencies
   #
-  # Tasks allow the construction of dependency-based workflows.  A dependent
-  # task only executes after its dependencies have been resolved.
+  # Tasks allow the construction of dependency-based workflows.  A task only
+  # executes after its dependencies have been resolved.
   #
   #   runlist = []
-  #   t0 = Task.intern {|task| runlist << task }
-  #   t1 = Task.intern {|task| runlist << task }
+  #   t0 = app.task {|task| runlist << task }
+  #   t1 = app.task {|task| runlist << task }
   #
   #   t0.depends_on(t1)
   #   t0.enq
@@ -98,27 +94,12 @@ module Tap
   #   app.run
   #   runlist                        # => [t1, t0]
   #
-  # Once a dependency is resolved, it will not execute again:
+  # Once a dependency is resolved, it will not execute again (unless it is
+  # reset):
   #
   #   t0.enq
   #   app.run
   #   runlist                        # => [t1, t0, t0]
-  #
-  # === Nodes
-  #
-  # App can enque and run any Node object. Arbitrary methods may be
-  # made into Nodes using Object#_method.
-  #
-  #   array = []
-  #
-  #   m = array._method(:push)
-  #   m.enq(1)
-  #   m.enq(2)
-  #   m.enq(3)
-  #
-  #   array.empty?                   # => true
-  #   app.run
-  #   array                          # => [1, 2, 3]
   #
   class App
     class << self
@@ -141,11 +122,6 @@ module Tap
     DEFAULT_LOGGER.formatter = lambda do |severity, time, progname, msg|
       "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
     end
-    
-    stack = lambda {|node, inputs| node.call(*inputs) }
-    # The default stack, which simply calls node with the splat inputs
-    # (ie node.call(*inputs)).
-    STACK = stack
     
     # The state of the application (see App::State)
     attr_reader :state
@@ -171,18 +147,18 @@ module Tap
     config :verbose, false, &c.flag               # Enables extra logging (overrides quiet)
     
     # Creates a new App with the given configuration.  
-    def initialize(config={}, logger=DEFAULT_LOGGER, &block)
+    def initialize(config={}, options={}, &block)
       super() # monitor
       
       @state = State::READY
-      @stack = STACK
-      @queue = Queue.new
+      @stack = options[:stack] || Stack.new
+      @queue = options[:queue] || Queue.new
       @class_dependencies = {}
       @trace = []
       on_complete(&block)
       
       initialize_config(config)
-      self.logger = logger
+      self.logger = options[:logger] || DEFAULT_LOGGER
     end
     
     # True if debug or the global variable $DEBUG is true.

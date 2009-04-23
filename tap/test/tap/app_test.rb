@@ -47,7 +47,7 @@ class AppTest < Test::Unit::TestCase
 
     assert_equal(App::Queue, app.queue.class)
     assert app.queue.empty?
-    assert_equal App::STACK, app.stack
+    assert_equal(App::Stack, app.stack.class)
     assert_equal nil, app.default_join
     assert_equal({}, app.class_dependencies)
     assert_equal App::State::READY, app.state
@@ -172,18 +172,18 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_use_initializes_middleware_with_stack_and_sets_result_as_stack
-    assert_equal App::STACK, app.stack
-    
-    app.use(Middleware)
-    assert_equal Middleware, app.stack.class
-    assert_equal App::STACK, app.stack.stack
-    
     stack = app.stack
     
     app.use(Middleware)
     assert_equal Middleware, app.stack.class
     assert_equal stack, app.stack.stack
-    assert_equal App::STACK, app.stack.stack.stack
+    
+    new_stack = app.stack
+    
+    app.use(Middleware)
+    assert_equal Middleware, app.stack.class
+    assert_equal new_stack, app.stack.stack
+    assert_equal stack, app.stack.stack.stack
   end
   
   #
