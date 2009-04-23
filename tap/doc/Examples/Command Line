@@ -1,5 +1,7 @@
 = Command Line Examples
 
+== Basic Input/Output
+
 === Read data from $stdin
   # [goodnight.txt]
   # goodnight moon
@@ -23,4 +25,12 @@
 === Pipe data via $stdout
   % tap run -- load 'goodnight moon' --: dump | more
   goodnight moon
-  
+
+== Setup
+
+=== Use an ENV variable to setup the Tap::Env
+
+  % TAP_GEMS= tap run -T
+  % TAP_GEMS=:all tap run -T
+  % TAP_GEMS=:latest tap run -T
+  % TAP_GEMS="[rap, tap-tasks]" tap run -T

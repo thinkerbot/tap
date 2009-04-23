@@ -5,7 +5,7 @@ module Doctest
   TAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/..")
   CMD_PATTERN = "% tap"
   CMD = [
-    "ruby",
+    "TAP_GEMS= ruby",
     "-I'#{TAP_ROOT}/../configurable/lib'",
     "-I'#{TAP_ROOT}/../lazydoc/lib'",
     "'#{TAP_ROOT}/bin/tap'"

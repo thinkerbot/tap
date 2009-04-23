@@ -19,7 +19,7 @@ require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 #
 
 begin
-  env = Tap::Exe.setup(Dir.pwd, ARGV)
+  env = Tap::Exe.setup
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)

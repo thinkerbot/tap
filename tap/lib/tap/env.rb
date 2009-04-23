@@ -19,6 +19,8 @@ module Tap
       # Loads configurations from path as YAML.  Returns an empty hash if the path
       # loads to nil or false (as happens for empty files), or doesn't exist.
       def load_config(path)
+        return {} unless path
+        
         begin
           Root::Utils.trivial?(path) ? {} : (YAML.load_file(path) || {})
         rescue(Exception)
@@ -57,19 +59,19 @@ module Tap
     # latest version of the gem is selected.  Gems are not activated
     # by Env.
     config_attr :gems, [] do |input|
-      input = YAML.load(input) if input.kind_of?(String)
+      input = yaml_load(input) if input.kind_of?(String)
       
       specs = case input
+      when false, :NONE, :none
+        []
       when :LATEST, :ALL
         # latest and all, no filter
         Gems.select_gems(input == :LATEST)
-        
       when :latest, :all
         # latest and all, filtering by basename
         Gems.select_gems(input == :latest) do |spec|
           basename == nil || File.exists?(File.join(spec.full_gem_path, basename))
         end
-        
       else
         # resolve gem names manually
         [*input].collect do |name|
@@ -303,6 +305,10 @@ module Tap
     
     protected
     
+    def yaml_load(str) # :nodoc:
+      str.empty? ? false : YAML.load(str) 
+    end
+    
     # returns the env cached for path, if it exists (used to prevent infinite nests)
     def cached_env(path) # :nodoc:
       (cache[:env] ||= []).find {|env| env.path == path }
@@ -331,7 +337,7 @@ module Tap
     #   resolve_paths ['lib', nil, 'lib', 'alt]  # => [root['lib'], root['alt']]
     #
     def resolve_paths(paths) # :nodoc:
-      paths = YAML.load(paths) if paths.kind_of?(String)
+      paths = yaml_load(paths) if paths.kind_of?(String)
       [*paths].compact.collect {|path| root[path] }.uniq
     end
   
