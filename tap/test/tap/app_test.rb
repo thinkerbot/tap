@@ -49,7 +49,7 @@ class AppTest < Test::Unit::TestCase
     assert app.queue.empty?
     assert_equal(App::Stack, app.stack.class)
     assert_equal nil, app.default_join
-    assert_equal({}, app.class_dependencies)
+    assert_equal({}, app.cache)
     assert_equal App::State::READY, app.state
   end
   
@@ -73,52 +73,6 @@ class AppTest < Test::Unit::TestCase
     
     app.logger = logger
     assert_equal Logger::DEBUG, logger.level
-  end
-  
-  #
-  # class_dependency test
-  #
-  
-  class ApplicationDependency
-    def self.dependency(app)
-      new(app)
-    end
-    
-    attr_reader :app
-    
-    def initialize(app)
-      @app = app
-    end
-  end
-  
-  def test_class_dependency_returns_or_initializes_instance_of_class
-    assert_equal({}, app.class_dependencies)
-    d = app.class_dependency(ApplicationDependency)
-    
-    assert_equal ApplicationDependency, d.class
-    assert App::Dependency.dependency?(d)
-    assert_equal({ApplicationDependency.to_s => d}, app.class_dependencies)
-    
-    assert_equal d.object_id, app.class_dependency(ApplicationDependency).object_id
-  end
-  
-  def test_initialized_instance_uses_app
-    app = Tap::App.new
-    d = app.class_dependency(ApplicationDependency)
-    assert_equal app, d.app
-  end
-  
-  #
-  # dependency test
-  #
-  
-  def test_dependency_interns_dependency_with_block
-    d = app.dependency { "result" }
-    assert App::Dependency.dependency?(d)
-    
-    assert_equal nil, d.result
-    d.call
-    assert_equal "result", d.result
   end
   
   #
@@ -190,24 +144,7 @@ class AppTest < Test::Unit::TestCase
   # resolve test
   #
   
-  def test_resolve_recursively_resolves_dependencies_of_node
-    n0 = intern {}
-    n1 = intern { 1 }
-    n2 = intern { 2 }
-    
-    n0.depends_on(n1)
-    n1.depends_on(n2)
-    
-    assert_equal nil, n1.result
-    assert_equal nil, n2.result
-    
-    app.resolve(n0)
-    
-    assert_equal 1, n1.result
-    assert_equal 2, n2.result
-  end
-  
-  def test_resolve_resolves_dependencies_only_once
+  def test_resolve_dispatches_dependencies_of_node
     n0 = intern {}
     n1 = intern { runlist << 1 }
     n2 = intern { runlist << 2 }
@@ -221,7 +158,41 @@ class AppTest < Test::Unit::TestCase
     assert_equal [1,3,2], runlist
     
     app.resolve(n0)
-    assert_equal [1,3,2], runlist
+    assert_equal [1,3,2,1,3,2], runlist
+  end
+  
+  def test_resolve_yields_dependencies_to_block_if_given
+    n0 = intern {}
+    n1 = intern {}
+    n2 = intern {}
+    n3 = intern {}
+    
+    n0.depends_on(n1)
+    n0.depends_on(n2)
+    n2.depends_on(n3)
+    
+    dependencies = []
+    app.resolve(n0) do |dependency|
+      dependencies << dependency
+    end
+    assert_equal [n1, n2], dependencies
+  end
+  
+  def test_resolve_recursively_yields_dependencies_to_block_if_specified
+    n0 = intern {}
+    n1 = intern {}
+    n2 = intern {}
+    n3 = intern {}
+    
+    n0.depends_on(n1)
+    n0.depends_on(n2)
+    n2.depends_on(n3)
+    
+    dependencies = []
+    app.resolve(n0, true) do |dependency|
+      dependencies << dependency
+    end
+    assert_equal [n1, n3, n2], dependencies
   end
   
   def test_resolve_raises_error_for_circular_dependencies
@@ -234,44 +205,14 @@ class AppTest < Test::Unit::TestCase
     assert_raises(App::DependencyError) { app.resolve(n0) }
   end
   
-  #
-  # reset test
-  #
-  
-  def test_reset_recursively_resets_dependencies_of_node
+  def test_resolve_raises_error_for_circular_dependencies_via_a_join
     n0 = intern {}
-    n1 = intern { runlist << 1 }
-    n2 = intern { runlist << 2 }
-    n3 = intern { runlist << 3 }
+    n1 = intern {}
     
     n0.depends_on(n1)
-    n0.depends_on(n2)
-    n2.depends_on(n3)
+    n1.on_complete {|r| app.dispatch(n0) }
     
-    app.resolve(n0)
-    assert_equal [1,3,2], runlist
-    
-    app.reset(n0)
-    app.resolve(n0)
-    assert_equal [1,3,2,1,3,2], runlist
-  end
-  
-  def test_reset_only_resets_dependencies_of_current_node_if_recursive_is_false
-    n0 = intern {}
-    n1 = intern { runlist << 1 }
-    n2 = intern { runlist << 2 }
-    n3 = intern { runlist << 3 }
-    
-    n0.depends_on(n1)
-    n0.depends_on(n2)
-    n2.depends_on(n3)
-    
-    app.resolve(n0)
-    assert_equal [1,3,2], runlist
-    
-    app.reset(n0, false)
-    app.resolve(n0)
-    assert_equal [1,3,2,1,2], runlist
+    assert_raises(App::DependencyError) { app.resolve(n0) }
   end
   
   #

@@ -76,11 +76,6 @@ class AppTest < Test::Unit::TestCase
   
     app.run
     assert_equal [t1, t0], runlist
-  
-    # 
-    t0.enq
-    app.run
-    assert_equal [t1, t0, t0], runlist
   end
   
   #

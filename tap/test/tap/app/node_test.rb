@@ -3,8 +3,7 @@ require 'tap/app/node'
 
 class NodeTest < Test::Unit::TestCase
   Node = Tap::App::Node
-  Dependency = Tap::App::Dependency
-  
+
   attr_accessor :m
   
   def setup
@@ -73,42 +72,20 @@ class NodeTest < Test::Unit::TestCase
   # depends_on test
   #
   
-  class DependencyTrace
-    include Tap::App::Node
-    
-    def initialize(trace=[])
-      @trace = trace
-      @join = nil
-      @dependencies = []
-    end
-    
-    def call
-      @trace << self
-    end
-  end
-  
   def test_depends_on_pushes_dependency_onto_dependencies
     m.dependencies << nil
     
-    d1 = DependencyTrace.new
+    d1 = Node.intern {}
     m.depends_on(d1)
     assert_equal [nil, d1], m.dependencies
   end
   
   def test_depends_on_does_not_add_duplicates
-    d1 = DependencyTrace.new
+    d1 = Node.intern {}
     m.dependencies << d1
     
     m.depends_on(d1)
     assert_equal [d1], m.dependencies
-  end
-  
-  def test_depends_on_extends_dependency_with_Dependency
-    d1 = DependencyTrace.new
-    assert !d1.kind_of?(Dependency)
-    
-    m.depends_on(d1)
-    assert d1.kind_of?(Dependency)
   end
   
   def test_depends_on_raises_error_for_self_as_dependency

@@ -396,9 +396,6 @@ class TaskTest < Test::Unit::TestCase
   #
   
   class A < Tap::Task
-    def process
-      "result"
-    end
   end
   
   class B < Tap::Task
@@ -408,19 +405,14 @@ class TaskTest < Test::Unit::TestCase
   def test_depends_on_documentation
     app = Tap::App.new
     b = B.new({}, :name, app)
-    assert_equal [app.class_dependency(A)], b.dependencies
-    assert_equal nil, b.a 
-  
-    app.resolve(b)
-    assert_equal "result", b.a
+    assert_equal [app.cache[A]], b.dependencies
+    assert_equal app.cache[A], b.a 
   end
   
   class DependencyClassOne < Tap::Task
-    def process; 1; end
   end
   
   class DependencyClassTwo < Tap::Task
-    def process; 2; end
   end
   
   class DependentClass < Tap::Task
@@ -432,13 +424,10 @@ class TaskTest < Test::Unit::TestCase
     assert_equal [DependencyClassOne, DependencyClassTwo], DependentClass.dependencies
   end
   
-  def test_depends_on_makes_a_reader_for_the_results_of_the_dependency
+  def test_depends_on_makes_a_reader_for_the_dependency_instance
     d = DependentClass.new
     assert d.respond_to?(:one)
-    
-    assert_equal nil, d.one
-    app.resolve(d)
-    assert_equal 1, d.one
+    assert_equal DependencyClassOne.instance, d.one
   end
   
   def test_depends_on_returns_self

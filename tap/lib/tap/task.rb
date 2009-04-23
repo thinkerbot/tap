@@ -128,12 +128,8 @@ module Tap
       # Sets the class default_name
       attr_writer :default_name
       
-      def dependency(app=Tap::App.instance)
-        new({}, nil, app)
-      end
-      
       def instance(app=Tap::App.instance)
-        app.class_dependency(self)
+        app.cache[self] ||= new({}, nil, app)
       end
       
       # Returns the default name for the class: to_s.underscore
@@ -273,15 +269,12 @@ module Tap
       # Sets a class-level dependency; when task class B depends_on another
       # task class A, instances of B are initialized to depend on a shared
       # instance of A.  The shared instance is specific to an app and can
-      # be accessed through app.class_dependency(dependency_class).
+      # be accessed through app.cache[dependency_class].
       #
       # If a non-nil name is specified, depends_on will create a reader of 
-      # the resolved dependency result.
+      # the dependency instance.
       #
       #   class A < Tap::Task
-      #     def process
-      #       "result"
-      #     end
       #   end
       #
       #   class B < Tap::Task
@@ -290,12 +283,9 @@ module Tap
       #
       #   app = Tap::App.new
       #   b = B.new({}, :name, app)
-      #   b.dependencies           # => [app.dependency(A)]
-      #   b.a                      # => nil
+      #   b.dependencies           # => [app.cache[A]]
+      #   b.a                      # => app.cache[A]
       #
-      #   app.resolve(b)
-      #   b.a                      # => "result"
-      # 
       # Returns self.
       def depends_on(name, dependency_class)
         unless dependencies.include?(dependency_class)
@@ -305,7 +295,7 @@ module Tap
         if name
           # returns the resolved result of the dependency
           define_method(name) do
-            app.class_dependency(dependency_class).result
+            dependency_class.instance(app)
           end
         
           public(name)
@@ -451,7 +441,7 @@ module Tap
       
       # setup class dependencies
       self.class.dependencies.each do |dependency_class|
-        depends_on app.class_dependency(dependency_class)
+        depends_on dependency_class.instance(app)
       end
     end
     

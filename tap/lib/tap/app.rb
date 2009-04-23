@@ -2,7 +2,6 @@ require 'logger'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
-require 'tap/app/dependency'
 
 module Tap
   
@@ -82,7 +81,7 @@ module Tap
   # === Dependencies
   #
   # Tasks allow the construction of dependency-based workflows.  A task only
-  # executes after its dependencies have been resolved.
+  # executes after its dependencies have been resolved (ie executed).
   #
   #   runlist = []
   #   t0 = app.task {|task| runlist << task }
@@ -94,13 +93,8 @@ module Tap
   #   app.run
   #   runlist                        # => [t1, t0]
   #
-  # Once a dependency is resolved, it will not execute again (unless it is
-  # reset):
-  #
-  #   t0.enq
-  #   app.run
-  #   runlist                        # => [t1, t0, t0]
-  #
+  # Dependencies are resolved every time a task executes; individual
+  # dependencies can implement single-execution if desired.
   class App
     class << self
       # Sets the current app instance
@@ -132,8 +126,8 @@ module Tap
     # The application queue
     attr_reader :queue
     
-    # A Dependencies object tracking application-level dependencies
-    attr_reader :class_dependencies
+    # A cache of application-specific data
+    attr_reader :cache
     
     # The default_join for nodes that have no join set
     attr_accessor :default_join
@@ -153,7 +147,7 @@ module Tap
       @state = State::READY
       @stack = options[:stack] || Stack.new
       @queue = options[:queue] || Queue.new
-      @class_dependencies = {}
+      @cache = options[:cahce] || {}
       @trace = []
       on_complete(&block)
       
@@ -182,18 +176,6 @@ module Tap
       logger.add(level, msg, action.to_s) if !quiet || verbose
     end
     
-    # Returns the application-level dependency instance for the specified class.
-    def class_dependency(klass)
-      # note classes are turned to strings to allow 
-      # the keys to be dumped as YAML
-      class_dependencies[klass.to_s] ||= Node.new(Dependency.new(klass.dependency(self)))
-    end
-    
-    # Returns a new dependency that executes block on call.
-    def dependency(&block) # :yields: 
-      Dependency.intern(&block)
-    end
-    
     # Returns a new node that executes block on call.
     def node(&block) # :yields: *inputs
       Node.intern(&block)
@@ -217,22 +199,33 @@ module Tap
       @stack = middleware.new(@stack)
     end
     
-    # Resolves the node dependencies (if necessary).
-    def resolve(node)
+    # Dispatches each dependency of node.  A block can be given to do something
+    # else with the nodes (ex: reset single-execution dependencies).  Resolve
+    # will recursively yield dependencies if specified.
+    #
+    # Resolve raises an error for circular dependencies.
+    def resolve(node, recursive=false, &block)
       node.dependencies.each do |dependency|
-        trace(dependency) do
+        if @trace.include?(dependency)
+          @trace.push dependency
+          raise DependencyError.new(@trace)
+        end
+
+        # mark the results at the index to prevent
+        # infinite loops with circular dependencies
+        @trace.push dependency
+        
+        if recursive
+          resolve(dependency, recursive, &block)
+        end
+        
+        if block_given?
+          yield(dependency)
+        else
           dispatch(dependency)
         end
-      end
-    end
-
-    # Resets the node dependencies.
-    def reset(node, recursive=true)
-      node.dependencies.each do |dependency|
-        trace(dependency) do 
-          dependency.reset
-          reset(dependency, recursive) if recursive
-        end
+        
+        @trace.pop
       end
     end
     
@@ -244,7 +237,7 @@ module Tap
     # Dispatch sends the node into the application stack with the inputs.
     # Dispatch does the following in order:
     #
-    # - resolve node dependencies using resolve
+    # - resolve node dependencies using resolve_dependencies
     # - call stack with the node and inputs
     # - call the node join, if set, or the default_join with the results
     #
@@ -398,20 +391,6 @@ module Tap
     end
     
     protected
-    
-    # helper to check for circular dependencies
-    def trace(node) # :nodoc:
-      if @trace.include?(node)
-        @trace.push node
-        raise DependencyError.new(@trace)
-      end
-      
-      # mark the results at the index to prevent
-      # infinite loops with circular dependencies
-      @trace.push node
-      yield
-      @trace.pop
-    end
     
     # TerminateErrors are raised to kill executing tasks when terminate is 
     # called on an running App.  They are handled by the run rescue code.

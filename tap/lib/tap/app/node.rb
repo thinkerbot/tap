@@ -1,5 +1,3 @@
-require 'tap/app/dependency'
-
 module Tap
   class App
     
@@ -10,7 +8,7 @@ module Tap
     # Tap::App requires Nodes respond to the following methods:
     #
     #   join:: returns an object responding to call(result) or nil
-    #   dependencies:: returns an array of Dependency objects
+    #   dependencies:: returns an array of dependency nodes
     #
     # Node is designed to add this API to any object responding to call.  Node
     # adds additional methods like on_complete that make nodes easy to work
@@ -20,7 +18,7 @@ module Tap
       # The join called when call completes
       attr_accessor :join
       
-      # An array of call dependencies, resolved during App#execute
+      # An array of Node dependencies
       attr_reader :dependencies
       
       # Interns a new Node by extending the block with Node. 
@@ -56,12 +54,12 @@ module Tap
         self
       end
       
-      # Adds the dependency to self.  Dependencies are resolved during
-      # App#execute.
+      # Adds the dependency to self.  Dependencies are resolved by an app
+      # during App#dispatch and must be valid Nodes.
       def depends_on(dependency)
         raise "cannot depend on self" if dependency == self
         unless dependencies.include?(dependency)
-          dependencies << Dependency.new(dependency)
+          dependencies << dependency
         end
         self
       end
