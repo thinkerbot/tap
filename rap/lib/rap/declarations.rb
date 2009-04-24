@@ -80,7 +80,6 @@ module Rap
       # generate the task class
       const_name = File.join(@@current_namespace, name.to_s).camelize
       tasc = declaration_class.subclass(const_name, configs, dependencies)
-      register tasc
       
       # register documentation        
       desc = Lazydoc.register_caller(Description)
@@ -93,6 +92,9 @@ module Rap
       
       # add the action
       tasc.actions << action if action
+      
+      # register
+      register tasc
       
       # return the instance
       instance = Declarations.instance(tasc)
@@ -208,14 +210,19 @@ module Rap
     
     # Registers a task class with the Declarations.env, if necessary.
     # Returns task_class.
-    def register(task_class)
-      tasks = Declarations.env.registered_objects(:task)
-      const_name = task_class.to_s
-      unless tasks.any? {|const| const.const_name == const_name }
-        Declarations.env.register('task', Tap::Env::Constant.new(const_name))
-      end
+    def register(tasc)
+      tasks = Declarations.env.registered_objects('task')
       
-      task_class
+      const_name = tasc.to_s
+      const = tasks.find do |const| 
+        const.const_name == const_name
+      end || Tap::Env::Constant.new(const_name)
+      
+      comment = tasc.desc.to_s
+      const.comment = comment unless comment.empty?
+      Declarations.env.register('task', const)
+      
+      tasc
     end
   end
   

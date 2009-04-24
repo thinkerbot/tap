@@ -147,7 +147,15 @@ module Tap
         end
         
         manifest = manifests[type] or raise "invalid type: #{type.inspect}"
-        klass    = manifest[key] or raise "unknown #{type}: #{key}"
+        klass    = manifest[key]
+        
+        if !klass && block_given?
+          klass = yield(type, key, metadata)
+        end
+        
+        unless klass
+          raise "unknown #{type}: #{key}"
+        end
         
         case metadata
         when Array then klass.parse!(metadata, app)

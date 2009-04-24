@@ -100,7 +100,7 @@ module Tap
       attr_reader :require_path
     
       # An optional comment
-      attr_reader :comment
+      attr_accessor :comment
     
       # Initializes a new Constant with the specified constant name,
       # require_path, and comment.  The const_name should be a valid

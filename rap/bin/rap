@@ -2,20 +2,14 @@
 # usage: rap taskname {options} [args] [-d-]
 
 $:.unshift "#{File.dirname(__FILE__)}/../lib"
+require 'tap'
 require 'rap/declarations'
 
 # setup the environment
 begin
   
-  env = Tap::Exe.setup(ARGV)
+  env = Tap::Exe.setup
   env.unshift(Rap::Declarations.env)
-  
-  Dir.glob('[TtRr]apfile{,.rb}').each do |task_file|
-    task_file  = File.expand_path(task_file)
-    next unless File.file?(task_file)
-    
-    env.loads.unshift(task_file)
-  end
   
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
@@ -25,32 +19,6 @@ rescue(Tap::Env::ConfigError)
 end
 
 #
-# setup after script
-#
-
-at_exit do
-  begin
-    eval(env.after) if env.after != nil
-  rescue(Exception)
-    puts "Error in after script."
-    env.handle_error($!)
-    exit(1)
-  end
-end
-
-#
-# run before script
-#
-
-begin
-  eval(env.before) if env.before != nil
-rescue(Exception)
-  puts "Error in before script."
-  env.handle_error($!)
-  exit(1)
-end 
-
-#
 # run rap
 #
 
@@ -58,58 +26,63 @@ module Rap
   autoload(:Rake, 'rap/rake')
 end
 
-begin
-  env.activate
+Dir.glob('[TtRr]apfile{,.rb}').each do |rapfile|
+  next unless File.file?(rapfile)
+  load rapfile
+end
+
+case ARGV[0]
+when '--help', nil, '-T'
   
-  case ARGV[0]
-  when '--help', nil, '-T'
-    rap_template = %Q{<% if count > 1 && !entries.empty? %>
-<%= env_name %>:
+  # same as normal summarize, but pass over tasks that have no comment
+  summary_template = %Q{<% if !manifest.empty? && count > 1 %>
+<%= env_key %>:
 <% end %>
-<% entries.each do |name, const| %>
-<%   desc = if const.require_path == nil # should be a declaration %>
-<%     manifest = const.constantize.manifest %>
-<%     next if manifest == nil || manifest.empty? %>
-<%     manifest %>
-<%   else %>
-<%     const.document[const.name]['manifest'] %>
-<%   end %>
-  <%= name.ljust(width) %><%= desc.empty? ? '' : '  # ' %><%= desc %>
-<% end %>}
-
-    puts Lazydoc.usage(__FILE__)
-    puts
-    puts "===  tap tasks ==="
-    puts env.summarize(:tasks, rap_template)
-    puts
-    puts "=== rake tasks ==="
-    Rap::Rake.new.enq('-T')
-    Tap::App.instance.run
-    
-    # this is not currently reached as rake exits on -T
-    puts
-    puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
-    exit
-  else
-    app = Tap::App.instance
-    schema = Tap::Support::Schema.parse(ARGV)
-    ARGV.clear
-    env.build(schema, app) do |args|
-      warn "warning: implict rake for [#{args.join(' ')}]"
-      Rap::Rake
-    end
-
-    if app.queue.empty?
-      puts "no task specified"
-      exit
-    end
-
-    env.set_signals
-    app.run
-  end
+<% entries.each do |key, const| %>
+<%   next unless const.comment %>
+  <%= key.ljust(width) %> # <%= const.comment %>
+<% end %>
+}
   
-rescue
-  env.handle_error($!)
+  puts Lazydoc.usage(__FILE__)
+  puts
+  puts "===  tap tasks ==="
+  puts env.tasks.summarize(summary_template)
+  puts
+  puts "=== rake tasks ==="
+  Rap::Rake.new.execute('-T')
+  puts
+  puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
+else
+  app = Tap::App.instance
+  schema = Tap::Schema.parse(ARGV)
+  begin
+    queues = env.build(schema, app) do |type, key, metadata|
+      if type == :task
+        warn "warning: implict rake for [#{key}]"
+        metadata.unshift(key)
+        Rap::Rake
+      else
+        nil
+      end
+    end
+    
+    queues.each do |queue|
+      app.queue.concat(queue)
+    end
+  rescue
+    raise if $DEBUG
+    puts $!.message
+    exit(1)
+  end
+
+  if app.queue.empty?
+    puts "no task specified"
+    exit
+  end
+
+  env.set_signals(app)
+  app.run
 end
 
 exit(0)

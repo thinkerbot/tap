@@ -27,7 +27,7 @@ module Tap
       self.class_test_root = Tap::Root.new(options)
     end
     
-    def acts_as_shell_test
+    def acts_as_shell_test(options={})
       include Tap::Test::ShellTest
     end
     

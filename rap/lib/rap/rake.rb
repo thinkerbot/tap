@@ -1,8 +1,9 @@
-require 'rap/rake_app'
+require 'rubygems'
+require 'rake'
 
 module Rap
 
-  # :startdoc::manifest run rake tasks
+  # :startdoc::task run rake tasks
   # 
   # Simply enques the specified rake task(s) for execution.  Useful when a
   # rake task needs to be executed within a workflow.  For example these
@@ -24,7 +25,10 @@ module Rap
           puts help
           exit
         end
-        [new({}, default_name, app), argv.collect {|arg| arg == '--rake-help' ? '--help' : arg}]
+        argv = argv.collect {|arg| arg == '--rake-help' ? '--help' : arg}
+        
+        puts argv
+        [new({}, default_name, app), argv]
       end
     end
   
@@ -46,8 +50,8 @@ module Rap
         ARGV.concat(current_argv)
       end
   
-      rake.enq_top_level(app)
-  
+      rake.top_level
+      
       nil
     end
   end

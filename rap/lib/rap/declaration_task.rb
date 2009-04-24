@@ -87,7 +87,7 @@ module Rap
     # does not take any inputs, and neither should the super call.
     #
     # Returns result.
-    def call
+    def call(*args)
       unless @resolved
         @resolved = true
         @result = super
