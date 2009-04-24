@@ -8,6 +8,10 @@ class RapTutorialTest < Test::Unit::TestCase
     @declaration_base = "RapTutorialTest"
     @env = Tap::Env.new(:load_paths => [], :command_paths => [], :generator_paths => [])
     @app = Rap::Declarations.app = Tap::App.new
+    
+    ('A'..'Z').each do |letter|    
+      Object.send(:remove_const, letter) if Object.const_defined?(letter)
+    end
   end
   
   def test_rap_documentation
@@ -28,6 +32,5 @@ class RapTutorialTest < Test::Unit::TestCase
     assert_equal C, c.class
     assert c == C.instance(@app)
     assert_equal Rap::DeclarationTask, C.superclass
-
   end
 end

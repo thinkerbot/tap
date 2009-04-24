@@ -1,4 +1,5 @@
 require 'rap/declaration_task'
+require 'rap/utils'
 
 module Rap
   
@@ -45,6 +46,8 @@ module Rap
   #
   # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for usage.
   module Declarations
+    include Utils
+    
     # The environment in which declared task classes are registered.
     # By default the Tap::Env for Dir.pwd.
     def Declarations.env() @@env ||= Tap::Env.instance; end
@@ -116,20 +119,6 @@ module Rap
       @@current_desc = str
     end
     
-    # Run the system command +cmd+, passing the result to the block, if given.
-    # Raises an error if the command fails. Uses the same semantics as 
-    # Kernel::exec and Kernel::system.
-    #
-    # Based on FileUtils#sh from Rake.
-    def sh(*cmd) # :yields: ok, status
-      ok = system(*cmd)
-
-      if block_given?
-        yield(ok, $?)
-      else
-        ok or raise "Command failed with status (#{$?.exitstatus}): [#{ cmd.join(' ')}]"
-      end
-    end
     private
     
     # A helper to resolve the arguments for a task; returns the array

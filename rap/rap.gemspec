@@ -26,8 +26,8 @@ Gem::Specification.new do |s|
     lib/rap/declaration_task.rb
     lib/rap/declarations.rb
     lib/rap/description.rb
-    lib/rap/rake_app.rb
     lib/rap/rake.rb
+    lib/rap/test_task.rb
     tap.yml
     }
 end
