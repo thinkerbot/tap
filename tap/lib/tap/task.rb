@@ -1,13 +1,14 @@
 require 'tap/app'
 require 'tap/joins'
 require 'tap/root'
+require 'tap/env/string_ext'
+require 'tap/support/intern'
 
 autoload(:ConfigParser, 'config_parser')
 
 module Tap
   module Support
     autoload(:Templater, 'tap/support/templater')
-    autoload(:Intern, 'tap/support/intern')
   end
   
   class App

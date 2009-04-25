@@ -5,6 +5,7 @@ module Tap
     autoload(:SubsetTest, 'tap/test/subset_test')
     autoload(:FileTest, 'tap/test/file_test')
     autoload(:ShellTest, 'tap/test/shell_test')
+    autoload(:TapTest, 'tap/test/tap_test')
     autoload(:Utils, 'tap/test/utils')
     
     # Includes SubsetTest in the calling class.
@@ -29,6 +30,14 @@ module Tap
     # Includes ShellTest in the calling class.
     def acts_as_shell_test
       include Tap::Test::ShellTest
+    end
+    
+    # Includes TapTest in the calling class and calls acts_as_file_test with
+    # the options.
+    def acts_as_tap_test(options={})
+      options[:root] ||= test_root_dir
+      acts_as_file_test(options)
+      include Tap::Test::TapTest
     end
     
     private
