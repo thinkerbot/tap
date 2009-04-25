@@ -16,13 +16,15 @@ class RapTest < Test::Unit::TestCase
 
   def test_rap_help
     method_root.chdir(:tmp, true) do
-      sh_match "% rap",
-      /usage: rap/,
-      /===  tap tasks ===/
+      sh_test "% rap" do |output|
+        assert output =~ /usage: rap/
+        assert output =~ /===  tap tasks ===/
+      end
       
-      sh_match "% rap -T",
-      /usage: rap/,
-      /===  tap tasks ===/
+      sh_test "% rap -T" do |output|
+        assert output =~ /usage: rap/
+        assert output =~ /===  tap tasks ===/
+      end
     end
   end
   
@@ -35,11 +37,12 @@ task :sample
     end
         
     method_root.chdir(:tmp, true) do
-      sh_match "% rap",
-      /usage: rap/,
-      /===  tap tasks ===/,
-      /=== rake tasks ===/,
-      /rake sample\s+# sample task/
+      sh_test "% rap" do |output|
+        assert output =~ /usage: rap/
+        assert output =~ /===  tap tasks ===/
+        assert output =~ /=== rake tasks ===/
+        assert output =~ /rake sample\s+# sample task/
+      end
     end
   end
   
@@ -53,6 +56,9 @@ namespace :rap_test do
   # long description
   task :task_with_doc
   
+  # ::desc
+  task :task_with_empty_desc
+  
   task :task_without_doc
   
   desc "desc"
@@ -62,24 +68,30 @@ end
     end
     
     method_root.chdir(:tmp) do
-      sh_match "% rap",
-      /usage: rap/,
-      /tmp:/,
-      /task_with_doc\s+# task summary/,
-      /task_with_desc\s+# desc/
+      sh_test "% rap" do |output|
+        assert output =~ /usage: rap/, output
+        assert output =~ /tmp:/, output
+        assert output =~ /task_with_doc\s+# task summary/, output
+        assert output =~ /task_with_empty_desc\s+# /, output
+        assert output =~ /task_with_desc\s+# desc/, output
+        assert output !~ /task_without_doc/, output
+      end
       
-      sh_match "% rap task_with_doc --help",
-      /RapTest::TaskWithDoc -- task summary/,
-      /long description/,
-      /usage: rap rap_test\/task_with_doc/
+      sh_test "% rap task_with_doc --help" do |output|
+        assert output =~ /RapTest::TaskWithDoc -- task summary/
+        assert output =~ /long description/
+        assert output =~ /usage: rap rap_test\/task_with_doc/
+      end
       
-      sh_match "% rap task_without_doc --help",
-      /RapTest::TaskWithoutDoc/,
-      /usage: rap rap_test\/task_without_doc/
+      sh_test "% rap task_without_doc --help" do |output|
+        assert output =~ /RapTest::TaskWithoutDoc/
+        assert output =~ /usage: rap rap_test\/task_without_doc/
+      end
     
-      sh_match "% rap task_with_desc --help",
-      /RapTest::TaskWithDesc -- desc/,
-      /usage: rap rap_test\/task_with_desc/
+      sh_test "% rap task_with_desc --help" do |output|
+        assert output =~ /RapTest::TaskWithDesc -- desc/
+        assert output =~ /usage: rap rap_test\/task_with_desc/
+      end
     end
   end
   
@@ -102,10 +114,11 @@ end
     end
     
     method_root.chdir(:tmp) do
-      sh_match "% rap",
-      /tmp:/,
-      /task\s+# first desc/,
-      /sample\/task\s+# second desc/
+      sh_test "% rap" do |output|
+        assert output =~ /tmp:/
+        assert output =~ /task\s+# first desc/
+        assert output =~ /sample\/task\s+# second desc/
+      end
     end
   end
       
@@ -122,11 +135,13 @@ end
     end
 
     method_root.chdir(:tmp) do
-      sh_match "% rap task_without_args --help",
-      /usage: rap rap_test\/task_without_args\s*$/
+      sh_test "% rap task_without_args --help" do |output|
+        assert output =~ /usage: rap rap_test\/task_without_args\s*$/
+      end
       
-      sh_match "% rap task_with_args --help",
-      /usage: rap rap_test\/task_with_args A B\s*$/
+      sh_test "% rap task_with_args --help" do |output|
+        assert output =~ /usage: rap rap_test\/task_with_args A B\s*$/
+      end
     end
   end
   

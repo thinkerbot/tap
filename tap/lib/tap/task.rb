@@ -408,9 +408,9 @@ module Tap
     ###############################################################
     # [depreciated] manifest will be removed at 1.0
     lazy_attr :manifest
-    def self.desc
+    def self.desc(resolve=true)
       comment = const_attrs['task'] ||= self.manifest
-      comment.kind_of?(Lazydoc::Comment) ? comment.resolve : comment
+      resolve && comment.kind_of?(Lazydoc::Comment) ? comment.resolve : comment
     end
     def self.manifest
       # :::-

@@ -34,37 +34,28 @@ module Tap
           io.read
         end
       end
+      
+      def sh_time(cmd, &block)
+        start = Time.now
+        result = sh(cmd, &block)
+        finish = Time.now
+        
+        elapsed = "%.3f" % [finish-start]
+        puts "  (#{elapsed}s) #{cmd}" if ENV['VERBOSE'] == 'true'
+                
+        result
+      end
 
       def sh_test(cmd)
-        unless cmd =~ /\A\s#{command_pattern}(.*?)\n(.+)\z/m
+        cmd, expected = cmd.lstrip.split(/\r?\n/, 2)
+        unless cmd =~ /\A#{command_pattern}(.*)\z/
           raise "invalid sh_test command: #{cmd}"
         end
-
-        start = Time.now
-        result = sh(command + $1)
-        finish = Time.now
-
-        assert_equal $2, result, command + $1
-        puts "  (#{time(start, finish)}s) #{command_pattern + $1}" if ENV['VERBOSE'] == 'true'
-      end
-
-      def sh_match(cmd, *regexps)
-        unless cmd =~ /\A#{command_pattern}(.*?)\z/
-          raise "invalid sh_match command: #{cmd}"
-        end
-
-        start = Time.now
-        result = sh(command + $1)
-        finish = Time.now
-
-        regexps.each do |regexp|
-          assert_match regexp, result, command_pattern + $1
-        end
-        puts "  (#{time(start, finish)}s) #{command_pattern + $1}" if ENV['VERBOSE'] == 'true'
-      end
-
-      def time(start, finish)
-        "%.3f" % [finish-start]
+        
+        result = sh_time(command + $1)
+        assert_equal(expected, result, command + $1) if expected
+        yield(result) if block_given?
+        result
       end
     end
   end

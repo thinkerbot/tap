@@ -207,8 +207,7 @@ module Rap
         const.const_name == const_name
       end || Tap::Env::Constant.new(const_name)
       
-      comment = tasc.desc.to_s
-      constant.comment = comment unless comment.empty?
+      constant.comment = tasc.desc(false)
       Declarations.env.register('task', constant)
       
       tasc

@@ -34,11 +34,11 @@ case ARGV[0]
 when '--help', nil, '-T'
   
   # same as normal summarize, but pass over tasks that have no comment
-  summary_template = %Q{<% if !entries.empty? && count > 1 %>
+  summary_template = %Q{<% entries.delete_if {|key, const| const.comment.kind_of?(Rap::Description) && const.comment.resolve.desc == nil } %>
+<% if !entries.empty? && count > 1 %>
 <%= env_key %>:
 <% end %>
 <% entries.each do |key, const| %>
-<%   next unless const.comment %>
   <%= key.ljust(width) %> # <%= const.comment %>
 <% end %>
 }

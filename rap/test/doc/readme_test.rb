@@ -43,11 +43,12 @@ hello world
 goodnight moon
 }
 
-      sh_match "% rap goodnight --help",
-      /Goodnight -- your basic goodnight moon task/,
-      /Says goodnight with a configurable message/,
-      /rap goodnight OBJ/,
-      /--message MESSAGE/
+      sh_test "% rap goodnight --help" do |output|
+        assert output =~ /Goodnight -- your basic goodnight moon task/
+        assert output =~ /Says goodnight with a configurable message/
+        assert output =~ /rap goodnight OBJ/
+        assert output =~ /--message MESSAGE/
+      end
     end
     
     test = method_root.prepare(:tmp, 'test.rb') do |file|

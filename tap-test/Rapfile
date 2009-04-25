@@ -1,5 +1,6 @@
 include Rap::Tasks
 
+# ::desc
 Test.declare :test do |test|
   test.libs << "../configurable/lib"
   test.libs << "../lazydoc/lib"
