@@ -1,10 +1,11 @@
 require 'tap/auditor/array_audit'
+require 'tap/auditor/auditable'
 
 module Tap
   
   # :startdoc::middleware
   # Auditing middleware for a Tap::App.
-  class Auditor    
+  class Auditor
     # The application call stack
     attr_reader :stack
     
@@ -23,7 +24,7 @@ module Tap
       end
       
       # make an audited call if possible
-      result = if false
+      result = if node.kind_of?(Auditable)
         stack.call(node, inputs)
       else
         stack.call(node, inputs.collect {|input| input.value })
