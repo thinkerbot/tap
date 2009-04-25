@@ -110,7 +110,7 @@ module Tap
         original_cmd = cmd
         
         if cmd_pattern = options[:cmd_pattern]
-          cmd.sub!(cmd_pattern, options[:cmd])
+          cmd = cmd.sub(cmd_pattern, options[:cmd])
         end
         
         start = Time.now
