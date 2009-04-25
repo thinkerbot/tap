@@ -27,6 +27,7 @@ end
 # parse options
 dump = false
 schemas = []
+middleware = []
 ConfigParser.new do |opts|
   opts.separator ""
   opts.separator "configurations:"
@@ -48,8 +49,27 @@ ConfigParser.new do |opts|
   end
   
   opts.on('-T', '--manifest', 'Print a list of available tasks') do
-    puts env.tasks.summarize
+    tasks = env.tasks
+    tasks_found = !tasks.all_empty?
+    
+    middleware = env.middleware
+    middleware_found = !middleware.all_empty?
+    
+    if tasks_found 
+      puts "=== tasks ===" if middleware_found
+      puts tasks.summarize
+    end
+
+    if middleware_found
+      puts "=== middleware ===" if tasks_found
+      puts middleware.summarize
+    end
+    
     exit(0)
+  end
+  
+  opts.on('-m', '--middleware MIDDLEWARE', 'Specify app middleware') do |input|
+    middleware << input
   end
   
   opts.on("-s", "--schema FILE", "Build the schema file") do |path|
@@ -77,6 +97,11 @@ begin
     env.build(schema, app, manifests).each do |queue|
       app.queue.concat(queue)
     end
+  end
+  
+  middleware.each do |middleware|
+    klass = manifests[:middleware][middleware] or raise "unknown middleware: #{middleware}"
+    app.use klass
   end
 rescue
   raise if $DEBUG

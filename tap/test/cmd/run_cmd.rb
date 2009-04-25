@@ -39,7 +39,8 @@ class RunDoc < Test::Unit::TestCase
   load        # the default load task
 }
     assert_equal expected, "\n" + sh("#{CMD} run -T")
-       
+    
+    # now with a local task
     method_root.prepare(:lib, 'sample.rb') do |io|
       io << "# ::task a sample task"
     end
@@ -51,7 +52,24 @@ tap:
   dump        # the default dump task
   load        # the default load task
 }
-   assert_equal expected, "\n" + sh("#{CMD} run -T")
+    assert_equal expected, "\n" + sh("#{CMD} run -T")
+
+    # now with middleware
+    method_root.prepare(:lib, 'middle.rb') do |io|
+      io << "# ::middleware a sample middleware"
+    end
+    
+    expected = %Q{
+=== tasks ===
+#{File.basename(method_root[:root])}:
+  sample      # a sample task
+tap:
+  dump        # the default dump task
+  load        # the default load task
+=== middleware ===
+  middle      # a sample middleware
+}
+    assert_equal expected, "\n" + sh("#{CMD} run -T")
   end
   
   #
@@ -148,6 +166,34 @@ goodnight moon
 }
       end
     end
+  end
+  
+  #
+  # middleware
+  #
+  
+  def test_allows_the_specification_of_middleware
+    method_root.prepare(:lib, 'middleware.rb') do |io|
+      io << %q{# ::middleware
+        class Middleware
+          attr_reader :stack
+          def initialize(stack)
+            @stack = stack
+          end
+          def call(node, inputs=[])
+            puts node.class
+            stack.call(node, inputs)
+          end
+        end
+      }
+    end
+    
+    sh_test %Q{
+% tap run -m middleware -- load 'goodnight moon' --: dump
+Tap::Load
+Tap::Dump
+goodnight moon
+}
   end
   
   #

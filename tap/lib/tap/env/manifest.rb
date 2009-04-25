@@ -61,7 +61,13 @@ module Tap
       def empty?
         entries.empty?
       end
-    
+      
+      def all_empty?
+        env.all? do |e|
+          manifest(e).empty?
+        end
+      end
+      
       # Iterates over each entry in self.
       def each
         entries.each {|entry| yield(entry) }

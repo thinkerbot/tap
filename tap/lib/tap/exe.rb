@@ -114,6 +114,14 @@ module Tap
       end
     end
     
+    def middleware
+      manifest('middleware', Env::ConstantManifest) do |env|
+        env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
+          [dir, path]
+        end
+      end
+    end
+    
     def run(argv=ARGV)
       command = argv.shift.to_s
       
@@ -131,7 +139,7 @@ module Tap
     end
     
     def manifests
-      {:task => tasks, :join => joins}
+      {:task => tasks, :join => joins, :middleware => middleware}
     end
     
     def build(schema, app=Tap::App.instance, manifests=self.manifests)
