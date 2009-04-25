@@ -1,3 +1,5 @@
+require 'tap/task'
+
 module Tap
   module Tasks
     # :startdoc::manifest provides a handle to ARGV

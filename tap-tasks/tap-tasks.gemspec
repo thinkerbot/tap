@@ -8,7 +8,8 @@ Gem::Specification.new do |s|
   s.summary = "A set of standard Tap tasks"
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 0.12.4")
+  s.add_dependency("tap", ">= 0.17.0")
+  s.add_development_dependency("tap-test", ">= 0.1.0")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\sTasks}
   
@@ -22,10 +23,12 @@ Gem::Specification.new do |s|
   # list the files you want to include here. you can
   # check this manifest using 'rap print_manifest'
   s.files = %W{
+    lib/tap/support/shell_utils.rb
     lib/tap/tasks/argv.rb
     lib/tap/tasks/dump/inspect.rb
     lib/tap/tasks/dump/yaml.rb
     lib/tap/tasks/load/yaml.rb
+    lib/tap/tasks/file_task.rb
     tap.yml
   }
 end

@@ -82,17 +82,3 @@ task :publish_rdoc => [:rdoc] do
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
 end
 
-#
-# Test tasks
-#
-
-desc 'Default: Run tests.'
-task :default => :test
-
-desc 'Run tests.'
-Rake::TestTask.new(:test) do |t|
-  t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') )
-  t.verbose = true
-  t.warning = true
-end
-

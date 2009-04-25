@@ -10,7 +10,7 @@ module Tap
       # dump task for more details.
       #
       #   % tap run -- load/yaml "{key: value}" --: dump/yaml
-      #   ---
+      #   --- 
       #   key: value
       #
       class Yaml < Tap::Dump
