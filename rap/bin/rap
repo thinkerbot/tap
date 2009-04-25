@@ -21,10 +21,6 @@ end
 # run rap
 #
 
-module Rap
-  autoload(:Rake, 'rap/rake')
-end
-
 Dir.glob('[TtRr]apfile{,.rb}').each do |rapfile|
   next unless File.file?(rapfile)
   load rapfile
@@ -48,10 +44,10 @@ when '--help', nil, '-T'
   puts "===  tap tasks ==="
   puts env.tasks.summarize(summary_template)
   
-  if Rap::Rake.has_rakefile?
+  if Rap::Tasks::Rake.has_rakefile?
     puts
     puts "=== rake tasks ==="
-    Rap::Rake.new.execute('-T')
+    Rap::Tasks::Rake.new.execute('-T')
   end
   
   puts
@@ -61,7 +57,7 @@ else
   schema = Tap::Schema.parse(ARGV)
   begin
     queues = env.build(schema, app) do |type, key, metadata|
-      if type == :task && Rap::Rake.has_rakefile?
+      if type == :task && Rap::Tasks::Rake.has_rakefile?
         metadata.unshift(key)
         warn "warning: implict rake for '#{metadata.join(' ')}'"
         Rap::Rake

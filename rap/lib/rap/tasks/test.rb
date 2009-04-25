@@ -19,28 +19,28 @@ module Rap
       # commands many be specified for multiple interpreters.
       # Add ENV variables beforehand like:
       #
-      #   cmd "VAR=value ruby"
+      #   --cmd "VAR=value ruby"
       #
-      config :cmds, ["ruby"], &c.list                    # cmd to launch a ruby interpreter
+      config :cmds, ["ruby"], :long => :cmd, &c.list                  # cmd to launch a ruby interpreter
     
       # Array of options to pass to each cmd.
-      config :opts, ["w"], &c.list                       # options to the ruby interpreter
+      config :opts, ["w"], :long => :opt, &c.list                     # options to the ruby interpreter
     
       # List of directories to added to $LOAD_PATH before 
       # running the tests.
-      config :libs, ['lib'], :short => :I, &c.list       # specify the test libraries
+      config :libs, ['lib'], :long => :lib, :short => :I, &c.list     # specify the test libraries
     
       # Note that the default pattern reflects modern
       # test naming conventions.
-      config :globs, ["test/**/*_test.rb"], &c.list      # globs to auto-discover test files
+      config :globs, ["test/**/*_test.rb"], :long => :glob, &c.list   # globs to auto-discover test files
     
       # Filters test files, useful for only testing
       # a subset of all tests.  Test files are always
       # filtered, even when manually specified.
-      config :filter, ".", &c.regexp                     # a regexp filter of test files
+      config :filter, ".", &c.regexp                                  # a regexp filter of test files
     
       # Iterates over test files to launch them one by one.
-      config :iterate, false, &c.switch                  # iteratively runs test files
+      config :iterate, false, &c.switch                               # iteratively runs test files
     
       # Code to load the test files, by default a simple one-liner:
       #
