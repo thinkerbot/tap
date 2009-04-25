@@ -4,7 +4,7 @@ module Tap
   module Tasks
     module Dump
       
-      # :startdoc::manifest inspect and dump an object
+      # :startdoc::task inspect and dump an object
       #
       # Dumps objects to a file or IO using object.inspect.  An alternate
       # method can be specified for inspection using the inspect_method

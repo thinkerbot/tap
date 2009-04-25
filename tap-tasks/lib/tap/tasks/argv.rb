@@ -2,7 +2,7 @@ require 'tap/task'
 
 module Tap
   module Tasks
-    # :startdoc::manifest provides a handle to ARGV
+    # :startdoc::task provides a handle to ARGV
     #
     # Simply returns ARGV.  This task can be a useful hook when executing
     # saved workflows via run (given that all arguments after the workflow

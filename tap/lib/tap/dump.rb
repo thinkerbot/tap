@@ -25,7 +25,7 @@ module Tap
   #   % cat results.txt
   #   hello
   #
-  # :startdoc::manifest-
+  # :startdoc::task-
   #
   # Dump serves as a baseclass for more complicated dump tasks.  A YAML dump
   # task (see {tap-tasks}[http://tap.rubyforge.org/tap-tasks]) looks like this:

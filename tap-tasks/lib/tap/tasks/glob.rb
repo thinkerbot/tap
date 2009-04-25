@@ -2,18 +2,20 @@ require 'tap/task'
 
 module Tap
   module Tasks
-    # :startdoc::manifest globs for files
+    # :startdoc::task globs for files
     #
     # Globs the input patterns for matching patterns.  Matching files are
     # returned as an array.
+    #
+    #   % tap run -- glob * --: dump/yaml
+    #
     class Glob < Tap::Task
       
-      config :filters, [], &c.list(&c.regexp)     # a regexp filter of test files
+      config :filters, [], &c.list(&c.regexp)     # regexp filters for results
       config :unique, true, &c.switch             # ensure results are unique
       config :files, true, &c.switch              # glob for files
       config :dirs, false, &c.switch              # glob for directories
       
-      # Simply returns ARGV.
       def process(*patterns)
         results = []
         patterns.each do |pattern|

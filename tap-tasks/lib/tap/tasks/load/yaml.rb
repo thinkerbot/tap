@@ -4,7 +4,7 @@ module Tap
   module Tasks
     module Load
       
-      # :startdoc::manifest loads data as YAML
+      # :startdoc::task loads data as YAML
       #
       # Loads data from the input IO as YAML.  See the default tap load task
       # for more details.

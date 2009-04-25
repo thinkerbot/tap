@@ -28,6 +28,7 @@ Gem::Specification.new do |s|
     lib/tap/tasks/dump/inspect.rb
     lib/tap/tasks/dump/yaml.rb
     lib/tap/tasks/load/yaml.rb
+    lib/tap/tasks/glob.rb
     lib/tap/tasks/file_task.rb
     tap.yml
   }

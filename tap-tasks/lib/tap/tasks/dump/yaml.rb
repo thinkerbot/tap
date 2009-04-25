@@ -4,7 +4,7 @@ module Tap
   module Tasks
     module Dump
       
-      # :startdoc::manifest dumps data as YAML
+      # :startdoc::task dumps data as YAML
       #
       # Dumps workflow results to a file or IO as YAML.  See the default tap
       # dump task for more details.
