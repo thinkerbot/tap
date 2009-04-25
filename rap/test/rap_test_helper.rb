@@ -1,14 +1,5 @@
-# setup testing with submodules
 begin
-  require 'test/unit'
-  require 'tap/test'
-  
-  if Object.const_defined?(:MiniTest)
-    require 'tap/test/setup/minitest'
-  else
-    require 'tap/test/setup/testunit'
-  end
-  
+  require 'tap/test/unit'
 rescue(LoadError)
   puts %Q{
 Tests probably cannot be run because the submodules have
@@ -20,5 +11,3 @@ not been initialized.  Use these commands and try again:
 }
   raise
 end
-
-Test::Unit::TestCase.extend Tap::Test

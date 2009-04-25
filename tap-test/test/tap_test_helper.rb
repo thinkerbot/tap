@@ -1,2 +1,1 @@
-require 'test/unit'
-require 'tap/test'
+require 'tap/test/unit'
