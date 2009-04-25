@@ -1,7 +1,6 @@
 require 'test/unit'
 require 'tap/test'
 
-# :stopdoc:
 if RUBY_VERSION >= "1.9"
   
   ################################
@@ -20,10 +19,8 @@ if RUBY_VERSION >= "1.9"
   end
 
   class MiniTest::Unit::TestCase
-    undef_method :method_name if method_defined?(:method_name)
-
     # MiniTest renames method_name as name.  For backwards compatibility
-    # it is added back here.
+    # (and for FileTest) it is added back here.
     def method_name
       name
     end
@@ -34,7 +31,7 @@ else
   ################################
   # Test::Unit shims (< ruby 1.9)
   ################################
-  
+  # :stopdoc:
   class Test::Unit::TestCase
     class << self
       alias tap_original_test_case_inherited inherited
@@ -71,7 +68,7 @@ else
       end
     end
   end
+  # :startdoc:
 end
 
 Test::Unit::TestCase.extend Tap::Test
-# :startdoc:

@@ -46,8 +46,8 @@ module Tap
     #     end
     #   end
     #
-    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] and
-    # FileTestClass for more information.
+    # FileTest requires that a method_name method is provided by the including
+    # class, in order to properly set the directory for method_root.
     module FileTest
       
       def self.included(base) # :nodoc:

@@ -6,15 +6,14 @@ module Tap
     autoload(:FileTest, 'tap/test/file_test')
     autoload(:ShellTest, 'tap/test/shell_test')
     autoload(:Utils, 'tap/test/utils')
-    autoload(:RegexpEscape, 'tap/test/regexp_escape')
     
+    # Includes SubsetTest in the calling class.
     def acts_as_subset_test
       include Tap::Test::SubsetTest
     end
   
-    # Causes a TestCase to act as a file test, by including FileTest and
-    # instantiating class_test_root (a Tap::Root).  The root, relative_paths,
-    # and absolute_paths used by class_test_root may be specified as options.  
+    # Includes FileTest in the calling class and instantiating class_test_root
+    # (a Tap::Root).  Options may be used to configure the class_test_root.  
     #
     # Note: by default acts_as_file_test determines a root directory 
     # <em>based on the calling file</em>.  Be sure to specify the root 
@@ -27,7 +26,8 @@ module Tap
       self.class_test_root = Tap::Root.new(options)
     end
     
-    def acts_as_shell_test(options={})
+    # Includes ShellTest in the calling class.
+    def acts_as_shell_test
       include Tap::Test::ShellTest
     end
     

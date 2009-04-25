@@ -51,21 +51,19 @@ module Tap
     # flags to run specific tests.  If you're running your test using Rake, ENV
     # variables can be set from the command line like so:
     # 
-    #   % rake test EXTENDED=true
-    #   % rake test BENCHMARK=true
+    #   % EXTENDED=true rake test 
+    #   % BENCHMARK=true rake test
     # 
     # Since tap and rap can run rake tasks as well, these are equivalent:
     #
-    #   % tap run test EXTENDED=true
-    #   % rap test BENCHMARK=true
+    #   % EXTENDED=true tap run test
+    #   % BENCHMARK=true rap test
     #
     # To run all tests that get switched using an ENV variable, set ALL=true.
     #
-    #   # runs all tests
-    #   % rap test ALL=true
+    #   % ALL=true rap test
     #
-    # See {Test::Unit::TestCase}[link:classes/Test/Unit/TestCase.html] and
-    # SubsetTest::ClassMethods for more information.
+    # See SubsetTest::ClassMethods for more information.
     module SubsetTest
       
       def self.included(base) # :nodoc:
