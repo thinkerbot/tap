@@ -27,9 +27,11 @@ module Tap
       self.class_test_root = Tap::Root.new(options)
     end
     
-    # Includes ShellTest in the calling class.
-    def acts_as_shell_test
+    # Includes ShellTest in the calling class.  Options are set as the default
+    # sh_test_options.
+    def acts_as_shell_test(options=nil)
       include Tap::Test::ShellTest
+      self.sh_test_options = options
     end
     
     # Includes TapTest in the calling class and calls acts_as_file_test with

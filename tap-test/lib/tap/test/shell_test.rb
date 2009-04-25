@@ -1,4 +1,5 @@
 require 'open3'
+require 'tap/test/shell_test/class_methods'
 
 module Tap
   module Test
@@ -36,6 +37,11 @@ module Tap
     #   end
     #
     module ShellTest
+      
+      def self.included(base) # :nodoc:
+        super
+        base.extend ShellTest::ClassMethods
+      end
       
       # Sets up the ShellTest module.  Be sure to call super if you override
       # setup in an including module.
@@ -119,34 +125,10 @@ module Tap
         result
       end
       
-      # Returns a hash of the default sh_test options, which are specified
-      # using the class constants CMD_PATTERN and CMD, if they are set.
-      #
-      #   class ShellTestOptionsExample
-      #     include ShellTest
-      #
-      #     CMD_PATTERN = '% sample'
-      #     CMD = 'command'
-      #   end
-      #
-      #   ShellTestOptionsExample.new.sh_test_options
-      #   # => {
-      #   #  :cmd_pattern => '% sample',
-      #   #  :cmd => 'command'
-      #   # }
-      #
+      # Returns a hash of the default sh_test options.  See
+      # ShellTest::ClassMethods#sh_test_options.
       def sh_test_options
-        @sh_test_options ||= {
-          :cmd_pattern => class_const(:CMD_PATTERN),
-          :cmd => class_const(:CMD)
-        }
-      end
-      
-      private
-      
-      # helper to retrieve class constants
-      def class_const(const_name) # :nodoc:
-        self.class.const_defined?(const_name) ? self.class.const_get(const_name) : nil
+        @sh_test_options ||= self.class.sh_test_options
       end
     end
   end

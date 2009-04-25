@@ -260,7 +260,7 @@ module Tap
       end
       
       # The default assert_files options
-      def default_assert_files_options
+      def assert_files_options
         {
           :input_dir => method_root[:input],
           :output_dir => method_root[:output],
@@ -321,7 +321,7 @@ module Tap
       end
       
       def transform_test(block, options={}) # :yields: expected_files, output_files
-        options = default_assert_files_options.merge(options)
+        options = assert_files_options.merge(options)
         input_dir = options[:input_dir]
         output_dir = options[:output_dir] 
         expected_dir = options[:expected_dir]
