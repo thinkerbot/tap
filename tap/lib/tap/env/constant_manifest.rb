@@ -98,7 +98,7 @@ module Tap
         constant ? constant.constantize : nil
       end
       
-      SUMMARY_TEMPLATE = %Q{<% if !manifest.empty? && count > 1 %>
+      SUMMARY_TEMPLATE = %Q{<% if !entries.empty? && count > 1 %>
 <%= env_key %>:
 <% end %>
 <% entries.each do |key, const| %>

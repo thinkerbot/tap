@@ -18,13 +18,28 @@ class RapTest < Test::Unit::TestCase
     method_root.chdir(:tmp, true) do
       sh_match "% rap",
       /usage: rap/,
-      /===  tap tasks ===/,
-      /=== rake tasks ===/
+      /===  tap tasks ===/
       
       sh_match "% rap -T",
       /usage: rap/,
+      /===  tap tasks ===/
+    end
+  end
+  
+  def test_rap_help_lists_rake_tasks
+    method_root.prepare(:tmp, 'Rakefile') do |file|
+      file << %q{
+desc "sample task"
+task :sample
+}
+    end
+        
+    method_root.chdir(:tmp, true) do
+      sh_match "% rap",
+      /usage: rap/,
       /===  tap tasks ===/,
-      /=== rake tasks ===/
+      /=== rake tasks ===/,
+      /rake sample\s+# sample task/
     end
   end
   

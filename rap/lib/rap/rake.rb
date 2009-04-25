@@ -30,6 +30,10 @@ module Rap
         puts argv
         [new({}, default_name, app), argv]
       end
+      
+      def has_rakefile?
+        ::Rake.application.have_rakefile != nil
+      end
     end
   
     def process(*argv)

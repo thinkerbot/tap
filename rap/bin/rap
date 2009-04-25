@@ -2,8 +2,7 @@
 # usage: rap taskname {options} [args] [-d-]
 
 $:.unshift "#{File.dirname(__FILE__)}/../lib"
-require 'tap'
-require 'rap/declarations'
+require 'rap'
 
 # setup the environment
 begin
@@ -35,7 +34,7 @@ case ARGV[0]
 when '--help', nil, '-T'
   
   # same as normal summarize, but pass over tasks that have no comment
-  summary_template = %Q{<% if !manifest.empty? && count > 1 %>
+  summary_template = %Q{<% if !entries.empty? && count > 1 %>
 <%= env_key %>:
 <% end %>
 <% entries.each do |key, const| %>
@@ -48,9 +47,13 @@ when '--help', nil, '-T'
   puts
   puts "===  tap tasks ==="
   puts env.tasks.summarize(summary_template)
-  puts
-  puts "=== rake tasks ==="
-  Rap::Rake.new.execute('-T')
+  
+  if Rap::Rake.has_rakefile?
+    puts
+    puts "=== rake tasks ==="
+    Rap::Rake.new.execute('-T')
+  end
+  
   puts
   puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
 else
@@ -58,9 +61,9 @@ else
   schema = Tap::Schema.parse(ARGV)
   begin
     queues = env.build(schema, app) do |type, key, metadata|
-      if type == :task
-        warn "warning: implict rake for [#{key}]"
+      if type == :task && Rap::Rake.has_rakefile?
         metadata.unshift(key)
+        warn "warning: implict rake for '#{metadata.join(' ')}'"
         Rap::Rake
       else
         nil

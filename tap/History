@@ -1,17 +1,23 @@
-==
+== 0.17.0
 
 Significant reorganization and update to Tap internals.
 The workflow syntax for joins has changed in incompatible
 ways, and several key methods have been renamed (notably
-Root#filepath).
+Root#filepath).  Obviously not 100% backwards compatible but
+most tasks will work without alteration.
 
 Upgrade Notes:
 
 * Tasks now are identified by "::task" rather than "::manifest"
+  The manifest identifier still works for now but will be
+  removed by 1.0.
 * Root#filepath and Root#relative_filepath have been renamed
   Root#path and Root#relative_path
-* Audits have been removed to a separate module
-
+* Audits have been removed
+* Generators, FileTask, and test modules have been removed
+  to separate modules (tap-gen, tap-tasks, tap-test). Install
+  tap-suite to get them all back.
+  
 Changes:
 
 * added application middleware
@@ -25,6 +31,7 @@ Changes:
 * refactored on_complete_block to join
 * reworked App to use aggregators that respond_to? call
 * reworked Join so that it may be dumped as YAML
+* many other small changes
 
 == 0.12.4 / 2009-03-23
 

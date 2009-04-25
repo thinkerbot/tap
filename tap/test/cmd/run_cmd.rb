@@ -33,6 +33,27 @@ class RunDoc < Test::Unit::TestCase
     /--output OUTPUT              The dump target file/
   end
   
+  def test_run_prints_manifest
+    expected = %Q{
+  dump        # the default dump task
+  load        # the default load task
+}
+    assert_equal expected, "\n" + sh("#{CMD} run -T")
+       
+    method_root.prepare(:lib, 'sample.rb') do |io|
+      io << "# ::task a sample task"
+    end
+    
+    expected = %Q{
+#{File.basename(method_root[:root])}:
+  sample      # a sample task
+tap:
+  dump        # the default dump task
+  load        # the default load task
+}
+   assert_equal expected, "\n" + sh("#{CMD} run -T")
+  end
+  
   #
   # error cases
   #

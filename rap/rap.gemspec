@@ -30,7 +30,9 @@ Gem::Specification.new do |s|
     lib/rap/tasks/gem_task.rb
     lib/rap/tasks/manifest.rb
     lib/rap/tasks/test.rb
+    lib/rap/tasks.rb
     lib/rap/utils.rb
+    lib/rap.rb
     tap.yml
     }
 end

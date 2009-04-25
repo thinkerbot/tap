@@ -21,18 +21,18 @@ module Rap
       #
       #   cmd "VAR=value ruby"
       #
-      config :cmd, ["ruby"], &c.list                     # cmd to launch a ruby interpreter
+      config :cmds, ["ruby"], &c.list                    # cmd to launch a ruby interpreter
     
       # Array of options to pass to each cmd.
       config :opts, ["w"], &c.list                       # options to the ruby interpreter
     
       # List of directories to added to $LOAD_PATH before 
       # running the tests.
-      config :lib, ['lib'], :short => :I, &c.list        # specify the test libraries
+      config :libs, ['lib'], :short => :I, &c.list       # specify the test libraries
     
       # Note that the default pattern reflects modern
       # test naming conventions.
-      config :glob, ["test/**/*_test.rb"], &c.list       # globs to auto-discover test files
+      config :globs, ["test/**/*_test.rb"], &c.list      # globs to auto-discover test files
     
       # Filters test files, useful for only testing
       # a subset of all tests.  Test files are always
@@ -60,13 +60,13 @@ module Rap
       
         # construct the command options
         options = [load_code]
-        opts.each {|opt| options << (opt[0] == ?- ? opt : "-#{opt}") }
-        lib.each {|path| options << "-I\"#{File.expand_path(path)}\"" }
+        opts.each {|opt|  options << (opt[0] == ?- ? opt : "-#{opt}") }
+        libs.each {|path| options << "-I\"#{File.expand_path(path)}\"" }
         options = options.join(" ")
       
         # select test files
-        files = glob.collect do |pattern|
-          Dir.glob(pattern).select do |path|
+        files = globs.collect do |glob|
+          Dir.glob(glob).select do |path|
             File.file?(path) && path =~ filter
           end
         end.flatten!
@@ -80,8 +80,8 @@ module Rap
       
         # launch each test
         files.each do |path|
-          cmd.each do |command|
-            sh "#{command} #{options} #{path}"
+          cmds.each do |cmd|
+            sh "#{cmd} #{options} #{path}"
           end
         end
       
