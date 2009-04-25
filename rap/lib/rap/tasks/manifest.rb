@@ -5,7 +5,7 @@ module Rap
     # ::task prints files for a manifest
     class Manifest < GemTask
       
-      config :omit, %w{rdoc pkg test}, &c.list(&c.regexp)
+      config :omit, %w{^rdoc ^pkg ^test}, &c.list(&c.regexp)
       
       def process(*args)
         super

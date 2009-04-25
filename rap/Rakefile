@@ -112,4 +112,7 @@ namespace :test do
   
   desc 'run cmd tests'
   task(:cmd) { test Dir["test/cmd/**/*_test.rb"] }
+  
+  desc 'run check tests'
+  task(:check) { test Dir["test/check/**/*_check.rb"] }
 end

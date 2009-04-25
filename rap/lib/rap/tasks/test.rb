@@ -28,11 +28,11 @@ module Rap
     
       # List of directories to added to $LOAD_PATH before 
       # running the tests.
-      config :lib, ['lib'], &c.list                      # specify the test libraries
+      config :lib, ['lib'], :short => :I, &c.list        # specify the test libraries
     
       # Note that the default pattern reflects modern
       # test naming conventions.
-      config :glob, ["test/**/*_test.rb"], &c.list          # globs to auto-discover test files
+      config :glob, ["test/**/*_test.rb"], &c.list       # globs to auto-discover test files
     
       # Filters test files, useful for only testing
       # a subset of all tests.  Test files are always

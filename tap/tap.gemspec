@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "0.12.4"
+  s.version = "0.17.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "tap"
   s.bindir = "bin"
   s.executables = "tap"
-  s.add_dependency("configurable", ">= 0.4.1")
+  s.add_dependency("configurable", ">= 0.4.3")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\s(Task\sApplication)}
    
@@ -29,7 +29,6 @@ Gem::Specification.new do |s|
     cmd/run.rb
     lib/tap.rb
     lib/tap/app.rb
-    lib/tap/app/dependency.rb
     lib/tap/app/node.rb
     lib/tap/app/queue.rb
     lib/tap/app/stack.rb

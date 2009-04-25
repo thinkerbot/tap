@@ -11,7 +11,7 @@ module Rap
       if block_given?
         yield(ok, $?)
       else
-        ok or raise "Command failed with status (#{$?.exitstatus}): [#{ cmd.join(' ')}]"
+        ok or raise "Command failed with status (#{$?.exitstatus}): [#{cmd.join(' ')}]"
       end
     end
   end
