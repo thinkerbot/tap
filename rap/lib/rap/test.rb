@@ -2,7 +2,7 @@ require 'rap/declarations'
 
 module Rap
   
-  # ::task
+  # ::task a testing task
   # The Rap version of Rake::TestTask, shamelessly adapted from the original.
   # The default test command is:
   #
@@ -11,7 +11,6 @@ module Rap
   # Where the test files are all files matching 'test/**/*_test.rb'.  The options
   # can be used to specify other options, lib paths, globs, filters, and even
   # multiple interpreters.
-  #
   #
   class Test < DeclarationTask
     include Utils

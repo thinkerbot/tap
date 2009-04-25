@@ -2,6 +2,13 @@
 begin
   require 'test/unit'
   require 'tap/test'
+  
+  if Object.const_defined?(:MiniTest)
+    require 'tap/test/setup/minitest'
+  else
+    require 'tap/test/setup/testunit'
+  end
+  
 rescue(LoadError)
   puts %Q{
 Tests probably cannot be run because the submodules have

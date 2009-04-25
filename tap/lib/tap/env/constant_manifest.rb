@@ -61,13 +61,13 @@ module Tap
         
         # scan for all constant attributes
         const_names = {}
-        Lazydoc::Document.scan(File.read(path), key) do |const_name, key, value|
+        Lazydoc::Document.scan(File.read(path), key) do |const_name, k, v|
           if const_name.empty?
             const_name = default_const_name
           end
           
           attributes = const_names[const_name] ||= {}
-          attributes[key] = value
+          attributes[k] = v
         end
         
         const_names.empty? ? nil : const_names

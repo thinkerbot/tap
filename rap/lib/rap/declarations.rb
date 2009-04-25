@@ -203,13 +203,13 @@ module Rap
       tasks = Declarations.env.registered_objects('task')
       
       const_name = tasc.to_s
-      const = tasks.find do |const| 
+      constant = tasks.find do |const| 
         const.const_name == const_name
       end || Tap::Env::Constant.new(const_name)
       
       comment = tasc.desc.to_s
-      const.comment = comment unless comment.empty?
-      Declarations.env.register('task', const)
+      constant.comment = comment unless comment.empty?
+      Declarations.env.register('task', constant)
       
       tasc
     end

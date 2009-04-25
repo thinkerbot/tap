@@ -67,6 +67,12 @@ module Rap
         # add dependencies
         dependencies.each do |dependency|
           dependency_name = File.basename(dependency.default_name)
+          
+          # this suppresses 'method redefined' warnings
+          if subclass.method_defined?(dependency_name)
+            subclass.send(:undef_method, dependency_name)
+          end
+          
           subclass.send(:depends_on, dependency_name, dependency)
         end
         

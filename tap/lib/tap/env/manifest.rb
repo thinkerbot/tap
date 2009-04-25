@@ -100,10 +100,10 @@ module Tap
       def inspect(template=nil, globals={}, filename=nil)
         return super() unless template
         
-        env.inspect(template, globals, filename) do |templater, globals|
+        env.inspect(template, globals, filename) do |templater, globalz|
           env = templater.env
           templater.manifest = manifest(env)
-          yield(templater, globals) if block_given?
+          yield(templater, globalz) if block_given?
         end
       end
       
