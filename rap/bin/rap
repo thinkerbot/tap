@@ -53,10 +53,9 @@ when '--help', nil, '-T'
   puts
   puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
 else
-  app = Tap::App.instance
-  schema = Tap::Schema.parse(ARGV)
   begin
-    queues = env.build(schema, app) do |type, key, metadata|
+    schema = Tap::Schema.parse(ARGV)
+    env.run(schema) do |type, key, metadata|
       if type == :task && Rap::Tasks::Rake.has_rakefile?
         metadata.unshift(key)
         warn "warning: implict rake for '#{metadata.join(' ')}'"
@@ -65,23 +64,11 @@ else
         nil
       end
     end
-    
-    queues.each do |queue|
-      app.queue.concat(queue)
-    end
   rescue
     raise if $DEBUG
     puts $!.message
     exit(1)
   end
-
-  if app.queue.empty?
-    puts "no task specified"
-    exit
-  end
-
-  env.set_signals(app)
-  app.run
 end
 
 exit(0)

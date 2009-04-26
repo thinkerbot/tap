@@ -79,14 +79,21 @@ module Tap
     # The global home directory
     # GLOBAL_HOME = File.join(user_home, ".tap")
     
+    attr_reader :manifests
+    
+    def self.extended(base)
+      base.instance_variable_set(:@active, false)
+      base.instance_variable_set(:@manifests, {})
+    end
+    
     def commands
-      manifest('commands') do |env|
+      manifests[:command] ||= manifest('commands') do |env|
         env.glob_config(:cmd_paths, "**/*.rb", :cmd)
       end
     end
     
     def generators
-      manifest('generator', Env::ConstantManifest) do |env|
+      manifests[:generator] ||= manifest('generator', Env::ConstantManifest) do |env|
         env.glob_config(:lib_paths, '**/*.rb', :lib) do |dir, path|
           [dir, path]
         end
@@ -94,20 +101,21 @@ module Tap
     end
     
     def tasks
-      m = manifest('task', Env::ConstantManifest) do |env|
+      manifests[:task] ||= manifest('task', Env::ConstantManifest) do |env|
         env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
           [dir, path]
         end
       end
       ###############################################################
       # [depreciated] manifest will be removed at 1.0
+      m = manifests[:task]
       m.const_attr = /task|manifest/
       m
       ###############################################################
     end
     
     def joins
-      manifest('join', Env::ConstantManifest) do |env|
+      manifests[:join] ||= manifest('join', Env::ConstantManifest) do |env|
         env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
           [dir, path]
         end
@@ -115,17 +123,78 @@ module Tap
     end
     
     def middleware
-      manifest('middleware', Env::ConstantManifest) do |env|
+      manifests[:middleware] ||= manifest('middleware', Env::ConstantManifest) do |env|
         env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
           [dir, path]
         end
       end
     end
     
-    def run(argv=ARGV)
-      command = argv.shift.to_s
+    # Activates self by doing the following, in order:
+    #
+    # * sets Env.instance to self (unless already set)
+    # * activate nested environments
+    # * unshift load_paths to $LOAD_PATH
+    #
+    # Once active, the current envs and load_paths are frozen and cannot be
+    # modified until deactivated. Returns true if activate succeeded, or
+    # false if self is already active.
+    def activate
+      return false if active?
       
-      case command  
+      @active = true
+      Tap::Env.instance = self
+      
+      # collect load paths
+      @load_paths = []
+      envs.each do |env|
+        @load_paths << env.root[:lib]
+      end
+      
+      # add load paths
+      @load_paths.reverse_each do |path|
+        $LOAD_PATH.unshift(path)
+      end
+      
+      $LOAD_PATH.uniq!
+      
+      # setup manifests for build
+      tasks;joins
+      
+      true
+    end
+    
+    # Deactivates self by doing the following in order:
+    #
+    # * deactivates nested environments
+    # * removes load_paths from $LOAD_PATH
+    # * sets Env.instance to nil (if set to self)
+    # * clears cached manifest data
+    #
+    # Once deactivated, envs and load_paths are unfrozen and may be modified.
+    # Returns true if deactivate succeeded, or false if self is not active.
+    def deactivate
+      return false unless active?
+      @active = false
+      
+      # remove load paths
+      @load_paths.each do |path|
+        $LOAD_PATH.delete(path)
+      end
+      @load_paths = nil
+      
+      true
+    end
+    
+    # Return true if self has been activated.
+    def active?
+      @active
+    end
+    
+    def launch(argv=ARGV)
+      activate
+      
+      case command = argv.shift.to_s  
       when '', '--help'
         yield
       else
@@ -138,11 +207,7 @@ module Tap
       end
     end
     
-    def manifests
-      {:task => tasks, :join => joins, :middleware => middleware}
-    end
-    
-    def build(schema, app=Tap::App.instance, manifests=self.manifests)
+    def build(schema, app=Tap::App.instance)
       schema.build do |type, metadata|
         key = case metadata
         when Array
@@ -203,6 +268,24 @@ module Tap
           end
         end
       end if signals.include?("INT")
+    end
+    
+    def run(schemas, app=Tap::App.instance, &block)
+      activate
+      
+      schemas = [schemas] unless schemas.kind_of?(Array)
+      schemas.each do |schema|
+        build(schema, app, &block).each do |queue|
+          app.queue.concat(queue)
+        end
+      end
+      
+      if app.queue.empty?
+        raise "no task specified"
+      end
+
+      set_signals(app)
+      app.run
     end
   end
 end

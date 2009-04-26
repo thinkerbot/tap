@@ -28,10 +28,10 @@ rescue(Tap::Env::ConfigError)
 end
 
 #
-# run tap
+# launch tap
 #
 
-exe.run(ARGV) do
+exe.launch(ARGV) do
   template = %Q{<% unless entries.empty? || count <= 1 %>
 <%= env_key %>:
 <% end %>

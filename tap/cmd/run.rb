@@ -25,9 +25,7 @@ while !ARGV.empty? && ARGV[0] !~ break_regexp
 end
 
 # parse options
-dump = false
 schemas = []
-middleware = []
 ConfigParser.new do |opts|
   opts.separator ""
   opts.separator "configurations:"
@@ -68,8 +66,9 @@ ConfigParser.new do |opts|
     exit(0)
   end
   
-  opts.on('-m', '--middleware MIDDLEWARE', 'Specify app middleware') do |input|
-    middleware << input
+  opts.on('-m', '--middleware MIDDLEWARE', 'Specify app middleware') do |key|
+    middleware = env.middleware[key] or raise("unknown middleware: #{key}")
+    app.use(middleware)
   end
   
   opts.on("-s", "--schema FILE", "Build the schema file") do |path|
@@ -92,30 +91,14 @@ ARGV.replace(argv)
 #
 
 begin
-  manifests = env.manifests
-  schemas.each do |schema|
-    env.build(schema, app, manifests).each do |queue|
-      app.queue.concat(queue)
-    end
-  end
-  
-  middleware.each do |middleware|
-    klass = manifests[:middleware][middleware] or raise "unknown middleware: #{middleware}"
-    app.use klass
-  end
+  env.run(schemas, app)
 rescue
   raise if $DEBUG
   puts $!.message
-  exit(1)
-end
-
-if app.queue.empty?
-  puts "no task specified"
-  unless ARGV.empty?
+  if $!.message == "no task specified" && !ARGV.empty?
     puts "(did you mean 'tap run -- #{ARGV.join(' ')}'?)"
   end
   exit(1)
 end
 
-env.set_signals(app)
-app.run
+exit(0)
