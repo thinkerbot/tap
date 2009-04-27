@@ -13,7 +13,7 @@ module Tap
         # serve public files before actions
         server = env['tap.server'] ||= Tap::Server.new
     
-        if path = server.search(:public, env['PATH_INFO'])
+        if path = server.path(:public, env['PATH_INFO'])
           content = File.read(path)
           headers = {
             "Last-Modified" => File.mtime(path).httpdate,

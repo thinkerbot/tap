@@ -26,9 +26,14 @@ module Tap
       end
       
       # Returns the filepath for the specified id.  Non-string ids are allowed;
-      # they will be converted to strings using to_s.
+      # they will be converted to strings using to_s.  Raises an error if the
+      # result is not a subpath of the data directory.
       def path(id)
-        root.subpath(:data, id.to_s)
+        path = root.path(:data, id.to_s)
+        unless root.relative?(:data, path)
+          raise "not relative to data dir: #{id.inspect}"
+        end
+        path
       end
       
       # Returns a list of existing ids.
@@ -36,7 +41,7 @@ module Tap
         root.glob(:data).select do |path|
           File.file?(path)
         end.collect do |path|
-          root.relative_filepath(:data, path)
+          root.relative_path(:data, path)
         end
       end
       

@@ -97,7 +97,7 @@ class RestControllerTest < Test::Unit::TestCase
     assert_equal "", request.get("/1", opts).body
     
     # create
-    path = method_root.filepath(:data, "1")
+    path = method_root.path(:data, "1")
     assert_equal path, request.post("/1", opts).body
     assert_equal "create", File.read(path)
     

@@ -79,42 +79,10 @@ module Tap
     # The global home directory
     # GLOBAL_HOME = File.join(user_home, ".tap")
     
-    attr_reader :manifests
-    
-    def self.extended(base)
-      base.instance_variable_set(:@manifests, {})
-    end
-    
     def commands
       manifests['command'] ||= manifest('commands') do |env|
         env.root.glob(:cmd, "**/*.rb")
       end
-    end
-    
-    def constant_manifest(key)
-      key = key.to_s
-      manifests[key] ||= manifest(key, Env::ConstantManifest) do |env|
-        paths = []
-        env.load_paths.each do |load_path|
-          pattern = File.join(load_path, '**/*.rb')
-          Dir.glob(pattern).each do |path|
-            relative_path = Tap::Root::Utils.relative_path(load_path, path)
-            paths << [relative_path, path]
-          end
-        end
-        
-        paths.uniq!
-        paths.sort!
-        paths
-      end
-      
-      ###############################################################
-      # [depreciated] manifest as a task key will be removed at 1.0
-      if key == 'task'
-        manifests[key].const_attr = /task|manifest/
-      end
-      manifests[key]
-      ###############################################################
     end
     
     def tasks

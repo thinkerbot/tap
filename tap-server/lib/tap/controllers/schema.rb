@@ -25,15 +25,15 @@ module Tap
         case extname
         when '.txt'
           response.headers['Content-Type'] = 'text/plain'
-          YAML.dump(schema.dump)
+          schema.dump
         when '.yml'
           response.headers['Content-Type'] = 'text/plain'
           response['Content-Disposition'] = "attachment; filename=#{id}.yml;"
-          YAML.dump(schema.dump)
+          schema.dump
         else
           render 'schema.erb', :locals => {
             :id => id,
-            :schema =>schema
+            :schema => schema
           }, :layout => true
         end
       end
@@ -115,7 +115,7 @@ module Tap
             end
             
             outputs << schema.nodes.length
-            schema.nodes << Tap::Support::Node.new(argh, round)
+            schema.nodes << Tap::Schema::Node.new(argh, round)
           end
       
           if inputs.empty? || outputs.empty?
@@ -190,14 +190,14 @@ module Tap
       
       # Parses a Tap::Support::Schema from the request.
       def request_schema
-        Tap::Support::Schema.load(request['schema'])
+        Tap::Schema.load(request['schema'])
       end
       
       def load_schema(id)
         schema = if persistence.has?(id)
-          Tap::Support::Schema.load_file(persistence.path(id))
+          Tap::Schema.load_file(persistence.path(id))
         else
-          Tap::Support::Schema.new
+          Tap::Schema.new
         end
         
         if block_given?
@@ -223,7 +223,7 @@ module Tap
         
       def save_schema(id, schema=nil)
         persistence.update(id) do |file|
-          file << YAML.dump(schema.dump) if schema
+          file << schema.dump if schema
         end
       end
         

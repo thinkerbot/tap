@@ -3,6 +3,7 @@ require 'tap/controller'
 
 class ControllerTest < Test::Unit::TestCase
   acts_as_tap_test
+  
   cleanup_dirs << :views << :data << :log
   
   attr_reader :controller, :server
@@ -166,42 +167,7 @@ class ControllerTest < Test::Unit::TestCase
     request = Rack::MockRequest.new CallIndexController
     assert_equal "result", request.get("/").body
   end
-  
-  #
-  # class_file
-  #
-  
-  def test_class_file_returns_template_file_under_the_obj_class_path
-    path = method_root.prepare(:views, 'tap/controller/sample.erb') {|file| }
-    assert_equal path, controller.class_file('sample.erb')
-    
-    path = method_root.prepare(:views, 'array/sample.erb') {|file| }
-    assert_equal path, controller.class_file('sample.erb', [])
-    
-    path = method_root.prepare(:views, 'object/sample.erb') {|file| }
-    assert_equal path, controller.class_file('sample.erb', Object.new)
-  end
-  
-  def test_class_file_seeks_up_class_hierarchy
-    path = method_root.prepare(:views, 'object/sample.erb') {|file| }
-    assert_equal path, controller.class_file('sample.erb', [])
-  end
-  
-  def test_class_file_returns_nil_if_no_class_file_is_found
-    assert_equal nil, controller.class_file('sample.erb', [])
-  end
-  
-  class ClassFilePath
-    def self.class_file_path
-      "alt"
-    end
-  end
-  
-  def test_class_file_uses_class_class_file_path_if_specified
-    path = method_root.prepare(:views, 'alt/sample.erb') {|file| }
-    assert_equal path, controller.class_file('sample.erb', ClassFilePath.new)
-  end
-  
+
   #
   # render test
   #
@@ -209,7 +175,7 @@ class ControllerTest < Test::Unit::TestCase
   class RenderController < Tap::Controller
   end
   
-  def test_render_renders_class_file_for_path
+  def test_render_renders_class_path_for_path
     method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
     method_root.prepare(:views, 'controller_test/render_controller/sample.erb') {|file| file << "<%= %w{one two three}.join(':') %>" }
     

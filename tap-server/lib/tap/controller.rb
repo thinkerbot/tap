@@ -244,23 +244,8 @@ module Tap
     # of obj.class.  Returns nil if no file can be found for any class in the
     # inheritance hierarchy.
     #
-    def class_file(path, obj=self)
-      current = obj.class
-      template_path = nil
-      loop do
-        class_file_path = if current.respond_to?(:class_file_path)
-          current.class_file_path
-        else
-          current.to_s.underscore
-        end
-        
-        template_path = server.search(:views, "#{class_file_path}/#{path}")
-        break if template_path || current == Object
-        
-        current = current.superclass
-      end
-        
-      template_path
+    def class_path(path, obj=self)
+      server.class_path(:views, obj, path)
     end
     
     # Renders the class_file at path with the specified options.  Path can be
@@ -279,9 +264,9 @@ module Tap
       when options[:file]
         options[:file]
       when options[:template]
-        server.search(:views, options[:template])
+        server.path(:views, options[:template])
       else
-        class_file(path)
+        class_path(path)
       end
       
       unless template_path

@@ -5,6 +5,7 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
   include Tap::Support
   
   acts_as_tap_test
+  acts_as_subset_test
   
   attr_reader :server, :opts, :request
   

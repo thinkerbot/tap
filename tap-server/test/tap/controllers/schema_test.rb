@@ -2,7 +2,7 @@ require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/controllers/schema'
 
 class Tap::Controllers::SchemaTest < Test::Unit::TestCase
-  include Tap::Support
+  Schema = Tap::Schema
   
   acts_as_tap_test
   cleanup_dirs << :data << :log << :views
@@ -19,7 +19,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   
   def prepare_schema(id, str)
     method_root.prepare(:data, id.to_s) do |file|
-      file << Schema.parse(str).dump.to_yaml
+      file << Schema.parse(str).dump
     end
   end
   
@@ -29,7 +29,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   
   def test_show_loads_and_renders_the_specified_schema
     method_root.prepare(:data, "0") do |file|
-      file << Schema.parse("-- a 1 2 3 --+ b -- c --0:2").dump.to_yaml
+      file << Schema.parse("-- a 1 2 3 --+ b -- c --0:2").dump
     end
     
     # fake out display templates

@@ -27,17 +27,17 @@ class PersistenceTest < Test::Unit::TestCase
   # path test
   #
   
-  def test_path_returns_data_subpath_for_id
-    assert_equal method_root.subpath(:data, "file.yml"), p.path("file.yml")
+  def test_path_returns_data_path_for_id
+    assert_equal method_root.path(:data, "file.yml"), p.path("file.yml")
   end
   
   def test_path_stringifies_inputs
-    assert_equal method_root.subpath(:data, "12"), p.path(12)
+    assert_equal method_root.path(:data, "12"), p.path(12)
   end
   
   def test_path_raises_error_for_non_subpaths
-    e = assert_raises(RuntimeError) { p.path("../../12") }
-    assert e.message =~ /not a subpath: .*12/
+    err = assert_raises(RuntimeError) { p.path("../../12") }
+    assert_equal %q{not relative to data dir: "../../12"}, err.message
   end
   
   #

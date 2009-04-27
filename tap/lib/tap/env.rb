@@ -72,6 +72,8 @@ module Tap
     # loops for nested envs.  Not recommended for casual use.
     attr_reader :cache
     
+    attr_reader :manifests
+    
     # The Root directory structure for self.
     nest(:root, Root, :set_default => false)
   
@@ -138,6 +140,7 @@ module Tap
     # and to optimize the generation of manifests.
     def initialize(config_or_dir=Dir.pwd, basename=nil, cache={})
       @active = false
+      @manifests = {}
       
       # setup root
       config = nil
@@ -172,6 +175,14 @@ module Tap
     # The minikey for self (root.root).
     def minikey
       root.root
+    end
+    
+    def reset
+      each do |env| 
+        env.cache.delete_if {|k, v| k != :env }
+        env.registry.clear
+        env.manifests.clear
+      end
     end
     
     # Sets envs removing duplicates and instances of self.  Setting envs
@@ -436,6 +447,32 @@ module Tap
     # manifest will be cached in manifests if a key is provided.
     def manifest(type, klass=Manifest, &builder) # :yields: env 
       klass.new(self, type, &builder)
+    end
+    
+    def constant_manifest(key)
+      key = key.to_s
+      manifests[key] ||= manifest(key, Env::ConstantManifest) do |env|
+        paths = []
+        env.load_paths.each do |load_path|
+          pattern = File.join(load_path, '**/*.rb')
+          Dir.glob(pattern).each do |path|
+            relative_path = Tap::Root::Utils.relative_path(load_path, path)
+            paths << [relative_path, path]
+          end
+        end
+        
+        paths.uniq!
+        paths.sort!
+        paths
+      end
+      
+      ###############################################################
+      # [depreciated] manifest as a task key will be removed at 1.0
+      if key == 'task'
+        manifests[key].const_attr = /task|manifest/
+      end
+      manifests[key]
+      ###############################################################
     end
     
     # All templaters are yielded to the block before any are built.  This

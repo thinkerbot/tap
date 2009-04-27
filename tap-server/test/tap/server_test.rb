@@ -1,63 +1,23 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/server'
-require 'tap/test/regexp_escape'
 
 class ServerTest < Test::Unit::TestCase
   acts_as_tap_test
   cleanup_dirs << :lib << :log
   
-  attr_accessor :server, :request
+  attr_reader :env, :server, :request
   
   def setup
     super
-    @server = Tap::Server.new Tap::Env.new(method_root)
+    @env = Tap::Env.new(:root => method_root, :gems => :none)
+    @env.activate
+    @server = Tap::Server.new @env
     @request = Rack::MockRequest.new(@server)
   end
   
-  #
-  # Env.controllers test
-  #
-  
-  def test_server_defines_controllers_manifest
-    assert server.env.respond_to?(:controllers)
-    assert server.env.controllers.kind_of?(Tap::Support::Manifest)
-  end
-  
-  def test_controllers_manifests_detects_controllers_under_lib_dir
-    method_root.prepare(:lib, 'sample_controller.rb') do |file| 
-      file << %Q{# ::controller\nclass SampleController; end}
-    end
-    
-    controllers = server.env.controllers
-    controllers.build
-    entries = controllers.entries.collect {|const| const.name }
-    assert_equal ["SampleController"], entries
-  end
-  
-  def test_controllers_manifests_searches_by_lazydoc_constant_name
-    method_root.prepare(:lib, 'sample_controller.rb') do |file| 
-      file << %Q{# ::controller\nclass SampleController; end}
-    end
-    method_root.prepare(:lib, 'alt.rb') do |file| 
-      file << %Q{# Lazy::Constant::Name::controller\nclass SampleController; end}
-    end
-    
-    assert_equal "SampleController", server.env.controllers.search('sample_controller').name
-    assert_equal "Lazy::Constant::Name", server.env.controllers.search('name').name
-  end
-  
-  def test_controllers_detects_nested_controllers
-    method_root.prepare(:lib, 'nested/sample_controller.rb') do |file| 
-      file << %q{
-      # ::controller
-      module Nested
-        class SampleController; end
-      end}
-    end
-    
-    controllers = server.env.controllers
-    controllers.build
-    assert_equal "Nested::SampleController", server.env.controllers.search('sample_controller').name
+  def teardown
+    super
+    @env.deactivate
   end
   
   #
@@ -65,7 +25,7 @@ class ServerTest < Test::Unit::TestCase
   #
   
   def test_documentation
-    server = Tap::Server.new(Tap::Env.new(method_root))
+    server = Tap::Server.new(env)
     server.controllers['sample'] = lambda do |env|
       [200, {}, ["Sample got #{env['SCRIPT_NAME'].inspect} : #{env['PATH_INFO'].inspect}"]]
     end
@@ -96,7 +56,7 @@ end
   
     assert_equal "App got \"\" : \"/unknown/path/to/resource\"", req.get('/unknown/path/to/resource').body
   end
-  
+
   #
   # initialize test
   #
@@ -105,25 +65,7 @@ end
     server = Tap::Server.new
     assert_equal Dir.pwd, server.env.root.root
   end
-  
-  #
-  # initialize_session test
-  #
-  
-  def test_initialize_session_returns_an_integer_id
-    assert server.initialize_session.kind_of?(Integer)
-  end
-  
-  #
-  # app test
-  #
-  
-  def test_app_returns_app_when_id_is_nil
-    app = Tap::App.new
-    server = Tap::Server.new Tap::Env.new, app
-    assert_equal app, server.app
-  end
-  
+
   #
   # call tests
   #
@@ -148,7 +90,7 @@ end
       [200, headers, [""]]
     end
   end
-
+  
   def test_call_adjusts_env_to_reflect_reroute
     server.controllers['route'] = AdjustController
     
@@ -250,47 +192,5 @@ end
     res = request.get('/unknown')
     assert_equal 404, res.status
     assert_equal "404 Error: could not route to controller", res.body
-  end
-  
-  #
-  # benchmark test
-  #
-  
-  class BenchmarkController
-    def self.call(env)
-      [200, {}, env['PATH_INFO']]
-    end
-  end
-
-  def test_call_speed
-    benchmark_test(20) do |x|
-      server.controllers['route'] = BenchmarkController
-      n = 10*1000
-      
-      env = Rack::MockRequest.env_for("/route")
-      x.report("10k call") { n.times { BenchmarkController.call(env.dup) } }
-      assert_equal [200, {}, ["/"]], server.call(env)
-      
-      env = Rack::MockRequest.env_for("/route")
-      x.report("10k route") { n.times { server.call(env.dup) } }
-      assert_equal [200, {}, ["/"]], server.call(env)
-      
-      env = Rack::MockRequest.env_for("/route/to/resource")
-      x.report("10k route/path") { n.times { server.call(env.dup) } }
-      assert_equal [200, {}, ["/to/resource"]], server.call(env)
-      
-      method_root.prepare(:lib, 'bench.rb') do |file| 
-        file << %Q{# ::controller\nclass Bench < ServerTest::BenchmarkController; end}
-      end
-      
-      env = Rack::MockRequest.env_for("/bench")
-      x.report("1k dev env") { 1000.times { server.call(env.dup) } }
-      assert_equal [200, {}, ["/"]], server.call(env)
-      
-      server.environment = :production
-      env = Rack::MockRequest.env_for("/bench")
-      x.report("10k pro env") { n.times { server.call(env.dup) } }
-      assert_equal [200, {}, ["/"]], server.call(env)
-    end
   end
 end

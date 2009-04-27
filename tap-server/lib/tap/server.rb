@@ -5,13 +5,6 @@ require 'tap'
 require 'tap/server_error'
 
 module Tap
-  Env.manifest(:controllers) do |env|
-    controllers = Support::ConstantManifest.new('controller')
-    env.load_paths.each do |path_root|
-      controllers.register(path_root, '**/*.rb')
-    end
-    controllers
-  end
   
   # :::-
   # Server is a Rack application that dispatches calls to other Rack apps, most
@@ -83,12 +76,11 @@ module Tap
         FileUtils.mkdir_p(root) unless File.exists?(root)
 
         # initialize the server
-        app = Tap::App.instance
-        env = Tap::Exe.instantiate(root)
+        env = Tap::Exe.setup(root)
         env.activate
         config = Configurable::Utils.load_file(env.root['server.yml'])
         
-        server = new(env, app, config)
+        server = new(env, config)
         server.config[:shutdown_key] = rand(1000000) if shutdown_key
         server
       end
@@ -103,10 +95,11 @@ module Tap
     include Rack::Utils
     include Configurable
     
-    config :environment, :development                   
+    config :mode, :development, &c.select(:development, :production, &c.symbol)
     config :servers, %w[thin mongrel webrick], &c.list  # a list of preferred handlers
     config :host, 'localhost', &c.string                # the server host
     config :port, 8080, &c.integer                      # the server port
+    config :sessions, false
     
     # A hash of (key, controller) pairs mapping the controller part of a route
     # to a Rack application.  Typically controllers is used to specify aliases
@@ -132,10 +125,11 @@ module Tap
     attr_reader :env
     attr_reader :handler
     
-    def initialize(env=Env.new, app=Tap::App.instance, config={})
+    def initialize(env=Env.new, config={})
       @env = env
-      @app = app
       @cache = {}
+      @apps = {}
+      @roots = {}
       @handler = nil
       initialize_config(config)
     end
@@ -143,7 +137,7 @@ module Tap
     # Runs self as configured, on the specified server, host, and port.  Use an
     # INT signal to interrupt.
     def run!(handler=rack_handler)
-      app.log :run, "#{host}:#{port} (#{handler})"
+      #app.log :run, "#{host}:#{port} (#{handler})"
       handler.run self, :Host => host, :Port => port do |handler_instance|
         @handler = handler_instance
         trap(:INT) { stop! }
@@ -166,23 +160,52 @@ module Tap
     # Currently a stub for initializing a session.  initialize_session returns
     # an integer session id.
     def initialize_session
-      id = 0
-      session_app = app(id)
-      session_root = root(id)
-      
-      # setup expiration information...
-      
-      id
+      0
     end
     
     # Returns the session-specific App, or the server app if id is nil.
-    def app(id=nil)
-      @app
+    def app(id)
+      @apps[id] ||= Tap::App.new
     end
     
     # Returns the session-specific Root, or the server env.root if id is nil.
-    def root(id=nil)
-      @env.root
+    def root(id)
+      if sessions
+        @roots[id] ||= Tap::Root.new(env.root.path(:sessions, id.to_s))
+      else
+        env.root
+      end
+    end
+    
+    # a helper method for routing a key to a controller
+    def controller(key)
+      return @cache[key] if @cache.has_key?(key)
+      minikey = controllers[key] || key
+      
+      # return registered controllers
+      if minikey.respond_to?(:call)
+        @cache[key] = minikey
+        return minikey
+      end
+      
+      # return if no controller can be found
+      unless const = env.constant_manifest(:controller).seek(minikey)
+        @cache[key] = nil
+        return nil
+      end
+      
+      # unload the controller in development mode so that
+      # controllers will be reloaded each request
+      const.unload if development?
+      @cache[key] = const.constantize
+    end
+    
+    def path(dir, path)
+      env.path(dir, path) {|path| File.exists?(path) }
+    end
+    
+    def class_path(dir, obj, path)
+      env.class_path(dir, obj, path) {|path| File.exists?(path) }
     end
     
     # Returns a uri mapping to the specified controller and action.  Parameters
@@ -200,13 +223,13 @@ module Tap
     # The {Rack}[http://rack.rubyforge.org/doc/] interface method.
     def call(rack_env)
       if development?
-        env.reset 
+        env.manifests.clear
         @cache.clear
       end
       
       # route to a controller
       blank, key, path_info = rack_env['PATH_INFO'].split("/", 3)
-      controller = lookup(unescape(key))
+      controller = self.controller(unescape(key))
       
       if controller
         # adjust env if key routes to a controller
@@ -214,7 +237,7 @@ module Tap
         rack_env['PATH_INFO'] = ["/#{path_info}"]
       else
         # use default controller key
-        controller = lookup(default_controller_key)
+        controller = self.controller(default_controller_key)
         
         unless controller
           raise ServerError.new("404 Error: could not route to controller", 404)
@@ -230,16 +253,11 @@ module Tap
       ServerError.response($!)
     end
     
-    # Searches env for the first matching file, directories are not matched.
-    def search(dir, path)
-      env.search(dir, path) {|file| File.file?(file) }
-    end
-    
     protected
     
-    # Returns true if environment is :development.
+    # Returns true if mode is :development.
     def development? # :nodoc:
-      environment == :development
+      mode == :development
     end
     
     # Looks up and returns the first available Rack::Handler as listed in the
@@ -254,42 +272,6 @@ module Tap
         end
       end
       raise "Server handler (#{servers.join(',')}) not found."
-    end
-    
-    # a helper method for routing a key to a controller
-    def lookup(key) # :nodoc:
-      return @cache[key] if @cache.has_key?(key)
-      minikey = controllers[key] || key
-      
-      # return registered controllers
-      if minikey.respond_to?(:call)
-        @cache[key] = minikey
-        return minikey
-      end
-      
-      # return if no controller can be found
-      unless const = env.controllers.search(minikey)
-        @cache[key] = nil
-        return nil
-      end
-      
-      # load the require_path in dev mode so that
-      # controllers will be reloaded each time
-      if development? && const.require_path
-        parent = if const.nesting.empty?
-          Object
-        else
-          Tap::Support::Constant.constantize(const.nesting) { nil }
-        end
-        
-        if parent && parent.const_defined?(const.const_name)
-          parent.send(:remove_const, const.const_name)
-        end
-        
-        load const.require_path
-      end
-    
-      @cache[key] = const.constantize
     end
   end
 end

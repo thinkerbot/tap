@@ -149,7 +149,7 @@ module Tap
       @state = State::READY
       @stack = options[:stack] || Stack.new
       @queue = options[:queue] || Queue.new
-      @cache = options[:cahce] || {}
+      @cache = options[:cache] || {}
       @trace = []
       on_complete(&block)
       
