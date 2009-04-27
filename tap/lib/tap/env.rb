@@ -82,7 +82,7 @@ module Tap
     config_attr :gems, [] do |input|
       input = yaml_load(input) if input.kind_of?(String)
       
-      specs = case input
+      @gems = case input
       when false, nil, :NONE, :none
         []
       when :LATEST, :ALL
@@ -98,11 +98,6 @@ module Tap
         [*input].collect do |name|
           Gems.gemspec(name)
         end.compact
-      end
-    
-      # sort specs to ensure they appear in the natural order
-      @gems = specs.uniq.sort_by do |spec|
-        spec.full_name
       end
     
       reset_envs

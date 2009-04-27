@@ -34,15 +34,29 @@ module Tap
       # latest is specified, only the latest version of each
       # gem will be passed to the block.
       def select_gems(latest=true)
-        index = latest ?
+        specs = latest ?
           Gem.source_index.latest_specs :
           Gem.source_index.gems.collect {|(name, spec)| spec }
-      
-        index = index.select do |spec|
-          yield(spec)
-        end if block_given?
-      
-        index.sort
+        
+        # this song and dance is to ensure that specs are sorted
+        # by name (ascending) then version (descending) so that
+        # the latest version of a spec appears first
+        specs_by_name = {}
+        specs.each do |spec|
+          next unless !block_given? || yield(spec) 
+          (specs_by_name[spec.name] ||= []) << spec
+        end
+        
+        specs = []
+        specs_by_name.keys.sort.each do |name|
+          specs_by_name[name].sort_by do |spec| 
+            spec.version
+          end.reverse_each do |spec|
+            specs << spec
+          end
+        end
+        
+        specs
       end
     end
   end

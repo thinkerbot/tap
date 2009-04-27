@@ -8,7 +8,7 @@ require 'rap'
 begin
   
   env = Tap::Exe.setup
-  env.unshift(Rap::Declarations.env)
+  Rap::Declarations.env = env
   env.activate
   
 rescue(Tap::Env::ConfigError)
