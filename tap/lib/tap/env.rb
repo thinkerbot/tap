@@ -10,10 +10,21 @@ module Tap
     autoload(:Gems, 'tap/env/gems')
   
     class << self
-      attr_writer :instance
+      attr_accessor :instance
       
-      def instance
-        @instance ||= new
+      def from_gemspec(spec, basename=nil, cache={})
+        path = spec.full_gem_path
+        config = {
+          :root => path,
+          :load_paths => spec.require_paths,
+          :set_load_paths => false
+        }
+        
+        if basename
+          config.merge!(Env.load_config(File.join(path, basename)))
+        end
+        
+        new(config, basename, cache)
       end
       
       # Loads configurations from path as YAML.  Returns an empty hash if the path
@@ -28,7 +39,8 @@ module Tap
         end
       end
     end
-  
+    self.instance = nil
+    
     include Enumerable
     include Configurable
     include Minimap
@@ -95,6 +107,19 @@ module Tap
       reset_envs
     end
     
+    # Designates paths added to $LOAD_PATH on activation (see set_load_paths).
+    # These paths are also the default directories searched for resources.
+    config_attr :load_paths, [:lib] do |input|
+      raise "load_paths cannot be modified once active" if active?
+      @load_paths = resolve_paths(input)
+    end
+    
+    # If set to true load_paths are added to $LOAD_PATH on activation.
+    config_attr :set_load_paths, true do |input|
+      raise "set_load_paths cannot be modified once active" if active?
+      @set_load_paths = Configurable::Validation.boolean[input]
+    end
+    
     # A hash of resources registered with env, used to build manifests.
     config :registry, {}, &c.hash
     
@@ -110,6 +135,8 @@ module Tap
     # The cache is used internally to prevent infinite loops of nested envs,
     # and to optimize the generation of manifests.
     def initialize(config_or_dir=Dir.pwd, basename=nil, cache={})
+      @active = false
+      
       # setup root
       config = nil
       @root = case config_or_dir
@@ -153,6 +180,7 @@ module Tap
     # Sets envs removing duplicates and instances of self.  Setting envs
     # overrides any environments specified by env_path and gem.
     def envs=(envs)
+      raise "envs cannot be modified once active" if active?
       @envs = envs.uniq.delete_if {|env| env == self }
     end
   
@@ -214,6 +242,83 @@ module Tap
     #
     def recursive_inject(memo, &block) # :yields: memo, env
       inject_envs(memo, &block)
+    end
+    
+    # Activates self by doing the following, in order:
+    #
+    # * sets Env.instance to self (unless already set)
+    # * activate nested environments
+    # * unshift load_paths to $LOAD_PATH
+    #
+    # Once active, the current envs and load_paths are frozen and cannot be
+    # modified until deactivated. Returns true if activate succeeded, or
+    # false if self is already active.
+    def activate
+      return false if active?
+      
+      @active = true
+      self.class.instance ||= self
+      
+      # freeze envs and load paths
+      @envs.freeze
+      @load_paths.freeze
+      
+      # activate nested envs
+      envs.reverse_each do |env|
+        env.activate
+      end
+      
+      # add load paths
+      if set_load_paths
+        load_paths.reverse_each do |path|
+          $LOAD_PATH.unshift(path)
+        end
+      
+        $LOAD_PATH.uniq!
+      end
+      
+      true
+    end
+    
+    # Deactivates self by doing the following in order:
+    #
+    # * deactivates nested environments
+    # * removes load_paths from $LOAD_PATH
+    # * sets Env.instance to nil (if set to self)
+    # * clears cached manifest data
+    #
+    # Once deactivated, envs and load_paths are unfrozen and may be modified.
+    # Returns true if deactivate succeeded, or false if self is not active.
+    def deactivate
+      return false unless active?
+      @active = false
+      
+      # dectivate nested envs
+      envs.reverse_each do |env|
+        env.deactivate
+      end
+      
+      # remove load paths
+      load_paths.each do |path|
+        $LOAD_PATH.delete(path)
+      end if set_load_paths
+      
+      # unfreeze envs and load paths
+      @envs = @envs.dup
+      @load_paths = @load_paths.dup
+      
+      # clear cached data
+      klass = self.class
+      if klass.instance == self
+        klass.instance = nil
+      end
+      
+      true
+    end
+    
+    # Return true if self has been activated.
+    def active?
+      @active
     end
     
     # Register an object for lookup by seek.
@@ -312,19 +417,14 @@ module Tap
       (cache[:env] ||= []).find {|env| env.path == path }
     end
     
-    # returns or instantiates an Env for the specified path
-    def instantiate(path) # :nodoc:
-      cached_env(path) || Env.new(path, basename, cache)
-    end
-    
     # resets envs using the current env_paths and gems.  does nothing
     # until both env_paths and gems are set.
     def reset_envs # :nodoc:
       if env_paths && gems
         self.envs = env_paths.collect do |path| 
-          instantiate(path)
+          cached_env(path) || Env.new(path, basename, cache)
         end + gems.collect do |spec|
-          instantiate(spec.full_gem_path)
+          cached_env(spec.full_gem_path) or Env.from_gemspec(spec, basename, cache)
         end
       end
     end

@@ -19,13 +19,6 @@ class ExeTest < Test::Unit::TestCase
     assert Exe.setup.kind_of?(Tap::Env)
   end
   
-  def test_setup_sets_env_as_Env_instance
-    current = Tap::Env.instance
-    exe = Exe.setup
-    assert current != exe
-    assert_equal Tap::Env.instance, exe
-  end
-  
   def test_setup_sets_dir_as_env_root
     exe = Exe.setup :dir => method_root[:dir], :config_file => nil
     assert_equal method_root[:dir], exe.root.root

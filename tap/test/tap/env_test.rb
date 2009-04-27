@@ -72,6 +72,7 @@ class EnvTest < Test::Unit::TestCase
     e = Env.new
     assert_equal Dir.pwd, e.root.root
     assert_equal [], e.envs
+    assert !e.active?
   end
   
   def test_initialize_from_path
@@ -297,6 +298,13 @@ class EnvTest < Test::Unit::TestCase
       e.gems = :latest
       gems = Gem.source_index.latest_specs
       assert gems.sort == e.gems.sort
+    end
+  end
+  
+  def test_gems_does_not_activate_gems
+    gem_test do
+      e.gems = ["gem_mock < 2.0"]
+      assert !Gem.loaded_specs.values.include?(ONE)
     end
   end
 
@@ -681,5 +689,286 @@ c#{c.object_id}}
       templater.count = globals[:total]
     end
     assert_equal "1(3)\n2(3)\n3(3)\n", result
+  end
+end
+
+class EnvActivateTest < Test::Unit::TestCase
+  Env = Tap::Env
+  
+  attr_accessor :e
+  
+  def setup
+    @current_instance = Env.instance
+    Env.instance = nil
+    
+    @current_load_paths = $LOAD_PATH.dup
+    $LOAD_PATH.clear
+
+    @e = Env.new
+  end
+  
+  def teardown
+    Env.instance = @current_instance
+    $LOAD_PATH.clear
+    $LOAD_PATH.concat(@current_load_paths)
+  end
+  
+  #
+  # activate test
+  #
+  
+  def test_activate_returns_false_if_active
+    assert !e.active?
+    assert e.activate
+    
+    assert e.active?
+    assert !e.activate
+  end
+  
+  def test_activate_freezes_envs
+    assert !e.envs.frozen?
+    e.activate
+    assert e.envs.frozen?
+  end
+  
+  def test_activate_freezes_load_paths
+    assert !e.load_paths.frozen?
+    e.activate
+    assert e.load_paths.frozen?
+  end
+  
+  def test_activate_unshifts_load_paths_to_LOAD_PATH
+    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+    $LOAD_PATH.clear
+  
+    e.activate
+    
+    assert_equal [e.root["/path/to/lib"], e.root["/path/to/another/lib"]], $LOAD_PATH
+  end
+  
+  def test_activate_prioritizes_load_paths_in_LOAD_PATH
+    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+    $LOAD_PATH.clear
+    $LOAD_PATH.concat ["post", e.root["/path/to/another/lib"], e.root["/path/to/lib"]]
+    
+    e.activate
+    
+    assert_equal [e.root["/path/to/lib"], e.root["/path/to/another/lib"], "post"], $LOAD_PATH
+  end
+  
+  def test_activate_does_not_add_load_paths_unless_specified
+    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+    $LOAD_PATH.clear
+    
+    e.set_load_paths = false
+    e.activate
+    
+    assert_equal [], $LOAD_PATH
+  end
+  
+  def test_activate_assigns_self_as_Env_instance
+    assert_nil Env.instance
+    e.activate
+    assert_equal e, Env.instance
+  end
+  
+  def test_activate_does_not_assign_self_as_Env_instance_if_already_set
+    e.activate
+    assert_equal e, Env.instance
+    
+    e1 = Env.new
+    e1.activate
+    assert_equal e, Env.instance
+  end
+  
+  #
+  # deactivate test
+  #
+  
+  def test_deactivate_returns_false_unless_active
+    assert !e.active?
+    assert !e.deactivate
+    
+    e.activate
+    
+    assert e.active?
+    assert e.deactivate
+  end
+  
+  def test_deactivate_unfreezes_envs
+    e.activate
+    assert e.envs.frozen?
+    
+    e.deactivate
+    assert !e.envs.frozen?
+  end
+  
+  def test_deactivate_unfreezes_load_paths
+    e.activate
+    assert e.load_paths.frozen?
+    
+    e.deactivate
+    assert !e.load_paths.frozen?
+  end
+  
+  def test_deactivate_removes_load_paths_from_LOAD_PATH
+    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+    e.activate
+    
+    $LOAD_PATH.clear
+    $LOAD_PATH.concat [e.root["/path/to/lib"], e.root["/path/to/another/lib"]]
+    $LOAD_PATH.unshift "pre"
+    $LOAD_PATH.push "post"
+    
+    e.deactivate
+    
+    assert_equal ["pre", "post"], $LOAD_PATH
+  end
+  
+  def test_deactivate_does_not_remove_load_paths_unless_deactivated
+    Env.send(:class_variable_set, :@@instance, Env.new)
+    
+    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+    $LOAD_PATH.clear
+    $LOAD_PATH.concat ["/path/to/lib", "/path/to/another/lib"]
+    
+    assert !e.active?
+    assert !e.deactivate
+    assert_equal ["/path/to/lib", "/path/to/another/lib"], $LOAD_PATH
+  end
+  
+  def test_deactivate_does_not_remove_load_paths_unless_specified
+    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+    e.set_load_paths = false
+    e.activate
+    
+    $LOAD_PATH.clear
+    $LOAD_PATH.concat [e.root["/path/to/lib"], e.root["/path/to/another/lib"]]
+    $LOAD_PATH.unshift "pre"
+    $LOAD_PATH.push "post"
+    
+    e.deactivate
+    
+    assert_equal ["pre", e.root["/path/to/lib"], e.root["/path/to/another/lib"], "post"], $LOAD_PATH
+  end
+  
+  def test_deactivate_unassigns_self_as_Env_instance
+    e.activate
+    assert_equal e, Env.instance
+    
+    e.deactivate
+    assert_nil Env.instance
+  end
+  
+  #
+  # activate/deactivate test
+  #
+  
+  def test_activate_is_toggled_by_activate_and_deactivate
+    e.activate
+    assert e.active?
+    
+    e.deactivate
+    assert !e.active?
+  end
+  
+  def test_activate_deactivate_does_not_change_configs
+    current_configs = e.config
+    
+    e.activate
+    e.deactivate
+    
+    assert_equal current_configs, e.config
+  end
+  
+  def test_recursive_activate_and_dectivate
+    e1 = Env.new
+    e1.load_paths = ["/path/to/e1"]
+    e.push e1
+    
+    e2 = Env.new
+    e2.load_paths = ["/path/to/e2"]
+    e1.push e2
+    
+    e3 = Env.new
+    e3.load_paths = ["/path/to/e3"]
+    e.push e3
+    
+    e.load_paths = ["/path/to/e"]
+    $LOAD_PATH.clear
+    e.activate
+    
+    assert e1.active?
+    assert e2.active?
+    assert e3.active?
+    expected = ["/path/to/e", "/path/to/e1", "/path/to/e2",  "/path/to/e3"].collect {|p| e.root[p] }
+    assert_equal expected, $LOAD_PATH
+    
+    e.deactivate
+    
+    assert !e1.active?
+    assert !e2.active?
+    assert !e3.active?
+    assert_equal [], $LOAD_PATH
+  end
+  
+  def test_recursive_activate_and_dectivate_does_not_infinitely_loop
+    e1 = Env.new
+    e1.load_paths = ["/path/to/e1"]
+    e.push e1
+    
+    e2 = Env.new
+    e2.load_paths = ["/path/to/e2"]
+    e1.push e2
+    e2.push e
+    
+    e.load_paths = ["/path/to/e"]
+    $LOAD_PATH.clear
+    e.activate
+    
+    assert e1.active?
+    assert e2.active?
+    expected = ["/path/to/e", "/path/to/e1", "/path/to/e2"].collect {|p| e.root[p] }
+    assert_equal expected, $LOAD_PATH
+    
+    e.deactivate
+    
+    assert !e1.active?
+    assert !e2.active?
+    assert_equal [], $LOAD_PATH
+  end
+  
+  #
+  # extra assurances
+  #
+  
+  def test_gems_cannot_be_set_once_active
+    e.activate
+    err = assert_raises(RuntimeError) { e.gems = [] }
+    assert_equal "envs cannot be modified once active", err.message
+  end
+  
+  def test_env_paths_cannot_be_set_once_active
+    e.activate
+    err = assert_raises(RuntimeError) { e.env_paths = [] }
+    assert_equal "envs cannot be modified once active", err.message
+  end
+  
+  def test_envs_cannot_be_set_once_active
+    e.activate
+    err = assert_raises(RuntimeError) { e.envs = [] }
+    assert_equal "envs cannot be modified once active", err.message
+  end
+  
+  def test_load_paths_cannot_be_set_once_active
+    e.activate
+    err = assert_raises(RuntimeError) { e.load_paths = [] }
+    assert_equal "load_paths cannot be modified once active", err.message
+  end
+  
+  def test_set_load_paths_cannot_be_set_once_active
+    e.activate
+    err = assert_raises(RuntimeError) { e.set_load_paths = false }
+    assert_equal "set_load_paths cannot be modified once active", err.message
   end
 end

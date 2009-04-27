@@ -31,6 +31,7 @@ end
 # launch tap
 #
 
+exe.activate
 exe.launch(ARGV) do
   template = %Q{<% unless entries.empty? || count <= 1 %>
 <%= env_key %>:

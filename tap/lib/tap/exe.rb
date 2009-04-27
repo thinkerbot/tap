@@ -60,7 +60,7 @@ module Tap
       end
       
       # instantiate
-      Tap::Env.instance = exe = Env.new(config, config_file).extend(Exe)
+      exe = Env.new(config, config_file).extend(Exe)
       
       # add the tap env if necessary
       unless exe.any? {|env| env.path == TAP_HOME }
@@ -130,70 +130,12 @@ module Tap
       end
     end
     
-    # Activates self by doing the following, in order:
-    #
-    # * sets Env.instance to self (unless already set)
-    # * activate nested environments
-    # * unshift load_paths to $LOAD_PATH
-    #
-    # Once active, the current envs and load_paths are frozen and cannot be
-    # modified until deactivated. Returns true if activate succeeded, or
-    # false if self is already active.
     def activate
-      return false if active?
-      
-      @active = true
-      Tap::Env.instance = self
-      
-      # collect load paths
-      @load_paths = []
-      envs.each do |env|
-        @load_paths << env.root[:lib]
-      end
-      
-      # add load paths
-      @load_paths.reverse_each do |path|
-        $LOAD_PATH.unshift(path)
-      end
-      
-      $LOAD_PATH.uniq!
-      
-      # setup manifests for build
+      super
       tasks;joins
-      
-      true
-    end
-    
-    # Deactivates self by doing the following in order:
-    #
-    # * deactivates nested environments
-    # * removes load_paths from $LOAD_PATH
-    # * sets Env.instance to nil (if set to self)
-    # * clears cached manifest data
-    #
-    # Once deactivated, envs and load_paths are unfrozen and may be modified.
-    # Returns true if deactivate succeeded, or false if self is not active.
-    def deactivate
-      return false unless active?
-      @active = false
-      
-      # remove load paths
-      @load_paths.each do |path|
-        $LOAD_PATH.delete(path)
-      end
-      @load_paths = nil
-      
-      true
-    end
-    
-    # Return true if self has been activated.
-    def active?
-      @active
     end
     
     def launch(argv=ARGV)
-      activate
-      
       case command = argv.shift.to_s  
       when '', '--help'
         yield
@@ -271,8 +213,6 @@ module Tap
     end
     
     def run(schemas, app=Tap::App.instance, &block)
-      activate
-      
       schemas = [schemas] unless schemas.kind_of?(Array)
       schemas.each do |schema|
         build(schema, app, &block).each do |queue|
