@@ -28,12 +28,9 @@ module Tap
       end
   
       def index
-        env_names = {}
-        server.env.minimap.each do |name, environment|
-          env_names[environment] = name
-        end 
-    
-        render('index.erb', :locals => {:env => server.env, :env_names => env_names}, :layout => true)
+        render('index.erb', :locals => {
+          :env => server.env
+        }, :layout => true)
       end
       
       def info
@@ -74,7 +71,7 @@ module Tap
   
       def run(id=nil)
         unless request.post?
-          return redirect server.uri(:schema, id)
+          return redirect(server.uri(:schema, id))
         end
         
         if persistence.has?(id)

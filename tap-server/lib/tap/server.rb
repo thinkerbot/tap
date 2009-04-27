@@ -201,11 +201,11 @@ module Tap
     end
     
     def path(dir, path)
-      env.path(dir, path) {|path| File.exists?(path) }
+      env.path(dir, path) {|path| File.file?(path) }
     end
     
     def class_path(dir, obj, path)
-      env.class_path(dir, obj, path) {|path| File.exists?(path) }
+      env.class_path(dir, obj, path) {|path| File.file?(path) }
     end
     
     # Returns a uri mapping to the specified controller and action.  Parameters
@@ -223,7 +223,7 @@ module Tap
     # The {Rack}[http://rack.rubyforge.org/doc/] interface method.
     def call(rack_env)
       if development?
-        env.manifests.clear
+        env.reset
         @cache.clear
       end
       

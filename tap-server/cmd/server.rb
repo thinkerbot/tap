@@ -6,7 +6,6 @@ require 'tap'
 require 'tap/server'
 
 env = Tap::Env.instance
-app = Tap::App.instance
 parser = ConfigParser.new do |opts|
   
   opts.separator ""
@@ -23,4 +22,4 @@ end
 argv = parser.parse(ARGV)
 
 # launch server
-Tap::Server.new(env, app, parser.config).run!
+Tap::Server.new(env, parser.config).run!
