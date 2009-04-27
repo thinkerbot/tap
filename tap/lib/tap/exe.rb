@@ -128,11 +128,6 @@ module Tap
       constant_manifest(:middleware)
     end
     
-    def activate
-      super
-      tasks;joins
-    end
-    
     def launch(argv=ARGV)
       case command = argv.shift.to_s  
       when '', '--help'
