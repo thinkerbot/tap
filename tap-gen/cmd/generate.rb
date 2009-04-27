@@ -6,22 +6,16 @@
 #   % tap generate root --help
 #
 
-require 'tap/generator/base'
+require 'tap/generator/exe'
 require 'tap/generator/generate'
 
 env = Tap::Env.instance
+env.extend Tap::Generator::Exe
 
-if ARGV.empty? || ARGV == ['--help']
+env.run(Tap::Generator::Generate, ARGV) do
   puts Lazydoc.usage(__FILE__)
   puts
   puts "generators:"
   puts env.generators.summarize
-  exit
+  exit(1)
 end
-
-name = ARGV.shift
-const = env.generators.search(name) or raise "unknown generator: #{name}"
-
-generator_class = const.constantize
-generator, argv = generator_class.parse(ARGV)
-generator.extend(Tap::Generator::Generate).process(*argv)
