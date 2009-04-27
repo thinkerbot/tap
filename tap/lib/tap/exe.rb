@@ -87,7 +87,7 @@ module Tap
     
     def commands
       manifests['command'] ||= manifest('commands') do |env|
-        env.glob(:cmd, "**/*.rb")
+        env.root.glob(:cmd, "**/*.rb")
       end
     end
     
@@ -96,7 +96,9 @@ module Tap
       manifests[key] ||= manifest(key, Env::ConstantManifest) do |env|
         paths = []
         env.load_paths.each do |load_path|
-          env.hlob(load_path, '**/*.rb').each_pair do |relative_path, path|
+          pattern = File.join(load_path, '**/*.rb')
+          Dir.glob(pattern).each do |path|
+            relative_path = Tap::Root::Utils.relative_path(load_path, path)
             paths << [relative_path, path]
           end
         end

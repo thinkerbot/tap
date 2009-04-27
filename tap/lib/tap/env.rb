@@ -14,8 +14,15 @@ module Tap
       
       def from_gemspec(spec, basename=nil, cache={})
         path = spec.full_gem_path
+        
+        dependencies = spec.dependencies.collect {|dep| Gems.gemspec(dep) }
+        dependencies = dependencies.select do |dep|
+          File.exists?(File.join(dep.full_gem_path, basename))
+        end if basename
+        
         config = {
           :root => path,
+          :gems => dependencies,
           :load_paths => spec.require_paths,
           :set_load_paths => false
         }
@@ -373,10 +380,6 @@ module Tap
     
       nil
     end
-    
-    # def mod_glob(key, mod, pattern="**/*")
-    #   constant_hlob(key, mod, pattern).values.sort!
-    # end
     
     # Register an object for lookup by seek.
     def register(type, obj, &block)

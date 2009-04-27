@@ -21,7 +21,7 @@ end.parse!(ARGV)
 
 template = %Q{<% unless manifests.empty? %>
 #{'-' * 80}
-<%= (env_key + ':').ljust(width) %> (<%= env.path %>)
+<%= (env_key + ':').ljust(width) %> (<%= env.root.root %>)
 <% manifests.each do |type, entries| %>
   <%= type %>
 <%   entries.each do |key, value| %>

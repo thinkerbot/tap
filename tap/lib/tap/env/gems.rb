@@ -12,16 +12,21 @@ module Tap
       # is not activated by this method.
       def gemspec(gem_name)
         return gem_name if gem_name.kind_of?(Gem::Specification)
+        
+        dependency = if gem_name.kind_of?(Gem::Dependency)
+          gem_name
+        else
+          # figure the version of the gem, by default >= 0.0.0
+          gem_name.to_s =~ /^([^~<=>]*)(.*)$/
+          name, version = $1.strip, $2
+          return nil if name.empty?
+          version = Gem::Requirement.default if version.empty?
       
-        # figure the version of the gem, by default >= 0.0.0
-        gem_name.to_s =~ /^([^<=>]*)(.*)$/
-        name, version = $1.strip, $2
-        return nil if name.empty?
-        version = Gem::Requirement.default if version.empty?
-      
-        # note the last gem matching the dependency requirements
-        # is the latest matching gem
-        dependency = Gem::Dependency.new(name, version)
+          # note the last gem matching the dependency requirements
+          # is the latest matching gem
+          Gem::Dependency.new(name, version)
+        end
+        
         Gem.source_index.search(dependency).last
       end
     

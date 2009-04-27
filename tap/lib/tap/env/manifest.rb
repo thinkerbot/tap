@@ -98,8 +98,8 @@ module Tap
       #
       # Returns nil if no matching entry is found.
       def seek(key)
-        self.env.seek(type, key) do |env, k|
-          manifest(env).minimatch(k)
+        env.seek(type, key) do |e, k|
+          manifest(e).minimatch(k)
         end
       end
       
