@@ -220,6 +220,10 @@ module Tap
       query.empty? ? uri : "#{uri}?#{query}"
     end
     
+    def env_uri(env, controller, action=nil, params={})
+      uri("#{env}:#{controller}", action, params)
+    end
+    
     # The {Rack}[http://rack.rubyforge.org/doc/] interface method.
     def call(rack_env)
       if development?

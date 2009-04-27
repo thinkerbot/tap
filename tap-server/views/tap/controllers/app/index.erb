@@ -13,12 +13,11 @@
 <%   controllers = current.constant_manifest(:controller) %>
 <%   unless controllers.empty? %>
     <dl id="controllers" class="manifest">
-    <!-- controllers manifest -->
     <dt class="key">controllers</dt>
     <dd class="value">
       <ol>
-<%     controllers.minimap.each do |(name, const)| %>
-      <li><a href="/<%= env_key %>%3A<%= name %>"><%= name %></a> (<%= const.require_path %>)</li>
+<%     controllers.minimap.each do |(key, const)| %>
+      <li><a href="<%= server.env_uri(env_key, key) %>"><%= key %></a> (<%= const.require_path %>)</li>
 <%     end %>
       </ol>
     </dd>
@@ -27,13 +26,12 @@
 
 <%   tasks = current.constant_manifest(:task) %>
 <%   unless tasks.empty? %>
-    <dl id="tascs" class="manifest">
-    <!-- tasks manifest -->
+    <dl id="tasks" class="manifest">
     <dt class="key">tasks</dt>
     <dd class="value">
       <ol>
-<%     tasks.minimap.each do |(name, const)| %>
-      <li><a href="/schema?nodes[0][0]=<%= env_key %>%3A<%= name %>"><%= name %></a> (<%= const.require_path %>)</li>
+<%     tasks.minimap.each do |(key, const)| %>
+      <li><a href="<%= server.uri("schema", "nodes[0][0]" => "#{env_key}:#{key}") %>"><%= key %></a> (<%= const.require_path %>)</li>
 <%     end %>
       </ol>
     </dd>
