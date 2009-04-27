@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../../../tap_test_helper')
-require 'tap/generator/generators/root/root_generator'
+require 'tap/generator/generators/root'
 require 'tap/generator/preview.rb'
 
 class RootGeneratorTest < Test::Unit::TestCase
@@ -12,7 +12,7 @@ class RootGeneratorTest < Test::Unit::TestCase
   #
   
   def test_root_generator
-    g = RootGenerator.new.extend Preview
+    g = Root.new.extend Preview
     
     assert_equal %w{
       .
@@ -33,7 +33,7 @@ class RootGeneratorTest < Test::Unit::TestCase
   end
   
   def test_config_file_true_populates_tap_yml
-    g = RootGenerator.new.extend Preview
+    g = Root.new.extend Preview
     g.config_file = true
     
     assert_equal %w{
@@ -53,7 +53,7 @@ class RootGeneratorTest < Test::Unit::TestCase
   end
   
   def test_history_false_prevents_creation_of_History
-    g = RootGenerator.new.extend Preview
+    g = Root.new.extend Preview
     
     g.history = false
     assert_equal %w{
@@ -70,7 +70,7 @@ class RootGeneratorTest < Test::Unit::TestCase
   end
   
   def test_license_false_prevents_creation_of_license
-    g = RootGenerator.new.extend Preview
+    g = Root.new.extend Preview
     g.license = false
     
     assert_equal %w{
@@ -90,7 +90,7 @@ class RootGeneratorTest < Test::Unit::TestCase
   end
   
   def test_rapfile_true_creates_rapfile
-    g = RootGenerator.new.extend Preview
+    g = Root.new.extend Preview
     g.rapfile = true
     
     assert_equal %w{

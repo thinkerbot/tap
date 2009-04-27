@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../../../tap_test_helper')
-require 'tap/generator/generators/config/config_generator'
+require 'tap/generator/generators/config'
 require 'tap/generator/preview.rb'
 
 class ConfigGeneratorTest < Test::Unit::TestCase
@@ -25,7 +25,7 @@ class ConfigGeneratorTest < Test::Unit::TestCase
   end
   
   def test_config_name_sets_the_config_file_name
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('config_name', ConfigName)
     
@@ -71,7 +71,7 @@ class ConfigGeneratorTest < Test::Unit::TestCase
   end
   
   def test_config_generator_generates_config_file_with_documentation
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('doc_sample', DocSample)
     
@@ -108,7 +108,7 @@ empty_doc: value
   end
   
   def test_config_generator_omits_documentation_if_specified
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('doc_sample', DocSample)
     c.doc = false
@@ -158,7 +158,7 @@ empty_doc: value
   end
   
   def test_non_nested_config_file_with_documentation
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('nested_doc_sample', NestedDocSample)
 
@@ -212,7 +212,7 @@ key: value
   end
 
   def test_nested_config_files_with_documentation
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('nested_doc_sample', NestedDocSample)
     
@@ -253,7 +253,7 @@ another: config
   end
       
   def test_non_nested_config_file_without_documentation
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('nested_doc_sample', NestedDocSample)
     
@@ -282,7 +282,7 @@ key: value
   end
   
   def test_nested_config_files_without_documentation
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('nested_doc_sample', NestedDocSample)
 
@@ -330,7 +330,7 @@ another: config
   end
   
   def test_empty_config_files_are_skipped_if_no_blanks_is_specified
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('nested_blank_sample', NestedBlankSample)
 
@@ -341,7 +341,7 @@ another: config
   end
   
   def test_empty_nested_config_files_are_skipped_if_no_blanks_is_specified
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('blank_sample', BlankSample)
 
@@ -353,7 +353,7 @@ another: config
   end
   
   def test_empty_config_files_are_created_if_blanks_is_true
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('blank_sample', BlankSample)
 
@@ -406,7 +406,7 @@ another: config
   end
   
   def test_tasks_can_be_reconfigured_with_loaded_configs
-    c = ConfigGenerator.new.extend Preview
+    c = Config.new.extend Preview
     c.extend MockTaskLookup
     c.set_tasc('sample', DoubleNestedSampleValues)
     c.process('sample', 'sample')
@@ -423,7 +423,7 @@ another: config
   end
   
   def test_tasks_load_nested_dump_configs
-    c = ConfigGenerator.new.extend Generate
+    c = Config.new.extend Generate
     c.extend MockTaskLookup
     c.destination_root = method_root[:tmp]
     expected_config_file = method_root.path(:tmp, 'config/sample.yml')

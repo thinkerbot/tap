@@ -1,14 +1,13 @@
 module Tap::Generator::Generators
   
-  # :startdoc: Tap::Generator::Generators::CommandGenerator::generator a new tap command
+  # :startdoc::generator a new tap command
   #
   # Generates a new tap command under the cmd directory. The  
   # new command can be run from the command line using:
   # 
   #   % tap <command>
   #
-  class CommandGenerator < Tap::Generator::Base
-    
+  class Command < Tap::Generator::Base
     def manifest(m, command_name)
       m.directory path('cmd')
       
@@ -16,6 +15,5 @@ module Tap::Generator::Generators
         m.template path('cmd', "#{command_name}.rb"), source, :command_name => command_name
       end
     end
-    
   end
 end

@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../../../tap_test_helper')
-require 'tap/generator/generators/generator/generator_generator'
+require 'tap/generator/generators/generator'
 require 'tap/generator/preview.rb'
 
 class GeneratorGeneratorTest < Test::Unit::TestCase
@@ -12,13 +12,13 @@ class GeneratorGeneratorTest < Test::Unit::TestCase
   #
   
   def test_generator_generator
-    g = GeneratorGenerator.new.extend Preview
+    g = Generator.new.extend Preview
     
     assert_equal %w{
       lib/const_name
       lib/const_name/const_name_generator.rb
-      lib/const_name/templates
-      lib/const_name/templates/template_file.erb
+      templates/const_name
+      templates/const_name/template_file.erb
       test
       test/const_name_generator_test.rb
     }, g.process('const_name')
@@ -27,10 +27,10 @@ class GeneratorGeneratorTest < Test::Unit::TestCase
     eval(g.preview['lib/const_name/const_name_generator.rb'])
     
     method_root.prepare(:tmp, 'template_file.erb') do |file|
-      file << g.preview['lib/const_name/templates/template_file.erb']
+      file << g.preview['templates/const_name/template_file.erb']
     end
     
-    c = ConstNameGenerator.new.extend Preview
+    c = ConstName.new.extend Preview
     c.template_dir = method_root[:tmp]
     
     assert_equal %w{

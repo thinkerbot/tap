@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../../../tap_test_helper')
-require 'tap/generator/generators/task/task_generator'
+require 'tap/generator/generators/task'
 require 'tap/generator/preview.rb'
 
 class TaskGeneratorTest < Test::Unit::TestCase
@@ -12,7 +12,7 @@ class TaskGeneratorTest < Test::Unit::TestCase
   #
   
   def test_task_generator
-    t = TaskGenerator.new.extend Preview
+    t = Task.new.extend Preview
     
     assert_equal %w{
       lib
@@ -29,7 +29,7 @@ class TaskGeneratorTest < Test::Unit::TestCase
   end
   
   def test_task_generator_does_not_generate_test_if_test_is_false
-    t = TaskGenerator.new.extend Preview
+    t = Task.new.extend Preview
     t.test = false
     
     assert_equal %w{
@@ -39,7 +39,7 @@ class TaskGeneratorTest < Test::Unit::TestCase
   end
   
   def test_task_generator_nests_constants
-    t = TaskGenerator.new.extend Preview
+    t = Task.new.extend Preview
     
     assert_equal %w{
       lib/nested

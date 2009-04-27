@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../../../tap_test_helper')
-require 'tap/generator/generators/command/command_generator'
+require 'tap/generator/generators/command'
 require 'tap/generator/preview.rb'
 require 'stringio'
 
@@ -26,7 +26,7 @@ class CommandGeneratorTest < Test::Unit::TestCase
   #
   
   def test_command_generator
-    c = CommandGenerator.new.extend Preview
+    c = Command.new.extend Preview
     
     assert_equal %w{
       cmd

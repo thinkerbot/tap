@@ -1,4 +1,4 @@
-require 'tap/task'
+require 'tap'
 require 'tap/generator/manifest'
 require 'tap/generator/arguments'
 
@@ -88,7 +88,7 @@ module Tap
         super
         @prompt_in = $stdin
         @prompt_out = $stdout
-        @template_dir = File.dirname(self.class.source_file) + '/templates'
+        @template_dir = File.expand_path("templates/#{self.class.default_name}")
       end
       
       # Builds the manifest, then executes the actions of the manifest.
@@ -162,14 +162,14 @@ module Tap
         Dir.glob(template_dir + "/**/*").sort.each do |source|
           next unless File.file?(source)
           
-          target = Root::Utils.relative_path(template_dir, source)
+          target = Tap::Root::Utils.relative_path(template_dir, source)
           yield(source, target)
         end
       end
       
-      # Logs the action with the relative path from Dir.pwd to path.
+      # Logs the action with the relative filepath from Dir.pwd to path.
       def log_relative(action, path)
-        log(action, Root::Utils.relative_path(Dir.pwd, path))
+        log(action, Tap::Root::Utils.relative_path(Dir.pwd, path))
       end
     end
   end

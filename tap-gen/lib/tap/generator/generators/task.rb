@@ -2,10 +2,10 @@ require 'tap/env'
 
 module Tap::Generator::Generators
   
-  # :startdoc: Tap::Generator::Generators::TaskGenerator::generator a task and test
+  # :startdoc::generator a task and test
   #
   # Generates a new Tap::Task and an associated test file.
-  class TaskGenerator < Tap::Generator::Base
+  class Task < Tap::Generator::Base
     
     config :test, true, &c.switch  # specifies creation of a test file
     

@@ -18,7 +18,6 @@ module Tap
         generator, argv = generator_class.parse(argv)
         generator.extend(mod).process(*argv)
       end
-      
     end
   end
 end

@@ -18,7 +18,7 @@ class BaseTest < Test::Unit::TestCase
   
   def test_initialize
     b = Base.new
-    assert_equal File.expand_path("#{Base.source_file}/../templates"), b.template_dir
+    assert_equal File.expand_path("templates/tap/generator/base"), b.template_dir
   end
   
   #

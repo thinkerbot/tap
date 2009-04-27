@@ -1,10 +1,10 @@
 module Tap::Generator::Generators
   
-  # :startdoc: Tap::Generator::Generators::ConfigGenerator::generator a config file for a task
+  # :startdoc::generator a config file for a task
   # 
   # Generates a new config file for a task.  The configurations, defaults, 
   # and documentation is determined from the task source file.
-  class ConfigGenerator < Tap::Generator::Base
+  class Config < Tap::Generator::Base
     
     # Dumps a nested configuration.
     DUMP_DELEGATES = lambda do |leader, delegate, block|

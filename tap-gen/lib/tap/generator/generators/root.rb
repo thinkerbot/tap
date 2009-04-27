@@ -3,7 +3,7 @@ require 'tap/constants'
 
 module Tap::Generator::Generators
   
-  # :startdoc: Tap::Generator::Generators::RootGenerator::generator a basic tap directory structure
+  # :startdoc::generator a basic tap directory structure
   #
   # Generates a tap root directory structure.  Use the switches to turn on or
   # off the creation of various files:
@@ -18,7 +18,7 @@ module Tap::Generator::Generators
   #   `- test
   #       `- tap_test_helper.rb
   #
-  class RootGenerator < Tap::Generator::Base
+  class Root < Tap::Generator::Base
     
     config :config_file, false, &c.switch  # Create a full tap.yml file
     config :license, true, &c.switch       # Create an MIT-LICENSE
