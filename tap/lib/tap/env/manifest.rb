@@ -20,7 +20,6 @@ module Tap
       def initialize(env, type, &builder)
         @env = env
         @type = type
-        @entries = env.registered_objects(type)
         @built = false
         @builder = builder
         @cache = {}
@@ -55,8 +54,8 @@ module Tap
     
       # Returns the entries in self.  Builds self if necessary and allowed.
       def entries(allow_build=true)
-        build if allow_build && !built?
-        @entries
+        build if allow_build
+        env.entries(type)
       end
       
       # True if entries are empty.

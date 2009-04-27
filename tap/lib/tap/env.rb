@@ -212,10 +212,6 @@ module Tap
       visit_envs.reverse_each {|e| yield(e) }
     end
     
-    def size
-      inject(0) {|n, e| n + 1 }
-    end
-    
     # Recursively injects the memo to each env of self.  Each env in envs
     # receives the same memo from the parent.  This is different from the
     # inject provided via Enumerable, where each subsequent env receives
@@ -248,7 +244,7 @@ module Tap
     #
     # * sets Env.instance to self (unless already set)
     # * activate nested environments
-    # * unshift load_paths to $LOAD_PATH
+    # * unshift load_paths to $LOAD_PATH (if set_load_paths is true)
     #
     # Once active, the current envs and load_paths are frozen and cannot be
     # modified until deactivated. Returns true if activate succeeded, or
@@ -283,7 +279,7 @@ module Tap
     # Deactivates self by doing the following in order:
     #
     # * deactivates nested environments
-    # * removes load_paths from $LOAD_PATH
+    # * removes load_paths from $LOAD_PATH (if set_load_paths is true)
     # * sets Env.instance to nil (if set to self)
     # * clears cached manifest data
     #
@@ -339,7 +335,7 @@ module Tap
     
     # Register an object for lookup by seek.
     def register(type, obj, &block)
-      objects = registered_objects(type)
+      objects = entries(type)
       if objects.include?(obj)
         false
       else
@@ -350,7 +346,7 @@ module Tap
     
     # Returns an array of objects registered to type.  The objects array is
     # extended with Minimap to allow minikey lookup.
-    def registered_objects(type)
+    def entries(type)
       objects = registry[type] ||= []
       unless objects.kind_of?(Minimap)
         objects.extend(Minimap)
@@ -379,7 +375,7 @@ module Tap
         result = if block_given? 
           yield(env, key)
         else
-          env.registered_objects(type).minimatch(key)
+          env.entries(type).minimatch(key)
         end
         
         return result if result

@@ -499,13 +499,13 @@ a (0)
   end
   
   #
-  # registered_objects test
+  # entries test
   #
   
-  def test_registered_objects_returns_a_minimap_array
+  def test_entries_returns_a_minimap_array
     assert_equal nil, e.registry[:path]
-    assert_equal [], e.registered_objects(:path)
-    assert e.registered_objects(:path).kind_of?(Env::Minimap)
+    assert_equal [], e.entries(:path)
+    assert e.entries(:path).kind_of?(Env::Minimap)
   end
   
   #

@@ -82,7 +82,6 @@ module Tap
     attr_reader :manifests
     
     def self.extended(base)
-      base.instance_variable_set(:@active, false)
       base.instance_variable_set(:@manifests, {})
     end
     
