@@ -29,6 +29,8 @@ module Tap
       # Calls the builder to produce entries for the env.  All entries are
       # registered with env.
       def build
+        return false if built?
+        
         builder.call(env).each do |obj|
           env.register(type, obj)
         end if builder

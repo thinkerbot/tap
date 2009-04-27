@@ -97,12 +97,13 @@ module Tap
       manifests[key] ||= manifest(key, Env::ConstantManifest) do |env|
         paths = []
         env.load_paths.each do |load_path|
-          dir = env.root[load_path]
-          env.glob(load_path, '**/*.rb').each do |path|
-            paths << [dir, path]
+          env.hlob(load_path, '**/*.rb').each_pair do |relative_path, path|
+            paths << [relative_path, path]
           end
         end
         
+        paths.uniq!
+        paths.sort!
         paths
       end
       

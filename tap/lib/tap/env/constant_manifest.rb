@@ -30,23 +30,25 @@ module Tap
       end
       
       def build
-        builder.call(env).each do |dir, path|
-          unless cache.has_key?(path)
-            cache[path] = scan(dir, path)
+        return false if built?
+        
+        builder.call(env).each do |relative_path, path|
+          unless cache.has_key?(relative_path)
+            cache[relative_path] = scan(relative_path, path)
           end
           
-          constants(path).each do |const|
+          constants(relative_path).each do |const|
             env.register(type, const)
           end
         end if builder
         @built = true
       end
       
-      def scan(dir, path, key="[a-z]+")
+      def scan(relative_path, path, key="[a-z]+")
         # determine the default constant name for the path;
         # this is used when no const_name is specified for
         # a constant attribute
-        default_const_name = Root::Utils.relative_path(dir, path).chomp(File.extname(path)).camelize
+        default_const_name = relative_path.chomp(File.extname(relative_path)).camelize
         
         # note: the default const name has to be set here to allow for implicit
         # constant attributes (because a dir is needed to figure the relative path).

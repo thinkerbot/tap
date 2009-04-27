@@ -31,14 +31,14 @@ class ConstantManifestTest < Test::Unit::TestCase
     end
     
     m = ConstantManifest.new(env, :attr) do |env|
-      [[method_root.root, path]]
+      [["implicit.rb", path]]
     end
 
     assert_equal({}, m.cache)
     m.build
 
     assert_equal({
-      path => {
+      "implicit.rb" => {
         "A" => {
           "one" => "comment a one",
           "two" => "comment a two" },

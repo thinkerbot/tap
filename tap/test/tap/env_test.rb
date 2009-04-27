@@ -1030,10 +1030,4 @@ class EnvAbstractDirTest < Test::Unit::TestCase
     assert_equal [path('c/path/to/one.txt')], c.glob(:root, "**/*.txt")
     assert_equal [path('d/path/to/one.txt')], d.glob(:root, "**/*.txt")
   end
-  
-  def test_glob_returns_relative_paths_if_specified
-    b.root.prepare('path/to/one.txt') {}
-    assert_equal ['path/to/one.txt'], a.glob(:root, "**/*.txt", :relative_paths => true)
-    assert_equal ['path/to/one.txt'], b.glob(:root, "**/*.txt", :relative_paths => true)
-  end
 end

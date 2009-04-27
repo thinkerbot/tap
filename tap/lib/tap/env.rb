@@ -321,12 +321,7 @@ module Tap
       @active
     end
     
-    def glob(key, pattern="**/*", options={})
-      options = {
-        :sort => true,
-        :relative_paths => false
-      }.merge(options)
-      
+    def hlob(key, pattern="**/*")
       results = {}
       each do |env|
         root = env.root
@@ -335,10 +330,11 @@ module Tap
           results[relative_path] ||= path
         end
       end
-      
-      results = options[:relative_paths] ? results.keys : results.values
-      results.sort! if options[:sort]
       results
+    end
+    
+    def glob(key, pattern="**/*")
+      hlob(key, pattern).values.sort!
     end
     
     # Register an object for lookup by seek.
