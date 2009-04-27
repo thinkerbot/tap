@@ -402,11 +402,7 @@ module Tap
       objects
     end
     
-    # Searches across each for the first registered object minimatching key. A
-    # single env can be specified by using a compound key like 'env_key:key'.
-    #
-    # Returns nil if no matching object is found.
-    def seek(type, key)
+    def eeek(type, key)
       key =~ COMPOUND_KEY
       envs = if $2
         # compound key, match for env
@@ -426,10 +422,19 @@ module Tap
           env.entries(type).minimatch(key)
         end
         
-        return result if result
+        return [env, result] if result
       end
     
       nil
+    end
+    
+    # Searches across each for the first registered object minimatching key. A
+    # single env can be specified by using a compound key like 'env_key:key'.
+    #
+    # Returns nil if no matching object is found.
+    def seek(type, key, &block) # :yields: env, key
+      env, result = eeek(type, key, &block)
+      result
     end
     
     # Creates a manifest with entries defined by the return of the block.  The

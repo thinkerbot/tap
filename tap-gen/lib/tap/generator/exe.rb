@@ -5,7 +5,7 @@ module Tap
     module Exe
       
       def generators
-        constant_manifest(:generators)
+        constant_manifest(:generator)
       end
       
       def run(mod, argv=ARGV)
@@ -14,8 +14,14 @@ module Tap
         end
         
         name = argv.shift
-        generator_class = generators[name] or raise "unknown generator: #{name}"
-        generator, argv = generator_class.parse(argv)
+        env, const = generators.eeek(name)
+        
+        unless const
+          raise "unknown generator: #{name}"
+        end
+        
+        generator, argv = const.constantize.parse(argv)
+        generator.template_dir = env.class_path(:templates, generator) {|dir| File.directory?(dir) }
         generator.extend(mod).process(*argv)
       end
     end

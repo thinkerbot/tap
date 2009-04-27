@@ -227,12 +227,12 @@ class EnvTest < Test::Unit::TestCase
     s.full_gem_path = File.expand_path("mock_three")
   end
   
-  def gem_test
+  def gem_test(*specs)
     begin
-      Gem.source_index.add_specs(ONE, TWO, THREE)
+      Gem.source_index.add_specs(*specs)
       yield
     ensure
-      [ONE, TWO, THREE].each do |spec|
+      specs.each do |spec|
         Gem.source_index.remove_spec(spec.full_name)
       end
     end
@@ -244,7 +244,7 @@ class EnvTest < Test::Unit::TestCase
     assert_equal [], Gem.source_index.search(one_two)
     
     was_in_block = false
-    gem_test do
+    gem_test(ONE, TWO, THREE) do
       assert_equal [ONE, TWO], Gem.source_index.search(one_two)
       assert_equal [TWO], Gem.source_index.search(two)
       was_in_block = true
@@ -255,7 +255,7 @@ class EnvTest < Test::Unit::TestCase
   end
   
   def test_initialize_adds_envs_for_gems
-    gem_test do
+    gem_test(ONE, TWO, THREE) do
       e = Env.new :gems => ["gem_mock", "mock_gem"]
       assert_equal [TWO, THREE], e.gems
       assert_equal [
@@ -266,14 +266,14 @@ class EnvTest < Test::Unit::TestCase
   end
   
   def test_gems_respects_versions
-    gem_test do
+    gem_test(ONE, TWO, THREE) do
       e.gems = ["gem_mock < 2.0"]
       assert_equal [ONE], e.gems
     end
   end
   
   def test_gems_may_be_set_to_nil_a_YAML_string_etc
-    gem_test do
+    gem_test(ONE, TWO, THREE) do
       e.gems = nil
       assert_equal [], e.gems
       
@@ -302,7 +302,7 @@ class EnvTest < Test::Unit::TestCase
   end
   
   def test_gems_does_not_activate_gems
-    gem_test do
+    gem_test(ONE, TWO, THREE) do
       e.gems = ["gem_mock < 2.0"]
       assert !Gem.loaded_specs.values.include?(ONE)
     end

@@ -92,15 +92,20 @@ module Tap
       def [](key)
         seek(key)
       end
-    
+      
+      def eeek(key)
+        env.eeek(type, key) do |e, k|
+          manifest(e).minimatch(k)
+        end
+      end
+      
       # Searches across env.each for the first entry minimatching key. A single
       # env can be specified by using a compound key like 'env_key:key'.
       #
       # Returns nil if no matching entry is found.
       def seek(key)
-        env.seek(type, key) do |e, k|
-          manifest(e).minimatch(k)
-        end
+        env, result = eeek(key)
+        result
       end
       
       # Same as env.inspect but adds manifest to the templater
