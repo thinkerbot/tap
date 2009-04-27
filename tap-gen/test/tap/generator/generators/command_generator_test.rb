@@ -6,8 +6,7 @@ require 'stringio'
 class CommandGeneratorTest < Test::Unit::TestCase
   include Tap::Generator
   include Generators
-  include AppInstance
-  include MethodRoot
+  acts_as_tap_test
   
   def setup
     super

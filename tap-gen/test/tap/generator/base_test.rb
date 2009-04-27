@@ -3,7 +3,7 @@ require 'tap/generator/base'
 
 class BaseTest < Test::Unit::TestCase
   include Tap::Generator
-  include MethodRoot
+  acts_as_tap_test
   
   attr_accessor :b
   

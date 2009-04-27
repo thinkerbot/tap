@@ -3,7 +3,7 @@ require 'tap/generator/destroy'
 
 class DestroyTest < Test::Unit::TestCase
   include Tap::Generator::Destroy
-  include MethodRoot
+  acts_as_file_test
   
   # this establishes the essential interface provided by Base
   attr_accessor :log, :pretend

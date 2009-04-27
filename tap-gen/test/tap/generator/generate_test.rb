@@ -4,7 +4,7 @@ require 'stringio'
 
 class GenerateTest < Test::Unit::TestCase
   include Tap::Generator::Generate
-  include MethodRoot
+  acts_as_file_test
   
   # this establishes the essential interface provided by Base
   attr_accessor :log, :pretend, :prompt_out, :prompt_in, :skip, :force
