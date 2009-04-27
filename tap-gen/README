@@ -1,12 +1,18 @@
-= Tap-gen
+= Tap Generator
+
+Generators for Tap.
 
 == Description
 
-== Usage
-
 == Installation
 
+Tap-Generator is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+
+  % gem install tap-gen
+  
 == Info
 
-Copyright (c) 2009, <copyright holders>
+Copyright (c) 2009, Regents of the University of Colorado.
+Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com], {Biomolecular Structure Program}[http://biomol.uchsc.edu/], {Hansen Lab}[http://hsc-proteomics.uchsc.edu/hansenlab/] 
+Support:: CU Denver School of Medicine Deans Academic Enrichment Fund
 License:: {MIT-Style}[link:files/MIT-LICENSE.html]
