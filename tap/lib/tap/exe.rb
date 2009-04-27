@@ -63,7 +63,7 @@ module Tap
       exe = Env.new(config, config_file).extend(Exe)
       
       # add the tap env if necessary
-      unless exe.any? {|env| env.path == TAP_HOME }
+      unless exe.any? {|env| env.root.root == TAP_HOME }
         exe.push Env.new(TAP_HOME) 
       end
       

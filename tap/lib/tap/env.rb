@@ -151,13 +151,13 @@ module Tap
       # load configurations if specified
       @basename = basename
       if basename && !config
-        config = Env.load_config(File.join(path, basename))
+        config = Env.load_config(File.join(@root.root, basename))
       end
       
       # set instances
       @cache = cache
-      if cached_env(self.path)
-        raise "cache already has an env for: #{path}"
+      if cached_env(@root.root)
+        raise "cache already has an env for: #{@root.root}"
       end
       cache[:env] << self
       
@@ -167,14 +167,9 @@ module Tap
       initialize_config(config || {})
     end
     
-    # The path for self (root.root).  Path is used to key self in instances.
-    def path
-      root.root
-    end
-    
-    # The minikey for self (path).
+    # The minikey for self (root.root).
     def minikey
-      path
+      root.root
     end
     
     # Sets envs removing duplicates and instances of self.  Setting envs
@@ -317,21 +312,71 @@ module Tap
       @active
     end
     
-    def hlob(key, pattern="**/*")
+    def hlob(dir, pattern="**/*")
       results = {}
       each do |env|
         root = env.root
-        root.glob(key, pattern).each do |path|
-          relative_path = root.relative_path(key, path)
+        root.glob(dir, pattern).each do |path|
+          relative_path = root.relative_path(dir, path)
           results[relative_path] ||= path
         end
       end
       results
     end
     
-    def glob(key, pattern="**/*")
-      hlob(key, pattern).values.sort!
+    def glob(dir, pattern="**/*")
+      hlob(dir, pattern).values.sort!
     end
+    
+    def path(dir, *paths)
+      each do |env|
+        env.root.path(dir, *paths).each do |path|
+          return path if !block_given? || yield(path)
+        end
+      end
+      nil
+    end
+    
+    # Retrieves a path associated with the class of obj, ie:
+    #
+    #   path(dir, class_path, *paths)
+    #
+    # The default class_path is 'obj.class.to_s.underscore', but classes
+    # can specify an alternative by providing a class_path method.
+    #
+    # === Superclass Paths
+    #
+    # A block can be provided to search superclasses of obj, to select an
+    # existing file or to ensure the final path points to a directory, for
+    # instance.  The class_path for obj.class is yielded to the block; if the
+    # block returns false then the class_path for obj.class.superclass is
+    # yielded, and so on until the block returns true.
+    #
+    # Returns nil if the block never returns true.
+    #
+    def class_path(dir, obj, *paths, &block)
+      current = obj.class
+      loop do
+        class_path = if current.respond_to?(:class_path)
+          current.class_path
+        else
+          current.to_s.underscore
+        end
+        
+        if path = self.path(dir, class_path, *paths, &block)
+          return path
+        end
+        
+        break if current == Object
+        current = current.superclass
+      end
+    
+      nil
+    end
+    
+    # def mod_glob(key, mod, pattern="**/*")
+    #   constant_hlob(key, mod, pattern).values.sort!
+    # end
     
     # Register an object for lookup by seek.
     def register(type, obj, &block)
@@ -411,7 +456,7 @@ module Tap
     
     # returns the env cached for path, if it exists (used to prevent infinite nests)
     def cached_env(path) # :nodoc:
-      (cache[:env] ||= []).find {|env| env.path == path }
+      (cache[:env] ||= []).find {|env| env.root.root == path }
     end
     
     # resets envs using the current env_paths and gems.  does nothing
