@@ -321,6 +321,26 @@ module Tap
       @active
     end
     
+    def glob(key, pattern="**/*", options={})
+      options = {
+        :sort => true,
+        :relative_paths => false
+      }.merge(options)
+      
+      results = {}
+      each do |env|
+        root = env.root
+        root.glob(key, pattern).each do |path|
+          relative_path = root.relative_path(key, path)
+          results[relative_path] ||= path
+        end
+      end
+      
+      results = options[:relative_paths] ? results.keys : results.values
+      results.sort! if options[:sort]
+      results
+    end
+    
     # Register an object for lookup by seek.
     def register(type, obj, &block)
       objects = registered_objects(type)
@@ -376,21 +396,6 @@ module Tap
     # manifest will be cached in manifests if a key is provided.
     def manifest(type, klass=Manifest, &builder) # :yields: env 
       klass.new(self, type, &builder)
-    end
-    
-    def glob_config(key, pattern="**/*", defaults=[:root])
-      dirs = config[key] || defaults
-      
-      results = []
-      [*dirs].compact.collect! do |dir|
-        root[dir]
-      end.collect! do |dir|
-        paths = Dir.glob(File.join(dir, pattern))
-        paths.collect! {|path| yield(dir, path) } if block_given?
-        results.concat paths
-      end
-      results.uniq!
-      results
     end
     
     # All templaters are yielded to the block before any are built.  This

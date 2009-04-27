@@ -972,3 +972,68 @@ class EnvActivateTest < Test::Unit::TestCase
     assert_equal "set_load_paths cannot be modified once active", err.message
   end
 end
+
+class EnvAbstractDirTest < Test::Unit::TestCase
+  Env = Tap::Env
+  ROOT = __FILE__.chomp(".rb")
+  
+  attr_accessor :a, :b, :c, :d
+  
+  def setup
+    assert !File.exists?(ROOT)
+    
+    @a, @b, @c, @d = %w{a b c d}.collect do |letter|
+      Env.new(path(letter))
+    end
+
+    a.push b
+    b.push c
+    a.push d
+  end
+  
+  def teardown
+    if File.exists?(ROOT)
+      FileUtils.rm_r(ROOT)
+    end
+  end
+  
+  def path(input)
+    File.expand_path(File.join(ROOT, input))
+  end
+  
+  #
+  # glob test
+  #
+  
+  def test_glob_returns_matching_files_in_the_abstract_dir
+    assert_equal [], a.glob(:root)
+    
+    a.root.prepare('one.txt') {}
+    assert_equal [path('a/one.txt')], a.glob(:root)
+    
+    d.root.prepare('two.txt') {}
+    assert_equal [path('a/one.txt'), path('d/two.txt')], a.glob(:root)
+    assert_equal [path('d/two.txt')], a.glob(:root, "two.txt")
+    assert_equal [path('a/one.txt'), path('d/two.txt')], a.glob(:root, "*.txt")
+    
+    assert_equal [], b.glob(:root)
+    assert_equal [path('d/two.txt')], d.glob(:root)
+  end
+  
+  def test_glob_returns_first_matches_for_identical_relative_paths
+    b.root.prepare('path/to/one.txt') {}
+    c.root.prepare('path/to/one.txt') {}
+    d.root.prepare('path/to/one.txt') {}
+    
+    assert_equal [path('b/path/to/one.txt')], a.glob(:root, "**/*.txt")
+    assert_equal [path('b/path/to/one.txt')], b.glob(:root, "**/*.txt")
+    assert_equal [path('c/path/to/one.txt')], c.glob(:root, "**/*.txt")
+    assert_equal [path('d/path/to/one.txt')], d.glob(:root, "**/*.txt")
+  end
+  
+  def test_glob_returns_relative_paths_if_specified
+    b.root.prepare('path/to/one.txt') {}
+    assert_equal ['path/to/one.txt'], a.glob(:root, "**/*.txt", :relative_paths => true)
+    assert_equal ['path/to/one.txt'], b.glob(:root, "**/*.txt", :relative_paths => true)
+  end
+end

@@ -87,47 +87,44 @@ module Tap
     end
     
     def commands
-      manifests[:command] ||= manifest('commands') do |env|
-        env.glob_config(:cmd_paths, "**/*.rb", :cmd)
+      manifests['command'] ||= manifest('commands') do |env|
+        env.glob(:cmd, "**/*.rb")
       end
     end
     
-    def generators
-      manifests[:generator] ||= manifest('generator', Env::ConstantManifest) do |env|
-        env.glob_config(:lib_paths, '**/*.rb', :lib) do |dir, path|
-          [dir, path]
+    def constant_manifest(key)
+      key = key.to_s
+      manifests[key] ||= manifest(key, Env::ConstantManifest) do |env|
+        paths = []
+        env.load_paths.each do |load_path|
+          dir = env.root[load_path]
+          env.glob(load_path, '**/*.rb').each do |path|
+            paths << [dir, path]
+          end
         end
+        
+        paths
       end
+      
+      ###############################################################
+      # [depreciated] manifest as a task key will be removed at 1.0
+      if key == 'task'
+        manifests[key].const_attr = /task|manifest/
+      end
+      manifests[key]
+      ###############################################################
     end
     
     def tasks
-      manifests[:task] ||= manifest('task', Env::ConstantManifest) do |env|
-        env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
-          [dir, path]
-        end
-      end
-      ###############################################################
-      # [depreciated] manifest will be removed at 1.0
-      m = manifests[:task]
-      m.const_attr = /task|manifest/
-      m
-      ###############################################################
+      constant_manifest(:task)
     end
     
     def joins
-      manifests[:join] ||= manifest('join', Env::ConstantManifest) do |env|
-        env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
-          [dir, path]
-        end
-      end
+      constant_manifest(:join)
     end
     
     def middleware
-      manifests[:middleware] ||= manifest('middleware', Env::ConstantManifest) do |env|
-        env.glob_config(:lib_paths, "**/*.rb", :lib) do |dir, path|
-          [dir, path]
-        end
-      end
+      constant_manifest(:middleware)
     end
     
     def activate
@@ -161,9 +158,7 @@ module Tap
           raise "invalid metadata: #{metadata.inspect}"
         end
         
-        manifest = manifests[type] or raise "invalid type: #{type.inspect}"
-        klass    = manifest[key]
-        
+        klass = constant_manifest(type)[key]
         if !klass && block_given?
           klass = yield(type, key, metadata)
         end
@@ -227,5 +222,6 @@ module Tap
       set_signals(app)
       app.run
     end
+    
   end
 end
