@@ -1,0 +1,19 @@
+
+# ::desc gem, install tap modules
+Rap.task :install, :name do |task, args|
+  dir = File.join(__FILE__.chomp("Rapfile"), args.name)
+  Dir.chdir(dir) do
+    Rap.sh 'rake gem'
+    Rap.sh "sudo gem install --local pkg/#{args.name}"
+  end
+end
+
+# ::desc gem, uninstall, install tap modules
+Rap.task :reinstall, :name do |task, args|
+  dir = File.join(__FILE__.chomp("Rapfile"), args.name)
+  Dir.chdir(dir) do
+    Rap.sh "sudo gem uninstall #{args.name}"
+  end
+  
+  Install.instance.execute(args.name)
+end

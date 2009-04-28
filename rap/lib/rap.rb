@@ -1,2 +1,5 @@
 require 'tap'
-require 'rap/tasks'
+require 'rap/declarations'
+module Rap
+  autoload(:Rake, 'rap/rake')
+end

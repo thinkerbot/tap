@@ -26,11 +26,7 @@ Gem::Specification.new do |s|
     lib/rap/declaration_task.rb
     lib/rap/declarations.rb
     lib/rap/description.rb
-    lib/rap/tasks/rake.rb
-    lib/rap/tasks/gem_task.rb
-    lib/rap/tasks/manifest.rb
-    lib/rap/tasks/test.rb
-    lib/rap/tasks.rb
+    lib/rap/rake.rb
     lib/rap/utils.rb
     lib/rap.rb
     tap.yml

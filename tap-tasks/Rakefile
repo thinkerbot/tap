@@ -82,3 +82,26 @@ task :publish_rdoc => [:rdoc] do
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
 end
 
+#
+# Test tasks
+#
+
+desc 'Default: Run tests.'
+task :default => :test
+
+desc 'Run tests.'
+Rake::TestTask.new(:test) do |t|
+  t.libs = ['lib']
+  unless ENV['gems']
+    t.libs << '../lazydoc/lib'
+    t.libs << '../configurable/lib'
+    t.libs << '../tap/lib'
+    t.libs << '../tap-test/lib'
+  end
+  
+  t.test_files = Dir.glob( File.join('test', '**/*_test.rb') )
+  
+  t.verbose = true
+  t.warning = true
+end
+

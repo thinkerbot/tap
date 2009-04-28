@@ -45,10 +45,10 @@ when '--help', nil, '-T'
   puts "===  tap tasks ==="
   puts env.tasks.summarize(summary_template)
   
-  if Rap::Tasks::Rake.has_rakefile?
+  if Rap::Rake.has_rakefile?
     puts
     puts "=== rake tasks ==="
-    Rap::Tasks::Rake.new.execute('-T')
+    Rap::Rake.new.execute('-T')
   end
   
   puts
@@ -57,7 +57,7 @@ else
   begin
     schema = Tap::Schema.parse(ARGV)
     env.run(schema) do |type, key, metadata|
-      if type == :task && Rap::Tasks::Rake.has_rakefile?
+      if type == :task && Rap::Rake.has_rakefile?
         metadata.unshift(key)
         warn "warning: implict rake for '#{metadata.join(' ')}'"
         Rap::Rake
