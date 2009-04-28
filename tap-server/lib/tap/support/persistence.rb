@@ -8,16 +8,19 @@ module Tap
       # The Tap::Root for self.
       attr_reader :root
       
+      attr_reader :dir
+      
       # Initializes a new persistence wrapper for the specified root.
-      def initialize(root)
+      def initialize(root, dir=:data)
         @root = root
+        @dir = dir
       end
       
       # Returns an available integer id, usually the number of entries in self,
       # but a random integer is generated if that number is taken.
       def next_id
         # try the next in the sequence
-        length = root.glob(:data).length
+        length = root.glob(dir).length
         id = length
         
         # if that already exists, go for a random id
@@ -29,8 +32,8 @@ module Tap
       # they will be converted to strings using to_s.  Raises an error if the
       # result is not a subpath of the data directory.
       def path(id)
-        path = root.path(:data, id.to_s)
-        unless root.relative?(:data, path)
+        path = root.path(dir, id.to_s)
+        unless root.relative?(dir, path)
           raise "not relative to data dir: #{id.inspect}"
         end
         path
@@ -38,10 +41,10 @@ module Tap
       
       # Returns a list of existing ids.
       def index
-        root.glob(:data).select do |path|
+        root.glob(dir).select do |path|
           File.file?(path)
         end.collect do |path|
-          root.relative_path(:data, path)
+          root.relative_path(dir, path)
         end
       end
       

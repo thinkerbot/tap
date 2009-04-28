@@ -3,6 +3,7 @@ require 'rack/mock'
 
 require 'tap'
 require 'tap/server_error'
+require 'tap/models/session'
 
 module Tap
   
@@ -100,6 +101,13 @@ module Tap
     config :host, 'localhost', &c.string                # the server host
     config :port, 8080, &c.integer                      # the server port
     config :sessions, false
+    
+    config :session, Models::Session do |input|
+      if input.kind_of?(String)
+        input = Env::Constant.constantize(input)
+      end
+      c.validate_api(input, [:create, :read, :update, :destroy])
+    end
     
     # A hash of (key, controller) pairs mapping the controller part of a route
     # to a Rack application.  Typically controllers is used to specify aliases
