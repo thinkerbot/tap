@@ -15,10 +15,24 @@ module Tap
       def from_gemspec(spec, basename=nil, cache={})
         path = spec.full_gem_path
         
-        dependencies = spec.dependencies.collect {|dep| Gems.gemspec(dep) }
-        dependencies = dependencies.select do |dep|
-          File.exists?(File.join(dep.full_gem_path, basename))
-        end if basename
+        dependencies = []
+        spec.dependencies.each do |dependency|
+          unless dependency.type == :runtime
+            next
+          end
+          
+          unless gemspec = Gems.gemspec(dependency)
+            # this error may result when a dependency has
+            # been uninstalled for a particular gem
+            raise "could not find gemspec for: #{dependency.to_s} (#{spec.full_name})"
+          end
+          
+          if basename && !File.exists?(File.join(gemspec.full_gem_path, basename))
+            next
+          end
+          
+          dependencies << gemspec
+        end
         
         config = {
           :root => path,
@@ -506,7 +520,7 @@ module Tap
         self.envs = env_paths.collect do |path| 
           cached_env(path) || Env.new(path, basename, cache)
         end + gems.collect do |spec|
-          cached_env(spec.full_gem_path) or Env.from_gemspec(spec, basename, cache)
+          cached_env(spec.full_gem_path) || Env.from_gemspec(spec, basename, cache)
         end
       end
     end
