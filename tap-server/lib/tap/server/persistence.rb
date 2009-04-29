@@ -1,102 +1,121 @@
 module Tap
-  module Support
+  class Server
     
     # A very simple wrapper for root providing a CRUD interface for reading and
     # writing files.
-    class Persistence
+    class Persistence < Tap::Root
       
-      # The Tap::Root for self.
-      attr_reader :root
-      
-      attr_reader :dir
-      
-      # Initializes a new persistence wrapper for the specified root.
-      def initialize(root, dir=:data)
-        @root = root
-        @dir = dir
-      end
-      
-      # Returns an available integer id, usually the number of entries in self,
-      # but a random integer is generated if that number is taken.
-      def next_id
-        # try the next in the sequence
-        length = root.glob(dir).length
-        id = length
+      # A restricted version of the original.  Only explicitly declared
+      # path aliases are allowed; undeclared aliases (which are normally
+      # inferred relative to root) raise an error.
+      def [](als)
+        path = self.paths[als] 
+        return path unless path == nil
         
-        # if that already exists, go for a random id
-        id = random_key(length) while has?(id) 
-        id
+        raise "no path for: #{als.inspect}"
       end
       
-      # Returns the filepath for the specified id.  Non-string ids are allowed;
-      # they will be converted to strings using to_s.  Raises an error if the
-      # result is not a subpath of the data directory.
-      def path(id)
-        path = root.path(dir, id.to_s)
-        unless root.relative?(dir, path)
-          raise "not relative to data dir: #{id.inspect}"
+      # A restricted version of the original.  Path raises an error if the
+      # final path is not relative to als.
+      def path(als, *paths)
+        path = super
+        unless relative?(als, path)
+          raise "not relative to als: #{paths.inspect} (#{als.inspect})"
         end
         path
       end
       
-      # Returns a list of existing ids.
-      def index
-        root.glob(dir).select do |path|
-          File.file?(path)
-        end.collect do |path|
-          root.relative_path(dir, path)
+      def entry_path(als, id)
+        path(als, id.to_s)
+      end
+      
+      # Returns a list of entry paths.
+      def entries(als)
+        glob(als, "[0-9]*").select do |path|
+          File.file?(path) && File.basename(path) =~ /\A[0-9]+\z/
         end
       end
       
-      # Creates the file for the specified id.  If a block is given, an io to
-      # the file will be yielded to it; otherwise the file will be created
-      # without content.  Returns the path to the persistence file.
+      # Returns a list of existing ids.
+      def index(als)
+        entries(als).collect do |path|
+          File.basename(path).to_i
+        end
+      end
+      
+      # Returns the path for the specified entry, if it exists.  Returns nil
+      # if no such entry can be found.
+      def find(als, id)
+        path = entry_path(als, id)
+        File.file?(path) ? path : nil
+      end
+      
+      # Returns true if a file for the entry exists.
+      def has?(als, id)
+        find(als, id) != nil
+      end
+      
+      # Returns an available integer id, usually the number of entries in self,
+      # but a random integer is generated if that number is taken.
+      def next_id(als)
+        # try the next in the sequence
+        id = entries(als).length
+        
+        # if that already exists, go for a random id
+        id = random_key(length) while has?(als, id) 
+        id
+      end
+      
+      # Creates an entry (ie a file) for the specified id.  Yields the open
+      # file to the block if given, otherwise the file will be created
+      # without content.  Returns the path to the file.
       #
       # Raises an error if the file already exists.
-      def create(id)
-        filepath = path(id)
-        raise "already exists: #{filepath}" if File.exists?(filepath)
-        root.prepare(filepath) {|io| yield(io) if block_given? }
+      def create(als, id)
+        path = entry_path(als, id)
+        if File.exists?(path)
+          raise "already exists: #{id.inspect} (#{als.inspect})"
+        end
+        create!(path) {|io| yield(io) if block_given? }
       end
       
-      # Reads and returns the data for the specified id, or an empty string if
-      # the persistence file doesn't exist.
-      def read(id)
-        filepath = path(id)
-        File.file?(filepath) ? File.read(filepath) : ''
+      # Reads and returns the data for the specified entry, or nil if
+      # the entry doesn't exist.
+      def read(als, id)
+        path = find(als, id)
+        path ? File.read(path) : nil
       end
       
-      # Overwrites the data for the specified id.  A block must be given to
-      # provide the new content; a persistence file will be created if one
-      # does not exist already.
-      def update(id)
-        root.prepare(path(id)) {|io| yield(io) }
+      # Overwrites the data for the specified entry.  A block must be given to
+      # provide the new content; an error is raised if the entry does not
+      # already exist.
+      def update(als, id)
+        path = entry_path(als, id)
+        unless File.exists?(path)
+          raise "does not exist: #{id.inspect} (#{als.inspect})"
+        end
+        create!(path) {|io| yield(io) }
       end
       
-      # Removes the persistence file for id, if it exists.  Returns true if
-      # the file was removed.
-      def destroy(id)
-        filepath = path(id)
-        
-        if File.file?(filepath)
-          FileUtils.rm(filepath)
+      # Removes the specified entry (ie file), if it exists.  Returns true if
+      # the file was removed and false otherwise.
+      def destroy(als, id)
+        if path = find(als, id)
+          FileUtils.rm(path)
           true
         else
           false
         end
       end
       
-      # Returns true if a file for the id exists.
-      def has?(id)
-        File.file?(path(id))
-      end
-      
-      # Reads the specified file if it exists, or creates one for id.
-      def read_or_create(id)
-        has?(id) ? read(id) : create(id)
-      end
-      
       protected
+      
+      # helper to optimize the creation of entries when path is already
+      # resolved (using the instance prepare requires a second path
+      # resolution)
+      def create!(path) # :nodoc:
+        Tap::Root::Utils.prepare(path) {|io| yield(io) }
+      end
       
       # Generates a random integer key.
       def random_key(length) # :nodoc:

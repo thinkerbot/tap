@@ -1,5 +1,5 @@
 require 'tap/server'
-require 'tap/support/persistence'
+require 'tap/server/persistence'
 autoload(:ERB, 'erb')
 
 module Tap
