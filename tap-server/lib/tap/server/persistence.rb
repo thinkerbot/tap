@@ -1,9 +1,13 @@
+require 'tap/server/utils'
+
 module Tap
   class Server
     
     # A very simple wrapper for root providing a CRUD interface for reading and
     # writing files.
     class Persistence < Tap::Root
+      include Utils
+      
       ID = /\A[0-9]+\z/
       
       def id
@@ -50,7 +54,10 @@ module Tap
         id = entries(als).length
         
         # if that already exists, go for a random id
-        id = random_key(length) while find(als, id)
+        while find(als, id)
+          id = random_key(id)
+        end
+        
         id
       end
       
@@ -115,12 +122,6 @@ module Tap
       # resolution)
       def create!(path) # :nodoc:
         Tap::Root::Utils.prepare(path) {|io| yield(io) }
-      end
-      
-      # Generates a random integer key.
-      def random_key(length) # :nodoc:
-        length = 1 if length < 1
-        rand(length * 10000).to_s
       end
     end
   end

@@ -93,6 +93,7 @@ module Tap
       end
     end
     
+    include Utils
     include Rack::Utils
     include Configurable
     
@@ -125,6 +126,7 @@ module Tap
     
     attr_reader :env
     attr_reader :handler
+    attr_reader :sessions
     
     def initialize(env=Env.new, config={})
       @env = env
@@ -158,22 +160,30 @@ module Tap
     end
     
     def initialize_session
-      # synchronize...
       persistence = env.root.config.to_hash
       id = 0
       
       if use_sessions
-        id = @sessions.length
-        persistence[:root] = env.root.path(:session, id)
+        # try the next in the sequence
+        id = sessions.length
+        root = env.root.path(:session, id.to_s)
+        
+        # if that already exists, go for a random id
+        while sessions.has_key?(id) || File.exists?(root)
+          id = random_key(id)
+          root = env.root.path(:session, id.to_s)
+        end
+        
+        persistence[:root] = root
       end
       
-      @sessions[id] ||= Session.new :persistence => persistence
+      sessions[id] ||= Session.new(:persistence => persistence).save
       id
     end
     
     # Returns or initializes a session for the specified id.
     def session(id)
-      @sessions[id]
+      sessions[id]
     end
     
     # a helper method for routing a key to a controller

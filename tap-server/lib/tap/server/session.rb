@@ -36,13 +36,12 @@ module Tap
       end
     
       def save
-        persistence.create(:root, 'session.yml') do |io|
-          io << YAML.dump(attributes)
-        end
+        FileUtils.mkdir_p(persistence.root)
+        self
       end
     
       def destroy
-        persistence.destroy(:root, 'session.yml')
+        self
       end
     
       ###

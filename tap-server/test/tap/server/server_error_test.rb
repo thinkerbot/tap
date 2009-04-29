@@ -1,7 +1,7 @@
 require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/server/server_error'
 
-class ServerTest < Test::Unit::TestCase
+class ServerErrorTest < Test::Unit::TestCase
   ServerError = Tap::Server::ServerError
   
   #

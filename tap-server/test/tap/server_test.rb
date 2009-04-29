@@ -6,7 +6,7 @@ class ServerTest < Test::Unit::TestCase
   ServerError = Tap::Server::ServerError
   
   acts_as_tap_test
-  cleanup_dirs << :lib << :log
+  cleanup_dirs << :lib << :log << :session
   
   attr_reader :env, :server, :request
   
@@ -68,7 +68,66 @@ end
     server = Server.new
     assert_equal Dir.pwd, server.env.root.root
   end
+  
+  #
+  # initialize_session test
+  #
+  
+  def test_initialize_session_sets_up_session_for_the_returned_id
+    assert_equal nil, server.session(0)
+    assert_equal 0, server.initialize_session
+    assert server.session(0).kind_of?(Tap::Server::Session)
+  end
+  
+  def test_session_persistence_is_initialized_using_env_root_configs
+    server.env.root.relative_paths = {:key => 'value'}
+    server.initialize_session
+    assert_equal({:key => 'value'}, server.session(0).persistence.relative_paths)
+  end
+  
+  def test_initialize_session_returns_new_session_id_each_time
+    server.use_sessions = true
+    
+    ids = []
+    10.times do 
+      ids << server.initialize_session
+    end
+    
+    server.sessions[15] = 'session'
+    10.times do 
+      ids << server.initialize_session
+    end
+    
+    server.sessions.clear
+    
+    10.times do 
+      ids << server.initialize_session
+    end
+    
+    assert_equal ids, ids.uniq
+  end
+  
+  def test_initialize_session_creates_persistence_root
+    id = server.initialize_session
+    assert File.directory?(server.session(id).persistence.root)
+    
+    server.use_sessions = true
+    id = server.initialize_session
+    assert File.directory?(server.session(id).persistence.root)
+  end
+  
+  def test_initialize_session_returns_zero_if_use_sessions_is_false
+    assert_equal false, server.use_sessions
+    assert_equal 0, server.initialize_session
+    assert_equal 0, server.initialize_session
+  end
 
+  def test_session_persistence_is_initialized_to_env_root_if_use_sessions_is_false
+    assert_equal false, server.use_sessions
+    server.initialize_session
+    assert_equal server.env.root.root, server.session(0).persistence.root
+  end
+  
   #
   # call tests
   #
