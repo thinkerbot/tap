@@ -6,7 +6,7 @@ class ServerTest < Test::Unit::TestCase
   ServerError = Tap::Server::ServerError
   
   acts_as_tap_test
-  cleanup_dirs << :lib << :log << :session
+  cleanup_dirs << :root
   
   attr_reader :env, :server, :request
   
@@ -73,33 +73,16 @@ end
   # initialize_session test
   #
   
-  def test_initialize_session_sets_up_session_for_the_returned_id
-    assert_equal nil, server.session(0)
+  def test_initialize_session_returns_zero_if_use_multiple_sessions_is_false
+    assert_equal false, server.use_multiple_sessions
     assert_equal 0, server.initialize_session
-    assert server.session(0).kind_of?(Tap::Server::Session)
+    assert_equal 0, server.initialize_session
   end
   
-  def test_session_persistence_is_initialized_using_env_root_configs
-    server.env.root.relative_paths = {:key => 'value'}
-    server.initialize_session
-    assert_equal({:key => 'value'}, server.session(0).persistence.relative_paths)
-  end
-  
-  def test_initialize_session_returns_new_session_id_each_time
-    server.use_sessions = true
+  def test_initialize_session_returns_new_session_id_when_use_multiple_sessions_is_true
+    server.use_multiple_sessions = true
     
     ids = []
-    10.times do 
-      ids << server.initialize_session
-    end
-    
-    server.sessions[15] = 'session'
-    10.times do 
-      ids << server.initialize_session
-    end
-    
-    server.sessions.clear
-    
     10.times do 
       ids << server.initialize_session
     end
@@ -107,25 +90,46 @@ end
     assert_equal ids, ids.uniq
   end
   
-  def test_initialize_session_creates_persistence_root
-    id = server.initialize_session
-    assert File.directory?(server.session(id).persistence.root)
-    
-    server.use_sessions = true
-    id = server.initialize_session
-    assert File.directory?(server.session(id).persistence.root)
+  #
+  # session test
+  #
+  
+  def test_session_sets_up_session_for_the_id
+    assert server.session(0).kind_of?(Tap::Server::Session)
   end
   
-  def test_initialize_session_returns_zero_if_use_sessions_is_false
-    assert_equal false, server.use_sessions
-    assert_equal 0, server.initialize_session
-    assert_equal 0, server.initialize_session
+  def test_session_persistence_is_initialized_using_env_root_configs
+    server.env.root.relative_paths = {:key => 'value'}
+    assert_equal({:key => 'value'}, server.session(0).persistence.relative_paths)
   end
-
-  def test_session_persistence_is_initialized_to_env_root_if_use_sessions_is_false
-    assert_equal false, server.use_sessions
-    server.initialize_session
+  
+  def test_session_creates_persistence_root
+    server.use_multiple_sessions = true
+    zero = server.session(0)
+    one = server.session(1)
+    
+    assert_equal "0", File.basename(zero.persistence.root)
+    assert_equal "1", File.basename(one.persistence.root)
+    
+    assert File.directory?(zero.persistence.root)
+    assert File.directory?(one.persistence.root)
+  end
+  
+  def test_session_persistence_is_initialized_to_env_root_if_use_multiple_sessions_is_false
+    assert_equal false, server.use_multiple_sessions
     assert_equal server.env.root.root, server.session(0).persistence.root
+    assert_equal server.env.root.root, server.session(1).persistence.root
+  end
+  
+  def test_session_loads_from_existing_session_data
+    assert_equal({}, server.session(0).persistence.relative_paths)
+    
+    method_root.prepare(:root, 'session.yml') do |io|
+      io << YAML.dump(:persistence => {
+        :relative_paths => {:key => 'value'}
+      })
+    end
+    assert_equal({:key => 'value'}, server.session(0).persistence.relative_paths)
   end
   
   #

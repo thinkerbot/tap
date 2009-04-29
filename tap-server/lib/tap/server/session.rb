@@ -3,7 +3,7 @@ require 'tap/server/persistence'
 
 module Tap
   class Server
-    class Session
+    class Session      
       def initialize(attributes={})
         self.attributes = {
           :app => {},
@@ -17,14 +17,15 @@ module Tap
     
       def attributes
         { :id => id,
-          :app => app.config,
-          :persistence => persistence.config
+          :app => app.config.to_hash,
+          :persistence => persistence.config.to_hash
         }
       end
     
       def attributes=(input)
         input.each_pair do |key, value|
           case key
+          when :id
           when :app
             self.app = value
           when :persistence
@@ -36,7 +37,9 @@ module Tap
       end
     
       def save
-        FileUtils.mkdir_p(persistence.root)
+        persistence.open(:root, 'session.yml') do |io|
+          io << YAML.dump(attributes)
+        end
         self
       end
     

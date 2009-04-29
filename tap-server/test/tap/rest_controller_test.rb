@@ -3,7 +3,7 @@ require 'tap/controller'
 
 class RestControllerTest < Test::Unit::TestCase
   acts_as_tap_test
-  cleanup_dirs << :views << :data << :log
+  cleanup_dirs << :root
   
   attr_reader :server
   

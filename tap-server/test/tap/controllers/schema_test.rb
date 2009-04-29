@@ -5,7 +5,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   Schema = Tap::Schema
   
   acts_as_tap_test
-  cleanup_dirs << :schema << :log << :views
+  cleanup_dirs << :root
   
   attr_reader :server, :opts, :controller, :request
   

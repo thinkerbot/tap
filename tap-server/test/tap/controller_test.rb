@@ -4,7 +4,7 @@ require 'tap/controller'
 class ControllerTest < Test::Unit::TestCase
   acts_as_tap_test
   
-  cleanup_dirs << :views << :data << :log
+  cleanup_dirs << :root
   
   attr_reader :controller, :server
   
@@ -275,12 +275,14 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_session_initializes_rack_session_as_a_hash_if_necessary
     request = Rack::Request.new Rack::MockRequest.env_for("/")
+    
     controller = Tap::Controller.new
     controller.request = request
+    controller.server = server
     
     assert !request.env.has_key?('rack.session')
     session = controller.session
-    assert_equal({}, session)
+    assert_equal({:id => 0}, session)
     assert_equal session.object_id, request.env['rack.session'].object_id
   end
   

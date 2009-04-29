@@ -101,7 +101,7 @@ module Tap
     config :servers, %w[thin mongrel webrick], &c.list  # a list of preferred handlers
     config :host, 'localhost', &c.string                # the server host
     config :port, 8080, &c.integer                      # the server port
-    config :use_sessions, false
+    config :use_multiple_sessions, false
     
     # A hash of (key, controller) pairs mapping the controller part of a route
     # to a Rack application.  Typically controllers is used to specify aliases
@@ -126,12 +126,10 @@ module Tap
     
     attr_reader :env
     attr_reader :handler
-    attr_reader :sessions
-    
+
     def initialize(env=Env.new, config={})
       @env = env
       @cache = {}
-      @sessions = {}
       @handler = nil
       initialize_config(config)
     end
@@ -160,30 +158,35 @@ module Tap
     end
     
     def initialize_session
-      persistence = env.root.config.to_hash
       id = 0
+      while File.exists?(session_path(id))
+        id = random_key(id)
+      end if use_multiple_sessions
       
-      if use_sessions
-        # try the next in the sequence
-        id = sessions.length
-        root = env.root.path(:session, id.to_s)
-        
-        # if that already exists, go for a random id
-        while sessions.has_key?(id) || File.exists?(root)
-          id = random_key(id)
-          root = env.root.path(:session, id.to_s)
-        end
-        
-        persistence[:root] = root
-      end
-      
-      sessions[id] ||= Session.new(:persistence => persistence).save
+      session(id)
       id
+    end
+    
+    def session_path(id)
+      if use_multiple_sessions
+        env.root.path(:session, id.to_s)
+      else
+        env.root.root
+      end
     end
     
     # Returns or initializes a session for the specified id.
     def session(id)
-      sessions[id]
+      path = session_path(id)
+      config_path = path ? File.join(path, 'session.yml') : nil
+      
+      if config_path && File.exists?(config_path)
+        Session.new YAML.load_file(config_path)
+      else
+        persistence = env.root.config.to_hash
+        persistence[:root] = path
+        Session.new(:persistence => persistence).save
+      end
     end
     
     # a helper method for routing a key to a controller

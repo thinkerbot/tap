@@ -328,17 +328,17 @@ module Tap
     
     # Returns a session hash.
     def session
-      request.env['rack.session'] ||= {}
+      request.env['rack.session'] ||= {:id => server.initialize_session}
     end
     
     # Returns the app for the current session.
     def app
-      server.session(session[:id] ||= server.initialize_session).app
+      server.session(session[:id]).app
     end
     
     # Returns the persistence for the current session.
     def persistence
-      server.session(session[:id] ||= server.initialize_session).persistence
+      server.session(session[:id]).persistence
     end
     
     # Returns a controller uri.
