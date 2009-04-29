@@ -68,23 +68,23 @@ class RestControllerTest < Test::Unit::TestCase
     include RestRoutes
     
     def index
-      persistence.index.join(", ")
+      persistence.index(:data).join(", ")
     end
     
     def show(id)
-      persistence.read(id)
+      persistence.read(:data, id) || ""
     end
     
     def create(id)
-      persistence.create(id) {|io| io << "create" }
+      persistence.create(:data, id) {|io| io << "create" }
     end
     
     def update(id)
-      persistence.update(id) {|io| io << "update" }
+      persistence.update(:data, id) {|io| io << "update" }
     end
     
     def destroy(id)
-      persistence.destroy(id).to_s
+      persistence.destroy(:data, id).to_s
     end
   end
   

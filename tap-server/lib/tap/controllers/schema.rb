@@ -12,12 +12,12 @@ module Tap
       # GET /projects
       def index
         render 'index.erb', :locals => {
-          :schema => persistence.index
+          :schema => persistence.index(:schema)
         }, :layout => true
       end
       
       # GET /projects/id
-      def show(id=persistence.next_id)
+      def show(id=persistence.next_id(:schema))
         extname = File.extname(id)
         id = id.chomp(extname)
         schema = load_schema(id)
@@ -68,7 +68,7 @@ module Tap
       
       # DELETE /projects/*args
       def destroy(id)
-        persistence.destroy(id)
+        persistence.destroy(:schema, id)
         redirect("/schema")
       end
         
@@ -194,8 +194,8 @@ module Tap
       end
       
       def load_schema(id)
-        schema = if persistence.has?(id)
-          Tap::Schema.load_file(persistence.path(id))
+        schema = if path = persistence.find(:schema, id)
+          Tap::Schema.load_file(path)
         else
           Tap::Schema.new
         end
@@ -222,7 +222,7 @@ module Tap
       end
         
       def save_schema(id, schema=nil)
-        persistence.update(id) do |file|
+        persistence.open(:schema, id) do |file|
           file << schema.dump if schema
         end
       end

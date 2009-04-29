@@ -27,19 +27,6 @@ class PersistenceTest < Test::Unit::TestCase
   end
   
   #
-  # [] test
-  #
-  
-  def test_AGET_returns_path_for_dir
-    assert_equal p.paths[:dir], p[:dir]
-  end
-  
-  def test_path_raises_error_for_undeclared_paths
-    err = assert_raises(RuntimeError) { p[:undeclared] }
-    assert_equal %q{no path for: :undeclared}, err.message
-  end
-  
-  #
   # path test
   #
   
@@ -47,13 +34,9 @@ class PersistenceTest < Test::Unit::TestCase
     assert_equal method_root.path(:tmp, "dir/0"), p.path(:dir, "0")
   end
   
-  # def test_path_stringifies_inputs
-  #   assert_equal method_root.path(:tmp, "12"), p.path(12)
-  # end
-  
   def test_path_raises_error_for_non_subpaths
     err = assert_raises(RuntimeError) { p.path(:dir, "../../file.yml") }
-    assert_equal %q{not relative to als: ["../../file.yml"] (:dir)}, err.message
+    assert_equal %q{not relative to root: ["../../file.yml"]}, err.message
   end
   
   #

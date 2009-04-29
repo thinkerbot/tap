@@ -4,23 +4,23 @@ module Tap
     # A very simple wrapper for root providing a CRUD interface for reading and
     # writing files.
     class Persistence < Tap::Root
+      ID = /\A[0-9]+\z/
       
-      # A restricted version of the original.  Only explicitly declared
-      # path aliases are allowed; undeclared aliases (which are normally
-      # inferred relative to root) raise an error.
-      def [](als)
-        path = self.paths[als] 
-        return path unless path == nil
-        
-        raise "no path for: #{als.inspect}"
+      def id
+        base = File.basename(root)
+        if base =~ Persistence::ID
+          base.to_i
+        else
+          nil
+        end
       end
       
       # A restricted version of the original.  Path raises an error if the
       # final path is not relative to als.
       def path(als, *paths)
         path = super
-        unless relative?(als, path)
-          raise "not relative to als: #{paths.inspect} (#{als.inspect})"
+        unless relative?(:root, path)
+          raise "not relative to root: #{paths.inspect}"
         end
         path
       end
@@ -32,7 +32,7 @@ module Tap
       # Returns a list of entry paths.
       def entries(als)
         glob(als, "[0-9]*").select do |path|
-          File.file?(path) && File.basename(path) =~ /\A[0-9]+\z/
+          File.file?(path) && File.basename(path) =~ ID
         end
       end
       
@@ -43,18 +43,6 @@ module Tap
         end
       end
       
-      # Returns the path for the specified entry, if it exists.  Returns nil
-      # if no such entry can be found.
-      def find(als, id)
-        path = entry_path(als, id)
-        File.file?(path) ? path : nil
-      end
-      
-      # Returns true if a file for the entry exists.
-      def has?(als, id)
-        find(als, id) != nil
-      end
-      
       # Returns an available integer id, usually the number of entries in self,
       # but a random integer is generated if that number is taken.
       def next_id(als)
@@ -62,8 +50,15 @@ module Tap
         id = entries(als).length
         
         # if that already exists, go for a random id
-        id = random_key(length) while has?(als, id) 
+        id = random_key(length) while find(als, id)
         id
+      end
+      
+      # Returns the path for the specified entry, if it exists.  Returns nil
+      # if no such entry can be found.
+      def find(als, id)
+        path = entry_path(als, id)
+        File.file?(path) ? path : nil
       end
       
       # Creates an entry (ie a file) for the specified id.  Yields the open
@@ -84,6 +79,11 @@ module Tap
       def read(als, id)
         path = find(als, id)
         path ? File.read(path) : nil
+      end
+      
+      def open(als, id)
+        path = entry_path(als, id)
+        create!(path) {|io| yield(io) }
       end
       
       # Overwrites the data for the specified entry.  A block must be given to

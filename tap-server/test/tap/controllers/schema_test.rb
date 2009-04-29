@@ -5,7 +5,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   Schema = Tap::Schema
   
   acts_as_tap_test
-  cleanup_dirs << :data << :log << :views
+  cleanup_dirs << :schema << :log << :views
   
   attr_reader :server, :opts, :controller, :request
   
@@ -18,7 +18,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   end
   
   def prepare_schema(id, str)
-    method_root.prepare(:data, id.to_s) do |file|
+    method_root.prepare(:schema, id.to_s) do |file|
       file << Schema.parse(str).dump
     end
   end
@@ -28,7 +28,7 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   #
   
   def test_show_loads_and_renders_the_specified_schema
-    method_root.prepare(:data, "0") do |file|
+    method_root.prepare(:schema, "0") do |file|
       file << Schema.parse("-- a 1 2 3 --+ b -- c --0:2").dump
     end
     

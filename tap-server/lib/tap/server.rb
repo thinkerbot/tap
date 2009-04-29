@@ -3,7 +3,7 @@ require 'rack/mock'
 
 require 'tap'
 require 'tap/server_error'
-require 'tap/models/session'
+require 'tap/server/session'
 
 module Tap
   
@@ -100,14 +100,7 @@ module Tap
     config :servers, %w[thin mongrel webrick], &c.list  # a list of preferred handlers
     config :host, 'localhost', &c.string                # the server host
     config :port, 8080, &c.integer                      # the server port
-    config :sessions, false
-    
-    config :session, Models::Session do |input|
-      if input.kind_of?(String)
-        input = Env::Constant.constantize(input)
-      end
-      c.validate_api(input, [:create, :read, :update, :destroy])
-    end
+    config :use_sessions, false
     
     # A hash of (key, controller) pairs mapping the controller part of a route
     # to a Rack application.  Typically controllers is used to specify aliases
@@ -136,8 +129,7 @@ module Tap
     def initialize(env=Env.new, config={})
       @env = env
       @cache = {}
-      @apps = {}
-      @roots = {}
+      @sessions = {}
       @handler = nil
       initialize_config(config)
     end
@@ -165,24 +157,23 @@ module Tap
       end
     end
     
-    # Currently a stub for initializing a session.  initialize_session returns
-    # an integer session id.
     def initialize_session
-      0
-    end
-    
-    # Returns the session-specific App, or the server app if id is nil.
-    def app(id)
-      @apps[id] ||= Tap::App.new
-    end
-    
-    # Returns the session-specific Root, or the server env.root if id is nil.
-    def root(id)
-      if sessions
-        @roots[id] ||= Tap::Root.new(env.root.path(:sessions, id.to_s))
-      else
-        env.root
+      # synchronize...
+      persistence = env.root.config.to_hash
+      id = 0
+      
+      if use_sessions
+        id = @sessions.length
+        persistence[:root] = env.root.path(:session, id)
       end
+      
+      @sessions[id] ||= Session.new :persistence => persistence
+      id
+    end
+    
+    # Returns or initializes a session for the specified id.
+    def session(id)
+      @sessions[id]
     end
     
     # a helper method for routing a key to a controller

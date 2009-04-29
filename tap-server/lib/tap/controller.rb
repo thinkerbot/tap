@@ -1,5 +1,4 @@
 require 'tap/server'
-require 'tap/server/persistence'
 autoload(:ERB, 'erb')
 
 module Tap
@@ -334,17 +333,12 @@ module Tap
     
     # Returns the app for the current session.
     def app
-      server.app(session[:id] ||= server.initialize_session)
+      server.session(session[:id] ||= server.initialize_session).app
     end
     
-    # Returns the root for the current session.
-    def root
-      server.root(session[:id] ||= server.initialize_session)
-    end
-    
-    # Returns the file-based controller persistence.
+    # Returns the persistence for the current session.
     def persistence
-      @persistence ||= Support::Persistence.new(root)
+      server.session(session[:id] ||= server.initialize_session).persistence
     end
     
     # Returns a controller uri.
