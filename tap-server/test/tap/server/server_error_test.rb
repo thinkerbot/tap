@@ -1,8 +1,8 @@
-require  File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/server_error'
+require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require 'tap/server/server_error'
 
 class ServerTest < Test::Unit::TestCase
-  include Tap
+  ServerError = Tap::Server::ServerError
   
   #
   # ServerError.response test

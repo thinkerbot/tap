@@ -2,6 +2,9 @@ require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/server'
 
 class ServerTest < Test::Unit::TestCase
+  Server = Tap::Server
+  ServerError = Tap::Server::ServerError
+  
   acts_as_tap_test
   cleanup_dirs << :lib << :log
   
@@ -11,7 +14,7 @@ class ServerTest < Test::Unit::TestCase
     super
     @env = Tap::Env.new(:root => method_root, :gems => :none)
     @env.activate
-    @server = Tap::Server.new @env
+    @server = Server.new @env
     @request = Rack::MockRequest.new(@server)
   end
   
@@ -25,7 +28,7 @@ class ServerTest < Test::Unit::TestCase
   #
   
   def test_documentation
-    server = Tap::Server.new(env)
+    server = Server.new(env)
     server.controllers['sample'] = lambda do |env|
       [200, {}, ["Sample got #{env['SCRIPT_NAME'].inspect} : #{env['PATH_INFO'].inspect}"]]
     end
@@ -62,7 +65,7 @@ end
   #
   
   def test_initialize_sets_env_to_pwd
-    server = Tap::Server.new
+    server = Server.new
     assert_equal Dir.pwd, server.env.root.root
   end
 
@@ -179,7 +182,7 @@ end
   end
   
   def test_call_returns_response_for_ServerErrors
-    err = Tap::ServerError.new("msg")
+    err = ServerError.new("msg")
     server.controllers['err'] = ErrorController.new(err)
   
     res = request.get('/err')

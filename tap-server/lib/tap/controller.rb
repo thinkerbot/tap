@@ -60,7 +60,7 @@ module Tap
         when /POST/i then :create
         when /PUT/i  then :update
         when /DELETE/i then :destroy
-        else raise ServerError.new("unknown request method: #{request.request_method}")
+        else raise Server::ServerError.new("unknown request method: #{request.request_method}")
         end
 
         [action, args]
@@ -196,14 +196,14 @@ module Tap
     #   end
     #
     def call(env)
-      @server = env['tap.server'] || Tap::Server.new
+      @server = env['tap.server'] || Server.new
       @request = Rack::Request.new(env)
       @response = Rack::Response.new
       
       # route to an action
       action, args = route
       unless self.class.actions.include?(action)
-        raise ServerError.new("404 Error: page not found", 404)
+        raise Server::ServerError.new("404 Error: page not found", 404)
       end
       
       result = send(action, *args)

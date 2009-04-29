@@ -119,7 +119,7 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_call_raises_a_server_error_if_path_info_cannot_be_routed_to_an_action
     request = Rack::MockRequest.new CallController
-    e = assert_raises(Tap::ServerError) { request.get("/not_an_action") }
+    e = assert_raises(Tap::Server::ServerError) { request.get("/not_an_action") }
     assert_equal "404 Error: page not found", e.message
   end
   

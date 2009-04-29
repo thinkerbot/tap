@@ -60,7 +60,7 @@ class RestControllerTest < Test::Unit::TestCase
     env = Rack::MockRequest.env_for("/", 'REQUEST_METHOD' => 'UNKNOWN')
     controller = RestfulController.new server
     
-    e = assert_raises(Tap::ServerError) { controller.call(env) }
+    e = assert_raises(Tap::Server::ServerError) { controller.call(env) }
     assert_equal "unknown request method: UNKNOWN", e.message
   end
   

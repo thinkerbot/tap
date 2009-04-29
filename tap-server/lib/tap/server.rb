@@ -2,8 +2,8 @@ require 'rack'
 require 'rack/mock'
 
 require 'tap'
-require 'tap/server_error'
 require 'tap/server/session'
+require 'tap/server/server_error'
 
 module Tap
   

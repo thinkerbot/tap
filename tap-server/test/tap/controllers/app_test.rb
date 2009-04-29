@@ -32,7 +32,7 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
   end
   
   def test_call_serves_public_pages_from_nested_envs
-    e = assert_raises(Tap::ServerError) { request.get("/page.html", opts) }
+    e = assert_raises(Tap::Server::ServerError) { request.get("/page.html", opts) }
     assert_equal "404 Error: page not found", e.message
     
     env = Tap::Env.new(method_root[:tmp])
