@@ -83,7 +83,7 @@ module Tap
         
         app.on_complete(true) do |_result|
           persistence.update("#{id}.log") do |io|
-            file = class_file("result.erb", _result.key)
+            file = class_path("result.erb", _result.key)
             locals = {:_result => _result, :value => _result.value}
             io << render(:file => file, :locals => locals)
           end

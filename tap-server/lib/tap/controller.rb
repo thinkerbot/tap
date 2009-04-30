@@ -1,4 +1,6 @@
 require 'tap/server'
+require 'tap/controller/rest_routes'
+
 autoload(:ERB, 'erb')
 
 module Tap
@@ -17,56 +19,6 @@ module Tap
   # * define it private or protected then call public(:method)
   #
   class Controller
-    
-    # Adds REST routing (a-la Rails[http://www.b-simple.de/download/restful_rails_en.pdf])
-    # to a Tap::Controller.
-    #
-    #   class Projects < Tap::Controller
-    #     include RestRoutes
-    #
-    #     # GET /projects
-    #     def index...
-    # 
-    #     # GET /projects/*args
-    #     def show(*args)...
-    # 
-    #     # GET /projects/arg;edit/*args
-    #     def edit(arg, *args)...
-    #
-    #     # POST /projects/*args
-    #     def create(*args)...
-    # 
-    #     # PUT /projects/*args
-    #     def update(*args)...
-    # 
-    #     # DELETE /projects/*args
-    #     def destroy(*args)...
-    #   end
-    #
-    module RestRoutes
-      def route
-        blank, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-        action = case request.request_method
-        when /GET/i  
-          case
-          when args.empty?
-            :index
-          when args[0] =~ /(.*);edit$/
-            args[0] = $1
-            :edit
-          else 
-            :show
-          end
-        when /POST/i then :create
-        when /PUT/i  then :update
-        when /DELETE/i then :destroy
-        else raise Server::ServerError.new("unknown request method: #{request.request_method}")
-        end
-
-        [action, args]
-      end
-    end
-        
     class << self
       
       # Initialize instance variables on the child and inherit as necessary.
@@ -145,6 +97,7 @@ module Tap
     set :define_action, false
     
     include Rack::Utils
+    ServerError = Tap::Server::ServerError
     
     # Accesses the 'tap.server' specified in env, set during call.
     attr_accessor :server
@@ -203,7 +156,7 @@ module Tap
       # route to an action
       action, args = route
       unless self.class.actions.include?(action)
-        raise Server::ServerError.new("404 Error: page not found", 404)
+        raise ServerError.new("404 Error: page not found", 404)
       end
       
       result = send(action, *args)
@@ -232,17 +185,6 @@ module Tap
       [action.to_sym, args]
     end
     
-    # Looks up a template associated with the class of obj, ie:
-    #
-    #   <views>/class_file_path/path
-    #
-    # The default class_file_path is 'obj.class.to_s.underscore', but classes
-    # can specify an alternative by providing a class_file_path method.
-    #
-    # If the specified path cannot be found, class file searches the superclass
-    # of obj.class.  Returns nil if no file can be found for any class in the
-    # inheritance hierarchy.
-    #
     def class_path(path, obj=self)
       server.class_path(:views, obj, path)
     end

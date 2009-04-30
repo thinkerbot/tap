@@ -15,7 +15,7 @@
     </li>
 <%   else %>
     <li class="configuration">
-<%   template_file = class_file("configurations/#{config[:type]}.erb") || class_file("configurations/default.erb") %>
+<%   template_file = class_path("configurations/#{config[:type]}.erb") || class_path("configurations/default.erb") %>
 <%= render(:file => template_file, :locals => {
       :name => "#{name}[#{key}]",
       :config => config,

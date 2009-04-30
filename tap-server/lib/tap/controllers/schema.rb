@@ -56,7 +56,7 @@ module Tap
         when 'add'    then add(id)
         when 'remove' then remove(id)
         when 'echo'   then echo
-        else raise Tap::ServerError, "unknown action: #{request['action']}"
+        else raise ServerError, "unknown action: #{request['action']}"
         end
       end
       
@@ -229,7 +229,7 @@ module Tap
         
       def instantiate(node)
         metadata = node.metadata
-        tasc = server.env.tasks.search(metadata[:id]).constantize
+        tasc = server.env.constant_manifest(:task)[metadata[:id]]
         tasc.instantiate(metadata, app)
       end        
     end

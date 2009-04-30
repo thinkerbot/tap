@@ -178,7 +178,7 @@ module Tap
     # Returns or initializes a session for the specified id.
     def session(id)
       path = session_path(id)
-      config_path = path ? File.join(path, 'session.yml') : nil
+      config_path = path ? File.join(path, Session::CONFIG_FILE) : nil
       
       if config_path && File.exists?(config_path)
         Session.new YAML.load_file(config_path)

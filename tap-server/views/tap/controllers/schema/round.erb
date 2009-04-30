@@ -3,7 +3,7 @@
   <input name="round" type="hidden" value="<%= round %>">
   <ol>
 <% nodes.each do |node| %>
-<% index = schema.index(node) %>
+<%   index = schema.index(node) %>
   <li>
     <input name="outputs[]" value="<%= index %>" type="checkbox" />
     <a href="#node_<%= index %>"><%= index %></a>
@@ -15,7 +15,7 @@
   </ol>
   <ul>
 <% server.env.minimap.each do |(env_name, env)| %>
-<%   env.tasks.build.minimap.each do |(name, const)| %>
+<%   env.constant_manifest(:task).minimap.each do |(name, const)| %>
 <%     lookup = "#{env_name}:#{name}" %>
    <li>
      <input name="nodes[][id]" value="<%= lookup %>" type="checkbox"><%= lookup %></input>

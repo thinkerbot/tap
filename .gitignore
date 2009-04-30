@@ -3,5 +3,7 @@ pkg
 rdoc
 backup
 tap-server/log
+tap-server/schema
 tap-server/data
+tap-server/session.yml
 *~

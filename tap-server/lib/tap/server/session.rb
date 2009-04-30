@@ -3,7 +3,9 @@ require 'tap/server/persistence'
 
 module Tap
   class Server
-    class Session      
+    class Session
+      CONFIG_FILE = 'session.yml'
+      
       def initialize(attributes={})
         self.attributes = {
           :app => {},
@@ -37,7 +39,7 @@ module Tap
       end
     
       def save
-        persistence.open(:root, 'session.yml') do |io|
+        persistence.open(:root, CONFIG_FILE) do |io|
           io << YAML.dump(attributes)
         end
         self

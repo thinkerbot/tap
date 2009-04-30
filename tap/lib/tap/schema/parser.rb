@@ -1,6 +1,7 @@
 module Tap
   class Schema
     
+    #--
     # == Syntax
     #
     # ==== Round Assignment

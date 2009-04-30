@@ -27,7 +27,7 @@
     <input name="schema[]" type="hidden" value="" />
     <input name="schema[][id]" type="hidden" value="<%= node.metadata[:id] %>" />
 <%   task, args = instantiate(node) %>
-<%=  render(:file => class_file('node.erb', task), :locals => {:id => id, :name => 'schema[]', :task => task, :args => args} ) %> 
+<%=  render(:file => class_path('node.erb', task), :locals => {:id => id, :name => 'schema[]', :task => task, :args => args} ) %> 
   </li>
 <% end %>
   </ol>
