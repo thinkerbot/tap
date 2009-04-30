@@ -31,8 +31,6 @@
   </li>
 <% end %>
   </ol>
-<% str = schema.dump(true).select {|obj| obj.kind_of?(String) }.join("\n") %>
-  <input name="schema[]" type="hidden" value="<%= str %>" />
   <input class="action" type="radio" name="action" value="update" checked="true">update</input>
   <input class="action" type="radio" name="action" value="echo">echo (debug http)</input>
   <input id="node_form_<%= id %>_submit" type="submit" value="Update" />

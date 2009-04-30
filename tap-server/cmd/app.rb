@@ -18,11 +18,11 @@ ConfigParser.new do |opts|
   opts.separator ""
   opts.separator "options:"
   
-  opts.on("--host HOST", "The server host.") do |input|
+  opts.on("--host HOST", "The server host (#{config[:host]}).") do |input|
     config[:host] = input
   end
   
-  opts.on("-p", "--port PORT", "The server port.") do |input|
+  opts.on("-p", "--port PORT", "The server port (#{config[:port]}).") do |input|
     config[:port] = input.to_i
   end
   
