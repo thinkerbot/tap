@@ -111,32 +111,11 @@ module Tap
       end
     end
     
-    def build(schema, app=Tap::App.instance)
-      schema.build do |type, metadata|
-        key = case metadata
-        when Array
-          metadata = metadata.dup
-          metadata.shift
-        when Hash
-          metadata[:id]
-        else 
-          raise "invalid metadata: #{metadata.inspect}"
-        end
-        
-        klass = constant_manifest(type)[key]
-        if !klass && block_given?
-          klass = yield(type, key, metadata)
-        end
-        
-        unless klass
-          raise "unknown #{type}: #{key}"
-        end
-        
-        case metadata
-        when Array then klass.parse!(metadata, app)
-        when Hash  then klass.instantiate(metadata, app)
-        end
-      end
+    def build(schema, app=Tap::App.instance, &block)
+      app.build(schema,
+        :task => constant_manifest(:task),
+        :join => constant_manifest(:join),
+      &block)
     end
     
     def set_signals(app)

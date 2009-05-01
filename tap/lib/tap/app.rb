@@ -196,6 +196,34 @@ module Tap
       node
     end
     
+    def build(schema, manifest={})
+      schema.build do |type, metadata|
+        id = case metadata
+        when Array
+          metadata = metadata.dup
+          metadata.shift
+        when Hash
+          metadata[:id]
+        else 
+          raise "invalid metadata: #{metadata.inspect}"
+        end
+        
+        klass = manifest[type][id]
+        if !klass && block_given?
+          klass = yield(type, id, metadata)
+        end
+        
+        unless klass
+          raise "unknown #{type}: #{id}"
+        end
+        
+        case metadata
+        when Array then klass.parse!(metadata, self)
+        when Hash  then klass.instantiate(metadata, self)
+        end
+      end
+    end
+    
     # Adds the specified middleware to the stack.
     def use(middleware)
       @stack = middleware.new(@stack)
