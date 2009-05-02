@@ -11,17 +11,36 @@ module Tap
         Parser.new(argv).schema
       end
 
-      def load(argv)
-        parser = Parser.new
-        parser.load(argv)
-        parser.schema
+      def load(str)
+        argh = YAML.load(str) || {}
+        argh = {
+          :nodes => [],
+          :joins => []
+        }.merge(argh)
+        
+        nodes = argh[:nodes].collect {|node| Node.new(node) }
+        schema = new(nodes)
+        
+        # add joins
+        argh[:joins].each do |inputs, outputs, join|
+          join = Join.new([], [], join)
+          
+          inputs.each do |index|
+            schema[index].output = join
+          end
+          
+          outputs.each do |index|
+            schema[index].input = join
+          end
+        end
+        
+        schema
       end
       
       # Loads a schema from the specified path.  Raises an error if no such
       # file existts.
       def load_file(path)
-        argv = YAML.load_file(path)
-        argv ? load(argv) : new
+        load(File.read(path))
       end
     end
     
@@ -120,15 +139,7 @@ module Tap
         node.metadata
       end
       hash[:joins] = joins.collect do |join|
-        metadata = join.metadata
-        case metadata
-        when Hash
-          metadata.merge(
-            :inputs => indicies(join.inputs),
-            :outputs => indicies(join.outputs))
-        when Array
-          "[#{indicies(join.inputs.join(','))}][#{indicies(join.outputs.join(','))}]#{metadata.reverse.join('.')}"
-        end
+        [indicies(join.inputs), indicies(join.outputs), join.metadata]
       end
       
       # hash[:middleware] = middleware.collect do |middleware| 

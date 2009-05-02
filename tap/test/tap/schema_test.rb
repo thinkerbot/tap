@@ -6,9 +6,7 @@ class SchemaTest < Test::Unit::TestCase
   Schema = Tap::Schema
   Node = Tap::Schema::Node
   Join = Tap::Schema::Join
-  
-  include MethodRoot
-  
+
   attr_reader :schema
   
   def setup
@@ -20,70 +18,37 @@ class SchemaTest < Test::Unit::TestCase
     Array.new(n) {|index| Node.new([index]) }
   end
   
-  # #
-  # # Schema#load_file test
-  # #
-  # 
-  # def test_load_file_reloads_a_yaml_dump
-  #   path = method_root.prepare(:tmp, 'dump.yml') do |file|
-  #     file << schema.dump
-  #   end
-  #   
-  #   loaded_schema = Schema.load_file(path)
-  #   assert_equal schema.dump, loaded_schema.dump
-  # end
-  # 
-  # def test_load_file_reloads_prerequisites
-  #   schema = Schema.parse("-- a -- b -- c --*[0,1] --*[2]")
-  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump}
-  #   
-  #   assert_equal "-- a -- b -- c --*[0,1,2]", Schema.load_file(path).to_s
-  # end
-  # 
-  # def test_load_file_reloads_rounds
-  #   schema = Schema.parse("-- a --+ b --++ c")
-  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump}
-  #   
-  #   assert_equal "-- a -- b -- c --+1[1] --+2[2]", Schema.load_file(path).to_s
-  # end
-  # 
-  # def test_load_file_reloads_sequence
-  #   schema = Schema.parse("-- a --: b")
-  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump}
-  #   
-  #   assert_equal "-- a -- b --[0][1]", Schema.load_file(path).to_s
-  # end
-  # 
-  # def test_load_file_reloads_fork
-  #   schema = Schema.parse("-- a -- b -- c --[0][1,2]")
-  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump}
-  #   
-  #   assert_equal "-- a -- b -- c --[0][1,2]", Schema.load_file(path).to_s
-  # end
-  # 
-  # def test_load_file_reloads_merge
-  #   schema = Schema.parse("-- a -- b -- c --[0,1][2]")
-  #   path = method_root.prepare(:tmp, 'dump.yml') {|file| file << schema.dump}
-  #   
-  #   assert_equal "-- a -- b -- c --[0,1][2]", Schema.load_file(path).to_s
-  # end
-  # 
-  # def test_load_file_initializes_new_Schema_for_empty_file
-  #   path = method_root.prepare(:tmp, 'empty.yml') {}
-  #   
-  #   assert_equal "", File.read(path)
-  #   schema = Schema.load_file(path)
-  #   assert schema.kind_of?(Schema)
-  #   assert schema.nodes.empty?
-  # end
-  # 
-  # def test_load_file_raises_error_for_non_existant_file
-  #   path = method_root.path('non_existant.yml')
-  #   
-  #   assert !File.exists?(path)
-  #   e = assert_raises(Errno::ENOENT) { Schema.load_file(path) }
-  #   assert_equal "No such file or directory - #{path}", e.message
-  # end
+  #
+  # Schema#load test
+  #
+  
+  def test_load_reloads_a_yaml_dump
+    argh = schema.dump
+    loaded_schema = Schema.load(argh)
+    assert_equal schema.dump, loaded_schema.dump
+  end
+  
+  def test_load_reloads_nodes
+    schema = Schema.parse("-- a 1 2 -- b 3 4 -- c")
+    argh = schema.dump
+    
+    schema = Schema.load(argh)
+    assert_equal [["a", "1", "2"], ["b", "3", "4"], ["c"]], schema.metadata
+  end
+  
+  def test_load_reloads_join
+    schema = Schema.parse("-- a -- b -- c --[0][1,2]")
+    argh = schema.dump
+    
+    assert_equal [schema[0]], schema[0].output.inputs
+    assert_equal [schema[1], schema[2]], schema[0].output.outputs
+  end
+  
+  def test_load_initializes_new_Schema_for_empty_string
+    schema = Schema.load ""
+    assert schema.kind_of?(Schema)
+    assert schema.nodes.empty?
+  end
   
   #
   # [] test
@@ -248,11 +213,20 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal({}, schema.to_hash)
   end
   
-  def test_to_hash_formats_argvs_separated_by_break
+  def test_to_hash_adds_node_metadata
     schema = Schema.new node_set
     assert_equal({
       :nodes => [[0],[1],[2]]
     }, schema.to_hash)
+  end
+  
+  def test_to_hash_adds_join_inputs_outputs_and_metadata
+    schema = Schema.new node_set
+    schema.set_join [0,1], [2], :key => 'value'
+  
+    assert_equal [
+      [[0,1], [2], {:key => 'value'}]
+    ], schema.to_hash[:joins]
   end
   
   def test_to_hash_performs_cleanup
@@ -265,14 +239,5 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal({
       :nodes => [['a'],['b'],['c']],
     }, schema.to_hash)
-  end
-  
-  def test_to_hash_adds_metadata_for_joins
-    schema = Schema.new node_set
-    schema.set_join [0,1], [2], :key => 'value'
-  
-    assert_equal [
-      {:inputs => [0,1], :outputs => [2], :key => 'value'}
-    ], schema.to_hash[:joins]
   end
 end

@@ -334,45 +334,6 @@ module Tap
         schema
       end
       
-      def load(argv)
-        argv.each do |args|
-          case args
-          when Hash
-            args = args.inject({}) {|hash, (k,v)| hash[k.to_sym] = v; hash }
-            
-            case
-            when args.has_key?(:round) && args.has_key?(:indicies)
-              schema.set_round(args[:round], args[:indicies])
-            when args.has_key?(:inputs) && args.has_key?(:outputs)
-              schema.set_join(args[:inputs], args[:outputs], args[:metadata])
-            when args.has_key?(:prerequisites)
-              schema.set_prerequisites args[:prerequisites]
-            when args.has_key?(:id)
-              schema.nodes << Node.new(args)
-              self.current_index += 1
-            else
-              raise "invalid arg: #{args}"
-            end
-            
-          when Array
-            schema.nodes << Node.new(args)
-            self.current_index += 1
-            
-          when String
-            args.split(/\s/).each do |arg|
-              parse_break(arg)
-            end
-            
-          when nil
-          else raise "invalid arg: #{args}"
-          end
-        end
-        
-        # cleanup is currently required if terminal joins like
-        # --0[] are allowed (since it's interpreted as --0[next])
-        schema.cleanup
-      end
-      
       protected
       
       # The index of the node currently being parsed.
