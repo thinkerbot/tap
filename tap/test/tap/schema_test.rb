@@ -28,20 +28,35 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal schema.dump, loaded_schema.dump
   end
   
-  def test_load_reloads_nodes
-    schema = Schema.parse("-- a 1 2 -- b 3 4 -- c")
+  def test_load_reloads_nodes_and_join
+    schema = Schema.parse("-- a 1 2 -- b 3 4 -- c --[0][1,2]")
     argh = schema.dump
     
     schema = Schema.load(argh)
     assert_equal [["a", "1", "2"], ["b", "3", "4"], ["c"]], schema.metadata
+    
+    join = schema[0].output
+    assert_equal [schema[0]], join.inputs
+    assert_equal [schema[1], schema[2]], join.outputs
+    assert_equal(['join'], join.metadata)
   end
   
-  def test_load_reloads_join
-    schema = Schema.parse("-- a -- b -- c --[0][1,2]")
-    argh = schema.dump
+  def test_load_reloads_nodes_and_join_hashes
+    n0 = Node.new :args => [1,2,3]
+    n1 = Node.new :args => [4,5,6]
     
-    assert_equal [schema[0]], schema[0].output.inputs
-    assert_equal [schema[1], schema[2]], schema[0].output.outputs
+    schema = Schema.new [n0, n1]
+    schema.set_join([0], [1], :key => 'value')
+    
+    argh = schema.dump
+    schema = Schema.load(argh)
+    
+    assert_equal [{:args => [1,2,3]}, {:args => [4,5,6]}], schema.metadata
+    
+    join = schema[0].output
+    assert_equal [schema[0]], join.inputs
+    assert_equal [schema[1]], join.outputs
+    assert_equal({:key => 'value'}, join.metadata)
   end
   
   def test_load_initializes_new_Schema_for_empty_string
@@ -220,12 +235,21 @@ class SchemaTest < Test::Unit::TestCase
     }, schema.to_hash)
   end
   
-  def test_to_hash_adds_join_inputs_outputs_and_metadata
+  def test_to_hash_adds_join_inputs_outputs_and_non_hash_metadata
+    schema = Schema.new node_set
+    schema.set_join [0,1], [2], ['join']
+  
+    assert_equal [
+      [[0,1], [2], ['join']]
+    ], schema.to_hash[:joins]
+  end
+  
+  def test_to_hash_adds_join_inputs_outputs_to_hash_metadata
     schema = Schema.new node_set
     schema.set_join [0,1], [2], :key => 'value'
   
     assert_equal [
-      [[0,1], [2], {:key => 'value'}]
+      {:key => 'value', :inputs => [0,1], :outputs => [2]}
     ], schema.to_hash[:joins]
   end
   

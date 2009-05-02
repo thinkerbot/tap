@@ -16,9 +16,9 @@ module Tap
         opts = ConfigParser.new
         opts.separator "configurations:"
         opts.add(configurations)
-        args = opts.parse!(argv, {}, false)
+        opts.parse!(argv, {}, false)
         
-        instantiate({:config => opts.nested_config, :args => args}, app)
+        instantiate({:config => opts.nested_config}, app)
       end
       
       def instantiate(argh, app=Tap::App.instance)

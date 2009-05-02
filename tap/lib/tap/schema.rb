@@ -13,17 +13,26 @@ module Tap
 
       def load(str)
         argh = YAML.load(str) || {}
-        argh = {
+        argh = argh.inject(
           :nodes => [],
           :joins => []
-        }.merge(argh)
+        ) do |hash, (key, value)|
+          hash[key.to_sym || key] = value
+          hash
+        end
         
         nodes = argh[:nodes].collect {|node| Node.new(node) }
         schema = new(nodes)
         
         # add joins
-        argh[:joins].each do |inputs, outputs, join|
-          join = Join.new([], [], join)
+        argh[:joins].each do |obj|
+          inputs, outputs, metadata = if obj.kind_of?(Hash)  
+            [obj.delete(:inputs), obj.delete(:outputs), obj]
+          else 
+            obj
+          end
+          
+          join = Join.new([], [], metadata)
           
           inputs.each do |index|
             schema[index].output = join
@@ -97,8 +106,8 @@ module Tap
     
     # Sets a join between the nodes at the input and output indicies.
     # Returns the new join.
-    def set_join(inputs, outputs, argh={})
-      join = Join.new [],[], argh
+    def set_join(inputs, outputs, metadata={})
+      join = Join.new [],[], metadata
       
       inputs.each {|index| self[index].output = join }
       outputs.each {|index| self[index].input = join }
@@ -139,7 +148,15 @@ module Tap
         node.metadata
       end
       hash[:joins] = joins.collect do |join|
-        [indicies(join.inputs), indicies(join.outputs), join.metadata]
+        metadata = join.metadata
+        inputs = indicies(join.inputs)
+        outputs = indicies(join.outputs)
+        
+        if metadata.kind_of?(Hash)
+          metadata.merge(:inputs => inputs, :outputs => outputs)
+        else
+          [inputs, outputs, metadata]
+        end
       end
       
       # hash[:middleware] = middleware.collect do |middleware| 
