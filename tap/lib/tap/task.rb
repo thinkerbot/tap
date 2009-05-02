@@ -227,7 +227,6 @@ module Tap
         name = argh[:name]
         config = argh[:config]
         config_file = argh[:config_file]
-        args = argh[:args] || []
         
         instance = new({}, name, app)
         instance.reconfigure(load_config(config_file)) if config_file
@@ -241,7 +240,7 @@ module Tap
           app.cache[self] = instance
         end
         
-        [instance, args]
+        [instance, argh[:args]]
       end
 
       DEFAULT_HELP_TEMPLATE = %Q{<% desc = task_class::desc %>

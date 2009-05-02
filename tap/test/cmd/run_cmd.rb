@@ -136,17 +136,6 @@ goodnight moon
 goodnight moon
 }
     end
-    
-    # now with argv syntax
-    tempfile do |io, path|
-      io << schema.dump(true)
-      io.flush
-
-      sh_test %Q{
-% tap run -s#{path}
-goodnight moon
-}
-    end
   end
   
   def test_run_loads_and_runs_multiple_schema
