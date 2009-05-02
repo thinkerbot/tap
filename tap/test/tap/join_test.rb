@@ -23,7 +23,7 @@ class JoinTest < Test::Unit::TestCase
     join = Join.parse([])
     assert_equal false, join.iterate
     
-    join = Join.parse(["i"])
+    join = Join.parse(["-i"])
     assert_equal true, join.iterate
   end
   

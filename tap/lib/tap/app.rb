@@ -213,7 +213,7 @@ module Tap
       end
     end
     
-    def build(schema, *rounds)
+    def build(schema)
       return build(schema) do |type, metadata| 
         metadata[:class]
       end unless block_given?
@@ -226,7 +226,14 @@ module Tap
         end
         
         nodes << instance
-        !node.input && args ? [instance, args] : nil
+        
+        case
+        when args == nil
+        when node.input == nil
+          [instance, args]
+        when !args.empty?
+          warn "warning: ignoring args for node (#{nodes.length-1}) #{instance} [#{args.join(' ')}]"
+        end
       end
       
       # build the workflow
@@ -251,11 +258,6 @@ module Tap
       # enque nodes
       round.compact!
       queue.concat(round)
-      
-      rounds.each do |indicies|
-        round = indicies.collect {|index| node[index] }
-        queue.concat(round)
-      end
       
       nodes
     end

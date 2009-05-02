@@ -13,7 +13,12 @@ module Tap
       end
       
       def parse!(argv=ARGV, app=Tap::App.instance)
-        instantiate({:config => parse_modifier(argv.shift)}, app)
+        opts = ConfigParser.new
+        opts.separator "configurations:"
+        opts.add(configurations)
+        opts.parse!(argv, {}, false)
+        
+        instantiate({:config => opts.nested_config}, app)
       end
       
       def instantiate(argh, app=Tap::App.instance)

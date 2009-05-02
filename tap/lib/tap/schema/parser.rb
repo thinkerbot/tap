@@ -1,3 +1,5 @@
+autoload(:Shellwords, 'shellwords')
+
 module Tap
   class Schema
     
@@ -70,6 +72,13 @@ module Tap
     #   --[][]q.sync   Sync.new(:enq => true)
     #   --[][].sync    Sync.new
     #
+    # If you can stand the syntax, you can also specify a full argv after
+    # the bracket, just be sure to enclose the whole break in quotes.
+    #
+    #   example                interpretation
+    #   "--1:2 join -i -s"     Join.new(:iterate => true, :splat => true)
+    #   "--[][] sync --enq"    Sync.new(:enq => true)
+    #
     # ==== Escapes and End Flags
     #
     # Breaks can be escaped by enclosing them in '-.' and '.-' delimiters;
@@ -135,10 +144,11 @@ module Tap
         #   $2:: The modifier string.
         #        (ex: ':i' => 'i', '1:2is' => 'is')
         #
-        SEQUENCE = /\A(\d*(?::\d*)+)([A-z]*)\z/
+        SEQUENCE = /\A(\d*(?::\d*)+)(.*)\z/
         
         # Matches a generic join break. Examples:
         #
+        #   "[1,2,3][4,5,6] join -i -s"
         #   [1,2,3][4,5,6]is.join
         #   [1,2][3,4]
         #   [1][2]
@@ -151,10 +161,17 @@ module Tap
         #        (ex: '[1,2,3][4,5,6]' => '4,5,6')
         #   $3:: The modifier string.
         #        (ex: '[][]is' => 'is')
-        #   $4:: The join type, if present.
-        #        (ex: '.join[][]' => 'join', '.[][]' => '', '[][]' => nil)
         #
-        JOIN = /\A\[([\d,]*)\]\[([\d,]*)\]([A-z]*)(?:.(\w*[\w:]*))?\z/
+        JOIN = /\A\[([\d,]*)\]\[([\d,]*)\](.*)\z/
+        
+        # Matches a join modifier. After the match:
+        #
+        #   $1:: The modifier flag string.
+        #        (ex: 'is.sync' => 'is')
+        #   $2:: The class string.
+        #        (ex: 'is.sync' => 'sync')
+        #
+        JOIN_MODIFIER = /\A([A-z]*)(?:\.(.*))?\z/
         
         # Parses an indicies str along commas, and collects the indicies
         # as integers. Ex:
@@ -171,22 +188,22 @@ module Tap
           indicies
         end
 
-        # Parses the match of a SEQUENCE regexp an array of [join_type,
-        # input_indicies, output_indicies, modifiers] arrays. The inputs
-        # corresponds to $1 and $2 for the match. The previous and current
-        # index are assumed if $1 starts and/or ends with a semi-colon.
+        # Parses the match of a SEQUENCE regexp an array of [input_indicies,
+        # output_indicies, metadata] arrays. The inputs corresponds to $1 and
+        # $2 for the match. The previous and current index are assumed if $1
+        # starts and/or ends with a semi-colon.
         #
         #   parse_sequence("1:2:3", '')
         #   # => [
-        #   # ['join', [1], [2], ""],
-        #   # ['join', [2], [3], ""]
+        #   # [[1], [2], ['join']],
+        #   # [[2], [3], ['join']],
         #   # ]
         #
-        #   parse_sequence(":1:2:", '')
+        #   parse_sequence(":1:2:", 'is')
         #   # => [
-        #   # ['join', [:previous_index], [1], ""],
-        #   # ['join', [1], [2], ""],
-        #   # ['join', [2], [:current_index], ""],
+        #   # [[:previous_index], [1], ['join', '-i', '-s']],
+        #   # [[1], [2], ['join', '-i', '-s']],
+        #   # [[2], [:current_index], ['join', '-i', '-s']],
         #   # ]
         #
         def parse_sequence(one, two)
@@ -194,7 +211,7 @@ module Tap
           indicies.unshift previous_index if one[0] == ?:
           indicies << current_index if one[-1] == ?:
           
-          metadata = ['join', two]
+          metadata = parse_join_modifier(two)
           sequences = []
           while indicies.length > 1
             sequences << [[indicies.shift], [indicies[0]], metadata]
@@ -202,19 +219,33 @@ module Tap
           sequences
         end
 
-        # Parses the match of a JOIN regexp into a [join_type, input_indicies,
-        # output_indicies, modifiers] array. The inputs corresponds to $1,
-        # $2, $3, and $4 for a match to a JOIN regexp. A join type of 
-        # 'join' is assumed unless otherwise specified.
+        # Parses the match of a JOIN regexp into a [input_indicies,
+        # output_indicies, metadata] array. The inputs corresponds to $1, $2,
+        # and $3 for a match to a JOIN regexp.  A join type of  'join' is
+        # assumed unless otherwise specified.
         #
-        #   parse_join("1", "2,3", "", "")      # => ['join', [1], [2,3], ""]
-        #   parse_join("", "", "is", "type")    # => ['type', [], [], "is"]
+        #   parse_join("1", "2,3", "")         # => [[1], [2,3], ['join']]
+        #   parse_join("", "", "is.type")      # => [[], [], ['type', '-i', '-s']]
+        #   parse_join("", "", "type -i -s")   # => [[], [], ['type', '-i', '-s']]
         #
-        def parse_join(one, two, three, four)
+        def parse_join(one, two, three)
           inputs = parse_indicies(one)
           outputs = parse_indicies(two)
-          join_type = four && !four.empty? ? four : 'join'
-          [inputs, outputs, [join_type, three]]
+          [inputs, outputs, parse_join_modifier(three)]
+        end
+        
+        # Parses a join modifier string into an array of metadata.
+        def parse_join_modifier(modifier)
+          case modifier
+          when ""
+            ["join"]
+          when JOIN_MODIFIER
+            argv = [$2 == nil || $2.empty? ? 'join' : $2]
+            $1.split("").each {|char| argv << "-#{char}"}
+            argv
+          else
+            Shellwords.shellwords(modifier)
+          end
         end
       end
       
@@ -365,7 +396,7 @@ module Tap
         when SEQUENCE     
           parse_sequence($1, $2).each {|join| schema.set_join(*join) }
         when JOIN         
-          schema.set_join(*parse_join($1, $2, $3, $4))
+          schema.set_join(*parse_join($1, $2, $3))
         else
           raise ArgumentError, "invalid break argument: #{arg}"
         end
