@@ -38,14 +38,3 @@ before being passed to dump. The printout is: ['goodnight', 'moon'].to_s
 
   % tap run -- load goodnight -- load moon -- dump --[0,1][2].sync
   goodnightmoon
-  
-=== Multiple Rounds
-
-Normally tasks are enqued in the order they appear. Tasks can be enqued into
-multiple rounds of execution by adding '+' signs to a break. Here the
-goodnight load task executes after the first round runs to completion.
-
-  % tap run -- load hello --+ load goodnight -- load moon -- dump --[0,1,2][3]
-  hello
-  moon
-  goodnight

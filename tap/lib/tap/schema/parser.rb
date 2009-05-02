@@ -1,84 +1,92 @@
 module Tap
   class Schema
     
-    #--
     # == Syntax
     #
-    # ==== Round Assignment
-    # Tasks can be defined and set to a round using the following:
+    # The command line syntax can be thought of as a series of ARGV arrays
+    # connected by breaks.  The arrays define nodes in a workflow while the
+    # breaks define joins.  These are the available breaks:
     #
-    #   break           assigns task(s)         to round
-    #   --              next                    0
-    #   --+             next                    1
-    #   --++            next                    2
-    #   --+2            next                    2
-    #   --+2[1,2,3]     1,2,3                   2
+    #   break          meaning
+    #   --             default delimiter, no join
+    #   --:            sequence join
+    #   --[][]         general join syntax
     #
-    # Here all task (except c) are parsed into round 0, then the
-    # final argument reassigns e to round 3.
+    # As an example, this defines three nodes (a, b, c) and sequences the
+    # b and c nodes:
     #
-    #   schema = Parser.new("a -- b --+ c -- d -- e --+3[4]").schema
-    #   a, b, c, d, e = schema.nodes
-    #   schema.rounds                   # => [[a,b,d],[c], nil, [e]]
+    #   schema = Parser.new("a -- b --: c").schema
+    #   schema.nodes.collect {|node| node.metadata }
+    #   # => [["a"], ["b"], ["c"]]
     #
-    # ==== Workflow Assignment
-    # All simple workflow patterns except switch can be specified within
-    # the parse syntax (switch is the exception because there is no good
-    # way to define the switch block).  
+    #   a,b,c = schema.nodes
+    #   a.output                      # => nil
+    #   b.output.class                # => Tap::Schema::Join
+    #   b.output == c.input           # => true
     #
-    #   break      pattern       source(s)      target(s)
-    #   --:        sequence      last           next
-    #   --[]       fork          last           next
-    #   --{}       merge         next           last
-    #   --()       sync_merge    next           last
+    # In the example, the indicies of the nodes participating in the sequence
+    # are inferred as the last and next nodes in the schema, and obviously the
+    # location of the sequence break is significant.  By contrast, the break
+    # order doesn't matter when you directly specify the nodes in a join.
+    # These both sequence a to b, and b to c.
     #
-    #   example       meaning
-    #   --1:2         1.sequence(2)
-    #   --1:2:3       1.sequence(2,3)
-    #   --:2:         last.sequence(2,next)
-    #   --[]          last.fork(next)
-    #   --1{2,3,4}    1.merge(2,3,4)
-    #   --(2,3,4)     last.sync_merge(2,3,4)
+    #   schema = Parser.new("a -- b -- c --0:1 --1:2").schema
+    #   a,b,c = schema.nodes
+    #   a.output == b.input           # => true
+    #   b.output == c.input           # => true
     #
-    # Note how all of the bracketed styles behave similarly; they are
-    # parsed with essentially the same code, but reverse the source
-    # and target in the case of merges.
+    #   schema = Parser.new("a --1:2 --0:1 b -- c").schema
+    #   a,b,c = schema.nodes
+    #   a.output == b.input           # => true
+    #   b.output == c.input           # => true
     #
-    # Here a and b are sequenced inline.  Task c is assigned to no 
-    # workflow until the final argument which sequenced b and c.
+    # ==== General Join Syntax
     #
-    #   schema = Parser.new("a --: b -- c --1:2i").schema
-    #   a, b, c = schema.nodes
-    #   schema.joins.collect .collect do |join_type, inputs, outputs, modifier|
-    #     [join_type, inputs, outputs, modifier]
-    #   end
-    #   # => [['join',[a],[b],""], ["join",[b],[c],"i"]]
+    # The general join syntax allows the specification of arbitrary joins.
+    # Starting with a few examples:
     #
-    # ==== Globals
-    # Global prerequisites of task (used, for example, by dependencies) may
-    # be assigned in the parse syntax as well.  The break for a global
-    # is '--*'.
+    #   example        meaning
+    #   --[][]         last.sequence(next)
+    #   --[1][2]       1.sequence(2)
+    #   --[1][2,3]     1.fork(2,3)
+    #   --[1,2][3]     3.merge(1,2)
     #
-    #   schema = Parser.new("a -- b --* c").schema
-    #   a, b, c = schema.nodes
-    #   schema.globals                  # => [c]
+    # The meaning of the bracket breaks seems to be changing but note that
+    # the sequences, forks, and (unsynchronized) merges are all variations
+    # of a simple multi-way join.  Internally the breaks are interpreted like
+    # this:
+    #
+    #   join = Join.new
+    #   join.join(inputs, outputs)
+    #
+    # To specify another class of join, or to specify join configurations,
+    # add a string in the format "configs.class" where the configs are the
+    # single-letter configuration flags and class is a lookup for the join
+    # class.
+    #
+    #   example        interpretation
+    #   --:s           Join.new(:splat => true)
+    #   --1:2is        Join.new(:iterate => true, :splat => true)
+    #   --[][]q.sync   Sync.new(:enq => true)
+    #   --[][].sync    Sync.new
     #
     # ==== Escapes and End Flags
+    #
     # Breaks can be escaped by enclosing them in '-.' and '.-' delimiters;
     # any number of arguments may be enclosed within the escape. After the 
     # end delimiter, breaks are active once again.
     #
     #   schema = Parser.new("a -- b -- c").schema
-    #   schema.argvs                    # => [["a"], ["b"], ["c"]]
+    #   schema.metadata               # => [["a"], ["b"], ["c"]]
     # 
     #   schema = Parser.new("a -. -- b .- -- c").schema
-    #   schema.argvs                    # => [["a", "--", "b"], ["c"]]
+    #   schema.metadata               # => [["a", "--", "b"], ["c"]]
     #
     # Parsing continues until the end of argv, or a an end flag '---' is 
     # reached.  The end flag may also be escaped.
     #
     #   schema = Parser.new("a -- b --- c").schema
-    #   schema.argvs                    # => [["a"], ["b"]]
+    #   schema.metadata               # => [["a"], ["b"]]
     #
     class Parser
       
@@ -109,25 +117,9 @@ module Tap
         # After the match:
         #
         #   $1:: The string after the break
-        #        (ex: '--' => '', '--++' => '++', '--[1,2][3,4]is.join' => '[1,2][3,4]is.join')
+        #        (ex: '--' => '', '--:' => ':', '--[1,2][3,4]is.join' => '[1,2][3,4]is.join')
         #
-        BREAK =  /\A--(\z|[\+\d\:\*\[].*\z)/
-
-        # Matches an execution-round break. Examples:
-        #
-        #   +
-        #   ++
-        #   +1
-        #   +1[1,2,3]
-        #
-        # After the match:
-        #
-        #   $1:: The round string, or nil.
-        #        (ex: '++' => '++', '+1' => '+1')
-        #   $2:: The target string, or nil. 
-        #        (ex: '+' => nil, '+[1,2,3]' => '1,2,3')
-        #
-        ROUND = /\A(\+(?:\d*|\+*))(?:\[([\d,]*)\])?\z/
+        BREAK =  /\A--(\z|[\d\:\[].*\z)/
 
         # Matches a sequence break. Examples:
         #
@@ -144,18 +136,6 @@ module Tap
         #        (ex: ':i' => 'i', '1:2is' => 'is')
         #
         SEQUENCE = /\A(\d*(?::\d*)+)([A-z]*)\z/
-
-        # Matches an prerequisite break. Examples:
-        #
-        #   *
-        #   *[1,2,3]
-        #
-        # After the match:
-        #
-        #   $1:: The index string after the break.
-        #        (ex: '*' => nil, '*[1,2,3]' => '1,2,3')
-        #
-        PREREQUISITE = /\A\*(?:\[([\d,]*)\])?\z/
         
         # Matches a generic join break. Examples:
         #
@@ -191,23 +171,6 @@ module Tap
           indicies
         end
 
-        # Parses the match of a ROUND regexp into a round index and an array
-        # of task indicies that should be added to the round. The inputs
-        # correspond to $1 and $2 for the match.
-        #
-        # If $2 is empty then indicies of [:current_index] are assumed.
-        #
-        #   parse_round("+", "")                # => [1, [:current_index]]
-        #   parse_round("+2", "1,2,3")          # => [2, [1,2,3]]
-        #
-        def parse_round(one, two)
-          index = case one
-          when /\d/ then one[1, one.length-1].to_i
-          else one.length
-          end
-          [index, two && !two.empty? ? parse_indicies(two): [current_index]]
-        end
-
         # Parses the match of a SEQUENCE regexp an array of [join_type,
         # input_indicies, output_indicies, modifiers] arrays. The inputs
         # corresponds to $1 and $2 for the match. The previous and current
@@ -237,17 +200,6 @@ module Tap
             sequences << [[indicies.shift], [indicies[0]], metadata]
           end
           sequences
-        end
-
-        # Parses the match of an PREREQUISITE regexp into an [indicies] array.
-        # The input corresponds to $1 for the match. If $1 is empty then 
-        # indicies of [:current_index] are assumed.
-        #
-        #   parse_prerequisite("1")             # => [1]
-        #   parse_prerequisite("")              # => [:current_index]
-        #
-        def parse_prerequisite(one)
-          one && !one.empty? ? parse_indicies(one) : [current_index]
         end
 
         # Parses the match of a JOIN regexp into a [join_type, input_indicies,
@@ -409,15 +361,11 @@ module Tap
       def parse_break(arg) # :nodoc:
         case arg
         when ""
-          schema[current_index].round = 0
-        when ROUND
-          schema.set_round(*parse_round($1, $2))
+          # standard break, do nothing
         when SEQUENCE     
           parse_sequence($1, $2).each {|join| schema.set_join(*join) }
         when JOIN         
           schema.set_join(*parse_join($1, $2, $3, $4))
-        when PREREQUISITE 
-          schema.set_prerequisites(parse_prerequisite($1))
         else
           raise ArgumentError, "invalid break argument: #{arg}"
         end

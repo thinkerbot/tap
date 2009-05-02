@@ -196,37 +196,68 @@ module Tap
       node
     end
     
-    def build(schema, manifest={})
-      schema.build do |type, metadata|
-        id = case metadata
-        when Array
-          metadata = metadata.dup
-          metadata.shift
-        when Hash
-          metadata[:id]
-        else 
-          raise "invalid metadata: #{metadata.inspect}"
-        end
-        
-        klass = manifest[type][id]
-        if !klass && block_given?
-          klass = yield(type, id, metadata)
-        end
-        
-        unless klass
-          raise "unknown #{type}: #{id}"
-        end
-        
-        case metadata
-        when Array then klass.parse!(metadata, self)
-        when Hash  then klass.instantiate(metadata, self)
-        end
-      end
-    end
-    
     # Adds the specified middleware to the stack.
     def use(middleware)
       @stack = middleware.new(@stack)
+    end
+    
+    def reset
+      synchronize do
+        unless state == State::READY
+          raise "cannot reset unless READY"
+        end
+        
+        @stack = Stack.new
+        cache.clear
+        queue.clear
+      end
+    end
+    
+    def build(schema, *rounds)
+      return build(schema) do |type, metadata| 
+        metadata[:class]
+      end unless block_given?
+      
+      # instantiate nodes
+      nodes = []
+      round = schema.nodes.collect do |node|
+        instance, args = instantiate(node) do |metadata|
+          yield(:node, metadata)
+        end
+        
+        nodes << instance
+        !node.input && args ? [instance, args] : nil
+      end
+      
+      # build the workflow
+      schema.joins.each do |join|
+        inputs  = schema.indicies(join.inputs).collect  {|index| nodes[index] }
+        outputs = schema.indicies(join.outputs).collect {|index| nodes[index] }
+        
+        instantiate(join) do |metadata|
+          yield(:join, metadata)
+        end.join(inputs, outputs)
+      end
+      
+      # utilize middleware (future)
+      # schema.middleware.each do |middleware|
+      #   middleware = instantiate(middleware) do |metadata|
+      #     yield(:middleware, metadata)
+      #   end
+      #   
+      #   use middleware
+      # end
+      
+      # enque nodes
+      round.compact!
+      queue.concat(round)
+      
+      rounds.each do |indicies|
+        round = indicies.collect {|index| node[index] }
+        queue.concat(round)
+      end
+      
+      nodes
     end
     
     # Dispatches each dependency of node.  A block can be given to do something
@@ -421,6 +452,17 @@ module Tap
     end
     
     protected
+    
+    # helper to instantiate a class from metadata
+    def instantiate(obj) # :nodoc:
+      metadata = obj.metadata.dup
+      klass = yield(metadata)
+      
+      case metadata
+      when Array then klass.parse!(metadata, self)
+      when Hash  then klass.instantiate(metadata, self)
+      end
+    end
     
     # TerminateErrors are raised to kill executing tasks when terminate is 
     # called on an running App.  They are handled by the run rescue code.

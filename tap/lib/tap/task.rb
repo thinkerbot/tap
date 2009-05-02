@@ -232,6 +232,15 @@ module Tap
         instance = new({}, name, app)
         instance.reconfigure(load_config(config_file)) if config_file
         instance.reconfigure(config) if config
+        
+        if argh[:cache]
+          if app.cache.has_key?(self)
+            raise "cache already has an instance for: #{self}"
+          end
+        
+          app.cache[self] = instance
+        end
+        
         [instance, args]
       end
 

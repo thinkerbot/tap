@@ -86,7 +86,7 @@ module Tap
     end
     
     def tasks
-      constant_manifest(:task)
+      constant_manifest(:node)
     end
     
     def joins
@@ -112,10 +112,27 @@ module Tap
     end
     
     def build(schema, app=Tap::App.instance, &block)
-      app.build(schema,
-        :task => constant_manifest(:task),
-        :join => constant_manifest(:join),
-      &block)
+      app.build(schema) do |type, metadata|
+        key = case metadata
+        when Array
+          metadata.shift
+        when Hash
+          metadata[:id]
+        else 
+          raise "invalid metadata: #{metadata.inspect}"
+        end
+        
+        klass = constant_manifest(type)[key]
+        if !klass && block_given?
+          klass = yield(type, key, metadata)
+        end
+        
+        unless klass
+          raise "unknown #{type}: #{key}"
+        end
+        
+        klass
+      end
     end
     
     def set_signals(app)
@@ -154,13 +171,11 @@ module Tap
     def run(schemas, app=Tap::App.instance, &block)
       schemas = [schemas] unless schemas.kind_of?(Array)
       schemas.each do |schema|
-        build(schema, app, &block).each do |queue|
-          app.queue.concat(queue)
-        end
+        build(schema, app, &block)
       end
       
       if app.queue.empty?
-        raise "no task specified"
+        raise "no nodes specified"
       end
 
       set_signals(app)

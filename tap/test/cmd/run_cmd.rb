@@ -79,18 +79,18 @@ tap:
   def test_run_without_schema_prints_no_task_specified
     sh_test %Q{
 % tap run
-no task specified
+no nodes specified
 }
 
     sh_test %Q{
-% tap run -- --+ --++
-no task specified
+% tap run -- -- --
+no nodes specified
 }
 
     # likely incorrect syntax
     sh_test %Q{
 % tap run unknown
-no task specified
+no nodes specified
 (did you mean 'tap run -- unknown'?)
 }
   end
@@ -105,12 +105,12 @@ No such schema file - unknown
   def test_run_identifies_unknown_tasks_in_schema
     sh_test %Q{
 % tap run -- unknown
-unknown task: unknown
+unknown node: unknown
 }
 
     sh_test %Q{
 % tap run -- load -- unknown -- dump
-unknown task: unknown
+unknown node: unknown
 }
   end
   
@@ -200,27 +200,27 @@ goodnight moon
   # misc
   #
   
-  # see http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets/148-exerun-flubs-stopterminate
-  def test_run_does_not_suffer_from_stop_bug
-    method_root.prepare(:lib, 'echo.rb') do |io|
-      io << %q{# ::task
-        class Echo < Tap::Task
-          def process(input); puts input; end
-        end
-      }
-    end
-    
-    method_root.prepare(:lib, 'stop.rb') do |io|
-      io << %q{# ::task
-        class Stop < Tap::Task
-          def process; app.stop; end
-        end
-      }
-    end
-    
-    sh_test %Q{
-% tap run -- echo before -- stop --+ echo after
-before
-}
-  end
+#   # see http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets/148-exerun-flubs-stopterminate
+#   def test_run_does_not_suffer_from_stop_bug
+#     method_root.prepare(:lib, 'echo.rb') do |io|
+#       io << %q{# ::task
+#         class Echo < Tap::Task
+#           def process(input); puts input; end
+#         end
+#       }
+#     end
+#     
+#     method_root.prepare(:lib, 'stop.rb') do |io|
+#       io << %q{# ::task
+#         class Stop < Tap::Task
+#           def process; app.stop; end
+#         end
+#       }
+#     end
+#     
+#     sh_test %Q{
+# % tap run -- echo before -- stop --+ echo after
+# before
+# }
+#   end
 end
