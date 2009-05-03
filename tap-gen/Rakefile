@@ -41,3 +41,26 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.options << '--fmt' << 'cdoc'
 end
 
+#
+# Test tasks
+#
+
+desc 'Default: Run tests.'
+task :default => :test
+
+desc 'Run tests.'
+Rake::TestTask.new(:test) do |t|
+  t.libs = ['lib']
+  unless ENV['gems']
+    t.libs << "../configurable/lib"
+    t.libs << "../lazydoc/lib"
+    t.libs << "../tap/lib"
+    t.libs << "../tap-test/lib"
+    t.libs << "../tap-tasks/lib"
+  end
+  
+  t.test_files = Dir.glob( File.join('test', '**/*_test.rb') )
+  
+  t.verbose = true
+  t.warning = true
+end
