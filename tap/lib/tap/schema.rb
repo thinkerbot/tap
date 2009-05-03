@@ -21,8 +21,19 @@ module Tap
           hash
         end
         
-        nodes = argh[:nodes].collect {|node| Node.new(node) }
-        schema = new(nodes)
+        nodes = argh[:nodes]
+        schema = case nodes
+        when Array
+          nodes.collect! {|node| Node.new(node) }
+          new(nodes)
+        when Hash
+          nodes = nodes.inject({}) do |hash, (key, node)|
+            hash[key] = Node.new(node)
+            hash
+          end
+
+          new(nodes.values)
+        end
         
         # add joins
         argh[:joins].each do |obj|
@@ -32,14 +43,15 @@ module Tap
             obj
           end
           
+          metadata = {:id => 'join'} if metadata.empty?
           join = Join.new([], [], metadata)
           
           inputs.each do |index|
-            schema[index].output = join
+            nodes[index].output = join
           end
           
           outputs.each do |index|
-            schema[index].input = join
+            nodes[index].input = join
           end
         end
         

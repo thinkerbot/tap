@@ -95,7 +95,7 @@ begin
 rescue
   raise if $DEBUG
   puts $!.message
-  if $!.message == "no task specified" && !ARGV.empty?
+  if $!.message == "no nodes specified" && !ARGV.empty?
     puts "(did you mean 'tap run -- #{ARGV.join(' ')}'?)"
   end
   exit(1)

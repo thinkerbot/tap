@@ -219,21 +219,15 @@ module Tap
       end unless block_given?
       
       # instantiate nodes
-      nodes = []
-      round = schema.nodes.collect do |node|
+      nodes = {}
+      args = {}
+      schema.nodes.each_pair do |key, node|
         instance, args = instantiate(node) do |metadata|
           yield(:node, metadata)
         end
         
-        nodes << instance
-        
-        case
-        when args == nil
-        when node.input == nil
-          [instance, args]
-        when !args.empty?
-          warn "warning: ignoring args for node (#{nodes.length-1}) #{instance} [#{args.join(' ')}]"
-        end
+        nodes[key] = instance
+        args[key] = args
       end
       
       # build the workflow
@@ -256,8 +250,13 @@ module Tap
       # end
       
       # enque nodes
-      round.compact!
-      queue.concat(round)
+      schema.queue.each do |entry|
+        if entry.kind_of?(Array)
+          queue.enq(*entry)
+        else
+          queue.enq(nodes[entry], args[entry])
+        end
+      end
       
       nodes
     end

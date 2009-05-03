@@ -157,6 +157,65 @@ goodnight moon
     end
   end
   
+  def test_run_with_canonical_schema
+    tempfile do |io, path|
+      io << %q{
+nodes:
+- :id: load
+  :args: [goodnight moon]
+- :id: dump
+joins:
+- :inputs: [0]
+  :outputs: [1]
+}
+      io.flush
+
+      sh_test %Q{
+% tap run -s#{path}
+goodnight moon
+}
+    end
+  end
+  
+  def test_run_with_non_canonical_schema
+    tempfile do |io, path|
+      io << %q{
+nodes:
+  a:
+    :id: load
+    :args: [goodnight moon]
+  b:
+    :id: dump
+joins:
+- :inputs: [a]
+  :outputs: [b]
+}
+      io.flush
+
+      sh_test %Q{
+% tap run -s#{path}
+goodnight moon
+}
+    end
+  end
+    
+  def test_run_with_array_schema
+    tempfile do |io, path|
+      io << %q{
+nodes:
+- [load, goodnight moon]
+- [dump]
+joins:
+- [[0], [1], [join]]
+}
+      io.flush
+
+      sh_test %Q{
+% tap run -s#{path}
+goodnight moon
+}
+    end
+  end
   #
   # middleware
   #
