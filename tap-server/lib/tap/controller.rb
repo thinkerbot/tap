@@ -1,7 +1,5 @@
-require 'tap/server'
+require 'tap/controller/base'
 require 'tap/controller/rest_routes'
-
-autoload(:ERB, 'erb')
 
 module Tap
   
@@ -20,7 +18,7 @@ module Tap
   #
   class Controller
     class << self
-      
+
       # Initialize instance variables on the child and inherit as necessary.
       def inherited(child) # :nodoc:
         super
@@ -29,22 +27,22 @@ module Tap
         child.set(:default_layout, default_layout)
         child.set(:define_action, true)
       end
-      
+
       # An array of methods that can be called as actions.  Actions must be
       # stored as symbols.  Actions are inherited.
       attr_reader :actions
-      
+
       # The default action called for the request path '/'
       attr_reader :default_action
-      
+
       # The default layout rendered when the render option :layout is true.
       attr_reader :default_layout
-      
+
       # Instantiates self and performs call.
       def call(env)
         new.call(env)
       end
-      
+
       # Sets an instance variable for self (ie the class), short for:
       #
       #   instance_variable_set(:@attribute, input)
@@ -59,61 +57,59 @@ module Tap
       def set(variable, input)
         instance_variable_set("@#{variable}", input)
       end
-      
+
       protected
-      
+
       # Overridden so that if declare_action is set, new methods
       # are added to actions.
       def method_added(sym) # :nodoc:
         actions << sym if @define_action
         super
       end
-      
+
       # Turns on declare_action when changing method context.
       def public(*symbols) # :nodoc:
         @define_action = true if symbols.empty?
         super
       end
-      
+
       # Turns off declare_action when changing method context.
       def protected(*symbols) # :nodoc:
         @define_action = false if symbols.empty?
         super
       end
-      
+
       # Turns off declare_action when changing method context.
       def private(*symbols) # :nodoc:
         @define_action = false if symbols.empty?
         super
       end
     end
+    include Base
     
     set :actions, []
     set :default_layout, nil
     set :default_action, :index
-    
+
     # Ensures methods (even public methods) on Controller will
     # not be actions in subclasses. 
     set :define_action, false
     
-    include Rack::Utils
-    ServerError = Tap::Server::ServerError
-    
     # Accesses the 'tap.server' specified in env, set during call.
     attr_accessor :server
-    
-    # A Rack::Request wrapping env, set during call.
-    attr_accessor :request
-    
-    # A Rack::Response.  If the action returns a string, it will be written to
-    # response and response will be returned by call.  Otherwise, call returns
-    # the action result and response is ignored.
-    attr_accessor :response
     
     # Initializes a new instance of self.
     def initialize(app=nil)
       @server = @request = @response = nil
       @app = app
+    end
+    
+    def actions
+      self.class.actions
+    end
+    
+    def default_action
+      self.class.default_action
     end
     
     # Routes the request to an action and returns the response.  Routing is
@@ -150,39 +146,7 @@ module Tap
     #
     def call(env)
       @server = env['tap.server'] || Server.new
-      @request = Rack::Request.new(env)
-      @response = Rack::Response.new
-      
-      # route to an action
-      action, args = route
-      unless self.class.actions.include?(action)
-        raise ServerError.new("404 Error: page not found", 404)
-      end
-      
-      result = send(action, *args)
-      if result.kind_of?(String) 
-        response.write result
-        response.finish
-      else 
-        result
-      end
-    end
-    
-    # Returns the action, args, and extname for the request.path_info.  Routing
-    # is simple and fixed:
-    #
-    #   route             returns
-    #   /                 [:index, []]
-    #   /action/*args     [:action, args]
-    #
-    # The action and args are unescaped by route.  An alternate default action
-    # may be specified using set.  Override this method in subclasses for
-    # fancier routes.
-    def route
-      blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-      action = self.class.default_action if action == nil || action.empty?
-
-      [action.to_sym, args]
+      super(env)
     end
     
     def class_path(path, obj=self)
@@ -214,58 +178,7 @@ module Tap
         raise "could not find template for: #{path}"
       end
       
-      # render template
-      template = File.read(template_path)
-      content = render_erb(template, options, template_path)
-      
-      # render layout
-      render_layout(options[:layout], content)
-    end
-    
-    # Renders the specified layout with content as a local variable.  If layout
-    # is true, the class default_layout will be rendered. Returns content if no
-    # layout is specified.
-    def render_layout(layout, content)
-      case layout
-      when nil  
-        return content
-      when true 
-        layout = self.class.default_layout 
-      end
-      
-      render(:template => layout, :locals => {:content => content})
-    end
-    
-    # Renders the specified template as ERB using the options.  Options:
-    #
-    #   locals:: a hash of local variables used in the template
-    #
-    # The filename used to identify errors in an erb template to a specific
-    # file and is completely options (but handy).
-    def render_erb(template, options={}, filename=nil)
-      # assign locals to the render binding
-      # this almost surely may be optimized...
-      locals = options[:locals]
-      binding = empty_binding
-      
-      locals.each_pair do |key, value|
-        @assignment_value = value
-        eval("#{key} = remove_instance_variable(:@assignment_value)", binding)
-      end if locals
-      
-      erb = ERB.new(template, nil, "<>")
-      erb.filename = filename
-      erb.result(binding)
-    end
-    
-    # Redirects to the specified uri.
-    def redirect(uri, status=302, headers={}, body="")
-      response.status = status
-      response.headers.merge!(headers)
-      response.body = body
-      
-      response['Location'] = uri
-      response.finish
+      super(template_path, options)
     end
     
     # Returns a session hash.
@@ -286,11 +199,6 @@ module Tap
     # Returns a controller uri.
     def uri(action=nil, params={})
       server.uri(self.class.to_s.underscore, action, params)
-    end
-    
-    # Generates an empty binding to self without any locals assigned.
-    def empty_binding # :nodoc:
-      binding
     end
   end
 end
