@@ -1,7 +1,7 @@
-require  File.join(File.dirname(__FILE__), '../tap_test_helper')
+require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/controller'
 
-class RestControllerTest < Test::Unit::TestCase
+class RestRoutesTest < Test::Unit::TestCase
   acts_as_tap_test
   cleanup_dirs << :root
   
@@ -45,7 +45,7 @@ class RestControllerTest < Test::Unit::TestCase
   end
   
   def test_rest_routes
-    controller = RestfulController.new server
+    controller = RestfulController.new
     request = Rack::MockRequest.new controller
     
     assert_equal "index", request.get("/").body
@@ -58,7 +58,7 @@ class RestControllerTest < Test::Unit::TestCase
   
   def test_rest_routing_raises_error_for_unknown_request_method
     env = Rack::MockRequest.env_for("/", 'REQUEST_METHOD' => 'UNKNOWN')
-    controller = RestfulController.new server
+    controller = RestfulController.new
     
     e = assert_raises(Tap::Server::ServerError) { controller.call(env) }
     assert_equal "unknown request method: UNKNOWN", e.message
@@ -66,6 +66,7 @@ class RestControllerTest < Test::Unit::TestCase
   
   class PersistenceController < Tap::Controller
     include RestRoutes
+    include Session
     
     def index
       persistence.index(:data).join(", ")

@@ -7,6 +7,8 @@ module Tap
     
     # ::controller
     class App < Tap::Controller
+      include Session
+      
       set :default_layout, 'layout.erb'
   
       def call(env)

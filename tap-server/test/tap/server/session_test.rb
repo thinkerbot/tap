@@ -1,7 +1,7 @@
 require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/server/session'
 
-class SessionTest < Test::Unit::TestCase
+class Tap::Server::SessionTest < Test::Unit::TestCase
   Session = Tap::Server::Session
   
   acts_as_file_test

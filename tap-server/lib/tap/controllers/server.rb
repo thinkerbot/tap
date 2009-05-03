@@ -11,6 +11,8 @@ module Tap
     # background and still have a shutdown handle on them.
     #
     class Server < Tap::Controller
+      include Session
+      
       set :default_layout, 'layout.erb'
   
       def index

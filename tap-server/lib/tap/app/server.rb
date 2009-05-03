@@ -1,28 +1,21 @@
 require 'tap'
+require 'tap/controller'
 require 'tap/server/base'
-require 'tap/controller/base'
-require 'eventmachine'
 
 module Tap
   class App
-    class Server
+    class Server < Tap::Controller
       include Tap::Server::Base
-      include Tap::Controller::Base
+      
+      # 
+      set :define_action, false
       
       attr_reader :app
       
       def initialize(config={}, app=Tap::App.new)
-        @server = @request = @response = nil
         @app = app
         initialize_config(config)
-      end
-
-      def actions
-        [:index]
-      end
-
-      def default_action
-        :index
+        super()
       end
       
       def call(env)
@@ -33,7 +26,7 @@ module Tap
         ServerError.response($!)
       end
       
-      ### actions ###
+      set :define_action, true
       
       def index
         "goodnight moon"

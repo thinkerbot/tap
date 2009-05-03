@@ -493,7 +493,7 @@ module Tap
     # allows globals to be determined for all environments.
     def inspect(template=nil, globals={}, filename=nil) # :yields: templater, globals
       if template == nil
-        return "#<#{self.class}:#{object_id} path='#{path}'>" 
+        return "#<#{self.class}:#{object_id} root='#{root.root}'>" 
       end
       
       env_keys = minihash(true)

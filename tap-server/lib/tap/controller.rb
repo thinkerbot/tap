@@ -1,5 +1,8 @@
-require 'tap/controller/base'
+require 'tap/server'
+require 'tap/controller/session'
 require 'tap/controller/rest_routes'
+
+autoload(:ERB, 'erb')
 
 module Tap
   
@@ -22,9 +25,12 @@ module Tap
       # Initialize instance variables on the child and inherit as necessary.
       def inherited(child) # :nodoc:
         super
+        
+        set_variables.each do |variable|
+          child.set(variable, get(variable))
+        end
+        
         child.set(:actions, actions.dup)
-        child.set(:default_action, default_action)
-        child.set(:default_layout, default_layout)
         child.set(:define_action, true)
       end
 
@@ -34,10 +40,7 @@ module Tap
 
       # The default action called for the request path '/'
       attr_reader :default_action
-
-      # The default layout rendered when the render option :layout is true.
-      attr_reader :default_layout
-
+      
       # Instantiates self and performs call.
       def call(env)
         new.call(env)
@@ -52,10 +55,22 @@ module Tap
       #
       #   actions:: sets actions
       #   default_action:: the default action (:index)
-      #   default_layout:: the default layout (used by render)
       #
       def set(variable, input)
+        set_variables << variable
         instance_variable_set("@#{variable}", input)
+      end
+      
+      # Gets the value of an instance variable set via set.  Returns nil for
+      # variables that have not been set through set.
+      def get(variable)
+        return nil unless set_variables.include?(variable)
+        instance_variable_get("@#{variable}")
+      end
+      
+      # An array of variables set via set.  set_variables are inherited.
+      def set_variables
+        @set_variables ||= []
       end
 
       protected
@@ -85,31 +100,29 @@ module Tap
         super
       end
     end
-    include Base
+    
+    include Rack::Utils
+    ServerError = Tap::Server::ServerError
     
     set :actions, []
-    set :default_layout, nil
     set :default_action, :index
 
+    #--
     # Ensures methods (even public methods) on Controller will
     # not be actions in subclasses. 
     set :define_action, false
     
-    # Accesses the 'tap.server' specified in env, set during call.
-    attr_accessor :server
+    # A Rack::Request wrapping env, set during call.
+    attr_accessor :request
+
+    # A Rack::Response.  If the action returns a string, it will be written to
+    # response and response will be returned by call.  Otherwise, call returns
+    # the action result and response is ignored.
+    attr_accessor :response
     
     # Initializes a new instance of self.
-    def initialize(app=nil)
-      @server = @request = @response = nil
-      @app = app
-    end
-    
-    def actions
-      self.class.actions
-    end
-    
-    def default_action
-      self.class.default_action
+    def initialize
+      @request = @response = nil
     end
     
     # Routes the request to an action and returns the response.  Routing is
@@ -118,12 +131,6 @@ module Tap
     #   route                  calls
     #   /                      default_action (ie 'index')
     #   /action/*args          action(*args)
-    #
-    # Call sets up instance variables that may be used in the action:
-    #
-    #   server:: the Tap::Server specified in the env, or a new Tap::Server
-    #   request: a Rack::Request for env
-    #   response:: a Rack::Response
     #
     # If the action returns a string, it will be written to response.
     # Otherwise, call returns the result of action.  This allows actions like:
@@ -145,60 +152,98 @@ module Tap
     #   end
     #
     def call(env)
-      @server = env['tap.server'] || Server.new
-      super(env)
+      @request = Rack::Request.new(env)
+      @response = Rack::Response.new
+
+      # route to an action
+      action, args = route
+      unless self.class.actions.include?(action)
+        raise ServerError.new("404 Error: page not found", 404)
+      end
+
+      result = send(action, *args)
+      if result.kind_of?(String) 
+        response.write result
+        response.finish
+      else 
+        result
+      end
     end
-    
-    def class_path(path, obj=self)
-      server.class_path(:views, obj, path)
+
+    # Returns the action, args, and extname for the request.path_info.  Routing
+    # is simple and fixed:
+    #
+    #   route             returns
+    #   /                 [:index, []]
+    #   /action/*args     [:action, args]
+    #
+    # The action and args are unescaped by route.  An alternate default action
+    # may be specified using set.  Override this method in subclasses for
+    # fancier routes.
+    def route
+      blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
+      action = self.class.default_action if action == nil || action.empty?
+
+      [action.to_sym, args]
     end
     
     # Renders the class_file at path with the specified options.  Path can be
     # omitted if options specifies an alternate path to render.  Options:
     #
-    #   template:: renders the template relative to the template directory
-    #   file:: renders the specified file 
-    #   layout:: renders with the specified layout, or default_layout if true
+    #   layout:: renders with the specified layout
     #   locals:: a hash of local variables used in the template
     #
     def render(path, options={})
-      options, path = path, nil if path.kind_of?(Hash)
+      # render template
+      template = File.read(path)
+      content = render_erb(template, options, path)
       
-      # lookup template
-      template_path = case
-      when options[:file]
-        options[:file]
-      when options[:template]
-        server.path(:views, options[:template])
-      else
-        class_path(path)
-      end
-      
-      unless template_path
-        raise "could not find template for: #{path}"
-      end
-      
-      super(template_path, options)
+      # render layout
+      render_layout(options[:layout], content)
     end
-    
-    # Returns a session hash.
-    def session
-      request.env['rack.session'] ||= {:id => server.initialize_session}
+
+    # Renders the specified layout with content as a local variable.  Returns
+    # content if no layout is specified.
+    def render_layout(layout, content)
+      return content unless layout
+      render(layout, :locals => {:content => content})
     end
-    
-    # Returns the app for the current session.
-    def app
-      server.session(session[:id]).app
+
+    # Renders the specified template as ERB using the options.  Options:
+    #
+    #   locals:: a hash of local variables used in the template
+    #
+    # The filename used to identify errors in an erb template to a specific
+    # file and is completely options (but handy).
+    def render_erb(template, options={}, filename=nil)
+      # assign locals to the render binding
+      # this almost surely may be optimized...
+      locals = options[:locals]
+      binding = empty_binding
+
+      locals.each_pair do |key, value|
+        @assignment_value = value
+        eval("#{key} = remove_instance_variable(:@assignment_value)", binding)
+      end if locals
+
+      erb = ERB.new(template, nil, "<>")
+      erb.filename = filename
+      erb.result(binding)
     end
-    
-    # Returns the persistence for the current session.
-    def persistence
-      server.session(session[:id]).persistence
+
+    # Redirects to the specified uri.
+    def redirect(uri, status=302, headers={}, body="")
+      response.status = status
+      response.headers.merge!(headers)
+      response.body = body
+
+      response['Location'] = uri
+      response.finish
     end
-    
-    # Returns a controller uri.
-    def uri(action=nil, params={})
-      server.uri(self.class.to_s.underscore, action, params)
+
+    # Generates an empty binding to self without any locals assigned.
+    def empty_binding # :nodoc:
+      binding
     end
   end
 end

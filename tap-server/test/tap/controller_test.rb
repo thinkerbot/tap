@@ -6,13 +6,11 @@ class ControllerTest < Test::Unit::TestCase
   
   cleanup_dirs << :root
   
-  attr_reader :controller, :server
+  attr_reader :controller
   
   def setup
     super
-    @server = Tap::Server.new Tap::Env.new(method_root)
     @controller = Tap::Controller.new
-    @controller.server = server
   end
   
   #
@@ -35,10 +33,6 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_default_action_is_inherited
     assert_equal 'alt', ChildController.default_action
-  end
-  
-  def test_default_layout_is_inherited
-    assert_equal 'default', ChildController.default_layout
   end
   
   #
@@ -87,16 +81,6 @@ class ControllerTest < Test::Unit::TestCase
     def action(*args)
       args.join(".")
     end
-  end
-  
-  def test_call_sets_server
-    controller = CallController.new
-    assert_equal nil, controller.server
-    
-    request = Rack::MockRequest.new controller
-    request.get("/action", 'tap.server' => 'server')
-    
-    assert_equal 'server', controller.server
   end
   
   def test_call_routes_empty_path_info_default_action
@@ -175,51 +159,20 @@ class ControllerTest < Test::Unit::TestCase
   class RenderController < Tap::Controller
   end
   
-  def test_render_renders_class_path_for_path
-    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
-    method_root.prepare(:views, 'controller_test/render_controller/sample.erb') {|file| file << "<%= %w{one two three}.join(':') %>" }
-    
-    assert_equal "one:two", controller.render('sample.erb')
-    
-    render_controller = RenderController.new
-    render_controller.server = server
-    assert_equal "one:two:three", render_controller.render('sample.erb')
-  end
-  
-  def test_render_looks_up_template_under_template_dir
-    method_root.prepare(:views, 'alt/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
-    assert_equal "one:two", controller.render(:template => 'alt/sample.erb')
-  end
-  
-  def test_render_renders_file
-    path = method_root.prepare(:views, 'sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
-    assert_equal "one:two", controller.render(:file => path)
-  end
-  
   def test_render_assigns_locals
-    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= local %>" }
-    assert_equal "value", controller.render('sample.erb', :locals => {:local => 'value'})
-  end
-  
-  def test_render_renders_a_layout_template_with_content_if_specified
-    method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
-    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
-    
-    assert_equal "<html>one:two</html>", controller.render('sample.erb', :layout => 'layout.erb')
+    path = method_root.prepare(:views, 'sample.erb') {|file| file << "<%= local %>" }
+    assert_equal "value", controller.render(path, :locals => {:local => 'value'})
   end
   
   class DefaultLayoutController < Tap::Controller
-    set :default_layout, 'layout.erb'
-    set :name, ""
   end
   
-  def test_render_uses_default_layout_for_layout_true
-    method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
-    method_root.prepare(:views, 'sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+  def test_render_renders_layout
+    layout = method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
+    path = method_root.prepare(:views, 'sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
     
     controller = DefaultLayoutController.new
-    controller.server = server
-    assert_equal "<html>one:two</html>", controller.render(:template => 'sample.erb', :layout => true)
+    assert_equal "<html>one:two</html>", controller.render(path, :layout => layout)
   end
   
   #
@@ -261,32 +214,6 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
-  # session test
-  #
-  
-  def test_session_returns_the_rack_session
-    session = {}
-    request = Rack::Request.new Rack::MockRequest.env_for("/", 'rack.session' => session)
-    controller = Tap::Controller.new
-    controller.request = request
-    
-    assert_equal session.object_id, controller.session.object_id
-  end
-  
-  def test_session_initializes_rack_session_as_a_hash_if_necessary
-    request = Rack::Request.new Rack::MockRequest.env_for("/")
-    
-    controller = Tap::Controller.new
-    controller.request = request
-    controller.server = server
-    
-    assert !request.env.has_key?('rack.session')
-    session = controller.session
-    assert_equal({:id => 0}, session)
-    assert_equal session.object_id, request.env['rack.session'].object_id
-  end
-  
-  #
   # redirect test
   #
   
@@ -306,7 +233,7 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_redirect_returns_a_302_response_with_the_redirect_location_set
     request = Rack::MockRequest.new RedirectController
-    response = request.get("/action", 'tap.server' => server)
+    response = request.get("/action")
     assert_equal 302, response.status
     assert_equal "/target", response.headers['Location']
     assert_equal "", response.body
@@ -314,7 +241,7 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_redirect_may_specify_status_headers_and_body
     request = Rack::MockRequest.new RedirectController
-    response = request.get("/action_with_args", 'tap.server' => server)
+    response = request.get("/action_with_args")
     assert_equal 300, response.status
     assert_equal "/target", response.headers['Location']
     assert_equal "text/plain", response.headers['Content-Type']
@@ -323,7 +250,7 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_redirect_uri_overrides_header_Location
     request = Rack::MockRequest.new RedirectController
-    response = request.get("/action_with_location_header", 'tap.server' => server)
+    response = request.get("/action_with_location_header")
     assert_equal "/target", response.headers['Location']
   end
 end
