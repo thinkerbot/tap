@@ -30,14 +30,11 @@ module Tap
       end
       
       def instantiate(argh, app=Tap::App.instance)
-        argh = argh.inject({
+        argh = {
           :inputs => [],
           :outputs => [],
           :config => {}
-        }) do |hash, (key, value)|
-          hash[key.to_sym || key] = value
-          hash
-        end
+        }.merge(argh)
         
         [argh[:inputs], argh[:outputs], new(argh[:config], app)]
       end

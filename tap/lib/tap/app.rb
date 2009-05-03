@@ -224,6 +224,7 @@ module Tap
       nodes = {}
       arguments = {}
       schema[:nodes].each_pair do |key, node|
+        node = symbolize(node)
         klass = yield(:node, node)
         instance, args = instantiate(klass, node)
         nodes[key] = instance
@@ -232,6 +233,7 @@ module Tap
       
       # build the workflow
       schema[:joins].each do |join|
+        join = symbolize(join)
         klass = yield(:join, join)
         inputs, outputs, instance = instantiate(klass, join)
         
@@ -456,16 +458,25 @@ module Tap
     protected
     
     # helper to instantiate a class from metadata
-    def instantiate(klass, metadata) # :nodoc:
-      case metadata
-      when Array then klass.parse!(metadata, self)
-      when Hash  then klass.instantiate(metadata, self)
+    def instantiate(klass, data) # :nodoc:
+      case data
+      when Array then klass.parse!(data, self)
+      when Hash  then klass.instantiate(data, self)
       end
     end
     
     def sorted_each(hash) # :nodoc:
       hash.keys.sort.each do |key|
         yield(hash[key])
+      end
+    end
+    
+    def symbolize(hash) # :nodoc:
+      return hash unless hash.kind_of?(Hash)
+      
+      hash.inject({}) do |opts, (key, value)|
+        opts[key.to_sym || key] = value
+        opts
       end
     end
     

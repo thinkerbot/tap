@@ -117,11 +117,11 @@ module Tap
         when Array
           metadata.shift
         when Hash
-          metadata['id']
+          metadata[:id]
         else 
           raise "invalid metadata: #{metadata.inspect}"
         end
-        
+
         klass = constant_manifest(type)[key]
         if !klass && block_given?
           klass = yield(type, key, metadata)
