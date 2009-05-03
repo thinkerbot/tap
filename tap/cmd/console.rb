@@ -33,6 +33,13 @@ def env
   @env ||= Tap::Env.instance
 end
 
+def run(cmd, reset=true)
+  app.reset if reset
+  schema = Tap::Schema.parse(cmd)
+  env.run(schema, app)
+  nil
+end
+
 IRB.start
 
 # Handles a bug in IRB that causes exit to throw :IRB_EXIT
