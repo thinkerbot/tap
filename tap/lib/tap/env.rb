@@ -482,8 +482,8 @@ module Tap
       
       ###############################################################
       # [depreciated] manifest as a task key will be removed at 1.0
-      if key == 'node'
-        manifests[key].const_attr = /node|task|manifest/
+      if key == 'task'
+        manifests[key].const_attr = /task|manifest/
       end
       manifests[key]
       ###############################################################

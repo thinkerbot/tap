@@ -105,12 +105,12 @@ No such schema file - unknown
   def test_run_identifies_unknown_tasks_in_schema
     sh_test %Q{
 % tap run -- unknown
-unknown node: unknown
+unknown task: unknown
 }
 
     sh_test %Q{
 % tap run -- load -- unknown -- dump
-unknown node: unknown
+unknown task: unknown
 }
   end
   

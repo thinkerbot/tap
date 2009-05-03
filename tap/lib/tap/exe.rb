@@ -86,7 +86,7 @@ module Tap
     end
     
     def tasks
-      constant_manifest(:node)
+      constant_manifest(:task)
     end
     
     def joins

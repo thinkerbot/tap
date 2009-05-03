@@ -225,7 +225,7 @@ module Tap
       arguments = {}
       schema[:nodes].each_pair do |key, node|
         node = symbolize(node)
-        klass = yield(:node, node)
+        klass = yield(:task, node)
         instance, args = instantiate(klass, node)
         nodes[key] = instance
         arguments[key] = args
