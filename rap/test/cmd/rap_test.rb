@@ -83,6 +83,11 @@ end
         assert output =~ /usage: rap rap_test\/task_with_doc/
       end
       
+      sh_test "% rap task_with_empty_desc --help" do |output|
+        assert output =~ /RapTest::TaskWithEmptyDesc/
+        assert output !~ /::desc/
+      end
+      
       sh_test "% rap task_without_doc --help" do |output|
         assert output =~ /RapTest::TaskWithoutDoc/
         assert output =~ /usage: rap rap_test\/task_without_doc/
