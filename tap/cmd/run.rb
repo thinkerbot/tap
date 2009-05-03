@@ -82,15 +82,15 @@ ConfigParser.new do |opts|
   
 end.parse!(argv, app.config)
 
-# parse argv schema
-schemas << Tap::Schema.parse(ARGV)
-ARGV.replace(argv)
-
 #
 # build and run
 #
 
 begin
+  # parse argv schema
+  schemas << Tap::Schema.parse(ARGV)
+  ARGV.replace(argv)
+  
   env.run(schemas, app)
 rescue
   raise if $DEBUG

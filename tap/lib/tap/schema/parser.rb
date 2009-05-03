@@ -3,48 +3,51 @@ autoload(:Shellwords, 'shellwords')
 module Tap
   class Schema
     
+    # A parser for workflow schema defined on the command line.
+    #
     # == Syntax
     #
     # The command line syntax can be thought of as a series of ARGV arrays
-    # connected by breaks.  The arrays define nodes in a workflow while the
-    # breaks define joins.  These are the available breaks:
+    # connected by breaks.  The arrays define nodes (ie tasks) in a workflow
+    # while the breaks define joins.  These are the available breaks:
     #
     #   break          meaning
     #   --             default delimiter, no join
     #   --:            sequence join
-    #   --[][]         general join syntax
+    #   --[][]         multi-join (sequence, fork, merge)
     #
     # As an example, this defines three nodes (a, b, c) and sequences the
     # b and c nodes:
     #
     #   schema = Parser.new("a -- b --: c").schema
-    #   schema.nodes.collect {|node| node.metadata }
-    #   # => [["a"], ["b"], ["c"]]
-    #
-    #   a,b,c = schema.nodes
-    #   a.output                      # => nil
-    #   b.output.class                # => Tap::Schema::Join
-    #   b.output == c.input           # => true
+    #   schema.nodes                  # => [["a"], ["b"], ["c"]]
+    #   schema.joins                  # => [['join', [1],[2]]]
     #
     # In the example, the indicies of the nodes participating in the sequence
     # are inferred as the last and next nodes in the schema, and obviously the
-    # location of the sequence break is significant.  By contrast, the break
-    # order doesn't matter when you directly specify the nodes in a join.
-    # These both sequence a to b, and b to c.
+    # location of the sequence break is significant.  This isn't the case when
+    # the nodes in a join are explicitly specified.  These both sequence a to
+    # b, and b to c.
     #
     #   schema = Parser.new("a -- b -- c --0:1 --1:2").schema
-    #   a,b,c = schema.nodes
-    #   a.output == b.input           # => true
-    #   b.output == c.input           # => true
+    #   schema.nodes                  # => [["a"], ["b"], ["c"]]
+    #   schema.joins                  
+    #   # => [
+    #   # ['join', [0],[1]],
+    #   # ['join', [1],[2]],
+    #   # ]
     #
     #   schema = Parser.new("a --1:2 --0:1 b -- c").schema
-    #   a,b,c = schema.nodes
-    #   a.output == b.input           # => true
-    #   b.output == c.input           # => true
+    #   schema.nodes                  # => [["a"], ["b"], ["c"]]
+    #   schema.joins                  
+    #   # => [
+    #   # ['join', [1],[2]],
+    #   # ['join', [0],[1]],
+    #   # ]
     #
-    # ==== General Join Syntax
+    # ==== Multi-Join Syntax
     #
-    # The general join syntax allows the specification of arbitrary joins.
+    # The multi-join syntax allows the specification of arbitrary joins.
     # Starting with a few examples:
     #
     #   example        meaning
@@ -55,8 +58,7 @@ module Tap
     #
     # The meaning of the bracket breaks seems to be changing but note that
     # the sequences, forks, and (unsynchronized) merges are all variations
-    # of a simple multi-way join.  Internally the breaks are interpreted like
-    # this:
+    # of a multi-way join.  Internally the breaks are interpreted like this:
     #
     #   join = Join.new
     #   join.join(inputs, outputs)
@@ -86,20 +88,20 @@ module Tap
     # end delimiter, breaks are active once again.
     #
     #   schema = Parser.new("a -- b -- c").schema
-    #   schema.metadata               # => [["a"], ["b"], ["c"]]
+    #   schema.nodes                  # => [["a"], ["b"], ["c"]]
     # 
     #   schema = Parser.new("a -. -- b .- -- c").schema
-    #   schema.metadata               # => [["a", "--", "b"], ["c"]]
+    #   schema.nodes                  # => [["a", "--", "b"], ["c"]]
     #
     # Parsing continues until the end of argv, or a an end flag '---' is 
     # reached.  The end flag may also be escaped.
     #
     #   schema = Parser.new("a -- b --- c").schema
-    #   schema.metadata               # => [["a"], ["b"]]
+    #   schema.nodes                  # => [["a"], ["b"]]
     #
     class Parser
       
-      # A set of parsing routines used internally by Tap::Support::Parser,
+      # A set of parsing routines used internally by Tap::Schema::Parser,
       # modularized for ease of testing, and potential re-use. These methods 
       # require that <tt>current_index</tt> and <tt>previous_index</tt> be 
       # implemented in the including class.
@@ -235,7 +237,7 @@ module Tap
           join.unshift(argv.shift) + argv
         end
         
-        # Parses a join modifier string into an array of metadata.
+        # Parses a join modifier string into an argv.
         def parse_join_modifier(modifier)
           case modifier
           when ""
@@ -340,13 +342,13 @@ module Tap
       # The index of the node currently being parsed.
       attr_accessor :current_index # :nodoc:
       
+      # helper to initialize a node at the specified index
       def node(index) # :nodoc:
         schema.nodes[index] ||= []
       end
       
-      # Returns current_index-1, or raises an error if current_index < 1.
+      # returns current_index-1, or raises an error if current_index < 1.
       def previous_index # :nodoc:
-        raise ArgumentError, 'there is no previous index' if current_index < 1
         current_index - 1
       end
       
@@ -366,7 +368,9 @@ module Tap
         end
       end
       
-      def set_join(join)
+      # constructs the specified join and removes the targets of the
+      # join from the queue
+      def set_join(join) # :nodoc:
         join[2].each do |output|
           schema.queue.delete(output)
         end

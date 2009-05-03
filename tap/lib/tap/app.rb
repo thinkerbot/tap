@@ -213,57 +213,6 @@ module Tap
       end
     end
     
-    def build(schema)
-      return build(schema) do |type, metadata| 
-        metadata[:class]
-      end unless block_given?
-      
-      schema = schema.to_hash
-      
-      # instantiate nodes
-      nodes = {}
-      arguments = {}
-      schema[:nodes].each_pair do |key, node|
-        node = symbolize(node)
-        klass = yield(:task, node)
-        instance, args = instantiate(klass, node)
-        nodes[key] = instance
-        arguments[key] = args
-      end
-      
-      # build the workflow
-      schema[:joins].each do |join|
-        join = symbolize(join)
-        klass = yield(:join, join)
-        inputs, outputs, instance = instantiate(klass, join)
-        
-        inputs  = inputs.collect  {|key| nodes[key] }
-        outputs = outputs.collect {|key| nodes[key] }
-        
-        instance.join(inputs, outputs)
-      end
-      
-      # utilize middleware (future)
-      # schema.middleware.each do |middleware|
-      #   middleware = instantiate(middleware) do |metadata|
-      #     yield(:middleware, metadata)
-      #   end
-      #   
-      #   use middleware
-      # end
-      
-      # enque nodes
-      schema[:queue].each do |(node, inputs)|
-        unless inputs
-          inputs = arguments[node]
-        end
-        
-        queue.enq(nodes[node], inputs) if inputs
-      end
-      
-      nodes
-    end
-    
     # Dispatches each dependency of node.  A block can be given to do something
     # else with the nodes (ex: reset single-execution dependencies).  Resolve
     # will recursively yield dependencies if specified.
@@ -456,29 +405,6 @@ module Tap
     end
     
     protected
-    
-    # helper to instantiate a class from metadata
-    def instantiate(klass, data) # :nodoc:
-      case data
-      when Array then klass.parse!(data, self)
-      when Hash  then klass.instantiate(data, self)
-      end
-    end
-    
-    def sorted_each(hash) # :nodoc:
-      hash.keys.sort.each do |key|
-        yield(hash[key])
-      end
-    end
-    
-    def symbolize(hash) # :nodoc:
-      return hash unless hash.kind_of?(Hash)
-      
-      hash.inject({}) do |opts, (key, value)|
-        opts[key.to_sym || key] = value
-        opts
-      end
-    end
     
     # TerminateErrors are raised to kill executing tasks when terminate is 
     # called on an running App.  They are handled by the run rescue code.

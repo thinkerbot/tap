@@ -114,6 +114,45 @@ unknown task: unknown
 }
   end
   
+  def test_run_identifies_missing_tasks_in_schema
+    sh_test %Q{
+% tap run -- load --: 
+missing output node: 1
+}
+    
+    sh_test %Q{
+% tap run -- load -- dump  --[0][2]
+missing output node: 2
+}
+
+    sh_test %Q{
+% tap run -- --: dump
+missing input node: -1
+}
+
+    # just to make sure -1 won't refer to the last task...
+    sh_test %Q{
+% tap run -- --: dump -- load
+missing input node: -1
+}
+
+    sh_test %Q{
+% tap run -- load -- dump --[2][1]
+missing input node: 2
+}
+  end
+
+  def test_multiple_errors_are_collected
+    sh_test %Q{
+% tap run -- a '--: c' b --[3][4]
+unknown task: a
+unknown task: b
+unknown join: c
+missing input node: 3
+missing output node: 4
+}
+  end
+  
   #
   # success cases
   #

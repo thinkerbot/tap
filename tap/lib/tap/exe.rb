@@ -111,8 +111,8 @@ module Tap
       end
     end
     
-    def build(schema, app=Tap::App.instance, &block)
-      app.build(schema) do |type, metadata|
+    def build(schema, app=Tap::App.instance)
+      schema.build(app) do |type, metadata|
         key = case metadata
         when Array
           metadata.shift
