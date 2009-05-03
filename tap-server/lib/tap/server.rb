@@ -120,8 +120,7 @@ module Tap
     config :shutdown_key, nil, &c.integer_or_nil        # specifies a public shutdown key
     
     attr_reader :env
-    attr_reader :handler
-
+    
     def initialize(env=Env.new, config={})
       @env = env
       @cache = {}

@@ -1,29 +1,42 @@
 require 'tap'
+require 'tap/server/base'
+require 'tap/controller/base'
+require 'eventmachine'
 
 module Tap
   class App
-    module Server
+    class Server
+      include Tap::Server::Base
+      include Tap::Controller::Base
       
-      attr_reader :env
       attr_reader :app
       
-      def initialize(env=Tap::Env.new, app=Tap::App.new)
-        @env = env.extend(Tap::Exe)
+      def initialize(config={}, app=Tap::App.new)
+        @server = @request = @response = nil
         @app = app
+        initialize_config(config)
+      end
+
+      def actions
+        [:index]
+      end
+
+      def default_action
+        :index
       end
       
-      def receive_data(data)
-        schema = Tap::Schema.parse(data)
-        begin
-          env.build(schema, app).each do |queue|
-            app.queue.concat(queue)
-          end
-                    
-          app.run
-        rescue
-          puts $!.message
-          puts $!.backtrace
-        end
+      def call(env)
+        super(env)
+      rescue ServerError
+        $!.response
+      rescue Exception
+        ServerError.response($!)
+      end
+      
+      ### actions ###
+      
+      def index
+        "goodnight moon"
       end
     end
   end
