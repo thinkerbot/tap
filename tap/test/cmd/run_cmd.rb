@@ -157,65 +157,93 @@ goodnight moon
     end
   end
   
-  def test_run_with_canonical_schema
-    tempfile do |io, path|
-      io << %q{
-nodes:
-- :id: load
-  :args: [goodnight moon]
-- :id: dump
+  CANONICAL_SCHEMA = %q{
 joins:
-- :inputs: [0]
-  :outputs: [1]
-}
-      io.flush
-
-      sh_test %Q{
-% tap run -s#{path}
-goodnight moon
-}
-    end
-  end
-  
-  def test_run_with_non_canonical_schema
-    tempfile do |io, path|
-      io << %q{
+  0:
+    id: join
+    inputs: [0]
+    outputs: [1]
 nodes:
-  a:
-    :id: load
-    :args: [goodnight moon]
-  b:
-    :id: dump
+  0:
+    id: load
+  1:
+    id: dump
+queue:
+  0:
+    - 0
+    - [goodnight moon]
+---
 joins:
-- :inputs: [a]
-  :outputs: [b]
-}
-      io.flush
-
-      sh_test %Q{
-% tap run -s#{path}
-goodnight moon
-}
-    end
-  end
-    
-  def test_run_with_array_schema
-    tempfile do |io, path|
-      io << %q{
+- id: join
+  inputs: [0]
+  outputs: [1]
+nodes:
+- id: load
+- id: dump
+queue:
+- - 0
+  - [goodnight moon]
+---
 nodes:
 - [load, goodnight moon]
 - [dump]
 joins:
-- [[0], [1], [join]]
+- [join, [0], [1]]
+queue:
+- 0
+---
+nodes:
+- id: load
+  args:
+    - goodnight moon
+- id: dump
+joins:
+  0:
+    id: join
+    inputs: [0]
+    outputs: [1]
+queue:
+- 0
+---
+nodes:
+- [load]
+- [dump]
+joins:
+- id: join
+  inputs: [0]
+  outputs: [1]
+queue:
+- - 0
+  - [goodnight moon]
+---
+nodes:
+  0:
+    id: load
+    args:
+      - ignored
+  1:
+    id: dump
+joins:
+- [join, [0], [1]]
+queue:
+- - 0
+  - [goodnight moon]
 }
-      io.flush
 
-      sh_test %Q{
-% tap run -s#{path}
+  def test_run_with_canonical_schema
+    CANONICAL_SCHEMA.split("---").each do |schema|
+      tempfile do |io, path|
+        io << schema
+        io.flush
+        
+        sh_test %Q{
+% tap run -s#{path} -d-
 goodnight moon
 }
+      end
     end
   end
+  
   #
   # middleware
   #

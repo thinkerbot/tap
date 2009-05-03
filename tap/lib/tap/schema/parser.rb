@@ -195,15 +195,15 @@ module Tap
         #
         #   parse_sequence("1:2:3", '')
         #   # => [
-        #   # [[1], [2], ['join']],
-        #   # [[2], [3], ['join']],
+        #   # ['join', [1], [2]],
+        #   # ['join', [2], [3]],
         #   # ]
         #
         #   parse_sequence(":1:2:", 'is')
         #   # => [
-        #   # [[:previous_index], [1], ['join', '-i', '-s']],
-        #   # [[1], [2], ['join', '-i', '-s']],
-        #   # [[2], [:current_index], ['join', '-i', '-s']],
+        #   # ['join', [:previous_index], [1], '-i', '-s'],
+        #   # ['join', [1], [2], '-i', '-s']],
+        #   # ['join', [2], [:current_index], '-i', '-s'],
         #   # ]
         #
         def parse_sequence(one, two)
@@ -211,10 +211,11 @@ module Tap
           indicies.unshift previous_index if one[0] == ?:
           indicies << current_index if one[-1] == ?:
           
-          metadata = parse_join_modifier(two)
+          argv = parse_join_modifier(two)
+          id = argv.shift
           sequences = []
           while indicies.length > 1
-            sequences << [[indicies.shift], [indicies[0]], metadata]
+            sequences << [id, [indicies.shift], [indicies[0]]] + argv
           end
           sequences
         end
@@ -224,14 +225,14 @@ module Tap
         # and $3 for a match to a JOIN regexp.  A join type of  'join' is
         # assumed unless otherwise specified.
         #
-        #   parse_join("1", "2,3", "")         # => [[1], [2,3], ['join']]
-        #   parse_join("", "", "is.type")      # => [[], [], ['type', '-i', '-s']]
-        #   parse_join("", "", "type -i -s")   # => [[], [], ['type', '-i', '-s']]
+        #   parse_join("1", "2,3", "")         # => ['join', [1], [2,3]]
+        #   parse_join("", "", "is.type")      # => ['type', [], [], '-i', '-s']
+        #   parse_join("", "", "type -i -s")   # => ['type', [], [], '-i', '-s']
         #
         def parse_join(one, two, three)
-          inputs = parse_indicies(one)
-          outputs = parse_indicies(two)
-          [inputs, outputs, parse_join_modifier(three)]
+          join = [parse_indicies(one), parse_indicies(two)]
+          argv = parse_join_modifier(three)
+          join.unshift(argv.shift) + argv
         end
         
         # Parses a join modifier string into an array of metadata.
@@ -275,7 +276,7 @@ module Tap
       # Same as parse, but removes parsed args from argv.
       def parse!(argv)
         @current_index = 0
-        @schema = Schema.new
+        @schema = Schema.new(:nodes => [])
         
         # prevent the addition of an empty node to schema
         return if argv.empty?
@@ -284,7 +285,7 @@ module Tap
         argv.unshift('--')
         
         escape = false
-        current_argv = nil
+        current_node = nil
         while !argv.empty?
           arg = argv.shift
 
@@ -294,7 +295,7 @@ module Tap
             if arg == ESCAPE_END
               escape = false
             else
-              (current_argv ||= argv(current_index)) << arg
+              (current_node ||= node(current_index)) << arg
             end
 
             next
@@ -313,9 +314,9 @@ module Tap
             # a breaking argument was reached:
             # unless the current argv is empty,
             # append and start a new definition
-            if current_argv && !current_argv.empty?
+            if current_node && !current_node.empty?
               self.current_index += 1
-              current_argv = nil
+              current_node = nil
             end
             
             # parse the break string for any
@@ -326,7 +327,7 @@ module Tap
             # add all other non-breaking args to
             # the current argv; this includes
             # both inputs and configurations
-            (current_argv ||= argv(current_index)) << arg
+            (current_node ||= node(current_index)) << arg
             
           end
         end
@@ -339,8 +340,8 @@ module Tap
       # The index of the node currently being parsed.
       attr_accessor :current_index # :nodoc:
       
-      def argv(index) # :nodoc:
-        schema[index].metadata ||= []
+      def node(index) # :nodoc:
+        schema.nodes[index] ||= []
       end
       
       # Returns current_index-1, or raises an error if current_index < 1.
@@ -353,14 +354,23 @@ module Tap
       def parse_break(arg) # :nodoc:
         case arg
         when ""
-          # standard break, do nothing
-        when SEQUENCE     
-          parse_sequence($1, $2).each {|join| schema.set_join(*join) }
-        when JOIN         
-          schema.set_join(*parse_join($1, $2, $3))
+          unless schema.queue.include?(current_index)
+            schema.queue << current_index
+          end
+        when SEQUENCE
+          parse_sequence($1, $2).each {|join| set_join(join) }
+        when JOIN
+          set_join(parse_join($1, $2, $3))
         else
           raise ArgumentError, "invalid break argument: #{arg}"
         end
+      end
+      
+      def set_join(join)
+        join[2].each do |output|
+          schema.queue.delete(output)
+        end
+        schema.joins << join
       end
     end
   end

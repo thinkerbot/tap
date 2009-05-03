@@ -117,7 +117,7 @@ module Tap
         when Array
           metadata.shift
         when Hash
-          metadata[:id]
+          metadata['id']
         else 
           raise "invalid metadata: #{metadata.inspect}"
         end

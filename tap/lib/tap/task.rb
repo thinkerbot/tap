@@ -224,6 +224,11 @@ module Tap
       end
       
       def instantiate(argh={}, app=Tap::App.instance)
+        argh = argh.inject({}) do |hash, (key, value)|
+          hash[key.to_sym || key] = value
+          hash
+        end
+        
         name = argh[:name]
         config = argh[:config]
         config_file = argh[:config_file]

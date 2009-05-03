@@ -20,24 +20,15 @@ class JoinTest < Test::Unit::TestCase
   #
   
   def test_parse_initializes_with_config_specified_by_modifier
-    join = Join.parse([])
+    inputs, outputs, join = Join.parse([])
+    assert_equal [], inputs
+    assert_equal [], outputs
     assert_equal false, join.iterate
     
-    join = Join.parse(["-i"])
+    inputs, outputs, join = Join.parse("1,2,3 4,5,6 -i")
+    assert_equal [1,2,3], inputs
+    assert_equal [4,5,6], outputs
     assert_equal true, join.iterate
-  end
-  
-  #
-  # parse_modifier test
-  #
-
-  def test_parse_modifiers_documentation
-    assert_equal({}, Join.parse_modifier(""))
-    assert_equal({:iterate => true, :enq => true}, Join.parse_modifier("iq"))
-  end
-
-  def test_parse_modifier_raises_error_for_unknown_options
-    assert_raises(RuntimeError) { Join.parse_modifier("p") }
   end
   
   #

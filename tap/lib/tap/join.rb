@@ -16,13 +16,30 @@ module Tap
         opts = ConfigParser.new
         opts.separator "configurations:"
         opts.add(configurations)
-        opts.parse!(argv, {}, false)
+        args = opts.parse!(argv, {}, false)
         
-        instantiate({:config => opts.nested_config}, app)
+        inputs = parse_array(args.shift)
+        outputs = parse_array(args.shift)
+        
+        instantiate({
+          :inputs => inputs,
+          :outputs => outputs,
+          :config => opts.nested_config,
+          :args => args
+        }, app)
       end
       
       def instantiate(argh, app=Tap::App.instance)
-        new(argh[:config] || {}, app)
+        argh = argh.inject({
+          :inputs => [],
+          :outputs => [],
+          :config => {}
+        }) do |hash, (key, value)|
+          hash[key.to_sym || key] = value
+          hash
+        end
+        
+        [argh[:inputs], argh[:outputs], new(argh[:config], app)]
       end
       
       def intern(config={}, app=Tap::App.instance, &block) # :yields: join, result
@@ -34,28 +51,15 @@ module Tap
         instance
       end
       
-      # Parses a modifier string into configurations.  Raises an error
-      # if the options string contains unknown options.
-      #
-      #   parse_modifier("")                   # => {}
-      #   parse_modifier("iq")                 # => {:iterate => true, :enq => true}
-      #
-      def parse_modifier(str)
-        return {} unless str
-        
-        options = {}
-        0.upto(str.length - 1) do |char_index|
-          char = str[char_index, 1]
-
-          entry = configurations.find do |key, config| 
-            config.attributes[:short] == char
-          end
-          key, config = entry
-
-          raise "unknown option in: #{str} (#{char})" unless key 
-          options[key] = true
+      protected
+      
+      def parse_array(obj) # :nodoc:
+        case obj
+        when nil then []
+        when Array then obj
+        else
+          obj.split(",").collect {|str| str.to_i }
         end
-        options
       end
     end
     include Configurable

@@ -218,26 +218,27 @@ module Tap
         metadata[:class]
       end unless block_given?
       
+      schema = schema.to_hash
+      
       # instantiate nodes
       nodes = {}
-      args = {}
-      schema.nodes.each_pair do |key, node|
-        instance, args = instantiate(node) do |metadata|
-          yield(:node, metadata)
-        end
-        
+      arguments = {}
+      schema[:nodes].each_pair do |key, node|
+        klass = yield(:node, node)
+        instance, args = instantiate(klass, node)
         nodes[key] = instance
-        args[key] = args
+        arguments[key] = args
       end
       
       # build the workflow
-      schema.joins.each do |join|
-        inputs  = schema.indicies(join.inputs).collect  {|index| nodes[index] }
-        outputs = schema.indicies(join.outputs).collect {|index| nodes[index] }
+      schema[:joins].each do |join|
+        klass = yield(:join, join)
+        inputs, outputs, instance = instantiate(klass, join)
         
-        instantiate(join) do |metadata|
-          yield(:join, metadata)
-        end.join(inputs, outputs)
+        inputs  = inputs.collect  {|key| nodes[key] }
+        outputs = outputs.collect {|key| nodes[key] }
+        
+        instance.join(inputs, outputs)
       end
       
       # utilize middleware (future)
@@ -250,12 +251,12 @@ module Tap
       # end
       
       # enque nodes
-      schema.queue.each do |entry|
-        if entry.kind_of?(Array)
-          queue.enq(*entry)
-        else
-          queue.enq(nodes[entry], args[entry])
+      schema[:queue].each do |(node, inputs)|
+        unless inputs
+          inputs = arguments[node]
         end
+        
+        queue.enq(nodes[node], inputs) if inputs
       end
       
       nodes
@@ -455,13 +456,16 @@ module Tap
     protected
     
     # helper to instantiate a class from metadata
-    def instantiate(obj) # :nodoc:
-      metadata = obj.metadata.dup
-      klass = yield(metadata)
-      
+    def instantiate(klass, metadata) # :nodoc:
       case metadata
       when Array then klass.parse!(metadata, self)
       when Hash  then klass.instantiate(metadata, self)
+      end
+    end
+    
+    def sorted_each(hash) # :nodoc:
+      hash.keys.sort.each do |key|
+        yield(hash[key])
       end
     end
     
