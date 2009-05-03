@@ -22,7 +22,15 @@ class Tap::Controller::SessionTest < Test::Unit::TestCase
     @controller = SessionController.new
     @controller.server = server
   end
-
+  
+  #
+  # actions test
+  #
+  
+  def test_session_methods_are_not_added_as_actions
+    assert_equal [:action], SessionController.actions
+  end
+  
   #
   # call test
   #

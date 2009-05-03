@@ -6,23 +6,23 @@
 require 'tap'
 require 'tap/constants'
 require 'tap/app/server'
+require 'tap/exe/opts'
 
 env = Tap::Env.instance
-parser = ConfigParser.new do |opts|
-  
-  opts.separator ""
-  opts.separator "options:"
-  opts.add(Tap::App::Server.configurations)
+parser = ConfigParser.new
+parser.separator ""
+parser.separator "server:"
+parser.add(Tap::App::Server.configurations)
 
-  # add option to print help
-  opts.on("-h", "--help", "Show this message") do
-    puts Lazydoc.usage(__FILE__)
-    puts opts
-    exit
-  end
+# set options
+Tap::Exe::Opts.parse!(ARGV) do |opts|
+  puts Lazydoc.usage(__FILE__)
+  puts parser
+  puts opts
+  exit
 end
-parser.parse!(ARGV)
 
 # launch server
+parser.parse!(ARGV)
 server = Tap::App::Server.new(parser.config)
 server.run!

@@ -237,7 +237,7 @@ module Tap
       response.headers.merge!(headers)
       response.body = body
 
-      response['Location'] = uri
+      response['Location'] = [uri]
       response.finish
     end
 
