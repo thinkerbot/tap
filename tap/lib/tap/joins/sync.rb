@@ -88,7 +88,7 @@ module Tap
       
       # Raised by a Sync join to indicate when an input returns twice before
       # the group is ready to execute.
-      class SynchronizeError < RuntimeError
+      class SynchronizeError < RuntimeError # :nodoc:
       end
     end
   end

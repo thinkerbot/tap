@@ -1,9 +1,9 @@
-== 0.17.0
+== 0.17.0 / 2009-05-03
 
 Significant reorganization and update to Tap internals.
 The workflow syntax for joins has changed in incompatible
 ways, and several key methods have been renamed (notably
-Root#filepath).  Obviously not 100% backwards compatible but
+Root#filepath).  Obviously not backwards compatible but
 most tasks will work without alteration.
 
 Upgrade Notes:
@@ -27,10 +27,11 @@ Changes:
 * added file flag to load
 * added unloading to Constant
 * switched const_name, name on Constant
-* added constant_glob to Root
 * refactored on_complete_block to join
 * reworked App to use aggregators that respond_to? call
 * reworked Join so that it may be dumped as YAML
+* reworked Schema syntax
+* removed rounds from Schema syntax and Queue
 * many other small changes
 
 == 0.12.4 / 2009-03-23

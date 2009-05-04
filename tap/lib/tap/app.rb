@@ -408,11 +408,11 @@ module Tap
     
     # TerminateErrors are raised to kill executing tasks when terminate is 
     # called on an running App.  They are handled by the run rescue code.
-    class TerminateError < RuntimeError 
+    class TerminateError < RuntimeError # :nodoc:
     end
     
     # Raised when Dependencies#resolve detects a circular dependency.
-    class DependencyError < StandardError
+    class DependencyError < StandardError # :nodoc:
       def initialize(trace)
         super "circular dependency: [#{trace.join(', ')}]"
       end

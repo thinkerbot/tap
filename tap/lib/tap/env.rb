@@ -573,7 +573,7 @@ module Tap
     end
     
     # Raised when there is a configuration error from Env.load_config.
-    class ConfigError < StandardError
+    class ConfigError < StandardError # :nodoc:
       attr_reader :original_error, :env_path
       
       def initialize(original_error, env_path)

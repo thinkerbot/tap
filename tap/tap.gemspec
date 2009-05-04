@@ -44,6 +44,7 @@ Gem::Specification.new do |s|
     lib/tap/env/minimap.rb
     lib/tap/env/string_ext.rb
     lib/tap/exe.rb
+    lib/tap/exe/opts.rb
     lib/tap/join.rb
     lib/tap/joins.rb
     lib/tap/joins/switch.rb
@@ -53,7 +54,6 @@ Gem::Specification.new do |s|
     lib/tap/root/utils.rb
     lib/tap/root/versions.rb
     lib/tap/schema.rb
-    lib/tap/schema/node.rb
     lib/tap/schema/parser.rb
     lib/tap/support/intern.rb
     lib/tap/support/templater.rb

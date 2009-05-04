@@ -37,7 +37,7 @@ module Tap
       end
       
       # Raised by a Switch join to indicate when a switch index is out of bounds.
-      class SwitchError < RuntimeError
+      class SwitchError < RuntimeError # :nodoc:
       end
     end
   end

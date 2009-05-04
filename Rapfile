@@ -17,3 +17,27 @@ Rap.task :reinstall, :name do |task, args|
   
   Install.instance.execute(args.name)
 end
+
+# ::desc generate rdoc
+Rap.task :rdoc, :redoc => false do |task, args|
+  FileUtils.rm_r("rdoc") if File.directory?("rdoc")
+  
+  %w{tap rap tap-gen tap-suite tap-tasks tap-test}.each do |dir|
+    Dir.chdir(dir) do
+      if task.redoc && File.directory?("rdoc")
+        FileUtils.rm_r("rdoc")
+      end
+      
+      Rap.sh('rake rdoc')
+    end
+  
+    dest = if dir == "tap"
+      "rdoc"
+    else
+      "rdoc/#{dir}"
+    end
+    
+    FileUtils.mkdir_p(dest) 
+    FileUtils.cp_r("#{dir}/rdoc/.", dest)
+  end
+end
