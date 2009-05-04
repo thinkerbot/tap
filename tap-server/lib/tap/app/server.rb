@@ -20,10 +20,35 @@ module Tap
       
       SCHEMA = %Q{
 <form action="schema" method="post">
-<textarea rows="10" cols="40" name="schema"></textarea><br/>
+<textarea rows="10" cols="40" name="schema">
+nodes:
+  load:
+    class: Tap::Load
+    require_path: tap/load
+  dump:
+    class: Tap::Dump
+    require_path: tap/dump
+joins:
+- class: Tap::Join
+  require_path: tap/join
+  inputs: [load]
+  outputs: [dump]
+</textarea><br/>
 <input type="checkbox" name="parse">parse</input>
 <input type="checkbox" name="run">run</input>
 <input type="submit" value="build" />
+</form>}
+      
+      ENQUE = %Q{
+<form action="enque" method="post">
+<textarea rows="10" cols="40" name="queue">
+- - load
+  - - goodnight moon
+- - load
+  - - hello world
+</textarea><br/>
+<input type="hidden" name="load" value="on" />
+<input type="submit" value="enque" />
 </form>}
       
       # Returns the state of app.
@@ -49,7 +74,11 @@ module Tap
       end
       
       def reset
-        app.reset if request.post?
+        if request.post?
+          app.reset
+          nodes.clear
+        end
+        
         redirect :info
       end
       
@@ -74,23 +103,42 @@ module Tap
           Tap::Schema.load(request[:schema])
         end
         
-        nodes = schema.build(app) do |type, metadata|
-          const = case metadata
+        @nodes = schema.build(app) do |type, metadata|
+          case metadata
           when Array
             Constant.new(metadata.shift.camelize)
           when Hash
             Constant.new(metadata[:class], metadata[:require_path])
-          else raise "invalid metadata: #{metadata.inspect}"
-          end
-          
-          const.constantize
+          else
+            raise "invalid metadata: #{metadata.inspect}"
+          end.constantize
         end
         
         if request[:run] == "on"
           run
         else
-          redirect(:info)
+          redirect(:enque)
         end
+      end
+      
+      def enque
+        return ENQUE unless request.post?
+        
+        queue = if request[:load]
+          YAML.load(request[:queue] || "{}")
+        else
+          request[:queue] || {}
+        end
+        
+        queue.each do |(key, inputs)|
+          unless node = nodes[key]
+            raise "no node for: #{key}"
+          end
+          
+          app.enq(node, *inputs)
+        end
+        
+        redirect :info
       end
       
       # Terminates app and stops self (on post).
