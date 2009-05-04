@@ -1,11 +1,13 @@
 require 'tap'                # excessive
 require 'tap/controller'
 require 'tap/server/base'
+require 'thread'
 
 module Tap
   class App
     class Server < Tap::Controller
       include Tap::Server::Base
+      include MonitorMixin
       
       Constant = Tap::Env::Constant
       
@@ -23,19 +25,26 @@ module Tap
 <input type="checkbox" name="run">run</input>
 <input type="submit" value="build" />
 </form>}
-            
+      
+      # Returns the state of app.
       def state
         app.state.to_s
       end
       
+      # Returns the controls and current application info.
       def info
         "#{CONTROLS}<br/>#{app.info}"
       end
       
+      # Runs app on a separate thread (on post).
       def run
-        if request.post?
-          Thread.new { app.run }
-        end
+        synchronize do
+          @thread ||= Thread.new do 
+            app.run
+            @thread = nil
+          end
+        end if request.post?
+        
         redirect :info
       end
       
@@ -44,11 +53,13 @@ module Tap
         redirect :info
       end
       
+      # Stops app (on post).
       def stop
         app.stop if request.post?
         redirect :info
       end
       
+      # Teminates app (on post).
       def terminate
         app.terminate if request.post?
         redirect :info
@@ -82,17 +93,32 @@ module Tap
         end
       end
       
+      # Terminates app and stops self (on post).
+      def shutdown
+        if request.post?
+          synchronize do
+            app.terminate
+            thread.join if thread
+          end
+        
+          stop!
+        end
+        
+        ""
+      end
+      
       # ensure server methods are not added as actions
       set :define_action, false
       set :default_action, :info
       
       attr_reader :app
       attr_reader :nodes
+      attr_reader :thread
       
       def initialize(config={}, app=Tap::App.new)
         @app = app
         @nodes = {}
-        
+        @thread = nil
         initialize_config(config)
         super()
       end
