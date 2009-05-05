@@ -10,11 +10,15 @@ module Tap
   end
   
   class App
+    # Generates a task initialized to self.
     def task(config={}, name=nil, klass=Task, &block)
       klass.intern(config, name, self, &block)
     end
   end
   
+  # Tasks are nodes that map to the command line.  Tasks provide support for
+  # configuration, documentation, and provide helpers to build workflows.
+  #
   # === Task Definition
   #
   # Tasks specify executable code by overridding the process method in
@@ -38,17 +42,17 @@ module Tap
   #   MixedInputs.new.execute(:a, :b)              # => [:a, :b, []]
   #   MixedInputs.new.execute(:a, :b, 1, 2, 3)     # => [:a, :b, [1,2,3]]
   #
-  # Tasks may be create with new, or with intern.  Intern overrides process
-  # using a block that receives the task instance and the inputs.
+  # Tasks may be created with new, or with intern.  Intern overrides process
+  # using a block that receives the task and the inputs.
   #
   #   no_inputs = Task.intern {|task| [] }
   #   one_input = Task.intern {|task, input| [input] }
   #   mixed_inputs = Task.intern {|task, a, b, *args| [a, b, args] }
   #
-  #   no_inputs.execute                             # => []
-  #   one_input.execute(:a)                         # => [:a]
-  #   mixed_inputs.execute(:a, :b)                  # => [:a, :b, []]
-  #   mixed_inputs.execute(:a, :b, 1, 2, 3)         # => [:a, :b, [1,2,3]]
+  #   no_inputs.execute                            # => []
+  #   one_input.execute(:a)                        # => [:a]
+  #   mixed_inputs.execute(:a, :b)                 # => [:a, :b, []]
+  #   mixed_inputs.execute(:a, :b, 1, 2, 3)        # => [:a, :b, [1,2,3]]
   #
   # === Configuration 
   #
@@ -87,16 +91,17 @@ module Tap
   #   end 
   #
   #   t = ValidatingTask.new
-  #   t.string = 1           # !> ValidationError
-  #   t.integer = 1.1        # !> ValidationError
+  #   t.string = 1                 # !> ValidationError
+  #   t.integer = 1.1              # !> ValidationError
   #
   #   t.integer = "1"
-  #   t.integer == 1         # => true 
+  #   t.integer == 1               # => true 
   #
   # See the {Configurable}[http://tap.rubyforge.org/configurable/]
   # documentation for more information.
   #
   # === Subclassing
+  #
   # Tasks may be subclassed normally, but be sure to call super as necessary,
   # in particular when overriding the following methods:
   #
@@ -127,6 +132,7 @@ module Tap
       # Sets the class default_name
       attr_writer :default_name
       
+      # Returns or initializes the instance of self cached with app.
       def instance(app=Tap::App.instance)
         app.cache[self] ||= new({}, nil, app)
       end
@@ -221,6 +227,8 @@ module Tap
         instantiate(argh, app)
       end
       
+      # Instantiates an instance of self and returns an instance of self and
+      # an array of arguments (implicitly to be enqued to the instance).
       def instantiate(argh={}, app=Tap::App.instance)
         name = argh[:name]
         config = argh[:config]
@@ -276,7 +284,7 @@ module Tap
       # Sets a class-level dependency; when task class B depends_on another
       # task class A, instances of B are initialized to depend on a shared
       # instance of A.  The shared instance is specific to an app and can
-      # be accessed through app.cache[dependency_class].
+      # be accessed through instance(app).
       #
       # If a non-nil name is specified, depends_on will create a reader of 
       # the dependency instance.
@@ -290,8 +298,8 @@ module Tap
       #
       #   app = Tap::App.new
       #   b = B.new({}, :name, app)
-      #   b.dependencies           # => [app.cache[A]]
-      #   b.a                      # => app.cache[A]
+      #   b.dependencies           # => [A.instance(app)]
+      #   b.a                      # => A.instance(app)
       #
       # Returns self.
       def depends_on(name, dependency_class)
@@ -311,13 +319,13 @@ module Tap
         self
       end
       
-      # Defines a task subclass with the specified configurations and process block.
-      # During initialization the subclass is instantiated and made accessible 
-      # through the name method.  
+      # Defines a task subclass with the specified configurations and process
+      # block. During initialization the subclass is instantiated and made
+      # accessible through the name method.  
       #
-      # Defined tasks may be configured during through config, or directly through
-      # the instance; in effect you get tasks with nested configs which can greatly
-      # facilitate workflows.
+      # Defined tasks may be configured during through config, or directly
+      # through the instance; in effect you get tasks with nested configs which
+      # can greatly facilitate workflows.
       #
       #   class AddALetter < Tap::Task
       #     config :letter, 'a'
@@ -498,7 +506,7 @@ module Tap
     
     # Sets a sequence workflow pattern for the tasks; each task
     # enques the next task with it's results, starting with self.
-    def sequence(*tasks) # :yields: _result
+    def sequence(*tasks)
       options = tasks[-1].kind_of?(Hash) ? tasks.pop : {}
       
       current_task = self
@@ -510,7 +518,7 @@ module Tap
 
     # Sets a fork workflow pattern for self; each target will enque the
     # results of self.
-    def fork(*targets) # :yields: _result
+    def fork(*targets)
       options = targets[-1].kind_of?(Hash) ? targets.pop : {}
       Join.new(options, app).join([self], targets)
     end
@@ -518,7 +526,7 @@ module Tap
     # Sets a simple merge workflow pattern for the source tasks. Each 
     # source enques self with it's result; no synchronization occurs, 
     # nor are results grouped before being enqued.
-    def merge(*sources) # :yields: _result
+    def merge(*sources)
       options = sources[-1].kind_of?(Hash) ? sources.pop : {}
       Join.new(options, app).join(sources, [self])
     end
@@ -527,17 +535,17 @@ module Tap
     # from each source are collected and enqued as a single group to
     # self.  The collective results are not enqued until all sources
     # have completed.  See Joins::Sync.
-    def sync_merge(*sources) # :yields: _result
+    def sync_merge(*sources)
       options = sources[-1].kind_of?(Hash) ? sources.pop : {}
       Joins::Sync.new(options, app).join(sources, [self])
     end
 
     # Sets a switch workflow pattern for self.  On complete, switch yields
-    # the audited result to the block and the block should return the index
-    # of the target to enque with the results. No target will be enqued if
-    # the index is false or nil.  An error is raised if no target can be
-    # found for the specified index. See Joins::Switch.
-    def switch(*targets, &block) # :yields: _result
+    # the result to the block and the block should return the index of the
+    # target to enque with the results. No target will be enqued if the
+    # index is false or nil.  An error is raised if no target can be found
+    # for the specified index. See Joins::Switch.
+    def switch(*targets, &block) # :yields: result
       options = targets[-1].kind_of?(Hash) ? targets.pop : {}
       Joins::Switch.new(options, app).join([self], targets, &block)
     end

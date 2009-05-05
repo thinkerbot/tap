@@ -3,7 +3,6 @@ require 'tap/support/intern'
 
 module Tap
   class App
-    
     # Generates a join between the inputs and outputs.
     def join(inputs, outputs, config={}, klass=Join, &block)
       klass.new(config, self).join(inputs, outputs, &block)
