@@ -33,6 +33,22 @@ module Rap
         args
       end
       
+      # Instantiates an instance of self and returns an instance of self and
+      # an array of arguments (implicitly to be enqued to the instance).
+      def instantiate(argh={}, app=Tap::App.instance)
+        config = argh[:config]
+        config_file = argh[:config_file]
+        
+        instance = self.instance(app)
+        instance.reconfigure(load_config(config_file)) if config_file
+        instance.reconfigure(config) if config
+        
+        instance.name = argh[:name]
+        instance.args = argh[:args]
+        
+        [instance, instance.args]
+      end
+      
       # Looks up or creates the DeclarationTask subclass specified by name
       # (nested within declaration_base), and adds the configs and dependencies.
       # Declare also registers the subclass in the declaration_env tasks
@@ -83,20 +99,31 @@ module Rap
     # The result of self, set by call.
     attr_reader :result
     
+    # The arguments assigned to self during call.
+    attr_accessor :args
+    
     def initialize(config={}, name=nil, app=Tap::App.instance)
       super
       @resolved = false
       @result = nil
+      @args = nil
     end
     
-    # Conditional call to the super call; only calls once.  Note that call
-    # does not take any inputs, and neither should the super call.
-    #
-    # Returns result.
+    # Conditional call to the super call; only calls once.  Returns result.
     def call(*args)
+      
+      self.args ||= args
+      unless self.args == args
+        if @resolved
+          warn "warn: ignorning dependency task inputs #{args.inspect} (#{self})"
+        else
+          warn "warn: invoking dependency task with preset args #{self.args.inspect} and not inputs #{args.inspect} (#{self})"
+        end
+      end
+      
       unless @resolved
         @resolved = true
-        @result = super
+        @result = super(*self.args)
       end
       result
     end
