@@ -1,12 +1,13 @@
 module Tap
   module Joins
     
-    # ::join synchronized join
-    # Sync works the same as Join, but passes the collected results of the inputs
-    # to the outputs. The results will not be passed until results from all of
-    # the inputs are available; results are passed in one group.  Similarly, a
-    # collision results if a single input completes twice before the group
-    # completes as a whole.
+    # :startdoc::join a synchronized multi-way join
+    #
+    # Sync works the same as Join, but passes the collected results of the
+    # inputs (ie an array) to the outputs. The results will not be passed
+    # until all of inputs have returned.  A collision results if a single
+    # input completes twice before the group completes as a whole.
+    #
     class Sync < Join
       
       # NIL_VALUE is used to mark empty slots (nil itself cannot be used
@@ -67,6 +68,9 @@ module Tap
         end
       end
       
+      # Callbacks are set as the join for each input to a Sync join, and
+      # allow the result of an input to be stored in the correct slot of
+      # the results array.
       class Callback
         
         # A backreference to the parent Sync join.
@@ -80,7 +84,7 @@ module Tap
           @index = index
         end
         
-        # Calls back to join to store the result at index.
+        # Calls back to a Sync join to store the result at index.
         def call(result)
           join.call(result, index)
         end
@@ -88,7 +92,7 @@ module Tap
       
       # Raised by a Sync join to indicate when an input returns twice before
       # the group is ready to execute.
-      class SynchronizeError < RuntimeError # :nodoc:
+      class SynchronizeError < RuntimeError
       end
     end
   end

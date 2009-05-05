@@ -1,3 +1,6 @@
+require 'tap/app'
+require 'tap/support/intern'
+
 module Tap
   class App
     
