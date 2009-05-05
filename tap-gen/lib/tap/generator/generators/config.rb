@@ -14,16 +14,13 @@ module Tap::Generator::Generators
   #
   class Config < Tap::Generator::Base
     
-    # Dumps a nested configuration.
-    DUMP_DELEGATES = lambda do |leader, delegate, block|
+    dump_delegates = lambda do |leader, delegate, block|
       nested_delegates = delegate.default(false).delegates
       indented_dump = Configurable::Utils.dump(nested_delegates, &block).gsub(/^/, "  ")
       "#{leader}: \n#{indented_dump}"
     end
     
-    # Dumps configurations as YAML with documentation,
-    # used when the doc config is true.
-    DOC_FORMAT = lambda do |key, delegate|
+    doc_format = lambda do |key, delegate|
       # get the description
       desc = delegate.attributes[:desc]
       doc = desc.to_s
@@ -46,9 +43,7 @@ module Tap::Generator::Generators
       end
     end
     
-    # Dumps configurations as YAML without documentation, 
-    # used when the doc config is false.
-    NODOC_FORMAT = lambda do |key, delegate|
+    nodoc_format = lambda do |key, delegate|
       if delegate.is_nest?
         DUMP_DELEGATES[key, delegate, NODOC_FORMAT]
       else
@@ -60,6 +55,17 @@ module Tap::Generator::Generators
         "#{leader}#{config.strip}\n"
       end
     end
+    
+    # Dumps a nested configuration.
+    DUMP_DELEGATES = dump_delegates
+    
+    # Dumps configurations as YAML with documentation,
+    # used when the doc config is true.
+    DOC_FORMAT = doc_format
+    
+    # Dumps configurations as YAML without documentation, 
+    # used when the doc config is false.
+    NODOC_FORMAT = nodoc_format
     
     config :doc, true, &c.switch        # include documentation in the config
     config :nest, false, &c.switch      # generate nested config files
