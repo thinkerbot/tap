@@ -1,9 +1,17 @@
 module Tap::Generator::Generators
   
-  # :startdoc::generator a config file for a task
+  # :startdoc::generator a config file generator
   # 
   # Generates a new config file for a task.  The configurations, defaults, 
-  # and documentation is determined from the task source file.
+  # and documentation is determined from the source file.
+  #
+  # Configurations for other types of configurable resources may also be
+  # generated.  Specify the constant attribute identifying the resource
+  # using the 'resource' flag.  This generates a config file for the Root
+  # generator:
+  #
+  #   % tap generate config root --resource generator
+  #
   class Config < Tap::Generator::Base
     
     # Dumps a nested configuration.
@@ -56,16 +64,17 @@ module Tap::Generator::Generators
     config :doc, true, &c.switch        # include documentation in the config
     config :nest, false, &c.switch      # generate nested config files
     config :blanks, true, &c.switch     # allow generation of empty config files
+    config :resource, 'task'            # specify the resource type
     
-    # Lookup the named task class.  Lookup happens through the active Env 
+    # Lookup the named resource class.  Lookup happens through the active Env 
     # instance, specifically using:
     #
-    #   Env.instance.tasks.search(name)
+    #   Env.instance.constant_manifest(resource)[name]
     #
-    # Raises an error if the name cannot be resolved to a task.
+    # Raises an error if the name cannot be resolved to a resource.
     def lookup(name)
-      const = Tap::Env.instance.tasks.search(name) or raise "unknown task: #{name}"
-      const.constantize
+      env = Tap::Env.instance
+      env.constant_manifest(resource)[name] or raise "unknown #{resource}: #{name}"
     end
     
     def manifest(m, name, config_name=nil)
@@ -76,7 +85,12 @@ module Tap::Generator::Generators
       config_file += ".yml" if File.extname(config_file).empty?
       
       # generate the dumps
-      dumps = Configurable::Utils.dump_file(tasc.configurations, config_file, nest, true, &format_block)
+      dumps = Configurable::Utils.dump_file(
+        tasc.configurations,
+        config_file, 
+        nest, 
+        true, 
+        &format_block)
       
       # now put the dumps to the manifest
       m.directory(path('config'))
