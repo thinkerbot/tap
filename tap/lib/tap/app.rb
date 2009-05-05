@@ -22,10 +22,10 @@ module Tap
   #
   #   app = Tap::App.new
   #   n = app.node {|*inputs| inputs }
-  #   n.enq('a', 'b', 'c')
-  #   n.enq(1)
-  #   n.enq(2)
-  #   n.enq(3)
+  #   app.enq(n, 'a', 'b', 'c')
+  #   app.enq(n, 1)
+  #   app.enq(n, 2)
+  #   app.enq(n, 3)
   #
   #   results = []
   #   app.on_complete {|result| results << result }
@@ -42,7 +42,7 @@ module Tap
   #
   #   app.join([n0], [n1])
   #   app.join([n1], [n2])
-  #   n0.enq
+  #   app.enq(n0)
   #
   #   results.clear
   #   app.run
@@ -77,9 +77,9 @@ module Tap
   #
   #   auditor = app.use AuditMiddleware
   #
-  #   n0.enq
-  #   n2.enq("x")
-  #   n1.enq("y")
+  #   app.enq(n0)
+  #   app.enq(n2, "x")
+  #   app.enq(n1, "y")
   #
   #   results.clear
   #   app.run
@@ -103,7 +103,7 @@ module Tap
   #   n1 = app.node { runlist << 1 }
   #
   #   n0.depends_on(n1)
-  #   n0.enq
+  #   app.enq(n0)
   #
   #   app.run
   #   runlist                        # => [1, 0]
@@ -429,7 +429,7 @@ module Tap
     class TerminateError < RuntimeError
     end
     
-    # Raised when Dependencies#resolve detects a circular dependency.
+    # Raised when Tap::App#resolve detects a circular dependency.
     class DependencyError < StandardError
       def initialize(trace)
         super "circular dependency: [#{trace.join(', ')}]"

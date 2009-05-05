@@ -30,6 +30,83 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
+  # documentation test
+  #
+  
+  class AuditMiddleware
+    attr_reader :stack, :audit
+
+    def initialize(stack)
+      @stack = stack
+      @audit = []
+    end
+
+    def call(node, inputs=[])
+      audit << node
+      stack.call(node, inputs)
+    end
+  end
+  
+  def test_app_documentation
+    app = Tap::App.new
+    n = app.node {|*inputs| inputs }
+    app.enq(n, 'a', 'b', 'c')
+    app.enq(n, 1)
+    app.enq(n, 2)
+    app.enq(n, 3)
+  
+    results = []
+    app.on_complete {|result| results << result }
+  
+    app.run
+    assert_equal [['a', 'b', 'c'], [1], [2], [3]], results
+  
+    ###
+    
+    n0 = app.node { "a" }
+    n1 = app.node {|input| "#{input}.b" }
+    n2 = app.node {|input| "#{input}.c"}
+  
+    app.join([n0], [n1])
+    app.join([n1], [n2])
+    app.enq(n0)
+  
+    results.clear
+    app.run
+    assert_equal ["a.b.c"], results
+  
+    ###
+  
+    auditor = app.use AuditMiddleware
+  
+    app.enq(n0)
+    app.enq(n2, "x")
+    app.enq(n1, "y")
+  
+    results.clear
+    app.run
+    assert_equal ["a.b.c", "x.c", "y.b.c"], results
+                 
+    expected = [
+    n0, n1, n2, 
+    n2,
+    n1, n2
+    ]
+    assert_equal expected, auditor.audit
+    
+    ###
+    runlist = []
+    n0 = app.node { runlist << 0 }
+    n1 = app.node { runlist << 1 }
+  
+    n0.depends_on(n1)
+    app.enq(n0)
+  
+    app.run
+    assert_equal [1, 0], runlist
+  end
+  
+  #
   #  State test
   #
   

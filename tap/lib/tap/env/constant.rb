@@ -93,7 +93,7 @@ module Tap
       # Matches a valid constant
       CONST_REGEXP = /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/
     
-      # The nested constant name
+      # The full constant name
       attr_reader :const_name
     
       # The path to load to initialize a missing constant
@@ -218,7 +218,7 @@ module Tap
         "#<#{self.class}:#{object_id} #{const_name}#{@require_path == nil ? "" : " (#{@require_path})"}>"
       end
       
-      # Returns the minikey for self, ie path.
+      # Returns the minikey for self, ie path.  (see Tap::Env::Minimap)
       def minikey
         path
       end
