@@ -153,7 +153,7 @@ module Tap
       end
       
       # Instantiates a new task with the input arguments and overrides
-      # process with the block.  The block will be called with the 
+      # process with the block.  The block will be called with the task
       # instance, plus any inputs.
       #
       # Simply instantiates a new task if no block is given.
@@ -169,12 +169,12 @@ module Tap
       # Parses the argv into an instance of self and an array of arguments
       # (implicitly to be enqued to the instance).  By default parse 
       # parses an argh then calls instantiate, but there is no requirement
-      # that this occurs.
+      # that this occurst in subclasses.
       def parse(argv=ARGV, app=Tap::App.instance)
         parse!(argv.dup, app)
       end
       
-      # Same as parse, but removes switches destructively.
+      # Same as parse, but removes arguments destructively.
       def parse!(argv=ARGV, app=Tap::App.instance)
         opts = ConfigParser.new
         

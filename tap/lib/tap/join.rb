@@ -1,17 +1,30 @@
 module Tap
   class App
+    
+    # Generates a join between the inputs and outputs.
     def join(inputs, outputs, config={}, klass=Join, &block)
       klass.new(config, self).join(inputs, outputs, &block)
     end
   end
   
-  # ::join simple join
+  # :startdoc::join a simple, unsyncrhonized, multi-way join
+  #
+  # Join defines an unsynchronized, multi-way join where n inputs send their
+  # results to m outputs.  Flags can augment how the results are passed, in
+  # particular for array results.
+  #
   class Join
     class << self
+      
+      # Parses the argv into an array like [inputs, outputs, instance] where
+      # inputs and outputs implicitly define the inputs and output for the
+      # instance.  By default parse parses an argh then calls instantiate,
+      # but there is no requirement that this occurs in subclasses.
       def parse(argv=ARGV, app=Tap::App.instance)
         parse!(argv.dup, app)
       end
       
+      # Same as parse, but removes arguments destructively.
       def parse!(argv=ARGV, app=Tap::App.instance)
         opts = ConfigParser.new
         opts.separator "configurations:"
@@ -29,6 +42,8 @@ module Tap
         }, app)
       end
       
+      # Instantiates an instance of self and return an array like [inputs,
+      # outputs, instance].
       def instantiate(argh, app=Tap::App.instance)
         argh = {
           :inputs => [],
@@ -39,6 +54,11 @@ module Tap
         [argh[:inputs], argh[:outputs], new(argh[:config], app)]
       end
       
+      # Instantiates a new join with the input arguments and overrides
+      # call with the block.  The block will be called with the join
+      # instance and result.
+      #
+      # Simply instantiates a new join if no block is given.
       def intern(config={}, app=Tap::App.instance, &block) # :yields: join, result
         instance = new(config, app)
         if block_given?

@@ -40,8 +40,8 @@ module Tap
   #   n1 = app.node {|input| "#{input}.b" }
   #   n2 = app.node {|input| "#{input}.c"}
   #
-  #   app.join([n0], [n1])
-  #   app.join([n1], [n2])
+  #   n0.on_complete {|result| app.execute(n1, result) }
+  #   n1.on_complete {|result| app.execute(n2, result) }
   #   app.enq(n0)
   #
   #   results.clear
