@@ -14,32 +14,36 @@ module Tap
     #
     # Tap generators define a manifest method that defines what files and
     # directories are created by the generator.  Then, at execution time,
-    # a mixin with the appropriate funtion (ie Generate or Destory) is 
+    # a mixin with the appropriate funtion (ie Generate or Destroy) is 
     # overlaid to figure out how to roll those actions forward or backwards.
     #
-    # Unlike typical tasks, generators must be named like '<Name>Generator' and
-    # are identified using the ::generator flag rather than ::manifest.  These
-    # requirements make generators available to the generate/destroy commands
-    # and not run.
+    # Generators are identified using the ::generator flag rather than ::task,
+    # so that generators are available to the generate/destroy commands and
+    # not run.
     #
     # Typically, generators live in a directory structure like this:
     #
-    #   sample
-    #   |- sample_generator.rb
+    #   root
+    #   |- lib
+    #   |   `- sample.rb
+    #   |
     #   `- templates
-    #       `- template_file.erb
+    #       `- sample
+    #           `- template_file.erb
     #
-    # And take the form:
+    # Tap generators keep templates out of lib and under templates, in a
+    # directory is named after the generator class.  Generators themselves
+    # take the form:
     #
-    #   [sample/sample_generator.rb]
+    #   [sample.rb]
     #   require 'tap/generator/base'
     #
-    #   # SampleGenerator::generator generates a directory, and two files
+    #   # ::generator generates a directory, and two files
     #   #
     #   # An extended description of the
     #   # generator goes here...
     #   #
-    #   class SampleGenerator < Tap::Generator::Base
+    #   class Sample < Tap::Generator::Base
     #
     #     config :key, 'value'       # a sample config
     #
@@ -52,17 +56,17 @@ module Tap
     #         file << "some content"
     #       end
     #
-    #       # template a file using config
+    #       # template a file
     #       m.template('path/to/result.txt', 'template_file.erb', config.to_hash)
     #     end
     #   end
     #
-    # As with any task, generators can have configurations and take arguments
-    # specified by manifest (minus the 'm' argument which is standard).  
-    # Creating directories and files is straightforward, as above.  Template
-    # generates a target file using the source file in the templates' directory;
-    # any attributes specified by the last argument will be available in the erb
-    # template.
+    # The arguments that a generator receives are specified by manifest (minus
+    # the 'm' argument which is standard) rather than process. Creating
+    # directories and files is straightforward, as above.  Template renders the
+    # erb source file using attributes specified in the last argument; in the
+    # example template uses the generator configurations.
+    #
     # :startdoc:::+
     class Base < Tap::Task
       lazy_attr :manifest, 'generator'
@@ -75,7 +79,7 @@ module Tap
       config :skip, false, &c.flag            # Skip files that already exist.
       
       # The generator-specific templates directory.  By default:
-      # 'path/to/name/templates' for 'path/to/name/name_generator.rb'
+      # 'templates/path/to/name' for 'lib/path/to/name.rb'
       attr_accessor :template_dir
       
       # The IO used to pull prompt inputs (default: $stdin)
