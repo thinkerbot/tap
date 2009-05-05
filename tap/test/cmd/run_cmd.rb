@@ -2,7 +2,7 @@ require File.join(File.dirname(__FILE__), '../doc_test_helper')
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap'
 
-class RunDoc < Test::Unit::TestCase 
+class RunCmd < Test::Unit::TestCase 
   include Doctest
   include MethodRoot
   
@@ -28,8 +28,8 @@ class RunDoc < Test::Unit::TestCase
   
   def test_run_prints_task_help
     sh_match "% tap run -- dump --help", 
-    /Tap::Dump -- the default dump task/,
-    /usage: tap run -- tap\/dump INPUT/,
+    /Tap::Tasks::Dump -- the default dump task/,
+    /usage: tap run -- tap\/tasks\/dump INPUT/,
     /--output OUTPUT              The dump target file/
   end
   
@@ -305,8 +305,8 @@ goodnight moon
     
     sh_test %Q{
 % tap run -m middleware -- load 'goodnight moon' --: dump
-Tap::Load
-Tap::Dump
+Tap::Tasks::Load
+Tap::Tasks::Dump
 goodnight moon
 }
   end

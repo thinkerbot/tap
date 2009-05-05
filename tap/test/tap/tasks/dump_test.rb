@@ -1,9 +1,9 @@
-require File.join(File.dirname(__FILE__), '../tap_test_helper') 
-require 'tap/dump'
+require File.join(File.dirname(__FILE__), '../../tap_test_helper') 
+require 'tap/tasks/dump'
 require 'stringio'
 
 class DumpTest < Test::Unit::TestCase
-  include Tap
+  include Tap::Tasks
   include MethodRoot
 
   attr_reader :io, :dump

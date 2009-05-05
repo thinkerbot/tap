@@ -35,7 +35,7 @@ Gem::Specification.new do |s|
     lib/tap/app/state.rb
     lib/tap/app/tracer.rb
     lib/tap/constants.rb
-    lib/tap/dump.rb
+    lib/tap/tasks/dump.rb
     lib/tap/env.rb
     lib/tap/env/constant.rb
     lib/tap/env/constant_manifest.rb
@@ -49,7 +49,7 @@ Gem::Specification.new do |s|
     lib/tap/joins.rb
     lib/tap/joins/switch.rb
     lib/tap/joins/sync.rb
-    lib/tap/load.rb
+    lib/tap/tasks/load.rb
     lib/tap/root.rb
     lib/tap/root/utils.rb
     lib/tap/root/versions.rb

@@ -2,7 +2,7 @@ require File.join(File.dirname(__FILE__), '../doc_test_helper')
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap'
 
-class ConsoleDoc < Test::Unit::TestCase 
+class ConsoleCmd < Test::Unit::TestCase 
   include Doctest
   
   #
@@ -30,13 +30,13 @@ class ConsoleDoc < Test::Unit::TestCase
       
       cmd = "% tap console > #{path}".sub(CMD_PATTERN, CMD)
       IO.popen(cmd, 'w') do |io|
-        io.puts "env.tasks['tap/dump']"
+        io.puts "env.tasks['tap/tasks/dump']"
         io.puts "app.info"
       end
       
       assert_equal %q{
-env.tasks['tap/dump']
-Tap::Dump
+env.tasks['tap/tasks/dump']
+Tap::Tasks::Dump
 app.info
 "state: 0 (READY) queue: 0"
 }, "\n" + File.read(output.path)

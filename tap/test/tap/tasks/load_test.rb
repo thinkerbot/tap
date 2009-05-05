@@ -1,8 +1,8 @@
-require File.join(File.dirname(__FILE__), '../tap_test_helper') 
-require 'tap/load'
+require File.join(File.dirname(__FILE__), '../../tap_test_helper') 
+require 'tap/tasks/load'
 
 class Tap::LoadTest < Test::Unit::TestCase
-  include Tap 
+  include Tap::Tasks
   include MethodRoot
   include AppInstance
   
