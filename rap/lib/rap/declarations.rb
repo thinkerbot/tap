@@ -216,18 +216,39 @@ module Rap
   
   class DeclarationTask
     class << self
+      # :stopdoc:
       alias original_desc desc
+      # :startdoc:
+      
       include Declarations
-
-      # alias task as declare, so that DeclarationTask and subclasses
-      # may directly declare subclasses of themselves
-
+      
+      # The DeclarationTask class partially includes Declarations so
+      # subclasses may directly declare tasks.  A few alias acrobatics makes
+      # it so that ONLY Declarations#task is made available, and only through
+      # the declare method (desc cannot be used because Task classes already
+      # use that method for documentation, and namespace would be silly).
+      #
+      # Weird? Yes, but it leads to this syntax:
+      #
+      #   # [Rapfile]
+      #   # class Subclass < Rap::DeclarationTask
+      #   #   def helper(); "help"; end
+      #   # end
+      #   #
+      #   # # ::desc a help task
+      #   # Subclass.declare(:help) {|task, args| puts "got #{task.helper}"}
+      #   
+      #   % rap help
+      #   got help
+      #
       alias declare task
       private :task, :desc, :namespace
       
+      # :stopdoc:
       undef_method :desc
       alias desc original_desc
       private :task, :namespace
+      # :startdoc:
       
       private
       

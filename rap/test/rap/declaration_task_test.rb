@@ -77,3 +77,35 @@ class DeclarationTaskTest < Test::Unit::TestCase
     assert_equal "not a DeclarationTaskTest::Subclass: Task0", e.message
   end
 end
+
+class DeclarationTaskDocTest < Test::Unit::TestCase
+  acts_as_file_test
+  acts_as_shell_test
+  
+  RAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/../..")
+  LOAD_PATHS = [
+    "-I'#{RAP_ROOT}/../configurable/lib'",
+    "-I'#{RAP_ROOT}/../lazydoc/lib'",
+    "-I'#{RAP_ROOT}/../tap/lib'"
+  ]
+  
+  CMD_PATTERN = "% rap"
+  CMD = (["TAP_GEMS= ruby"] + LOAD_PATHS + ["'#{RAP_ROOT}/bin/rap'"]).join(" ")
+  
+  def test_instantiate_doc
+    method_root.prepare(:tmp, 'Rapfile') do |file|
+      file << %q{
+Rap.task(:a, :obj) {|t, a| puts "A #{a.obj}"}
+Rap.task({:b => :a}, :obj) {|t, a| puts "B #{a.obj}"}
+}
+    end
+
+    method_root.chdir(:tmp) do
+      sh_test %q{
+% rap b world -- a hello
+A hello
+B world
+}
+    end
+  end
+end

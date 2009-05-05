@@ -5,11 +5,19 @@ require 'rap/description'
 
 module Rap
   
-  # DeclarationTasks are a singleton version of tasks.  DeclarationTasks only
-  # have one instance (DeclarationTask.instance) and the instance is
-  # constructed so it will only execute once.
+  # DeclarationTasks are a special breed of Tap::Task designed to behave much
+  # like Rake tasks.  As such, declaration tasks:
+  #
+  # * return nil and pass nil in workflows 
+  # * only execute once
+  # * are effectively singletons (one instance per app)
+  # * allow for multiple actions
+  #
+  # 
   class DeclarationTask < Tap::Task
     class << self
+      
+      # Sets actions.
       attr_writer :actions
       
       # An array of actions (blocks) associated with this class.  Each of the
@@ -19,6 +27,7 @@ module Rap
         @actions ||= []
       end
       
+      # Sets argument names
       attr_writer :arg_names
       
       # The argument names pulled from a task declaration.
@@ -33,8 +42,23 @@ module Rap
         args
       end
       
-      # Instantiates an instance of self and returns an instance of self and
-      # an array of arguments (implicitly to be enqued to the instance).
+      # Instantiates the instance of self for app and reconfigures it using
+      # argh.  Configurations are set, the task name is set, and the
+      # arguments are stored on the instance.  The arguments are returned
+      # as normal in the [instance, args] result.
+      #
+      # These atypical behaviors handle various situations on the command
+      # line.  Setting the args this way, for example, allows arguments to
+      # be specified on dependency tasks:
+      #
+      #   # [Rapfile]
+      #   # Rap.task(:a, :obj) {|t, a| puts "A #{a.obj}"}
+      #   # Rap.task({:b => :a}, :obj) {|t, a| puts "B #{a.obj}"}
+      #
+      #   % rap b world -- a hello
+      #   A hello
+      #   B world
+      #
       def instantiate(argh={}, app=Tap::App.instance)
         config = argh[:config]
         config_file = argh[:config_file]
@@ -49,14 +73,11 @@ module Rap
         [instance, instance.args]
       end
       
-      # Looks up or creates the DeclarationTask subclass specified by name
-      # (nested within declaration_base), and adds the configs and dependencies.
-      # Declare also registers the subclass in the declaration_env tasks
-      # manifest.
-      # 
-      # Configurations are always validated using the yaml transformation block
-      # (see {Configurable::Validation.yaml}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]).
+      # Looks up or creates the DeclarationTask subclass specified by const_name
+      # and adds the configs and dependencies.
       #
+      # Configurations are always validated using the yaml transformation block
+      # (see {Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]).
       def subclass(const_name, configs={}, dependencies=[])
         # lookup or generate the subclass
         subclass = Tap::Env::Constant.constantize(const_name.to_s) do |base, constants|
@@ -112,6 +133,19 @@ module Rap
     # Conditional call to the super call; only calls once.  Returns result.
     def call(*args)
       
+      # Declaration tasks function as dependencies, but unlike normal
+      # dependencies, they CAN take arguments from the command line.
+      # Such arguments will be set as args, and be used to enque the
+      # task.  
+      #
+      # If the task executes from the queue first, args will be
+      # provided to call and they should equal self.args.  If the task
+      # executes as a dependency first, call will not receive args and
+      # in that case self.args will be used.
+      #
+      # This warns for cases that odd workflows can produce where the
+      # args have been set and DIFFERENT args are used to enque the task.
+      # In these cases always go with the pre-set args but warn the issue.
       self.args ||= args
       unless self.args == args
         if @resolved

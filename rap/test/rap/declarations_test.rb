@@ -439,3 +439,38 @@ class DeclarationsTest < Test::Unit::TestCase
     assert_equal ["outer1", "inner1", "outer2", "inner2"], arr
   end
 end
+
+class DeclarationsDocTest < Test::Unit::TestCase
+  acts_as_file_test
+  acts_as_shell_test
+  
+  RAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/../..")
+  LOAD_PATHS = [
+    "-I'#{RAP_ROOT}/../configurable/lib'",
+    "-I'#{RAP_ROOT}/../lazydoc/lib'",
+    "-I'#{RAP_ROOT}/../tap/lib'"
+  ]
+  
+  CMD_PATTERN = "% rap"
+  CMD = (["TAP_GEMS= ruby -w"] + LOAD_PATHS + ["'#{RAP_ROOT}/bin/rap'"]).join(" ")
+  
+  def test_inclusion_of_task_doc
+    method_root.prepare(:tmp, 'Rapfile') do |file|
+      file << %q{
+class Subclass < Rap::DeclarationTask
+  def helper(); "help"; end
+end
+
+# ::desc a help task
+Subclass.declare(:help) {|task, args| puts "got #{task.helper}"}
+}
+    end
+
+    method_root.chdir(:tmp) do
+      sh_test %q{
+% rap help -d-
+got help
+}
+    end
+  end
+end
