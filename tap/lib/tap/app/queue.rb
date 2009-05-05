@@ -1,5 +1,4 @@
 require 'monitor'
-require 'tap/app/node'
 
 module Tap
   class App
@@ -38,20 +37,16 @@ module Tap
         synchronize { size == 0 }
       end
       
-      # Enqueues the method and inputs. Raises an error if the  
-      # method is not a Node.
+      # Enqueues the method and inputs.
       def enq(method, inputs)
         synchronize do
-          check_method(method)
           queue.push [method, inputs]
         end
       end
       
       # Enqueues the method and inputs, but to the top of the queue.
-      # Raises an error if the method is not an Executable.
       def unshift(method, inputs)
         synchronize do
-          check_method(method)
           queue.unshift [method, inputs]
         end
       end
@@ -76,13 +71,6 @@ module Tap
         synchronize do
           queue.dup
         end
-      end
-      
-      protected
-      
-      # Checks if the input method is extended with Node
-      def check_method(method) # :nodoc:
-        raise "not a node: #{method.inspect}" unless method.kind_of?(Node)
       end
     end 
   end

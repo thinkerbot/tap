@@ -2,13 +2,12 @@ require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/app/queue'
 
 class QueueTest < Test::Unit::TestCase
-  Node = Tap::App::Node
   Queue = Tap::App::Queue
   
   attr_accessor :m, :queue
  
   def setup
-    @m = lambda {}.extend Node
+    @m = :method
     @queue = Queue.new
   end
   
@@ -68,11 +67,6 @@ class QueueTest < Test::Unit::TestCase
     assert_equal [[m,[1]], [m,[2]]], queue.to_a
   end
 
-  def test_enq_raises_error_for_non_node_objects
-    e = assert_raises(RuntimeError) { queue.enq(:obj, [1]) }
-    assert_equal "not a node: :obj", e.message
-  end
-  
   #
   # unshift test
   #
@@ -87,11 +81,6 @@ class QueueTest < Test::Unit::TestCase
     assert_equal [[m,[2]], [m,[1]]], queue.to_a
   end
 
-  def test_unshift_raises_error_for_non_executables
-    e = assert_raises(RuntimeError) { queue.unshift(:obj, [1]) }
-    assert_equal "not a node: :obj", e.message
-  end
-  
   #
   # deq test
   #
