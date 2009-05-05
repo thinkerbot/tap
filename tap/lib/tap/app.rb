@@ -109,7 +109,9 @@ module Tap
   #   runlist                        # => [1, 0]
   #
   # Dependencies are resolved <em>every time</em> a node executes; individual
-  # dependencies can implement single-execution if desired.
+  # dependencies can implement single-execution if desired.  Dependencies are
+  # not resolved with arguments, ie dependency nodes must be able to execute
+  # without inputs.
   #
   class App
     class << self
