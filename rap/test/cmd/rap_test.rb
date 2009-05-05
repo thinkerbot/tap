@@ -159,4 +159,111 @@ echo!
 }
     end
   end
+  
+  #
+  # rap and rake
+  #
+  
+
+  def test_rap_runs_rake_tasks
+    rakefile = method_root.prepare(:tmp, 'Rakefile') do |file| 
+      file << %q{
+require 'rake'
+task(:a) { puts 'A' }
+task(:b => :a) { puts 'B' }
+task(:c, :str) {|task, args| puts "#{args.str.upcase}" }
+
+namespace :ns do
+  task(:a) { puts 'nsA' }
+  task(:b => :a) { puts 'nsB' }
+  task(:c, :str) {|task, args| puts "ns#{args.str.upcase}" }
+end
+}
+    end
+    
+    method_root.chdir(:tmp) do
+      sh_test %Q{
+% rap a
+(in #{File.dirname(rakefile)})
+A
+}
+      sh_test %Q{
+% rap a --silent
+A
+}
+      sh_test %Q{
+% rap b --silent
+A
+B
+}      
+      sh_test %Q{
+% rap c[arg] --silent
+ARG
+}
+      sh_test %Q{
+% rap ns:a --silent
+nsA
+}
+      sh_test %Q{
+% rap ns:c[arg] ns:b ns:a b --silent
+nsARG
+nsA
+nsB
+A
+B
+}
+    end
+  end
+  
+  def test_rap_behaves_much_as_rake
+    # differences:
+    # * namespace dependencies are resolved from base (:b => 'ns/a')
+    # * args not specified in []
+    # * tasks separated by '--'
+    #
+    rakefile = method_root.prepare(:tmp, 'Rapfile') do |file| 
+      file << %q{
+include Rap::Declarations
+
+task(:a) { puts 'A' }
+task(:b => :a) { puts 'B' }
+task(:c, :str) {|task, args| puts "#{args.str.upcase}" }
+
+namespace :ns do
+  task(:a) { puts 'nsA' }
+  task(:b => 'ns/a') { puts 'nsB' }
+  task(:c, :str) {|task, args| puts "ns#{args.str.upcase}" }
+end
+}
+    end
+
+    method_root.chdir(:tmp) do
+      sh_test %Q{
+% rap a
+A
+}
+
+      sh_test %Q{
+% rap b
+A
+B
+}      
+      sh_test %Q{
+% rap c arg 
+ARG
+}
+      sh_test %Q{
+% rap ns/a
+nsA
+}
+      sh_test %Q{
+% rap ns/c arg -- ns/b -- ns/a -- b
+nsARG
+nsA
+nsB
+A
+B
+}
+    end
+  end
 end

@@ -26,8 +26,6 @@ module Rap
           exit
         end
         argv = argv.collect {|arg| arg == '--rake-help' ? '--help' : arg}
-      
-        puts argv
         [new({}, default_name, app), argv]
       end
     

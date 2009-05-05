@@ -17,15 +17,12 @@ class ReadmeTest < Test::Unit::TestCase
   def test_readme
     method_root.prepare(:tmp, 'Rapfile') do |file|
       file << %q{
-require 'rap/declarations'
-include Rap::Declarations
-
-desc "your basic goodnight moon task"
-
+# ::desc your basic goodnight moon task
 # Says goodnight with a configurable message.
-task(:goodnight, :obj, :message => 'goodnight') do |task, args|
+Rap.task(:goodnight, :obj, :message => 'goodnight') do |task, args|
   puts "#{task.message} #{args.obj}\n"
-end}
+end
+}
     end
     
     method_root.chdir(:tmp) do
@@ -53,6 +50,7 @@ goodnight moon
     
     test = method_root.prepare(:tmp, 'test.rb') do |file|
         file << %q{
+require 'rap'
 load 'Rapfile'
 require 'test/unit'
 require 'stringio'
@@ -67,7 +65,8 @@ class RapfileTest < Test::Unit::TestCase
     task.process('moon')
     assert_equal "goodnight moon\n", $stdout.string
   end
-end}
+end
+}
     end
     
     method_root.chdir(:tmp) do

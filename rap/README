@@ -20,16 +20,13 @@ Check out these links for documentation, development, and bug tracking.
 
 == Usage
 
-Usage is much like {rake}[http://rake.rubyforge.org/]:
+Usage is much like {Rake}[http://rake.rubyforge.org/]:
 
   [Rapfile]
-  require 'rap/declarations'
-  include Rap::Declarations
   
-  desc "your basic goodnight moon task"
-  
+  # ::desc your basic goodnight moon task
   # Says goodnight with a configurable message.
-  task(:goodnight, :obj, :message => 'goodnight') do |task, args|
+  Rap.task(:goodnight, :obj, :message => 'goodnight') do |task, args|
     puts "#{task.message} #{args.obj}\n"
   end
   
@@ -52,13 +49,14 @@ Now from the command line:
           --message MESSAGE
 
   options:
-      -h, --help                       Print this help
-          --name NAME                  Specify a name
-          --use FILE                   Loads inputs from file
+          --help                       Print this help
+          --name NAME                  Specifies the task name
+          --config FILE                Specifies a config file
 
 For testing, load the Rapfile and access the task as a constant.
 
   [test.rb]
+  require 'rap'
   load 'Rapfile'
   require 'test/unit'
   require 'stringio'
@@ -86,19 +84,39 @@ The test passes:
   1 tests, 2 assertions, 0 failures, 0 errors
 
 Generally speaking, the rap executable is a shorthand for 'tap run --' so you
-can use rap to quickly launch workflows as well.  See the 
-{Command}[link:files/doc/Command%20Reference.html] and 
-{Syntax}[link:files/doc/Syntax%20Reference.html] References for more information.
+can use rap to launch workflows as well.
 
-=== Limitations
+== Limitations
 
-Rap is not a pure replacement of Rake.  Rap does not support builds by default,
-classes like FileList are not included, and namespace lookup is slightly
-different (see the {Syntax Reference}[link:files/doc/Syntax%20Reference.html]).
+Rap is not a pure replacement of Rake, nor do the Rap tasks behave exactly
+like standard Tap tasks.
+
+==== Regarding Rake:
+
+* Rap does not support builds by default
+* Classes like FileList are not available
+* Namespace lookup is slightly different (see the {Syntax Reference}[link:files/doc/Syntax%20Reference.html])
+
+That said, many rakefiles can be renamed as rapfiles and they'll work with
+minor and sometimes no changes.
+
+==== Regarding Tap
+
+Rap tasks (ie subclasses of Rap::DeclarationTask) are designed to behave like
+Rake tasks. As such Rap tasks:
+
+* return nil and pass nil in workflows 
+* only execute once
+* are effectively singletons
+
+This makes rap tasks useful in dependency-based workflows but fairly useless
+in imperative workflows. However, other tasks behave as normal and any
+workflow you can run with 'tap run' can be run without alteration by rap.
 
 == Installation
 
-Rap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+Rap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].
+Use:
 
   % gem install rap
 
