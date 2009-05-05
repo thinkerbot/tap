@@ -18,7 +18,6 @@ Gem::Specification.new do |s|
     README
     MIT-LICENSE
     History
-    doc/Command\sReference
     doc/Syntax\sReference
     }
   
