@@ -5,7 +5,7 @@ Gem::Specification.new do |s|
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
   s.platform = Gem::Platform::RUBY
-  s.summary = "A framework for creating configurable, distributable tasks and workflows."
+  s.summary = "A configurable, distributable workflow framework."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
   s.bindir = "bin"
