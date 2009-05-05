@@ -1,8 +1,8 @@
 module Tap
   module Test
-    
-    # Class methods extending tests which include FileTest.
     module FileTest
+      
+      # Class methods extending tests which include FileTest.
       module ClassMethods
       
         # The class-level test root (a Tap::Root)

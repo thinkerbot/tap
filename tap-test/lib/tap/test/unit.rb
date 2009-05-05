@@ -7,6 +7,9 @@ if RUBY_VERSION >= "1.9"
   # MiniTest shims (ruby 1.9)
   ################################
   
+  # Tap-Test adds a class skip_test method to TestCase to allow a full class
+  # to be skipped (for instance due to a failed Tap::Test::SubsetTest
+  # condition).  The method is not required by any Tap-Test module.
   class Test::Unit::TestCase
     class << self
       # Causes a test suite to be skipped.  If a message is given, it will
@@ -17,14 +20,16 @@ if RUBY_VERSION >= "1.9"
       end
     end
   end
-
+  
+  # MiniTest renames method_name as name.  For backwards compatibility
+  # (and for Tap::Test::FileTest) it must be added back.
   class MiniTest::Unit::TestCase
-    # MiniTest renames method_name as name.  For backwards compatibility
-    # (and for FileTest) it is added back here.
     def method_name
       name
     end
   end
+
+  MiniTest::Unit::TestCase.extend Tap::Test
 
 else
   
@@ -32,6 +37,8 @@ else
   # Test::Unit shims (< ruby 1.9)
   ################################
   # :stopdoc:
+  # Implementing skip_test in the original Test::Unit is considerably more
+  # tricky than in the Mini::Test Test::Unit.
   class Test::Unit::TestCase
     class << self
       alias tap_original_test_case_inherited inherited
@@ -68,7 +75,9 @@ else
       end
     end
   end
+  
+  Test::Unit::TestCase.extend Tap::Test
   # :startdoc:
 end
 
-Test::Unit::TestCase.extend Tap::Test
+

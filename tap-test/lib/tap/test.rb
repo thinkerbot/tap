@@ -1,6 +1,20 @@
 require 'tap/root'
 
 module Tap
+  
+  # Tap::Test provides several convenience methods for including and
+  # setting up Tap::Test modules.  The manual use of this module looks
+  # like this: 
+  #
+  #   class SampleTest < Test::Unit::TestCase
+  #     extend Tap::Test
+  #     acts_as_tap_test
+  #   end
+  #
+  # The 'tap/test/unit' file performs this setup for Test::Unit
+  # (ruby < 1.9) and Mini::Test (ruby >= 1.9); simply require it and
+  # call the setup methods as necessary.
+  #
   module Test
     autoload(:SubsetTest, 'tap/test/subset_test')
     autoload(:FileTest, 'tap/test/file_test')

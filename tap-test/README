@@ -1,12 +1,120 @@
-= Tap Test
+= {Tap Test}[http://tap.rubyforge.org/tap-test]
 
-Test modules for Tap applications.
+  test v. to reveal the strengths or capabilities of something
+
+Test modules for Tap.
 
 == Description
 
+Provides test modules to simplify testing of common Tap tasks, especially
+tasks that require interaction with files. Modules are also provided to test
+the shell behavior of executables and to define conditions for tests (ex
+*nix/windows only). Tap-Test is not a testing framework. By default Tap-Test
+integrates with Test::Unit and Mini::Test, but it is possible to include the
+test modules into other test frameworks.
+
+{Tap-Test}[http://tap.rubyforge.org/tap-test] is a part of the
+{Tap-Suite}[http://tap.rubyforge.org/tap-suite]. Check out these links for
+documentation, development, and bug tracking.
+
+* Website[http://tap.rubyforge.org] 
+* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
+* Github[http://github.com/bahuvrihi/tap/tree/master] 
+* {Google Group}[http://groups.google.com/group/ruby-on-tap]
+
+== Usage
+
+The Tap-Test modules are small and targeted. More complete examples can be
+found in the documentation, these are intended to show the point of each
+module. To enable a module in Test::Unit or Mini::Test, require
+'tap/test/unit' and simply call the acts_as_x_test method. Multiple modules
+can be overlaid.
+
+==== {FileTest}[link:classes/Tap/Test/FileTest.html] (acts_as_file_test)
+
+Sets up a test-specific method_root for working with temporary files. Better
+in most cases than using Tempfile because you can flag temporary files to be
+saved on a failure (using ENV['KEEP_OUTPUTS']='true'). Also provides a new
+assertion to test that all the files in an expected directory are equal to
+those in an output directory.
+
+  require 'tap/test/unit'
+  class FileTestTest < Test::Unit::TestCase
+    acts_as_file_test
+
+    def test_method_root
+      assert_equal "test_method_root", File.basename(method_root.root)
+      
+      path = method_root.prepare(:tmp, 'file.txt') {|io| io << 'content' }
+      assert_equal "content", File.read(path)
+    end
+  end
+  
+==== {ShellTest}[link:classes/Tap/Test/ShellTest.html] (acts_as_shell_test)
+
+Simple testing of shell commands.
+
+  require 'tap/test/unit'
+  class ShellTestTest < Test::Unit::TestCase
+    acts_as_shell_test
+
+    def test_echo
+      assert_equal "goodnight moon", sh("echo goodnight moon").strip
+    end
+    
+    def test_echo_with_an_alias
+      # most likely you set these once and re-use them
+      options = {:cmd_pattern => '% alias', :cmd => 'echo'}
+      
+      sh_test %q{
+  % alias goodnight moon
+  goodnight moon
+  }, options
+    end
+  end
+    
+==== {SubsetTest}[link:classes/Tap/Test/SubsetTest.html] (acts_as_subset_test)
+
+Allows in-file subsetting of tests into groups. Easy to get carried away with
+this one, but handy, especially for platform-specific tests. Turn on a subset
+or all tests using an ENV variable (ex ENV['ALL']='true').
+
+  require 'tap/test/unit'
+  class SubsetTestTest < Test::Unit::TestCase
+    acts_as_subset_test
+    
+    condition(:windows) { match_platform?('mswin') }
+    
+    def test_something_for_windows_only
+      condition_test(:windows) do
+        # ...
+      end
+    end
+    
+    def test_something_that_takes_forever
+      extended_test do
+        # ...
+      end
+    end
+  end
+
+==== {TapTest}[link:classes/Tap/Test/TapTest.html]  (acts_as_tap_test)
+
+Sets up Tap::App.instance for testing tasks.
+
+  require 'tap/test/unit'
+  class TapTestTest < Test::Unit::TestCase
+    acts_as_tap_test
+
+    def test_task
+      t = Tap::Task.intern {|task| "result" }
+      assert_equal "result", t.process
+    end
+  end
+
 == Installation
 
-Tap Test is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+Tap-Test is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
 
   % gem install tap-test
   

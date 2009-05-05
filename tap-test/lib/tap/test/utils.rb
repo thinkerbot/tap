@@ -1,12 +1,10 @@
 require 'tap/root'
 require 'fileutils'
 require 'tempfile'
+require 'tap/support/templater'
 
 module Tap
-  module Support
-    autoload(:Templater, 'tap/support/templater')
-  end
-  
+
   module Test
     module Utils
       module_function

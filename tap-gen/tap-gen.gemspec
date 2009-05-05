@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "tap"
   s.add_dependency("tap", ">= 0.17.0")
   s.has_rdoc = true
-  s.rdoc_options.concat %W{--main README -S -N --title Tap\sGenerator}
+  s.rdoc_options.concat %W{--main README -S -N --title Tap-Generator}
   
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{
