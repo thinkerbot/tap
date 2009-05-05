@@ -32,9 +32,9 @@ class RootGeneratorTest < Test::Unit::TestCase
     assert g.preview['project.gemspec'] =~ /MIT-LICENSE/
   end
   
-  def test_config_file_true_populates_tap_yml
+  def test_env_true_populates_tap_yml
     g = Root.new.extend Preview
-    g.config_file = true
+    g.env = true
     
     assert_equal %w{
       .

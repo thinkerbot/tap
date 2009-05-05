@@ -20,10 +20,19 @@ module Tap::Generator::Generators
   #
   class Root < Tap::Generator::Base
     
-    config :config_file, false, &c.switch  # Create a full tap.yml file
+    nest :gemspec do
+      config :name, "Your Name Here"               # Author name
+      config :email, "your.email@pubfactory.edu"   # Author email
+      config :homepage, ""                         # The project hompage
+      config :rubyforge_project, ""                # The rubyforge project name
+      config :summary, ""                          # The project summary
+    end
+    
+    config :env, false, &c.switch          # Create a full tap.yml file
     config :license, true, &c.switch       # Create an MIT-LICENSE
     config :history, true, &c.switch       # Create History file
     config :rapfile, false, &c.switch      # Create a Rapfile
+    config :rakefile, true, &c.switch      # Create a Rakefile
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
     def manifest(m, root, project_name=nil)
@@ -40,13 +49,15 @@ module Tap::Generator::Generators
           m.directory r[target]
           next
         when source =~ /gemspec$/
-          m.template r[project_name + '.gemspec'], source, {
+          locals = gemspec.config.to_hash.merge(
             :project_name => project_name, 
-            :config_file => config_file, 
             :license => license,
             :history => history
-          }
+          )
+          m.template r[project_name + '.gemspec'], source, locals
           next
+        when source =~ /Rakefile$/
+          next unless rakefile
         when source =~ /Rapfile$/
           next unless rapfile
         when source =~ /MIT-LICENSE$/
@@ -77,7 +88,7 @@ module Tap::Generator::Generators
           leader = key == 'root' || default == nil ? '# ' : ''
           config = YAML.dump({key => default})[5..-1].strip.gsub(/\n+/, "\n#{leader}")
           "#{lines.join("\n")}#{leader}#{config}\n\n"
-        end if config_file
+        end if env
       end
     end
     

@@ -2,6 +2,8 @@ require 'tap/generator/base'
 
 module Tap
   module Generator
+    
+    # Methods used by the generate and destroy commands.
     module Exe
       
       def generators

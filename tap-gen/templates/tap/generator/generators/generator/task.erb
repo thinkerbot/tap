@@ -19,8 +19,8 @@ class <%= const.const_name %> < Tap::Generator::Base
     # end
 
     # template a file in the templates directory using ERB.
-    # The (key, value) pairs will be available in the 
-    # template as local variables.
+    # The last argument defines a hash of local variables
+    # for use in the template (here config is used).
     m.template "<%= const.const_name.underscore %>_file.txt", "template_file.erb", config.to_hash
 
   end
