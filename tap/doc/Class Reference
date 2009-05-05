@@ -208,22 +208,6 @@ Results may be collected by the underlying Tap::App.
 
 == Apps
 
-==== Tap::Root
-
-http://tap.rubyforge.org/images/Root.png
-
-A Root represents the base of a directory structure. Roots allow you to alias
-relative paths, basically allowing you to develop code for a conceptual
-directory structure that can be defined later.
-
-  root = Tap::Root.new '/path/to/root'
-  root.root                                      # => '/path/to/root'
-  root['config']                                 # => '/path/to/root/config'
-  root.path('config', 'sample.yml')              # => '/path/to/root/config/sample.yml'
-
-While simple, this ability to alias paths is useful, powerful, and forms the
-basis of the Tap environment.
-
 ==== Tap::App::Queue
 
 http://tap.rubyforge.org/images/Queue.png
@@ -253,6 +237,22 @@ themselves.
   results                    # => [[1], [2,3]]
 
 == Envs 
+
+==== Tap::Root
+
+http://tap.rubyforge.org/images/Root.png
+
+A Root represents the base of a directory structure. Roots allow you to alias
+relative paths, basically allowing you to develop code for a conceptual
+directory structure that can be defined later.
+
+  root = Tap::Root.new '/path/to/root'
+  root.root                                      # => '/path/to/root'
+  root['config']                                 # => '/path/to/root/config'
+  root.path('config', 'sample.yml')              # => '/path/to/root/config/sample.yml'
+
+While simple, this ability to alias paths is useful, powerful, and forms the
+basis of the Tap environment.
 
 ==== Tap::Env
 
@@ -336,6 +336,5 @@ If there were a conflict, you'd have to specify the environment minipath like:
 
 http://tap.rubyforge.org/images/Run-Env.png
 
-Tap::Exe adds several configurations (ex before/after) which only get loaded
-for the present directory, and methods for building and executing workflows
-from command line inputs.
+Tap::Exe adds methods for building and executing workflows from command line
+inputs.

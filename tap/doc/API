@@ -1,88 +1,80 @@
-= Application Programming Interfaces
+= Application Programming Interface
 
-Note these are all currently provisional.  The required methods are listed in the table with the parameter signature.
+(Note these are all currently provisional.)
 
-== Node
+== Tap::App
 
-call(*inputs)::  Any return
-dependencies:: An array of Dependencies
-join:: A Join or nil
+Applications require the following API for nodes, joins, and middleware.
 
-== Join
+==== Node
 
-call(result):: Any return
+  call(*inputs)  any return is allowed
+  dependencies   returns an array of nodes
+  join           returns a join or nil
 
-== Application Middleware
+==== Join
 
-Middleware.new(stack):: An instance of middleware
-call(node, inputs=[]):: Any return
-stack():: The input stack
+  call(result)   any return is allowed
 
-The middleware API is essentially the same as for Rack.
+==== Middleware
 
-== Identification/Documentation
+  Middleware.new(stack)   returns an instance of middleware
+  call(node, inputs=[])   any return is allowed
+  stack()                 returns the original stack
 
-Resources are identified by a constant attribute corresponding to their baseclass and filename, so for instance this registers the Sample task:
+Note the middleware API is essentially the same as for {Rack}[http://rack.rubyforge.org/].
+
+== Tap::Schema
+
+Schema describe workflows as data.  To build a workflow from a schema, workflow classes need to instantiate themselves using the schema data. The <tt>parse!</tt> and <tt>instantiate</tt> methods are provided to do so.  
+
+  WorkflowClass.parse!(argv=ARGV, app=App.instance)
+  WorkflowClass.instantiate(argh, app=App.instance)
+  
+As implied in by the inputs, <tt>parse!</tt> instantiates from an array, while <tt>instantiate</tt> instantiates from a hash.  If <tt>parse!</tt> receives a string, it must be able to convert it to an array (ex using Shellwords).
+
+How the class actually performs the instantiation is up to the class but typically:
+
+* <tt>parse!</tt> destructively parses argv
+* <tt>parse!</tt> creates an argh and calls instantiate
+* <tt>parse</tt> is implemented to non-destructively parse argv
+
+==== Tap::Task (and subclasses)
+
+Parse and instantate must return: [instance, args]
+
+==== Tap::Join (and subclasses)
+
+Parse and instantate must return: [inputs, outputs, instance]
+
+== Tap::Env
+
+Envs identify resources by a constant attribute using Tap::Env#constant_manifest.  For instance this identifies the Sample node:
 
   [sample.rb]
-  # ::task summary
-  # description
-  class Sample < Tap::Task
-  end
   
-Joins are similarly identified, and in other modules so are generators and controllers.
+  # ::node summary
+  # description
+  class Sample < Tap::Node
+  end
 
-Join:: ::join
-Generator:: ::generator
-Controller:: ::controller
+Here the constant name is inferred using the filepath.  A more formal declaration allows resources to be placed in files that are not named after the resource:
 
-In each case the summary and description are available like:
+  [alt.rb]
+  
+  # Sample::node summary
+  # description
+  class Sample < Tap::Node
+  end
+
+Joins are similarly identified by <tt>::join</tt>.  Resources intended to be discovered by constant_manifest must map the attribute documentation to the class 'desc' method.  
 
   Sample::desc.summary         # => "summary"
   Sample::desc.to_s            # => "description"
+  
+The easiest way to do so is with a {lazy_attr}[link:lazydoc/classes/Lazydoc/Attributes.html].
 
-== Creation/Access
-
-=== instance
-
-Many base classes have a 'global' instance associated with them.  These instances are only for convenience and have no special meaning attributed to them; the can be used or ignored as needed for a specific application.
-
-Env.instance():: Useful for passing environment information from the tap
-                 executable to commands.  Env.instance is set by
-                 Tap::Exe.setup.
-App.instance():: Tasks, which require an app, are initialized to this
-                 instance unless otherwise specified.
-TaskClass.instance(app):: 
-                 Initializes or returns an app-specific instance of the 
-                 TaskClass.  Mainly used for class-level dependencies.  
-                 Instances are cached in app.cache.
-                          
-=== intern
-
-Many Tap objects differ only by a block.  Intern wrangles a block into objects of a specific type:
-
-Node.intern:: |*inputs|
-Task.intern(config={}, name=nil, app=App.instance):: |task, *inputs|
-Join.intern(config={}, app=pp.instance):: |join, result|
-
-=== parse/instantiate
-
-Schema describe workflows as data using argument vectors and hashes.  Objects in the workflow like Tasks and Joins need to be instantiated these data structures and the parse/instantiate methods are provided to do so.  Parse (and the related parse!) instantiates from an argv, while instantiate instantiates from an argh.  An app may be provided to either method; by default App.instance is used.
-
-TaskClass.parse(argv=ARGV, app=App.instance):: 
-                  Inputs an argv, like what comes from the command line, and
-                  handles command line options. Parse can take a string; it
-                  is converted to an argv using shellwords. Typically parse
-                  converts the argv to an argh, which is internally sent to
-                  instantiate. Returns a [task, args] array.
-TaskClass.instantiate(argh, app=App.instance):: 
-                  Inputs an argh, like what gets generated by a schema dump.
-                  Returns a [task, args] array.
-JoinClass.parse(argv=ARGV, app=App.instance):: 
-                  Inputs an argv, returns a join instance. Typically the
-                  argv is converted to an argh, and then internally sent to
-                  instantiate.
-JoinClass.instantiate(argh, app=App.instance):: 
-                  Inputs an argh, returns a join instance.
-
-The parse! method has the same behavior as parse, but destructively removes arguments from the input argv, as per convention.
+  # ::resource
+  class Resource
+    lazy_attr :desc, 'resource'
+  end
