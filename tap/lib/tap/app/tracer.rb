@@ -1,6 +1,6 @@
 module Tap
   class App
-    class Tracer
+    class Tracer # :nodoc:
       attr_reader :stack
       attr_reader :results
       attr_reader :runlist
