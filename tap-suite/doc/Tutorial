@@ -1,19 +1,19 @@
 = Tap (Task Application)
 
-Tap is a framework for creating configurable, distributable tasks and workflows.
-Although scalable for complex workflows, at it simplest tap works like a
+Tap is a framework for creating configurable, distributable workflows.
+Although scalable for complex workflows, at it simplest Tap works like a
 supercharged rake.  Using the rap executable, you can declare tasks using a
 syntax almost identical to rake, but with added support for configurations and
 documentation.
 
 Note: this tutorial spans several modules in the {Tap-Suite}[http://tap.rubyforge.org/tap-suite].
-Be sure to install both tap and rap (or the full suite) beforehand.
+Be sure to install the full suite beforehand.
 
   % gem install tap-suite
 
 == Quickstart
 
-If you've used rake, tap will be easy to pick up.  To get started, make a
+If you've used rake, Tap will be easy to pick up.  To get started, make a
 Rapfile with a simple task declaration:
 
   [Rapfile]
@@ -47,17 +47,13 @@ Now from the command line:
           --name NAME                  Specify a name
           --config FILE                Specifies a config file
   
-Just like that you have a command-line application with inputs, configuration,
-and documentation.  
-
-The declaration syntax is obviously similar to rake; configurations are new but
-the task-block style is the same, as are inputs.  Other rake constructs are
-available.  Here is a similar goodnight task using dependencies, rake-style.
+The declaration syntax is obviously similar to rake; configurations are new
+but the task-block style is the same, as are inputs. Other rake constructs are
+available. Here is a similar goodnight task using dependencies, rake-style.
 
   [Rapfile]
   
   # make the declarations available everywhere
-  # (normally they're accessed via Tap, as above)
   include Rap::Declarations
   
   namespace :example do
@@ -76,15 +72,15 @@ And now from the command line:
   % rap goodnight moon
   goodnight moon
   
-  % rap goodnight world --* say hello
+  % rap goodnight world -- say hello
   hello world
 
 Unlike rake, rap inputs are written out individually and tasks are delimited
-by a modified double-dash.  Aside from that, you can see rap is basically a
-supercharged rake.  Furthermore, rap runs rake.  Directly substitute rap for
-rake on the command line and your tasks should run as normal (see the Rap
-{Syntax Reference}[http://tap.rubyforge.org/rap/files/doc/Syntax%20Reference.html]
-for more details).
+by a double-dash. Aside from that, you can see rap is basically a supercharged
+rake. Furthermore, rap runs rake. Directly substitute rap for rake on the
+command line and your tasks should run as normal (see the Rap {Syntax
+Reference}[http://tap.rubyforge.org/rap/files/doc/Syntax%20Reference.html] for
+more details).
 
 However, supercharging rake isn't the point of Tap.  Declarations bridge the
 gap between rake and tap, but tap itself is a more general framework.  To get
@@ -118,10 +114,10 @@ Here is a corresponding class:
     end
   end
 
-Simple enough; the name corresponds to the class, configurations (and
-dependencies, although they aren't show) are written out individually, and the
-block corresponds to process.  There are a few differences, especially relating
-to process, but for the moment lets gloss over them and see how Goodnight works.
+The name corresponds to the class, configurations (and dependencies, although
+they aren't show) are written out individually, and the block corresponds to
+process. There are a few differences, especially relating to process, but for
+the moment lets gloss over them and see how Goodnight works.
 
   goodnight = Goodnight.new
   goodnight.message                        # => 'goodnight'
@@ -131,13 +127,15 @@ to process, but for the moment lets gloss over them and see how Goodnight works.
   hello.message                            # => 'hello'
   hello.process('world')                   # => 'hello world'
 
-Totally straightforward.  Goodnight stores the default configurations, each
-instance has accessors to the configurations, and the defaults may be overridden
-during initialization, or later.  Class definitions allow validation/transformation
-blocks to be specified for configurations.  These blocks process inputs (ex the
-string inputs from the command line), quite literally defining the writer for a
-configuration accessor.  A set of standard blocks are available through +c+, an
-alias for the {Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]
+Totally straightforward. Goodnight stores the default configurations, each
+instance has accessors to the configurations, and the defaults may be
+overridden during initialization, or later. 
+
+Class definitions allow validation/transformation blocks to be specified for
+configurations. These blocks process inputs (ex the string inputs from the
+command line), literally defining the writer for a configuration accessor. A
+set of standard blocks are available through +c+, an alias for the
+{Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]
 module.
 
   [lib/goodnight.rb]
@@ -150,9 +148,8 @@ module.
     config :n, 1, &c.integer               # repeats message n times
     
     def process(*objects)
-      print "#{reverse == true ? message.reverse : message} " * n
-      puts objects.join(', ')
-      puts
+      msg = "#{reverse == true ? message.reverse : message} " * n
+      msg + objects.join(', ')
     end
   end
 
@@ -170,13 +167,13 @@ A few examples show a validation block in action:
   
 Now from the command line:
   
-  % rap goodnight moon
+  % rap goodnight moon --: dump
   goodnight moon
   
-  % rap goodnight moon mittens "little toy boat"
+  % rap goodnight moon mittens "little toy boat" --: dump
   goodnight moon, mittens, little toy boat
   
-  % rap goodnight world --message hello --reverse --n 3 
+  % rap goodnight world --message hello --reverse --n 3 --: dump
   olleh olleh olleh world
   
   % rap goodnight --help
@@ -196,12 +193,14 @@ Now from the command line:
           --name NAME                  Specify a name
           --config FILE                Specifies a config file
 
-Take a quick look at the documentation.  Class definitions map documentation
+Take a quick look at the documentation. Class definitions map documentation
 and, in some cases, metadata to the command line; the configurations now have
-comments and reverse is a switch!  Rich mapping allows tasks to act as an
-script interface, not unlike {OptionParser}[http://www.ruby-doc.org/stdlib/libdoc/optparse/rdoc/classes/OptionParser.html]
+comments and reverse is a switch. Rich mapping like this allows tasks to act
+as an script interface, not unlike
+{OptionParser}[http://www.ruby-doc.org/stdlib/libdoc/optparse/rdoc/classes/OptionParser.html]
 (check out the {Configurable}[http://tap.rubyforge.org/configurable/] gem and
-specifically {ConfigParser}[http://tap.rubyforge.org/configurable/classes/ConfigParser.html]
+specifically
+{ConfigParser}[http://tap.rubyforge.org/configurable/classes/ConfigParser.html]
 for more details).
 
 This is a stand-alone goodnight script:
@@ -213,7 +212,7 @@ This is a stand-alone goodnight script:
   require 'rubygems'
   require 'tap'
 
-  # Goodnight::manifest a goodnight moon script
+  # Goodnight::task a goodnight moon script
   # Says goodnight with a configurable message.
   class Goodnight < Tap::Task
     config :message, 'goodnight'
@@ -234,17 +233,16 @@ Now, from the command line:
   % ./goodnight --help
   ...
   
-As simple as it is to take a task to the command line, it's nice to note that
-tasks may be subclassed, tested, and distributed as usual.  No magic, just
+Tasks may be subclassed, tested, and distributed as usual.  No magic, just
 convenience.
 
 == Tap
 
-Tap comes with two executables, rap and tap.  The tap executable is more
+Tap comes with two executables, rap and tap. The tap executable is more
 verbose than rap for running tasks, but it is more configurable, scalable, and
-logically pure.  Tap comes with a number of {commands}[link:/files/doc/Command%20Reference.html]
-but we'll focus on generate to make, test, and package a task library.  Begin
-by creating a tap directory structure and a task:
+logically pure. The full suite comes with a number of commands but we'll focus
+on generate to make, test, and package a task library. Begin by creating a tap
+directory structure and a task:
 
   % tap generate root sample
   % cd sample

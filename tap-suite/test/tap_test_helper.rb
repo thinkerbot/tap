@@ -1,7 +1,6 @@
 # setup testing with submodules
 begin
-  require 'tap'
-  require 'tap/test'
+  require 'tap/test/unit'
 rescue(LoadError)
   puts %Q{
 Tests probably cannot be run because the submodules have
