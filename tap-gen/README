@@ -1,12 +1,53 @@
-= Tap Generator
+= {Tap Generator}[http://tap.rubyforge.org/tap-gen]
 
+  gen.er.a.tor n. a thing that generates something
+  
 Generators for Tap.
 
 == Description
 
+Provides generators for Tap. Generators are subclasses of Task are therefore
+easy to configure, subclass, and distribute. Users can easily extract and
+modify the generator templates as necessary.
+
+{Tap-Generator}[http://tap.rubyforge.org/tap-gen] is a part of the
+{Tap-Suite}[http://tap.rubyforge.org/tap-suite]. Check out these links for
+documentation, development, and bug tracking.
+
+* Website[http://tap.rubyforge.org]
+* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
+* Github[http://github.com/bahuvrihi/tap/tree/master]
+* {Google Group}[http://groups.google.com/group/ruby-on-tap]
+
+== Usage
+
+Get started:
+ 
+  % tap generate root sample
+  % cd sample
+  % tap generate task goodnight
+  % tap run -- goodnight moon
+
+Get some help:
+
+  % tap generate --help
+  % tap generate task --help
+
+Roll your own:
+
+  % tap generate generator thing
+
+Roll it back:
+
+  % tap destroy generator thing
+  % tap destroy task goodnight
+  % cd ..
+  % tap destroy root sample
+
 == Installation
 
-Tap-Generator is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+Tap-Generator is available as a gem on
+RubyForge[http://rubyforge.org/projects/tap]. Use:
 
   % gem install tap-gen
   
