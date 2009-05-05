@@ -8,7 +8,7 @@ module Tap
     # == Syntax
     #
     # The command line syntax can be thought of as a series of ARGV arrays
-    # connected by breaks.  The arrays define nodes (ie tasks) in a workflow
+    # connected by breaks.  The arrays define tasks (ie nodes) in a workflow
     # while the breaks define joins.  These are the available breaks:
     #
     #   break          meaning
@@ -16,21 +16,21 @@ module Tap
     #   --:            sequence join
     #   --[][]         multi-join (sequence, fork, merge)
     #
-    # As an example, this defines three nodes (a, b, c) and sequences the
-    # b and c nodes:
+    # As an example, this defines three tasks (a, b, c) and sequences the
+    # b and c tasks:
     #
     #   schema = Parser.new("a -- b --: c").schema
-    #   schema.nodes                  # => [["a"], ["b"], ["c"]]
+    #   schema.tasks                  # => [["a"], ["b"], ["c"]]
     #   schema.joins                  # => [['join', [1],[2]]]
     #
-    # In the example, the indicies of the nodes participating in the sequence
-    # are inferred as the last and next nodes in the schema, and obviously the
+    # In the example, the indicies of the tasks participating in the sequence
+    # are inferred as the last and next tasks in the schema, and obviously the
     # location of the sequence break is significant.  This isn't the case when
-    # the nodes in a join are explicitly specified.  These both sequence a to
+    # the tasks in a join are explicitly specified.  These both sequence a to
     # b, and b to c.
     #
     #   schema = Parser.new("a -- b -- c --0:1 --1:2").schema
-    #   schema.nodes                  # => [["a"], ["b"], ["c"]]
+    #   schema.tasks                  # => [["a"], ["b"], ["c"]]
     #   schema.joins                  
     #   # => [
     #   # ['join', [0],[1]],
@@ -38,7 +38,7 @@ module Tap
     #   # ]
     #
     #   schema = Parser.new("a --1:2 --0:1 b -- c").schema
-    #   schema.nodes                  # => [["a"], ["b"], ["c"]]
+    #   schema.tasks                  # => [["a"], ["b"], ["c"]]
     #   schema.joins                  
     #   # => [
     #   # ['join', [1],[2]],
@@ -88,16 +88,16 @@ module Tap
     # end delimiter, breaks are active once again.
     #
     #   schema = Parser.new("a -- b -- c").schema
-    #   schema.nodes                  # => [["a"], ["b"], ["c"]]
+    #   schema.tasks                  # => [["a"], ["b"], ["c"]]
     # 
     #   schema = Parser.new("a -. -- b .- -- c").schema
-    #   schema.nodes                  # => [["a", "--", "b"], ["c"]]
+    #   schema.tasks                  # => [["a", "--", "b"], ["c"]]
     #
     # Parsing continues until the end of argv, or a an end flag '---' is 
     # reached.  The end flag may also be escaped.
     #
     #   schema = Parser.new("a -- b --- c").schema
-    #   schema.nodes                  # => [["a"], ["b"]]
+    #   schema.tasks                  # => [["a"], ["b"]]
     #
     class Parser
       
@@ -254,23 +254,17 @@ module Tap
       
       include Utils
       
-      # The schema into which nodes are parsed
+      # The schema into which tasks are parsed
       attr_reader :schema
       
       def initialize(argv=[])
         parse(argv)
       end
 
-      # Iterates through the argv splitting out task and workflow definitions.
-      # Task definitions are split out (with configurations) along round and/or
-      # workflow break lines.  Rounds and workflows are dynamically parsed;
-      # tasks may be reassigned to different rounds or workflows by later 
-      # arguments.
-      #
+      # Iterates through the argv splitting out task and join definitions.
       # Parse is non-destructive to argv.  If a string argv is provided, parse
       # splits it into an array using Shellwords; if a hash argv is provided,
       # parse converts it to an array using Parser::Utils#parse_argh.
-      #
       def parse(argv)
         parse!(argv.kind_of?(String) ? argv : argv.dup)
       end
@@ -278,16 +272,16 @@ module Tap
       # Same as parse, but removes parsed args from argv.
       def parse!(argv)
         @current_index = 0
-        @schema = Schema.new(:nodes => [])
+        @schema = Schema.new(:tasks => [])
         
-        # prevent the addition of an empty node to schema
+        # prevent the addition of an empty task to schema
         return if argv.empty?
         
         argv = Shellwords.shellwords(argv) if argv.kind_of?(String)
         argv.unshift('--')
         
         escape = false
-        current_node = nil
+        current_task = nil
         while !argv.empty?
           arg = argv.shift
 
@@ -297,7 +291,7 @@ module Tap
             if arg == ESCAPE_END
               escape = false
             else
-              (current_node ||= node(current_index)) << arg
+              (current_task ||= task(current_index)) << arg
             end
 
             next
@@ -316,9 +310,9 @@ module Tap
             # a breaking argument was reached:
             # unless the current argv is empty,
             # append and start a new definition
-            if current_node && !current_node.empty?
+            if current_task && !current_task.empty?
               self.current_index += 1
-              current_node = nil
+              current_task = nil
             end
             
             # parse the break string for any
@@ -329,7 +323,7 @@ module Tap
             # add all other non-breaking args to
             # the current argv; this includes
             # both inputs and configurations
-            (current_node ||= node(current_index)) << arg
+            (current_task ||= task(current_index)) << arg
             
           end
         end
@@ -339,12 +333,12 @@ module Tap
       
       protected
       
-      # The index of the node currently being parsed.
+      # The index of the task currently being parsed.
       attr_accessor :current_index # :nodoc:
       
-      # helper to initialize a node at the specified index
-      def node(index) # :nodoc:
-        schema.nodes[index] ||= []
+      # helper to initialize a task at the specified index
+      def task(index) # :nodoc:
+        schema.tasks[index] ||= []
       end
       
       # returns current_index-1, or raises an error if current_index < 1.

@@ -117,28 +117,28 @@ unknown task: unknown
   def test_run_identifies_missing_tasks_in_schema
     sh_test %Q{
 % tap run -- load --: 
-missing output node: 1
+missing join output: 1
 }
     
     sh_test %Q{
 % tap run -- load -- dump  --[0][2]
-missing output node: 2
+missing join output: 2
 }
 
     sh_test %Q{
 % tap run -- --: dump
-missing input node: -1
+missing join input: -1
 }
 
     # just to make sure -1 won't refer to the last task...
     sh_test %Q{
 % tap run -- --: dump -- load
-missing input node: -1
+missing join input: -1
 }
 
     sh_test %Q{
 % tap run -- load -- dump --[2][1]
-missing input node: 2
+missing join input: 2
 }
   end
 
@@ -148,8 +148,8 @@ missing input node: 2
 unknown task: a
 unknown task: b
 unknown join: c
-missing input node: 3
-missing output node: 4
+missing join input: 3
+missing join output: 4
 }
   end
   
@@ -202,7 +202,7 @@ joins:
     id: join
     inputs: [0]
     outputs: [1]
-nodes:
+tasks:
   0:
     id: load
   1:
@@ -216,14 +216,14 @@ joins:
 - id: join
   inputs: [0]
   outputs: [1]
-nodes:
+tasks:
 - id: load
 - id: dump
 queue:
 - - 0
   - [goodnight moon]
 ---
-nodes:
+tasks:
 - [load, goodnight moon]
 - [dump]
 joins:
@@ -231,7 +231,7 @@ joins:
 queue:
 - 0
 ---
-nodes:
+tasks:
 - id: load
   args:
     - goodnight moon
@@ -244,7 +244,7 @@ joins:
 queue:
 - 0
 ---
-nodes:
+tasks:
 - [load]
 - [dump]
 joins:
@@ -255,7 +255,7 @@ queue:
 - - 0
   - [goodnight moon]
 ---
-nodes:
+tasks:
   0:
     id: load
     args:
@@ -276,7 +276,7 @@ queue:
         io.flush
         
         sh_test %Q{
-% tap run -s#{path} -d-
+% tap run -s#{path}
 goodnight moon
 }
       end

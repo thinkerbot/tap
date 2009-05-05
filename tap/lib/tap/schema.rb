@@ -18,7 +18,7 @@ module Tap
       end
     end
     
-    attr_reader :nodes
+    attr_reader :tasks
     
     attr_reader :joins
     
@@ -26,7 +26,7 @@ module Tap
     
     def initialize(schema={})
       schema = schema.inject({
-        :nodes => {},
+        :tasks => {},
         :joins => [],
         :queue => []
       }) do |hash, (key, value)|
@@ -34,7 +34,7 @@ module Tap
         hash
       end
       
-      @nodes = schema[:nodes]
+      @tasks = schema[:tasks]
       @joins = dehashify schema[:joins]
       @queue = dehashify schema[:queue]
     end
@@ -47,20 +47,20 @@ module Tap
       schema = to_hash
       errors = []
       
-      # instantiate nodes
-      nodes = {}
+      # instantiate tasks
+      tasks = {}
       arguments = {}
-      schema[:nodes].each_pair do |key, node|
-        node = symbolize(node)
+      schema[:tasks].each_pair do |key, task|
+        task = symbolize(task)
         begin
-          klass = yield(:task, node)
-          instance, args = instantiate(klass, node, app)
+          klass = yield(:task, task)
+          instance, args = instantiate(klass, task, app)
         
-          nodes[key] = instance
+          tasks[key] = instance
           arguments[key] = args
         rescue
           errors << $!.message
-          nodes[key] = nil
+          tasks[key] = nil
         end
       end
       
@@ -72,21 +72,21 @@ module Tap
           inputs, outputs, instance = instantiate(klass, join, app)
           
           inputs = inputs.collect do |key| 
-            unless node = nodes[key]
-              unless nodes.has_key?(key)
-                errors << "missing input node: #{key.inspect}"
+            unless task = tasks[key]
+              unless tasks.has_key?(key)
+                errors << "missing join input: #{key.inspect}"
               end
             end
-            node
+            task
           end
           
           outputs = outputs.collect do |key| 
-            unless node = nodes[key]
-              unless nodes.has_key?(key)
-                errors << "missing output node: #{key.inspect}"
+            unless task = tasks[key]
+              unless tasks.has_key?(key)
+                errors << "missing join output: #{key.inspect}"
               end
             end
-            node
+            task
           end
           
           instance.join(inputs, outputs) if errors.empty?
@@ -108,21 +108,21 @@ module Tap
         raise errors.join("\n")
       end
       
-      # enque nodes
-      schema[:queue].each do |(node, inputs)|
+      # enque tasks
+      schema[:queue].each do |(task, inputs)|
         unless inputs
-          inputs = arguments[node]
+          inputs = arguments[task]
         end
         
-        app.enq(nodes[node], *inputs) if inputs
+        app.enq(tasks[task], *inputs) if inputs
       end
       
-      nodes
+      tasks
     end
     
     # Creates an hash dump of self.
     def to_hash
-      { :nodes => hashify(nodes), 
+      { :tasks => hashify(tasks), 
         :joins => joins, 
         :queue => queue
       }
