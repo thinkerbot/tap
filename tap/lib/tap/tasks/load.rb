@@ -19,7 +19,7 @@ module Tap
     #   % tap run -- load --: dump < somefile.txt
     #   contents of somefile
     #
-    # ::task-
+    # :startdoc::task-
     #
     # Load serves as a baseclass for more complicated loads.  A YAML load
     # (see {tap-tasks}[http://tap.rubyforge.org/tap-tasks]) looks like this:
