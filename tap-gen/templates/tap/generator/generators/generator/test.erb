@@ -21,6 +21,6 @@ class <%= const.name %>Test < Test::Unit::TestCase
     assert_equal %q{
 # A sample template file.
 key: value
-}, "\n" + g.builds['<%= const.const_name.underscore %>_file.txt']
+}, "\n" + g.preview['<%= const.const_name.underscore %>_file.txt']
   end
 end

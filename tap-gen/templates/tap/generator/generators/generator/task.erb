@@ -1,3 +1,5 @@
+require 'tap/generator/base'
+
 <% redirect do |target| %># <%= const.name %>::generator <replace with manifest summary>
 # <replace with command line description>
 
@@ -15,13 +17,13 @@ class <%= const.const_name %> < Tap::Generator::Base
 
     # make a file
     # m.file path do |file|
-    #   file << contents
+    #   file << content
     # end
 
     # template a file in the templates directory using ERB.
     # The last argument defines a hash of local variables
     # for use in the template (here config is used).
     m.template "<%= const.const_name.underscore %>_file.txt", "template_file.erb", config.to_hash
-
   end
+  
 end <% module_nest(const.nesting, '  ') { target } end %>
