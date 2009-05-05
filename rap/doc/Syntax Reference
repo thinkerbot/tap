@@ -4,19 +4,17 @@
 
 A task declaration:
 
-  # name::           the name of the task, either alone or as the
-  #                  key of a {key => dependencies} hash
-  # dependencies::   an array of task names (optional)
-  # arg_names::      an array of argument names (optional)
-  # configurations:: a hash of {key => default} pairs (optional)
-
-  task({<name> => [<dependencies...>]}, <arg_names...>, {<configs>}) do |task, args|
+  task(<name>, <arg_names...>, {<configs>}) do |task, args|
     # arguments are available through args:
     args.arg_name
     
     # configurations are available through task
     task.key
   end
+
+A task declaration with dependencies:
+
+  task({<name> => [<dependencies...>]}, <arg_names...>, {<configs>}) { task ... }
 
 A namespace declaration:
 
@@ -39,19 +37,19 @@ Extended documentation:
   # Lines are justified and wrapped on the command line.
   task ...
 
-Pains were taken to make task declarations for rap work the similar to rake
-tasks.  In both cases (noting that in general, beyond rap, task classes are
-not limited in these ways):
+Pains were taken to make task declarations for Rap work the similar to Rake
+tasks. For both Rake and Rap (noting that in general task classes are not
+limited in these ways):
 
 * tasks are singleton instances that may be extended across multiple
   declarations
 * tasks do not pass inputs from one task to the next
 * tasks only execute once
 
-A few syntactical differences between rake and rap must to be noted, as they
-can cause errors if you try to migrate rake tasks to tap.
+A few syntactical differences between Rake and Rap must to be noted, as they
+can cause errors during migration.
 
-==== no needs
+==== No :needs
 
 Rap does not support :needs as a way to specify dependencies.  For instance,
 this will declare a ':needs' configuration with the default value ':another',
@@ -59,24 +57,34 @@ not a task which depends on another:
 
   Rap.task :name, :needs => :another
 
-==== immediate namespace lookup
+==== Namespace Lookup
 
-Within a namespace, task will look for a literal match to the dependency first.
-If it doesn't find one, it will declare it within the namespace; one way or the
-other the dependency is resolved to a constant immediately.  Hence, in this
-example the nested task depends on the non-nested task.  
+Rap immediately resolves dependencies relative to the top level namespace,
+which is very different from Rake. Rake waits to resolve dependencies and will
+use a match within a namespace if it becomes available. For these tasks rap
+and rake produce different results:
 
-  task :outer { print 'non-nested' }
+  [Rapfile/Rakfile]
+  
+  task(:outer) { print 'non-nested' }
   namespace :nest do
-    task :inner => :outer { puts 'was executed' }
-    task :outer { print 'nested' }
+    task(:inner1 => :outer) { puts ' was executed' }
+    task(:inner2 => 'nest:outer') { puts ' was executed' }
+    task(:outer) { print 'nested' }
   end
   
-By contrast, rake waits to resolve dependencies and will always use a match
-within a namespace in preference to a literal match.  For these tasks rap and
-rake produce different results:
+Rap resolves the dependencies literally:
 
-  % rap nest/inner
+  % rap nest/inner1
   non-nested was executed
-  % rake nest:inner
+  
+  % rap nest/inner2
+  nested was executed
+
+Rake resolves the dependencies relative to the namespace:
+  
+  % rake nest:inner1
+  nested was executed
+  
+  % rake nest:inner2
   nested was executed
