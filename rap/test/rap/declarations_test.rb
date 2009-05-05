@@ -80,10 +80,12 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_declaration_API_is_hidden_on_DeclarationTask
+    assert Rap::DeclarationTask.respond_to?(:task)
     assert !Rap::DeclarationTask.respond_to?(:namespace)
     assert Rap::DeclarationTask.respond_to?(:desc)
     assert Rap::DeclarationTask.desc.kind_of?(Lazydoc::Comment)
     assert !Rap::DeclarationTask.respond_to?(:register)
+    assert !Rap::DeclarationTask.respond_to?(:sh)
   end
   
   #

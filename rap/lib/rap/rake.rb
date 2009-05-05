@@ -9,7 +9,7 @@ module Rap
   # rake task needs to be executed within a workflow.  For example these
   # are equivalent:
   #
-  #   % tap run -- rake test
+  #   % rap rake test
   #   % rake test
   # 
   # The only exeception is in the use of the --help option.  Use --rake-help
@@ -28,12 +28,15 @@ module Rap
         argv = argv.collect {|arg| arg == '--rake-help' ? '--help' : arg}
         [new({}, default_name, app), argv]
       end
-    
+      
+      # Returns true if Rake detects a rakefile.
       def has_rakefile?
         ::Rake.application.have_rakefile != nil
       end
     end
-
+    
+    # Executes Rake using the input arguments as if they came from the
+    # command line.
     def process(*argv)
       rake = ::Rake.application
   

@@ -44,9 +44,9 @@ module Rap
   #   end
   #
   # This feature is only available to subclasses of DeclarationTask and can
-  # be very useful for creating inheritance hierarchies.  Note that the 'desc'
-  # and 'namespace' declaration methods are not available on DeclarationTask
-  # or subclasses, just 'task'.
+  # be very useful for creating inheritance hierarchies.  Note that other
+  # declaration methods like 'desc' and 'namespace' are not available on
+  # DeclarationTask or subclasses, just 'task'.
   #
   # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for more
   # information.
@@ -233,7 +233,9 @@ module Rap
       # :stopdoc:
       undef_method :desc
       alias desc original_desc
-      private :namespace
+      
+      # hide remaining Declarations methods (including Utils methods)
+      private :namespace, :sh
       # :startdoc:
       
       private
