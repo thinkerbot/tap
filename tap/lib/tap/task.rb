@@ -239,7 +239,7 @@ module Tap
         instance.reconfigure(config) if config
         
         if argh[:cache]
-          if app.cache.has_key?(self)
+          if app.cache.has_key?(self) && app.cache[self] != instance
             raise "cache already has an instance for: #{self}"
           end
         

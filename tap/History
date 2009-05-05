@@ -2,9 +2,9 @@
 
 Significant reorganization and update to Tap internals.
 The workflow syntax for joins has changed in incompatible
-ways, and several key methods have been renamed (notably
-Root#filepath).  Obviously not backwards compatible but
-most tasks will work without alteration.
+ways, and several key methods have been renamed.  
+Obviously not backwards compatible but most tasks will
+work without alteration.
 
 Upgrade Notes:
 
@@ -17,21 +17,19 @@ Upgrade Notes:
 * Generators, FileTask, and test modules have been removed
   to separate modules (tap-gen, tap-tasks, tap-test). Install
   tap-suite to get them all back.
-  
+* switched const_name, name on Constant
+* refactored on_complete_block to join
+* callbacks in Task have been removed
+* schema syntax no longer supports rounds, globals
+
 Changes:
 
 * added application middleware
-* dump now allows non-audit inputs
 * reworked dump to use an io target config
-* added overwrite flag to dump
-* added file flag to load
 * added unloading to Constant
-* switched const_name, name on Constant
-* refactored on_complete_block to join
 * reworked App to use aggregators that respond_to? call
 * reworked Join so that it may be dumped as YAML
 * reworked Schema syntax
-* removed rounds from Schema syntax and Queue
 * many other small changes
 
 == 0.12.4 / 2009-03-23
