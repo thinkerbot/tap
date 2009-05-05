@@ -7,21 +7,25 @@ require 'tap/app/queue'
 
 module Tap
   
-  # App coordinates the setup and running of tasks, and provides an interface 
-  # to the application directory structure. All tasks have an app (by default
-  # App.instance) through which they access application-wide resources like
-  # the logger, executable queue, and dependencies.
+  # App coordinates the setup and execution of workflows.
   #
-  # === Running Tasks
+  # === Workflows
   #
-  # Tasks may be enqued and run by an App:
+  # Workflows are composed of nodes and joins such as instances of Tap::Task
+  # and Tap::Join.  The actual workflow exists between nodes; each node can
+  # specify a join to receive it's output and enque or execute other nodes.
+  # When a node does not have a join, apps allow the specification of a
+  # default join to, for instance, aggregate results.
+  #
+  # Any object satisfying the correct API[link:files/doc/API.html] can be used
+  # as a node or join.  Apps have helpers to make nodes out of blocks.
   #
   #   app = Tap::App.new
-  #   t = app.task {|task, *inputs| inputs }
-  #   t.enq('a', 'b', 'c')
-  #   t.enq(1)
-  #   t.enq(2)
-  #   t.enq(3)
+  #   n = app.node {|*inputs| inputs }
+  #   n.enq('a', 'b', 'c')
+  #   n.enq(1)
+  #   n.enq(2)
+  #   n.enq(3)
   #
   #   results = []
   #   app.on_complete {|result| results << result }
@@ -29,26 +33,33 @@ module Tap
   #   app.run
   #   results                        # => [['a', 'b', 'c'], [1], [2], [3]]
   #
-  # To construct a workflow, set joins for individual tasks.  When a task
-  # completes, it calls its join with its result.  If no join is set, the
-  # result goes to the default join for the app (ie the on_complete block
-  # as set above).  Here is a simple sequence:
+  # To construct a workflow, set joins for individual nodes.  Here is a simple
+  # sequence:
   #
-  #   t0 = app.task {|task| "a" }
-  #   t1 = app.task {|task, input| "#{input}.b" }
-  #   t2 = app.task {|task, input| "#{input}.c"}
+  #   n0 = app.node { "a" }
+  #   n1 = app.node {|input| "#{input}.b" }
+  #   n2 = app.node {|input| "#{input}.c"}
   #
-  #   t0.sequence(t1,t2)
-  #   t0.enq
+  #   app.join([n0], [n1])
+  #   app.join([n1], [n2])
+  #   n0.enq
   #
   #   results.clear
   #   app.run
   #   results                        # => ["a.b.c"]
   #
-  # Apps allow middleware to help track the progress of a workflow, and to
-  # implement other functionality that needs to wrap each task.  Middleware
-  # is initialized with the application stack and should call the stack
-  # within it's call method.
+  # Tasks have helpers to simplify the manual constructon of workflows, but
+  # even with these methods large workflows are cumbersome to build.  More
+  # typically, a Tap::Schema is used in such cases.
+  #
+  # === Middleware
+  #
+  # Apps allow middleware to wrap the execution of each node.  This can be
+  # particularly useful to track the progress of a workflow.  Middleware is
+  # initialized with the application stack and uses the call method to
+  # wrap the execution of the stack.
+  #
+  # Using middleware, an auditor looks like this:
   #
   #   class AuditMiddleware
   #     attr_reader :stack, :audit
@@ -66,44 +77,50 @@ module Tap
   #
   #   auditor = app.use AuditMiddleware
   #
-  #   t0.enq
-  #   t2.enq("x")
-  #   t1.enq("y")
+  #   n0.enq
+  #   n2.enq("x")
+  #   n1.enq("y")
   #
   #   results.clear
   #   app.run
   #   results                        # => ["a.b.c", "x.c", "y.b.c"]
   #   auditor.audit                  
   #   # => [
-  #   # t0, t1, t2, 
-  #   # t2,
-  #   # t1, t2
+  #   # n0, n1, n2, 
+  #   # n2,
+  #   # n1, n2
   #   # ]
   # 
+  # Middleware can be nested with multiple calls to use.
+  #
   # === Dependencies
   #
-  # Tasks allow the construction of dependency-based workflows.  A task only
+  # Nodes allow the construction of dependency-based workflows.  A node only
   # executes after its dependencies have been resolved (ie executed).
   #
   #   runlist = []
-  #   t0 = app.task {|task| runlist << task }
-  #   t1 = app.task {|task| runlist << task }
+  #   n0 = app.node { runlist << 0 }
+  #   n1 = app.node { runlist << 1 }
   #
-  #   t0.depends_on(t1)
-  #   t0.enq
+  #   n0.depends_on(n1)
+  #   n0.enq
   #
   #   app.run
-  #   runlist                        # => [t1, t0]
+  #   runlist                        # => [1, 0]
   #
-  # Dependencies are resolved every time a task executes; individual
+  # Dependencies are resolved <em>every time</em> a node executes; individual
   # dependencies can implement single-execution if desired.
+  #
   class App
     class << self
       # Sets the current app instance
       attr_writer :instance
       
       # Returns the current instance of App.  If no instance has been set,
-      # then instance initializes a new App with the default configuration. 
+      # then instance initializes a new App with the default configuration.
+      #
+      # Instance is used to initialize tasks when no app is specified.  Aside
+      # from that, there is nothing magical about instance.
       def instance
         @instance ||= App.new
       end
@@ -190,7 +207,7 @@ module Tap
       node
     end
     
-    # Generates a Node from the block and enques. Returns the new node.
+    # Generates a node from the block and enques. Returns the new node.
     def bq(*inputs, &block) # :yields: *inputs
       node = self.node(&block)
       queue.enq(node, inputs)
@@ -202,6 +219,8 @@ module Tap
       @stack = middleware.new(@stack)
     end
     
+    # Clears the cache, the queue, and resets the stack so that no middleware
+    # is used.  Reset raises an error unless state == State::READY.
     def reset
       synchronize do
         unless state == State::READY
@@ -353,11 +372,11 @@ module Tap
     
     # Dumps self to the target as YAML.
     #
-    # === Implementation Notes
+    # ==== Notes
     #
-    # Platforms that use syck (ex MRI) require a fix because syck misformats
-    # certain dumps, such that they cannot be reloaded (even by syck).
-    # Specifically:
+    # Platforms that use {Syck}[http://whytheluckystiff.net/syck/] (ex MRI)
+    # require a fix because Syck misformats certain dumps, such that they
+    # cannot be reloaded (even by Syck).  Specifically:
     #
     #   &id001 !ruby/object:Tap::Task ?
     #
@@ -365,12 +384,10 @@ module Tap
     #
     #   ? &id001 !ruby/object:Tap::Task
     #
-    # In addition, dump removes Thread and Proc dumps because they can't be
-    # allocated on load
+    # Dump fixes this error and, in addition, removes Thread and Proc dumps
+    # because they can't be allocated on load.
     def dump(target=$stdout, options={})
       synchronize do
-        raise "cannot dump unless READY" unless state == State::READY
-        
         options = {
           :date_format => '%Y-%m-%d %H:%M:%S',
           :date => true,
@@ -398,7 +415,7 @@ module Tap
       target
     end
     
-    # Sets the block to receive the audited result of tasks with no join
+    # Sets the block to receive the audited result of nodes with no join
     # (ie the block is set as default_join).
     def on_complete(&block) # :yields: _result
       self.default_join = block
@@ -407,13 +424,13 @@ module Tap
     
     protected
     
-    # TerminateErrors are raised to kill executing tasks when terminate is 
+    # TerminateErrors are raised to kill executing nodes when terminate is 
     # called on an running App.  They are handled by the run rescue code.
-    class TerminateError < RuntimeError # :nodoc:
+    class TerminateError < RuntimeError
     end
     
     # Raised when Dependencies#resolve detects a circular dependency.
-    class DependencyError < StandardError # :nodoc:
+    class DependencyError < StandardError
       def initialize(trace)
         super "circular dependency: [#{trace.join(', ')}]"
       end
