@@ -108,4 +108,24 @@ B world
 }
     end
   end
+  
+  def test_inclusion_of_task_doc
+    method_root.prepare(:tmp, 'Rapfile') do |file|
+      file << %q{
+class Subclass < Rap::DeclarationTask
+  def helper(); "help"; end
+end
+
+# ::desc a help task
+Subclass.task(:help) {|task, args| puts "got #{task.helper}"}
+}
+    end
+
+    method_root.chdir(:tmp) do
+      sh_test %q{
+% rap help -d-
+got help
+}
+    end
+  end
 end

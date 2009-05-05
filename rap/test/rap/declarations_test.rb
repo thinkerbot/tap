@@ -48,7 +48,7 @@ class DeclarationsTest < Test::Unit::TestCase
     namespace(:nest) do
   
       desc "task two, a nested subclass of Alt"
-      t = Alt.declare(:two)
+      t = Alt.task(:two)
       assert_equal Nest::Two, t.class
       assert_equal Alt, t.class.superclass
       assert_equal "task two, a nested subclass of Alt", t.class.desc.to_s
@@ -87,15 +87,15 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   #
-  # declare test
+  # task test
   #
   
   class DeclarationSubclass < Rap::DeclarationTask
   end
   
-  def test_declare_returns_a_subclass_of_self
-    assert_equal Rap::DeclarationTask, Rap::DeclarationTask.declare(:task0).class.superclass
-    assert_equal DeclarationSubclass, DeclarationSubclass.declare(:task1).class.superclass
+  def test_task_returns_a_subclass_of_self
+    assert_equal Rap::DeclarationTask, Rap::DeclarationTask.task(:task0).class.superclass
+    assert_equal DeclarationSubclass, DeclarationSubclass.task(:task1).class.superclass
   end
   
   #
@@ -437,40 +437,5 @@ class DeclarationsTest < Test::Unit::TestCase
     # this is the rake output
     #assert_equal ["outer1", "inner1", "inner3", "inner2"], arr
     assert_equal ["outer1", "inner1", "outer2", "inner2"], arr
-  end
-end
-
-class DeclarationsDocTest < Test::Unit::TestCase
-  acts_as_file_test
-  acts_as_shell_test
-  
-  RAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/../..")
-  LOAD_PATHS = [
-    "-I'#{RAP_ROOT}/../configurable/lib'",
-    "-I'#{RAP_ROOT}/../lazydoc/lib'",
-    "-I'#{RAP_ROOT}/../tap/lib'"
-  ]
-  
-  CMD_PATTERN = "% rap"
-  CMD = (["TAP_GEMS= ruby -w"] + LOAD_PATHS + ["'#{RAP_ROOT}/bin/rap'"]).join(" ")
-  
-  def test_inclusion_of_task_doc
-    method_root.prepare(:tmp, 'Rapfile') do |file|
-      file << %q{
-class Subclass < Rap::DeclarationTask
-  def helper(); "help"; end
-end
-
-# ::desc a help task
-Subclass.declare(:help) {|task, args| puts "got #{task.helper}"}
-}
-    end
-
-    method_root.chdir(:tmp) do
-      sh_test %q{
-% rap help -d-
-got help
-}
-    end
   end
 end

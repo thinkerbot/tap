@@ -1,13 +1,13 @@
 module Rap
   
-  # :::-
+  # :startdoc:::-
   # A special type of Lazydoc::Comment designed to handle the comment syntax
   # for task declarations.
   #
   # Description instances can be assigned a description, or they may parse
   # one directly from the comment.  Comment lines with the constant attribute
   # '::desc' will have the value set as desc.
-  # :::+
+  # :startdoc:::+
   class Description < Lazydoc::Comment
     
     # The description for self.

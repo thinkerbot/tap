@@ -13,7 +13,25 @@ module Rap
   # * are effectively singletons (one instance per app)
   # * allow for multiple actions
   #
-  # 
+  # The DeclarationTask class partially includes Declarations so subclasses
+  # may directly declare tasks.  A few alias acrobatics makes it so that ONLY
+  # Declarations#task is made available (desc cannot be used because Task
+  # classes already use that method for documentation, and namespace
+  # would be silly).
+  #
+  # Weird? Yes, but it leads to this syntax:
+  #
+  #   # [Rapfile]
+  #   # class Subclass < Rap::DeclarationTask
+  #   #   def helper(); "help"; end
+  #   # end
+  #   #
+  #   # # ::desc a help task
+  #   # Subclass.task(:help) {|task, args| puts "got #{task.helper}"}
+  #   
+  #   % rap help
+  #   got help
+  #
   class DeclarationTask < Tap::Task
     class << self
       

@@ -3,25 +3,26 @@ require 'rap/utils'
 
 module Rap
   
-  # Defines the rakish task declaration methods.  They may be included at the
-  # top level (like Rake) or, since they included as a part of the API, used
-  # through Rap.
+  # Defines the Rap task declaration methods.  They may be included at the
+  # top level (like Rake) or used through Rap.
   #
-  # Unlike rake, task will define actual task classes according to the task
+  # === Usage
+  #
+  # Unlike in rake, task will define actual task classes according to the task
   # names.  Task classes may be nested within modules using namespace.  It's
   # VERY important to realize this is the case both to aid in thing like
   # testing and to prevent namespace conflicts.  For example:
   #
-  #   Rap.task(:sample)                  # => Sample.instance
+  #   t = Rap.task(:sample)                  
+  #   t.class                            # => Sample
+  #
   #   Rap.namespace(:nested) do
-  #     Rap.task(:sample)                # => Nested::Sample.instance
+  #     t = Rap.task(:sample)                
+  #     t.class                          # => Nested::Sample
   #   end
   #
-  # Normally all declared tasks are subclasses of DeclarationTask.  An easy
-  # way to use an existing subclasses of DeclarationTask as a base task is
-  # to call declare on the subclass.  This feature is only available to
-  # subclasses of DeclarationTask, but can be used within namespaces, and in
-  # conjunction with desc.
+  # Normally all declared tasks are subclasses of DeclarationTask, but
+  # subclasses of DeclarationTask can declare tasks as well.
   #
   #   class Alt < DeclarationTask
   #   end
@@ -35,28 +36,34 @@ module Rap
   #   o.class.desc.to_s                  # => "task one, a subclass of DeclarationTask"
   #
   #   namespace(:nest) do
-  #
   #     desc "task two, a nested subclass of Alt"
-  #     t = Alt.declare(:two)
+  #     t = Alt.task(:two)
   #     t.class                          # => Nest::Two
   #     t.class.superclass               # => Alt
   #     t.class.desc.to_s                # => "task two, a nested subclass of Alt"
-  #   
   #   end
   #
-  # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for usage.
+  # This feature is only available to subclasses of DeclarationTask and can
+  # be very useful for creating inheritance hierarchies.  Note that the 'desc'
+  # and 'namespace' declaration methods are not available on DeclarationTask
+  # or subclasses, just 'task'.
+  #
+  # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for more
+  # information.
   module Declarations
     include Utils
     
     # The environment in which declared task classes are registered.
-    # By default the Tap::Env for Dir.pwd.
+    # By default a Tap::Env for Dir.pwd.
     def Declarations.env() @@env ||= Tap::Env.new; end
     
     # Sets the declaration environment.
     def Declarations.env=(env) @@env=env; end
     
+    # The declaration App (default Tap::App.instance)
     def Declarations.app() @@app ||= Tap::App.instance; end
     
+    # Sets the declaration App.
     def Declarations.app=(app) @@app=app; end
     
     # The base constant for all task declarations, prepended to the task name.
@@ -68,6 +75,7 @@ module Rap
     def Declarations.current_desc() @@current_desc; end
     @@current_desc = nil
     
+    # Returns the instance of the task class in app.
     def Declarations.instance(tasc)
       tasc.instance(Declarations.app)
     end
@@ -222,32 +230,10 @@ module Rap
       
       include Declarations
       
-      # The DeclarationTask class partially includes Declarations so
-      # subclasses may directly declare tasks.  A few alias acrobatics makes
-      # it so that ONLY Declarations#task is made available, and only through
-      # the declare method (desc cannot be used because Task classes already
-      # use that method for documentation, and namespace would be silly).
-      #
-      # Weird? Yes, but it leads to this syntax:
-      #
-      #   # [Rapfile]
-      #   # class Subclass < Rap::DeclarationTask
-      #   #   def helper(); "help"; end
-      #   # end
-      #   #
-      #   # # ::desc a help task
-      #   # Subclass.declare(:help) {|task, args| puts "got #{task.helper}"}
-      #   
-      #   % rap help
-      #   got help
-      #
-      alias declare task
-      private :task, :desc, :namespace
-      
       # :stopdoc:
       undef_method :desc
       alias desc original_desc
-      private :task, :namespace
+      private :namespace
       # :startdoc:
       
       private
