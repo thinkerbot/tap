@@ -27,6 +27,72 @@ class ShellTestTest < Test::Unit::TestCase
   include Tap::Test::ShellTest
   
   #
+  # with_env test
+  #
+  
+  def test_with_env_sets_variables_for_duration_of_block
+    assert_equal nil, ENV['UNSET_VARIABLE']
+    ENV['SET_VARIABLE'] = 'set'
+    
+    was_in_block = false
+    with_env 'UNSET_VARIABLE' => 'unset' do
+      was_in_block = true
+      assert_equal 'set', ENV['SET_VARIABLE']
+      assert_equal 'unset', ENV['UNSET_VARIABLE']
+    end
+    
+    assert_equal true, was_in_block
+    assert_equal 'set', ENV['SET_VARIABLE']
+    assert_equal nil, ENV['UNSET_VARIABLE']
+    assert_equal false, ENV.has_key?('UNSET_VARIABLE')
+  end
+  
+  def test_with_env_resets_variables_even_on_error
+    assert_equal nil, ENV['UNSET_VARIABLE']
+    
+    was_in_block = false
+    err = assert_raises(RuntimeError) do
+      with_env 'UNSET_VARIABLE' => 'unset' do
+        was_in_block = true
+        assert_equal 'unset', ENV['UNSET_VARIABLE']
+        raise "error"
+        flunk "should not have reached here"
+      end
+    end
+    
+    assert_equal 'error', err.message
+    assert_equal true, was_in_block
+    assert_equal nil, ENV['UNSET_VARIABLE']
+  end
+  
+  def test_with_env_replaces_env_if_specified
+    ENV['SET_VARIABLE'] = 'set'
+    
+    was_in_block = false
+    with_env({}, true) do
+      was_in_block = true
+      assert_equal nil, ENV['SET_VARIABLE']
+      assert_equal false, ENV.has_key?('SET_VARIABLE')
+    end
+    
+    assert_equal true, was_in_block
+    assert_equal 'set', ENV['SET_VARIABLE']
+  end
+  
+  def test_with_env_returns_block_result
+    assert_equal "result", with_env {"result"}
+  end
+  
+  def test_with_env_allows_nil_env
+    was_in_block = false
+    with_env(nil) do
+      was_in_block = true
+    end
+    
+    assert_equal true, was_in_block
+  end
+  
+  #
   # sh_test test
   #
   
@@ -45,6 +111,11 @@ class ShellTestTest < Test::Unit::TestCase
 % argv_inspect hello world
 ["hello", "world"]
 }, opts
+
+    sh_test %Q{
+ruby -e "puts ENV['SAMPLE']"
+value
+}, :env => {'SAMPLE' => 'value'}
   end
   
   #
@@ -59,10 +130,8 @@ class ShellTestTest < Test::Unit::TestCase
   end
   
   def test_sh_test_options_documentation
-    expected = {
-     :cmd_pattern => '% sample',
-     :cmd => 'command'
-    }
-    assert_equal expected, ShellTestOptionsExample.new.sh_test_options
+    options = ShellTestOptionsExample.new.sh_test_options
+    assert_equal '% sample', options[:cmd_pattern]
+    assert_equal 'command', options[:cmd]
   end
 end

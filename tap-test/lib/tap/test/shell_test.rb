@@ -61,6 +61,31 @@ module Tap
         ENV['QUIET'] == 'true'
       end
       
+      # Sets the specified ENV variables for the duration of the block.
+      # If replace is true, current ENV variables are replaced; otherwise
+      # the new env variables are simply added to the existing set.
+      def with_env(env={}, replace=false)
+        current_env = {}
+        ENV.each_pair do |key, value|
+          current_env[key] = value
+        end
+        
+        begin
+          ENV.clear if replace
+          env.each_pair do |key, value|
+            ENV[key] = value
+          end if env
+          
+          yield
+          
+        ensure
+          ENV.clear
+          current_env.each_pair do |key, value|
+            ENV[key] = value
+          end
+        end
+      end
+      
       # Executes the command using IO.popen and returns the stdout content.
       #
       # ==== Note
@@ -75,7 +100,8 @@ module Tap
       end
       
       # Peforms a shell test.  Shell tests execute the command and yield the
-      # $stdout result to the block for validation.
+      # $stdout result to the block for validation.  The command is executed
+      # through sh, ie using IO.popen.
       #
       # ==== Command Aliases
       #
@@ -103,6 +129,23 @@ module Tap
       # Note that the default options are specified by the sh_test_options
       # method, which sets :cmd_pattern and :cmd using the class constants
       # CMD_PATTERN and CMD, if they are defined.
+      #
+      # ==== ENV variables
+      #
+      # Options may specify a hash of env variables that will be set in the
+      # subprocess.
+      #
+      #   sh_test %Q{
+      #   ruby -e "puts ENV['SAMPLE']"
+      #   value
+      #   }, :env => {'SAMPLE' => 'value'}
+      #
+      # Note it is better to specify env variables in this way rather than
+      # through the command trick 'VAR=value cmd ...', as that syntax does
+      # not work on Windows.  As a point of interest, see
+      # http://gist.github.com/107363 for a demonstration of ENV
+      # variables being inherited by subprocesses.
+      # 
       def sh_test(cmd, options=sh_test_options)
         unless quiet? || @shell_test_notification
           @shell_test_notification = true
@@ -118,7 +161,9 @@ module Tap
         end
         
         start = Time.now
-        result = sh(cmd)
+        result = with_env(options[:env], options[:replace_env]) do
+          sh(cmd)
+        end
         finish = Time.now
         
         elapsed = "%.3f" % [finish-start]

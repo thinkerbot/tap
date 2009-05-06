@@ -18,16 +18,15 @@ module Tap
         #     CMD = 'command'
         #   end
         #
-        #   ShellTestOptionsExample.sh_test_options
-        #   # => {
-        #   #  :cmd_pattern => '% sample',
-        #   #  :cmd => 'command'
-        #   # }
+        #   options = ShellTestOptionsExample.sh_test_options
+        #   options[:cmd_pattern]      # => '% sample'
+        #   options[:cmd]              # => 'command'
         #
         def sh_test_options
           @sh_test_options ||= {
             :cmd_pattern => class_const(:CMD_PATTERN),
-            :cmd => class_const(:CMD)
+            :cmd => class_const(:CMD),
+            :env => {}
           }
         end
 
