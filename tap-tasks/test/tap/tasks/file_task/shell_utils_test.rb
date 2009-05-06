@@ -1,8 +1,8 @@
-require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/support/shell_utils'
+require File.join(File.dirname(__FILE__), '../../../tap_test_helper')
+require 'tap/tasks/file_task/shell_utils'
 
 class ShellUtilsTest < Test::Unit::TestCase
-  include Tap::Support::ShellUtils
+  include Tap::Tasks::FileTask::ShellUtils
 
   #
   # capture_sh test

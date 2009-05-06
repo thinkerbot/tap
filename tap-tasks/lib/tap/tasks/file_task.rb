@@ -1,5 +1,4 @@
-require 'tap/task'
-require 'tap/support/shell_utils'
+require 'tap/tasks/file_task/shell_utils'
 
 module Tap
   module Tasks
@@ -32,7 +31,7 @@ module Tap
     #   File.read("file.txt")                   # => "new content"
     #
     class FileTask < Task
-      include Tap::Support::ShellUtils
+      include ShellUtils
     
       # The backup directory
       config_attr :backup_dir, 'backup'            # The backup directory

@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
   # list the files you want to include here. you can
   # check this manifest using 'rap print_manifest'
   s.files = %W{
-    lib/tap/support/shell_utils.rb
+    lib/tap/tasks/file_task/shell_utils.rb
     lib/tap/tasks/argv.rb
     lib/tap/tasks/dump/inspect.rb
     lib/tap/tasks/dump/yaml.rb
