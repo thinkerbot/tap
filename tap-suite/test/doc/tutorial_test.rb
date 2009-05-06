@@ -2,21 +2,22 @@ require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap'
 
 class TutorialTest < Test::Unit::TestCase 
-  acts_as_shell_test
-  acts_as_file_test
-  
-  RAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/../../..")
+  root = File.expand_path(File.dirname(__FILE__) + "/../../..")
   LOAD_PATHS = [
-    "-I'#{RAP_ROOT}/configurable/lib'",
-    "-I'#{RAP_ROOT}/lazydoc/lib'",
-    "-I'#{RAP_ROOT}/tap/lib'",
-    "-I'#{RAP_ROOT}/rap/lib'",
-    "-I'#{RAP_ROOT}/tap-gen/lib'"
+    "-I'#{root}/configurable/lib'",
+    "-I'#{root}/lazydoc/lib'",
+    "-I'#{root}/tap/lib'",
+    "-I'#{root}/rap/lib'",
+    "-I'#{root}/tap-gen/lib'"
   ]
   
-  CMD_PATTERN = "% rap"
-  CMD = (["TAP_GEMS= ruby"] + LOAD_PATHS + ["'#{RAP_ROOT}/rap/bin/rap'"]).join(" ")
-
+  acts_as_file_test
+  acts_as_shell_test(
+    :cmd_pattern => "% rap",
+    :cmd => (["ruby"] + LOAD_PATHS + ["'#{root}/rap/bin/rap'"]).join(" "),
+    :env => {'TAP_GEMS' => ''}
+  )
+  
   def test_declaration
     method_root.prepare(:tmp, 'Rapfile') do |file|
       file << %q{
