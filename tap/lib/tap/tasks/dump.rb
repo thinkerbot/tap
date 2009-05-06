@@ -10,11 +10,11 @@ module Tap
     #
     # Dump faciliates normal redirection:
     #
-    #   % tap run -- load hello --: dump | cat
+    #   % tap run -- load hello --: dump | more
     #   hello
     #
     #   % tap run -- load hello --: dump 1> results.txt
-    #   % cat results.txt
+    #   % more results.txt
     #   hello
     #
     # Note that dumps are appended to the file.  Dump only accepts one object

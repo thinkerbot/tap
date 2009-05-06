@@ -5,7 +5,7 @@ module Doctest
   TAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/..")
   CMD_PATTERN = "% tap"
   CMD = [
-    "TAP_GEMS= ruby",
+    "ruby",
     "-I'#{TAP_ROOT}/../configurable/lib'",
     "-I'#{TAP_ROOT}/../lazydoc/lib'",
     "'#{TAP_ROOT}/bin/tap'"
@@ -14,6 +14,14 @@ module Doctest
   def setup
     super
     puts method_name if ENV['VERBOSE'] == 'true'
+    
+    @tap_gems = ENV['TAP_GEMS']
+    ENV['TAP_GEMS'] = ''
+  end
+  
+  def teardown
+    super
+    ENV['TAP_GEMS'] = @tap_gems
   end
   
   def path(path)

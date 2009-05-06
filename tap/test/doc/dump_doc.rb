@@ -2,7 +2,7 @@ require File.join(File.dirname(__FILE__), '../doc_test_helper')
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap'
 
-class LoadDoc < Test::Unit::TestCase 
+class DumpDoc < Test::Unit::TestCase 
   include Doctest
   include MethodRoot
   
@@ -22,16 +22,15 @@ world
   end
   
   def test_dump_pipe
-      sh_test %q{
-% tap run -- load hello --: dump | cat
-hello
-}
+    # for some reason this adds an extra \n on windows?
+    result = sh %Q{#{CMD} run -- load hello --: dump | more}
+    assert result =~ /\Ahello\n+\z/
   end
   
   def test_dump_redirect
     method_root.chdir(:sample, true) do
       assert_equal "", sh("#{CMD} run -- load hello --: dump 1> results.txt")
-      assert_equal "hello\n", sh("cat results.txt")
+      assert_equal "hello\n", sh("more results.txt")
     end
   end
 end
