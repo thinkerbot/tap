@@ -1,14 +1,31 @@
-= Tap Tasks
+= {Tap Tasks}[http://tap.rubyforge.org/tap-tasks]
 
+  task n. a piece of work to be done or undertaken
+  
 A set of standard Tap tasks.
 
 == Description
 
-Tap Tasks is a standard library of utility tasks.
+A standard library of utility tasks, for example tasks to dump/load results as
+{YAML}[http://www.yaml.org/]. {Tap-Tasks}[http://tap.rubyforge.org/tap-tasks]
+is a part of the {Tap-Suite}[http://tap.rubyforge.org/tap-suite]. Check out
+these links for documentation, development, and bug tracking.
+
+* Website[http://tap.rubyforge.org] 
+* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
+* Github[http://github.com/bahuvrihi/tap/tree/master] 
+* {Google Group}[http://groups.google.com/group/ruby-on-tap]
+
+== Usage
+
+Usage is the same as for any tasks.
+
+  % tap run -- load/yaml "{key: value}" --: inspect
+  {"key" => "value"}
 
 == Installation
 
-Tap Tasks is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+Tap-Tasks is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
 
   % gem install tap-tasks
   

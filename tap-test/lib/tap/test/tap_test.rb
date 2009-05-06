@@ -1,6 +1,11 @@
 module Tap
   module Test
+    
+    # Simply sets up and tears down Tap::App.instance so that tests that
+    # instantiate classes will not inadvertently smush over into one another.
     module TapTest
+      
+      # The test specific app
       attr_reader :app
 
       def setup

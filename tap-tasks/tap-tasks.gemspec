@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.add_dependency("tap", ">= 0.17.0")
   s.add_development_dependency("tap-test", ">= 0.1.0")
   s.has_rdoc = true
-  s.rdoc_options.concat %W{--main README -S -N --title Tap\sTasks}
+  s.rdoc_options.concat %W{--main README -S -N --title Tap-Tasks}
   
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{

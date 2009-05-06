@@ -1,19 +1,18 @@
-require 'tap/load'
+require 'tap/tasks/load'
 
 module Tap
   module Tasks
-    module Load
+    class Load < Tap::Task
       
       # :startdoc::task loads data as YAML
       #
-      # Loads data from the input IO as YAML.  See the default tap load task
-      # for more details.
+      # Loads data from the input IO as YAML.
       #
       #   % tap run -- load/yaml "{key: value}" --: dump/yaml
       #   --- 
       #   key: value
       #
-      class Yaml < Tap::Load
+      class Yaml < Load
         
         # Loads data from io as YAML.
         def load(io)

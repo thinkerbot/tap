@@ -1,4 +1,6 @@
-==
+== 0.2.0 / 2009-05-05
+
+Updates for use with Tap-0.17.0
 
 * added configurable inspect method to inspect
 

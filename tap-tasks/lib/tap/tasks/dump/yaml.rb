@@ -1,19 +1,18 @@
-require 'tap/dump'
+require 'tap/tasks/dump'
 
 module Tap
   module Tasks
-    module Dump
+    class Dump < Tap::Task
       
       # :startdoc::task dumps data as YAML
       #
-      # Dumps workflow results to a file or IO as YAML.  See the default tap
-      # dump task for more details.
+      # Dumps workflow results to a file or IO as YAML.
       #
       #   % tap run -- load/yaml "{key: value}" --: dump/yaml
       #   --- 
       #   key: value
       #
-      class Yaml < Tap::Dump
+      class Yaml < Dump
         
         # Dumps the object to io as YAML.
         def dump(obj, io)
