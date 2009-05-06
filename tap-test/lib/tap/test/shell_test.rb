@@ -1,3 +1,21 @@
+if RUBY_PLATFORM =~ /mswin32/
+  begin
+    require 'rubygems'
+    require 'win32/open3'
+  rescue(LoadError)
+    puts %q{
+Tap:Test::ShellTest requires the win32-open3 gem on Windows.
+Use this command and try again:
+
+  % gem install win32-open3
+
+}
+    raise
+  end
+else
+  require 'open3'
+end
+
 require 'tap/test/shell_test/class_methods'
 
 module Tap
@@ -92,13 +110,15 @@ module Tap
       # Executes the command using IO.popen and returns the stdout content.
       #
       # ==== Note
-      # IO.popen was chosen over the more flexible Open3.popen3 because
-      # Open3 requires Kernel.fork, which is not available on Windows without
-      # additional plugins.
+      # On Windows this method requires the {win32-popen3}[http://rubyforge.org/projects/win32utils]
+      # utility.  If it is not available, it will have to be installed:
+      #
+      #   % gem install win32-open3 
+      # 
       def sh(cmd)
-        IO.popen(cmd) do |io|
-          yield(io) if block_given?
-          io.read
+        Open3.popen3(cmd) do |i,o,s|
+          yield(i,o,s) if block_given?
+          return o.read
         end
       end
       
