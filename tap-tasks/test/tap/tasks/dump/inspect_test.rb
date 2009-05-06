@@ -4,7 +4,7 @@ require 'stringio'
 
 class DumpInspectTest < Test::Unit::TestCase
   include Tap::Tasks
-  acts_as_shell_test(:cmd => TAP_CMD_PATH, :cmd_pattern => '% tap')
+  acts_as_shell_test(SH_TEST_OPTIONS)
 
   #
   # documentation test

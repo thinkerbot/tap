@@ -12,12 +12,17 @@ not been initialized.  Use these commands and try again:
   raise
 end
 
-unless Object.const_defined?(:TAP_CMD_PATH)
+unless Object.const_defined?(:SH_TEST_OPTIONS)
   tap_root = File.expand_path(File.dirname(__FILE__) + "/..")
   load_paths = [
     "-I'#{tap_root}/../configurable/lib'",
     "-I'#{tap_root}/../lazydoc/lib'",
     "-I'#{tap_root}/../tap/lib'"
   ]
-  TAP_CMD_PATH = (["TAP_GEMS= ruby"] + load_paths + ["'#{tap_root}/../tap/bin/tap'"]).join(" ")
+  
+  SH_TEST_OPTIONS = {
+    :cmd_pattern => '% tap',
+    :cmd => (["ruby"] + load_paths + ["'#{tap_root}/../tap/bin/tap'"]).join(" "),
+    :env => {'TAP_ENV' => ''}
+  } 
 end 
