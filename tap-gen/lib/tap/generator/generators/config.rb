@@ -86,7 +86,7 @@ module Tap::Generator::Generators
     def manifest(m, name, config_name=nil)
       # setup
       tasc = lookup(name)
-      config_name ||= tasc.default_name
+      config_name ||= tasc.to_s.underscore
       config_file = path('config', config_name)
       config_file += ".yml" if File.extname(config_file).empty?
       

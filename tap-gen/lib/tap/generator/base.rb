@@ -88,11 +88,11 @@ module Tap
       # The IO used to prompt users for input (default: $stdout)
       attr_accessor :prompt_out
       
-      def initialize(*args)
+      def initialize(config={}, app=Tap::App.instance)
         super
         @prompt_in = $stdin
         @prompt_out = $stdout
-        @template_dir = File.expand_path("templates/#{self.class.default_name}")
+        @template_dir = File.expand_path("templates/#{self.class.to_s.underscore}")
       end
       
       # Builds the manifest, then executes the actions of the manifest.
