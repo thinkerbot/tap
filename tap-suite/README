@@ -1,19 +1,32 @@
 = {Tap Suite}[http://tap.rubyforge.org/tap-suite]
 
-A collection of several modules that simplify development
+  suite n. a set of things belonging together
+  
+A collection of modules to rapidly develop {Tap}[http://tap.rubyforge.org]
+workflows.
 
 == Description
 
-{Tap}[http://tap.rubyforge.org] is a framework for creating configurable,
-distributable tasks and workflows.  Several related modules apply Tap in
-particularly useful ways.  The Tap Suite is simply a collection of those
-gems, facilitating installation and update.
+{Tap}[http://tap.rubyforge.org] is a configurable, distributable workflow
+framework. Several related modules apply Tap in particularly useful ways. The
+Tap-Suite is simply a collection of those gems, facilitating installation and
+update.
 
 Currently these modules are included:
 
-* {Tap}[http://tap.rubyforge.org]
+* {Tap}[http://tap.rubyforge.org/rdoc]
 * {Rap}[http://tap.rubyforge.org/rap]
+* {Tap-Generators}[http://tap.rubyforge.org/tap-gen]
 * {Tap-Server}[http://tap.rubyforge.org/tap-server]
+* {Tap-Tasks}[http://tap.rubyforge.org/tap-tasks]
+* {Tap-Test}[http://tap.rubyforge.org/tap-test]
+
+Check out these links for documentation, development, and bug tracking.
+
+* Website[http://tap.rubyforge.org] 
+* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
+* Github[http://github.com/bahuvrihi/tap/tree/master] 
+* {Google Group}[http://groups.google.com/group/ruby-on-tap]
 
 == Installation
 
