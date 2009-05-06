@@ -1,4 +1,3 @@
-require 'open3'
 require 'tap/test/shell_test/class_methods'
 
 module Tap
@@ -62,11 +61,16 @@ module Tap
         ENV['QUIET'] == 'true'
       end
       
-      # Executes the command using Open3.popen3 and returns the stdout content.
+      # Executes the command using IO.popen and returns the stdout content.
+      #
+      # ==== Note
+      # IO.popen was chosen over the more flexible Open3.popen3 because
+      # Open3 requires Kernel.fork, which is not available on Windows without
+      # additional plugins.
       def sh(cmd)
-        Open3.popen3(cmd) do |stdin, stdout, stderr|
-          yield(stdin, stdout, stderr) if block_given?
-          stdout.read
+        IO.popen(cmd) do |io|
+          yield(io) if block_given?
+          io.read
         end
       end
       
