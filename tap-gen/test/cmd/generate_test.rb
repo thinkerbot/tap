@@ -1,8 +1,20 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap'
 
-class GenerateTest < Test::Unit::TestCase 
-  acts_as_shell_test(:cmd => TAP_CMD_PATH, :cmd_pattern => '% tap')
+class GenerateTest < Test::Unit::TestCase
+  tap_root = File.expand_path(File.dirname(__FILE__) + "/../..")
+  load_paths = [
+    "-I'#{tap_root}/../configurable/lib'",
+    "-I'#{tap_root}/../lazydoc/lib'",
+    "-I'#{tap_root}/../tap/lib'",
+    "-I'#{tap_root}/../tap-tasks/lib'"
+  ]
+  
+  acts_as_shell_test(
+    :cmd_pattern => '% tap',
+    :cmd => (["ruby"] + load_paths + ["'#{tap_root}/../tap/bin/tap'"]).join(" "), 
+    :env => {'TAP_GEMS' => ''}
+  )
 
   #
   # help test

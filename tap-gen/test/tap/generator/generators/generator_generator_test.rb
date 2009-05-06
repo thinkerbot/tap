@@ -15,16 +15,16 @@ class GeneratorGeneratorTest < Test::Unit::TestCase
     g = Generator.new.extend Preview
     
     assert_equal %w{
-      lib/const_name
-      lib/const_name/const_name_generator.rb
+      lib
+      lib/const_name.rb
       templates/const_name
       templates/const_name/template_file.erb
       test
-      test/const_name_generator_test.rb
-    }, g.process('const_name')
+      test/const_name_test.rb
+    }.sort, g.process('const_name').sort
     
     assert !GeneratorGeneratorTest.const_defined?(:ConstNameGenerator)
-    eval(g.preview['lib/const_name/const_name_generator.rb'])
+    eval(g.preview['lib/const_name.rb'])
     
     method_root.prepare(:tmp, 'template_file.erb') do |file|
       file << g.preview['templates/const_name/template_file.erb']
