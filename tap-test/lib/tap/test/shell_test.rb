@@ -9,9 +9,12 @@ module Tap
     #   class ShellTestSample < Test::Unit::TestCase
     #     include Tap::Test::ShellTest
     #
-    #     # these are used in test_sh_command_alias 
-    #     CMD_PATTERN = '% inspect_env'
-    #     CMD = 'ruby -e "puts ENV.inspect"'
+    #     # these are the default sh_test options used 
+    #     # in tests like test_sh_command_alias
+    #     self.sh_test_options = {
+    #       :cmd_pattern => '% inspect_argv',
+    #       :cmd => 'ruby -e "puts ARGV.inspect"'
+    #     }
     #
     #     def test_echo
     #       assert_equal "goodnight moon", sh("echo goodnight moon").strip
@@ -103,6 +106,9 @@ module Tap
       # $stdout result to the block for validation.  The command is executed
       # through sh, ie using IO.popen.
       #
+      # Options provided to sh_test are merged with the sh_test_options set
+      # for the class.
+      #
       # ==== Command Aliases
       #
       # The options allow specification of a command pattern that gets
@@ -126,10 +132,6 @@ module Tap
       #   ["hello", "world"]
       #   }, opts
       #
-      # Note that the default options are specified by the sh_test_options
-      # method, which sets :cmd_pattern and :cmd using the class constants
-      # CMD_PATTERN and CMD, if they are defined.
-      #
       # ==== ENV variables
       #
       # Options may specify a hash of env variables that will be set in the
@@ -146,7 +148,9 @@ module Tap
       # http://gist.github.com/107363 for a demonstration of ENV
       # variables being inherited by subprocesses.
       # 
-      def sh_test(cmd, options=sh_test_options)
+      def sh_test(cmd, options={})
+        options = sh_test_options.merge(options)
+        
         unless quiet? || @shell_test_notification
           @shell_test_notification = true
           puts
@@ -177,7 +181,7 @@ module Tap
       # Returns a hash of the default sh_test options.  See
       # ShellTest::ClassMethods#sh_test_options.
       def sh_test_options
-        @sh_test_options ||= self.class.sh_test_options
+        self.class.sh_test_options
       end
     end
   end

@@ -56,20 +56,17 @@ Simple testing of shell commands.
 
   require 'tap/test/unit'
   class ShellTestTest < Test::Unit::TestCase
-    acts_as_shell_test
+    acts_as_shell_test :cmd_pattern => '% alias', :cmd => 'echo'
 
     def test_echo
       assert_equal "goodnight moon", sh("echo goodnight moon").strip
     end
     
     def test_echo_with_an_alias
-      # most likely you set these once and re-use them
-      options = {:cmd_pattern => '% alias', :cmd => 'echo'}
-      
       sh_test %q{
   % alias goodnight moon
   goodnight moon
-  }, options
+  }
     end
   end
     
