@@ -104,26 +104,12 @@ class TaskTest < Test::Unit::TestCase
   end
   
   #
-  # Task.default_name test
-  #
-  
-  class NameClass < Tap::Task
-    class NestedClass < Tap::Task
-    end
-  end
-  
-  def test_default_name_is_underscored_class_name_by_default
-    assert_equal "task_test/name_class", NameClass.default_name
-    assert_equal "task_test/name_class/nested_class", NameClass::NestedClass.default_name
-  end
-  
-  #
   # Task.parse test
   #
   
   def test_parse_returns_instance_and_args
     instance, args = Task.parse([1,2,3])
-    assert_equal 'tap/task', instance.name
+    assert_equal Task, instance.class
     assert_equal [1,2,3], args
   end
   
@@ -134,7 +120,7 @@ class TaskTest < Test::Unit::TestCase
       ARGV.concat([1,2,3])
       
       instance, args = Task.parse
-      assert_equal 'tap/task', instance.name
+      assert_equal Task, instance.class
       assert_equal [1,2,3], args
     ensure
       ARGV.clear
@@ -151,20 +137,14 @@ class TaskTest < Test::Unit::TestCase
     assert_equal ParseClass, instance.class
   end
   
-  def test_parse_instance_is_initialized_with_default_name_and_config
+  def test_parse_instance_is_initialized_with_default_config
     instance, argv = ParseClass.parse([])
-    assert_equal(ParseClass.default_name, instance.name)
     assert_equal({:key => 'value'}, instance.config)
   end
   
   def test_parse_reconfigures_instance_using_configs_in_argv
     instance, argv = ParseClass.parse(%w{--key alt})
     assert_equal({:key => 'alt'}, instance.config)
-  end
-  
-  def test_parse_sets_name_using_name_option
-    instance, argv = ParseClass.parse(["--name", "alt"])
-    assert_equal('alt', instance.name)
   end
   
   def test_parse_reconfigures_instance_using_config_option
@@ -198,7 +178,7 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_parse_returns_remaining_args_in_argv
-    instance, argv = ParseClass.parse(%w{1 --key value --name name 2 3})
+    instance, argv = ParseClass.parse(%w{1 --key value 2 3})
     assert_equal %w{1 2 3}, argv
   end
   
@@ -223,11 +203,6 @@ class TaskTest < Test::Unit::TestCase
   def test_instantiate_reconfigures_instance_using_config
     instance, args = InstantiateClass.instantiate :config => {:key => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
-  end
-  
-  def test_instantiate_sets_name_using_name_option
-    instance, args = InstantiateClass.instantiate :name => 'alt'
-    assert_equal('alt', instance.name)
   end
   
   def test_instantiate_reconfigures_instance_using_config_file
@@ -404,7 +379,7 @@ class TaskTest < Test::Unit::TestCase
   
   def test_depends_on_documentation
     app = Tap::App.new
-    b = B.new({}, :name, app)
+    b = B.new({}, app)
     assert_equal [A.instance(app)], b.dependencies
     assert_equal A.instance(app), b.a 
   end
@@ -504,12 +479,11 @@ class TaskTest < Test::Unit::TestCase
     end
   end
   
-  def test_define_subclasses_task_class_with_name_configs_and_block
+  def test_define_subclasses_task_class_with_configs_and_block
     assert Define.const_defined?(:DefineTask)
     assert_equal Tap::Task, Define::DefineTask.superclass
     
     define_task = Define::DefineTask.new
-    assert_equal 'define_task', define_task.name
     assert_equal({:key => 'value'}, define_task.config.to_hash)
     assert_equal "result", define_task.process
   end
@@ -519,7 +493,6 @@ class TaskTest < Test::Unit::TestCase
     assert t.respond_to?(:define_task)
     assert_equal Define::DefineTask,  t.define_task.class
     
-    assert_equal 'define_task', t.define_task.name
     assert_equal({:key => 'value'}, t.define_task.config.to_hash)
     assert_equal "result", t.define_task.process
   end
@@ -634,12 +607,10 @@ class TaskTest < Test::Unit::TestCase
   def test_default_initialization
     assert_equal Tap::App.instance, t.app
     assert_equal({}, t.config)
-    assert_equal "tap/task", t.name
   end
   
-  def test_initialization_with_inputs
-    t = Task.new({:key => 'value'}, "name") 
-    assert_equal "name", t.name
+  def test_initialization_with_config
+    t = Task.new({:key => 'value'})
     assert_equal({:key => 'value'}, t.config)
   end
   
@@ -651,17 +622,6 @@ class TaskTest < Test::Unit::TestCase
     assert dhash.bound?
     assert_equal s, dhash.receiver
     assert_equal dhash, s.config
-  end
-  
-  def test_name_is_set_to_class_default_name_unless_specified
-    t = Task.new
-    assert_equal Task.default_name, t.name
-    
-    t = Task.new({}, 'alt')
-    assert_equal "alt", t.name
-    
-    s = Sample.new
-    assert_equal Sample.default_name, s.name
   end
   
   #
@@ -678,7 +638,7 @@ class TaskTest < Test::Unit::TestCase
     results = []
     app = Tap::App.new {|result| results << result }
   
-    t = TaskWithTwoInputs.new({}, :name, app)
+    t = TaskWithTwoInputs.new({}, app)
     t.enq(1,2).enq(3,4)
     
     app.run
@@ -689,22 +649,5 @@ class TaskTest < Test::Unit::TestCase
     t = Task.new
     assert_equal [1,2,3], t.process(1,2,3)
   end
-  
-  #
-  # to_s test
-  #
-  
-  def test_to_s_returns_name
-    t = Task.new
-    assert_equal t.name, t.to_s
-    
-    t.name = "alt_name"
-    assert_equal "alt_name", t.to_s
-  end
-  
-  def test_to_s_stringifies_name
-    t = Task.new({}, :name)
-    assert_equal :name, t.name
-    assert_equal 'name', t.to_s
-  end
+
 end

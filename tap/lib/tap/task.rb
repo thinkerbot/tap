@@ -11,8 +11,8 @@ module Tap
   
   class App
     # Generates a task initialized to self.
-    def task(config={}, name=nil, klass=Task, &block)
-      klass.intern(config, name, self, &block)
+    def task(config={}, klass=Task, &block)
+      klass.intern(config, self, &block)
     end
   end
   
@@ -129,21 +129,9 @@ module Tap
       # Returns class dependencies
       attr_reader :dependencies
       
-      # Sets the class default_name
-      attr_writer :default_name
-      
       # Returns or initializes the instance of self cached with app.
       def instance(app=Tap::App.instance)
-        app.cache[self] ||= new({}, nil, app)
-      end
-      
-      # Returns the default name for the class: to_s.underscore
-      def default_name
-        # lazy-setting default_name like this (rather than
-        # within inherited, for example) is an optimization
-        # since many subclass operations end up setting
-        # default_name themselves.
-        @default_name ||= to_s.underscore
+        app.cache[self] ||= new({}, app)
       end
       
       def inherited(child) # :nodoc:
@@ -161,8 +149,8 @@ module Tap
       # instance, plus any inputs.
       #
       # Simply instantiates a new task if no block is given.
-      def intern(config={}, name=nil, app=Tap::App.instance, &block) # :yields: task, inputs...
-        instance = new(config, name, app)
+      def intern(config={}, app=Tap::App.instance, &block) # :yields: task, inputs...
+        instance = new(config, app)
         if block_given?
           instance.extend Support::Intern(:process)
           instance.process_block = block
@@ -202,12 +190,6 @@ module Tap
           puts opts
           exit
         end
- 
-        # add option to specify the task name
-        name = default_name
-        opts.on('--name NAME', 'Specifies the task name') do |value|
-          name = value
-        end
         
         # add option to specify a config file
         config_file = nil
@@ -218,7 +200,6 @@ module Tap
         # parse!
         argv = opts.parse!(argv, {}, false)
         argh = { 
-          :name => name,
           :config => opts.nested_config,
           :config_file => config_file,
           :args => argv
@@ -230,11 +211,10 @@ module Tap
       # Instantiates an instance of self and returns an instance of self and
       # an array of arguments (implicitly to be enqued to the instance).
       def instantiate(argh={}, app=Tap::App.instance)
-        name = argh[:name]
         config = argh[:config]
         config_file = argh[:config_file]
         
-        instance = new({}, name, app)
+        instance = new({}, app)
         instance.reconfigure(load_config(config_file)) if config_file
         instance.reconfigure(config) if config
         
@@ -297,7 +277,7 @@ module Tap
       #   end
       #
       #   app = Tap::App.new
-      #   b = B.new({}, :name, app)
+      #   b = B.new({}, app)
       #   b.dependencies           # => [A.instance(app)]
       #   b.a                      # => A.instance(app)
       #
@@ -391,8 +371,6 @@ module Tap
       def define(name, baseclass=Tap::Task, configs={}, options={}, &block)
         # define the subclass
         subclass = Class.new(baseclass)
-        subclass.default_name = name.to_s
-        
         configs.each_pair do |key, value|
           subclass.send(:config, key, value)
         end
@@ -413,7 +391,6 @@ module Tap
     end
     
     instance_variable_set(:@source_file, __FILE__)
-    instance_variable_set(:@default_name, 'tap/task')
     instance_variable_set(:@dependencies, [])
     
     lazy_attr :desc, 'task'
@@ -437,16 +414,9 @@ module Tap
     
     # The App receiving self during enq
     attr_reader :app
-    
-    # The name of self
-    #--
-    # Currently names may be any object.  Audit makes use of name
-    # via to_s, as does app when figuring configuration filepaths. 
-    attr_accessor :name
 
     # Initializes a new Task.
-    def initialize(config={}, name=nil, app=Tap::App.instance)
-      @name = name || self.class.default_name
+    def initialize(config={}, app=Tap::App.instance)
       @app = app
       @join = nil
       @dependencies = []
@@ -486,7 +456,7 @@ module Tap
     #   results = []
     #   app = Tap::App.new {|result| results << result }
     #
-    #   t = TaskWithTwoInputs.new({}, :name, app)
+    #   t = TaskWithTwoInputs.new({}, app)
     #   t.enq(1,2).enq(3,4)
     #   
     #   app.run
@@ -555,15 +525,10 @@ module Tap
       app.log(action, msg, level)
     end
     
-    # Returns self.name
-    def to_s
-      name.to_s
-    end
-    
     # Provides an abbreviated version of the default inspect, with only
-    # the task class, object_id, name, and configurations listed.
+    # the task class, object_id, and configurations listed.
     def inspect
-      "#<#{self.class.to_s}:#{object_id} #{name} #{config.to_hash.inspect} >"
+      "#<#{self.class.to_s}:#{object_id} #{config.to_hash.inspect} >"
     end
   end
 end

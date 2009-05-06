@@ -2,7 +2,7 @@ require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap'
 require 'stringio'
 
-class AppTest < Test::Unit::TestCase
+class AppDoc < Test::Unit::TestCase
   
   #
   # documentation test
@@ -83,6 +83,7 @@ class AppTest < Test::Unit::TestCase
   #
   
   class DumpExecutable < Tap::Task
+    config :name, ""
     def call(input)
       input + ".#{name}"
     end
@@ -101,9 +102,9 @@ class AppTest < Test::Unit::TestCase
   
   def test_apps_can_be_dumped_and_reloaded_as_yaml
     app = Tap::App.new
-    t1 = DumpExecutable.new({}, 'b', app)
-    t2 = DumpExecutable.new({}, 'c', app)
-    t3 = DumpExecutable.new({}, 'd', app)
+    t1 = DumpExecutable.new({:name => 'b'}, app)
+    t2 = DumpExecutable.new({:name => 'c'}, app)
+    t3 = DumpExecutable.new({:name => 'd'}, app)
     
     t1.sequence(t2)
     app.enq(t1, 'a')

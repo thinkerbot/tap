@@ -46,7 +46,6 @@ configurations:
 
 options:
         --help                       Print this help
-        --name NAME                  Specifies the task name
         --config FILE                Specifies a config file
 }
       
