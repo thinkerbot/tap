@@ -1,9 +1,6 @@
 require File.join(File.dirname(__FILE__), '../rap_test_helper')
 
 class ReadmeTest < Test::Unit::TestCase 
-  acts_as_file_test
-  acts_as_shell_test
-  
   RAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/../..")
   LOAD_PATHS = [
     "-I'#{RAP_ROOT}/../configurable/lib'",
@@ -11,8 +8,12 @@ class ReadmeTest < Test::Unit::TestCase
     "-I'#{RAP_ROOT}/../tap/lib'"
   ]
   
-  CMD_PATTERN = "% rap"
-  CMD = (["TAP_GEMS= ruby"] + LOAD_PATHS + ["'#{RAP_ROOT}/bin/rap'"]).join(" ")
+  acts_as_file_test
+  acts_as_shell_test(
+    :cmd_pattern => "% rap",
+    :cmd => (["ruby"] + LOAD_PATHS + ["'#{RAP_ROOT}/bin/rap'"]).join(" "),
+    :env => {'TAP_GEMS' => ''}
+  )
   
   def test_readme
     method_root.prepare(:tmp, 'Rapfile') do |file|
@@ -70,7 +71,7 @@ end
     end
     
     method_root.chdir(:tmp) do
-      result = sh("ruby #{LOAD_PATHS.join(" ")} -I#{RAP_ROOT}/lib #{test}")
+      result = sh("ruby #{LOAD_PATHS.join(" ")} -I'#{RAP_ROOT}/lib' '#{test}'")
       assert_match(/1 tests, 2 assertions, 0 failures, 0 errors/, result)
     end
   end

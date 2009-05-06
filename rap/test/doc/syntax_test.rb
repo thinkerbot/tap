@@ -1,18 +1,19 @@
 require File.join(File.dirname(__FILE__), '../rap_test_helper')
 
 class SyntaxTest < Test::Unit::TestCase 
-  acts_as_file_test
-  acts_as_shell_test
-  
-  RAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/../..")
-  LOAD_PATHS = [
-    "-I'#{RAP_ROOT}/../configurable/lib'",
-    "-I'#{RAP_ROOT}/../lazydoc/lib'",
-    "-I'#{RAP_ROOT}/../tap/lib'"
+  rap_root = File.expand_path(File.dirname(__FILE__) + "/../..")
+  load_paths = [
+    "-I'#{rap_root}/../configurable/lib'",
+    "-I'#{rap_root}/../lazydoc/lib'",
+    "-I'#{rap_root}/../tap/lib'"
   ]
   
-  CMD_PATTERN = "% rap"
-  CMD = (["TAP_GEMS= ruby"] + LOAD_PATHS + ["'#{RAP_ROOT}/bin/rap'"]).join(" ")
+  acts_as_file_test
+  acts_as_shell_test(
+    :cmd_pattern => "% rap",
+    :cmd => (["ruby"] + load_paths + ["'#{rap_root}/bin/rap'"]).join(" "),
+    :env => {'TAP_GEMS' => ''}
+  )
   
   def test_namespace_lookup
     method_root.prepare(:tmp, 'Rapfile') do |file|
