@@ -113,8 +113,7 @@ class FileTaskTest < Test::Unit::TestCase
   
   def test_filepath_doc
     t = FileTask.new 
-    assert_equal "tap/tasks/file_task", t.name
-    assert_equal File.expand_path("data/tap/tasks/file_task/result.txt"), t.filepath('data', "result.txt")
+    assert_equal File.expand_path("data/result.txt"), t.filepath('data', "result.txt")
   end
   
   #
@@ -123,26 +122,24 @@ class FileTaskTest < Test::Unit::TestCase
   
   def test_backup_filepath_documentation
     backup = File.expand_path("/backup")
-    t = FileTask.new({:backup_dir => backup}, "name")
-    assert_equal File.join(backup, "name/file.0.txt"), t.backup_filepath("path/to/file.txt")
+    t = FileTask.new({:backup_dir => backup})
+    assert_equal File.join(backup, "file.0.txt"), t.backup_filepath("path/to/file.txt")
   end
   
   def test_backup_filepath_constructs_filepath_from_backup_dir_name_and_input_basename
     t.backup_dir = 'backup_dir'
-    t.name = "name"
-  
-    assert_equal File.expand_path('backup_dir/name/file.0.txt'), t.backup_filepath("path/to/file.txt")
+    assert_equal File.expand_path('backup_dir/file.0.txt'), t.backup_filepath("path/to/file.txt")
   end
   
   def test_backup_dir_can_be_full_path
     t.backup_dir = File.expand_path('backup')
-    assert_equal File.expand_path("backup/#{t.name}/file.0.txt"), t.backup_filepath("file.txt")
+    assert_equal File.expand_path("backup/file.0.txt"), t.backup_filepath("file.txt")
   end
   
   def test_backup_filepath_increments_index_to_next_non_existant_file
-    method_root.prepare(:backup, "#{t.name}/file.0.txt") {}
-    method_root.prepare(:backup, "#{t.name}/file.1.txt") {}
-    assert_equal method_root.path(:backup, "#{t.name}/file.2.txt"), t.backup_filepath("file.txt")
+    method_root.prepare(:backup, "file.0.txt") {}
+    method_root.prepare(:backup, "file.1.txt") {}
+    assert_equal method_root.path(:backup, "file.2.txt"), t.backup_filepath("file.txt")
   end
    
   #

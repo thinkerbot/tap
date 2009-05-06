@@ -32,7 +32,7 @@ module Tap
     #
     class FileTask < Task
       include ShellUtils
-    
+      
       # The backup directory
       config_attr :backup_dir, 'backup'            # The backup directory
     
@@ -40,7 +40,7 @@ module Tap
       # for rollback on execution error
       config :rollback_on_error, true, &c.switch   # Rollback changes on error
     
-      def initialize(config={}, name=nil, app=Tap::App.instance)
+      def initialize(config={}, app=Tap::App.instance)
         super
         @actions = []
       end
@@ -88,14 +88,13 @@ module Tap
         basepath(File.basename(path), extname)
       end
     
-      # Constructs a filepath using the dir, name, and the specified paths.
+      # Constructs a filepath using the dir and the specified paths.
       #
       #   t = FileTask.new
-      #   t.name                                # => "tap/tasks/file_task"
       #   t.filepath('data', "result.txt")      # => File.expand_path("data/tap/tasks/file_task/result.txt")
       #
       def filepath(dir, *paths)
-        File.expand_path(File.join(dir, name, *paths))
+        File.expand_path(File.join(dir, *paths))
       end
     
       # Makes a backup filepath relative to backup_dir by using name, the
