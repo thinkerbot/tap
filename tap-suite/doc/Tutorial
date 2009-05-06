@@ -44,7 +44,6 @@ Now from the command line:
 
   options:
       -h, --help                       Print this help
-          --name NAME                  Specify a name
           --config FILE                Specifies a config file
   
 The declaration syntax is obviously similar to rake; configurations are new
@@ -190,7 +189,6 @@ Now from the command line:
 
   options:
       -h, --help                       Print this help
-          --name NAME                  Specify a name
           --config FILE                Specifies a config file
 
 Take a quick look at the documentation. Class definitions map documentation
