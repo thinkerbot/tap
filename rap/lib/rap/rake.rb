@@ -26,7 +26,7 @@ module Rap
           exit
         end
         argv = argv.collect {|arg| arg == '--rake-help' ? '--help' : arg}
-        [new({}, default_name, app), argv]
+        [new({}, app), argv]
       end
       
       # Returns true if Rake detects a rakefile.

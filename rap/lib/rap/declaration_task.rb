@@ -84,10 +84,8 @@ module Rap
         instance = self.instance(app)
         instance.reconfigure(load_config(config_file)) if config_file
         instance.reconfigure(config) if config
-        
-        instance.name = argh[:name]
         instance.args = argh[:args]
-        
+      
         [instance, instance.args]
       end
       
@@ -121,7 +119,7 @@ module Rap
 
         # add dependencies
         dependencies.each do |dependency|
-          dependency_name = File.basename(dependency.default_name)
+          dependency_name = File.basename(dependency.to_s.underscore)
           
           # this suppresses 'method redefined' warnings
           if subclass.method_defined?(dependency_name)
@@ -141,7 +139,7 @@ module Rap
     # The arguments assigned to self during call.
     attr_accessor :args
     
-    def initialize(config={}, name=nil, app=Tap::App.instance)
+    def initialize(config={}, app=Tap::App.instance)
       super
       @resolved = false
       @result = nil

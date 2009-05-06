@@ -22,7 +22,6 @@ class ExamplesTest < Test::Unit::TestCase
   
   def test_declarations_subclass_DeclarationTask
     assert_equal Rap::DeclarationTask, A.superclass
-    assert_equal("a", A.default_name)
   end
   
   def test_declarations_add_action_to_subclass
@@ -51,7 +50,6 @@ class ExamplesTest < Test::Unit::TestCase
   
   def test_declaration_declares_new_dependencies
     assert_equal Rap::DeclarationTask, D0.superclass
-    assert_equal("d0", D0.default_name)
   end
   
   def test_declaration_adds_dependencies
@@ -86,7 +84,6 @@ class ExamplesTest < Test::Unit::TestCase
   
   def test_namespaces_nest_a_task
     assert_equal Rap::DeclarationTask, G::G.superclass
-    assert_equal("g/g", G::G.default_name)
   end
   
   ###########################
