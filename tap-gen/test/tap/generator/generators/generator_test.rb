@@ -17,11 +17,11 @@ class GeneratorGeneratorTest < Test::Unit::TestCase
     assert_equal %w{
       lib
       lib/const_name.rb
-      templates/const_name
-      templates/const_name/template_file.erb
       test
       test/const_name_test.rb
-    }.sort, g.process('const_name').sort
+      templates/const_name
+      templates/const_name/template_file.erb
+    }, g.process('const_name')
     
     assert !GeneratorGeneratorTest.const_defined?(:ConstNameGenerator)
     eval(g.preview['lib/const_name.rb'])

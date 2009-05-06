@@ -1,7 +1,7 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap'
 
-class GenerateTest < Test::Unit::TestCase
+class GenerateCmdTest < Test::Unit::TestCase
   tap_root = File.expand_path(File.dirname(__FILE__) + "/../..")
   load_paths = [
     "-I'#{tap_root}/../configurable/lib'",
