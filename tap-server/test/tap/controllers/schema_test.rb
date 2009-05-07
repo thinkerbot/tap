@@ -3,7 +3,7 @@ require 'tap/controllers/schema'
 
 class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   Schema = Tap::Schema
-  
+  skip_test
   acts_as_tap_test
   cleanup_dirs << :root
   

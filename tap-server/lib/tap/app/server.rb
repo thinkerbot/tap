@@ -11,46 +11,6 @@ module Tap
       
       Constant = Tap::Env::Constant
       
-      # The basic form controls for running an app.
-      CONTROLS = [:run, :stop, :terminate, :reset].collect do |action|
-%Q{<form action="#{action}" style="display:inline" method="post">
-<input type="submit" value="#{action}" />
-</form>}
-      end.join("")
-      
-      SCHEMA = %Q{
-<form action="schema" method="post">
-<textarea rows="10" cols="40" name="schema">
-nodes:
-  load:
-    class: Tap::Load
-    require_path: tap/load
-  dump:
-    class: Tap::Dump
-    require_path: tap/dump
-joins:
-- class: Tap::Join
-  require_path: tap/join
-  inputs: [load]
-  outputs: [dump]
-</textarea><br/>
-<input type="checkbox" name="parse">parse</input>
-<input type="checkbox" name="run">run</input>
-<input type="submit" value="build" />
-</form>}
-      
-      ENQUE = %Q{
-<form action="enque" method="post">
-<textarea rows="10" cols="40" name="queue">
-- - load
-  - - goodnight moon
-- - load
-  - - hello world
-</textarea><br/>
-<input type="hidden" name="load" value="on" />
-<input type="submit" value="enque" />
-</form>}
-      
       # Returns the state of app.
       def state
         app.state.to_s
@@ -58,7 +18,9 @@ joins:
       
       # Returns the controls and current application info.
       def info
-        "#{CONTROLS}<br/>#{app.info}"
+        render view_path('info.erb'), :locals => {
+          :actions => [:run, :stop, :terminate, :reset]
+        }
       end
       
       # Runs app on a separate thread (on post).
@@ -95,7 +57,9 @@ joins:
       end
       
       def schema
-        return SCHEMA unless request.post?
+        unless request.post?
+          return render(view_path('schema.erb'))
+        end
         
         schema = if request[:parse] == "on"
           Tap::Schema.parse(request[:schema])
@@ -122,7 +86,9 @@ joins:
       end
       
       def enque
-        return ENQUE unless request.post?
+        unless request.post?
+          return render(view_path('enque.erb'))
+        end
         
         queue = if request[:load]
           YAML.load(request[:queue] || "{}")
@@ -163,6 +129,10 @@ joins:
       attr_reader :nodes
       attr_reader :thread
       
+      config_attr :views_dir, nil do |input|     # the views directory
+        @views_dir = (input || "views/#{self.class.to_s.underscore}")
+      end
+      
       def initialize(config={}, app=Tap::App.new)
         @app = app
         @nodes = {}
@@ -177,6 +147,10 @@ joins:
         $!.response
       rescue Exception
         ServerError.response($!)
+      end
+      
+      def view_path(path)
+        File.join(views_dir, path)
       end
     end
   end

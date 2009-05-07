@@ -297,4 +297,24 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     assert_equal nil, server.thread
     assert_equal handler, server.handler
   end
+  
+  #
+  # schema test
+  #
+  
+  def test_schema_returns_schema_form_on_get
+    body = request.get("/schema").body
+    assert body =~ /<form action="schema" method="post"/
+    assert body =~ /<input type="submit"/
+  end
+  
+  #
+  # enque test
+  #
+  
+  def test_enque_returns_enque_form_on_get
+    body = request.get("/enque").body
+    assert body =~ /<form action="enque" method="post"/
+    assert body =~ /<input type="submit" value="enque"/
+  end
 end

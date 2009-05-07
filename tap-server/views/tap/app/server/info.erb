@@ -1,0 +1,4 @@
+<% actions.each do |action| %>
+<%= render view_path("_action.erb"), :locals => {:action => action} %>
+<% end %>
+<%= app.info %>
