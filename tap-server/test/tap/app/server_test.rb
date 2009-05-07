@@ -317,4 +317,5 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     assert body =~ /<form action="enque" method="post"/
     assert body =~ /<input type="submit" value="enque"/
   end
+  
 end

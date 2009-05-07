@@ -19,7 +19,7 @@ parser = ConfigParser.new do |opts|
     exit
   end
 end
-argv = parser.parse(ARGV)
+argv = parser.parse!(ARGV, :add_defaults => false)
 
 # launch server
 Tap::Server.new(env, parser.config).run!

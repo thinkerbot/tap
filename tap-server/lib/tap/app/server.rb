@@ -16,6 +16,11 @@ module Tap
         app.state.to_s
       end
       
+      # Returns pong
+      def ping
+        "pong"
+      end
+      
       # Returns the controls and current application info.
       def info
         render view_path('info.erb'), :locals => {
@@ -107,18 +112,22 @@ module Tap
         redirect :info
       end
       
-      # Terminates app and stops self (on post).
-      def shutdown
-        if request.post?
-          synchronize do
-            app.terminate
-            thread.join if thread
-          end
+      # Returns the pid if the correct secret is provided
+      def pid(secret=nil)
+        return "" unless admin?(secret)
+        Process.pid.to_s
+      end
+      
+      # Terminates app and stops self.
+      def shutdown(secret=nil)
+        return "" unless admin?(secret)
         
-          stop!
+        synchronize do
+          app.terminate
+          thread.join if thread
         end
         
-        ""
+        stop!
       end
       
       # ensure server methods are not added as actions
@@ -133,12 +142,18 @@ module Tap
         @views_dir = (input || "views/#{self.class.to_s.underscore}")
       end
       
+      config :secret, nil, &c.string_or_nil
+      
       def initialize(config={}, app=Tap::App.new)
         @app = app
         @nodes = {}
         @thread = nil
         initialize_config(config)
         super()
+      end
+      
+      def admin?(secret)
+        secret == self.secret
       end
       
       def call(env)

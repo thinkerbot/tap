@@ -23,6 +23,8 @@ Tap::Exe::Opts.parse!(ARGV) do |opts|
 end
 
 # launch server
-parser.parse!(ARGV)
+parser.parse!(ARGV, 
+  :add_defaults => false, 
+  :ignore_unknown_options => true)
 server = Tap::App::Server.new(parser.config)
 server.run!
