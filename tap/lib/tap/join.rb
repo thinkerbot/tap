@@ -31,7 +31,7 @@ module Tap
         opts = ConfigParser.new
         opts.separator "configurations:"
         opts.add(configurations)
-        args = opts.parse!(argv, {}, false)
+        args = opts.parse!(argv, :add_defaults => false)
         
         inputs = parse_array(args.shift)
         outputs = parse_array(args.shift)

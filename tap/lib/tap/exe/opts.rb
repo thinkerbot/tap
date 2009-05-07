@@ -11,7 +11,7 @@ module Tap
           parser.separator ""
           parser.separator "options:"
           parser.add(configurations)
-          parser.parse!(argv)
+          parser.parse!(argv, :add_defaults => false, :ignore_unknown_options => true)
           
           opts = new(parser.config)
           

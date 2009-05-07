@@ -2,8 +2,6 @@ require 'tap/joins'
 require 'tap/root'
 require 'tap/env/string_ext'
 
-autoload(:ConfigParser, 'config_parser')
-
 module Tap
   module Support
     autoload(:Templater, 'tap/support/templater')
@@ -161,7 +159,7 @@ module Tap
       # Parses the argv into an instance of self and an array of arguments
       # (implicitly to be enqued to the instance).  By default parse 
       # parses an argh then calls instantiate, but there is no requirement
-      # that this occurst in subclasses.
+      # that this occurs in subclasses.
       def parse(argv=ARGV, app=Tap::App.instance)
         parse!(argv.dup, app)
       end
@@ -197,8 +195,10 @@ module Tap
           config_file = value
         end
         
-        # parse!
-        argv = opts.parse!(argv, {}, false)
+        # parse! (note defaults are not added because in
+        # instantiate the instance is reconfigured rather
+        # than initialized with the configs)
+        argv = opts.parse!(argv, :add_defaults => false)
         argh = { 
           :config => opts.nested_config,
           :config_file => config_file,

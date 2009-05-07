@@ -26,7 +26,7 @@ end
 
 # parse options
 schemas = []
-ConfigParser.new do |opts|
+ConfigParser.new(app.config) do |opts|
   opts.separator ""
   opts.separator "configurations:"
   
@@ -80,7 +80,7 @@ ConfigParser.new do |opts|
     schemas << Tap::Schema.load_file(path)
   end
   
-end.parse!(argv, app.config)
+end.parse!(argv, :clear_config => false, :add_defaults => false)
 
 #
 # build and run
