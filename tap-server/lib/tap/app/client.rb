@@ -47,12 +47,31 @@ module Tap
             # if the connection is successful, store the signature on
             # the thread so that it may be retreived for stop_server!
             if client = connect(host, port, options)
-              thread[:client] = client.signature
+              thread[:client] = client.pid
               return client
             end
           end
 
           raise "could not determine pid for server subprocess: #{cmd}"
+        end
+        
+        #
+        #   at_exit do
+        #     Tap::App::Client.stop_servers!
+        #   end
+        #
+        def stop_servers!(join=true)
+          threads = []
+          Thread.list.each do |thread|
+            if pid = thread[:client]
+              Process.kill("INT", pid)
+              threads << thread
+            end
+          end
+          
+          threads.each {|thread| thread.join } if join
+          
+          true
         end
       end
       
@@ -82,8 +101,7 @@ module Tap
         return false if pid == 0
 
         # find the thread running the server for self
-        sig = self.signature
-        unless thread = Thread.list.find {|t| t[:client] == sig }
+        unless thread = Thread.list.find {|t| t[:client] == pid }
           return false
         end
         
