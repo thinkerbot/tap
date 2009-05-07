@@ -26,15 +26,15 @@ class Tap::App::ClientTest < Test::Unit::TestCase
   # to suppress the launch output.
   root = File.expand_path(File.dirname(__FILE__) + "/../../..")
   load_paths = [
-    "-I'#{root}/../configurable/lib'",
-    "-I'#{root}/../lazydoc/lib'",
-    "-I'#{root}/../tap/lib'",
-    "-I'#{root}/../rack/lib'",
-    "-I'#{root}/../tap-server/lib'",
-  ].join(" ")
+    "#{root}/../configurable/lib",
+    "#{root}/../lazydoc/lib",
+    "#{root}/../tap/lib",
+    "#{root}/../rack/lib",
+    "#{root}/../tap-server/lib",
+  ].collect {|path| "-I'#{File.expand_path(path)}'" }.join(" ")
+  cmd = File.expand_path("#{root}/cmd/app.rb")
   
-  TEMPFILE = Tempfile.new('log')
-  CMD = "ruby #{load_paths} '#{root}/cmd/app.rb' 2> '#{TEMPFILE.path}'"
+  CMD = "ruby #{load_paths} '#{cmd}'"
   
   # a 'safe' server test ensuring any server threads are cleaned up
   def server_test
@@ -158,17 +158,17 @@ class Tap::App::ClientTest < Test::Unit::TestCase
   end
   
   #
-  # stop_servers! test
+  # kill_servers! test
   #
   
-  def test_stop_servers_stops_all_servers_running_on_live_threads
+  def test_kill_servers_stops_all_servers_running_on_live_threads
      server_test do
       log = []
       a = Client.connect!('127.0.0.1', 8080, :cmd => CMD, :log => log)
       b = Client.connect!('127.0.0.1', 8081, :cmd => CMD, :log => log)
       c = Client.connect!('127.0.0.1', 8082, :cmd => CMD, :log => log)
       
-      Client.stop_servers!
+      Client.kill_servers!
       assert Thread.list.select {|t| t[:server] != nil }.empty?
     end
   end
@@ -200,49 +200,49 @@ class Tap::App::ClientTest < Test::Unit::TestCase
   end
   
   #
-  # stop_server! test
+  # kill_server! test
   #
   
-  def test_stop_server_stops_server_running_on_pid
+  def test_kill_server_stops_server_running_on_pid
     server_test do
       log = []
       a = Client.connect!('127.0.0.1', 8080, :cmd => CMD, :log => log)
       b = Client.connect!('127.0.0.1', 8081, :cmd => CMD, :log => log)
       c = Client.connect!('127.0.0.1', 8082, :cmd => CMD, :log => log)
     
-      assert_equal true, a.stop_server!
+      assert_equal true, a.kill_server!
     
       servers = Client.server_threads
       assert_equal 2, servers.length
       assert_equal([b.pid, c.pid].sort, servers.collect {|t| t[:server]}.sort)
     
-      assert_equal true, b.stop_server!
-      assert_equal true, c.stop_server!
+      assert_equal true, b.kill_server!
+      assert_equal true, c.kill_server!
     
       assert_equal 0, Client.server_threads.length
     end
   end
   
-  def test_stop_server_does_not_stop_servers_without_a_pid
+  def test_kill_server_does_not_kill_servers_without_a_pid
     server_test do
       log = []
       a = Client.connect!('127.0.0.1', 8080, :cmd => CMD, :log => log, :secret => 1234)
       b = Client.connect('127.0.0.1', 8080)
       
       assert_equal 0, b.pid
-      assert_equal false, b.stop_server!
+      assert_equal false, b.kill_server!
       
       servers = Client.server_threads
       assert_equal 1, servers.length
       assert_equal(a.pid, servers[0][:server])
       
-      assert_equal true, a.stop_server!
+      assert_equal true, a.kill_server!
       
       assert_equal 0, Client.server_threads.length
     end
   end
   
-  def test_stop_server_does_not_stop_servers_without_a_corresponding_thread
+  def test_kill_server_does_not_kill_servers_without_a_corresponding_thread
     server_test do
       log = []
       a = Client.connect!('127.0.0.1', 8080, :cmd => CMD, :log => log, :secret => 1234)
@@ -250,11 +250,11 @@ class Tap::App::ClientTest < Test::Unit::TestCase
       
       begin
         thread[:server] = nil
-        assert_equal false, a.stop_server!
+        assert_equal false, a.kill_server!
         assert thread.alive?
         
         thread[:server] = a.pid
-        assert_equal true, a.stop_server!
+        assert_equal true, a.kill_server!
         assert !thread.alive?
       ensure
         Process.kill("INT", a.pid) if thread.alive?

@@ -7,7 +7,7 @@ module Tap
     #   require 'lib/tap/app/client'
     # 
     #   client = Tap::App::Client.connect!('127.0.0.1', 8080)
-    #   puts client.stop_server!
+    #   puts client.kill_server!
     #
     class Client
       class << self
@@ -48,7 +48,7 @@ module Tap
             sleep(0.1)
             
             # if the connection is successful, store the signature on
-            # the thread so that it may be retreived for stop_server!
+            # the thread so that it may be retreived for kill_server!
             if client = connect(host, port, options)
               thread[:server] = client.pid
               return client
@@ -69,20 +69,20 @@ module Tap
         end
         
         # Stops all servers launched by Client.connect!  Servers are stopped in
-        # the same manner as described by the stop_server! method.  It's a good
+        # the same manner as described by the kill_server! method.  It's a good
         # idea to ensure this method gets called in the event of errors, in
         # order to protect against zombie processes.  One way to do so is via
         # at_exit:
         #
         #   at_exit do
-        #     Tap::App::Client.stop_servers!
+        #     Tap::App::Client.kill_servers!
         #   end
         #
-        def stop_servers!(join=true)
+        def kill_servers!(join=true)
           threads = []
           Thread.list.each do |thread|
             if pid = thread[:server]
-              Process.kill("INT", pid)
+              Process.kill("KILL", pid)
               threads << thread
             end
           end
@@ -118,8 +118,7 @@ module Tap
           @pid = Net::HTTP.get(host, "/pid/#{secret}", port).to_i
         rescue(Errno::ECONNREFUSED)
           raise ConnectionError.new(self, "could not reach server")        
-        rescue(Errno::EPIPE)
-          # EPIPE for JRuby
+        rescue(Errno::EPIPE) # EPIPE for JRuby
           raise ConnectionError.new(self, "could not reach server")
         end
       end
@@ -128,10 +127,10 @@ module Tap
       # * a pid was obtained (ie the client knows the server secret)
       # * a server thread is associated with this pid
       #
-      # Termination occurs by sending the pid process an INT signal.  This
+      # Termination occurs by sending the pid process a KILL signal.  This
       # method will wait on the server thread if join is true.  Returns
       # true if the sever was stopped, and false otherwise.
-      def stop_server!(join=true)
+      def kill_server!(join=true)
         # no pid was obtained
         return false if pid == 0
 
@@ -141,7 +140,7 @@ module Tap
         end
         
         log << "! #{host}:#{port} (#{thread.object_id})\n" if log
-        Process.kill("INT", pid)
+        Process.kill("KILL", pid)
         thread.join if join
         
         true
