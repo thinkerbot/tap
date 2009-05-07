@@ -324,7 +324,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     assert_equal handler, server.handler
     
     hold = false
-    sleep(0.01)
+    sleep(0.1)
     
     assert_equal 0, app.state
     assert_equal true, was_in_block

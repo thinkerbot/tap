@@ -4,7 +4,6 @@
 #
 
 require 'tap'
-require 'tap/constants'
 require 'tap/app/server'
 require 'tap/exe/opts'
 

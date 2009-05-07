@@ -5,14 +5,54 @@ require 'stringio'
 
 class Tap::App::ClientTest < Test::Unit::TestCase
   Client = Tap::App::Client
+  acts_as_subset_test
   
   def setup
+    super
     @timeout_error = false
   end
   
   def teardown
     super
     flunk "timeout error" if @timeout_error
+  end
+  
+  #
+  # setup
+  #
+  
+  # construct the command to invoke the app command.
+  # this command redirects stderr to a tempfile simply
+  # to suppress the launch output.
+  root = File.expand_path(File.dirname(__FILE__) + "/../../..")
+  load_paths = [
+    "-I'#{root}/../configurable/lib'",
+    "-I'#{root}/../lazydoc/lib'",
+    "-I'#{root}/../tap/lib'",
+    "-I'#{root}/../rack/lib'",
+    "-I'#{root}/../tap-server/lib'",
+  ].join(" ")
+  
+  TEMPFILE = Tempfile.new('log')
+  CMD = "ruby #{load_paths} '#{root}/cmd/app.rb' 2> '#{TEMPFILE.path}'"
+  
+  # a 'safe' server test ensuring any server threads are cleaned up
+  def server_test
+    extended_test do
+      assert Thread.list.select {|t| t[:server] != nil }.empty?
+    
+      begin
+        yield
+      ensure
+        # cleanup in case of error
+        Thread.list.each do |thread| 
+          if pid = thread[:server]
+            Process.kill("INT", pid)
+            thread.join
+          end
+        end
+      end
+    end
   end
   
   # starts a WEBrick server on the host/port
@@ -91,6 +131,47 @@ class Tap::App::ClientTest < Test::Unit::TestCase
   end
   
   #
+  # connect! test
+  #
+  
+  def test_connect_bang_launches_background_server_if_no_connection_is_established
+    server_test do
+      log = []
+      client = Client.connect!('127.0.0.1', 8080, :cmd => CMD, :log => log)
+      assert_equal Client, client.class
+      assert log[0] =~ /\+ 127\.0\.0\.1:8080\/ \(\d+\)/
+    
+      threads = Client.server_threads
+      assert_equal 1, threads.length
+      thread = threads[0]
+    
+      assert_equal thread[:server], client.pid
+      assert Process.pid != client.pid
+    
+      Process.kill("INT", client.pid)
+      thread.join
+    
+      assert_equal "- 127.0.0.1:8080 (0)\n", log[1]
+    end
+  end
+  
+  #
+  # stop_servers! test
+  #
+  
+  def test_stop_servers_stops_all_servers_running_on_live_threads
+     server_test do
+      log = []
+      a = Client.connect!('127.0.0.1', 8080, :cmd => CMD, :log => log)
+      b = Client.connect!('127.0.0.1', 8081, :cmd => CMD, :log => log)
+      c = Client.connect!('127.0.0.1', 8082, :cmd => CMD, :log => log)
+      
+      Client.stop_servers!
+      assert Thread.list.select {|t| t[:server] != nil }.empty?
+    end
+  end
+  
+  #
   # initialize test
   #
   
@@ -104,15 +185,79 @@ class Tap::App::ClientTest < Test::Unit::TestCase
       client = Client.new("127.0.0.1", 8080)
       assert_equal 0, client.pid
       
-      client = Client.new("127.0.0.1", 8080, 1234)
+      client = Client.new("127.0.0.1", 8080, :secret => 1234)
       assert_equal 8, client.pid
     end
   end
   
   def test_initialize_with_alternate_port
     with_server(:Port => 10000) do
-      client = Client.new("127.0.0.1", 10000, 1234)
+      client = Client.new("127.0.0.1", 10000, :secret => 1234)
       assert_equal 8, client.pid
+    end
+  end
+  
+  #
+  # stop_server! test
+  #
+  
+  def test_stop_server_stops_server_running_on_pid
+    server_test do
+      log = []
+      a = Client.connect!('127.0.0.1', 8080, :cmd => CMD, :log => log)
+      b = Client.connect!('127.0.0.1', 8081, :cmd => CMD, :log => log)
+      c = Client.connect!('127.0.0.1', 8082, :cmd => CMD, :log => log)
+    
+      assert_equal true, a.stop_server!
+    
+      servers = Client.server_threads
+      assert_equal 2, servers.length
+      assert_equal([b.pid, c.pid].sort, servers.collect {|t| t[:server]}.sort)
+    
+      assert_equal true, b.stop_server!
+      assert_equal true, c.stop_server!
+    
+      assert_equal 0, Client.server_threads.length
+    end
+  end
+  
+  def test_stop_server_does_not_stop_servers_without_a_pid
+    server_test do
+      log = []
+      a = Client.connect!('127.0.0.1', 8080, :cmd => CMD, :log => log, :secret => 1234)
+      b = Client.connect('127.0.0.1', 8080)
+      
+      assert_equal 0, b.pid
+      assert_equal false, b.stop_server!
+      
+      servers = Client.server_threads
+      assert_equal 1, servers.length
+      assert_equal(a.pid, servers[0][:server])
+      
+      assert_equal true, a.stop_server!
+      
+      assert_equal 0, Client.server_threads.length
+    end
+  end
+  
+  def test_stop_server_does_not_stop_servers_without_a_corresponding_thread
+    server_test do
+      log = []
+      a = Client.connect!('127.0.0.1', 8080, :cmd => CMD, :log => log, :secret => 1234)
+      thread = Thread.list.find {|t| t[:server] == a.pid }
+      
+      begin
+        thread[:server] = nil
+        assert_equal false, a.stop_server!
+        assert thread.alive?
+        
+        thread[:server] = a.pid
+        assert_equal true, a.stop_server!
+        assert !thread.alive?
+      ensure
+        Process.kill("INT", a.pid) if thread.alive?
+        thread.join
+      end
     end
   end
 end

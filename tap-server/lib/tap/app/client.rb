@@ -14,7 +14,7 @@ module Tap
         
         def connect(host='127.0.0.1', port=8080, options={})
           begin
-            return new(host, port, options[:secret])
+            return new(host, port, options)
           rescue(ConnectionError)
             nil
           end
@@ -28,16 +28,19 @@ module Tap
           
           options = {
             :cmd => "tap app",
-            :timeout => 10
+            :timeout => 10,
+            :log => $stderr
           }.merge(options)
+          
           secret = options[:secret]
+          log = options[:log]
           
           # launch a new server subprocess
-          cmd = "#{options[:cmd]} --host #{host} --port #{port}" + (secret ? "--secret #{secret}" : "")
+          cmd = "#{options[:cmd]} --host #{host} --port #{port}" + (secret ? " --secret #{secret}" : "")
           thread = Thread.new do
-            $stderr.puts "+ #{host}:#{port}/#{secret} (#{Thread.current.object_id})"
+            log << "+ #{host}:#{port}/#{secret} (#{Thread.current.object_id})\n" if log
             system(cmd)
-            $stderr.puts "- #{host}:#{port} (#{$?.exitstatus})"
+            log << "- #{host}:#{port} (#{$?.exitstatus})\n" if log
           end
           
           # try connecting as long as the timeout specifies
@@ -47,7 +50,7 @@ module Tap
             # if the connection is successful, store the signature on
             # the thread so that it may be retreived for stop_server!
             if client = connect(host, port, options)
-              thread[:client] = client.pid
+              thread[:server] = client.pid
               return client
             end
           end
@@ -55,6 +58,21 @@ module Tap
           raise "could not determine pid for server subprocess: #{cmd}"
         end
         
+        # Returns an array of living threads that have a server running on them.
+        # The pid of the server is accessible through the thread local variable
+        # :server.  For example:
+        #
+        #   pids = Client.server_threads.collect {|thread| thread[:server]}
+        #
+        def server_threads
+          Thread.list.select {|thread| thread[:server] != nil }
+        end
+        
+        # Stops all servers launched by Client.connect!  Servers are stopped in
+        # the same manner as described by the stop_server! method.  It's a good
+        # idea to ensure this method gets called in the event of errors, in
+        # order to protect against zombie processes.  One way to do so is via
+        # at_exit:
         #
         #   at_exit do
         #     Tap::App::Client.stop_servers!
@@ -63,7 +81,7 @@ module Tap
         def stop_servers!(join=true)
           threads = []
           Thread.list.each do |thread|
-            if pid = thread[:client]
+            if pid = thread[:server]
               Process.kill("INT", pid)
               threads << thread
             end
@@ -75,15 +93,26 @@ module Tap
         end
       end
       
+      # The server host (that self connects to)
       attr_reader :host
+      
+      # The server port (that self connects to)
       attr_reader :port
+      
+      # The server secret, used to acquire the pid of the server
       attr_reader :secret
+      
+      # The pid of the server, or 0 if no pid can be acquired
       attr_reader :pid
+      
+      # A log device (only requires << as an api)
+      attr_reader :log
 
-      def initialize(host, port, secret=nil)
+      def initialize(host, port, options={})
         @host = host
         @port = port
-        @secret = secret
+        @secret = options[:secret]
+        @log = options[:log] || $stderr
 
         begin
           @pid = Net::HTTP.get(host, "/pid/#{secret}", port).to_i
@@ -92,22 +121,25 @@ module Tap
         end
       end
       
-      def signature
-        [host, port]
-      end
-      
-      def stop_server!
+      # Terminates the server if:
+      # * a pid was obtained (ie the client knows the server secret)
+      # * a server thread is associated with this pid
+      #
+      # Termination occurs by sending the pid process an INT signal.  This
+      # method will wait on the server thread if join is true.  Returns
+      # true if the sever was stopped, and false otherwise.
+      def stop_server!(join=true)
         # no pid was obtained
         return false if pid == 0
 
         # find the thread running the server for self
-        unless thread = Thread.list.find {|t| t[:client] == pid }
+        unless thread = Thread.list.find {|t| t[:server] == pid }
           return false
         end
         
-        $stderr.puts "! #{host}:#{port} (#{thread.object_id})"
+        log << "! #{host}:#{port} (#{thread.object_id})\n" if log
         Process.kill("INT", pid)
-        thread.join if thread
+        thread.join if join
         
         true
       end
