@@ -103,6 +103,8 @@ class Tap::App::ClientTest < Test::Unit::TestCase
         end
       end
     end
+    # give a little time to release the socket (JRuby)
+    sleep(1)
     
     io.string
   end

@@ -117,6 +117,9 @@ module Tap
         begin
           @pid = Net::HTTP.get(host, "/pid/#{secret}", port).to_i
         rescue(Errno::ECONNREFUSED)
+          raise ConnectionError.new(self, "could not reach server")        
+        rescue(Errno::EPIPE)
+          # EPIPE for JRuby
           raise ConnectionError.new(self, "could not reach server")
         end
       end
