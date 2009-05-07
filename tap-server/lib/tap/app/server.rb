@@ -118,16 +118,17 @@ module Tap
         Process.pid.to_s
       end
       
-      # Terminates app and stops self.
+      # Terminates app and stops self (on post).
       def shutdown(secret=nil)
-        return "" unless admin?(secret)
+        if admin?(secret) && request.post?        
+          synchronize do
+            app.terminate
+            thread.join if thread
+          end
         
-        synchronize do
-          app.terminate
-          thread.join if thread
+          stop!
         end
-        
-        stop!
+        ""
       end
       
       # ensure server methods are not added as actions
@@ -142,7 +143,7 @@ module Tap
         @views_dir = (input || "views/#{self.class.to_s.underscore}")
       end
       
-      config :secret, nil, &c.string_or_nil
+      config :secret, nil, &c.string_or_nil      # the admin secret
       
       def initialize(config={}, app=Tap::App.new)
         @app = app
@@ -152,8 +153,11 @@ module Tap
         super()
       end
       
-      def admin?(secret)
-        secret == self.secret
+      # Returns true if input is equal to the secret, or if no secret is set.
+      # This method is used to test if a particular request has rights to an
+      # administrative action.
+      def admin?(input)
+        secret == nil || input == secret
       end
       
       def call(env)

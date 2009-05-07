@@ -4,13 +4,30 @@ require 'tap/app/server'
 class Tap::App::ServerTest < Test::Unit::TestCase
   acts_as_tap_test
   
-  attr_accessor :server, :app, :request
+  attr_accessor :server, :app, :request, :timeout
   
   def setup
     super
     @server = Tap::App::Server.new
     @app = @server.app
     @request = Rack::MockRequest.new(server)
+    
+    @timeout = Time.now + 3
+    @timeout_error = false
+  end
+  
+  def teardown
+    super
+    flunk "timeout error" if @timeout_error
+  end
+  
+  def timeout?
+    if Time.now > @timeout
+      @timeout_error = true
+      true
+    else
+      false
+    end
   end
   
   #
@@ -44,7 +61,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     hold = true
     app.bq do
       was_in_block = true
-      sleep(0.01) while hold
+      sleep(0.01) while hold && !timeout?
     end
     
     thread = Thread.new { app.run }
@@ -92,7 +109,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     hold = true
     app.bq do 
       was_in_block = true
-      sleep(0.1) while hold
+      sleep(0.1) while hold && !timeout?
     end
     
     assert_equal "info", request.post("/run").headers['Location']
@@ -166,7 +183,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     was_in_block = false
     app.bq do
       was_in_block = true
-      while true
+      while !timeout?
         sleep(0.01)
         app.check_terminate
       end
@@ -188,7 +205,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     was_in_block = false
     hold = true
     app.bq do 
-      while hold
+      while hold && !timeout?
         sleep(0.01)
         app.check_terminate
       end
@@ -208,6 +225,23 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     
     assert_equal 0, app.state
     assert_equal true, was_in_block
+  end
+  
+  #
+  # pid test
+  #
+  
+  def test_pid_returns_pid
+    assert_equal Process.pid.to_s, request.get("/pid").body
+    assert_equal Process.pid.to_s, request.get("/pid/").body
+  end
+  
+  def test_pid_does_not_return_pid_unless_admin
+    server.secret = "1234"
+    assert_equal "", request.get("/pid").body
+    assert_equal "", request.get("/pid/").body
+    assert_equal "", request.get("/pid/4321").body
+    assert_equal Process.pid.to_s, request.get("/pid/1234").body
   end
   
   #
@@ -240,7 +274,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     was_in_block = false
     app.bq do
       was_in_block = true
-      while true
+      while !timeout?
         sleep(0.01)
         app.check_terminate
       end
@@ -270,7 +304,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     was_in_block = false
     hold = true
     app.bq do
-      sleep(0.01) while hold
+      sleep(0.01) while hold && !timeout?
       was_in_block = true
     end
     
@@ -298,6 +332,44 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     assert_equal handler, server.handler
   end
   
+  def test_shutdown_does_not_terminate_or_stop_unless_admin
+    handler = MockHandler.new
+    server.secret = "1234"
+    server.run!(handler)
+    assert_equal handler, server.handler
+    
+    was_in_block = false
+    hold = true
+    app.bq do
+      was_in_block = true
+      while !timeout?
+        sleep(0.01)
+        app.check_terminate
+      end
+      flunk "app was not terminated"
+    end
+    
+    request.post("/run")
+    sleep(0.01)
+    
+    assert_equal 1, app.state
+    assert_equal true, was_in_block
+    assert_equal Thread, server.thread.class
+    assert_equal handler, server.handler
+    
+    request.post("/shutdown")
+    
+    assert_equal 1, app.state
+    assert_equal Thread, server.thread.class
+    assert_equal handler, server.handler
+    
+    request.post("/shutdown/1234")
+    
+    assert_equal 0, app.state
+    assert_equal nil, server.thread
+    assert_equal nil, server.handler
+  end
+  
   #
   # schema test
   #
@@ -316,6 +388,23 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     body = request.get("/enque").body
     assert body =~ /<form action="enque" method="post"/
     assert body =~ /<input type="submit" value="enque"/
+  end
+  
+  #
+  # admin? test
+  #
+  
+  def test_admin_is_true_if_secret_is_nil
+    assert_equal nil, server.secret
+    assert_equal true, server.admin?(nil)
+    assert_equal true, server.admin?("1234")
+  end
+  
+  def test_admin_is_true_if_input_equals_secret
+    server.secret = "1234"
+    assert_equal true, server.admin?("1234")
+    assert_equal false, server.admin?(nil)
+    assert_equal false, server.admin?("4321")
   end
   
 end
