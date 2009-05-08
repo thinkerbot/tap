@@ -24,7 +24,8 @@ module Tap
           unless gemspec = Gems.gemspec(dependency)
             # this error may result when a dependency has
             # been uninstalled for a particular gem
-            raise "could not find gemspec for: #{dependency.to_s} (#{spec.full_name})"
+            warn "missing gem dependency: #{dependency.to_s} (#{spec.full_name})"
+            next
           end
           
           if basename && !File.exists?(File.join(gemspec.full_gem_path, basename))
