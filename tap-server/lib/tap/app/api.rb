@@ -43,11 +43,7 @@ module Tap
       end
       
       def reset
-        if request.post?
-          app.reset
-          tasks.clear
-        end
-        
+        app.reset if request.post?
         redirect :info
       end
       
@@ -73,8 +69,8 @@ module Tap
         else
           Tap::Schema.load(request[:schema])
         end
-        
-        @tasks = schema.build(app) do |type, metadata|
+
+        app.cache[:tasks] = schema.build(app) do |type, metadata|
           case metadata
           when Array
             Constant.new(metadata.shift.camelize)
@@ -103,11 +99,11 @@ module Tap
           request[:queue] || {}
         end
         
+        tasks = app.cache[:tasks]
         queue.each do |(key, inputs)|
           unless task = tasks[key]
             raise "no task for: #{key}"
           end
-          
           app.enq(task, *inputs)
         end
         
@@ -119,12 +115,10 @@ module Tap
       set :default_action, :info
       
       attr_reader :app
-      attr_reader :tasks
       attr_reader :thread
       
       def initialize(app=Tap::App.new)
         @app = app
-        @tasks = {}
         @thread = nil
         super()
       end

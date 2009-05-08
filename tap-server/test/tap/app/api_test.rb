@@ -60,7 +60,6 @@ class Tap::App::ApiTest < Test::Unit::TestCase
     controller = Tap::App::Api.new
     assert_equal Tap::App, controller.app.class
     assert_equal nil, controller.thread
-    assert_equal({}, controller.tasks)
   end
   
   #

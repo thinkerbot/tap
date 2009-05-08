@@ -38,7 +38,6 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     server = Tap::App::Server.new
     assert_equal Tap::App, server.app.class
     assert_equal nil, server.thread
-    assert_equal({}, server.tasks)
   end
   
   #

@@ -54,7 +54,7 @@ module Tap
       config_attr :views_dir, nil do |input|     # the views directory
         @views_dir = (input || "views/#{self.class.to_s.underscore}")
       end
-      
+            
       def initialize(config={}, app=Tap::App.new)
         super(app)
         initialize_config(config)
