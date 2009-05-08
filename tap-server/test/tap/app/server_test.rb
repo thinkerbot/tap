@@ -93,7 +93,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
   
   def test_info_contains_app_info_and_controls
     body = request.get("/info").body
-    assert body =~ /<form action="run".*?method="post">/
+    assert body =~ /<form action="\/run".*?method="post">/
     assert body =~ /\(READY\) queue: 0/
   end
   
@@ -383,12 +383,12 @@ class Tap::App::ServerTest < Test::Unit::TestCase
   end
   
   #
-  # schema test
+  # build test
   #
   
-  def test_schema_returns_schema_form_on_get
-    body = request.get("/schema").body
-    assert body =~ /<form action="schema" method="post"/
+  def test_build_returns_schema_form_on_get
+    body = request.get("/build").body
+    assert body =~ /<form action="\/build" method="post"/
     assert body =~ /<input type="submit"/
   end
   
@@ -398,7 +398,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
   
   def test_enque_returns_enque_form_on_get
     body = request.get("/enque").body
-    assert body =~ /<form action="enque" method="post"/
+    assert body =~ /<form action="\/enque" method="post"/
     assert body =~ /<input type="submit" value="enque"/
   end
   

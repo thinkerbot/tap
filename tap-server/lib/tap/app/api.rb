@@ -5,6 +5,11 @@ require 'thread'
 
 module Tap
   class App
+    # Requires render for:
+    # * info.erb
+    # * about.erb
+    # * build.erb
+    # * enque.erb
     class Api < Tap::Controller
       include MonitorMixin
       Constant = Tap::Env::Constant
@@ -31,7 +36,7 @@ module Tap
       # Renders information about the execution environment.
       def about(secret=nil)
         return "" unless admin?(secret)
-        render 'about.erb'
+        render 'about.erb', :locals => {:secret => secret}
       end
       
       # Runs app on a separate thread (on post).
@@ -67,9 +72,9 @@ module Tap
         redirect :info
       end
       
-      def schema
+      def build
         unless request.post?
-          return render('schema.erb')
+          return render('build.erb')
         end
         
         schema = if request[:parse] == "on"

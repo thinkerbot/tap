@@ -32,6 +32,12 @@ module Tap
       def view_path(path)
         File.join(views_dir, path)
       end
+
+      # Returns a uri, with the secret if specified
+      def uri(action=nil, params={})
+        action = action.to_s
+        "#{action[0] == ?/ ? '' : '/'}#{action}#{params[:secret] ? '/' : ''}#{params[:secret]}" 
+      end
     end
   end
 end
