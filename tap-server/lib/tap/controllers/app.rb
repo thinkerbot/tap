@@ -17,13 +17,6 @@ module Tap
         }, :layout => true)
       end
       
-      # Returns the controls and current application info.
-      def info
-        render 'info.erb', :locals => {
-          :actions => [:run, :stop, :terminate, :reset],
-        }, :layout => true
-      end
-
       def tail(id)
         unless persistence.has?("#{id}.log")
           raise Tap::ServerError.new("invalid id: #{id}", 404)
