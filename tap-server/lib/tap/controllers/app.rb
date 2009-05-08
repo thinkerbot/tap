@@ -5,7 +5,7 @@ require 'time'
 module Tap
   module Controllers
     
-    # :startdoc::controller
+    # :startdoc::controller builds and runs workflows
     class App < Tap::App::Api
       include Session
       

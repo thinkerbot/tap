@@ -5,14 +5,11 @@ require 'monitor'
 
 module Tap
   class App
-    # Requires render for:
-    # * info.erb
-    # * about.erb
-    # * build.erb
-    # * enque.erb
     class Api < Tap::Controller
       include MonitorMixin
       Constant = Tap::Env::Constant
+      
+      # The directory containing the default views for an Api controller.
       DEFAULT_API_VIEWS_DIR = File.expand_path(File.dirname(__FILE__) + "/../../../views/tap/app/api")
       
       # Returns the state of app.
@@ -42,24 +39,24 @@ module Tap
           end
         end if request.post?
         
-        redirect :info
+        redirect uri(:info)
       end
       
       def reset
         app.reset if request.post?
-        redirect :info
+        redirect uri(:info)
       end
       
       # Stops app (on post).
       def stop
         app.stop if request.post?
-        redirect :info
+        redirect uri(:info)
       end
       
       # Teminates app (on post).
       def terminate
         app.terminate if request.post?
-        redirect :info
+        redirect uri(:info)
       end
       
       def build
@@ -87,7 +84,7 @@ module Tap
         if request[:run] == "on"
           run
         else
-          redirect(:enque)
+          redirect uri(:enque)
         end
       end
       
@@ -110,7 +107,7 @@ module Tap
           app.enq(task, *inputs)
         end
         
-        redirect :info
+        redirect uri(:info)
       end
       
       # ensure server methods are not added as actions
@@ -128,7 +125,7 @@ module Tap
       
       # Used to generate a uri to an Api action. Must be implemented in
       # subclasses.
-      def uri(path=nil, options={})
+      def uri(action=nil, params={})
         raise NotImplementedError
       end
       

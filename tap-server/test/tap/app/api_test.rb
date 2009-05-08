@@ -24,6 +24,10 @@ class Tap::App::ApiTest < Test::Unit::TestCase
     def stop!
       @stop_called = true
     end
+    
+    def uri(action=nil, params={})
+      action
+    end
   end
   
   attr_accessor :controller, :app, :request, :timeout
