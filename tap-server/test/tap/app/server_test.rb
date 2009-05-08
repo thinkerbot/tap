@@ -38,7 +38,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     server = Tap::App::Server.new
     assert_equal Tap::App, server.app.class
     assert_equal nil, server.thread
-    assert_equal({}, server.nodes)
+    assert_equal({}, server.tasks)
   end
   
   #
@@ -290,6 +290,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     assert_equal handler, server.handler
     
     request.post("/shutdown")
+    sleep(0.3)
     
     assert_equal 0, app.state
     assert_equal nil, server.thread
@@ -317,6 +318,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     assert_equal handler, server.handler
     
     request.get("/shutdown")
+    sleep(0.3)
     
     assert_equal 1, app.state
     assert_equal false, was_in_block
@@ -358,12 +360,14 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     assert_equal handler, server.handler
     
     request.post("/shutdown")
+    sleep(0.3)
     
     assert_equal 1, app.state
     assert_equal Thread, server.thread.class
     assert_equal handler, server.handler
     
     request.post("/shutdown/1234")
+    sleep(0.3)
     
     assert_equal 0, app.state
     assert_equal nil, server.thread

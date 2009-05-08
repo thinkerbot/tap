@@ -1,4 +1,18 @@
+<div>
 <% actions.each do |action| %>
 <%= render view_path("_action.erb"), :locals => {:action => action} %>
 <% end %>
+<% if admin?(secret) %>
+<form action="shutdown/<%= secret %>" style="display:inline" method="post">
+  <input type="submit" value="shutdown" />
+</form>
+<% end %>
 <%= app.info %>
+</div>
+<ul>
+<li><a href="/schema">Schema</a></li>
+<li><a href="/enque">Enque</a></li>
+<% if admin?(secret) %>
+<li><a href="/about/<%= secret %>">About</a></li>
+<% end %>
+</ul>

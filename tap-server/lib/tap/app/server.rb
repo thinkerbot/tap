@@ -22,10 +22,17 @@ module Tap
       end
       
       # Returns the controls and current application info.
-      def info
+      def info(secret=nil)
         render view_path('info.erb'), :locals => {
-          :actions => [:run, :stop, :terminate, :reset]
+          :actions => [:run, :stop, :terminate, :reset],
+          :secret => secret
         }
+      end
+      
+      # Renders information about the execution environment.
+      def about(secret=nil)
+        return "" unless admin?(secret)
+        render view_path('about.erb')
       end
       
       # Runs app on a separate thread (on post).
@@ -43,7 +50,7 @@ module Tap
       def reset
         if request.post?
           app.reset
-          nodes.clear
+          tasks.clear
         end
         
         redirect :info
@@ -72,7 +79,7 @@ module Tap
           Tap::Schema.load(request[:schema])
         end
         
-        @nodes = schema.build(app) do |type, metadata|
+        @tasks = schema.build(app) do |type, metadata|
           case metadata
           when Array
             Constant.new(metadata.shift.camelize)
@@ -102,11 +109,11 @@ module Tap
         end
         
         queue.each do |(key, inputs)|
-          unless node = nodes[key]
-            raise "no node for: #{key}"
+          unless task = tasks[key]
+            raise "no task for: #{key}"
           end
           
-          app.enq(node, *inputs)
+          app.enq(task, *inputs)
         end
         
         redirect :info
@@ -125,10 +132,13 @@ module Tap
             app.terminate
             thread.join if thread
           end
-        
-          stop!
+          
+          # wait a bit to shutdown, so the response is sent out.
+          Thread.new { sleep(0.1); stop! }
+          "shutdown"
+        else
+          ""
         end
-        ""
       end
       
       # ensure server methods are not added as actions
@@ -136,7 +146,7 @@ module Tap
       set :default_action, :info
       
       attr_reader :app
-      attr_reader :nodes
+      attr_reader :tasks
       attr_reader :thread
       
       config_attr :views_dir, nil do |input|     # the views directory
@@ -147,7 +157,7 @@ module Tap
       
       def initialize(config={}, app=Tap::App.new)
         @app = app
-        @nodes = {}
+        @tasks = {}
         @thread = nil
         initialize_config(config)
         super()
