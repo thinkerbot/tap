@@ -43,14 +43,13 @@ class PersistenceTest < Test::Unit::TestCase
   # entries test
   #
   
-  def test_entries_returns_numeric_paths_under_als
+  def test_entries_returns_file_paths_immediately_under_als
     assert_equal [], p.entries(:dir)
     
     zero = method_root.prepare(:tmp, 'dir/0') {}
     one = method_root.prepare(:tmp, 'dir/1') {}
     oneoone = method_root.prepare(:tmp, 'dir/101') {}
     
-    method_root.prepare(:tmp, 'dir/not_an_entry') {}
     method_root.prepare(:tmp, 'dir/sub/0') {}
     
     assert_equal [zero, one, oneoone], p.entries(:dir)
@@ -65,7 +64,7 @@ class PersistenceTest < Test::Unit::TestCase
     one = method_root.prepare(:tmp, 'dir/1') {}
     oneoone = method_root.prepare(:tmp, 'dir/101') {}
     
-    assert_equal [0, 1, 101], p.index(:dir)
+    assert_equal ['0', '1', '101'], p.index(:dir)
   end
   
   def test_index_returns_an_empty_array_if_no_ids_exist

@@ -8,15 +8,8 @@ module Tap
     class Persistence < Tap::Root
       include Utils
       
-      ID = /\A[0-9]+\z/
-      
       def id
-        base = File.basename(root)
-        if base =~ Persistence::ID
-          base.to_i
-        else
-          nil
-        end
+        File.basename(root)
       end
       
       # A restricted version of the original.  Path raises an error if the
@@ -35,15 +28,15 @@ module Tap
       
       # Returns a list of entry paths.
       def entries(als)
-        glob(als, "[0-9]*").select do |path|
-          File.file?(path) && File.basename(path) =~ ID
+        glob(als, "*").select do |path|
+          File.file?(path)
         end
       end
       
       # Returns a list of existing ids.
       def index(als)
         entries(als).collect do |path|
-          File.basename(path).to_i
+          File.basename(path)
         end
       end
       
