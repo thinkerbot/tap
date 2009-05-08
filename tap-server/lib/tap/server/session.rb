@@ -8,7 +8,7 @@ module Tap
       
       def initialize(attributes={})
         self.attributes = {
-          :app => {},
+          :app => nil,
           :persistence => {}
         }.merge(attributes)
       end
@@ -19,7 +19,7 @@ module Tap
     
       def attributes
         { :id => id,
-          :app => app.config.to_hash,
+          :app => app == Tap::App.instance ? nil : app.config.to_hash,
           :persistence => persistence.config.to_hash
         }
       end
@@ -54,22 +54,21 @@ module Tap
       attr_reader :persistence
       
       def persistence=(input)
-        @persistence = cast(input, Persistence)
+        @persistence = case input
+        when Persistence then input
+        when Hash        then Persistence.new(input)
+        else raise "cannot convert to Persistence: #{input.inspect}"
+        end
       end
       
       attr_reader :app
       
       def app=(input)
-        @app = cast(input, Tap::App)
-      end
-      
-      protected
-      
-      def cast(input, klass)
-        case input
-        when klass then input
-        when Hash  then klass.new(input)
-        else raise "cannot convert to #{klass}: #{input.inspect}"
+        @app = case input
+        when Tap::App then input
+        when Hash     then Tap::App.new(input)
+        when nil      then Tap::App.instance
+        else raise "cannot convert to Tap::App: #{input.inspect}"
         end
       end
     end

@@ -98,6 +98,10 @@ end
     assert server.session(0).kind_of?(Tap::Server::Session)
   end
   
+  def test_session_uses_app_instance_by_default
+    assert_equal Tap::App.instance, server.session(0).app
+  end
+  
   def test_session_persistence_is_initialized_using_env_root_configs
     server.env.root.relative_paths = {:key => 'value'}
     assert_equal({:key => 'value'}, server.session(0).persistence.relative_paths)

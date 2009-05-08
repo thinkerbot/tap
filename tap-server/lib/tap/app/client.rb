@@ -93,14 +93,16 @@ module Tap
         end
       end
       
+      include Configurable
+      
       # The server host (that self connects to)
-      attr_reader :host
+      config :host, '127.0.0.1'
       
       # The server port (that self connects to)
-      attr_reader :port
+      config :port, 8080
       
       # The server secret, used to acquire the pid of the server
-      attr_reader :secret
+      config :secret, nil
       
       # The pid of the server, or 0 if no pid can be acquired
       attr_reader :pid

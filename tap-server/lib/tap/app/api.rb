@@ -53,8 +53,8 @@ module Tap
         redirect :info
       end
       
-      def reset(secret=nil)
-        if admin?(secret) && request.post?
+      def reset
+        if request.post?
           app.reset
           tasks.clear
         end
