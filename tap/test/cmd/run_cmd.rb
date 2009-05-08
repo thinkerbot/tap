@@ -145,6 +145,7 @@ missing join input: 2
   def test_multiple_errors_are_collected
     sh_test %Q{
 % tap run -- a '--: c' b --[3][4]
+5 build errors
 unknown task: a
 unknown task: b
 unknown join: c

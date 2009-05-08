@@ -105,7 +105,13 @@ module Tap
       # end
       
       unless errors.empty?
-        raise errors.join("\n")
+        prefix = if errors.length > 1
+          "#{errors.length} build errors\n"
+        else
+          ""
+        end
+        
+        raise "#{prefix}#{errors.join("\n")}\n"
       end
       
       # enque tasks
