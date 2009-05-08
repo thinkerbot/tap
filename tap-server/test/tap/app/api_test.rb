@@ -117,18 +117,9 @@ class Tap::App::ApiTest < Test::Unit::TestCase
     path, options = YAML.load(request.get("/info").body)
     
     assert_equal 'info.erb', path
-    assert_equal [:run, :stop, :terminate, :reset], options[:locals][:actions]
     assert_equal true, options[:layout]
   end
-  
-  def test_info_passes_secret_as_a_local
-    path, options = YAML.load(request.get("/info").body)
-    assert_equal nil, options[:locals][:secret]
-    
-    path, options = YAML.load(request.get("/info/1234").body)
-    assert_equal '1234', options[:locals][:secret]
-  end
-  
+
   #
   # run test
   #
@@ -268,52 +259,6 @@ class Tap::App::ApiTest < Test::Unit::TestCase
     
     assert_equal 0, app.state
     assert_equal true, was_in_block
-  end
-  
-  #
-  # shutdown test
-  #
-  
-  def test_shutdown_terminates_a_running_app_then_stops_server_on_admin_post
-    was_in_block = false
-    app.bq do
-      was_in_block = true
-      while !timeout?
-        sleep(0.01)
-        app.check_terminate
-      end
-      flunk "app was not terminated"
-    end
-    
-    request.post("/run")
-    sleep(0.01)
-    
-    assert_equal 1, app.state
-    assert_equal true, was_in_block
-    assert_equal Thread, controller.thread.class
-    assert_equal false, controller.stop_called
-    
-    request.get("/shutdown")
-    sleep(0.3)
-    
-    assert_equal 1, app.state
-    assert_equal Thread, controller.thread.class
-    assert_equal false, controller.stop_called
-    
-    request.post("/shutdown")
-    sleep(0.3)
-    
-    assert_equal 1, app.state
-    assert_equal Thread, controller.thread.class
-    assert_equal false, controller.stop_called
-    
-    controller.admin = true
-    request.post("/shutdown")
-    sleep(0.3)
-    
-    assert_equal 0, app.state
-    assert_equal nil, controller.thread
-    assert_equal true, controller.stop_called
   end
   
   #

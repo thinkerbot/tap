@@ -109,7 +109,7 @@ module Tap
     # to a controller
     #--
     # Set to nil to force controller mapping?
-    config :default_controller_key, 'server'
+    config :default_controller_key, 'app'
     
     attr_reader :env
     

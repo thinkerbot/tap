@@ -1,6 +1,10 @@
 <div>Ruby <%= RUBY_VERSION %> (<%= RUBY_PLATFORM %>)</div>
 <div>Tap <%= Tap::VERSION %></div>
 <div>
+Server:
+<pre><%= YAML.dump(server.config.to_hash) %></pre>
+</div>
+<div>
 Session <%= session[:id] %>:
 <pre><%= YAML.dump(server.session(session[:id]).attributes) %></pre>
 </div>
@@ -12,8 +16,6 @@ Active Gems:
   <% end %>
 </ul>
 </div>
-<div>
-<ul>
-  <li><a href="<%= uri :info, :secret => secret %>">Info</a></li>
-</ul>
-</div>
+<form action="<%= uri :shutdown, :secret => secret %>" method="post">
+  <input type="submit" value="shutdown" />
+</form>

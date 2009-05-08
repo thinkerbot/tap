@@ -5,14 +5,8 @@ require 'time'
 module Tap
   module Controllers
     
-    # :startdoc::controller remotely controls and monitors server
-    # 
-    # Server provides several uris to control and monitor the server behavior.
-    # Importantly, server allows the remote shutdown of a Tap::Server if a
-    # shutdown_key is set.  This makes it possible to run servers in the
-    # background and still have a shutdown handle on them.
-    #
-    class Server < Tap::App::Api
+    # :startdoc::controller
+    class App < Tap::App::Api
       include Session
       
       set :default_layout, 'layout.erb'
@@ -23,21 +17,11 @@ module Tap
         }, :layout => true)
       end
       
-      # Returns the public server configurations as xml.
-      def config(secret=nil)
-        response['Content-Type'] = 'text/xml'
-        if admin?(secret)
-%Q{<?xml version="1.0"?>
-<server>
-<uri>#{uri}</uri>
-<secret>#{server.secret}</secret>
-</server>
-}
-        else
-%q{<?xml version="1.0"?>
-<server />
-}
-        end
+      # Returns the controls and current application info.
+      def info
+        render 'info.erb', :locals => {
+          :actions => [:run, :stop, :terminate, :reset],
+        }, :layout => true
       end
 
       def tail(id)

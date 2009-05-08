@@ -4,13 +4,30 @@ require 'tap/app/server'
 class Tap::App::ServerTest < Test::Unit::TestCase
   acts_as_tap_test
   
-  attr_accessor :server, :app, :request
+  attr_accessor :server, :app, :request, :timeout
   
   def setup
     super
     @server = Tap::App::Server.new
     @app = @server.app
     @request = Rack::MockRequest.new(server)
+    
+    @timeout = Time.now + 3
+    @timeout_error = false
+  end
+
+  def teardown
+    super
+    flunk "timeout error" if @timeout_error
+  end
+
+  def timeout?
+    if Time.now > @timeout
+      @timeout_error = true
+      true
+    else
+      false
+    end
   end
   
   #
@@ -83,4 +100,70 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     assert_equal false, server.admin?("4321")
   end
   
+  #
+  # shutdown test
+  #
+  
+  class MockHandler
+    def run(*args)
+      yield(self)
+    end
+    
+    def stop
+    end
+  end
+  
+  def test_mock_handler
+    handler = MockHandler.new
+    server.run!(handler)
+    assert_equal handler, server.handler
+    
+    server.stop!
+    assert_equal nil, server.handler
+  end
+  
+  def test_shutdown_terminates_a_running_app_then_stops_server_on_admin_post
+    handler = MockHandler.new
+    server.secret = "1234"
+    server.run!(handler)
+    
+    was_in_block = false
+    app.bq do
+      was_in_block = true
+      while !timeout?
+        sleep(0.01)
+        app.check_terminate
+      end
+      flunk "app was not terminated"
+    end
+    
+    request.post("/run")
+    sleep(0.01)
+    
+    assert_equal 1, app.state
+    assert_equal true, was_in_block
+    assert_equal Thread, server.thread.class
+    assert_equal handler, server.handler
+    
+    request.get("/shutdown")
+    sleep(0.3)
+    
+    assert_equal 1, app.state
+    assert_equal Thread, server.thread.class
+    assert_equal handler, server.handler
+    
+    request.post("/shutdown")
+    sleep(0.3)
+    
+    assert_equal 1, app.state
+    assert_equal Thread, server.thread.class
+    assert_equal handler, server.handler
+    
+    request.post("/shutdown/1234")
+    sleep(0.3)
+    
+    assert_equal 0, app.state
+    assert_equal nil, server.thread
+    assert_equal nil, server.handler
+  end
 end

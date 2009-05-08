@@ -26,19 +26,8 @@ module Tap
       end
       
       # Returns the controls and current application info.
-      def info(secret=nil)
-        render 'info.erb', :locals => {
-          :actions => [:run, :stop, :terminate, :reset],
-          :secret => secret
-        }, :layout => true
-      end
-      
-      # Renders information about the execution environment.
-      def about(secret=nil)
-        return "" unless admin?(secret)
-        render 'about.erb', :locals => {
-          :secret => secret
-        }, :layout => true
+      def info
+        render 'info.erb', :layout => true
       end
       
       # Runs app on a separate thread (on post).
@@ -123,24 +112,6 @@ module Tap
         end
         
         redirect :info
-      end
-      
-      # Terminates app and stops self (on post).
-      def shutdown(secret=nil)
-        response['Content-Type'] = "text/plain"
-        
-        if admin?(secret) && request.post?        
-          synchronize do
-            app.terminate
-            thread.join if thread
-          end
-          
-          # wait a bit to shutdown, so the response is sent out.
-          Thread.new { sleep(0.1); stop! }
-          "shutdown"
-        else
-          ""
-        end
       end
       
       # ensure server methods are not added as actions

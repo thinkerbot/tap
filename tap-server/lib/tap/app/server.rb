@@ -6,12 +6,46 @@ module Tap
     class Server < Api
       include Tap::Server::Base
       
+      # Returns the controls and current application info.
+      def info(secret=nil)
+        render 'info.erb', :locals => {
+          :actions => [:run, :stop, :terminate, :reset],
+          :secret => secret
+        }, :layout => true
+      end
+      
+      # Renders information about the execution environment.
+      def about(secret=nil)
+        return "" unless admin?(secret)
+        render 'about.erb', :locals => {
+          :secret => secret
+        }, :layout => true
+      end
+      
       # Returns the pid if the correct secret is provided
       def pid(secret=nil)
         response['Content-Type'] = "text/plain"
         
         return "" unless admin?(secret)
         Process.pid.to_s
+      end
+      
+      # Terminates app and stops self (on post).
+      def shutdown(secret=nil)
+        response['Content-Type'] = "text/plain"
+        
+        if admin?(secret) && request.post?        
+          synchronize do
+            app.terminate
+            thread.join if thread
+          end
+          
+          # wait a bit to shutdown, so the response is sent out.
+          Thread.new { sleep(0.1); stop! }
+          "shutdown"
+        else
+          ""
+        end
       end
       
       # ensure server methods are not added as actions
