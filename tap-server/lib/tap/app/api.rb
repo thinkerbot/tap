@@ -1,7 +1,7 @@
-require 'tap'                # excessive
+require 'tap'
 require 'tap/controller'
-require 'tap/server/base'
 require 'thread'
+require 'monitor'
 
 module Tap
   class App
@@ -30,13 +30,15 @@ module Tap
         render 'info.erb', :locals => {
           :actions => [:run, :stop, :terminate, :reset],
           :secret => secret
-        }
+        }, :layout => true
       end
       
       # Renders information about the execution environment.
       def about(secret=nil)
         return "" unless admin?(secret)
-        render 'about.erb', :locals => {:secret => secret}
+        render 'about.erb', :locals => {
+          :secret => secret
+        }, :layout => true
       end
       
       # Runs app on a separate thread (on post).
@@ -74,7 +76,7 @@ module Tap
       
       def build
         unless request.post?
-          return render('build.erb')
+          return render('build.erb', :layout => true)
         end
         
         schema = if request[:parse] == "on"
@@ -103,7 +105,7 @@ module Tap
       
       def enque
         unless request.post?
-          return render('enque.erb')
+          return render('enque.erb', :layout => true)
         end
         
         queue = if request[:load]

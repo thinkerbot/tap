@@ -59,10 +59,10 @@ module Tap
       # layout is specified.
       def render_layout(layout, content)
         if layout == true
-          layout = {:template => self.class.get(:default_layout)}
+          render(:template => self.class.get(:default_layout), :locals => {:content => content})
+        else
+          super
         end
-        
-        super(layout, content)
       end
       
       # Returns a session hash.

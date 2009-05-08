@@ -1,4 +1,5 @@
 require 'tap/app/api'
+require 'tap/server/base'
 
 module Tap
   class App
@@ -26,7 +27,13 @@ module Tap
       end
       
       def render(path, options={})
+        # render relative to view path
         super view_path(path), options
+      end
+      
+      def render_layout(layout, content)
+        # no layouts
+        content
       end
       
       def view_path(path)
@@ -36,6 +43,8 @@ module Tap
       # Returns a uri, with the secret if specified
       def uri(action=nil, params={})
         action = action.to_s
+        
+        # add / before action to make all paths relative to host
         "#{action[0] == ?/ ? '' : '/'}#{action}#{params[:secret] ? '/' : ''}#{params[:secret]}" 
       end
     end

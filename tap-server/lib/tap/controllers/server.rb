@@ -70,6 +70,7 @@ module Tap
       
       # ensure server methods are not added as actions
       set :define_action, false
+      set :default_action, :index
       
       def call(env)
         # serve public files before actions
@@ -93,6 +94,13 @@ module Tap
       # set.  Required to test if remote administration is allowed.
       def admin?(input)
         server.secret != nil && input == server.secret
+      end
+      
+      # Returns a controller uri, attaching the secret to the action, if specified.
+      def uri(action=nil, params={})
+        secret = params.delete(:secret)
+        action = "#{action}/#{secret}" if secret
+        super(action, params)
       end
       
       # Stops the server.

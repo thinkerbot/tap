@@ -191,7 +191,7 @@ module Tap
     # future it will.
     def uri(controller=nil, action=nil, params={})
       query = build_query(params)
-      uri = ["http://#{host}:#{port}", escape(controller), action].compact.join("/")
+      uri = ["http://#{host}:#{port}", escape(controller), action.to_s].delete_if {|s| s.empty? }.join("/")
       query.empty? ? uri : "#{uri}?#{query}"
     end
     
