@@ -4,6 +4,12 @@ require 'thread'
 module Tap
   class App
     
+    # currently broken...
+    # 
+    # Client should have the same api as a Tap::App, or at least all the
+    # the critical methods.  Client forwards calls to the connected
+    # app server.
+    #
     #   require 'lib/tap/app/client'
     # 
     #   client = Tap::App::Client.connect!('127.0.0.1', 8080)
