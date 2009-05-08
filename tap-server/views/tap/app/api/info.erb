@@ -1,0 +1,10 @@
+<div>
+<% actions.each do |action| %>
+<%= render "_action.erb", :locals => {:action => action } %>
+<% end %>
+<%= app.info %>
+</div>
+<ul>
+<li><a href="<%= uri :build %>">Build</a></li>
+<li><a href="<%= uri :enque %>">Enque</a></li>
+</ul>

@@ -8,8 +8,10 @@ Active Gems:
   <% end %>
 </ul>
 </div>
-<div>
 <ul>
-  <li><a href="<%= uri :info, :secret => secret %>">Info</a></li>
+  <li><a href="<%= uri :pid, :secret => secret %>">Pid</a></li>
 </ul>
-</div>
+<form action="<%= uri :shutdown, :secret => secret %>" method="post">
+  <input type="submit" value="shutdown" />
+</form>
+

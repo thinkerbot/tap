@@ -22,13 +22,13 @@ module Tap
         if request.get?
           render 'access.erb', :locals => {:secret => request['secret']}, :layout => true
         else
-          redirect uri("info/#{request['secret']}")
+          redirect uri("admin/#{request['secret']}")
         end
       end
       
-      # Renders information about the execution environment.
-      def info(secret=nil)
-        template = admin?(secret) ? 'info.erb' : 'access.erb'
+      # Administrate this server
+      def admin(secret=nil)
+        template = admin?(secret) ? 'admin.erb' : 'access.erb'
         render template, :locals => {:secret => secret}, :layout => true
       end
       
@@ -64,7 +64,7 @@ module Tap
       
       # ensure server methods are not added as actions
       set :define_action, false
-      set :default_action, :info
+      set :default_action, :admin
       
       def call(env)
         # serve public files before actions

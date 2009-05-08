@@ -6,20 +6,19 @@ module Tap
     class Server < Api
       include Tap::Server::Base
       
-      # Returns the controls and current application info.
-      def info(secret=nil)
-        render 'info.erb', :locals => {
-          :actions => [:run, :stop, :terminate, :reset],
-          :secret => secret
-        }, :layout => true
+      # Essentially a login for server administration
+      def access
+        if request.get?
+          render 'access.erb', :locals => {:secret => request['secret']}, :layout => true
+        else
+          redirect uri("admin/#{request['secret']}")
+        end
       end
       
-      # Renders information about the execution environment.
-      def about(secret=nil)
-        return "" unless admin?(secret)
-        render 'about.erb', :locals => {
-          :secret => secret
-        }, :layout => true
+      # Administrate this server
+      def admin(secret=nil)
+        template = admin?(secret) ? 'admin.erb' : 'access.erb'
+        render template, :locals => {:secret => secret}, :layout => true
       end
       
       # Returns the pid if the correct secret is provided
@@ -52,9 +51,9 @@ module Tap
       set :define_action, false
       
       config_attr :views_dir, nil do |input|     # the views directory
-        @views_dir = (input || "views/#{self.class.to_s.underscore}")
+        @views_dir = (input || "views/tap/app/server")
       end
-            
+      
       def initialize(config={}, app=Tap::App.new)
         super(app)
         initialize_config(config)
@@ -79,7 +78,8 @@ module Tap
       end
       
       def view_path(path)
-        File.join(views_dir, path)
+        view_path = File.join(views_dir, path)
+        File.file?(view_path) ? view_path : File.join(DEFAULT_API_VIEWS_DIR, path)
       end
 
       # Returns a uri, with the secret if specified

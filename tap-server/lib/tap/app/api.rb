@@ -13,6 +13,7 @@ module Tap
     class Api < Tap::Controller
       include MonitorMixin
       Constant = Tap::Env::Constant
+      DEFAULT_API_VIEWS_DIR = File.expand_path(File.dirname(__FILE__) + "/../../../views/tap/app/api")
       
       # Returns the state of app.
       def state
@@ -27,7 +28,9 @@ module Tap
       
       # Returns the controls and current application info.
       def info
-        render 'info.erb', :layout => true
+        render 'info.erb', :locals => {
+          :actions => [:run, :stop, :terminate, :reset],
+        }, :layout => true
       end
       
       # Runs app on a separate thread (on post).
@@ -99,7 +102,7 @@ module Tap
           request[:queue] || {}
         end
         
-        tasks = app.cache[:tasks]
+        tasks = app.cache[:tasks] ||= {}
         queue.each do |(key, inputs)|
           unless task = tasks[key]
             raise "no task for: #{key}"
@@ -121,6 +124,12 @@ module Tap
         @app = app
         @thread = nil
         super()
+      end
+      
+      # Used to generate a uri to an Api action. Must be implemented in
+      # subclasses.
+      def uri(path=nil, options={})
+        raise NotImplementedError
       end
       
       # Used to test if a particular request has rights to a remote
