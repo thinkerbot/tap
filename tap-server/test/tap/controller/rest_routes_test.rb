@@ -53,7 +53,9 @@ class RestRoutesTest < Test::Unit::TestCase
     assert_equal "edit 1", request.get("/1;edit").body
     assert_equal "create 1", request.post("/1").body
     assert_equal "update 1", request.put("/1").body
+    assert_equal "update 1", request.post("/1?_method=put").body
     assert_equal "destroy 1", request.delete("/1").body
+    assert_equal "destroy 1", request.post("/1?_method=delete").body
   end
   
   def test_rest_routing_raises_error_for_unknown_request_method
