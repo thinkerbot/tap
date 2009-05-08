@@ -6,6 +6,7 @@ require 'stringio'
 class Tap::App::ClientTest < Test::Unit::TestCase
   Client = Tap::App::Client
   acts_as_subset_test
+  skip_test
   
   def setup
     super

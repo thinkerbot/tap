@@ -53,8 +53,8 @@ module Tap
         redirect :info
       end
       
-      def reset
-        if request.post?
+      def reset(secret=nil)
+        if admin?(secret) && request.post?
           app.reset
           tasks.clear
         end
@@ -123,14 +123,6 @@ module Tap
         end
         
         redirect :info
-      end
-      
-      # Returns the pid if the correct secret is provided
-      def pid(secret=nil)
-        response['Content-Type'] = "text/plain"
-        
-        return "" unless admin?(secret)
-        Process.pid.to_s
       end
       
       # Terminates app and stops self (on post).

@@ -19,16 +19,24 @@ Gem::Specification.new do |s|
     History}
   
   s.files = %W{
+    cmd/app.rb
+    cmd/client.rb
     cmd/server.rb
+    lib/tap/app/api.rb
+    lib/tap/app/client.rb
+    lib/tap/app/server.rb
     lib/tap/controller.rb
-    lib/tap/controllers/app.rb
+    lib/tap/controller/rest_routes.rb
+    lib/tap/controller/session.rb
     lib/tap/controllers/schema.rb
     lib/tap/controllers/server.rb
     lib/tap/server.rb
-    lib/tap/server_error.rb
+    lib/tap/server/base.rb
+    lib/tap/server/persistence.rb
+    lib/tap/server/server_error.rb
+    lib/tap/server/session.rb
+    lib/tap/server/utils.rb
     lib/tap/tasks/echo.rb
-    lib/tap/tasks/server.rb
-    lib/tap/support/persistence.rb
     public/javascripts/prototype.js
     public/javascripts/tap.js
     public/stylesheets/tap.css
@@ -36,19 +44,28 @@ Gem::Specification.new do |s|
     views/404.erb
     views/500.erb
     views/layout.erb
-    views/tap/controllers/app/index.erb
-    views/tap/controllers/app/info.erb
-    views/tap/controllers/app/tail.erb
-    views/tap/controllers/schema/config/default.erb
-    views/tap/controllers/schema/config/flag.erb
-    views/tap/controllers/schema/config/switch.erb
+    views/tap/app/server/_action.erb
+    views/tap/app/server/about.erb
+    views/tap/app/server/build.erb
+    views/tap/app/server/enque.erb
+    views/tap/app/server/info.erb
     views/tap/controllers/schema/configurations.erb
+    views/tap/controllers/schema/configurations/default.erb
+    views/tap/controllers/schema/configurations/flag.erb
+    views/tap/controllers/schema/configurations/list.erb
+    views/tap/controllers/schema/configurations/list_select.erb
+    views/tap/controllers/schema/configurations/regexp.erb
+    views/tap/controllers/schema/configurations/select.erb
+    views/tap/controllers/schema/configurations/switch.erb
+    views/tap/controllers/schema/index.erb
     views/tap/controllers/schema/join.erb
-    views/tap/controllers/schema/node.erb
-    views/tap/controllers/schema/preview.erb
     views/tap/controllers/schema/round.erb
     views/tap/controllers/schema/schema.erb
+    views/tap/controllers/server/about.erb
+    views/tap/controllers/server/build.erb
+    views/tap/controllers/server/enque.erb
     views/tap/controllers/server/index.erb
-    views/tap/tasks/echo/result.html
+    views/tap/controllers/server/info.erb
+    views/tap/controllers/server/tail.erb
     }
 end

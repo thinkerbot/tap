@@ -6,6 +6,14 @@ module Tap
     class Server < Api
       include Tap::Server::Base
       
+      # Returns the pid if the correct secret is provided
+      def pid(secret=nil)
+        response['Content-Type'] = "text/plain"
+        
+        return "" unless admin?(secret)
+        Process.pid.to_s
+      end
+      
       # ensure server methods are not added as actions
       set :define_action, false
       
