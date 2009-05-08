@@ -213,15 +213,15 @@ end
     assert_equal "SampleAlias", request.get('/alias/page').body
   end
   
-  def test_call_routes_unknown_to_app_controller
-    method_root.prepare(:lib, 'app.rb') do |file| 
-      file << %Q{# ::controller\nclass App < ServerTest::RouteController; end}
+  def test_call_routes_unknown_to_server_controller
+    method_root.prepare(:lib, 'server.rb') do |file| 
+      file << %Q{# ::controller\nclass Server < ServerTest::RouteController; end}
     end
     
-    assert_equal "App", request.get('/').body
-    assert_equal "App", request.get('/unknown').body
-    assert_equal "App", request.get('/app').body
-    assert_equal "App", request.get('/app/page').body
+    assert_equal "Server", request.get('/').body
+    assert_equal "Server", request.get('/unknown').body
+    assert_equal "Server", request.get('/app').body
+    assert_equal "Server", request.get('/app/page').body
   end
   
   class ErrorController

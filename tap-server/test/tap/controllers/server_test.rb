@@ -6,6 +6,7 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
   
   acts_as_tap_test
   acts_as_subset_test
+  cleanup_dirs << :views << :public
   
   attr_reader :server, :opts, :request
   
@@ -17,14 +18,38 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
   end
   
   #
-  # ping test
+  # call test
   #
   
-  def test_ping_returns_pong
-    response = request.get("/ping", opts)
+  def test_call_serves_public_pages
+    method_root.prepare(:public, "page.html") {|file| file << "<html></html>" }
+    response = request.get("/page.html", opts)
     
-    assert_equal 'text/plain', response['Content-Type']
-    assert_equal "pong", response.body
+    assert_equal 200, response.status
+    assert_equal "<html></html>", response.body
+  end
+  
+  def test_call_serves_nested_public_pages
+    method_root.prepare(:public, "dir/page.html") {|file| file << "<html>dir</html>" }
+    assert_equal "<html>dir</html>", request.get("/dir/page.html", opts).body
+  end
+  
+  def test_call_serves_public_pages_from_nested_envs
+    e = assert_raises(Tap::Server::ServerError) { request.get("/page.html", opts) }
+    assert_equal "404 Error: page not found", e.message
+    
+    env = Tap::Env.new(method_root[:tmp])
+    env.root.prepare(:public, "page.html") {|file| file << "<html></html>" }
+    server.env.push env
+    assert_equal "<html></html>", request.get("/page.html", opts).body
+  end
+  
+  def test_call_negotiates_public_page_content_type_by_extname
+    method_root.prepare(:public, "page.html") {|file| }
+    assert_equal "text/html", request.get("/page.html", opts).content_type
+    
+    method_root.prepare(:public, "page.txt") {|file| }
+    assert_equal "text/plain", request.get("/page.txt", opts).content_type
   end
   
   #
@@ -32,66 +57,12 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
   #
   
   def test_config_returns_public_configs_as_xml
-    response = request.get("/config", opts)
+    server.secret = "1234"
+    response = request.get("/config/1234", opts)
     
     assert_equal 'text/xml', response['Content-Type']
     assert_match(/<uri>#{server.uri('tap/controllers/server')}<\/uri>/, response.body)
-    assert_match(/<shutdown_key>#{server.shutdown_key}<\/shutdown_key>/, response.body)
+    assert_match(/<secret>#{server.secret}<\/secret>/, response.body)
   end
   
-  #
-  # shutdown test
-  #
-  
-  class MockServer
-    attr_reader :stop_called, :shutdown_key
-    def initialize(shutdown_key=3)
-      @shutdown_key = shutdown_key
-      @stop_called = false
-    end
-    def stop!
-      @stop_called = true
-    end
-  end
-  
-  def test_shutdown_calls_stop_on_server_if_shutdown_key_is_specified
-    extended_test do
-      server = MockServer.new
-      assert_equal false, server.stop_called
-    
-      response = request.get("/shutdown?shutdown_key=3", 'tap.server' => server)
-      assert_equal "shutdown", response.body
-    
-      # must sleep > 1 second since shutdown
-      # waits 1 second before calling shutdown
-      sleep 1.2
-      assert_equal true, server.stop_called
-    end
-  end
-  
-  def test_shutdown_will_not_call_shutdown_for_wrong_shutdown_key
-    extended_test do
-      server = MockServer.new
-      assert_equal false, server.stop_called
-    
-      response = request.get("/shutdown?shutdown_key=12", 'tap.server' => server)
-      assert_equal "you do not have permission to shutdown this server", response.body
-      
-      sleep 1.2
-      assert_equal false, server.stop_called
-    end
-  end
-  
-  def test_shutdown_will_not_call_shutdown_if_no_shutdown_key_is_set
-    extended_test do
-      server = MockServer.new(nil)
-      assert_equal false, server.stop_called
-    
-      response = request.get("/shutdown?shutdown_key=", 'tap.server' => server)
-      assert_equal "you do not have permission to shutdown this server", response.body
-      
-      sleep 1.2
-      assert_equal false, server.stop_called
-    end
-  end
 end

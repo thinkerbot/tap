@@ -77,6 +77,17 @@ class Tap::App::ServerTest < Test::Unit::TestCase
   end
   
   #
+  # ping test
+  #
+  
+  def test_ping_returns_pong
+    response = request.get("/ping")
+    
+    assert_equal 'text/plain', response['Content-Type']
+    assert_equal "pong", response.body
+  end
+  
+  #
   # info test
   #
   
@@ -231,12 +242,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
   # pid test
   #
   
-  def test_pid_returns_pid
-    assert_equal Process.pid.to_s, request.get("/pid").body
-    assert_equal Process.pid.to_s, request.get("/pid/").body
-  end
-  
-  def test_pid_does_not_return_pid_unless_admin
+  def test_pid_returns_pid_if_admin
     server.secret = "1234"
     assert_equal "", request.get("/pid").body
     assert_equal "", request.get("/pid/").body
@@ -268,6 +274,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
   
   def test_shutdown_terminates_a_running_app_then_stops_server
     handler = MockHandler.new
+    server.secret = "1234"
     server.run!(handler)
     assert_equal handler, server.handler
     
@@ -289,7 +296,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     assert_equal Thread, server.thread.class
     assert_equal handler, server.handler
     
-    request.post("/shutdown")
+    request.post("/shutdown/1234")
     sleep(0.3)
     
     assert_equal 0, app.state
@@ -299,6 +306,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
   
   def test_shutdown_does_not_terminate_or_stop_unless_post
     handler = MockHandler.new
+    server.secret = "1234"
     server.run!(handler)
     assert_equal handler, server.handler
     
@@ -317,7 +325,7 @@ class Tap::App::ServerTest < Test::Unit::TestCase
     assert_equal Thread, server.thread.class
     assert_equal handler, server.handler
     
-    request.get("/shutdown")
+    request.get("/shutdown/1234")
     sleep(0.3)
     
     assert_equal 1, app.state
@@ -398,10 +406,10 @@ class Tap::App::ServerTest < Test::Unit::TestCase
   # admin? test
   #
   
-  def test_admin_is_true_if_secret_is_nil
+  def test_admin_is_false_if_secret_is_nil
     assert_equal nil, server.secret
-    assert_equal true, server.admin?(nil)
-    assert_equal true, server.admin?("1234")
+    assert_equal false, server.admin?(nil)
+    assert_equal false, server.admin?("1234")
   end
   
   def test_admin_is_true_if_input_equals_secret

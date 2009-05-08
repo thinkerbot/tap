@@ -1,8 +1,8 @@
 <% id = app.hash %>
 <% update_info = "Tap.App.info('/app/info', 'update-#{id}', 'info-#{id}', 1000);" %>
+<script type="text/javascript">update_info</script>
 <div class="info">
-  <input class="update-" id="update-<%= id %>" type="checkbox" <%= update ? "checked='true' " : "" %>onchange="<%= update_info %>" />
+  <input class="update-" id="update-<%= id %>" type="checkbox" checked='true' onchange="<%= update_info %>" />
   <a href="/app/info">update</a>
-  <span class="info" id="info-<%= id %>"><%= content %></span>
+  <span class="info" id="info-<%= id %>"><%= app.info %></span>
 </div>
-<script type="text/javascript"><%= update ? update_info : "" %></script>

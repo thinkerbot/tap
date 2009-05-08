@@ -69,7 +69,7 @@ module Tap
       # specified in root/server.yml.  If shutdown_key is specified, a
       # random shutdown key will be generated and set on the sever.
       #
-      def instantiate(root, shutdown_key=false)
+      def instantiate(root, secret=false)
         # setup the server directory
         root = File.expand_path(root)
         FileUtils.mkdir_p(root) unless File.exists?(root)
@@ -80,7 +80,7 @@ module Tap
         config = Configurable::Utils.load_file(env.root['server.yml'])
         
         server = new(env, config)
-        server.config[:shutdown_key] = rand(1000000) if shutdown_key
+        server.config[:secret] = rand(10000000000) if secret
         server
       end
       
@@ -109,15 +109,7 @@ module Tap
     # to a controller
     #--
     # Set to nil to force controller mapping?
-    config :default_controller_key, 'app'
-    
-    # Server implements a shutdown key so the server can be shutdown remotely
-    # via an HTTP request to the app/shutdown method.  Remote shutdown is
-    # useful when the user is running a local server (especially from a
-    # background process).  Under many circumstances remote shutdown is
-    # undesirable; specify a nil shutdown key, the default, to turn off
-    # shutdown.
-    config :shutdown_key, nil, &c.integer_or_nil        # specifies a public shutdown key
+    config :default_controller_key, 'server'
     
     attr_reader :env
     

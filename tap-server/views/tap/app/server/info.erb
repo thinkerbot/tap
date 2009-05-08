@@ -1,6 +1,6 @@
 <div>
 <% actions.each do |action| %>
-<%= render view_path("_action.erb"), :locals => {:action => action} %>
+<%= render "_action.erb", :locals => {:action => action} %>
 <% end %>
 <% if admin?(secret) %>
 <form action="shutdown/<%= secret %>" style="display:inline" method="post">

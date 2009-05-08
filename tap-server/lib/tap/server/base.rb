@@ -10,6 +10,12 @@ module Tap
       config :host, 'localhost', &c.string                # the server host
       config :port, 8080, &c.integer                      # the server port
       
+      # Server implements a secret for HTTP administration of the server (ex
+      # remote shutdown). Under many circumstances this functionality is
+      # undesirable; specify a nil secret, the default, to prevent remote
+      # administration.
+      config :secret, nil, &c.string_or_nil               # the admin secret
+      
       attr_reader :handler
       
       # Runs self as configured, on the specified server, host, and port.  Use an
@@ -35,9 +41,16 @@ module Tap
           true
         end
       end
-    
+      
+      # Returns true if input is equal to the secret, if a secret is set. Used
+      # to test if a particular request has rights to a remote administrative
+      # action.
+      def admin?(input)
+        secret != nil && input == secret
+      end
+      
       protected
-    
+      
       # Looks up and returns the first available Rack::Handler as listed in the
       # servers configuration. (Note rack_handler returns a handler class, not
       # an instance).  Adapted from Sinatra.detect_rack_handler

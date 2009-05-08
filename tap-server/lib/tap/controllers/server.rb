@@ -1,4 +1,6 @@
-require 'tap/controller'
+require 'tap/app/api'
+require 'rack/mime'
+require 'time'
 
 module Tap
   module Controllers
@@ -10,50 +12,92 @@ module Tap
     # shutdown_key is set.  This makes it possible to run servers in the
     # background and still have a shutdown handle on them.
     #
-    class Server < Tap::Controller
+    class Server < Tap::App::Api
       include Session
       
       set :default_layout, 'layout.erb'
-  
+        
       def index
-        render 'index.erb'
-      end
-      
-      # Returns 'pong'.
-      def ping
-        response['Content-Type'] = 'text/plain'
-        "pong"
+        render('index.erb', :locals => {
+          :env => server.env
+        }, :layout => true)
       end
       
       # Returns the public server configurations as xml.
-      def config
+      def config(secret=nil)
         response['Content-Type'] = 'text/xml'
-        %Q{<?xml version="1.0"?>
+        if admin?(secret)
+%Q{<?xml version="1.0"?>
 <server>
 <uri>#{uri}</uri>
-<shutdown_key>#{shutdown_key}</shutdown_key>
-</server>}
-      end
-      
-      # Shuts down the server.  Shutdown requires a shutdown key which
-      # is setup when the server is launched.  If no shutdown key was
-      # setup, shutdown does nothing and responds accordingly.
-      def shutdown
-        if shutdown_key && request['shutdown_key'].to_i == shutdown_key
-          # wait a second to shutdown, so the response is sent out.
-          Thread.new {sleep 1; server.stop! }
-          "shutdown"
+<secret>#{server.secret}</secret>
+</server>
+}
         else
-          "you do not have permission to shutdown this server"
+%q{<?xml version="1.0"?>
+<server />
+}
+        end
+      end
+
+      def tail(id)
+        unless persistence.has?("#{id}.log")
+          raise Tap::ServerError.new("invalid id: #{id}", 404)
+        end
+        
+        path = persistence.path("#{id}.log")
+        pos = request['pos'].to_i
+        if pos > File.size(path)
+          raise Tap::ServerError.new("tail position out of range (try update)", 500)
+        end
+
+        content = File.open(path) do |file|
+          file.pos = pos
+          file.read
+        end
+    
+        if request.post?
+          content
+        else
+          render('tail.erb', :locals => {
+            :id => id,
+            :path => File.basename(path),
+            :update => true,
+            :content => content
+          }, :layout => true)
         end
       end
       
-      protected
+      # ensure server methods are not added as actions
+      set :define_action, false
       
-      # returns the server shutdown key.  the shutdown key is required
-      # for shutdown to function, a nil shutdown key disables shutdown.
-      def shutdown_key  # :nodoc:
-        server.shutdown_key
+      def call(env)
+        # serve public files before actions
+        server = env['tap.server'] ||= Tap::Server.new
+    
+        if path = server.path(:public, env['PATH_INFO'])
+          content = File.read(path)
+          headers = {
+            "Last-Modified" => File.mtime(path).httpdate,
+            "Content-Type" => Rack::Mime.mime_type(File.extname(path), 'text/plain'), 
+            "Content-Length" => content.size.to_s
+          }
+      
+          [200, headers, [content]]
+        else
+          super
+        end
+      end
+      
+      # Returns true if input is equal to the server secret, if a secret is
+      # set.  Required to test if remote administration is allowed.
+      def admin?(input)
+        server.secret != nil && input == server.secret
+      end
+      
+      # Stops the server.
+      def stop!
+        server.stop!
       end
     end
   end
