@@ -1,37 +1,41 @@
 <span>Schema: <%= id %></span>
-<ul>
-  <li><a href="<%= uri("#{id}.txt") %>">preview</a></li>
-  <li><a href="<%= uri("#{id}.yml") %>">download</a></li>
-  <li>
-  <form id="run_form_<%= id %>" class="run_form" method="post" action="<%= server.uri(:app, "run/#{id}") %>">
-    <input id="run_form_<%= id %>_submit" type="submit" value="Run" />
-  </form>
-  </li>
-</ul>
-<% prerequisites = schema.prerequisites %>
-<% unless prerequisites.empty? %>
-<%= render 'round.erb', :locals => {:schema => schema, :nodes => prerequisites, :round => nil, :id => id} %>
-<% end %>
-<% index = 0 %>
-<% schema.natural_rounds.each do |nodes| %>
-<%=  render 'round.erb', :locals => {:schema => schema, :nodes => nodes, :round => index, :id => id} %>
-<%   index += 1 %>
-<% end %>
-<%= render 'round.erb', :locals => {:schema => schema, :nodes => [], :round => index, :id => id} %>
+<form id="rename_<%= id %>" class="rename" method="post" action="<%= uri(id) %>">
+  <input type="input" name="name" value="<%= id %>" />
+  <input type="hidden" name="_method" value="put" />
+  <input type="hidden" name="_action" value="rename" />
+  <input type="submit" value="Rename" />
+</form>
 
-<form id="node_form_<%= id %>" class="node_form" enctype="multipart/form-data" method="post" action="<%= uri(id) %>">
-  <ol id="nodes_<%= id %>" class="schema">
-<% schema.nodes.each_with_index do |node, index| %>
-  <li id="node_<%= id %>_<%= index %>" class="node">
-    <!-- tasc identifier -->
-    <input name="schema[]" type="hidden" value="" />
-    <input name="schema[][id]" type="hidden" value="<%= node.metadata[:id] %>" />
-<%   task, args = instantiate(node) %>
-<%=  render(:file => class_path('node.erb', task), :locals => {:id => id, :name => 'schema[]', :task => task, :args => args} ) %> 
-  </li>
-<% end %>
-  </ol>
-  <input class="action" type="radio" name="action" value="update" checked="true">update</input>
-  <input class="action" type="radio" name="action" value="echo">echo (debug http)</input>
-  <input id="node_form_<%= id %>_submit" type="submit" value="Update" />
+<!-- build panel -->
+<form id="build_<%= id %>" class="build" method="post" action="<%= uri(id) %>">
+  <input type="hidden" name="_method" value="put" />
+  <input type="hidden" name="_action" value="build" />
+  <input type="submit" value="Add" />
+</form>
+
+<!-- configure panel -->
+<form id="configure_<%= id %>" class="configure" method="post" action="<%= uri(id) %>">
+  <input type="hidden" name="_method" value="put" />
+  <input type="hidden" name="_action" value="configure" />
+  
+  <ul class="tasks">
+<% schema.tasks.each_pair do |key, task| %>
+<%   task_id = "schema[tasks][#{}]" %>
+    <li>
+<%=  render(:file => class_path('node.erb', task), :locals => {:id => id, :name => 'schema[]', :task => task, :args => args} ) %>
+      
+<%= render 'task.erb', :locals => {:task => task_id, :index => index, :id => id} %>
+    </li>
+  <% end %>
+  </ul>
+
+  <ul class="joins">
+  <% schema.joins.each_with_index do |join, index| %>
+    <li>
+<%= render 'join.erb', :locals => {:join => join, :index => index, :id => id} %>
+    </li>
+  <% end %>
+  </ul>
+  
+  <input type="submit" value="Update" />
 </form>

@@ -6,6 +6,7 @@ module Tap
     # ::controller
     class Schema < Tap::Controller
       include RestRoutes
+      include Session
       
       set :default_layout, 'layout.erb'
       
@@ -20,7 +21,11 @@ module Tap
       def show(id=persistence.next_id(:schema))
         extname = File.extname(id)
         id = id.chomp(extname)
-        schema = load_schema(id)
+        schema = if path = persistence.find(:schema, id)
+          Tap::Schema.load_file(path)
+        else
+          Tap::Schema.new
+        end
         
         case extname
         when '.txt'
@@ -38,200 +43,59 @@ module Tap
         end
       end
       
-      # 
-      #     # GET /projects/arg;edit/*args
-      #     def edit(arg, *args)...
-      
-      # Updates the specified schema with the request parameters.  Update forwards
-      # the request to the action ('add' or 'remove') specified in the action
-      # parameter.
       # POST /projects/*args
-      def create(*id)
-        case request['action']
-        # rest actions
-        when 'update' then update(id)
-        when 'destroy' then destroy(id)
-        
-        # create actions
-        when 'add'    then add(id)
-        when 'remove' then remove(id)
-        when 'echo'   then echo
-        else raise ServerError, "unknown action: #{request['action']}"
-        end
+      def create(id)
+        schema = Tap::Schema.new(request['schema'] || {})
+        persistence.create(:schema, id) {|io| io << schema.dump }
+        redirect uri(id)
       end
       
       # PUT /projects/*args
+      # POST /projects/*args?_method=put
       def update(id)
-        save_schema(id, validate_schema(request_schema))
-        redirect("/schema/#{id}")
+        unless action = request['_action']
+          raise ServerError, "no action specified" 
+        end
+        
+        action = action.to_sym
+        unless action?(action)
+          raise ServerError, "unknown action: #{action}"
+        end
+        
+        send(action, *id)
       end
       
       # DELETE /projects/*args
+      # POST /projects/*args?_method=delete
       def destroy(id)
         persistence.destroy(:schema, id)
-        redirect("/schema")
+        redirect uri
       end
         
+      ############################################################
+      # Update Methods (these are actions, but due to REST routes
+      # they cannot be reached except through update)
+      ############################################################
+      
+      # Renames id to request['name'] in the schema persistence.
+      def rename(id)
+        new_id = request['name'].to_s.strip
+        if new_id.empty?
+          raise "no name specified"
+        end
+        
+        content = persistence.read(:schema, id)
+        persistence.destroy(:schema, id)
+        persistence.create(:schema, new_id) {|io| io << content }
+        
+        redirect uri(new_id)
+      end
+      
       ############################################################
       # Helper Methods
       ############################################################
       protected
-      
-      # Adds nodes or joins to the schema.  Parameters:
-      #
-      # nodes[]:: An array of nodes to add to the schema. Each entry is split using
-      #           Shellwords to yield an argv; the argv initializes the node.  The
-      #           index of each new node is added to targets[].
-      # sources[]:: An array of source node indicies used to create a join.
-      # targets[]:: An array of target node indicies used to create a join (note
-      #             the indicies of new nodes are added to targets).
-      #
-      # Add creates and pushes new nodes onto schema as specified in nodes, then
-      # creates joins between the sources and targets.  The join class is inferred
-      # by Utils.infer_join; if no join can be inferred the join class is 
-      # effectively nil, and consistent with that, the node output for sources
-      # and the node input for targets is set to nil.
-      #
-      # === Notes
-      #
-      # The nomenclature for source and target is relative to the join, and may
-      # seem backwards for the node (ex: 'sources[]=0&targets[]=1' makes a join
-      # like '0:1')
-      #
-      def add(id)
-        round = (request['round'] || 0).to_i
-        outputs = (request['outputs'] || []).collect {|index| index.to_i }
-        inputs = (request['inputs'] || []).collect {|index| index.to_i }
-        nodes = request['nodes'] || []
-        
-        load_schema(id) do |schema|
-          nodes.each do |metadata|
-            next unless metadata && !metadata.empty?
-            
-            # argh metadata must be symbolized
-            argh = metadata.inject({}) do |hash, (key, value)| 
-              hash[key.to_sym] = value
-              hash
-            end
-            
-            outputs << schema.nodes.length
-            schema.nodes << Tap::Schema::Node.new(argh, round)
-          end
-      
-          if inputs.empty? || outputs.empty?
-            inputs.each {|index| schema[index].output = nil }
-            outputs.each {|index| schema[index].input = round }
-          else
-            schema.set_join(inputs, outputs)
-          end
-        end
-        
-        redirect("/schema/#{id}")
-      end
-        
-      # Removes nodes or joins from the schema.  Parameters:
-      #
-      # sources[]:: An array of source node indicies to remove.
-      # targets[]:: An array of target node indicies to remove.
-      #
-      # Normally remove sets the node.output for each source to nil and the
-      # node.input for each target to nil.  However, if a node is indicated in
-      # both sources and targets AND it has no join input/output, then it will
-      # be removed.
-      #
-      # === Notes
-      #
-      # The nomenclature for source and target is relative to the join, and may
-      # seem backwards for the node (ex: for the sequence '0:1:2', 'targets[]=1'
-      # breaks the join '0:1' while 'sources[]=1' breaks the join '1:2'.
-      #
-      def remove(id)
-        round = (request['round'] || 0).to_i
-        outputs = (request['outputs'] || []).collect {|index| index.to_i }
-        inputs = (request['inputs'] || []).collect {|index| index.to_i }
-          
-        load_schema(id) do |schema|
-          # Remove joins.  Removed indicies are popped to ensure
-          # that if a join was removed the node will not be.
-          outputs.delete_if do |index|
-            next unless node = schema.nodes[index]
-            if node.input_join
-              node.input = round
-              true
-            else
-              false
-            end
-          end
-      
-          inputs.delete_if do |index|
-            next unless node = schema.nodes[index]
-            if node.output_join
-              node.output = nil
-              true
-            else
-              false
-            end
-          end
-          
-          # Remove nodes. Setting a node to nil causes it's removal during 
-          # compact; orphaned joins are removed during compact as well.
-          (inputs & outputs).each do |index|
-            schema.nodes[index] = nil
-          end
-        end
-          
-        redirect("/schema/#{id}")
-      end
-      
-      # helper to echo requests back... used to debug http requests
-      def echo
-        "<pre>#{request.params.to_yaml}</pre>"
-      end
-      
-      # Parses a Tap::Support::Schema from the request.
-      def request_schema
-        Tap::Schema.load(request['schema'])
-      end
-      
-      def load_schema(id)
-        schema = if path = persistence.find(:schema, id)
-          Tap::Schema.load_file(path)
-        else
-          Tap::Schema.new
-        end
-        
-        if block_given?
-          result = yield(schema)
-          save_schema(id, schema)
-          result
-        else
-          schema
-        end
-      end
-      
-      def validate_schema(schema)
-        # validate by building...
-        schema.build do |type, argh|
-          if type == :join
-            server.env.instantiate_join(argh)
-          else
-            server.env.instantiate_task(argh, app)
-          end
-        end
-        schema
-      end
-        
-      def save_schema(id, schema=nil)
-        persistence.open(:schema, id) do |file|
-          file << schema.dump if schema
-        end
-      end
-        
-      def instantiate(node)
-        metadata = node.metadata
-        tasc = server.env.constant_manifest(:task)[metadata[:id]]
-        tasc.instantiate(metadata, app)
-      end        
+    
     end
   end
 end

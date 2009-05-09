@@ -8,8 +8,11 @@ module Tap
     class Persistence < Tap::Root
       include Utils
       
+      # The id of the persistence object (as if persistences were a table
+      # and each persistence entry joins joins to a number of paths), ie
+      # root.
       def id
-        File.basename(root)
+        root
       end
       
       # A restricted version of the original.  Path raises an error if the

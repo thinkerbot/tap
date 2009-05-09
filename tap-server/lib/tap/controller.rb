@@ -125,6 +125,11 @@ module Tap
       @request = @response = nil
     end
     
+    # Returns true if action is registered as an action for self.
+    def action?(action)
+      self.class.actions.include?(action)
+    end
+    
     # Routes the request to an action and returns the response.  Routing is
     # simple and fixed (see route):
     #
@@ -157,7 +162,7 @@ module Tap
 
       # route to an action
       action, args = route
-      unless self.class.actions.include?(action)
+      unless action?(action)
         raise ServerError.new("404 Error: page not found", 404)
       end
 
