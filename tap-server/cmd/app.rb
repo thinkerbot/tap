@@ -4,26 +4,26 @@
 #
 
 require 'tap'
-require 'tap/app/server'
-require 'tap/exe/opts'
+require 'tap/server'
+require 'tap/controllers/app'
 
 env = Tap::Env.instance
-parser = ConfigParser.new
-parser.separator ""
-parser.separator "server:"
-parser.add(Tap::App::Server.configurations)
+app = Tap::App.instance
+parser = ConfigParser.new do |opts|
+  
+  opts.separator ""
+  opts.separator "options:"
+  opts.add(Tap::Server.configurations)
 
-# set options
-Tap::Exe::Opts.parse!(ARGV) do |opts|
-  puts Lazydoc.usage(__FILE__)
-  puts parser
-  puts opts
-  exit
+  # add option to print help
+  opts.on("-h", "--help", "Show this message") do
+    puts Lazydoc.usage(__FILE__)
+    puts opts
+    exit
+  end
 end
+argv = parser.parse!(ARGV, :add_defaults => false)
 
 # launch server
-parser.parse!(ARGV, 
-  :add_defaults => false, 
-  :ignore_unknown_options => true)
-server = Tap::App::Server.new(parser.config)
-server.run!
+config = parser.config.merge(:env => env, :app => app)
+Tap::Server.new(Tap::Controllers::App, config).run!

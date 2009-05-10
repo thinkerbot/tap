@@ -4,6 +4,7 @@
 
 require 'tap'
 require 'tap/router'
+require 'tap/controllers/server'
 
 env = Tap::Env.instance
 app = Tap::App.instance
@@ -23,4 +24,5 @@ end
 argv = parser.parse!(ARGV, :add_defaults => false)
 
 # launch server
-Tap::Router.new(parser.config, env, app).run!
+config = parser.config.merge(:env => env, :app => app)
+Tap::Router.new(Tap::Controllers::Server, config).run!

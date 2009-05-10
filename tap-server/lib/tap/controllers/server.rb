@@ -37,14 +37,14 @@ module Tap
       
       # Administrate this server
       def admin(secret=nil)
-        template = admin?(secret) ? 'admin.erb' : 'access.erb'
+        template = server.admin?(secret) ? 'admin.erb' : 'access.erb'
         render template, :locals => {:secret => secret}, :layout => true
       end
       
       # Returns the public server configurations as xml.
       def config(secret=nil)
         response['Content-Type'] = 'text/xml'
-        if admin?(secret)
+        if server.admin?(secret)
 %Q{<?xml version="1.0"?>
 <server>
 <uri>#{uri}</uri>
@@ -62,7 +62,7 @@ module Tap
       def pid(secret=nil)
         response['Content-Type'] = "text/plain"
         
-        return "" unless admin?(secret)
+        return "" unless server.admin?(secret)
         Process.pid.to_s
       end
       
@@ -70,7 +70,7 @@ module Tap
       def shutdown(secret=nil)
         response['Content-Type'] = "text/plain"
         
-        if admin?(secret) && request.post?
+        if server.admin?(secret) && request.post?
           # wait a bit to shutdown, so the response is sent out.
           Thread.new { sleep(0.1); server.stop! }
           "shutdown"
@@ -98,12 +98,6 @@ module Tap
         else
           super
         end
-      end
-      
-      # Returns true if input is equal to the server secret, if a secret is
-      # set.  Required to test if remote administration is allowed.
-      def admin?(input)
-        server.secret != nil && input == server.secret
       end
       
       # Returns a controller uri, attaching the secret to the action, if specified.

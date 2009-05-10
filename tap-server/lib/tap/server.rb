@@ -120,6 +120,12 @@ module Tap
       initialize_config(config)
     end
     
+    def uri(controller=nil, action=nil, params={})
+      query = build_query(params)
+      uri = ["http://#{host}:#{port}", action.to_s].delete_if {|s| s.empty? }.join("/")
+      query.empty? ? uri : "#{uri}?#{query}"
+    end
+    
     def path(dir, path)
       env.path(dir, path) {|path| File.file?(path) }
     end
