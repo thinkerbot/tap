@@ -8,13 +8,36 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
   acts_as_subset_test
   cleanup_dirs << :views << :public
   
-  attr_reader :server, :opts, :request
+  attr_reader :env, :server, :request
   
   def setup
     super
-    @server = Tap::Server.new Tap::Env.new(:root => method_root, :env_paths => TEST_ROOT)
-    @opts = {'tap.server' => @server}
-    @request = Rack::MockRequest.new(Tap::Controllers::Server)
+    @env = Tap::Env.new(:root => method_root, :env_paths => TEST_ROOT)
+    @server = Tap::Server.new Tap::Controllers::Server, :env => env
+    @request = Rack::MockRequest.new(server)
+  end
+  
+  #
+  # ping test
+  #
+  
+  def test_ping_returns_pong
+    response = request.get("/ping")
+    
+    assert_equal 'text/plain', response['Content-Type']
+    assert_equal "pong", response.body
+  end
+  
+  #
+  # pid test
+  #
+  
+  def test_pid_returns_pid_if_admin
+    server.secret = "1234"
+    assert_equal "", request.get("/pid").body
+    assert_equal "", request.get("/pid/").body
+    assert_equal "", request.get("/pid/4321").body
+    assert_equal Process.pid.to_s, request.get("/pid/1234").body
   end
   
   #
@@ -23,7 +46,7 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
   
   def test_call_serves_public_pages
     method_root.prepare(:public, "page.html") {|file| file << "<html></html>" }
-    response = request.get("/page.html", opts)
+    response = request.get("/page.html")
     
     assert_equal 200, response.status
     assert_equal "<html></html>", response.body
@@ -31,25 +54,25 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
   
   def test_call_serves_nested_public_pages
     method_root.prepare(:public, "dir/page.html") {|file| file << "<html>dir</html>" }
-    assert_equal "<html>dir</html>", request.get("/dir/page.html", opts).body
+    assert_equal "<html>dir</html>", request.get("/dir/page.html").body
   end
   
   def test_call_serves_public_pages_from_nested_envs
-    e = assert_raises(Tap::Server::ServerError) { request.get("/page.html", opts) }
-    assert_equal "404 Error: page not found", e.message
+    assert_equal "404 Error: page not found", request.get("/page.html").body
     
-    env = Tap::Env.new(method_root[:tmp])
-    env.root.prepare(:public, "page.html") {|file| file << "<html></html>" }
-    server.env.push env
-    assert_equal "<html></html>", request.get("/page.html", opts).body
+    nested_env = Tap::Env.new(method_root[:tmp])
+    nested_env.root.prepare(:public, "page.html") {|file| file << "<html></html>" }
+    env.push nested_env
+    
+    assert_equal "<html></html>", request.get("/page.html").body
   end
   
   def test_call_negotiates_public_page_content_type_by_extname
     method_root.prepare(:public, "page.html") {|file| }
-    assert_equal "text/html", request.get("/page.html", opts).content_type
+    assert_equal "text/html", request.get("/page.html").content_type
     
     method_root.prepare(:public, "page.txt") {|file| }
-    assert_equal "text/plain", request.get("/page.txt", opts).content_type
+    assert_equal "text/plain", request.get("/page.txt").content_type
   end
   
   #
@@ -58,7 +81,7 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
   
   def test_config_returns_public_configs_as_xml
     server.secret = "1234"
-    response = request.get("/config/1234", opts)
+    response = request.get("/config/1234")
     
     assert_equal 'text/xml', response['Content-Type']
     assert_match(/<uri>#{server.uri('tap/controllers/server')}<\/uri>/, response.body)

@@ -22,7 +22,7 @@ module Tap
       # Runs app on a separate thread (on post).
       def run
         if request.post?
-          Thread.new { app.run }
+          server.thread ||= Thread.new { app.run; server.thread = nil; }
         end
         
         redirect uri(:info)

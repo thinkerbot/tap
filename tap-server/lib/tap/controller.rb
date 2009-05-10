@@ -1,6 +1,6 @@
+require 'erb'
 require 'tap/server'
 require 'tap/controller/rest_routes'
-require 'erb'
 
 module Tap
   
@@ -244,7 +244,19 @@ module Tap
         layout = self.class.get(:default_layout)
       end
       
-      render(:template => layout, :locals => {:content => content})
+      if layout.kind_of?(Hash)
+        locals = layout[:locals] ||= {}
+        
+        if locals.has_key?(:content)
+          raise "layout already has local content assigned: #{layout.inspect}"
+        end
+        
+        locals[:content] = content
+      else
+        layout = {:template => layout, :locals => {:content => content}}
+      end
+      
+      render(layout)
     end
 
     # Renders the specified template as ERB using the options.  Options:

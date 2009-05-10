@@ -6,11 +6,13 @@ class ControllerTest < Test::Unit::TestCase
   
   cleanup_dirs << :root
   
-  attr_reader :controller
+  attr_reader :server, :controller
   
   def setup
     super
+    @server = Tap::Server.new nil, :env => Tap::Env.new(method_root)
     @controller = Tap::Controller.new
+    @controller.server = @server
   end
   
   #
@@ -81,6 +83,16 @@ class ControllerTest < Test::Unit::TestCase
     def action(*args)
       args.join(".")
     end
+  end
+
+  def test_call_sets_server
+    controller = CallController.new
+    assert_equal nil, controller.server
+
+    request = Rack::MockRequest.new controller
+    request.get("/action", 'tap.server' => 'server')
+
+    assert_equal 'server', controller.server
   end
   
   def test_call_routes_empty_path_info_default_action
@@ -158,21 +170,67 @@ class ControllerTest < Test::Unit::TestCase
   
   class RenderController < Tap::Controller
   end
+
+  def test_render_renders_class_path_for_path
+    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= 'cont' %>roller" }
+    path = method_root.prepare(:views, 'controller_test/render_controller/sample.erb') {|file| file << "render <%= 'cont' %>roller" }
+  
+    assert_equal "controller", controller.render('sample.erb')
+  
+    render_controller = RenderController.new
+    render_controller.server = server
+    assert_equal "render controller", render_controller.render('sample.erb')
+    
+    FileUtils.rm(path)
+    
+    assert_equal "controller", render_controller.render('sample.erb')
+  end
+  
+  def test_render_looks_up_template_under_template_dir
+    method_root.prepare(:views, 'alt/sample.erb') {|file| file << "<%= 'temp' %>late" }
+    assert_equal "template", controller.render(:template => 'alt/sample.erb')
+  end
+  
+  def test_render_renders_file
+    path = method_root.prepare(:views, 'sample.erb') {|file| file << "<%= 'fi' %>le" }
+    assert_equal "file", controller.render(:file => path)
+  end
+  
+  def test_render_renders_a_layout_template_with_content_if_specified
+    method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
+    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= 'cont' %>roller" }
+  
+    assert_equal "<html>controller</html>", controller.render('sample.erb', :layout => 'layout.erb')
+  end
   
   def test_render_assigns_locals
     path = method_root.prepare(:views, 'sample.erb') {|file| file << "<%= local %>" }
-    assert_equal "value", controller.render(path, :locals => {:local => 'value'})
+    assert_equal "value", controller.render(:file => path, :locals => {:local => 'value'})
   end
   
-  class DefaultLayoutController < Tap::Controller
+  def test_render_renders_layout_template_with_content
+    method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
+    method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= 'cont' %>roller" }
+  
+    assert_equal "<html>controller</html>", controller.render('sample.erb', :layout => 'layout.erb')
   end
   
-  def test_render_renders_layout
-    layout = method_root.prepare(:views, 'layout.erb') {|file| file << "<html><%= content %></html>" }
-    path = method_root.prepare(:views, 'sample.erb') {|file| file << "<%= %w{one two}.join(':') %>" }
+  def test_render_renders_hash_layouts_if_specified
+    a = method_root.prepare(:views, 'a.erb') {|file| file << "<html><%= content %></html>" }
+    b = method_root.prepare(:views, 'b.erb') {|file| file << "<%= 'cont' %>roller" }
+  
+    assert_equal "<html>controller</html>", controller.render(:file => b, :layout => {:file => a})
+  end
+  
+  def test_render_raises_error_if_hash_layout_has_local_content_assigned
+    path = method_root.prepare(:views, 'b.erb') {|file| file << "<%= 'cont' %>roller" }
+    layout = {:locals => {:content => 'assigned'}}
     
-    controller = DefaultLayoutController.new
-    assert_equal "<html>one:two</html>", controller.render(path, :layout => layout)
+    err = assert_raises(RuntimeError) do
+      controller.render(:file => path, :layout => layout)
+    end
+    
+    assert_equal "layout already has local content assigned: #{layout.inspect}", err.message
   end
   
   #

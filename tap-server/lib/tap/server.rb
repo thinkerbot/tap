@@ -112,10 +112,12 @@ module Tap
     
     attr_accessor :controller
     attr_reader :handler
+    attr_accessor :thread
     
     def initialize(controller=nil, config={})
       @controller = controller
       @handler = nil
+      @thread = nil
       @cache = {}
       initialize_config(config)
     end
