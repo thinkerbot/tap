@@ -2,9 +2,30 @@ module Tap
   class Schema
     module Utils
       
+      def normalize(data, dereferences)
+        data = symbolize(data, dereferences)
+        
+        case data
+        when Array
+          unless data[0].respond_to?(:parse!)
+            data[0] = yield(data[0], data)
+          end
+        when Hash 
+          unless data[:class].respond_to?(:instantiate)
+            data[:class] = yield(data[:id], data)
+          end
+          
+          if config = data[:config]
+            data[:config] = symbolize(config, dereferences)
+          end
+        else
+          raise "cannot normalize: #{data.inspect}"
+        end
+        
+        data
+      end
+      
       def instantiate(data, app)
-        data = symbolize(data)
-
         case data
         when Array then data.shift.parse!(data, app)
         when Hash  then data[:class].instantiate(data, app)
@@ -13,45 +34,47 @@ module Tap
       end
       
       # Symbolizes the keys of hash.  Returns non-hash values directly and
-      # raises an error in the event of a symbolize conflict.
-      def symbolize(hash)
+      # raises an error in the event of a symbolize conflict.  Deferences
+      # are a hash of (ref, value) pairs.
+      def symbolize(hash, dereferences={})
         return hash unless hash.kind_of?(Hash)
         
-        symbolic = {}
+        result = {}
         hash.each_pair do |key, value|
           if key.kind_of?(String) && key[0] == ?@
-            value = dereference(value)
+            value = dereferences[value]
             key = key[1..-1]
           end
           
           key = key.to_sym || key
-          if symbolic.has_key?(key)
+          if result.has_key?(key)
             raise "symbolize conflict: #{hash.inspect} (#{key.inspect})"
           end
           
-          symbolic[key] = value
+          result[key] = value
         end
-        symbolic
+        result
       end
       
-      def stringify(hash)
+      # References are a hash of (value, ref) pairs.
+      def stringify(hash, references={})
         return hash unless hash.kind_of?(Hash)
         
-        stringific = {}
+        result = {}
         hash.each_pair do |key, value|
-          if ref = reference(value)
+          if ref = references[value]
             value = ref
             key = "@#{key}"
           end
           
           key = key.to_s
-          if stringific.has_key?(key)
+          if result.has_key?(key)
             raise "stringify conflict: #{hash.inspect} (#{key.inspect})"
           end
           
-          stringific[key] = value
+          result[key] = value
         end
-        stringific
+        result
       end
       
       # Returns the values for hash sorted by key.  Returns non-hash objects
@@ -77,17 +100,6 @@ module Tap
           index += 1
         end
         hash
-      end
-      
-      def reference(value)
-        references.each_pair do |key, ref|
-          return key if ref[] == value
-        end
-        nil
-      end
-      
-      def dereference(key)
-        references[key][]
       end
     end
   end

@@ -31,41 +31,49 @@ module Tap
     
     attr_reader :middleware
     
-    attr_reader :references
+    def initialize(schema={})
+      schema = symbolize(schema)
+      
+      @tasks = hashify(schema[:tasks] || {})
+      @joins = dehashify(schema[:joins] || [])
+      @queue = dehashify(schema[:queue] || [])
+      @middleware = dehashify(schema[:middleware] || [])
+    end
     
-    def initialize(schema={}, references=REFERENCES)
-      schema = schema.inject({
-        :tasks => {},
-        :joins => [],
-        :queue => [],
-        :middleware => []
-      }) do |hash, (key, value)|
-        hash[key.to_sym || key] = value
-        hash
+    def normalize!(references=REFERENCES)
+      derefs = {}
+      references.each_pair do |ref, block|
+        derefs[ref] = block.call
       end
       
-      @tasks = hashify schema[:tasks]
-      @joins = dehashify schema[:joins]
-      @queue = dehashify schema[:queue]
-      @middleware = dehashify schema[:middleware]
+      tasks.dup.each_pair do |key, task|
+        tasks[key] = normalize(task, derefs) do |id, data| 
+          yield(:task, id || key, data)
+        end
+      end
+      
+      joins.collect! do |join|
+        normalize(join, derefs) do |id, data|
+          yield(:join, id || :join, data)
+        end
+      end
+      
+      middleware.collect! do |m|
+        normalize(m, derefs) do |id, data|
+          yield(:middleware, id, data)
+        end
+      end
     end
     
     def build(app)
-      return build(app) do |type, metadata| 
-        metadata[:class]
-      end unless block_given?
-      
-      schema = to_hash
       errors = []
       
       # instantiate tasks
       tasks = {}
       arguments = {}
-      schema[:tasks].each_pair do |key, task|
-        task = symbolize(task)
+      self.tasks.each_pair do |key, task|
         begin
-          klass = yield(:task, task)
-          instance, args = instantiate(klass, task, app)
+          instance, args = instantiate(task, app)
         
           tasks[key] = instance
           arguments[key] = args
@@ -76,11 +84,9 @@ module Tap
       end
       
       # build the workflow
-      schema[:joins].each do |join|
-        join = symbolize(join)
+      self.joins.each do |join|
         begin
-          klass = yield(:join, join)
-          inputs, outputs, instance = instantiate(klass, join, app)
+          inputs, outputs, instance = instantiate(join, app)
           
           inputs = inputs.collect do |key| 
             unless task = tasks[key]
@@ -106,27 +112,17 @@ module Tap
         end
       end
       
-      # utilize middleware (future)
-      # schema.middleware.each do |middleware|
-      #   middleware = instantiate(middleware) do |metadata|
-      #     yield(:middleware, metadata)
-      #   end
-      #   
-      #   use middleware
-      # end
+      # utilize middleware
+      self.middleware.each do |middleware|
+        instantiate(middleware, app)
+      end
       
       unless errors.empty?
-        prefix = if errors.length > 1
-          "#{errors.length} build errors\n"
-        else
-          ""
-        end
-        
-        raise "#{prefix}#{errors.join("\n")}\n"
+        raise BuildError.new(errors)
       end
       
       # enque tasks
-      schema[:queue].each do |(task, inputs)|
+      self.queue.each do |(task, inputs)|
         unless inputs
           inputs = arguments[task]
         end
@@ -151,11 +147,16 @@ module Tap
       YAML.dump(to_hash)
     end
     
-    # helper to instantiate a class from metadata
-    def instantiate(klass, data, app) # :nodoc:
-      case data
-      when Array then klass.parse!(data, app)
-      when Hash  then klass.instantiate(data, app)
+    class BuildError < StandardError
+      attr_reader :errors
+      def initialize(errors)
+        prefix = if errors.length > 1
+          "#{errors.length} build errors\n"
+        else
+           ""
+        end
+
+        super "#{prefix}#{errors.join("\n")}\n"
       end
     end
   end

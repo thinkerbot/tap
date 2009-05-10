@@ -4,10 +4,6 @@ require 'tap/schema/utils'
 class SchemaUtilsTest < Test::Unit::TestCase
   include Tap::Schema::Utils
   
-  def references
-    {:ref => lambda { 'value' }}
-  end
-  
   #
   # symbolize test
   #
@@ -19,7 +15,9 @@ class SchemaUtilsTest < Test::Unit::TestCase
   
   def test_symbolize_dereferences_references
     hash = {'@key' => :ref }
-    assert_equal({:key => 'value'}, symbolize(hash))
+    derefs = {:ref => 'value'}
+    
+    assert_equal({:key => 'value'}, symbolize(hash, derefs))
   end
   
   def test_symbolize_returns_non_hash_values
@@ -43,7 +41,9 @@ class SchemaUtilsTest < Test::Unit::TestCase
   
   def test_stringify_references_reference_values
     hash = {:key => 'value'}
-    assert_equal({'@key' => :ref }, stringify(hash))
+    refs = {'value' => :ref}
+    
+    assert_equal({'@key' => :ref }, stringify(hash, refs))
   end
   
   def test_stringify_returns_non_hash_values
