@@ -1,14 +1,9 @@
-autoload(:Shellwords, 'shellwords')
+require 'tap/schema/utils'
+require 'tap/schema/parser'
 
 module Tap
   class Schema
-    autoload(:Parser, 'tap/schema/parser')
-    
     class << self
-      def parse(argv=ARGV)
-        Parser.new(argv).schema
-      end
-
       def load(str)
         new(YAML.load(str) || {})
       end
@@ -18,25 +13,41 @@ module Tap
       end
     end
     
+    include Utils
+    
+    REFERENCES = {
+      :stdin =>  lambda { $stdin },
+      :stdout => lambda { $stdout },
+      :stderr => lambda { $stderr },
+      :env =>    lambda { Tap::Env.instance },
+      :app =>    lambda { Tap::App.instance }
+    }
+    
     attr_reader :tasks
     
     attr_reader :joins
     
     attr_reader :queue
     
-    def initialize(schema={})
+    attr_reader :middleware
+    
+    attr_reader :references
+    
+    def initialize(schema={}, references=REFERENCES)
       schema = schema.inject({
         :tasks => {},
         :joins => [],
-        :queue => []
+        :queue => [],
+        :middleware => []
       }) do |hash, (key, value)|
         hash[key.to_sym || key] = value
         hash
       end
       
-      @tasks = schema[:tasks]
+      @tasks = hashify schema[:tasks]
       @joins = dehashify schema[:joins]
       @queue = dehashify schema[:queue]
+      @middleware = dehashify schema[:middleware]
     end
     
     def build(app)
@@ -128,9 +139,10 @@ module Tap
     
     # Creates an hash dump of self.
     def to_hash
-      { :tasks => hashify(tasks), 
+      { :tasks => tasks, 
         :joins => joins, 
-        :queue => queue
+        :queue => queue, 
+        :middleware => middleware
       }
     end
     
@@ -139,51 +151,11 @@ module Tap
       YAML.dump(to_hash)
     end
     
-    protected
-    
     # helper to instantiate a class from metadata
     def instantiate(klass, data, app) # :nodoc:
       case data
       when Array then klass.parse!(data, app)
       when Hash  then klass.instantiate(data, app)
-      end
-    end
-    
-    def sorted_each(hash) # :nodoc:
-      hash.keys.sort.each do |key|
-        yield(hash[key])
-      end
-    end
-    
-    def symbolize(hash) # :nodoc:
-      return hash unless hash.kind_of?(Hash)
-      
-      hash.inject({}) do |opts, (key, value)|
-        opts[key.to_sym || key] = value
-        opts
-      end
-    end
-    
-    def dehashify(obj) # :nodoc:
-      case obj
-      when Hash 
-        obj.keys.sort.collect do |key|
-          obj[key]
-        end
-      else      
-        obj
-      end
-    end
-    
-    def hashify(obj) # :nodoc:
-      case obj
-      when Hash 
-        obj
-      else      
-        obj.inject({}) do |hash, entry|
-          hash[hash.length] = entry
-          hash
-        end
       end
     end
   end

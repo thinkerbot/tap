@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/schema'
+require 'tap/schema/parser'
 require 'yaml'
 
 class ParserUtilsTest < Test::Unit::TestCase
@@ -274,32 +274,32 @@ class ParserTest < Test::Unit::TestCase
   
   def test_parse_documentation
     schema = Parser.new("a -- b --: c").schema
-    assert_equal [["a"], ["b"], ["c"]], schema.tasks
+    assert_equal({0 => ["a"], 1 => ["b"], 2 => ["c"]}, schema.tasks)
     assert_equal [['join', [1],[2]]], schema.joins
     assert_equal [0,1], schema.queue
     
     schema = Parser.new("a -- b -- c --0:1 --1:2").schema
-    assert_equal [["a"], ["b"], ["c"]], schema.tasks
+    assert_equal({0 => ["a"], 1 => ["b"], 2 => ["c"]}, schema.tasks)
     assert_equal [
       ['join', [0],[1]],
       ['join', [1],[2]]
     ], schema.joins
   
     schema = Parser.new("a --1:2 --0:1 b -- c").schema
-    assert_equal [["a"], ["b"], ["c"]], schema.tasks
+    assert_equal({0 => ["a"], 1 => ["b"], 2 => ["c"]}, schema.tasks)
     assert_equal [
       ['join', [1],[2]],
       ['join', [0],[1]]
     ], schema.joins
   
     schema = Parser.new("a -- b -- c").schema
-    assert_equal [["a"], ["b"], ["c"]], schema.tasks
+    assert_equal({0 => ["a"], 1 => ["b"], 2 => ["c"]}, schema.tasks)
   
     schema = Parser.new("a -. -- b .- -- c").schema
-    assert_equal [["a", "--", "b"], ["c"]], schema.tasks
+    assert_equal({0 => ["a", "--", "b"], 1 => ["c"]}, schema.tasks)
   
     schema = Parser.new("a -- b --- c").schema
-    assert_equal [["a"], ["b"]], schema.tasks
+    assert_equal({0 => ["a"], 1 => ["b"]}, schema.tasks)
   end
   
   #
@@ -322,21 +322,21 @@ class ParserTest < Test::Unit::TestCase
       --[1][2] --[1,2][3,4]is.type
     }.each do |split|
       parser = Parser.new ["a", "-b", "--c", split, "d", "-e", "--f", split, "x", "-y", "--z"]
-      assert_equal [
-        ["a", "-b", "--c"],
-        ["d", "-e", "--f"],
-        ["x", "-y", "--z"]
-      ], parser.schema.tasks, split
+      assert_equal({
+        0 => ["a", "-b", "--c"],
+        1 => ["d", "-e", "--f"],
+        2 => ["x", "-y", "--z"]
+      }, parser.schema.tasks, split)
     end
   end
   
   def test_argvs_includes_short_and_long_options
     parser = Parser.new ["a", "-b", "--c", "--", "d", "-e", "--f", "--", "x", "-y", "--z"]
-    assert_equal [
-      ["a", "-b", "--c"],
-      ["d", "-e", "--f"],
-      ["x", "-y", "--z"]
-    ], parser.schema.tasks
+    assert_equal({
+      0 => ["a", "-b", "--c"],
+      1 => ["d", "-e", "--f"],
+      2 => ["x", "-y", "--z"]
+    }, parser.schema.tasks)
   end
   
   #
@@ -409,11 +409,11 @@ class ParserTest < Test::Unit::TestCase
       "--0:1:2"]
     schema = parser.schema
     
-    assert_equal [
-      ["a", "a1", "a2", "--key", "value", "--another", "another value"],
-      ["b", "b1"],
-      ["c"]
-    ], schema.tasks
+    assert_equal({
+      0 => ["a", "a1", "a2", "--key", "value", "--another", "another value"],
+      1 => ["b", "b1"],
+      2 => ["c"]
+    }, schema.tasks)
     
     assert_equal [
       ['join', [0], [1]],
@@ -425,11 +425,11 @@ class ParserTest < Test::Unit::TestCase
     parser = Parser.new "a a1 a2 --key value --another 'another value' -- b b1 -- c --0:1:2"
     schema = parser.schema
     
-    assert_equal [
-      ["a", "a1", "a2", "--key", "value", "--another", "another value"],
-      ["b", "b1"],
-      ["c"]
-    ], schema.tasks
+    assert_equal({
+      0 => ["a", "a1", "a2", "--key", "value", "--another", "another value"],
+      1 => ["b", "b1"],
+      2 => ["c"]
+    }, schema.tasks)
     
     assert_equal [
       ['join', [0], [1]],
@@ -460,15 +460,15 @@ class ParserTest < Test::Unit::TestCase
   
   def test_parse_does_not_parse_escaped_args
     parser = Parser.new "a -. -- --: --1[2,3] 4{5,6} x y .- z -- b -- c"
-    assert_equal [
-      ["a", "--", "--:", "--1[2,3]", "4{5,6}", "x", "y", "z"],
-      ["b"],
-      ["c"]
-    ], parser.schema.tasks
+    assert_equal({
+      0 => ["a", "--", "--:", "--1[2,3]", "4{5,6}", "x", "y", "z"],
+      1 => ["b"],
+      2 => ["c"]
+    }, parser.schema.tasks)
   end
   
   def test_parse_stops_at_end_flag
-    assert_equal [["a"], ["b"]], Parser.new("a -- b --- c").schema.tasks
+    assert_equal({0 => ["a"], 1 => ["b"]}, Parser.new("a -- b --- c").schema.tasks)
   end
 
   #
@@ -491,7 +491,7 @@ class ParserTest < Test::Unit::TestCase
     argv = ["a", "--", "b", "---", "c"]
   
     schema = Parser.new.parse! argv
-    assert_equal [["a"], ["b"]], schema.tasks
+    assert_equal({0 => ["a"], 1 => ["b"]}, schema.tasks)
     assert_equal ["c"], argv
   end
 end

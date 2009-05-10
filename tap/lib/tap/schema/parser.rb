@@ -1,7 +1,13 @@
-autoload(:Shellwords, 'shellwords')
+require 'shellwords'
+require 'tap/schema'
 
 module Tap
   class Schema
+    class << self
+      def parse(argv=ARGV)
+        Parser.new(argv).schema
+      end
+    end
     
     # A parser for workflow schema defined on the command line.
     #
