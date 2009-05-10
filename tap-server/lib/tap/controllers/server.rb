@@ -1,4 +1,4 @@
-require 'tap/app/api'
+require 'tap/controller'
 require 'rack/mime'
 require 'time'
 
@@ -13,9 +13,18 @@ module Tap
     # background and still have a shutdown handle on them.
     #
     class Server < Tap::Controller
-      include Session
       
-      set :default_layout, 'layout.erb'
+      def index
+        render('index.erb', :locals => {
+          :env => server.env
+        }, :layout => true)
+      end
+      
+      # Returns pong
+      def ping
+        response['Content-Type'] = "text/plain"
+        "pong"
+      end
       
       # Essentially a login for server administration
       def access
@@ -49,13 +58,21 @@ module Tap
         end
       end
       
+      # Returns the pid if the correct secret is provided
+      def pid(secret=nil)
+        response['Content-Type'] = "text/plain"
+        
+        return "" unless admin?(secret)
+        Process.pid.to_s
+      end
+      
       # Terminates app and stops self (on post).
       def shutdown(secret=nil)
         response['Content-Type'] = "text/plain"
         
         if admin?(secret) && request.post?
           # wait a bit to shutdown, so the response is sent out.
-          Thread.new { sleep(0.1); stop! }
+          Thread.new { sleep(0.1); server.stop! }
           "shutdown"
         else
           ""
@@ -64,7 +81,6 @@ module Tap
       
       # ensure server methods are not added as actions
       set :define_action, false
-      set :default_action, :admin
       
       def call(env)
         # serve public files before actions

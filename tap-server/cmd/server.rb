@@ -3,14 +3,15 @@
 # Initializes a tap server.
 
 require 'tap'
-require 'tap/server'
+require 'tap/router'
 
 env = Tap::Env.instance
+app = Tap::App.instance
 parser = ConfigParser.new do |opts|
   
   opts.separator ""
   opts.separator "options:"
-  opts.add(Tap::Server.configurations)
+  opts.add(Tap::Router.configurations)
 
   # add option to print help
   opts.on("-h", "--help", "Show this message") do
@@ -22,4 +23,4 @@ end
 argv = parser.parse!(ARGV, :add_defaults => false)
 
 # launch server
-Tap::Server.new(env, parser.config).run!
+Tap::Router.new(parser.config, env, app).run!

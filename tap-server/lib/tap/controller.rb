@@ -1,8 +1,6 @@
 require 'tap/server'
-require 'tap/controller/session'
 require 'tap/controller/rest_routes'
-
-autoload(:ERB, 'erb')
+require 'erb'
 
 module Tap
   
@@ -106,7 +104,8 @@ module Tap
     
     set :actions, []
     set :default_action, :index
-
+    set :default_layout, 'layout.erb'
+    
     #--
     # Ensures methods (even public methods) on Controller will
     # not be actions in subclasses. 
@@ -120,14 +119,23 @@ module Tap
     # the action result and response is ignored.
     attr_accessor :response
     
+    # The 'tap.server' specified in env, set during call.
+    attr_accessor :server
+    
     # Initializes a new instance of self.
     def initialize
-      @request = @response = nil
+      @server = @request = @response = nil
+      super()
     end
     
     # Returns true if action is registered as an action for self.
     def action?(action)
       self.class.actions.include?(action)
+    end
+    
+    # Returns a uri to the specified action on self.
+    def uri(action=nil, params={})
+      server.uri(self.class.to_s.underscore, action, params)
     end
     
     # Routes the request to an action and returns the response.  Routing is
@@ -157,6 +165,7 @@ module Tap
     #   end
     #
     def call(env)
+      @server = env['tap.server']
       @request = Rack::Request.new(env)
       @response = Rack::Response.new
 
@@ -195,23 +204,47 @@ module Tap
     # Renders the class_file at path with the specified options.  Path can be
     # omitted if options specifies an alternate path to render.  Options:
     #
-    #   layout:: renders with the specified layout
+    #   template:: renders the template relative to the template directory
+    #   file:: renders the specified file 
+    #   layout:: renders with the specified layout, or default_layout if true
     #   locals:: a hash of local variables used in the template
     #
     def render(path, options={})
+      options, path = path, nil if path.kind_of?(Hash)
+
+      # lookup template
+      template_path = case
+      when options[:file]
+        options[:file]
+      when options[:template]
+        server.path(:views, options[:template])
+      else
+        server.class_path(:views, self, path)
+      end
+
+      unless template_path
+        raise "could not find template for: #{path.inspect} #{options.inspect}"
+      end
+      
       # render template
-      template = File.read(path)
-      content = render_erb(template, options, path)
+      template = File.read(template_path)
+      content = render_erb(template, options, template_path)
       
       # render layout
       render_layout(options[:layout], content)
     end
 
-    # Renders the specified layout with content as a local variable.  Returns
-    # content if no layout is specified.
+    # Renders the specified layout with content as a local variable.  If layout
+    # is true, the class default_layout will be rendered. Returns content if no
+    # layout is specified.
     def render_layout(layout, content)
       return content unless layout
-      render(layout, :locals => {:content => content})
+      
+      if layout == true
+        layout = self.class.get(:default_layout)
+      end
+      
+      render(:template => layout, :locals => {:content => content})
     end
 
     # Renders the specified template as ERB using the options.  Options:
@@ -245,7 +278,9 @@ module Tap
       response['Location'] = [uri]
       response.finish
     end
-
+    
+    private
+    
     # Generates an empty binding to self without any locals assigned.
     def empty_binding # :nodoc:
       binding

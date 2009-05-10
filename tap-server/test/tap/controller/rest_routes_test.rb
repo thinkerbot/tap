@@ -68,8 +68,7 @@ class RestRoutesTest < Test::Unit::TestCase
   
   class PersistenceController < Tap::Controller
     include RestRoutes
-    include Session
-    
+
     def index
       persistence.index(:data).join(", ")
     end

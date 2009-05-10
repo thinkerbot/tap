@@ -5,10 +5,6 @@ Server:
 <pre><%= YAML.dump(server.config.to_hash) %></pre>
 </div>
 <div>
-Session <%= session[:id] %>:
-<pre><%= YAML.dump(server.session(session[:id]).attributes) %></pre>
-</div>
-<div>
 Active Gems:
 <ul>
   <% Gem.loaded_specs.each_pair do |key, spec| %>

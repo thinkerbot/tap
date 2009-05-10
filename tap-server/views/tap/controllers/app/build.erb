@@ -2,14 +2,11 @@
 <textarea rows="10" cols="40" name="schema">
 tasks:
   load:
-    class: Tap::Tasks::Load
-    require_path: tap/tasks/load
+    id: load
   dump:
-    class: Tap::Tasks::Dump
-    require_path: tap/tasks/dump
+    id: dump
 joins:
-- class: Tap::Join
-  require_path: tap/join
+- id: join
   inputs: [load]
   outputs: [dump]
 </textarea><br/>

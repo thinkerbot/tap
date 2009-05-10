@@ -1,19 +1,9 @@
-require 'tap/server/utils'
-
 module Tap
   class Server
     
     # A very simple wrapper for root providing a CRUD interface for reading and
     # writing files.
     class Persistence < Tap::Root
-      include Utils
-      
-      # The id of the persistence object (as if persistences were a table
-      # and each persistence entry joins joins to a number of paths), ie
-      # root.
-      def id
-        root
-      end
       
       # A restricted version of the original.  Path raises an error if the
       # final path is not relative to als.
@@ -51,7 +41,7 @@ module Tap
         
         # if that already exists, go for a random id
         while find(als, id)
-          id = random_key(id)
+          id = rand(id * 10000)
         end
         
         id
@@ -117,7 +107,7 @@ module Tap
       # resolved (using the instance prepare requires a second path
       # resolution)
       def create!(path) # :nodoc:
-        Tap::Root::Utils.prepare(path) {|io| yield(io) }
+        Utils.prepare(path) {|io| yield(io) }
       end
     end
   end

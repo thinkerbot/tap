@@ -1,20 +1,91 @@
-require 'tap/app/api'
-require 'rack/mime'
-require 'time'
+require 'tap/controller'
 
 module Tap
   module Controllers
     
     # :startdoc::controller builds and runs workflows
-    class App < Tap::App::Api
-      include Session
+    class App < Tap::Controller
+      set :default_action, :info
       
-      set :default_layout, 'layout.erb'
+      # Returns the state of app.
+      def state
+        app.state.to_s
+      end
+      
+      # Returns the controls and current application info.
+      def info
+        render 'info.erb', :locals => {
+          :actions => [:run, :stop, :terminate, :reset],
+        }, :layout => true
+      end
+      
+      # Runs app on a separate thread (on post).
+      def run
+        if request.post?
+          Thread.new { app.run }
+        end
         
-      def index
-        render('index.erb', :locals => {
-          :env => server.env
-        }, :layout => true)
+        redirect uri(:info)
+      end
+      
+      def reset
+        app.reset if request.post?
+        redirect uri(:info)
+      end
+      
+      # Stops app (on post).
+      def stop
+        app.stop if request.post?
+        redirect uri(:info)
+      end
+      
+      # Teminates app (on post).
+      def terminate
+        app.terminate if request.post?
+        redirect uri(:info)
+      end
+      
+      def build
+        unless request.post?
+          return render('build.erb', :layout => true)
+        end
+        
+        schema = if request[:parse] == "on"
+          Tap::Schema.parse(request[:schema])
+        else
+          Tap::Schema.load(request[:schema])
+        end
+        
+        app.cache[:tasks] = server.env.build(schema, app)
+        
+        if request[:run] == "on"
+          run
+        else
+          redirect uri(:enque)
+        end
+      end
+      
+      def enque
+        unless request.post?
+          return render('enque.erb', :layout => true)
+        end
+        
+        queue = if request[:load]
+          YAML.load(request[:queue] || "{}")
+        else
+          request[:queue] || {}
+        end
+        
+        tasks = app.cache[:tasks] ||= {}
+        
+        queue.each do |(key, inputs)|
+          unless task = tasks[key]
+            raise "no task for: #{key}"
+          end
+          app.enq(task, *inputs)
+        end
+        
+        redirect uri(:info)
       end
       
       def tail(id)
@@ -45,44 +116,10 @@ module Tap
         end
       end
       
-      # ensure server methods are not added as actions
-      set :define_action, false
-      set :default_action, :index
+      protected
       
-      def call(env)
-        # serve public files before actions
-        server = env['tap.server'] ||= Tap::Server.new
-    
-        if path = server.path(:public, env['PATH_INFO'])
-          content = File.read(path)
-          headers = {
-            "Last-Modified" => File.mtime(path).httpdate,
-            "Content-Type" => Rack::Mime.mime_type(File.extname(path), 'text/plain'), 
-            "Content-Length" => content.size.to_s
-          }
-      
-          [200, headers, [content]]
-        else
-          super
-        end
-      end
-      
-      # Returns true if input is equal to the server secret, if a secret is
-      # set.  Required to test if remote administration is allowed.
-      def admin?(input)
-        server.secret != nil && input == server.secret
-      end
-      
-      # Returns a controller uri, attaching the secret to the action, if specified.
-      def uri(action=nil, params={})
-        secret = params.delete(:secret)
-        action = "#{action}/#{secret}" if secret
-        super(action, params)
-      end
-      
-      # Stops the server.
-      def stop!
-        server.stop!
+      def app
+        server.app
       end
     end
   end

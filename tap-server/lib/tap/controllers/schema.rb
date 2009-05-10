@@ -6,8 +6,7 @@ module Tap
     # ::controller
     class Schema < Tap::Controller
       include RestRoutes
-      include Session
-      
+
       set :default_layout, 'layout.erb'
       
       # GET /projects
