@@ -30,7 +30,7 @@ class RouterTest < Test::Unit::TestCase
   #
   
   def test_documentation
-    server = Router.new(nil, :env => env)
+    server = Router.new(nil, :env => env, :development => true)
     server.controllers['sample'] = lambda do |env|
       [200, {}, ["Sample got #{env['SCRIPT_NAME'].inspect} : #{env['PATH_INFO'].inspect}"]]
     end

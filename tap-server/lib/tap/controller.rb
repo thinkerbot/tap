@@ -138,6 +138,14 @@ module Tap
       server.uri(self.class.to_s.underscore, action, params)
     end
     
+    def template_path(path)
+      server.path(:views, path)
+    end
+    
+    def class_path(path, obj=self)
+      server.class_path(:views, obj, path)
+    end
+    
     # Routes the request to an action and returns the response.  Routing is
     # simple and fixed (see route):
     #
@@ -217,13 +225,13 @@ module Tap
       when options[:file]
         options[:file]
       when options[:template]
-        server.path(:views, options[:template])
+        self.template_path(options[:template])
       else
-        server.class_path(:views, self, path)
+        self.class_path(path)
       end
 
       unless template_path
-        raise "could not find template for: #{path.inspect} #{options.inspect}"
+        raise "could not find template: (path: #{path.inspect}, file: #{options[:file].inspect}, template: #{options[:template].inspect})"
       end
       
       # render template
@@ -269,7 +277,7 @@ module Tap
       # assign locals to the render binding
       # this almost surely may be optimized...
       locals = options[:locals]
-      binding = empty_binding
+      binding = render_erb_binding
 
       locals.each_pair do |key, value|
         @assignment_value = value
@@ -294,7 +302,7 @@ module Tap
     private
     
     # Generates an empty binding to self without any locals assigned.
-    def empty_binding # :nodoc:
+    def render_erb_binding # :nodoc:
       binding
     end
   end

@@ -3,7 +3,7 @@ require 'tap/server'
 module Tap
   class Router < Server
     
-    config :mode, :development, &c.select(:development, :production, &c.symbol)
+    config :development, false, &c.flag
   
     # A hash of (key, controller) pairs mapping the controller part of a route
     # to a Rack application.  Typically controllers is used to specify aliases
@@ -45,13 +45,13 @@ module Tap
 
      # unload the controller in development mode so that
      # controllers will be reloaded each request
-     const.unload if development?
+     const.unload if development
      @cache[key] = const.constantize
    end
 
    # The {Rack}[http://rack.rubyforge.org/doc/] interface method.
    def call(rack_env)
-     if development?
+     if development
        env.reset
        @cache.clear
      end
@@ -80,13 +80,6 @@ module Tap
      $!.response
    rescue Exception
      ServerError.response($!)
-   end
-
-   protected
-
-   # Returns true if mode is :development.
-   def development? # :nodoc:
-     mode == :development
    end
   end
 end

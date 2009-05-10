@@ -94,7 +94,10 @@ module Tap
       # Helper Methods
       ############################################################
       protected
-    
+      
+      def persistence
+        server.persistence
+      end
     end
   end
 end

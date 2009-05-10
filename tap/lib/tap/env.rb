@@ -384,6 +384,7 @@ module Tap
     #
     def class_path(dir, obj, *paths, &block)
       current = obj.class
+      paths.compact!
       loop do
         class_path = if current.respond_to?(:class_path)
           current.class_path
