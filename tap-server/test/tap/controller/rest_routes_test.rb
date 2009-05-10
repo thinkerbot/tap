@@ -2,15 +2,7 @@ require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/controller'
 
 class RestRoutesTest < Test::Unit::TestCase
-  acts_as_tap_test
-  cleanup_dirs << :root
-  
-  attr_reader :server
-  
-  def setup
-    super
-    @server = Tap::Server.new Tap::Env.new(method_root)
-  end
+  acts_as_file_test
   
   #
   # rest routes test
@@ -70,54 +62,53 @@ class RestRoutesTest < Test::Unit::TestCase
     include RestRoutes
 
     def index
-      persistence.index(:data).join(", ")
+      server.persistence.index(:tmp).join(", ")
     end
     
     def show(id)
-      persistence.read(:data, id) || ""
+      server.persistence.read(:tmp, id) || ""
     end
     
     def create(id)
-      persistence.create(:data, id) {|io| io << "create" }
+      server.persistence.create(:tmp, id) {|io| io << "create" }
     end
     
     def update(id)
-      persistence.update(:data, id) {|io| io << "update" }
+      server.persistence.update(:tmp, id) {|io| io << "update" }
     end
     
     def destroy(id)
-      persistence.destroy(:data, id).to_s
+      server.persistence.destroy(:tmp, id).to_s
     end
   end
   
   def test_a_sample_persistence_controller
-    controller = PersistenceController.new
-    request = Rack::MockRequest.new controller
-    opts = {'tap.server' => server}
+    server = Tap::Server.new PersistenceController, :persistence => Tap::Server::Persistence.new(method_root)
+    request = Rack::MockRequest.new server
     
-    assert_equal "", request.get("/", opts).body
-    assert_equal "", request.get("/1", opts).body
+    assert_equal "", request.get("/").body
+    assert_equal "", request.get("/1").body
     
     # create
-    path = method_root.path(:data, "1")
-    assert_equal path, request.post("/1", opts).body
+    path = method_root.path(:tmp, "1")
+    assert_equal path, request.post("/1").body
     assert_equal "create", File.read(path)
     
-    assert_equal "1", request.get("/", opts).body
-    assert_equal "create", request.get("/1", opts).body
+    assert_equal "1", request.get("/").body
+    assert_equal "create", request.get("/1").body
     
     # update
-    assert_equal path, request.put("/1", opts).body
+    assert_equal path, request.put("/1").body
     assert_equal "update", File.read(path)
     
-    assert_equal "1", request.get("/", opts).body
-    assert_equal "update", request.get("/1", opts).body
+    assert_equal "1", request.get("/").body
+    assert_equal "update", request.get("/1").body
     
     # destroy
-    assert_equal "true", request.delete("/1", opts).body
+    assert_equal "true", request.delete("/1").body
     assert !File.exists?(path)
     
-    assert_equal "", request.get("/", opts).body
-    assert_equal "", request.get("/1", opts).body
+    assert_equal "", request.get("/").body
+    assert_equal "", request.get("/1").body
   end
 end

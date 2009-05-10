@@ -5,6 +5,14 @@ module Tap
     # writing files.
     class Persistence < Tap::Root
       
+      def initialize(config_or_dir=Dir.pwd)
+        if config_or_dir.kind_of?(Tap::Root)
+          config_or_dir = config_or_dir.config.to_hash
+        end
+        
+        super(config_or_dir)
+      end
+      
       # A restricted version of the original.  Path raises an error if the
       # final path is not relative to als.
       def path(als, *paths)
