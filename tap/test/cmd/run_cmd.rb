@@ -199,24 +199,21 @@ goodnight moon
   
   CANONICAL_SCHEMA = %q{
 joins:
-  0:
-    id: join
-    inputs: [0]
-    outputs: [1]
+- - [0]
+  - [1]
+  - id: join
 tasks:
   0:
     id: load
   1:
     id: dump
 queue:
-  0:
-    - 0
-    - [goodnight moon]
+- - 0
+  - [goodnight moon]
 ---
 joins:
-- id: join
-  inputs: [0]
-  outputs: [1]
+- - [0]
+  - [1]
 tasks:
 - id: load
 - id: dump
@@ -228,7 +225,7 @@ tasks:
 - [load, goodnight moon]
 - [dump]
 joins:
-- [join, [0], [1]]
+- [[0], [1]]
 queue:
 - 0
 ---
@@ -238,10 +235,7 @@ tasks:
     - goodnight moon
 - id: dump
 joins:
-  0:
-    id: join
-    inputs: [0]
-    outputs: [1]
+- [[0], [1], {id: join}]
 queue:
 - 0
 ---
@@ -249,9 +243,7 @@ tasks:
 - [load]
 - [dump]
 joins:
-- id: join
-  inputs: [0]
-  outputs: [1]
+- [[0], [1], [join]]
 queue:
 - - 0
   - [goodnight moon]
@@ -264,7 +256,9 @@ tasks:
   1:
     id: dump
 joins:
-- [join, [0], [1]]
+- - [0]
+  - [1]
+  - [join]
 queue:
 - - 0
   - [goodnight moon]

@@ -118,13 +118,9 @@ module Tap
           klass = yield(type, id, data)
         end
         
-        unless klass
-          raise "unknown #{type}: #{id}"
-        end
-        
-        klass
+        klass || id
       end
-      
+      schema.validate!
       schema.build(app)
     end
     

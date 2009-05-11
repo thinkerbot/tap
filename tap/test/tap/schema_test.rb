@@ -123,10 +123,76 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal({:class => Instantiable}, schema.joins[0][2])
   end
   
-  # def test_resolve_adds_default_join_if_necessary
-  #   schema.joins << [[], [], {'class' => Instantiable}]
-  #   schema.resolve!
-  #   assert_equal({:class => Instantiable}, schema.joins[0][2])
-  # end
+  def test_resolve_replaces_missing_class_with_block_return
+    schema.tasks[0] = ['task array id']
+    schema.tasks[1] = {:id => 'task hash id'}
+    
+    schema.joins << [[], [], ['join array id']]
+    schema.joins << [[], [], {:id => 'join hash id'}]
+    
+    schema.resolve! do |type, id, data|
+      Instantiable
+    end
+    
+    assert_equal({
+      0 => [Instantiable],
+      1 => {:class => Instantiable, :id => 'task hash id'}
+    }, schema.tasks)
+    
+    assert_equal([
+      [[], [], [Instantiable]],
+      [[], [], {:class => Instantiable, :id => 'join hash id'}]
+    ], schema.joins)
+  end
   
+  def test_resolve_allows_modification_of_data
+    schema.tasks[0] = ['task array id']
+    schema.joins << [[], [], ['join array id']]
+
+    schema.resolve! do |type, id, data|
+      data << :value
+      Instantiable
+    end
+    
+    assert_equal [Instantiable, :value], schema.tasks[0]
+    assert_equal [[], [], [Instantiable, :value]], schema.joins[0]
+  end
+  
+  def test_resolve_provides_key_as_task_id_if_unspecified
+    schema.tasks['key'] = {}
+    schema.resolve! do |type, id, data|
+      assert_equal 'key', id
+      Instantiable
+    end
+    
+    assert_equal({:class => Instantiable}, schema.tasks['key'])
+    
+    # now for array
+    schema.tasks['key'] = []
+    schema.resolve! do |type, id, data|
+      assert_equal 'key', id
+      Instantiable
+    end
+    
+    assert_equal([Instantiable], schema.tasks['key'])
+    
+    # now for nil
+    schema.tasks['key'] = nil
+    schema.resolve! do |type, id, data|
+      assert_equal 'key', id
+      Instantiable
+    end
+    
+    assert_equal({:class => Instantiable}, schema.tasks['key'])
+  end
+  
+  def test_resolve_provides_default_join_id_if_unspecified
+    schema.joins << [[], []]
+    schema.resolve! do |type, id, data|
+      assert_equal 'join', id
+      Instantiable
+    end
+    
+    assert_equal [[], [], {:class => Instantiable}], schema.joins[0]
+  end
 end

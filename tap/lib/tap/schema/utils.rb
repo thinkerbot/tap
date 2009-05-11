@@ -1,8 +1,9 @@
 module Tap
   class Schema
     module Utils
+      module_function
       
-      def normalize(data, dereferences)
+      def resolve(data, dereferences)
         data = symbolize(data, dereferences)
         
         case data
@@ -35,6 +36,14 @@ module Tap
         when Array then data.shift.parse!(data, app)
         when Hash  then data[:class].instantiate(data, app)
         else raise "cannot instantiate: #{data.inspect}"
+        end
+      end
+      
+      def instantiable?(data)
+        case data
+        when Array then data[0].respond_to?(:parse!)
+        when Hash  then data[:class].respond_to?(:instantiate)
+        else false
         end
       end
       

@@ -69,99 +69,109 @@ module Tap
       to_a.all? {|component| component.empty? }
     end
     
-    # True if the schema is able to be built.
+    # True if all the instantiable components of self can be instantiated.
     def resolved?
       tasks.all? do |(key, task)|
-        case task
-        when Hash  then task[:class].kind_of?(Class)
-        when Array then task[0].kind_of?(Class)
-        else false
-        end
+        instantiable?(task)
       end &&
       joins.all? do |inputs, outputs, join|
-        case join
-        when Hash  then join[:class].kind_of?(Class)
-        when Array then join[0].kind_of?(Class)
-        else false
-        end
+        instantiable?(join)
+      end &&
+      middleware.all? do |m|
+        instantiable?(m)
       end
     end
     
     def resolve!(references={})
       tasks.dup.each_pair do |key, task|
-        tasks[key] = normalize(task, references) do |id, data|
+        task ||= {}
+        tasks[key] = resolve(task, references) do |id, data|
           yield(:task, id || key, data)
         end
       end
       
       joins.collect! do |inputs, outputs, join|
-        join = normalize(join || ['join'], references) do |id, data|
-          yield(:join, id, data)
+        join ||= {}
+        join = resolve(join, references) do |id, data|
+          yield(:join, id || 'join', data)
         end
         [inputs, outputs, join]
       end
       
       middleware.collect! do |m|
-        normalize(m, references) do |id, data|
+        resolve(m, references) do |id, data|
           yield(:middleware, id, data)
         end
       end
     end
     
-    def build(app)
+    def valid?
+      errors.empty?
+    end
+    
+    def validate!
+      errs = errors
+      unless errs.empty?
+        raise BuildError.new(errs)
+      end
+    end
+    
+    def errors
       errors = []
+      tasks.each do |key, task|
+        unless instantiable?(task)
+          errors << "unknown task: #{task}"
+        end
+      end
       
+      joins.each do |inputs, outputs, join|
+        unless instantiable?(join)
+          errors << "unknown join: #{join}"
+        end
+        
+        inputs.each do |key| 
+          unless tasks.has_key?(key)
+            errors << "missing join input: #{key}"
+          end
+        end
+        
+        outputs.each do |key| 
+          unless tasks.has_key?(key)
+            errors << "missing join output: #{key}"
+          end
+        end
+      end
+      
+      middleware.each do |m|
+        unless instantiable?(m)
+          errors << "unknown middleware: #{m}"
+        end
+      end
+      
+      errors
+    end
+    
+    def build(app)
       # instantiate tasks
       tasks = {}
       arguments = {}
       self.tasks.each_pair do |key, task|
-        begin
-          instance, args = instantiate(task, app)
-        
-          tasks[key] = instance
-          arguments[key] = args
-        rescue
-          errors << $!.message
-          tasks[key] = nil
-        end
+        instance, args = instantiate(task, app)
+      
+        tasks[key] = instance
+        arguments[key] = args
       end
       
       # build the workflow
       self.joins.each do |inputs, outputs, join|
-        begin
-          instance = instantiate(join, app)
-          
-          inputs = inputs.collect do |key| 
-            unless task = tasks[key]
-              unless tasks.has_key?(key)
-                errors << "missing join input: #{key.inspect}"
-              end
-            end
-            task
-          end
-          
-          outputs = outputs.collect do |key| 
-            unless task = tasks[key]
-              unless tasks.has_key?(key)
-                errors << "missing join output: #{key.inspect}"
-              end
-            end
-            task
-          end
-          
-          instance.join(inputs, outputs) if errors.empty?
-        rescue
-          errors << $!.message
-        end
+        inputs = inputs.collect {|key| tasks[key] }
+        outputs = outputs.collect {|key| tasks[key] }
+        instantiate(join, app).join(inputs, outputs)
       end
       
       # utilize middleware
       self.middleware.each do |middleware|
         instantiate(middleware, app)
-      end
-      
-      unless errors.empty?
-        raise BuildError.new(errors)
       end
       
       # enque tasks
