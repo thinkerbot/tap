@@ -3,7 +3,7 @@
 */
 
 /* schema */
-form.rename, form.duplicate, form.delete {
+form.run, form.rename, form.duplicate, form.delete {
   display: inline;
 }
 

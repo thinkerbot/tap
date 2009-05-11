@@ -90,6 +90,10 @@ module Tap
           raise "no name specified"
         end
         
+        if new_id == id
+          raise "same name specified"
+        end
+        
         persistence.create(:schema, new_id) do |io| 
           io << persistence.read(:schema, id)
         end
@@ -156,8 +160,6 @@ module Tap
       end
       
       def configure(id)
-        puts YAML.dump(request['schema'])
-      
         schema = Tap::Schema.new(request['schema'])
 
         persistence.update(:schema, id) do |io| 

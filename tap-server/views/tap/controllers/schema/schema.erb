@@ -1,9 +1,16 @@
 <span>Schema:</span>
 
+<form id="run_<%= id %>" class="run" method="post" action="<%= server.uri(:app, 'build') %>">
+  <input type="hidden" name="run" value="on" />
+  <textarea style="display:none" name="schema"><%= load_schema(id).dump %></textarea>
+  <input type="submit" value="Run" />
+</form>
+
 <form id="rename_<%= id %>" class="rename" method="post" action="<%= uri(id) %>">
   <input type="input" name="name" value="<%= id %>" />
   <input type="hidden" name="_method" value="put" />
   <input type="hidden" name="_action" value="rename" />
+
   <input type="submit" value="Rename" />
 </form>
 
