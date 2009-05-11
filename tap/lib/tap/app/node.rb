@@ -6,8 +6,8 @@ module Tap
     # construction of workflows; they are not required by the API.
     module Node
 
-      # The join called when call completes
-      attr_accessor :join
+      # The joins called when call completes
+      attr_accessor :joins
       
       # An array of node dependencies
       attr_reader :dependencies
@@ -19,13 +19,13 @@ module Tap
       
       # Sets up required variables for extended objects.
       def self.extended(obj) # :nodoc:
-        obj.instance_variable_set(:@join, nil)
+        obj.instance_variable_set(:@joins, [])
         obj.instance_variable_set(:@dependencies, [])
       end
       
-      # Sets a block as the join for self.
+      # Sets the block as a join for self.
       def on_complete(&block) # :yields: result
-        self.join = block
+        self.joins << block if block
         self
       end
       

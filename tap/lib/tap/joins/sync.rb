@@ -33,14 +33,14 @@ module Tap
       # correct 'results' slot.
       def join(inputs, outputs)
         @inputs.each do |input|
-          input.join = nil
+          input.joins.delete(self)
         end if @inputs
 
         @inputs = inputs
 
         index = 0
         inputs.each do |input|
-          input.join = Callback.new(self, index)
+          input.joins << Callback.new(self, index)
           index += 1
         end if inputs
         reset

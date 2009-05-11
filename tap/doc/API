@@ -12,7 +12,7 @@ Note the signature for call can be modified as necessary.
 
   call(*inputs)    any return is allowed
   dependencies()   returns an array of dependency nodes
-  join()           returns a join or nil
+  joins()          returns an array of joins
 
 ==== Dependency
 

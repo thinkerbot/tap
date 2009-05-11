@@ -151,8 +151,8 @@ module Tap
     # instances of tasks.  Not recommended for casual use.
     attr_reader :cache
     
-    # The default_join for nodes that have no join set
-    attr_accessor :default_join
+    # The default joins for nodes that have no joins set
+    attr_accessor :default_joins
     
     # The application logger
     attr_reader :logger
@@ -171,6 +171,7 @@ module Tap
       @queue = options[:queue] || Queue.new
       @cache = options[:cache] || {}
       @trace = []
+      @default_joins = []
       on_complete(&block)
       
       initialize_config(config)
@@ -281,8 +282,9 @@ module Tap
     def dispatch(node, inputs=[])
       resolve(node)
       result = stack.call(node, inputs)
-
-      if join = (node.join || default_join)
+      
+      joins = node.joins.empty? ? default_joins : node.joins
+      joins.each do |join|
         join.call(result)
       end
       result
@@ -420,7 +422,7 @@ module Tap
     # Sets the block to receive the audited result of nodes with no join
     # (ie the block is set as default_join).
     def on_complete(&block) # :yields: _result
-      self.default_join = block
+      self.default_joins << block if block
       self
     end
     

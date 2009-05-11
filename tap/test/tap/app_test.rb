@@ -125,15 +125,15 @@ class AppTest < Test::Unit::TestCase
     assert_equal(App::Queue, app.queue.class)
     assert app.queue.empty?
     assert_equal(App::Stack, app.stack.class)
-    assert_equal nil, app.default_join
+    assert_equal [], app.default_joins
     assert_equal({}, app.cache)
     assert_equal App::State::READY, app.state
   end
   
-  def test_initialization_with_block_sets_default_join
+  def test_initialization_with_block_sets_a_default_join
     b = lambda {}
     app = App.new(&b)
-    assert_equal b, app.default_join
+    assert_equal [b], app.default_joins
   end
   
   #
@@ -342,30 +342,44 @@ class AppTest < Test::Unit::TestCase
     assert_equal "result", app.dispatch(n)
   end
   
-  def test_dispatch_calls_join_if_specified
+  def test_dispatch_calls_joins_if_specified
     n = intern { "result" }
     
-    was_in_block = false
+    was_in_block_a = false
     n.on_complete do |result|
       assert_equal "result", result
-      was_in_block = true
+      was_in_block_a = true
+    end
+    
+    was_in_block_b = false
+    n.on_complete do |result|
+      assert_equal "result", result
+      was_in_block_b = true
     end
     
     app.dispatch(n)
-    assert was_in_block
+    assert was_in_block_a
+    assert was_in_block_b
   end
   
-  def test_dispatch_calls_default_join_if_no_join_is_specified
+  def test_dispatch_calls_default_joins_if_no_join_is_specified
     n = intern { "result" }
     
-    was_in_block = false
+    was_in_block_a = false
     app.on_complete do |result|
       assert_equal "result", result
-      was_in_block = true
+      was_in_block_a = true
+    end
+    
+    was_in_block_b = false
+    app.on_complete do |result|
+      assert_equal "result", result
+      was_in_block_b = true
     end
     
     app.dispatch(n)
-    assert was_in_block
+    assert was_in_block_a
+    assert was_in_block_b
   end
   
   def test_dispatch_resolves_dependencies_before_execution
@@ -503,14 +517,13 @@ class AppTest < Test::Unit::TestCase
   # on_complete test
   #
   
-  def test_on_complete_sets_the_default_join_for_self
-    app.default_join = nil
-    assert_equal nil, app.default_join
+  def test_on_complete_sets_a_default_join_for_self
+    app.default_joins.clear
 
     b = lambda {}
     app.on_complete(&b)
     
-    assert_equal b, app.default_join
+    assert_equal [b], app.default_joins
   end
   
   def test_on_complete_returns_self

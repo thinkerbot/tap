@@ -418,7 +418,7 @@ module Tap
     # Initializes a new Task.
     def initialize(config={}, app=Tap::App.instance)
       @app = app
-      @join = nil
+      @joins = []
       @dependencies = []
       
       # initialize configs

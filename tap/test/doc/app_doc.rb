@@ -110,7 +110,7 @@ class AppDoc < Test::Unit::TestCase
     app.enq(t1, 'a')
     app.enq(t3, 'a')
     
-    app.default_join = Aggregator.new
+    app.default_joins << Aggregator.new
     app.run
     assert_equal 0, app.queue.size
     
@@ -123,8 +123,8 @@ class AppDoc < Test::Unit::TestCase
     assert_equal Tap::App, app.class
     assert_equal 1, app.queue.size
     
-    assert_equal ['a.b.c', 'a.d'], app.default_join.results
+    assert_equal ['a.b.c', 'a.d'], app.default_joins[0].results
     app.run
-    assert_equal ['a.b.c', 'a.d', 'A.b.c'], app.default_join.results
+    assert_equal ['a.b.c', 'a.d', 'A.b.c'], app.default_joins[0].results
   end
 end

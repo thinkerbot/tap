@@ -122,13 +122,13 @@ module Tap
     # Sets self as a join between the inputs and outputs.
     def join(inputs, outputs)
       @inputs.each do |input|
-        input.join = nil
+        input.joins.delete(self)
       end if @inputs
       
       @inputs = inputs
       
       inputs.each do |input|
-        input.join = self
+        input.joins << self
       end if inputs
       
       @outputs = outputs
