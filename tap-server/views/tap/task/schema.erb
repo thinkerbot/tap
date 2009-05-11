@@ -1,7 +1,7 @@
 <% tasc = task[:class] %>
     <span class="class"><%= tasc %></span>: 
-    <span class="summary"><%= tasc.manifest.subject %></span>
-    <pre><%= tasc.manifest.wrap %></pre>
+    <span class="summary"><%= tasc.desc.subject %></span>
+    <pre><%= tasc.desc.wrap %></pre>
 
 <%= render("configurations.erb", :locals => {
       :configurations => tasc.configurations, 

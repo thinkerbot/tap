@@ -1,9 +1,17 @@
-<span>Schema: <%= id %></span>
+<span>Schema:</span>
+
 <form id="rename_<%= id %>" class="rename" method="post" action="<%= uri(id) %>">
   <input type="input" name="name" value="<%= id %>" />
   <input type="hidden" name="_method" value="put" />
   <input type="hidden" name="_action" value="rename" />
   <input type="submit" value="Rename" />
+</form>
+
+<form id="duplicate_<%= id %>" class="duplicate" method="post" action="<%= uri(id) %>">
+  <input type="hidden" name="name" value="<%= id %>_copy" />
+  <input type="hidden" name="_method" value="put" />
+  <input type="hidden" name="_action" value="duplicate" />
+  <input type="submit" value="Duplicate" />
 </form>
 
 <!-- build panel -->

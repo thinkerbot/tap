@@ -81,14 +81,22 @@ module Tap
       
       # Renames id to request['name'] in the schema persistence.
       def rename(id)
+        result = duplicate(id)
+        persistence.destroy(:schema, id)
+        
+        result
+      end
+      
+      # Duplicates id to request['name'] in the schema persistence.
+      def duplicate(id)
         new_id = request['name'].to_s.strip
         if new_id.empty?
           raise "no name specified"
         end
         
-        content = persistence.read(:schema, id)
-        persistence.destroy(:schema, id)
-        persistence.create(:schema, new_id) {|io| io << content }
+        persistence.create(:schema, new_id) do |io| 
+          io << persistence.read(:schema, id)
+        end
         
         redirect uri(new_id)
       end

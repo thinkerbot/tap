@@ -1,5 +1,12 @@
 /* 
   Tap Styles
 */
-form {
+
+/* schema */
+form.rename {
+  display: inline;
+}
+
+form.duplicate {
+  display: inline;
 }
