@@ -11,6 +11,10 @@ form.duplicate {
   display: inline;
 }
 
+form.delete {
+  display: inline;
+}
+
 li.task {
   border-top: thin solid black;
   padding: 0.5em;

@@ -44,8 +44,6 @@ module Tap
       # POST /projects/*args
       def create(id)
         schema = Tap::Schema.new(request['schema'] || {})
-        resolve(schema)
-        
         persistence.create(:schema, id) {|io| io << schema.dump }
         redirect uri(id)
       end
@@ -107,16 +105,16 @@ module Tap
       #
       def add(id)
         tasks = request['tasks'] || []
-        inputs = (request['inputs'] || []).collect {|index| index.to_i }
-        outputs = (request['outputs'] || []).collect {|index| index.to_i }
+        inputs = request['inputs'] || []
+        outputs = request['outputs'] || []
         
         update_schema(id) do |schema|
           current = schema.tasks
           tasks.each do |task|
             key = current.length
-            key += 1 while current.has_key?(key)
+            key += 1 while current.has_key?(key.to_s)
             
-            current[key] = {'id' => task}
+            current[key.to_s] = {'id' => task}
           end
           
           if !inputs.empty? && !outputs.empty?
@@ -138,11 +136,11 @@ module Tap
         
         update_schema(id) do |schema|
           tasks.each do |key|
-            schema.tasks.delete(key.to_i)
+            schema.tasks.delete(key)
           end
           
           joins.each do |index|
-            schema.joins[index.to_i] = nil
+            schema.joins[index] = nil
           end
           
           schema.joins.compact!
@@ -175,7 +173,7 @@ module Tap
       end
       
       def update_schema(id)
-        path = persistence.find(:schema, id)
+        path = persistence.find(:schema, id) || persistence.create(:schema, id)
         schema = Tap::Schema.load_file(path)
         
         yield(schema)

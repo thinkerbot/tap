@@ -1,10 +1,10 @@
 <ul>
 <% schema.each do |id| %>
 <li>
-  <form id="delete_form_<%= id %>" class="delete_form" method="post" action="<%= uri(id) %>">
+  <form id="delete_<%= id %>" class="delete" method="post" action="<%= uri(id) %>">
     <a href="<%= uri("#{id}")%>"><%= id %></a>
-    <input class="action" type="hidden" name="action" value="destroy" />
-    <input id="delete_form_<%= id %>_submit" type="submit" value="Destroy" />
+    <input class="action" type="hidden" name="_method" value="delete" />
+    <input type="submit" value="Delete" />
   </form>
 </li>
 <% end %>

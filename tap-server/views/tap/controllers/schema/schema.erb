@@ -7,7 +7,6 @@
   <input type="submit" value="Rename" />
 </form>
 
-<!-- add form --> 
 <form id="duplicate_<%= id %>" class="duplicate" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="name" value="<%= id %>_copy" />
   <input type="hidden" name="_method" value="put" />
@@ -15,6 +14,13 @@
   <input type="submit" value="Duplicate" />
 </form>
 
+<form id="delete_<%= id %>" class="delete" method="post" action="<%= uri(id) %>">
+  <input type="hidden" name="name" value="<%= id %>" />
+  <input class="action" type="hidden" name="_method" value="delete" />
+  <input type="submit" value="Delete" />
+</form>
+
+<!-- add form --> 
 <% traverse = schema.traverse %>
 <form id="add_<%= id %>" class="add" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="put" />
