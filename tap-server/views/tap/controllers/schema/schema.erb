@@ -14,31 +14,63 @@
   <input type="submit" value="Duplicate" />
 </form>
 
-<!-- build panel -->
-<form id="build_<%= id %>" class="build" method="post" action="<%= uri(id) %>">
+<% traverse = schema.traverse %>
+<form id="add_<%= id %>" class="add" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="put" />
-  <ol>
-<% schema.traverse.each_pair do |key, task| %>
+  <input type="hidden" name="_action" value="add" />
+  <ul>
+<% traverse.each do |(key, inputs, outputs)| %>
   <li>
     <input name="outputs[]" value="<%= key %>" type="checkbox" />
     <a href="#task_<%= key %>"><%= key %></a>
     <input name="inputs[]" value="<%= key %>" type="checkbox" />
-    [<% if task[:input_join] %><a href="#join_<%= task[:input_join][:index] %>"><%= task[:parents].join(', ') %></a><% end %>]
-    [<% if task[:output_join] %><a href="#join_<%= task[:output_join][:index] %>"><%= task[:children].join(', ') %></a><% end %>]
+    [<% inputs.each  do |index| %><a href="#join_<%= index %>"><%= index %></a> <% end %>]
+    [<% outputs.each do |index| %><a href="#join_<%= index %>"><%= index %></a> <% end %>]
   </li>
 <% end %>
-  </ol>
+  </ul>
+
+  <ul>
+<% server.env.minimap.each do |(env_name, env)| %>
+<%   env.constant_manifest(:task).minimap.each do |(name, const)| %>
+<%     key = "#{env_name}:#{name}" %>
+   <li>
+     <input name="tasks[]" value="<%= key %>" type="checkbox"><%= key %></input>
+   </li>
+<%   end %>
+<% end %>
+  </ul>
   
-  <input class="update_action" type="radio" name="_action" value="add" checked="true">add</input>
-  <input class="update_action" type="radio" name="_action" value="remove">remove</input>
-  <input class="update_action" type="radio" name="_action" value="echo">echo</input>
-  <input type="submit" value="Update" />
+  <input type="submit" value="Add" />
 </form>
 
-<!-- configure panel -->
-<form id="configure_<%= id %>" class="configure" method="post" action="<%= uri(id) %>">
+<form id="remove_<%= id %>" class="remove" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="put" />
-  <input type="hidden" name="_action" value="configure" />
+  <input type="hidden" name="_action" value="remove" />
+  <ul>
+<% traverse.each do |(key, inputs, outputs)| %>
+  <li>
+    <input name="tasks[]" value="<%= key %>" type="checkbox" />
+    <a href="#task_<%= key %>"><%= key %></a>
+  </li>
+<% end %>
+  </ul>
+
+  <ul>
+<% schema.joins.each_index do |index| %>
+  <li>
+    <input name="joins[]" value="<%= index %>" type="checkbox" />
+    <a href="#join_<%= index %>"><%= index %></a>
+  </li>
+<% end %>
+  </ul>
+  
+  <input type="submit" value="Remove" />
+</form>
+
+<form id="update_<%= id %>" class="update" method="post" action="<%= uri(id) %>">
+  <input type="hidden" name="_method" value="put" />
+  <input type="hidden" name="_action" value="update" />
   
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
@@ -53,8 +85,8 @@
 <% end %>
   </ul>
 
-<% schema.joins.each do |inputs, outputs, join| %>
-    <li>
+<% schema.joins.each_with_index do |(inputs, outputs, join), index| %>
+    <li id="join_<%= index %>">
 <%=  render(
        :file => class_path('schema.erb', join[:class]), 
        :locals => {
