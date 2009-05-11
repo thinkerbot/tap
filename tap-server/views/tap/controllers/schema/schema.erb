@@ -17,7 +17,6 @@
 <!-- build panel -->
 <form id="build_<%= id %>" class="build" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="put" />
-  <input type="hidden" name="_action" value="build" />
   <ol>
 <% schema.traverse.each_pair do |key, task| %>
   <li>
@@ -29,8 +28,11 @@
   </li>
 <% end %>
   </ol>
-    
-  <input type="submit" value="Add" />
+  
+  <input class="update_action" type="radio" name="_action" value="add" checked="true">add</input>
+  <input class="update_action" type="radio" name="_action" value="remove">remove</input>
+  <input class="update_action" type="radio" name="_action" value="echo">echo</input>
+  <input type="submit" value="Update" />
 </form>
 
 <!-- configure panel -->

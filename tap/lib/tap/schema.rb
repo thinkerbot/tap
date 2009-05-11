@@ -103,6 +103,8 @@ module Tap
           yield(:middleware, id, data)
         end
       end
+      
+      self
     end
     
     def valid?
@@ -227,6 +229,54 @@ module Tap
       end
       
       tasks
+    end
+    
+    def cleanup!
+      tasks = {}
+      self.tasks.each_pair do |key, task|
+        tasks[key] = {}
+      end
+      
+      # cleanup joins
+      joins.each do |join|
+        # remove missing inputs, track assignments
+        join[0].delete_if do |key|
+          if task = tasks[key]
+            task[:output] = join
+            false
+          else
+            true
+          end
+        end
+        
+        # remove missing outputs, track assignments
+        join[1].delete_if do |key|
+          if task = tasks[key]
+            task[:input] = join
+            false
+          else
+            true
+          end
+        end
+      end
+      
+      joins.delete_if do |join|
+        # remove reassigned inputs
+        join[0].delete_if {|key| tasks[key][:output] != join }
+
+        # remove reassigned inputs
+        join[1].delete_if {|key| tasks[key][:input] != join }
+        
+        # remove orphanded joins
+        join[0].empty?
+      end
+      
+      # cleanup queue
+      queue.delete_if do |(key, args)|
+        !tasks.has_key?(key)
+      end
+      
+      self
     end
     
     # Creates an array of [tasks, joins, queue, middleware]
