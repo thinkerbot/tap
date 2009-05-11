@@ -200,49 +200,49 @@ class ParserUtilsTest < Test::Unit::TestCase
   
   def test_parse_sequence_documentation
     expected = [
-      ['join', [1], [2]],
-      ['join', [2], [3]]
+      [[1], [2]],
+      [[2], [3]]
     ]
     assert_equal expected, parse_sequence("1:2:3", '')
     
     expected = [
-      ['join', [:previous_index], [1], '-i', '-s'],
-      ['join', [1], [2], '-i', '-s'],
-      ['join', [2], [:current_index], '-i', '-s'],
+      [[:previous_index], [1], ['join', '-i', '-s']],
+      [[1], [2], ['join', '-i', '-s']],
+      [[2], [:current_index], ['join', '-i', '-s']],
     ]
     assert_equal expected, parse_sequence(":1:2:", 'is')
   end
   
   def test_parse_sequence
-    expected = [['join', [:previous_index], [:current_index]]]
+    expected = [[[:previous_index], [:current_index]]]
     assert_equal expected, parse_sequence(":", '')
     
-    expected = [['join', [1], [:current_index]]]
+    expected = [[[1], [:current_index]]]
     assert_equal expected, parse_sequence("1:", '')
     
-    expected = [['join', [:previous_index], [2]]]
+    expected = [[[:previous_index], [2]]]
     assert_equal expected, parse_sequence(":2", '')
     
-    expected = [['join', [1], [2]]]
+    expected = [[[1], [2]]]
     assert_equal expected, parse_sequence("1:2", '')
     
     expected = [
-      ['join', [1], [2]],
-      ['join', [2], [3]]
+      [[1], [2]],
+      [[2], [3]]
     ]
     assert_equal expected, parse_sequence("1:2:3", '')
     
     expected = [
-      ['join', [100], [200]],
-      ['join', [200], [300]]
+      [[100], [200]],
+      [[200], [300]]
     ]
     assert_equal expected, parse_sequence("100:200:300", '')
     
     expected = [
-      ['join', [:previous_index], [1]],
-      ['join', [1], [2]],
-      ['join', [2], [3]],
-      ['join', [3], [:current_index]],
+      [[:previous_index], [1]],
+      [[1], [2]],
+      [[2], [3]],
+      [[3], [:current_index]],
     ]
     assert_equal expected, parse_sequence(":1:2:3:", '')
   end
@@ -252,9 +252,13 @@ class ParserUtilsTest < Test::Unit::TestCase
   #
   
   def test_parse_join_documentation
-    assert_equal ['join', [1], [2,3]], parse_join("1", "2,3", "")
-    assert_equal ['type', [], [], '-i', '-s'], parse_join("", "", "is.type")
-    assert_equal ['type', [], [], '-i', '-s'], parse_join("", "", "type -i -s")
+    assert_equal [[1], [2,3]], parse_join("1", "2,3", "")
+    assert_equal [[], [], ['type', '-i', '-s']], parse_join("", "", "is.type")
+    assert_equal [[], [], ['type', '-i', '-s']], parse_join("", "", "type -i -s")
+  end
+  
+  def test_parse_join
+    assert_equal [[], [], ['join', '-i', '-s']], parse_join("", "", "is")
   end
 end
 
@@ -275,21 +279,21 @@ class ParserTest < Test::Unit::TestCase
   def test_parse_documentation
     schema = Parser.new("a -- b --: c").schema
     assert_equal({0 => ["a"], 1 => ["b"], 2 => ["c"]}, schema.tasks)
-    assert_equal [['join', [1],[2]]], schema.joins
+    assert_equal [[[1],[2]]], schema.joins
     assert_equal [0,1], schema.queue
     
     schema = Parser.new("a -- b -- c --0:1 --1:2").schema
     assert_equal({0 => ["a"], 1 => ["b"], 2 => ["c"]}, schema.tasks)
     assert_equal [
-      ['join', [0],[1]],
-      ['join', [1],[2]]
+      [[0],[1]],
+      [[1],[2]]
     ], schema.joins
   
     schema = Parser.new("a --1:2 --0:1 b -- c").schema
     assert_equal({0 => ["a"], 1 => ["b"], 2 => ["c"]}, schema.tasks)
     assert_equal [
-      ['join', [1],[2]],
-      ['join', [0],[1]]
+      [[1],[2]],
+      [[0],[1]]
     ], schema.joins
   
     schema = Parser.new("a -- b -- c").schema
@@ -346,8 +350,8 @@ class ParserTest < Test::Unit::TestCase
   def test_sequences_breaks_assign_sequences
     parser = Parser.new "a --: b --: c"
     assert_equal [
-      ['join', [0], [1]],
-      ['join', [1], [2]]
+      [[0], [1]],
+      [[1], [2]]
     ], parser.schema.joins
   end
   
@@ -359,24 +363,24 @@ class ParserTest < Test::Unit::TestCase
   def test_sequence_uses_the_last_count_if_no_lead_index_is_specified
     parser = Parser.new "a -- b --:100 c --:200"
     assert_equal [
-      ['join', [1], [100]],
-      ['join', [2], [200]],
+      [[1], [100]],
+      [[2], [200]],
     ], parser.schema.joins
   end
    
   def test_sequence_uses_the_next_count_if_no_end_index_is_specified
     parser = Parser.new  "a --100: b --200: c "
     assert_equal [
-      ['join', [100], [1]],
-      ['join', [200], [2]],
+      [[100], [1]],
+      [[200], [2]],
     ], parser.schema.joins
   end
    
   def test_sequence_use_with_no_lead_or_end_index
     parser = Parser.new  "a --: b --: c "
     assert_equal [
-      ['join', [0], [1]],
-      ['join', [1], [2]],
+      [[0], [1]],
+      [[1], [2]],
     ], parser.schema.joins
   end
    
@@ -387,8 +391,8 @@ class ParserTest < Test::Unit::TestCase
   def test_joins_are_parsed
     parser = Parser.new "--[1][2] --[3][4,5]"
     assert_equal [
-      ['join', [1], [2]],
-      ['join', [3], [4,5]],
+      [[1], [2]],
+      [[3], [4,5]],
     ], parser.schema.joins
   end
   
@@ -416,8 +420,8 @@ class ParserTest < Test::Unit::TestCase
     }, schema.tasks)
     
     assert_equal [
-      ['join', [0], [1]],
-      ['join', [1], [2]]
+      [[0], [1]],
+      [[1], [2]]
     ], schema.joins
   end
   
@@ -432,8 +436,8 @@ class ParserTest < Test::Unit::TestCase
     }, schema.tasks)
     
     assert_equal [
-      ['join', [0], [1]],
-      ['join', [1], [2]]
+      [[0], [1]],
+      [[1], [2]]
     ], schema.joins
   end
   
@@ -442,7 +446,7 @@ class ParserTest < Test::Unit::TestCase
     schema = parser.schema
     
     assert_equal [
-      ['b', [0], [1], 'c e', 'f'],
+      [[0], [1], ['b', 'c e', 'f']],
     ], schema.joins
   end
   

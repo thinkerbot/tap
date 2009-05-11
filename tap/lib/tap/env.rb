@@ -424,6 +424,8 @@ module Tap
       objects
     end
     
+    #--
+    # Environment-seek
     def eeek(type, key)
       key =~ COMPOUND_KEY
       envs = if $2

@@ -33,12 +33,7 @@ module Tap
         opts.add(configurations)
         args = opts.parse!(argv, :add_defaults => false)
         
-        inputs = parse_array(args.shift)
-        outputs = parse_array(args.shift)
-        
         instantiate({
-          :inputs => inputs,
-          :outputs => outputs,
           :config => opts.nested_config,
           :args => args
         }, app)
@@ -47,13 +42,7 @@ module Tap
       # Instantiates an instance of self and return an array like [inputs,
       # outputs, instance].
       def instantiate(argh, app=Tap::App.instance)
-        argh = {
-          :inputs => [],
-          :outputs => [],
-          :config => {}
-        }.merge(argh)
-        
-        [argh[:inputs], argh[:outputs], new(argh[:config], app)]
+        new(argh[:config] || {}, app)
       end
       
       # Instantiates a new join with the input arguments and overrides

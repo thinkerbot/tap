@@ -36,19 +36,29 @@ module Tap
     # b, and b to c.
     #
     #   schema = Parser.new("a -- b -- c --0:1 --1:2").schema
-    #   schema.tasks                  # => [["a"], ["b"], ["c"]]
+    #   schema.tasks                  
+    #   # => {
+    #   # 0 => ["a"], 
+    #   # 1 => ["b"], 
+    #   # 2 => ["c"]
+    #   # }
     #   schema.joins                  
     #   # => [
-    #   # ['join', [0],[1]],
-    #   # ['join', [1],[2]],
+    #   # [[0],[1]],
+    #   # [[1],[2]],
     #   # ]
     #
     #   schema = Parser.new("a --1:2 --0:1 b -- c").schema
-    #   schema.tasks                  # => [["a"], ["b"], ["c"]]
+    #   schema.tasks
+    #   # => {
+    #   # 0 => ["a"], 
+    #   # 1 => ["b"], 
+    #   # 2 => ["c"]
+    #   # }
     #   schema.joins                  
     #   # => [
-    #   # ['join', [1],[2]],
-    #   # ['join', [0],[1]],
+    #   # [[1],[2]],
+    #   # [[0],[1]],
     #   # ]
     #
     # ==== Multi-Join Syntax
@@ -94,16 +104,29 @@ module Tap
     # end delimiter, breaks are active once again.
     #
     #   schema = Parser.new("a -- b -- c").schema
-    #   schema.tasks                  # => [["a"], ["b"], ["c"]]
+    #   schema.tasks
+    #   # => {
+    #   # 0 => ["a"], 
+    #   # 1 => ["b"], 
+    #   # 2 => ["c"]
+    #   # }
     # 
     #   schema = Parser.new("a -. -- b .- -- c").schema
-    #   schema.tasks                  # => [["a", "--", "b"], ["c"]]
+    #   schema.tasks
+    #   # => {
+    #   # 0 => ["a", "--", "b"], 
+    #   # 1 => ["c"]
+    #   # }
     #
     # Parsing continues until the end of argv, or a an end flag '---' is 
     # reached.  The end flag may also be escaped.
     #
     #   schema = Parser.new("a -- b --- c").schema
-    #   schema.tasks                  # => [["a"], ["b"]]
+    #   schema.tasks
+    #   # => {
+    #   # 0 => ["a"], 
+    #   # 1 => ["b"]
+    #   # }
     #
     class Parser
       
@@ -203,15 +226,15 @@ module Tap
         #
         #   parse_sequence("1:2:3", '')
         #   # => [
-        #   # ['join', [1], [2]],
-        #   # ['join', [2], [3]],
+        #   # [[1], [2]],
+        #   # [[2], [3]],
         #   # ]
         #
         #   parse_sequence(":1:2:", 'is')
         #   # => [
-        #   # ['join', [:previous_index], [1], '-i', '-s'],
-        #   # ['join', [1], [2], '-i', '-s']],
-        #   # ['join', [2], [:current_index], '-i', '-s'],
+        #   # [[:previous_index], [1], ['join', '-i', '-s']],
+        #   # [[1], [2], ['join', '-i', '-s']]],
+        #   # [[2], [:current_index], ['join', '-i', '-s']],
         #   # ]
         #
         def parse_sequence(one, two)
@@ -219,12 +242,17 @@ module Tap
           indicies.unshift previous_index if one[0] == ?:
           indicies << current_index if one[-1] == ?:
           
-          argv = parse_join_modifier(two)
-          id = argv.shift
           sequences = []
           while indicies.length > 1
-            sequences << [id, [indicies.shift], [indicies[0]]] + argv
+            sequences << [[indicies.shift], [indicies[0]]]
           end
+          
+          if argv = parse_join_modifier(two)
+            sequences.each do |sequence|
+              sequence << argv
+            end
+          end
+          
           sequences
         end
 
@@ -233,21 +261,25 @@ module Tap
         # and $3 for a match to a JOIN regexp.  A join type of  'join' is
         # assumed unless otherwise specified.
         #
-        #   parse_join("1", "2,3", "")         # => ['join', [1], [2,3]]
-        #   parse_join("", "", "is.type")      # => ['type', [], [], '-i', '-s']
-        #   parse_join("", "", "type -i -s")   # => ['type', [], [], '-i', '-s']
+        #   parse_join("1", "2,3", "")         # => [[1], [2,3]]
+        #   parse_join("", "", "is.type")      # => [[], [], ['type', '-i', '-s']]
+        #   parse_join("", "", "type -i -s")   # => [[], [], ['type', '-i', '-s']]
         #
         def parse_join(one, two, three)
           join = [parse_indicies(one), parse_indicies(two)]
-          argv = parse_join_modifier(three)
-          join.unshift(argv.shift) + argv
+          
+          if argv = parse_join_modifier(three)
+            join << argv
+          end
+          
+          join
         end
         
         # Parses a join modifier string into an argv.
         def parse_join_modifier(modifier)
           case modifier
           when ""
-            ["join"]
+            nil
           when JOIN_MODIFIER
             argv = [$2 == nil || $2.empty? ? 'join' : $2]
             $1.split("").each {|char| argv << "-#{char}"}
@@ -260,7 +292,7 @@ module Tap
       
       include Utils
       
-      # The schema into which tasks are parsed
+      # The schema into which tasks are being parsed
       attr_reader :schema
       
       def initialize(argv=[])
@@ -278,7 +310,7 @@ module Tap
       # Same as parse, but removes parsed args from argv.
       def parse!(argv)
         @current_index = 0
-        @schema = Schema.new(:tasks => [])
+        @schema = Schema.new
         
         # prevent the addition of an empty task to schema
         return if argv.empty?
@@ -371,7 +403,7 @@ module Tap
       # constructs the specified join and removes the targets of the
       # join from the queue
       def set_join(join) # :nodoc:
-        join[2].each do |output|
+        join[1].each do |output|
           schema.queue.delete(output)
         end
         schema.joins << join
