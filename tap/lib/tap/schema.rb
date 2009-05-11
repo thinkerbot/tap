@@ -54,7 +54,14 @@ module Tap
       schema = symbolize(schema)
       
       @tasks = hashify(schema[:tasks] || {})
-      @joins = schema[:joins] || []
+      @joins = (schema[:joins] || []).collect do |join|
+        if join.kind_of?(Hash)
+          join = symbolize(join)
+          [join[:inputs], join[:outputs], join[:join]]
+        else
+          join
+        end
+      end
       @queue = schema[:queue] || []
       @middleware = schema[:middleware] || []
     end
@@ -189,94 +196,27 @@ module Tap
     end
     
     def traverse
-      tasks = {}
+      map = {}
       self.tasks.each_pair do |key, task|
-        if task.kind_of?(Array)
-          raise "cannot traverse array tasks"
-        end
-        
-        tasks[key] = task.dup
+        map[key] = [[],[]]
       end
       
       index = 0
       self.joins.each do |inputs, outputs, join|
-        if join.kind_of?(Array)
-          raise "cannot traverse array joins"
-        end
-        
-        join[:index] = index
-        index += 1
-        
         inputs.each do |key|
-          task = tasks[key]
-          if task.has_key?(:output_join)
-            raise "cannot traverse tasks with multiple output joins"
-          end
-          
-          task[:children] = outputs
-          task[:output_join] = join
+          map[key][1] << index
         end
         
         outputs.each do |key|
-          task = tasks[key]
-          if task.has_key?(:input_join)
-            raise "cannot traverse tasks with multiple input joins"
-          end
-          
-          task[:parents] = inputs
-          task[:input_join] = join
-        end
-      end
-      
-      tasks
-    end
-    
-    def cleanup!
-      tasks = {}
-      self.tasks.each_pair do |key, task|
-        tasks[key] = {}
-      end
-      
-      # cleanup joins
-      joins.each do |join|
-        # remove missing inputs, track assignments
-        join[0].delete_if do |key|
-          if task = tasks[key]
-            task[:output] = join
-            false
-          else
-            true
-          end
+          map[key][0] << index
         end
         
-        # remove missing outputs, track assignments
-        join[1].delete_if do |key|
-          if task = tasks[key]
-            task[:input] = join
-            false
-          else
-            true
-          end
-        end
+        index += 1
       end
       
-      joins.delete_if do |join|
-        # remove reassigned inputs
-        join[0].delete_if {|key| tasks[key][:output] != join }
-
-        # remove reassigned inputs
-        join[1].delete_if {|key| tasks[key][:input] != join }
-        
-        # remove orphanded joins
-        join[0].empty?
+      map.keys.sort.collect do |key|
+        [key, *map[key]]
       end
-      
-      # cleanup queue
-      queue.delete_if do |(key, args)|
-        !tasks.has_key?(key)
-      end
-      
-      self
     end
     
     # Creates an array of [tasks, joins, queue, middleware]

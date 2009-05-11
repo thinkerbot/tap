@@ -136,7 +136,6 @@ module Tap
         tasks = request['tasks'] || []
         joins = request['joins'] || []
         
-        puts [tasks, joins].inspect
         update_schema(id) do |schema|
           tasks.each do |key|
             schema.tasks.delete(key.to_i)
@@ -149,6 +148,15 @@ module Tap
           schema.joins.compact!
         end
     
+        redirect uri(id)
+      end
+      
+      def configure(id)
+        schema = Tap::Schema.new(request['schema'])
+        persistence.update(:schema, id) do |io| 
+          io << schema.dump
+        end
+        
         redirect uri(id)
       end
       

@@ -16,11 +16,6 @@ module Tap
             data[:class] = yield(data[:id], data)
           end
           
-          unless data[:class].kind_of?(Class)
-            require data[:require_path] if data[:require_path]
-            data[:class] = data[:class].split(/::/).inject(Object) {|m, n| m.const_get(n)}
-          end
-          
           if config = data[:config]
             data[:config] = symbolize(config, dereferences)
           end

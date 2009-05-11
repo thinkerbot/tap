@@ -276,7 +276,7 @@ module Tap
     #
     # - resolve node dependencies using resolve_dependencies
     # - call stack with the node and inputs
-    # - call the node join, if set, or the default_join with the results
+    # - call the node joins, if set, or the default_joins with the results
     #
     # Dispatch returns the node result.
     def dispatch(node, inputs=[])

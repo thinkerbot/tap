@@ -10,3 +10,13 @@ form.rename {
 form.duplicate {
   display: inline;
 }
+
+li.task {
+  border-top: thin solid black;
+  padding: 0.5em;
+}
+
+li.join {
+  border-top: thin solid black;
+  padding: 0.5em;
+}

@@ -7,15 +7,3 @@
       :values => join[:config] || {}, 
       :name => "#{name}[config]"
     }) %>
-    
-    <ul class="inputs">
-<% inputs.each do |input| %>
-    <li><%= input %></li>
-<% end %>
-    </ul>
-    
-    <ul class="outputs">
-<% outputs.each do |output| %>
-    <li><%= output %></li>
-<% end %>
-    </ul>

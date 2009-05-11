@@ -2,7 +2,7 @@
     <span class="class"><%= tasc %></span>: 
     <span class="summary"><%= tasc.desc.subject %></span>
     <pre><%= tasc.desc.wrap %></pre>
-
+    
 <%= render("configurations.erb", :locals => {
       :configurations => tasc.configurations, 
       :values => task[:config] || {}, 

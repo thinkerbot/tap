@@ -7,6 +7,7 @@
   <input type="submit" value="Rename" />
 </form>
 
+<!-- add form --> 
 <form id="duplicate_<%= id %>" class="duplicate" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="name" value="<%= id %>_copy" />
   <input type="hidden" name="_method" value="put" />
@@ -44,6 +45,7 @@
   <input type="submit" value="Add" />
 </form>
 
+<!-- remove form --> 
 <form id="remove_<%= id %>" class="remove" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="put" />
   <input type="hidden" name="_action" value="remove" />
@@ -68,33 +70,38 @@
   <input type="submit" value="Remove" />
 </form>
 
-<form id="update_<%= id %>" class="update" method="post" action="<%= uri(id) %>">
+<!-- configure form --> 
+<form id="configure_<%= id %>" class="configure" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="put" />
-  <input type="hidden" name="_action" value="update" />
+  <input type="hidden" name="_action" value="configure" />
   
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
-    <li id="task_<%= key %>">
+<%   name = "schema[tasks][#{key}]" %>
+    <li id="task_<%= key %>" class="task">
+      <input type="hidden" name="<%= name %>[id]" value="<%= task[:id] %>">
 <%=  render(
        :file => class_path('schema.erb', task[:class]), 
-       :locals => {
-         :id => id, 
-         :name => "schema[tasks][#{key}]", 
-         :task => task}) %>
+       :locals => {:id => id, :name => name, :task => task}) %>
     </li>
 <% end %>
   </ul>
-
+  
+  <ul class="joins">
 <% schema.joins.each_with_index do |(inputs, outputs, join), index| %>
-    <li id="join_<%= index %>">
+<%   name = "schema[joins][]" %>
+    <li id="join_<%= index %>" class="join">
+<%   inputs.each do |input| %>
+      <input type="hidden" name="<%= name %>[inputs][]" value="<%= input %>">
+<%   end %>
+<%   outputs.each do |output| %>
+      <input type="hidden" name="<%= name %>[outputs][]" value="<%= output %>">
+<%   end %>
+      <input type="hidden" name="<%= name %>[join][id]" value="<%= join[:id] || 'join' %>">
+
 <%=  render(
        :file => class_path('schema.erb', join[:class]), 
-       :locals => {
-         :id => id, 
-         :name => "schema[joins][]",
-         :inputs => inputs,
-         :outputs => outputs,
-         :join => join}) %>
+       :locals => {:id => id, :name => "#{name}[join]", :join => join}) %>
     </li>
 <% end %>
   </ul>
