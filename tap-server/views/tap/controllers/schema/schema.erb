@@ -20,22 +20,27 @@
   
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
-<%   task_id = "schema[tasks][#{}]" %>
     <li>
-<%=  render(:file => class_path('node.erb', task), :locals => {:id => id, :name => 'schema[]', :task => task, :args => args} ) %>
-      
-<%= render 'task.erb', :locals => {:task => task_id, :index => index, :id => id} %>
+<%=  render(
+       :file => class_path('schema.erb', task[:class]), 
+       :locals => {
+         :id => id, 
+         :name => "schema[tasks][#{key}]", 
+         :task => task}) %>
     </li>
-  <% end %>
+<% end %>
   </ul>
 
-  <ul class="joins">
-  <% schema.joins.each_with_index do |join, index| %>
+<% schema.joins.each do |join| %>
     <li>
-<%= render 'join.erb', :locals => {:join => join, :index => index, :id => id} %>
+<%=  render(
+       :file => class_path('schema.erb', join[:class]), 
+       :locals => {
+         :id => id, 
+         :name => "schema[joins][]", 
+         :join => join}) %>
     </li>
-  <% end %>
+<% end %>
   </ul>
-  
   <input type="submit" value="Update" />
 </form>

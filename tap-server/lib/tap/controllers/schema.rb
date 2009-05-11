@@ -1,5 +1,7 @@
 require 'tap/controller'
-
+require 'tap/tasks/dump'
+require 'tap/tasks/load'
+require 'tap/join'
 module Tap
   module Controllers
     
@@ -21,7 +23,7 @@ module Tap
         extname = File.extname(id)
         id = id.chomp(extname)
         schema = if path = persistence.find(:schema, id)
-          Tap::Schema.load_file(path)
+          Tap::Schema.load_file(path, env)
         else
           Tap::Schema.new
         end
@@ -94,6 +96,10 @@ module Tap
       # Helper Methods
       ############################################################
       protected
+      
+      def env
+        server.env
+      end
       
       def persistence
         server.persistence

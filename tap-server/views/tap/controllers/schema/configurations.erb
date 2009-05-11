@@ -8,19 +8,19 @@
     <ul class="nested_config">
 <%= render("configurations.erb", :locals => {
       :configurations => config.default(false).delegates, 
-      :values => values[key], 
+      :values => values[key] || {}, 
       :name => "#{name}[#{key}]", 
     }) %>
     </ul>
     </li>
 <%   else %>
     <li class="configuration">
-<%   template_file = class_path("configurations/#{config[:type]}.erb") || class_path("configurations/default.erb") %>
-<%= render(:file => template_file, :locals => {
-      :name => "#{name}[#{key}]",
-      :config => config,
-      :value => values[key]
-    }) %>
+<%= render(
+      :file => class_path("#{config[:type]}.erb", config) || class_path("default.erb", config), 
+      :locals => {
+        :name => "#{name}[#{key}]",
+        :config => config,
+        :value => values[key]}) %>
     <span><%= key %></span>:
     <span><%= config[:desc].to_s %></span>
     </li>

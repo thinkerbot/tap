@@ -383,7 +383,7 @@ module Tap
     # Returns nil if the block never returns true.
     #
     def class_path(dir, obj, *paths, &block)
-      current = obj.class
+      current = obj.kind_of?(Class) ? obj : obj.class
       paths.compact!
       loop do
         class_path = if current.respond_to?(:class_path)

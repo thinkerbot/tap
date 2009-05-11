@@ -4,24 +4,25 @@ require 'tap/schema/parser'
 module Tap
   class Schema
     class << self
-      def load(str)
-        new(YAML.load(str) || {})
+      def load(str, env=nil)
+        schema = new(YAML.load(str) || {})
+        
+        schema.resolve! do |type, id, data|
+          unless klass = env.constant_manifest(type)[id]
+            raise "unknown #{type}: #{id}"
+          end
+          klass
+        end if env
+        
+        schema
       end
       
-      def load_file(path)
-        load(File.read(path))
+      def load_file(path, env=nil)
+        load(File.read(path), env)
       end
     end
     
     include Utils
-    
-    REFERENCES = {
-      :stdin =>  lambda { $stdin },
-      :stdout => lambda { $stdout },
-      :stderr => lambda { $stderr },
-      :env =>    lambda { Tap::Env.instance },
-      :app =>    lambda { Tap::App.instance }
-    }
     
     attr_reader :tasks
     
@@ -40,26 +41,21 @@ module Tap
       @middleware = dehashify(schema[:middleware] || [])
     end
     
-    def normalize!(references=REFERENCES)
-      derefs = {}
-      references.each_pair do |ref, block|
-        derefs[ref] = block.call
-      end
-      
+    def resolve!(references={})
       tasks.dup.each_pair do |key, task|
-        tasks[key] = normalize(task, derefs) do |id, data| 
+        tasks[key] = normalize(task, references) do |id, data| 
           yield(:task, id || key, data)
         end
       end
       
       joins.collect! do |join|
-        normalize(join, derefs) do |id, data|
-          yield(:join, id || :join, data)
+        normalize(join, references) do |id, data|
+          yield(:join, id || 'join', data)
         end
       end
       
       middleware.collect! do |m|
-        normalize(m, derefs) do |id, data|
+        normalize(m, references) do |id, data|
           yield(:middleware, id, data)
         end
       end
@@ -85,6 +81,7 @@ module Tap
       
       # build the workflow
       self.joins.each do |join|
+        join = symbolize(join)
         begin
           inputs, outputs, instance = instantiate(join, app)
           

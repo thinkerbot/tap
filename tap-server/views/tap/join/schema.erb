@@ -1,0 +1,21 @@
+    <span class="class"><%= join[:class] %></span>: 
+    <span class="summary"><%= join[:class].desc.subject %></span>
+    <pre><%= join[:class].desc.wrap %></pre>
+
+<%= render("configurations.erb", :locals => {
+      :configurations => join[:class].configurations, 
+      :values => join[:config] || {}, 
+      :name => "#{name}[config]"
+    }) %>
+    
+    <ul class="inputs">
+<% join[:inputs].each do |input| %>
+    <li><%= input %></li>
+<% end %>
+    </ul>
+    
+    <ul class="outputs">
+<% join[:outputs].each do |output| %>
+    <li><%= output %></li>
+<% end %>
+    </ul>

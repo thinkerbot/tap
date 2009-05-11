@@ -112,13 +112,13 @@ module Tap
     end
     
     def build(schema, app=Tap::App.instance)
-      schema.normalize! do |type, id, data|
+      schema.resolve! do |type, id, data|
         klass = constant_manifest(type)[id]
         if !klass && block_given?
           klass = yield(type, id, data)
         end
         
-        unless klass = constant_manifest(type)[id]
+        unless klass
           raise "unknown #{type}: #{id}"
         end
         
