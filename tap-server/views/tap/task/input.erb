@@ -1,0 +1,18 @@
+    <span><%= key %></span>:
+    <ul>
+<% task[:class].args.arguments.each do |argument| %>
+    <li class="input">
+    <input name="<%= name %>[]" value="<%= args.shift %>" />
+    <span><%= argument %></span>
+<%  if argument =~ /\.{3}\z/ %>
+  <% args << '' %>
+  <% args.each do |arg| %>
+    </li>
+    <li class="input">
+    <input name="<%= name %>[]" value="<%= arg %>" />
+    <span>...</span>
+  <% end %>
+<% end %>
+    </li>
+<% end %>
+    </ul>

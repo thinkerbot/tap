@@ -41,13 +41,17 @@
 <% server.env.minimap.each do |(env_name, env)| %>
 <%   env.constant_manifest(:task).minimap.each do |(name, const)| %>
 <%     key = "#{env_name}:#{name}" %>
-   <li>
-     <input name="tasks[]" value="<%= key %>" type="checkbox"><%= key %></input>
-   </li>
+  <li><input name="tasks[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
 <%   end %>
 <% end %>
   </ul>
-  
+
+  <ul>
+<% traverse.each do |(key, inputs, outputs)| %>
+  <li><input name="queue[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
+<% end %>
+  </ul>
+
   <input type="submit" value="Add" />
 </form>
 
@@ -73,6 +77,15 @@
 <% end %>
   </ul>
   
+  <ul>
+<% schema.queue.each_index do |index| %>
+  <li>
+    <input name="queue[]" value="<%= index %>" type="checkbox" />
+    <a href="#queue_<%= index %>"><%= index %></a>
+  </li>
+<% end %>
+  </ul>
+  
   <input type="submit" value="Remove" />
 </form>
 
@@ -87,7 +100,7 @@
     <li id="task_<%= key %>" class="task">
       <input type="hidden" name="<%= name %>[id]" value="<%= task[:id] %>">
 <%=  render(
-       :file => class_path('schema.erb', task[:class]), 
+       :file => class_path('config.erb', task[:class]), 
        :locals => {:id => id, :name => name, :task => task}) %>
     </li>
 <% end %>
@@ -106,8 +119,21 @@
       <input type="hidden" name="<%= name %>[join][id]" value="<%= join[:id] || 'join' %>">
 
 <%=  render(
-       :file => class_path('schema.erb', join[:class]), 
+       :file => class_path('config.erb', join[:class]), 
        :locals => {:id => id, :name => "#{name}[join]", :join => join}) %>
+    </li>
+<% end %>
+  </ul>
+  
+  <ul class="queue">
+<% schema.queue.each_with_index do |(key, args), index| %>
+<%   name = "schema[queue][]" %>
+<%   task = schema.tasks[key] %>
+    <li id="queue_<%= index %>" class="queue">
+    <input type="hidden" name="<%= name %>[id]" value="<%= key %>">
+<%=  render(
+       :file => class_path('input.erb', task[:class]), 
+       :locals => {:id => id, :name => "#{name}[args]", :task => task, :key => key, :args => args || []}) %>
     </li>
 <% end %>
   </ul>

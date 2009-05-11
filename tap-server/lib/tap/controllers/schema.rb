@@ -107,6 +107,7 @@ module Tap
         tasks = request['tasks'] || []
         inputs = request['inputs'] || []
         outputs = request['outputs'] || []
+        queue = request['queue'] || []
         
         update_schema(id) do |schema|
           current = schema.tasks
@@ -119,6 +120,10 @@ module Tap
           
           if !inputs.empty? && !outputs.empty?
             schema.joins << [inputs, outputs]
+          end
+          
+          queue.each do |task|
+            schema.queue << [task]
           end
         end
         
@@ -133,24 +138,28 @@ module Tap
       def remove(id)
         tasks = request['tasks'] || []
         joins = request['joins'] || []
+        queue = request['queue'] || []
         
         update_schema(id) do |schema|
           tasks.each do |key|
             schema.tasks.delete(key)
           end
           
-          joins.each do |index|
-            schema.joins[index] = nil
-          end
-          
+          joins.each {|index| schema.joins[index.to_i] = nil }
           schema.joins.compact!
+          
+          queue.each {|index| schema.queue[index.to_i] = nil }
+          schema.queue.compact!
         end
     
         redirect uri(id)
       end
       
       def configure(id)
+        puts YAML.dump(request['schema'])
+      
         schema = Tap::Schema.new(request['schema'])
+
         persistence.update(:schema, id) do |io| 
           io << schema.dump
         end

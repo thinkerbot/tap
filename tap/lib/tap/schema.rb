@@ -54,7 +54,7 @@ module Tap
       schema = symbolize(schema)
       
       @tasks = hashify(schema[:tasks] || {})
-      @joins = (schema[:joins] || []).collect do |join|
+      @joins = dehashify(schema[:joins] || []).collect do |join|
         if join.kind_of?(Hash)
           join = symbolize(join)
           [join[:inputs], join[:outputs], join[:join]]
@@ -62,8 +62,15 @@ module Tap
           join
         end
       end
-      @queue = schema[:queue] || []
-      @middleware = schema[:middleware] || []
+      @queue = dehashify(schema[:queue] || []).collect do |queue|
+        if queue.kind_of?(Hash)
+          queue = symbolize(queue)
+          [queue[:id], queue[:args]]
+        else
+          queue
+        end
+      end
+      @middleware = dehashify(schema[:middleware] || [])
     end
     
     # Clears all components of self.

@@ -3,24 +3,11 @@
 */
 
 /* schema */
-form.rename {
+form.rename, form.duplicate, form.delete {
   display: inline;
 }
 
-form.duplicate {
-  display: inline;
-}
-
-form.delete {
-  display: inline;
-}
-
-li.task {
-  border-top: thin solid black;
-  padding: 0.5em;
-}
-
-li.join {
+li.task, li.join, li.queue {
   border-top: thin solid black;
   padding: 0.5em;
 }
