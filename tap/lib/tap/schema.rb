@@ -186,6 +186,49 @@ module Tap
       tasks
     end
     
+    def traverse
+      tasks = {}
+      self.tasks.each_pair do |key, task|
+        if task.kind_of?(Array)
+          raise "cannot traverse array tasks"
+        end
+        
+        tasks[key] = task.dup
+      end
+      
+      index = 0
+      self.joins.each do |inputs, outputs, join|
+        if join.kind_of?(Array)
+          raise "cannot traverse array joins"
+        end
+        
+        join[:index] = index
+        index += 1
+        
+        inputs.each do |key|
+          task = tasks[key]
+          if task.has_key?(:output_join)
+            raise "cannot traverse tasks with multiple output joins"
+          end
+          
+          task[:children] = outputs
+          task[:output_join] = join
+        end
+        
+        outputs.each do |key|
+          task = tasks[key]
+          if task.has_key?(:input_join)
+            raise "cannot traverse tasks with multiple input joins"
+          end
+          
+          task[:parents] = inputs
+          task[:input_join] = join
+        end
+      end
+      
+      tasks
+    end
+    
     # Creates an array of [tasks, joins, queue, middleware]
     def to_a
       [tasks, joins, queue, middleware]

@@ -10,6 +10,18 @@
 <form id="build_<%= id %>" class="build" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="put" />
   <input type="hidden" name="_action" value="build" />
+  <ol>
+<% schema.traverse.each_pair do |key, task| %>
+  <li>
+    <input name="outputs[]" value="<%= key %>" type="checkbox" />
+    <a href="#task_<%= key %>"><%= key %></a>
+    <input name="inputs[]" value="<%= key %>" type="checkbox" />
+    [<% if task[:input_join] %><a href="#join_<%= task[:input_join][:index] %>"><%= task[:parents].join(', ') %></a><% end %>]
+    [<% if task[:output_join] %><a href="#join_<%= task[:output_join][:index] %>"><%= task[:children].join(', ') %></a><% end %>]
+  </li>
+<% end %>
+  </ol>
+    
   <input type="submit" value="Add" />
 </form>
 
@@ -20,7 +32,7 @@
   
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
-    <li>
+    <li id="task_<%= key %>">
 <%=  render(
        :file => class_path('schema.erb', task[:class]), 
        :locals => {
@@ -31,13 +43,15 @@
 <% end %>
   </ul>
 
-<% schema.joins.each do |join| %>
+<% schema.joins.each do |inputs, outputs, join| %>
     <li>
 <%=  render(
        :file => class_path('schema.erb', join[:class]), 
        :locals => {
          :id => id, 
-         :name => "schema[joins][]", 
+         :name => "schema[joins][]",
+         :inputs => inputs,
+         :outputs => outputs,
          :join => join}) %>
     </li>
 <% end %>

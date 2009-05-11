@@ -1,7 +1,5 @@
 require 'tap/controller'
-require 'tap/tasks/dump'
-require 'tap/tasks/load'
-require 'tap/join'
+
 module Tap
   module Controllers
     
@@ -23,10 +21,11 @@ module Tap
         extname = File.extname(id)
         id = id.chomp(extname)
         schema = if path = persistence.find(:schema, id)
-          Tap::Schema.load_file(path, env)
+          Tap::Schema.load_file(path)
         else
           Tap::Schema.new
         end
+        resolve(schema)
         
         case extname
         when '.txt'
@@ -47,6 +46,8 @@ module Tap
       # POST /projects/*args
       def create(id)
         schema = Tap::Schema.new(request['schema'] || {})
+        resolve(schema)
+        
         persistence.create(:schema, id) {|io| io << schema.dump }
         redirect uri(id)
       end
@@ -99,6 +100,15 @@ module Tap
       
       def env
         server.env
+      end
+      
+      def resolve(schema)
+        schema.resolve! do |type, id, data|
+          unless klass = env.constant_manifest(type)[id]
+            raise "unknown #{type}: #{id}"
+          end
+          klass
+        end
       end
       
       def persistence
