@@ -122,10 +122,14 @@ module Tap
         update_schema(id) do |schema|
           current = schema.tasks
           tasks.each do |task|
-            key = current.length
-            key += 1 while current.has_key?(key.to_s)
+            key = task
+            while current.has_key?(key)
+              i ||= 0
+              key = "#{task}_#{i}"
+              i += 1
+            end
             
-            current[key.to_s] = {'id' => task}
+            current[key] = {'id' => task}
           end
           
           if !inputs.empty? && !outputs.empty?

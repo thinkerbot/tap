@@ -85,6 +85,7 @@
 <% schema.tasks.each_pair do |key, task| %>
 <%   name = "schema[tasks][#{key}]" %>
     <li id="task_<%= key %>" class="task">
+      <h3><a href="#add_<%= id %>"><%= key %></a></h3>
       <input type="hidden" name="<%= name %>[id]" value="<%= task[:id] %>">
 <%=  render(
        :file => class_path('config.erb', task[:class]), 
@@ -97,6 +98,7 @@
 <% schema.joins.each_with_index do |(inputs, outputs, join), index| %>
 <%   name = "schema[joins][]" %>
     <li id="join_<%= index %>" class="join">
+      <h3><a href="#add_<%= id %>"><%= index %></a></h3>
 <%   inputs.each do |input| %>
       <input type="hidden" name="<%= name %>[0][]" value="<%= input %>">
 <%   end %>
