@@ -31,7 +31,7 @@ module Tap
         if request.get?
           render 'access.erb', :locals => {:secret => request['secret']}, :layout => true
         else
-          redirect uri("admin/#{request['secret']}")
+          redirect uri("admin", :secret => request['secret'])
         end
       end
       
@@ -103,7 +103,11 @@ module Tap
       # Returns a controller uri, attaching the secret to the action, if specified.
       def uri(action=nil, params={})
         secret = params.delete(:secret)
-        action = "#{action}/#{secret}" if secret
+        
+        if secret
+          action = action ? "#{action}/#{secret}" : secret
+        end
+        
         super(action, params)
       end
       

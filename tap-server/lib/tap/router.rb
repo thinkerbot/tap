@@ -11,7 +11,7 @@ module Tap
     config :controllers, {}
 
     def controller_uri(env, controller, action=nil, params={})
-      uri "/#{escape("#{env}:#{controller}")}#{action ? '/' : ''}#{action}", params
+      uri "#{escape("#{env}:#{controller}")}#{action ? '/' : ''}#{action}", params
     end
 
     # a helper method for routing a key to a controller
@@ -55,7 +55,8 @@ module Tap
       else
         # use main controller
         controller = self.controller
-
+        path = nil
+        
         unless controller
           raise ServerError.new("404 Error: could not route to controller", 404)
         end
@@ -63,7 +64,7 @@ module Tap
 
       # handle the request
       rack_env['tap.server'] = self
-      rack_env['tap.path'] = "/#{path}"
+      rack_env['tap.path'] = path
       controller.call(rack_env)
     rescue ServerError
       $!.response

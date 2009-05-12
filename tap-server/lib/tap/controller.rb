@@ -144,7 +144,7 @@ module Tap
     
     # Returns a uri to the specified action on self.
     def uri(action=nil, params={})
-      server.uri("#{name}#{action ? '/' : ''}#{action}", params)
+      server.uri("#{name}#{name && action ? '/' : ''}#{action}", params)
     end
     
     def template_path(path)

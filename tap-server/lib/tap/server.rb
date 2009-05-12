@@ -122,9 +122,10 @@ module Tap
       initialize_config(config)
     end
     
+    # path should not start with "/"
     def uri(path=nil, params={})
       query = build_query(params)
-      "http://#{host}:#{port}#{path}#{query.empty? ? '' : '?'}#{query}"
+      "http://#{host}:#{port}/#{path}#{query.empty? ? '' : '?'}#{query}"
     end
     
     def path(dir, path)

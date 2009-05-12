@@ -2,8 +2,9 @@
 <div>Tap <%= Tap::VERSION %></div>
 <div>
 Server:
-<pre><%= YAML.dump(server.config.to_hash) %></pre>
+<pre class="yaml"><%= YAML.dump(server.config.to_hash) %></pre>
 </div>
+<% if Object.const_defined?(:Gem) %>
 <div>
 Active Gems:
 <ul>
@@ -12,6 +13,7 @@ Active Gems:
   <% end %>
 </ul>
 </div>
+<% end %>
 <form action="<%= uri :shutdown, :secret => secret %>" method="post">
   <input type="submit" value="shutdown" />
 </form>

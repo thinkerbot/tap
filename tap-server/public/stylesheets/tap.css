@@ -11,3 +11,9 @@ li.task, li.join, li.queue {
   border-top: thin solid black;
   padding: 0.5em;
 }
+
+pre.yaml {
+  padding: 1em;
+  background-color: 99FFCC;
+  overflow: hidden;
+}
