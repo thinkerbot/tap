@@ -11,18 +11,19 @@
 <form id="add_<%= id %>" class="add" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="put" />
   <input type="hidden" name="_action" value="add" />
-  <ul>
+  
+  <table>
 <% traverse.each do |(key, inputs, outputs)| %>
-  <li>
-    <input name="outputs[]" value="<%= key %>" type="checkbox" />
-    <a href="#task_<%= key %>"><%= key %></a>
-    <input name="inputs[]" value="<%= key %>" type="checkbox" />
-    [<% inputs.each  do |index| %><a href="#join_<%= index %>"><%= index %></a> <% end %>]
-    [<% outputs.each do |index| %><a href="#join_<%= index %>"><%= index %></a> <% end %>]
-  </li>
+  <tr>
+    <td><input name="outputs[]" value="<%= key %>" type="checkbox" /></td>
+    <td><a href="#task_<%= key %>"><%= key %></a></td>
+    <td><input name="inputs[]" value="<%= key %>" type="checkbox" /></td>
+    <td>[<% inputs.each  do |index| %><a href="#join_<%= index %>"><%= index %></a> <% end %>]</td>
+    <td>[<% outputs.each do |index| %><a href="#join_<%= index %>"><%= index %></a> <% end %>]</td>
+  </tr>
 <% end %>
-  </ul>
-
+  </table>
+  
   <ul>
 <% server.env.minimap.each do |(env_name, env)| %>
 <%   env.constant_manifest(:task).minimap.each do |(name, const)| %>
@@ -31,7 +32,7 @@
 <%   end %>
 <% end %>
   </ul>
-
+  
   <ul>
 <% traverse.each do |(key, inputs, outputs)| %>
   <li><input name="queue[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
@@ -45,6 +46,7 @@
 <form id="remove_<%= id %>" class="remove" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="put" />
   <input type="hidden" name="_action" value="remove" />
+  
   <ul>
 <% traverse.each do |(key, inputs, outputs)| %>
   <li>
