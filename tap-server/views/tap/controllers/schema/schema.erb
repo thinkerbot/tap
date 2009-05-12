@@ -1,32 +1,11 @@
-<span>Schema:</span>
+<%=  render('_controls.erb', :locals => {:id => id}) %>
+<ul>
+<li><a href="<%= uri %>">index</a></li>
+<li><a href="<%= uri("#{id}.txt") %>">preview</a></li>
+<li><a href="<%= uri("#{id}.yml") %>">export</a></li>
+</ul>
 
-<form id="run_<%= id %>" class="run" method="post" action="<%= server.uri(:app, 'build') %>">
-  <input type="hidden" name="run" value="on" />
-  <textarea name="schema"><%= load_schema(id).dump %></textarea>
-  <input type="submit" value="Run" />
-</form>
-
-<form id="rename_<%= id %>" class="rename" method="post" action="<%= uri(id) %>">
-  <input type="input" name="name" value="<%= id %>" />
-  <input type="hidden" name="_method" value="put" />
-  <input type="hidden" name="_action" value="rename" />
-
-  <input type="submit" value="Rename" />
-</form>
-
-<form id="duplicate_<%= id %>" class="duplicate" method="post" action="<%= uri(id) %>">
-  <input type="hidden" name="name" value="<%= id %>_copy" />
-  <input type="hidden" name="_method" value="put" />
-  <input type="hidden" name="_action" value="duplicate" />
-  <input type="submit" value="Duplicate" />
-</form>
-
-<form id="delete_<%= id %>" class="delete" method="post" action="<%= uri(id) %>">
-  <input type="hidden" name="name" value="<%= id %>" />
-  <input class="action" type="hidden" name="_method" value="delete" />
-  <input type="submit" value="Delete" />
-</form>
-
+<h2>Design:</h2>
 <!-- add form --> 
 <% traverse = schema.traverse %>
 <form id="add_<%= id %>" class="add" method="post" action="<%= uri(id) %>">
@@ -96,6 +75,7 @@
   <input type="submit" value="Remove" />
 </form>
 
+<h2>Configure:</h2>
 <!-- configure form --> 
 <form id="configure_<%= id %>" class="configure" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="put" />

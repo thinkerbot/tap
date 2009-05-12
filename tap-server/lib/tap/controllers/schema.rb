@@ -15,12 +15,18 @@ module Tap
       end
       
       # GET /projects/id
-      def show(id=persistence.next_id(:schema))
+      def show(id='new')
+        # start a new schema
+        id = persistence.next_id(:schema).to_s if id == 'new'
+      
+        # get an extension for exports
         extname = File.extname(id)
         id = id.chomp(extname)
         
-        schema = load_schema(id).resolve! do |type, key, data|
-          env.constant_manifest(type)[key]
+        schema = if path = persistence.find(:schema, id)
+          Tap::Schema.load_file(path)
+        else
+          Tap::Schema.new
         end
         
         case extname
@@ -32,6 +38,10 @@ module Tap
           response['Content-Disposition'] = "attachment; filename=#{id}.yml;"
           schema.dump
         else
+          schema.resolve! do |type, key, data|
+            env.constant_manifest(type)[key]
+          end
+          
           render 'schema.erb', :locals => {
             :id => id,
             :schema => schema
@@ -84,12 +94,10 @@ module Tap
       # Duplicates id to request['name'] in the schema persistence.
       def duplicate(id)
         new_id = request['name'].to_s.strip
-        if new_id.empty?
-          raise "no name specified"
-        end
-        
-        if new_id == id
-          raise "same name specified"
+        case new_id
+        when ""    then raise "no name specified"
+        when "new" then raise "new is a reserved name"
+        when id    then raise "same name specified"
         end
         
         persistence.create(:schema, new_id) do |io| 
@@ -192,14 +200,6 @@ module Tap
       
       def env
         server.env
-      end
-      
-      def load_schema(id)
-        if path = persistence.find(:schema, id)
-          Tap::Schema.load_file(path)
-        else
-          Tap::Schema.new
-        end
       end
       
       def update_schema(id)

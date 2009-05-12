@@ -2,10 +2,13 @@
 <ul>
 <% schema.each do |id| %>
 <li>
-  <%= id %>
-  <a href="<%= uri("#{id}")%>">design</a>
-  <%=  render('_crud.erb', :locals => {:id => id}) %>
+  <%=  render('_controls.erb', :locals => {:id => id}) %>
+  <ul>
+  <li><a href="<%= uri("#{id}") %>">design</a></li>
+  <li><a href="<%= uri("#{id}.txt") %>">preview</a></li>
+  <li><a href="<%= uri("#{id}.yml") %>">export</a></li>
+  </ul>
 </li>
 <% end %>
-<li><a href="<%= uri("#{schema.length}")%>">new</a></li>
+<li><a href="<%= uri('new') %>">new</a></li>
 </ul>

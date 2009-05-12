@@ -58,6 +58,8 @@ module Tap
       # Returns the path for the specified entry, if it exists.  Returns nil
       # if no such entry can be found.
       def find(als, id)
+        return nil unless id
+        
         path = entry_path(als, id)
         File.file?(path) ? path : nil
       end
