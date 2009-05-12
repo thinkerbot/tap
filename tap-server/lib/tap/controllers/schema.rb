@@ -160,8 +160,15 @@ module Tap
       end
       
       def configure(id)
-        schema = Tap::Schema.new(request['schema'])
-
+        hash = scrub(request['schema']) do |value, mark|
+          case value
+          when "" then mark
+          when /\A\"(.*)\"\z/ then $1
+          else value
+          end
+        end
+        
+        schema = Tap::Schema.new(hash)
         persistence.update(:schema, id) do |io| 
           io << schema.dump
         end
@@ -170,6 +177,20 @@ module Tap
       end
       
       protected # Helper Methods
+      
+      def scrub(hash, mark=Object.new, &block)
+        result = {}
+        hash.each_pair do |key, value|
+          value = case value
+          when Hash   then scrub(value, mark, &block)
+          when String then yield(value, mark)
+          else value
+          end
+          
+          result[key] = value unless value == mark
+        end
+        result
+      end
       
       def env
         server.env

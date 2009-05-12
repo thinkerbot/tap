@@ -118,12 +118,12 @@
 <%   name = "schema[joins][]" %>
     <li id="join_<%= index %>" class="join">
 <%   inputs.each do |input| %>
-      <input type="hidden" name="<%= name %>[inputs][]" value="<%= input %>">
+      <input type="hidden" name="<%= name %>[0][]" value="<%= input %>">
 <%   end %>
 <%   outputs.each do |output| %>
-      <input type="hidden" name="<%= name %>[outputs][]" value="<%= output %>">
+      <input type="hidden" name="<%= name %>[1][]" value="<%= output %>">
 <%   end %>
-      <input type="hidden" name="<%= name %>[join][id]" value="<%= join[:id] || 'join' %>">
+      <input type="hidden" name="<%= name %>[2][id]" value="<%= join[:id] || 'join' %>">
 
 <%=  render(
        :file => class_path('config.erb', join[:class]), 
@@ -137,10 +137,10 @@
 <%   name = "schema[queue][]" %>
 <%   task = schema.tasks[key] %>
     <li id="queue_<%= index %>" class="queue">
-    <input type="hidden" name="<%= name %>[id]" value="<%= key %>">
+    <input type="hidden" name="<%= name %>[0]" value="<%= key %>">
 <%=  render(
        :file => class_path('input.erb', task[:class]), 
-       :locals => {:id => id, :name => "#{name}[args]", :task => task, :key => key, :args => args || []}) %>
+       :locals => {:id => id, :name => "#{name}[1]", :task => task, :key => key, :args => args || []}) %>
     </li>
 <% end %>
   </ul>
