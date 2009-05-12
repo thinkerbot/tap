@@ -51,69 +51,38 @@ module Tap
     attr_reader :middleware
     
     def initialize(schema={})
-      schema = symbolize(schema)
+      @tasks = hashify(schema['tasks'] || {})
       
-      @tasks = hashify(schema[:tasks] || {})
-      @joins = dehashify(schema[:joins] || []).collect do |join|
-        if join.kind_of?(Hash)
-          join = symbolize(join)
-          [join[:inputs], join[:outputs], join[:join]]
-        else
-          join
-        end
+      @joins = dehashify(schema['joins'] || []).collect do |join|
+        inputs, outputs, join = dehashify(join)
+        [inputs, outputs, join]
       end
-      @queue = dehashify(schema[:queue] || []).collect do |queue|
-        if queue.kind_of?(Hash)
-          queue = symbolize(queue)
-          [queue[:id], queue[:args]]
-        else
-          queue
-        end
+      
+      @queue = dehashify(schema['queue'] || []).collect do |queue|
+        dehashify(queue)
       end
-      @middleware = dehashify(schema[:middleware] || [])
+      
+      @middleware = dehashify(schema['middleware'] || [])
     end
     
-    # Clears all components of self.
-    def clear
-      to_a.each {|component| component.clear }
-    end
-    
-    # True if all components of self are empty.
-    def empty?
-      to_a.all? {|component| component.empty? }
-    end
-    
-    # True if all the instantiable components of self can be instantiated.
-    def resolved?
-      tasks.all? do |(key, task)|
-        instantiable?(task)
-      end &&
-      joins.all? do |inputs, outputs, join|
-        instantiable?(join)
-      end &&
-      middleware.all? do |m|
-        instantiable?(m)
-      end
-    end
-    
-    def resolve!(references={})
+    def resolve!
       tasks.dup.each_pair do |key, task|
         task ||= {}
-        tasks[key] = resolve(task, references) do |id, data|
+        tasks[key] = resolve(task) do |id, data|
           yield(:task, id || key, data)
         end
       end
       
       joins.collect! do |inputs, outputs, join|
         join ||= {}
-        join = resolve(join, references) do |id, data|
+        join = resolve(join) do |id, data|
           yield(:join, id || 'join', data)
         end
         [inputs, outputs, join]
       end
       
       middleware.collect! do |m|
-        resolve(m, references) do |id, data|
+        resolve(m) do |id, data|
           yield(:middleware, id, data)
         end
       end
@@ -121,27 +90,16 @@ module Tap
       self
     end
     
-    def valid?
-      errors.empty?
-    end
-    
     def validate!
-      errs = errors
-      unless errs.empty?
-        raise BuildError.new(errs)
-      end
-    end
-    
-    def errors
       errors = []
       tasks.each do |key, task|
-        unless instantiable?(task)
+        unless resolved?(task)
           errors << "unknown task: #{task}"
         end
       end
       
       joins.each do |inputs, outputs, join|
-        unless instantiable?(join)
+        unless resolved?(join)
           errors << "unknown join: #{join}"
         end
         
@@ -158,13 +116,29 @@ module Tap
         end
       end
       
+      # queue.each do |(key, args)| 
+      #   unless tasks.has_key?(key)
+      #     errors << "missing task: #{key}"
+      #   end
+      # end
+      
       middleware.each do |m|
-        unless instantiable?(m)
+        unless resolved?(m)
           errors << "unknown middleware: #{m}"
         end
       end
       
-      errors
+      unless errors.empty?
+        prefix = if errors.length > 1
+          "#{errors.length} build errors\n"
+        else
+           ""
+        end
+
+        raise "#{prefix}#{errors.join("\n")}\n"
+      end
+      
+      self
     end
     
     def build(app)
@@ -191,12 +165,12 @@ module Tap
       end
       
       # enque tasks
-      self.queue.each do |(task, inputs)|
+      queue.each do |(key, inputs)|
         unless inputs
-          inputs = arguments[task]
+          inputs = arguments[key]
         end
         
-        app.enq(tasks[task], *inputs) if inputs
+        app.enq(tasks[key], *inputs) if inputs
       end
       
       tasks
@@ -226,36 +200,18 @@ module Tap
       end
     end
     
-    # Creates an array of [tasks, joins, queue, middleware]
-    def to_a
-      [tasks, joins, queue, middleware]
-    end
-    
     # Creates an hash dump of self.
     def to_hash
-      { :tasks => tasks, 
-        :joins => joins, 
-        :queue => queue, 
-        :middleware => middleware
+      { 'tasks' => tasks, 
+        'joins' => joins, 
+        'queue' => queue, 
+        'middleware' => middleware
       }
     end
     
     # Converts self to a hash and serializes it to YAML.
-    def dump
-      YAML.dump(to_hash)
-    end
-    
-    class BuildError < StandardError
-      attr_reader :errors
-      def initialize(errors)
-        prefix = if errors.length > 1
-          "#{errors.length} build errors\n"
-        else
-           ""
-        end
-
-        super "#{prefix}#{errors.join("\n")}\n"
-      end
+    def dump(io=nil)
+      YAML.dump(to_hash, io)
     end
   end
 end

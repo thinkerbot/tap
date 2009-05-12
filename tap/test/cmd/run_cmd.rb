@@ -198,28 +198,43 @@ goodnight moon
   end
   
   CANONICAL_SCHEMA = %q{
-joins:
-- - [0]
-  - [1]
-  - id: join
 tasks:
-  0:
-    id: load
-  1:
-    id: dump
-queue:
-- - 0
-  - [goodnight moon]
----
+  0: {id: load}
+  1: [dump]
 joins:
-- - [0]
-  - [1]
+  0: [[0], [1], {id: join}]
+queue:
+  0: [0, [goodnight moon]]
+---
+tasks:
+- {id: load}
+- [dump]
+joins:
+- [[0], [1], {id: join}]
+queue:
+- [0, [goodnight moon]]
+---
 tasks:
 - id: load
-- id: dump
+  args: [goodnight moon]
+- [dump]
+joins:
+- [[0], [1], {id: join}]
 queue:
-- - 0
-  - [goodnight moon]
+- 0
+---
+tasks:
+- id: load
+- [dump]
+joins:
+  0:
+    0: [0]
+    1: [1]
+    2: [join]
+queue:
+  0: 
+    0: 0
+    1: [goodnight moon]
 ---
 tasks:
 - [load, goodnight moon]
@@ -228,40 +243,6 @@ joins:
 - [[0], [1]]
 queue:
 - 0
----
-tasks:
-- id: load
-  args:
-    - goodnight moon
-- id: dump
-joins:
-- [[0], [1], {id: join}]
-queue:
-- 0
----
-tasks:
-- [load]
-- [dump]
-joins:
-- [[0], [1], [join]]
-queue:
-- - 0
-  - [goodnight moon]
----
-tasks:
-  0:
-    id: load
-    args:
-      - ignored
-  1:
-    id: dump
-joins:
-- - [0]
-  - [1]
-  - [join]
-queue:
-- - 0
-  - [goodnight moon]
 }
 
   def test_run_with_canonical_schema

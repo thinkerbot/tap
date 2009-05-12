@@ -5,58 +5,6 @@ class SchemaUtilsTest < Test::Unit::TestCase
   include Tap::Schema::Utils
   
   #
-  # symbolize test
-  #
-  
-  def test_symbolize_symbolizes_keys_of_hash
-    hash = {'str' => 1, :sym => 2}
-    assert_equal({:str => 1, :sym => 2}, symbolize(hash))
-  end
-  
-  def test_symbolize_dereferences_references
-    hash = {'@key' => :ref }
-    derefs = {:ref => 'value'}
-    
-    assert_equal({:key => 'value'}, symbolize(hash, derefs))
-  end
-  
-  def test_symbolize_returns_non_hash_values
-    assert_equal([1,2,3], symbolize([1,2,3]))
-  end
-  
-  def test_symbolize_raises_error_for_conflict
-    hash = {'str' => 1, :str => 2}
-    err = assert_raises(RuntimeError) { symbolize(hash)}
-    assert_equal "symbolize conflict: #{hash.inspect} (:str)", err.message
-  end
-  
-  #
-  # stringify test
-  #
-  
-  def test_stringify_stringifies_keys_of_hash
-    hash = {'str' => 1, :sym => 2}
-    assert_equal({'str' => 1, 'sym' => 2}, stringify(hash))
-  end
-  
-  def test_stringify_references_reference_values
-    hash = {:key => 'value'}
-    refs = {'value' => :ref}
-    
-    assert_equal({'@key' => :ref }, stringify(hash, refs))
-  end
-  
-  def test_stringify_returns_non_hash_values
-    assert_equal([1,2,3], stringify([1,2,3]))
-  end
-  
-  def test_stringify_raises_error_for_conflict
-    hash = {'str' => 1, :str => 2}
-    err = assert_raises(RuntimeError) { stringify(hash)}
-    assert_equal "stringify conflict: #{hash.inspect} (\"str\")", err.message
-  end
-  
-  #
   # dehashify test
   #
   
