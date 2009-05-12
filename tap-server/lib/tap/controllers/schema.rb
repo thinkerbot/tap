@@ -160,6 +160,8 @@ module Tap
           
           queue.each {|index| schema.queue[index.to_i] = nil }
           schema.queue.compact!
+          
+          schema.cleanup!
         end
     
         redirect uri(id)

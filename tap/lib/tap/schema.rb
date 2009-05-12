@@ -141,6 +141,27 @@ module Tap
       self
     end
     
+    def cleanup!
+      joins.delete_if do |inputs, outputs, join|
+        
+        # remove missing inputs
+        inputs.delete_if  {|key| !tasks.has_key?(key) }
+        
+        # remove missing outputs
+        outputs.delete_if {|key| !tasks.has_key?(key) }
+        
+        # remove orphan joins
+        inputs.empty? || outputs.empty?
+      end
+      
+      # remove inputs without a task
+      queue.delete_if do |(key, inputs)|
+        !tasks.has_key?(key)
+      end
+      
+      self
+    end
+    
     def build(app)
       # instantiate tasks
       tasks = {}
