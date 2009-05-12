@@ -1,21 +1,12 @@
-require 'tap/controller'
+require 'tap/controllers/persistence'
 
 module Tap
   module Controllers
-    class Schema < Tap::Controller
-      include RestRoutes
-
+    class Schema < Persistence
       set :default_layout, 'layout.erb'
       
-      # GET /projects
-      def index
-        render 'index.erb', :locals => {
-          :schema => persistence.index(:schema)
-        }, :layout => true
-      end
-      
       # GET /projects/id
-      def show(id='new')
+      def show(id)
         # start a new schema
         id = persistence.next_id(:schema).to_s if id == 'new'
       
@@ -48,64 +39,11 @@ module Tap
           }, :layout => true
         end
       end
-      
-      # POST /projects/*args
-      def create(id)
-        schema = Tap::Schema.new(request['schema'] || {})
-        persistence.create(:schema, id) {|io| io << schema.dump }
-        redirect uri(id)
-      end
-      
-      # PUT /projects/*args
-      # POST /projects/*args?_method=put
-      def update(id)
-        unless action = request['_action']
-          raise ServerError, "no action specified" 
-        end
-        
-        action = action.to_sym
-        unless action?(action)
-          raise ServerError, "unknown action: #{action}"
-        end
-        
-        send(action, *id)
-      end
-      
-      # DELETE /projects/*args
-      # POST /projects/*args?_method=delete
-      def destroy(id)
-        persistence.destroy(:schema, id)
-        redirect uri
-      end
         
       ############################################################
       # Update Methods (these are actions, but due to REST routes
       # they cannot be reached except through update)
       ############################################################
-      
-      # Renames id to request['name'] in the schema persistence.
-      def rename(id)
-        result = duplicate(id)
-        persistence.destroy(:schema, id)
-        
-        result
-      end
-      
-      # Duplicates id to request['name'] in the schema persistence.
-      def duplicate(id)
-        new_id = request['name'].to_s.strip
-        case new_id
-        when ""    then raise "no name specified"
-        when "new" then raise "new is a reserved name"
-        when id    then raise "same name specified"
-        end
-        
-        persistence.create(:schema, new_id) do |io| 
-          io << persistence.read(:schema, id)
-        end
-        
-        redirect uri(new_id)
-      end
       
       # Adds tasks or joins to the schema.  Parameters:
       #
@@ -190,6 +128,19 @@ module Tap
       
       protected # Helper Methods
       
+      def env
+        server.env
+      end
+      
+      def type
+        :schema
+      end
+      
+      def check_id(id)
+        raise "new is a reserved id" if id == "new"
+        super
+      end
+      
       def help_uri(type, obj)
         server.uri("help/#{type}/#{obj[:id] || obj[:class].to_s.underscore}")
       end
@@ -208,10 +159,6 @@ module Tap
         result
       end
       
-      def env
-        server.env
-      end
-      
       def update_schema(id)
         path = persistence.find(:schema, id) || persistence.create(:schema, id)
         schema = Tap::Schema.load_file(path)
@@ -221,10 +168,6 @@ module Tap
         persistence.update(:schema, id) do |io| 
           io << schema.dump
         end
-      end
-      
-      def persistence
-        server.persistence
       end
     end
   end

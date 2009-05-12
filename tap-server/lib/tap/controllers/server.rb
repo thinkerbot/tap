@@ -13,6 +13,7 @@ module Tap
     # background and still have a shutdown handle on them.
     #
     class Server < Tap::Controller
+      include Utils
       
       def index
         render('index.erb', :locals => {
@@ -92,14 +93,7 @@ module Tap
         server = env['tap.server'] ||= Tap::Server.new
     
         if path = server.path(:public, env['PATH_INFO'])
-          content = File.read(path)
-          headers = {
-            "Last-Modified" => File.mtime(path).httpdate,
-            "Content-Type" => Rack::Mime.mime_type(File.extname(path), 'text/plain'), 
-            "Content-Length" => content.size.to_s
-          }
-      
-          [200, headers, [content]]
+          static_file(path)
         else
           super
         end
