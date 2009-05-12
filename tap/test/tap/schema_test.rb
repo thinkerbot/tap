@@ -61,22 +61,16 @@ class SchemaTest < Test::Unit::TestCase
   # resolve! test
   #
   
-  def test_resolve_does_not_symbolize_tasks_keys
+  def test_resolve_symbolizes_hash_tasks_but_not_task_keys
     schema.tasks['key'] = {'class' => Instantiable}
     schema.resolve!
-    assert_equal({'key' => {'class' => Instantiable}}, schema.tasks)
-  end
-  
-  def test_resolve_symbolizes_hash_tasks
-    schema.tasks[:key] = {'class' => Instantiable}
-    schema.resolve!
-    assert_equal({:key => {'class' => Instantiable}}, schema.tasks)
+    assert_equal({'key' => {:class => Instantiable}}, schema.tasks)
   end
   
   def test_resolve_symbolizes_hash_joins
     schema.joins << [[], [], {'class' => Instantiable}]
     schema.resolve!
-    assert_equal({'class' => Instantiable}, schema.joins[0][2])
+    assert_equal({:class => Instantiable}, schema.joins[0][2])
   end
   
   def test_resolve_replaces_missing_class_with_block_return
@@ -92,12 +86,12 @@ class SchemaTest < Test::Unit::TestCase
     
     assert_equal({
       0 => [Instantiable],
-      1 => {'class' => Instantiable, 'id' => 'task hash id'}
+      1 => {:class => Instantiable, :id => 'task hash id'}
     }, schema.tasks)
     
     assert_equal([
       [[], [], [Instantiable]],
-      [[], [], {'class' => Instantiable, 'id' => 'join hash id'}]
+      [[], [], {:class => Instantiable, :id => 'join hash id'}]
     ], schema.joins)
   end
   
@@ -121,7 +115,7 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal({'class' => Instantiable}, schema.tasks['key'])
+    assert_equal({:class => Instantiable}, schema.tasks['key'])
     
     # now for array
     schema.tasks['key'] = []
@@ -139,7 +133,7 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal({'class' => Instantiable}, schema.tasks['key'])
+    assert_equal({:class => Instantiable}, schema.tasks['key'])
   end
   
   def test_resolve_provides_default_join_id_if_unspecified
@@ -149,6 +143,6 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal [[], [], {'class' => Instantiable}], schema.joins[0]
+    assert_equal [[], [], {:class => Instantiable}], schema.joins[0]
   end
 end
