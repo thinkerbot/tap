@@ -79,6 +79,11 @@ module Tap
         end
       end
       
+      def help(type=nil, *key)
+        const = server.env.constant_manifest(type)[key.join('/')]
+        class_render 'help.erb', const, :locals => {:obj => const}
+      end
+      
       # ensure server methods are not added as actions
       set :define_action, false
       
@@ -112,8 +117,8 @@ module Tap
       end
       
       # Returns a help uri for the specified resource, currently only sketched out.
-      def help(type, env, key)
-        server.uri("help/#{type}/#{key}")
+      def help_uri(type, key)
+        uri("help/#{type}/#{key}")
       end
       
       # Stops the server.

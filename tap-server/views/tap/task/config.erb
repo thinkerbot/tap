@@ -1,6 +1,0 @@
-    <span class="class"><%= task[:class] %></span>:     
-<%= render("configurations.erb", :locals => {
-      :configurations => task[:class].configurations, 
-      :values => task[:config] || {}, 
-      :name => "#{name}[config]"
-    }) %>

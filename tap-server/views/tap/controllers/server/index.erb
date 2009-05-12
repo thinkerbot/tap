@@ -17,7 +17,7 @@
     <dd class="value">
       <ol>
 <%     controllers.minimap.each do |(key, const)| %>
-      <li><a href="<%= server.controller_uri(env_key, key) %>"><%= key %></a> (<a href="<%= help(:controller, env_key, key) %>"><%= const.require_path %></a>)</li>
+      <li><a href="<%= server.controller_uri(env_key, key) %>"><%= key %></a> (<a href="<%= help_uri(:controller, key) %>"><%= const.require_path %></a>)</li>
 <%     end %>
       </ol>
     </dd>
@@ -31,7 +31,7 @@
     <dd class="value">
       <ol>
 <%     tasks.minimap.each do |(key, const)| %>
-      <li><a href="<%= server.uri("schema", "nodes[0][0]" => "#{env_key}:#{key}") %>"><%= key %></a> (<a href="<%= help(:task, env_key, key) %>"><%= const.require_path %></a>)</li>
+      <li><a href="<%= server.uri("schema", "nodes[0][0]" => "#{env_key}:#{key}") %>"><%= key %></a> (<a href="<%= help_uri(:task, key) %>"><%= const.require_path %></a>)</li>
 <%     end %>
       </ol>
     </dd>

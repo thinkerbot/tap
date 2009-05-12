@@ -1,0 +1,5 @@
+<%= render("configurations.erb", :locals => {
+      :configurations => obj.configurations, 
+      :values => values || {}, 
+      :name => "#{name}[config]"
+    }) %>

@@ -190,6 +190,10 @@ module Tap
       
       protected # Helper Methods
       
+      def help_uri(type, obj)
+        server.uri("help/#{type}/#{obj[:id] || obj[:class].to_s.underscore}")
+      end
+      
       def scrub(hash, mark=Object.new, &block)
         result = {}
         hash.each_pair do |key, value|

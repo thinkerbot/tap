@@ -1,9 +1,0 @@
-    <span class="class"><%= join[:class] %></span>: 
-    <span class="summary"><%= join[:class].desc.subject %></span>
-    <pre><%= join[:class].desc.wrap %></pre>
-
-<%= render("configurations.erb", :locals => {
-      :configurations => join[:class].configurations, 
-      :values => join[:config] || {}, 
-      :name => "#{name}[config]"
-    }) %>

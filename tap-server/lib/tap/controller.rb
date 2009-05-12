@@ -306,7 +306,16 @@ module Tap
       erb.filename = filename
       erb.result(binding)
     end
-
+    
+    def class_render(path, obj, options={})
+      options[:file] = class_path(path, obj) || class_path(path)
+      
+      locals = options[:locals] ||= {}
+      locals[:obj] ||= obj
+      
+      render options
+    end
+    
     # Redirects to the specified uri.
     def redirect(uri, status=302, headers={}, body="")
       response.status = status
