@@ -24,6 +24,11 @@ module Tap
       def inherited(child) # :nodoc:
         super
         
+        unless child.instance_variable_defined?(:@source_file)
+          caller[0] =~ Lazydoc::CALLER_REGEXP
+          child.instance_variable_set(:@source_file, File.expand_path($1)) 
+        end
+        
         set_variables.each do |variable|
           child.set(variable, get(variable))
         end
@@ -99,8 +104,11 @@ module Tap
       end
     end
     
+    extend Lazydoc::Attributes
     include Rack::Utils
     ServerError = Tap::Server::ServerError
+    
+    lazy_attr :desc, 'controller'
     
     set :actions, []
     set :default_action, :index

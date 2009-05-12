@@ -1,10 +1,6 @@
-<% tasc = task[:class] %>
-    <span class="class"><%= tasc %></span>: 
-    <span class="summary"><%= tasc.desc.subject %></span>
-    <pre><%= tasc.desc.wrap %></pre>
-    
+    <span class="class"><%= task[:class] %></span>:     
 <%= render("configurations.erb", :locals => {
-      :configurations => tasc.configurations, 
+      :configurations => task[:class].configurations, 
       :values => task[:config] || {}, 
       :name => "#{name}[config]"
     }) %>

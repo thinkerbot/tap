@@ -111,6 +111,11 @@ module Tap
         super(action, params)
       end
       
+      # Returns a help uri for the specified resource, currently only sketched out.
+      def help(type, env, key)
+        server.uri("help/#{type}/#{key}")
+      end
+      
       # Stops the server.
       def stop!
         server.stop!

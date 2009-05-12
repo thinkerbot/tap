@@ -17,6 +17,13 @@ module Tap
   #
   class Join
     class << self
+      def inherited(child) # :nodoc:
+        unless child.instance_variable_defined?(:@source_file)
+          caller[0] =~ Lazydoc::CALLER_REGEXP
+          child.instance_variable_set(:@source_file, File.expand_path($1)) 
+        end
+        super
+      end
       
       # Parses the argv into an array like [inputs, outputs, instance] where
       # inputs and outputs implicitly define the inputs and output for the
