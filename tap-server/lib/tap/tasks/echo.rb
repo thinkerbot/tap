@@ -1,7 +1,7 @@
 module Tap
   module Tasks
     
-    # ::manifest
+    # ::task
     class Echo < Tap::Task
       config :key, 'default', :short => 'k' # a simple config with short
       config :flag, false, &c.flag # a flag config

@@ -167,7 +167,7 @@ module Tap
           else value
           end
         end
-        
+
         schema = Tap::Schema.new(hash)
         persistence.update(:schema, id) do |io| 
           io << schema.dump
