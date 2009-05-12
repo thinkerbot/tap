@@ -84,7 +84,7 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
     response = request.get("/config/1234")
     
     assert_equal 'text/xml', response['Content-Type']
-    assert_match(/<uri>#{server.uri('tap/controllers/server')}<\/uri>/, response.body)
+    assert_match(/<uri>#{server.uri}<\/uri>/, response.body)
     assert_match(/<secret>#{server.secret}<\/secret>/, response.body)
   end
   

@@ -17,7 +17,7 @@
     <dd class="value">
       <ol>
 <%     controllers.minimap.each do |(key, const)| %>
-      <li><a href="<%= server.env_uri(env_key, key) %>"><%= key %></a> (<%= const.require_path %>)</li>
+      <li><a href="<%= server.controller_uri(env_key, key) %>"><%= key %></a> (<%= const.require_path %>)</li>
 <%     end %>
       </ol>
     </dd>

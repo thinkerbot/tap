@@ -2,8 +2,6 @@ require 'tap/controller'
 
 module Tap
   module Controllers
-    
-    # ::controller
     class Schema < Tap::Controller
       include RestRoutes
 

@@ -10,9 +10,6 @@ module Tap
     # 
     #     # GET /projects/*args
     #     def show(*args)...
-    # 
-    #     # GET /projects/arg;edit/*args
-    #     def edit(arg, *args)...
     #
     #     # POST /projects/*args
     #     def create(*args)...
@@ -27,7 +24,8 @@ module Tap
     #   end
     #
     # Note the syntax '/projects/new' is treated like a show where the id is
-    # 'new'.  This is different from the Rails behavior.  See these resources:
+    # 'new'.  This is different from the Rails behavior.  Also missing is the
+    # '/projects/arg;edit/' routing.  See these resources:
     #
     # * {RESTful Rails Development}[http://www.b-simple.de/download/restful_rails_en.pdf]
     # * {REST cheatsheet}[topfunky.com/clients/peepcode/REST-cheatsheet.pdf]
@@ -35,14 +33,15 @@ module Tap
     module RestRoutes
       def route
         blank, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-        action = case request.request_method
+        [rest_action(*args), args]
+      end
+      
+      def rest_action(*args)
+        case request.request_method
         when /GET/i  
           case
           when args.empty?
             :index
-          when args[0] =~ /(.*);edit$/
-            args[0] = $1
-            :edit
           else 
             :show
           end
@@ -59,8 +58,6 @@ module Tap
         when /DELETE/i then :destroy
         else raise Server::ServerError.new("unknown request method: #{request.request_method}")
         end
-
-        [action, args]
       end
     end
   end

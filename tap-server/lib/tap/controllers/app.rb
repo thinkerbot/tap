@@ -1,4 +1,5 @@
 require 'tap/controller'
+require 'tap/controllers/schema'
 
 module Tap
   module Controllers
@@ -43,6 +44,12 @@ module Tap
       def terminate
         app.terminate if request.post?
         redirect uri(:info)
+      end
+      
+      def schema(*args)
+        schema = Schema.new(self, :schema)
+        action = schema.rest_action(*args)
+        schema.send(action, *args)
       end
       
       def build

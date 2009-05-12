@@ -122,10 +122,19 @@ module Tap
     # The 'tap.server' specified in env, set during call.
     attr_accessor :server
     
+    # 
+    attr_accessor :name
+    
     # Initializes a new instance of self.
-    def initialize
-      @server = @request = @response = nil
-      super()
+    def initialize(parent=nil, action=nil)
+      if parent
+        @server = parent.server
+        @request = parent.request
+        @response = parent.response
+        @name = "#{parent.name}#{action ? '/' : ''}#{action}"
+      else
+        @server = @request = @response = @name = nil
+      end
     end
     
     # Returns true if action is registered as an action for self.
@@ -135,7 +144,7 @@ module Tap
     
     # Returns a uri to the specified action on self.
     def uri(action=nil, params={})
-      server.uri(self.class.to_s.underscore, action, params)
+      server.uri("#{name}#{action ? '/' : ''}#{action}", params)
     end
     
     def template_path(path)
@@ -174,9 +183,10 @@ module Tap
     #
     def call(env)
       @server = env['tap.server']
+      @name = env['tap.path']
       @request = Rack::Request.new(env)
       @response = Rack::Response.new
-
+      
       # route to an action
       action, args = route
       unless action?(action)
