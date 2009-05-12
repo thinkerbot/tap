@@ -6,11 +6,10 @@ tasks:
   dump:
     id: dump
 joins:
-- id: join
-  inputs: [load]
-  outputs: [dump]
+- - [load]
+  - [dump]
 </textarea><br/>
-<input type="checkbox" name="parse">parse</input>
+<input type="checkbox" name="reset">reset</input>
 <input type="checkbox" name="run">run</input>
 <input type="submit" value="build" />
 </form>

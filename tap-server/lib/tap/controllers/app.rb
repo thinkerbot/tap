@@ -53,17 +53,21 @@ module Tap
       end
       
       def build
+        schema = request[:schema] || server.persistence.read(:schema, request[:id])
+        
         unless request.post?
-          return render('build.erb', :layout => true)
+          return render('build.erb', :schema => schema, :layout => true)
         end
         
-        schema = if request[:parse] == "on"
-          Tap::Schema.parse(request[:schema])
-        else
-          Tap::Schema.load(request[:schema])
+        schema = Tap::Schema.load(schema).resolve! do |type, key, data|
+          server.env.constant_manifest(type)[key]
+        end.validate!
+        
+        if request[:reset] == "on"
+          app.reset
         end
         
-        app.cache[:tasks] = server.env.build(schema, app)
+        tasks.merge!(server.env.build(schema, app))
         
         if request[:run] == "on"
           run
@@ -82,8 +86,6 @@ module Tap
         else
           request[:queue] || {}
         end
-        
-        tasks = app.cache[:tasks] ||= {}
         
         queue.each do |(key, inputs)|
           unless task = tasks[key]
@@ -124,6 +126,10 @@ module Tap
       end
       
       protected
+      
+      def tasks
+        app.cache[:tasks] ||= {}
+      end
       
       def app
         server.app

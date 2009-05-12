@@ -5,6 +5,17 @@
 <%= app.info %>
 </div>
 <ul>
-<li><a href="<%= uri :schema %>">Design</a></li>
+<li><a href="<%= uri :schema %>">Build</a> (<a href="<%= uri :build %>">manual</a>)</li>
 <li><a href="<%= uri :enque %>">Enque</a></li>
 </ul>
+
+<h3>Current Build:</h3>
+<% if tasks.empty? %>
+<span>(no workflow built)</span>
+<% end %>
+<dl>
+<% tasks.each_pair do |key, task| %>
+  <dt><%= key %></dt>
+  <dd><%= task.class %></dd>
+<% end %>
+</dl>

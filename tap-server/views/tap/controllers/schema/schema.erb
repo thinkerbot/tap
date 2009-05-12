@@ -85,51 +85,52 @@
   
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
-<%   name = "schema[tasks][#{key}]" %>
+<%  name = "schema[tasks][#{key}]" %>
     <li id="task_<%= key %>" class="task">
       <h3><a href="#add_<%= id %>"><%= key %></a></h3>
-      <a href="<%= help_uri(:task, task) %>">help</a>
+      
       <input type="hidden" name="<%= name %>[id]" value="<%= task[:id] %>">
-<%=  class_render('config.erb', task[:class], :locals => {
-       :id => id, 
-       :name => name, 
-       :values => task[:config]}) %>
+<%=   class_render('config.erb', task[:class], :locals => {
+        :id => id, 
+        :name => name, 
+        :values => task[:config]}) %>
+      <a href="<%= help_uri(:task, task) %>">help</a>
     </li>
 <% end %>
   </ul>
   
   <ul class="joins">
 <% schema.joins.each_with_index do |(inputs, outputs, join), index| %>
-<%   name = "schema[joins][]" %>
+<%  name = "schema[joins][]" %>
     <li id="join_<%= index %>" class="join">
       <h3><a href="#add_<%= id %>"><%= index %></a></h3>
-      <a href="<%= help_uri(:join, join) %>">help</a>
-<%   inputs.each do |input| %>
+<%    inputs.each do |input| %>
       <input type="hidden" name="<%= name %>[0][]" value="<%= input %>">
-<%   end %>
-<%   outputs.each do |output| %>
+<%    end %>
+<%    outputs.each do |output| %>
       <input type="hidden" name="<%= name %>[1][]" value="<%= output %>">
-<%   end %>
+<%    end %>
       <input type="hidden" name="<%= name %>[2][id]" value="<%= join[:id] || 'join' %>">
-<%=  class_render('config.erb', join[:class], :locals => {
-       :id => id, 
-       :name => "#{name}[2]", 
-       :values => join[:config]}) %>
+<%=   class_render('config.erb', join[:class], :locals => {
+        :id => id, 
+        :name => "#{name}[2]", 
+        :values => join[:config]}) %>
+      <a href="<%= help_uri(:join, join) %>">help</a>
     </li>
 <% end %>
   </ul>
   
   <ul class="queue">
-<% schema.queue.each_with_index do |(key, args), index| %>
-<%   name = "schema[queue][]" %>
-<%   task = schema.tasks[key] %>
+<%schema.queue.each_with_index do |(key, args), index| %>
+<%  name = "schema[queue][]" %>
+<%  task = schema.tasks[key] %>
     <li id="queue_<%= index %>" class="queue">
     <input type="hidden" name="<%= name %>[0]" value="<%= key %>">
-<%=  render(
-       :file => class_path('input.erb', task[:class]), 
-       :locals => {:id => id, :name => "#{name}[1]", :task => task, :key => key, :args => args || []}) %>
+<%= render(
+      :file => class_path('input.erb', task[:class]), 
+      :locals => {:id => id, :name => "#{name}[1]", :task => task, :key => key, :args => args || []}) %>
     </li>
 <% end %>
   </ul>
-  <input type="submit" value="Update" />
+  <input type="submit" value="Save" />
 </form>
