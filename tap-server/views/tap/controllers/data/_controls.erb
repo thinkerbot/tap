@@ -1,0 +1,21 @@
+<form id="rename_<%= id %>" class="rename" method="post" action="<%= uri(id) %>">
+  <input type="hidden" name="type" value="<%= type %>" />
+  <input type="input" name="id" value="<%= id %>" />
+  <input type="hidden" name="_method" value="put" />
+  <input type="hidden" name="_action" value="rename" />
+  <input type="submit" value="Rename" />
+</form>
+
+<form id="duplicate_<%= id %>" class="duplicate" method="post" action="<%= uri(id) %>">
+  <input type="hidden" name="type" value="<%= type %>" />
+  <input type="hidden" name="id" value="<%= id %>_copy" />
+  <input type="hidden" name="_method" value="put" />
+  <input type="hidden" name="_action" value="duplicate" />
+  <input type="submit" value="Duplicate" />
+</form>
+
+<form id="delete_<%= id %>" class="delete" method="post" action="<%= uri(id) %>">
+  <input type="hidden" name="type" value="<%= type %>" />
+  <input class="action" type="hidden" name="_method" value="delete" />
+  <input type="submit" value="Delete" />
+</form>

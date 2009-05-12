@@ -89,6 +89,16 @@ module Tap
         create!(path) {|io| yield(io) }
       end
       
+      def import(als, upload, id=nil)
+        path = entry_path(als, id || upload[:filename])
+        if File.exists?(path)
+          raise "already exists: #{id.inspect} (#{als.inspect})"
+        end
+        
+        FileUtils.mv(upload[:tempfile].path, path)
+        path
+      end
+      
       # Overwrites the data for the specified entry.  A block must be given to
       # provide the new content; an error is raised if the entry does not
       # already exist.

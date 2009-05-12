@@ -6,6 +6,8 @@ module Tap
       include RestRoutes
       include Utils
       
+      set :default_layout, 'layout.erb'
+      
       # GET /projects
       def index
         render 'index.erb', :locals => {

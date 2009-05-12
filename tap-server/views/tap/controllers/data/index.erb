@@ -1,0 +1,25 @@
+<h1><%= type %></h1>
+<%=  render('_upload.erb') %>
+<form id="browser_<%= type %>" class="browser" method="post" action="<%= uri %>">
+  <input type="hidden" name="type" value="<%= type %>" />
+  <input type="hidden" name="_method" value="put" />
+  <input type="hidden" name="_action" value="browse" />
+  
+  <ul>
+<% persistence.index(type).each do |id| %>
+  <li><input type="checkbox" name="ids[]" value="<%= id %>" /> <a href="<%= uri(id) %>"><%= id %></a></li>
+<% end %>
+  </ul>
+  
+  <ul>
+  <li><input type="radio" name="action" value="select" checked="true" />select</li>
+  <li>
+    <input type="radio" name="action" value="rename" />rename
+    <input type="input" name="new_id" value="" />
+  </li>
+  <li><input type="radio" name="action" value="duplicate" />duplicate</li>
+  <li><input type="radio" name="action" value="delete" />delete</li>
+  </ul>
+  
+  <input type="submit" value="Submit" />
+</form>
