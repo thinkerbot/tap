@@ -1,26 +1,57 @@
-require 'tap/controllers/persistence'
+require 'tap/controller'
 
 module Tap
   module Controllers
     # ::controller
-    class Data < Persistence
+    class Data < Tap::Controller
+      include RestRoutes
+      include Utils
+      
       set :default_layout, 'layout.erb'
       
-      # POST /projects/*args
+      # GET /projects
+      def index
+        render 'index.erb', :layout => true
+      end
+      
+      # GET /projects/id
+      # GET /projects?id=id
+      def show(id)
+        id ||= request['id']
+        
+        unless path = data.find(type, id)
+          raise "unknown #{type}: #{id.inspect}"
+        end
+        
+        if request['download'] == "on"
+          static_file(path)
+        else
+          render 'preview.erb', :locals => {
+            :id => id,
+            :content => data.read(type, id)
+          }
+        end
+      end
+      
+      # POST /projects/id
+      # POST /projects?id=id
       def create(id=nil)
         if request.form_data?
           data.import(type, request[type], id)
         else
-          id = data.next_id
+          id ||= request['id'] || data.next_id
           data.create(type, id) {|io| io << request[type] }
         end
         
         redirect uri(id)
       end
       
-      # PUT /projects/*args
-      # POST /projects/*args?_method=put
-      def update(*args)
+      # PUT /projects/id
+      # POST /projects/id?_method=put&_action=select
+      # POST /projects?_method=put&_action=select&id=id
+      def update(id=nil)
+        id ||= request['id']
+        
         unless action = request['_action']
           raise ServerError, "no action specified" 
         end
@@ -30,13 +61,16 @@ module Tap
           raise ServerError, "unknown action: #{action}"
         end
         
-        send(action, *args)
+        send(action, id)
       end
       
-      # DELETE /projects/*args
-      # POST /projects/*args?_method=delete
+      # DELETE /projects/id
+      # POST /projects/id?_method=delete
+      # POST /projects?_method=put&id=id
       def destroy(id)
-        delete(id)
+        id ||= request['id']
+        
+        data.destroy(type, id)
         redirect uri
       end
         
@@ -45,55 +79,44 @@ module Tap
       # they cannot be reached except through update)
       ############################################################
       
-      def browse
-        ids = request['ids']
+      def batch_update(ids)
+        ids = [ids].compact unless ids.kind_of?(Array)
         
-        case request['action']
-        when 'rename'
-          case ids.length
-          when 0 then raise "no entry selected for rename"
-          when 1 then rename(ids[0], request['new_id'])
-          else raise "multiple entries selected for rename"
-          end
+        case request['_batch_action']
         when 'duplicate'
-          ids.each {|id| duplicate(id) }
+          ids.each {|id| data.copy(type, id, "#{id}_copy") }
         when 'delete'
-          ids.each {|id| delete(id) }
+          ids.each {|id| data.destroy(type, id) }
         else
-          raise "unknown browse action: #{request['action']}"
+          raise "unknown batch action: #{request['action']}"
         end
         
         redirect uri
       end
       
       # Renames id to request['name'] in the schema data.
-      def rename(id, new_id)
-        result = duplicate(id, new_id)
-        data.destroy(type, id)
-        
-        result
+      def rename(id)
+        data.mv(:data, id, request['new_id'])
       end
       
       # Duplicates id to request['id'] in the schema data.
-      def duplicate(id, new_id=nil)
-        new_id = "#{id}_copy" unless new_id
-        check_id(new_id)
-        
-        data.create(type, new_id) do |io| 
-          io << data.read(type, id)
-        end
-        
-        redirect uri(new_id)
+      def duplicate(id)
+        data.copy(:data, id, request['new_id'] || "#{id}_copy")
       end
       
-      def delete(id)
-        data.destroy(type, id)
-      end
-      
-      protected
+      protected # Helper Methods
       
       def type
-        :data
+        request[:type] || :data
+      end
+      
+      def data
+        server.data
+      end
+      
+      def route
+        action, args = super
+        [action, File.join(*args)]
       end
     end
   end

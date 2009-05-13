@@ -2,7 +2,7 @@ require 'tap/controllers/data'
 
 module Tap
   module Controllers
-    class Schema < Persistence
+    class Schema < Data
       set :default_layout, 'layout.erb'
       
       # GET /projects/id

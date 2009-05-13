@@ -2,7 +2,8 @@ module Tap
   class Server
     
     # A very simple wrapper for root providing a CRUD interface for reading and
-    # writing files.
+    # writing files.  Data ids may be integers (if you want to pretend Data is
+    # a database), or they can be relative paths.
     class Data < Tap::Root
       
       def initialize(config_or_dir=Dir.pwd)
@@ -24,12 +25,14 @@ module Tap
       end
       
       def entry_path(als, id)
-        path(als, id.to_s)
+        id = id.to_s
+        raise "no id specified" if id.empty?
+        path(als, id)
       end
       
       # Returns a list of entry paths.
       def entries(als)
-        glob(als, "*").select do |path|
+        glob(als).select do |path|
           File.file?(path)
         end
       end
@@ -37,7 +40,7 @@ module Tap
       # Returns a list of existing ids.
       def index(als)
         entries(als).collect do |path|
-          File.basename(path)
+          relative_path(als, path)
         end
       end
       
@@ -70,10 +73,7 @@ module Tap
       #
       # Raises an error if the file already exists.
       def create(als, id)
-        path = entry_path(als, id)
-        if File.exists?(path)
-          raise "already exists: #{id.inspect} (#{als.inspect})"
-        end
+        path = non_existant_path(als, id)
         create!(path) {|io| yield(io) if block_given? }
       end
       
@@ -84,29 +84,11 @@ module Tap
         path ? File.read(path) : nil
       end
       
-      def open(als, id)
-        path = entry_path(als, id)
-        create!(path) {|io| yield(io) }
-      end
-      
-      def import(als, upload, id=nil)
-        path = entry_path(als, id || upload[:filename])
-        if File.exists?(path)
-          raise "already exists: #{id.inspect} (#{als.inspect})"
-        end
-        
-        FileUtils.mv(upload[:tempfile].path, path)
-        path
-      end
-      
       # Overwrites the data for the specified entry.  A block must be given to
       # provide the new content; an error is raised if the entry does not
       # already exist.
       def update(als, id)
-        path = entry_path(als, id)
-        unless File.exists?(path)
-          raise "does not exist: #{id.inspect} (#{als.inspect})"
-        end
+        path = existing_path(als, id)
         create!(path) {|io| yield(io) }
       end
       
@@ -121,6 +103,37 @@ module Tap
         end
       end
       
+      def open(als, id)
+        path = entry_path(als, id)
+        create!(path) {|io| yield(io) }
+      end
+      
+      def import(als, upload, id=nil)
+        path = non_existant_path(als, id || upload[:filename])
+        
+        prepare(path)
+        FileUtils.mv(upload[:tempfile].path, path)
+        path
+      end
+      
+      def move(als, id, new_id)
+        path = existing_path(als, id)
+        new_path = non_existant_path(als, new_id)
+        
+        prepare(new_path)
+        FileUtils.mv(path, new_path)
+        new_path
+      end
+      
+      def copy(als, id, new_id)
+        path = existing_path(als, id)
+        new_path = non_existant_path(als, new_id)
+        
+        prepare(new_path)
+        FileUtils.copy(path, new_path)
+        new_path
+      end
+      
       protected
       
       # helper to optimize the creation of entries when path is already
@@ -129,6 +142,25 @@ module Tap
       def create!(path) # :nodoc:
         Utils.prepare(path) {|io| yield(io) }
       end
+      
+      # like find but raises an error if the path doesn't exist
+      def existing_path(als, id)
+        path = entry_path(als, id)
+        unless File.exists?(path)
+          raise "does not exist: #{id.inspect} (#{als.inspect})"
+        end
+        path
+      end
+      
+      # like find but raises an error if the path exists
+      def non_existant_path(als, id) # :nodoc:
+        path = entry_path(als, id)
+        if File.exists?(path)
+          raise "already exists: #{id.inspect} (#{als.inspect})"
+        end
+        path
+      end
+
     end
   end
 end
