@@ -15,56 +15,42 @@ module Tap
       end
       
       # GET /projects/id
-      # GET /projects?id=id
+      # GET /projects?id=id&as=
       def show(id)
-        if id == "new"
-          return render('_new.erb')
-        end
+        case request['as']
+        when 'preview'
+          response.headers['Content-Type'] = 'text/plain'
+          data.read(type, id)
         
-        unless path = data.find(type, id)
-          raise "unknown #{type}: #{id.inspect}"
-        end
-        
-        if request['download'] == "on"
-          static_file(path)
+        when 'download'
+          unless path = data.find(type, id)
+            raise "unknown #{type}: #{id.inspect}"
+          end
+          
+          download(path)
         else
-          render 'preview.erb', :locals => {
-            :id => id,
-            :content => data.read(type, id)
-          }
+          display(id)
         end
       end
       
       # POST /projects/id
       # POST /projects?id=id
       # POST /projects?type=
-      def create(id=nil)
-        check_id(id)
-        
-        if request.media_type == 'multipart/form-data'
-          data.import(type, request[type], id)
-        else
-          id ||= data.next_id
-          data.create(type, id) {|io| io << request[type] }
+      def create(id)
+        if id == "new"
+          id = data.next_id(type).to_s
         end
         
-        redirect uri
+        data.create(type, id) {|io| io << request[type] }
+        redirect uri(id)
       end
       
       # PUT /projects/id
-      # POST /projects/id?_method=put&_action=select
+      # POST /projects/id?_method=put
       # POST /projects?_method=put&_action=select&id=id
       def update(id)
-        unless action = request['_action']
-          raise ServerError, "no action specified" 
-        end
-        
-        action = action.to_sym
-        unless action?(action)
-          raise ServerError, "unknown action: #{action}"
-        end
-        
-        send(action, id)
+        data.update(type, id) {|io| io << request[type] }
+        redirect uri(id)
       end
       
       # DELETE /projects/id
@@ -74,27 +60,15 @@ module Tap
         data.destroy(type, id)
         redirect uri
       end
-        
-      ############################################################
-      # Update Methods (these are actions, but due to REST routes
-      # they cannot be reached except through update)
-      ############################################################
       
-      # POST /projects?_method=put&_action=batch&id[]=id
-      def batch(ids)
-        unless ids.kind_of?(Array)
-          ids = [ids].compact
-        end
-        
-        case request['_batch']
-        when 'duplicate'
-          ids.each {|id| data.copy(type, id, "#{id}_copy") }
-        when 'delete'
-          ids.each {|id| data.destroy(type, id) }
-        else
-          raise "unknown batch action: #{request['action']}"
-        end
-        
+      def upload(id=nil)
+        check_id(id)
+        data.import(type, request[type], id)
+        redirect uri
+      end
+      
+      def select(ids=[])
+        data.cache[type] = ids
         redirect uri
       end
       
@@ -103,13 +77,12 @@ module Tap
         redirect data.move(type, id, request['new_id'])
       end
       
-      # Duplicates id to request['id'] in the schema data.
       def duplicate(id)
         redirect data.copy(type, id, request['new_id'] || "#{id}_copy")
       end
       
       # Helper methods
-      set :define_action, false
+      protected
       
       def type
         :data
@@ -119,6 +92,10 @@ module Tap
         server.data
       end
       
+      #--
+      # args remains an array, ie methods can take one or no inputs (but note
+      # that if id is specified as an array, methods can receive and array of
+      # ids.)
       def dispatch(action, args)
         if args.empty?
           if id = request['id']
@@ -129,6 +106,13 @@ module Tap
         end
         
         super
+      end
+      
+      def display(id)
+        render "#{type}.erb", :locals => {
+          :id => id,
+          :content => data.read(type, id)
+        }, :layout => true
       end
       
       def check_id(id)

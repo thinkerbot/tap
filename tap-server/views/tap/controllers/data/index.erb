@@ -1,9 +1,7 @@
 <h1><%= type %></h1>
 <%=  render('_upload.erb') %>
-<form id="batch_update_<%= type %>" class="batch_update" method="post" action="<%= uri %>">
-  <input type="hidden" name="type" value="<%= type %>" />
-  <input type="hidden" name="_method" value="put" />
-  <input type="hidden" name="_action" value="batch" />
+<form id="select_<%= type %>" class="select" method="post" action="<%= uri %>">
+  <input type="hidden" name="_method" value="select" />
   
   <ul>
 <% data.index(type).each do |id| %>
@@ -12,11 +10,5 @@
   <li><a href="<%= uri('new') %>">new</a></li>
   </ul>
   
-  <ul>
-  <li><input type="radio" name="_batch" value="select" checked="true" />select</li>
-  <li><input type="radio" name="_batch" value="duplicate" />duplicate</li>
-  <li><input type="radio" name="_batch" value="delete" />delete</li>
-  </ul>
-  
-  <input type="submit" value="Submit" />
+  <input type="submit" value="Select" />
 </form>

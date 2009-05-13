@@ -1,5 +1,8 @@
 <form class="upload" enctype="multipart/form-data" method="post" action="<%= uri %>">
-  <input type="hidden" name="type" value="<%= type %>" />
-  <input type="file" name="<%= type %>" />
+  <input type="hidden" name="_method" value="upload" />
+  <ul>
+  <li><input type="file" name="<%= type %>" /></li>
+  <li><input type="input" name="id" value="" /> Id (if other than file name)</li>
+  </ul>
   <input type="submit" value="Upload" />
 </form>

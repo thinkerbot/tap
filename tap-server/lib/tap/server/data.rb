@@ -6,7 +6,11 @@ module Tap
     # a database), or they can be relative paths.
     class Data < Tap::Root
       
+      attr_reader :cache
+      
       def initialize(config_or_dir=Dir.pwd)
+        @cache = Hash.new([])
+        
         if config_or_dir.kind_of?(Tap::Root)
           config_or_dir = config_or_dir.config.to_hash
         end
@@ -97,6 +101,7 @@ module Tap
       def destroy(als, id)
         if path = find(als, id)
           FileUtils.rm(path)
+          cache[als].delete(id)
           true
         else
           false
@@ -109,7 +114,8 @@ module Tap
       end
       
       def import(als, upload, id=nil)
-        path = non_existant_path(als, id || upload[:filename])
+        id = upload[:filename] unless id && !id.empty?
+        path = non_existant_path(als, id)
         
         prepare(path)
         FileUtils.mv(upload[:tempfile].path, path)
@@ -122,6 +128,12 @@ module Tap
         
         prepare(new_path)
         FileUtils.mv(path, new_path)
+        
+        if cache[als].include?(id)
+          cache[als].delete(id)
+          cache[als] << new_id
+        end
+        
         new_id
       end
       

@@ -1,1 +1,1 @@
-<a href="<%= uri(id) %>"><%= id %></a>
+<%= data.cache[type].include?(id) ? "*" : "" %><a href="<%= uri(id) %>"><%= id %></a>

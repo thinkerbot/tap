@@ -1,0 +1,8 @@
+<%=  render('_controls.erb', :locals => {:id => id}) %>
+
+<form class="<%= type %>" method="post" action="<%= uri %>">
+  <input type="hidden" name="_method" value="<%= id == 'new' ? 'create' : 'update' %>" />
+  <input type="hidden" name="id" value="<%= id %>" />
+  <textarea name="<%= type %>"><%= content %></textarea>
+  <input type="submit" value="Save" />
+</form>

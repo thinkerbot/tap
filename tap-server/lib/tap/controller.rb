@@ -148,7 +148,7 @@ module Tap
     
     # Returns true if action is registered as an action for self.
     def action?(action)
-      self.class.actions.include?(action)
+      self.class.actions.include?(action.to_sym)
     end
     
     # Returns a uri to the specified action on self.
@@ -203,8 +203,11 @@ module Tap
       end
 
       result = dispatch(action, args)
-      if result.kind_of?(String) 
+      case result
+      when String
         response.write result
+        response.finish
+      when nil
         response.finish
       else 
         result
@@ -225,7 +228,7 @@ module Tap
       blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
       action = self.class.default_action if action == nil || action.empty?
 
-      [action.to_sym, args]
+      [action, args]
     end
     
     def dispatch(action, args)
