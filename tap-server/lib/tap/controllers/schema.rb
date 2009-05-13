@@ -1,4 +1,4 @@
-require 'tap/controllers/persistence'
+require 'tap/controllers/data'
 
 module Tap
   module Controllers
@@ -8,13 +8,13 @@ module Tap
       # GET /projects/id
       def show(id)
         # start a new schema
-        id = persistence.next_id(:schema).to_s if id == 'new'
+        id = data.next_id(:schema).to_s if id == 'new'
       
         # get an extension for exports
         extname = File.extname(id)
         id = id.chomp(extname)
         
-        schema = if path = persistence.find(:schema, id)
+        schema = if path = data.find(:schema, id)
           Tap::Schema.load_file(path)
         else
           Tap::Schema.new
@@ -119,7 +119,7 @@ module Tap
         end
 
         schema = Tap::Schema.new(hash)
-        persistence.update(:schema, id) do |io| 
+        data.update(:schema, id) do |io| 
           io << schema.dump
         end
         
@@ -160,12 +160,12 @@ module Tap
       end
       
       def update_schema(id)
-        path = persistence.find(:schema, id) || persistence.create(:schema, id)
+        path = data.find(:schema, id) || data.create(:schema, id)
         schema = Tap::Schema.load_file(path)
         
         yield(schema)
         
-        persistence.update(:schema, id) do |io| 
+        data.update(:schema, id) do |io| 
           io << schema.dump
         end
       end

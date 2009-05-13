@@ -53,7 +53,7 @@ module Tap
       end
       
       def build
-        schema = request[:schema] || server.persistence.read(:schema, request[:id])
+        schema = request[:schema] || server.data.read(:schema, request[:id])
         
         unless request.post?
           return render('build.erb', :schema => schema, :layout => true)
@@ -98,11 +98,11 @@ module Tap
       end
       
       def tail(id)
-        unless persistence.has?("#{id}.log")
+        unless data.has?("#{id}.log")
           raise Tap::ServerError.new("invalid id: #{id}", 404)
         end
         
-        path = persistence.path("#{id}.log")
+        path = data.path("#{id}.log")
         pos = request['pos'].to_i
         if pos > File.size(path)
           raise Tap::ServerError.new("tail position out of range (try update)", 500)

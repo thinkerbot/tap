@@ -1,15 +1,15 @@
 require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/server/persistence'
+require 'tap/server/data'
 
-class PersistenceTest < Test::Unit::TestCase
-  Persistence =  Tap::Server::Persistence
+class DataTest < Test::Unit::TestCase
+  Data =  Tap::Server::Data
   
   acts_as_file_test
   attr_reader :p
   
   def setup
     super
-    @p = Persistence.new(
+    @p = Data.new(
       :root => method_root[:tmp], 
       :relative_paths => {
         :dir => 'dir'
@@ -21,7 +21,7 @@ class PersistenceTest < Test::Unit::TestCase
   #
   
   def test_initialization
-    p = Persistence.new(method_root[:tmp])
+    p = Data.new(method_root[:tmp])
     assert_equal method_root[:tmp], p.root
     assert p.kind_of?(Tap::Root)
   end

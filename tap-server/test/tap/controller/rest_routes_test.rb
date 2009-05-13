@@ -57,32 +57,32 @@ class RestRoutesTest < Test::Unit::TestCase
     assert_equal "unknown request method: UNKNOWN", e.message
   end
   
-  class PersistenceController < Tap::Controller
+  class DataController < Tap::Controller
     include RestRoutes
 
     def index
-      server.persistence.index(:tmp).join(", ")
+      server.data.index(:tmp).join(", ")
     end
     
     def show(id)
-      server.persistence.read(:tmp, id) || ""
+      server.data.read(:tmp, id) || ""
     end
     
     def create(id)
-      server.persistence.create(:tmp, id) {|io| io << "create" }
+      server.data.create(:tmp, id) {|io| io << "create" }
     end
     
     def update(id)
-      server.persistence.update(:tmp, id) {|io| io << "update" }
+      server.data.update(:tmp, id) {|io| io << "update" }
     end
     
     def destroy(id)
-      server.persistence.destroy(:tmp, id).to_s
+      server.data.destroy(:tmp, id).to_s
     end
   end
   
-  def test_a_sample_persistence_controller
-    server = Tap::Server.new PersistenceController, :persistence => Tap::Server::Persistence.new(method_root)
+  def test_a_sample_data_controller
+    server = Tap::Server.new DataController, :data => Tap::Server::Data.new(method_root)
     request = Rack::MockRequest.new server
     
     assert_equal "", request.get("/").body

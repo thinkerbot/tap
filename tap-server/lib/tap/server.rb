@@ -1,6 +1,6 @@
 require 'rack'
 require 'tap'
-require 'tap/server/persistence'
+require 'tap/server/data'
 require 'tap/server/server_error'
 
 module Tap
@@ -107,8 +107,8 @@ module Tap
     # 
     nest(:app, Tap::App, :type => :hidden)
     
-    # The persistence directory structure for self.
-    nest(:persistence, Persistence, :type => :hidden)
+    # The data directory structure for self.
+    nest(:data, Data, :type => :hidden)
     
     attr_accessor :controller
     attr_reader :handler

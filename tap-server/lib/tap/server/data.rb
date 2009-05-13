@@ -3,7 +3,7 @@ module Tap
     
     # A very simple wrapper for root providing a CRUD interface for reading and
     # writing files.
-    class Persistence < Tap::Root
+    class Data < Tap::Root
       
       def initialize(config_or_dir=Dir.pwd)
         if config_or_dir.kind_of?(Tap::Root)

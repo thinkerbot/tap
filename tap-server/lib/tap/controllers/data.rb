@@ -9,10 +9,10 @@ module Tap
       # POST /projects/*args
       def create(id=nil)
         if request.form_data?
-          persistence.import(type, request[type], id)
+          data.import(type, request[type], id)
         else
-          id = persistence.next_id
-          persistence.create(type, id) {|io| io << request[type] }
+          id = data.next_id
+          data.create(type, id) {|io| io << request[type] }
         end
         
         redirect uri(id)
@@ -66,28 +66,28 @@ module Tap
         redirect uri
       end
       
-      # Renames id to request['name'] in the schema persistence.
+      # Renames id to request['name'] in the schema data.
       def rename(id, new_id)
         result = duplicate(id, new_id)
-        persistence.destroy(type, id)
+        data.destroy(type, id)
         
         result
       end
       
-      # Duplicates id to request['id'] in the schema persistence.
+      # Duplicates id to request['id'] in the schema data.
       def duplicate(id, new_id=nil)
         new_id = "#{id}_copy" unless new_id
         check_id(new_id)
         
-        persistence.create(type, new_id) do |io| 
-          io << persistence.read(type, id)
+        data.create(type, new_id) do |io| 
+          io << data.read(type, id)
         end
         
         redirect uri(new_id)
       end
       
       def delete(id)
-        persistence.destroy(type, id)
+        data.destroy(type, id)
       end
       
       protected
