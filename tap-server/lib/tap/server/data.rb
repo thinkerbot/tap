@@ -122,7 +122,7 @@ module Tap
         
         prepare(new_path)
         FileUtils.mv(path, new_path)
-        new_path
+        new_id
       end
       
       def copy(als, id, new_id)
@@ -131,7 +131,7 @@ module Tap
         
         prepare(new_path)
         FileUtils.copy(path, new_path)
-        new_path
+        new_id
       end
       
       protected

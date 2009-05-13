@@ -96,12 +96,12 @@ module Tap
       
       # Renames id to request['name'] in the schema data.
       def rename(id)
-        data.mv(:data, id, request['new_id'])
+        redirect data.move(type, id, request['new_id'])
       end
       
       # Duplicates id to request['id'] in the schema data.
       def duplicate(id)
-        data.copy(:data, id, request['new_id'] || "#{id}_copy")
+        redirect data.copy(type, id, request['new_id'] || "#{id}_copy")
       end
       
       protected # Helper Methods
