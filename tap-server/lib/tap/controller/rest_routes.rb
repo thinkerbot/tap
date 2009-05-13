@@ -1,6 +1,6 @@
 module Tap
   class Controller
-    # Adds REST routing (a-la Rails) to a Tap::Controller.
+    # Adds REST routing to a Tap::Controller.
     #
     #   class Projects < Tap::Controller
     #     include RestRoutes
@@ -21,11 +21,18 @@ module Tap
     #     # DELETE /projects/*args
     #     # POST /projects/*args?_method=delete
     #     def destroy(*args)...
+    #
+    #     # extension...
+    #
+    #     # POST /projects/*args?_method=another
+    #     def another(*args)...
     #   end
     #
-    # Note the syntax '/projects/new' is treated like a show where the id is
-    # 'new'.  This is different from the Rails behavior.  Also missing is the
-    # '/projects/arg;edit/' routing.  See these resources:
+    # === Relation to RESTful Rails
+    #
+    # Unlike the REST syntax in Rails, '/projects/new' is treated like a show
+    # where the id is 'new'.  Also missing is the routing for urls like
+    # '/projects/arg;edit/'. See these resources:
     #
     # * {RESTful Rails Development}[http://www.b-simple.de/download/restful_rails_en.pdf]
     # * {REST cheatsheet}[topfunky.com/clients/peepcode/REST-cheatsheet.pdf]
@@ -38,21 +45,26 @@ module Tap
       
       def rest_action(args)
         case request.request_method
-        when /GET/i  
-          case
-          when args.empty?
+        when /GET/i
+          if args.empty?
             :index
-          else 
+          else
             :show
           end
         when /POST/i
-          case request[:_method]
+          case _method = request[:_method]
           when /put/i  
             :update
           when /delete/i  
             :destroy
-          else 
+          when nil
             :create
+          else 
+            if action?(_method)
+              _method
+            else
+              raise Server::ServerError.new("unknown post method: #{_method}")
+            end
           end
         when /PUT/i  then :update
         when /DELETE/i then :destroy

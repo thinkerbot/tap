@@ -34,6 +34,10 @@ class RestRoutesTest < Test::Unit::TestCase
     def destroy(id)
       "destroy #{id}"
     end
+    
+    def another(id)
+      "another #{id}"
+    end
   end
   
   def test_rest_routes
@@ -47,6 +51,15 @@ class RestRoutesTest < Test::Unit::TestCase
     assert_equal "update 1", request.post("/1?_method=put").body
     assert_equal "destroy 1", request.delete("/1").body
     assert_equal "destroy 1", request.post("/1?_method=delete").body
+    assert_equal "another 1", request.post("/1?_method=another").body
+  end
+  
+  def test_rest_routing_raises_error_for_unknown_post_method
+    env = Rack::MockRequest.env_for("/1?_method=unknown", 'REQUEST_METHOD' => 'POST')
+    controller = RestfulController.new
+    
+    e = assert_raises(Tap::Server::ServerError) { controller.call(env) }
+    assert_equal "unknown post method: unknown", e.message
   end
   
   def test_rest_routing_raises_error_for_unknown_request_method
