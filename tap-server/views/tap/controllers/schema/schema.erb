@@ -1,16 +1,11 @@
+<%=  render('_build.erb', :locals => {:id => id}) %>
 <%=  render('_controls.erb', :locals => {:id => id}) %>
-<ul>
-<li><a href="<%= uri %>">index</a></li>
-<li><a href="<%= uri("#{id}.txt") %>">preview</a></li>
-<li><a href="<%= uri("#{id}.yml") %>">export</a></li>
-</ul>
 
 <h2>Design:</h2>
 <!-- add form --> 
 <% traverse = schema.traverse %>
 <form id="add_<%= id %>" class="add" method="post" action="<%= uri(id) %>">
-  <input type="hidden" name="_method" value="put" />
-  <input type="hidden" name="_action" value="add" />
+  <input type="hidden" name="_method" value="add" />
   
   <table>
 <% traverse.each do |(key, inputs, outputs)| %>
@@ -44,8 +39,7 @@
 
 <!-- remove form --> 
 <form id="remove_<%= id %>" class="remove" method="post" action="<%= uri(id) %>">
-  <input type="hidden" name="_method" value="put" />
-  <input type="hidden" name="_action" value="remove" />
+  <input type="hidden" name="_method" value="remove" />
   
   <ul>
 <% traverse.each do |(key, inputs, outputs)| %>
@@ -80,8 +74,7 @@
 <h2>Configure:</h2>
 <!-- configure form --> 
 <form id="configure_<%= id %>" class="configure" method="post" action="<%= uri(id) %>">
-  <input type="hidden" name="_method" value="put" />
-  <input type="hidden" name="_action" value="configure" />
+  <input type="hidden" name="_method" value="configure" />
   
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
@@ -121,7 +114,7 @@
   </ul>
   
   <ul class="queue">
-<%schema.queue.each_with_index do |(key, args), index| %>
+<% schema.queue.each_with_index do |(key, args), index| %>
 <%  name = "schema[queue][]" %>
 <%  task = schema.tasks[key] %>
     <li id="queue_<%= index %>" class="queue">

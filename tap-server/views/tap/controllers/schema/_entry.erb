@@ -1,5 +1,6 @@
-<a href="<%= uri(id) %>"><%= id %></a>
+<%= data.cache[type].include?(id) ? "*" : "" %><%= id %>
 <ul>
-<li><a href="<%= uri("#{id}.txt") %>">preview</a></li>
-<li><a href="<%= uri("#{id}.yml") %>">export</a></li>
+<li><a href="<%= uri(id) %>">edit</a></li>
+<li><a href="<%= uri(id, :as => :preview) %>">preview</a></li>
+<li><a href="<%= uri(id, :as => :download) %>">download</a></li>
 </ul>

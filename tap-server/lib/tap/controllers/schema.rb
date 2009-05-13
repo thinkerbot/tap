@@ -3,47 +3,6 @@ require 'tap/controllers/data'
 module Tap
   module Controllers
     class Schema < Data
-      set :default_layout, 'layout.erb'
-      
-      # GET /projects/id
-      def show(id)
-        # start a new schema
-        id = data.next_id(:schema).to_s if id == 'new'
-      
-        # get an extension for exports
-        extname = File.extname(id)
-        id = id.chomp(extname)
-        
-        schema = if path = data.find(:schema, id)
-          Tap::Schema.load_file(path)
-        else
-          Tap::Schema.new
-        end
-        
-        case extname
-        when '.txt'
-          response.headers['Content-Type'] = 'text/plain'
-          schema.dump
-        when '.yml'
-          response.headers['Content-Type'] = 'text/plain'
-          response['Content-Disposition'] = "attachment; filename=#{id}.yml;"
-          schema.dump
-        else
-          schema.resolve! do |type, key, data|
-            env.constant_manifest(type)[key]
-          end
-          
-          render 'schema.erb', :locals => {
-            :id => id,
-            :schema => schema
-          }, :layout => true
-        end
-      end
-        
-      ############################################################
-      # Update Methods (these are actions, but due to REST routes
-      # they cannot be reached except through update)
-      ############################################################
       
       # Adds tasks or joins to the schema.  Parameters:
       #
@@ -110,7 +69,11 @@ module Tap
       end
       
       def configure(id)
-        hash = scrub(request['schema']) do |value, mark|
+        if id == "new"
+          id = data.next_id(type).to_s
+        end
+        
+        hash = scrub(request['schema'] || {}) do |value, mark|
           case value
           when "" then mark
           when /\A\"(.*)\"\z/ then $1
@@ -119,7 +82,7 @@ module Tap
         end
 
         schema = Tap::Schema.new(hash)
-        data.update(:schema, id) do |io| 
+        data.create_or_update(type, id) do |io| 
           io << schema.dump
         end
         
@@ -127,7 +90,7 @@ module Tap
       end
       
       # Helper methods
-      set :define_action, false
+      protected
       
       def env
         server.env
@@ -135,6 +98,23 @@ module Tap
       
       def type
         :schema
+      end
+      
+      def display(id)
+        schema = if path = data.find(type, id)
+          Tap::Schema.load_file(path)
+        else
+          Tap::Schema.new
+        end
+        
+        schema.resolve! do |type, key, data|
+          env.constant_manifest(type)[key]
+        end
+        
+        render "#{type}.erb", :locals => {
+          :id => id,
+          :schema => schema
+        }, :layout => true
       end
       
       def help_uri(type, obj)
@@ -156,12 +136,16 @@ module Tap
       end
       
       def update_schema(id)
-        path = data.find(:schema, id) || data.create(:schema, id)
+        if id == "new"
+          id = data.next_id(type).to_s
+        end
+        
+        path = data.find(type, id) || data.create(type, id)
         schema = Tap::Schema.load_file(path)
         
         yield(schema)
         
-        data.update(:schema, id) do |io| 
+        data.update(type, id) do |io| 
           io << schema.dump
         end
       end

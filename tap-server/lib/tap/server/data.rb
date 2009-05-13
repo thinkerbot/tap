@@ -108,7 +108,7 @@ module Tap
         end
       end
       
-      def open(als, id)
+      def create_or_update(als, id)
         path = entry_path(als, id)
         create!(path) {|io| yield(io) }
       end
