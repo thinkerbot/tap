@@ -3,7 +3,7 @@
 <form id="batch_update_<%= type %>" class="batch_update" method="post" action="<%= uri %>">
   <input type="hidden" name="type" value="<%= type %>" />
   <input type="hidden" name="_method" value="put" />
-  <input type="hidden" name="_action" value="batch_update" />
+  <input type="hidden" name="_action" value="batch" />
   
   <ul>
 <% data.index(type).each do |id| %>
@@ -13,9 +13,9 @@
   </ul>
   
   <ul>
-  <li><input type="radio" name="_batch_action" value="select" checked="true" />select</li>
-  <li><input type="radio" name="_batch_action" value="duplicate" />duplicate</li>
-  <li><input type="radio" name="_batch_action" value="delete" />delete</li>
+  <li><input type="radio" name="_batch" value="select" checked="true" />select</li>
+  <li><input type="radio" name="_batch" value="duplicate" />duplicate</li>
+  <li><input type="radio" name="_batch" value="delete" />delete</li>
   </ul>
   
   <input type="submit" value="Submit" />

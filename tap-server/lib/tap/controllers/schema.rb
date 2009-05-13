@@ -126,7 +126,8 @@ module Tap
         redirect uri(id)
       end
       
-      protected # Helper Methods
+      # Helper methods
+      set :define_action, false
       
       def env
         server.env
@@ -134,11 +135,6 @@ module Tap
       
       def type
         :schema
-      end
-      
-      def check_id(id)
-        raise "new is a reserved id" if id == "new"
-        super
       end
       
       def help_uri(type, obj)

@@ -17,7 +17,9 @@ module Tap
       # GET /projects/id
       # GET /projects?id=id
       def show(id)
-        id ||= request['id']
+        if id == "new"
+          return render('_new.erb')
+        end
         
         unless path = data.find(type, id)
           raise "unknown #{type}: #{id.inspect}"
@@ -35,23 +37,24 @@ module Tap
       
       # POST /projects/id
       # POST /projects?id=id
+      # POST /projects?type=
       def create(id=nil)
-        if request.form_data?
+        check_id(id)
+        
+        if request.media_type == 'multipart/form-data'
           data.import(type, request[type], id)
         else
-          id ||= request['id'] || data.next_id
+          id ||= data.next_id
           data.create(type, id) {|io| io << request[type] }
         end
         
-        redirect uri(id)
+        redirect uri
       end
       
       # PUT /projects/id
       # POST /projects/id?_method=put&_action=select
       # POST /projects?_method=put&_action=select&id=id
-      def update(id=nil)
-        id ||= request['id']
-        
+      def update(id)
         unless action = request['_action']
           raise ServerError, "no action specified" 
         end
@@ -68,8 +71,6 @@ module Tap
       # POST /projects/id?_method=delete
       # POST /projects?_method=put&id=id
       def destroy(id)
-        id ||= request['id']
-        
         data.destroy(type, id)
         redirect uri
       end
@@ -79,10 +80,13 @@ module Tap
       # they cannot be reached except through update)
       ############################################################
       
-      def batch_update(ids)
-        ids = [ids].compact unless ids.kind_of?(Array)
+      # POST /projects?_method=put&_action=batch&id[]=id
+      def batch(ids)
+        unless ids.kind_of?(Array)
+          ids = [ids].compact
+        end
         
-        case request['_batch_action']
+        case request['_batch']
         when 'duplicate'
           ids.each {|id| data.copy(type, id, "#{id}_copy") }
         when 'delete'
@@ -104,19 +108,33 @@ module Tap
         redirect data.copy(type, id, request['new_id'] || "#{id}_copy")
       end
       
-      protected # Helper Methods
+      # Helper methods
+      set :define_action, false
       
       def type
-        request[:type] || :data
+        :data
       end
       
       def data
         server.data
       end
       
-      def route
-        action, args = super
-        [action, File.join(*args)]
+      def dispatch(action, args)
+        if args.empty?
+          if id = request['id']
+            args << id
+          end 
+        else
+          args = [File.join(*args)] 
+        end
+        
+        super
+      end
+      
+      def check_id(id)
+        if id == "new"
+          raise "reserved id: #{id.inspect}"
+        end
       end
     end
   end

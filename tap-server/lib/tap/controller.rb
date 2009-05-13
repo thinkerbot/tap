@@ -202,7 +202,7 @@ module Tap
         raise ServerError.new("404 Error: page not found", 404)
       end
 
-      result = send(action, *args)
+      result = dispatch(action, args)
       if result.kind_of?(String) 
         response.write result
         response.finish
@@ -226,6 +226,10 @@ module Tap
       action = self.class.default_action if action == nil || action.empty?
 
       [action.to_sym, args]
+    end
+    
+    def dispatch(action, args)
+      send(action, *args)
     end
     
     # Renders the class_file at path with the specified options.  Path can be

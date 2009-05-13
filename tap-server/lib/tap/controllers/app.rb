@@ -48,8 +48,8 @@ module Tap
       
       def schema(*args)
         schema = Schema.new(self, :schema)
-        action = schema.rest_action(*args)
-        schema.send(action, *args)
+        action = schema.rest_action(args)
+        schema.dispatch(action, args)
       end
       
       def build

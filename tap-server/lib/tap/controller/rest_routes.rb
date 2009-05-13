@@ -33,10 +33,10 @@ module Tap
     module RestRoutes
       def route
         blank, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-        [rest_action(*args), args]
+        [rest_action(args), args]
       end
       
-      def rest_action(*args)
+      def rest_action(args)
         case request.request_method
         when /GET/i  
           case
