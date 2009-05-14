@@ -1,1 +1,1 @@
-    <input name="<%= name %>" type="checkbox" value="true" <%= value ? 'checked="true"' : '' %> />
+<input id="<%= id %>" name="<%= name %>" type="checkbox" value="true" <%= value || config.default ? 'checked="true"' : '' %> />

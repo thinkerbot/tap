@@ -83,8 +83,8 @@
       <h3><a href="#add_<%= id %>"><%= key %></a></h3>
       
       <input type="hidden" name="<%= name %>[id]" value="<%= task[:id] %>">
-<%=   class_render('config.erb', task[:class], :locals => {
-        :id => id, 
+<%=   class_render('task.erb', task[:class], :locals => {
+        :id => "#{id}_task_#{key}", 
         :name => name, 
         :values => task[:config]}) %>
       <a href="<%= help_uri(:task, task) %>">help</a>
@@ -104,8 +104,8 @@
       <input type="hidden" name="<%= name %>[1][]" value="<%= output %>">
 <%    end %>
       <input type="hidden" name="<%= name %>[2][id]" value="<%= join[:id] || 'join' %>">
-<%=   class_render('config.erb', join[:class], :locals => {
-        :id => id, 
+<%=   class_render('join.erb', join[:class], :locals => {
+        :id => "#{id}_join_#{index}", 
         :name => "#{name}[2]", 
         :values => join[:config]}) %>
       <a href="<%= help_uri(:join, join) %>">help</a>

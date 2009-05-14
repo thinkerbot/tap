@@ -1,5 +1,6 @@
-    <select name="<%= name %>">
-<% config[:values].each do |v| %>
-      <option value="<%= v %>" <%= value == v ? "selected='true' " : ""%>><%= v %></option>
+<select id="<%= id %>" name="<%= name %>">
+<% value ||= config.default %>
+<% (config[:options] || []).each do |option| %>
+  <option value="<%= option %>" <%= value == option ? "selected='true' " : ""%>><%= option %></option>
 <% end %>
-    </select>
+</select>

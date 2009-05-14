@@ -1,2 +1,2 @@
-    <input name="<%= name %>" type="radio" value="true" <%= value ? 'checked="true" ' : '' %>>on</input>
-    <input name="<%= name %>" type="radio" value="false" <%= value ? '' : 'checked="true" ' %>>off</input>
+<input id="<%= id %>" name="<%= name %>" type="radio" value="true"  <%= value || config.default  ? 'checked="true" ' : '' %>>on</input>
+<input id="<%= id %>" name="<%= name %>" type="radio" value="false" <%= value || config.default ? '' : 'checked="true" ' %>>off</input>

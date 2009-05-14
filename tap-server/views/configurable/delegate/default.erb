@@ -1,8 +1,1 @@
-<% case value %>
-<% when Hash, Array %>
-    <textarea name="<%= name %>"><%= value.to_yaml[4..-1] %></textarea>
-<% when Regexp %>
-    <input name="<%= name %>" type="text" value="<%= value.inspect %>" />
-<% else %>
-    <input name="<%= name %>" type="text" value="<%= value %>" />
-<% end %>
+<input id="<%= id %>" name="<%= name %>" type="text" value="<%= escape_html(value || "( #{config.default(false).inspect} )") %>" />
