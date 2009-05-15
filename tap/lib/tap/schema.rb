@@ -162,6 +162,16 @@ module Tap
       self
     end
     
+    def scrub!
+      tasks.each do |key, task|
+        yield(task)
+      end
+      
+      joins.each do |inputs, outputs, join|
+        yield(join)
+      end
+    end
+    
     def build(app)
       # instantiate tasks
       tasks = {}

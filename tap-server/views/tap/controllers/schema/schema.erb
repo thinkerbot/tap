@@ -79,14 +79,15 @@
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
 <%  name = "schema[tasks][#{key}]" %>
+<%  task_class = task[:class] %>
     <li id="task_<%= key %>" class="task">
       <h3><a href="#add_<%= id %>"><%= key %></a></h3>
       
       <input type="hidden" name="<%= name %>[id]" value="<%= task[:id] %>">
-<%=   class_render('task.erb', task[:class], :locals => {
+<%=   class_render('task.erb', task_class, :locals => {
         :id => "#{id}_task_#{key}", 
         :name => name, 
-        :values => task[:config]}) %>
+        :values => task[:config] || default_config(task_class) }) %>
       <a href="<%= help_uri(:task, task) %>">help</a>
     </li>
 <% end %>
@@ -95,6 +96,7 @@
   <ul class="joins">
 <% schema.joins.each_with_index do |(inputs, outputs, join), index| %>
 <%  name = "schema[joins][]" %>
+<%  join_class = join[:class] %>
     <li id="join_<%= index %>" class="join">
       <h3><a href="#add_<%= id %>"><%= index %></a></h3>
 <%    inputs.each do |input| %>
@@ -104,10 +106,10 @@
       <input type="hidden" name="<%= name %>[1][]" value="<%= output %>">
 <%    end %>
       <input type="hidden" name="<%= name %>[2][id]" value="<%= join[:id] || 'join' %>">
-<%=   class_render('join.erb', join[:class], :locals => {
+<%=   class_render('join.erb', join_class, :locals => {
         :id => "#{id}_join_#{index}", 
         :name => "#{name}[2]", 
-        :values => join[:config]}) %>
+        :values => join[:config] || default_config(join_class) }) %>
       <a href="<%= help_uri(:join, join) %>">help</a>
     </li>
 <% end %>

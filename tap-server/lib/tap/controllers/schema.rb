@@ -74,6 +74,10 @@ module Tap
         end
         
         schema = Tap::Schema.new(request['schema'] || {})
+        schema.scrub! do |obj|
+          scrub(obj['config'])
+        end
+        
         data.create_or_update(type, id) do |io| 
           io << schema.dump
         end
@@ -113,15 +117,39 @@ module Tap
         server.uri("help/#{type}/#{obj[:id] || obj[:class].to_s.underscore}")
       end
       
-      def stringify(value)
-        case value
+      def stringify(obj)
+        case obj
         when String, Numeric, true, false
-          value.to_s
+          obj.to_s
         when Symbol, Regexp
-          value.inspect
-        when nil     then '~'
-        else raise "unsupported config value: #{value}"
+          obj.inspect
+        when nil
+          '~'
+        else
+          obj
         end
+      end
+      
+      def default_config(configurable)
+        configs = configurable.configurations
+        Configurable::DelegateHash.new(configs).to_hash do |hash, key, value|
+          hash[key.to_s] = stringify(value)
+        end
+      end
+      
+      def scrub(obj)
+        case obj
+        when Hash
+          obj.delete_if do |key, value|
+            value ? scrub(value) : true
+          end
+        when Array
+          obj.delete_if do |value| 
+            value ? scrub(value) : true
+          end
+        end
+        
+        false
       end
       
       def update_schema(id)

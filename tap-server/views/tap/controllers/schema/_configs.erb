@@ -1,21 +1,19 @@
-<% values ||= {} %>
-<ul class="configs">
+<dl class="configs">
 <% configurations.each_pair do |key, config| %>
 <%  next if config[:type] == :hidden %>
 <%  if config.is_nest? %>
-  <li class="nested-configs">
-    <span class="name"><%= key %></span>:
-    <ul class="nested_config">
+  <dt class="name"><%= key %></dt>
+  <dd class="nested-configs">
 <%=   render("_configs.erb", :locals => {
         :id => id,
         :name => "#{name}[#{key}]",
         :configurations => config.default(false).delegates, 
         :values => values[key.to_s]
       }) %>
-    </ul>
-  </li>
+  </dd>
 <%  else %>
-  <li class="config">
+  <dt><%= key %></dt>
+  <dd class="config">
 <%=   render(
         :file => class_path("_#{config[:type]}.erb") || class_path("_config.erb"), 
         :locals => {
@@ -23,8 +21,7 @@
           :name => "#{name}[#{key}]",
           :config => config,
           :value => values[key.to_s]}) %>
-    <label for="<%= "#{id}_config_#{key}" %>"><%= key %></label>
-  </li>
+  </dd>
 <%  end %>
 <% end %>
-</ul>
+</dl>

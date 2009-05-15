@@ -1,3 +1,2 @@
-<% value ||= stringify(config.default) %>
-<input id="<%= id %>" name="<%= name %>" type="radio" value="true"  <%= value == "true"  ? 'checked="true" ' : '' %>>on</input>
-<input id="<%= id %>" name="<%= name %>" type="radio" value="false" <%= value == "false" ? 'checked="true" ' : '' %>>off</input>
+<input name="<%= name %>" type="radio" value="true"  <%= value == "true"  ? 'checked="true" ' : '' %>>on</input>
+<input name="<%= name %>" type="radio" value="false" <%= value == "false" ? 'checked="true" ' : '' %>>off</input>
