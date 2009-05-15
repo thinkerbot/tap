@@ -1,1 +1,1 @@
-<input id="<%= id %>" name="<%= name %>" type="text" value="<%= escape_html(value || "( #{config.default(false).inspect} )") %>" />
+<input id="<%= id %>" name="<%= name %>" type="text" value="<%= escape_html(value || stringify(config.default)) %>" />

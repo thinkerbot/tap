@@ -1,6 +1,8 @@
+<input name="<%= name %>[]" type="hidden" value="" />
 <select id="<%= id %>" name="<%= name %>[]" multiple="true">
-<% value ||= config.default %>
+<% value ||= config.default.collect! {|val| stringify(val) } %>
 <% (config[:options] || []).each do |option| %>
-  <option value="<%= option %>" <%= value.include?(option) ? "selected='true' " : ""%>><%= option %></option>
+<%   option = stringify(option) %>
+  <option value="<%= escape_html(option) %>" <%= value.include?(option) ? "selected='true' " : ""%>><%= option %></option>
 <% end %>
 </select>

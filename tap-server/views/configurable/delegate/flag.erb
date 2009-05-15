@@ -1,1 +1,3 @@
-<input id="<%= id %>" name="<%= name %>" type="checkbox" value="true" <%= value || config.default ? 'checked="true"' : '' %> />
+<% value ||= stringify(config.default) %>
+<input name="<%= name %>" type="hidden" value="false" />
+<input id="<%= id %>" name="<%= name %>" type="checkbox" value="true" <%= value == "true" ? 'checked="true"' : '' %> />

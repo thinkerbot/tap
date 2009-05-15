@@ -73,15 +73,7 @@ module Tap
           id = data.next_id(type).to_s
         end
         
-        hash = scrub(request['schema'] || {}) do |value, mark|
-          case value
-          when "" then mark
-          when /\A\"(.*)\"\z/ then $1
-          else value
-          end
-        end
-
-        schema = Tap::Schema.new(hash)
+        schema = Tap::Schema.new(request['schema'] || {})
         data.create_or_update(type, id) do |io| 
           io << schema.dump
         end
@@ -121,18 +113,15 @@ module Tap
         server.uri("help/#{type}/#{obj[:id] || obj[:class].to_s.underscore}")
       end
       
-      def scrub(hash, mark=Object.new, &block)
-        result = {}
-        hash.each_pair do |key, value|
-          value = case value
-          when Hash   then scrub(value, mark, &block)
-          when String then yield(value, mark)
-          else value
-          end
-          
-          result[key] = value unless value == mark
+      def stringify(value)
+        case value
+        when String, Numeric, true, false
+          value.to_s
+        when Symbol, Regexp
+          value.inspect
+        when nil     then '~'
+        else raise "unable to stringify: #{value}"
         end
-        result
       end
       
       def update_schema(id)

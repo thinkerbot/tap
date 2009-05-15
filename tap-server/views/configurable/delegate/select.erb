@@ -1,6 +1,7 @@
 <select id="<%= id %>" name="<%= name %>">
-<% value ||= config.default %>
+<% value ||= stringify(config.default) %>
 <% (config[:options] || []).each do |option| %>
-  <option value="<%= option %>" <%= value == option ? "selected='true' " : ""%>><%= option %></option>
+<%   option = stringify(option) %>
+  <option value="<%= escape_html(option) %>" <%= value == option ? "selected='true' " : ""%>><%= option %></option>
 <% end %>
 </select>
