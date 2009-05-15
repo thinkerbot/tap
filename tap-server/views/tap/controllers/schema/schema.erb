@@ -71,11 +71,11 @@
   <input type="submit" value="Remove" />
 </form>
 
-<h2>Configure:</h2>
 <!-- configure form --> 
 <form id="configure_<%= id %>" class="configure" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="configure" />
   
+  <h2>Configure:</h2>
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
 <%  name = "schema[tasks][#{key}]" %>
@@ -115,15 +115,18 @@
 <% end %>
   </ul>
   
+  <h2>Enque:</h2>
   <ul class="queue">
 <% schema.queue.each_with_index do |(key, args), index| %>
 <%  name = "schema[queue][]" %>
 <%  task = schema.tasks[key] %>
     <li id="queue_<%= index %>" class="queue">
+    <h3><%= key %></h3>
     <input type="hidden" name="<%= name %>[0]" value="<%= key %>">
-<%= render(
-      :file => class_path('input.erb', task[:class]), 
-      :locals => {:id => id, :name => "#{name}[1]", :task => task, :key => key, :args => args || []}) %>
+<%= module_render('input.erb', task[:class], :locals => {
+      :id => id, 
+      :name => "#{name}[1]",
+      :args => args || [] }) %>
     </li>
 <% end %>
   </ul>

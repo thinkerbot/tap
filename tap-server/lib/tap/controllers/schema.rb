@@ -11,6 +11,10 @@ module Tap
       # outputs[]:: An array of task indicies used as outputs for a join.
       #
       def add(id)
+        if id == "new"
+          id = data.next_id(type).to_s
+        end
+        
         tasks = request['tasks'] || []
         inputs = request['inputs'] || []
         outputs = request['outputs'] || []
@@ -47,6 +51,10 @@ module Tap
       # joins[]:: An array of join indicies to remove.
       #
       def remove(id)
+        if id == "new"
+          id = data.next_id(type).to_s
+        end
+        
         tasks = request['tasks'] || []
         joins = request['joins'] || []
         queue = request['queue'] || []
@@ -125,6 +133,8 @@ module Tap
           obj.inspect
         when nil
           '~'
+        when $stdout
+          'data/results.txt'
         else
           obj
         end
@@ -152,11 +162,7 @@ module Tap
         false
       end
       
-      def update_schema(id)
-        if id == "new"
-          id = data.next_id(type).to_s
-        end
-        
+      def update_schema(id)        
         path = data.find(type, id) || data.create(type, id)
         schema = Tap::Schema.load_file(path)
         
@@ -165,6 +171,8 @@ module Tap
         data.update(type, id) do |io| 
           io << schema.dump
         end
+        
+        id
       end
     end
   end

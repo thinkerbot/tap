@@ -1,6 +1,5 @@
-    <span><%= key %></span>:
     <ul>
-<% task[:class].args.arguments.each do |argument| %>
+<% obj.args.arguments.each do |argument| %>
     <li class="input">
     <input name="<%= name %>[]" value="<%= args.shift %>" />
     <span><%= argument %></span>
