@@ -115,7 +115,7 @@ module Tap
           env.constant_manifest(type)[key]
         end
         
-        render "#{type}.erb", :locals => {
+        render "entry.erb", :locals => {
           :id => id,
           :schema => schema
         }, :layout => true

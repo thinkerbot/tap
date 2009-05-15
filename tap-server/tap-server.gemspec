@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap-server"
-  s.version = "0.3.0"
+  s.version = "0.4.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -8,8 +8,8 @@ Gem::Specification.new do |s|
   s.summary = "A web interface for tap."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 0.12.3")
-  s.add_dependency("rack", ">= 0.9.1")
+  s.add_dependency("tap", ">= 0.17.0")
+  s.add_dependency("rack", ">= 1.0 ")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\sServer}
   

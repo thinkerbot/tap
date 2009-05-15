@@ -41,7 +41,7 @@ module Tap
           id = data.next_id(type).to_s
         end
         
-        data.create(type, id) {|io| io << request[type] }
+        data.create(type, id) {|io| io << parse_entry }
         redirect uri(id)
       end
       
@@ -49,7 +49,7 @@ module Tap
       # POST /projects/id?_method=put
       # POST /projects?_method=put&_action=select&id=id
       def update(id)
-        data.update(type, id) {|io| io << request[type] }
+        data.update(type, id) {|io| io << parse_entry }
         redirect uri(id)
       end
       
@@ -84,8 +84,12 @@ module Tap
       # Helper methods
       protected
       
-      def type
-        :data
+      attr_reader :type
+      
+      # Initializes a new instance of self.
+      def initialize(parent=nil, action=nil)
+        super
+        @type = action || :data
       end
       
       def data
@@ -109,10 +113,14 @@ module Tap
       end
       
       def display(id)
-        render "#{type}.erb", :locals => {
+        render "entry.erb", :locals => {
           :id => id,
           :content => data.read(type, id)
         }, :layout => true
+      end
+      
+      def parse_entry
+        request[type]
       end
       
       def check_id(id)
