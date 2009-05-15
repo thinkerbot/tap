@@ -120,7 +120,7 @@ module Tap
         when Symbol, Regexp
           value.inspect
         when nil     then '~'
-        else raise "unable to stringify: #{value}"
+        else raise "unsupported config value: #{value}"
         end
       end
       

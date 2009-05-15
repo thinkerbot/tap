@@ -17,7 +17,7 @@
 <%  else %>
   <li class="config">
 <%=   render(
-        :file => class_path("#{config[:type]}.erb", config) || class_path("default.erb", config), 
+        :file => class_path("_#{config[:type]}.erb") || class_path("_config.erb"), 
         :locals => {
           :id => "#{id}_config_#{key}",
           :name => "#{name}[#{key}]",
