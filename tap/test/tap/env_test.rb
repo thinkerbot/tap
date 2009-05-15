@@ -1102,13 +1102,13 @@ class EnvAbstractDirTest < Test::Unit::TestCase
     assert_equal nil, a.class_path(:dir, Classpath.new, "path") {|path| false }
   end
   
-  class ClassWithClasspath
-    def self.class_path
+  class ClassWithModulePath
+    def self.module_path
       "alt"
     end
   end
   
-  def test_class_path_uses_class_class_path_if_specified
-    assert_equal path("a/dir/alt/path"), a.class_path(:dir, ClassWithClasspath.new, "path")
+  def test_class_path_uses_class_module_path_if_specified
+    assert_equal path("a/dir/alt/path"), a.class_path(:dir, ClassWithModulePath.new, "path")
   end
 end

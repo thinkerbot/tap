@@ -365,42 +365,43 @@ module Tap
       nil
     end
     
-    # Retrieves a path associated with the class of obj, ie:
+    # Retrieves a path associated with the inheritance hierarchy of an object.
+    # An array of modules (which naturally can include classes) are provided
+    # and module_path traverses each, forming paths like: 
     #
-    #   path(dir, class_path, *paths)
+    #   path(dir, module_path, *paths)
     #
-    # The default class_path is 'obj.class.to_s.underscore', but classes
-    # can specify an alternative by providing a class_path method.
+    # By default, 'module_path' is 'module.to_s.underscore', but modules can
+    # specify an alternative by providing a module_path method.
     #
-    # === Superclass Paths
+    # The paths are yielded to the block and when the block returns true,
+    # the path will be returned.  If no block is given, the first module path
+    # is returned. Returns nil if the block never returns true.
     #
-    # A block can be provided to search superclasses of obj, to select an
-    # existing file or to ensure the final path points to a directory, for
-    # instance.  The class_path for obj.class is yielded to the block; if the
-    # block returns false then the class_path for obj.class.superclass is
-    # yielded, and so on until the block returns true.
-    #
-    # Returns nil if the block never returns true.
-    #
-    def class_path(dir, obj, *paths, &block)
-      current = obj.kind_of?(Class) ? obj : obj.class
+    def module_path(dir, modules, *paths, &block)
       paths.compact!
-      loop do
-        class_path = if current.respond_to?(:class_path)
-          current.class_path
+      while current = modules.shift
+        module_path = if current.respond_to?(:module_path)
+          current.module_path
         else
           current.to_s.underscore
         end
         
-        if path = self.path(dir, class_path, *paths, &block)
+        if path = self.path(dir, module_path, *paths, &block)
           return path
         end
-        
-        break if current == Object
-        current = current.superclass
       end
     
       nil
+    end
+    
+    # Returns the module_path traversing the inheritance hierarchy for the
+    # class of obj (or obj if obj is a Class).  Included modules are not
+    # visited, only the superclasses.
+    def class_path(dir, obj, *paths, &block)
+      klass = obj.kind_of?(Class) ? obj : obj.class
+      superclasses = klass.ancestors - klass.included_modules
+      module_path(dir, superclasses, *paths, &block)
     end
     
     # Register an object for lookup by seek.

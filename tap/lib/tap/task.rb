@@ -120,8 +120,8 @@ module Tap
   #   end
   #
   class Task
-    include Configurable
     include App::Node
+    include Configurable
     
     class << self
       # Returns class dependencies
