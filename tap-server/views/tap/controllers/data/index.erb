@@ -5,7 +5,7 @@
   
   <ul>
 <% data.index(type).each do |id| %>
-  <li><input type="checkbox" name="id[]" value="<%= id %>" /> <%= render('_entry.erb', :locals => {:id => id})%></li>
+  <li><input type="checkbox" name="id[]" value="<%= id %>" /> <%= render('_index_entry.erb', :locals => {:id => id})%></li>
 <% end %>
   <li><a href="<%= uri('new') %>">new</a></li>
   </ul>

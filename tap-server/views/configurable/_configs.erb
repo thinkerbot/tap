@@ -4,10 +4,9 @@
 <%  if config.is_nest? %>
   <dt class="name"><%= key %></dt>
   <dd class="nested-configs">
-<%=   render("_configs.erb", :locals => {
+<%=   module_render("_configs.erb", obj, :locals => {
         :id => id,
         :name => "#{name}[#{key}]",
-        :obj => obj,
         :configurations => config.default(false).delegates, 
         :values => values[key.to_s]
       }) %>
