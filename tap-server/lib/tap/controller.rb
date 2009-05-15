@@ -78,11 +78,22 @@ module Tap
       end
       
       def nest(key, controller, &block)
-        subclass = Class.new(controller)
-        subclass.class_eval(&block) if block
+        
+        # generate a subclass if anything gets overridden
+        if block_given?
+          controller = Class.new(controller)
+          controller.class_eval(&block)
+        end
+        
+        # this check prevents a warning in cases where the nesting 
+        # class defines the nested class
+        const_name = key.to_s.camelize
+        unless const_defined?(const_name) && const_get(const_name) == subclass
+          const_set(const_name, controller)
+        end
         
         define_method(key) do |*args|
-          subclass.new(self, key).dispatch(args)
+          controller.new(self, key).dispatch(args)
         end
       end
 
