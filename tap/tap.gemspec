@@ -54,6 +54,7 @@ Gem::Specification.new do |s|
     lib/tap/root/versions.rb
     lib/tap/schema.rb
     lib/tap/schema/parser.rb
+    lib/tap/schema/utils.rb
     lib/tap/support/intern.rb
     lib/tap/support/templater.rb
     lib/tap/task.rb
