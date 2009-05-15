@@ -132,8 +132,8 @@ module Tap
       env.path(dir, path) {|path| File.file?(path) }
     end
     
-    def class_path(dir, obj, path)
-      env.class_path(dir, obj, path) {|path| File.file?(path) }
+    def module_path(dir, modules, path)
+      env.module_path(dir, modules, path) {|path| File.file?(path) }
     end
     
     # Returns true if input is equal to the secret, if a secret is set. Used

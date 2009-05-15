@@ -160,8 +160,8 @@ module Tap
       server.path(:views, path)
     end
     
-    def class_path(path, obj=self)
-      server.class_path(:views, obj, path)
+    def module_path(path, klass=self.class)
+      server.module_path(:views, klass.ancestors, path)
     end
     
     # Routes the request to an action and returns the response.  Routing is
@@ -253,7 +253,7 @@ module Tap
       when options[:template]
         self.template_path(options[:template])
       else
-        self.class_path(path)
+        self.module_path(path)
       end
 
       unless template_path
@@ -315,8 +315,9 @@ module Tap
       erb.result(binding)
     end
     
-    def class_render(path, obj, options={})
-      options[:file] = class_path(path, obj) || class_path(path)
+    def module_render(path, obj, options={})
+      obj = obj.class unless obj.kind_of?(Module)
+      options[:file] = module_path(path, obj) || module_path(path)
       
       locals = options[:locals] ||= {}
       locals[:obj] ||= obj

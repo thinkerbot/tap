@@ -82,7 +82,7 @@ module Tap
       
       def help(type=nil, *key)
         const = server.env.constant_manifest(type)[key.join('/')]
-        class_render 'help.erb', const, :locals => {:obj => const}
+        module_render 'help.erb', const, :locals => {:obj => const}
       end
       
       # ensure server methods are not added as actions

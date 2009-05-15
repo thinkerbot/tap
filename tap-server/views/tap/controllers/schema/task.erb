@@ -1,6 +1,7 @@
 <%= render("_configs.erb", :locals => {
       :id => id,
       :name => "#{name}[config]",
+      :obj => obj,
       :configurations => obj.configurations, 
       :values => values
     }) %>

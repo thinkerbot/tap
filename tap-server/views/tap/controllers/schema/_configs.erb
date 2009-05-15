@@ -7,6 +7,7 @@
 <%=   render("_configs.erb", :locals => {
         :id => id,
         :name => "#{name}[#{key}]",
+        :obj => obj,
         :configurations => config.default(false).delegates, 
         :values => values[key.to_s]
       }) %>
@@ -15,9 +16,10 @@
   <dt><%= key %></dt>
   <dd class="config">
 <%=   render(
-        :file => class_path("_#{config[:type]}.erb") || class_path("_config.erb"), 
+        :file => module_path("_#{config[:type]}.erb", obj) || module_path("_config.erb", obj), 
         :locals => {
           :id => "#{id}_config_#{key}",
+          :obj => obj,
           :name => "#{name}[#{key}]",
           :config => config,
           :value => values[key.to_s]}) %>
