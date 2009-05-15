@@ -100,7 +100,9 @@ module Tap
       # args remains an array, ie methods can take one or no inputs (but note
       # that if id is specified as an array, methods can receive and array of
       # ids.)
-      def dispatch(action, args)
+      def dispatch(route)
+        action, *args = route
+        
         if args.empty?
           if id = request['id']
             args << id
@@ -109,7 +111,8 @@ module Tap
           args = [File.join(*args)] 
         end
         
-        super
+        args.unshift(action)
+        super(args)
       end
       
       def display(id)

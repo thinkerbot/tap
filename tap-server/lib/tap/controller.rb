@@ -76,6 +76,15 @@ module Tap
       def set_variables
         @set_variables ||= []
       end
+      
+      def nest(key, controller, &block)
+        subclass = Class.new(controller)
+        subclass.class_eval(&block) if block
+        
+        define_method(key) do |*args|
+          subclass.new(self, key).dispatch(args)
+        end
+      end
 
       protected
 
@@ -196,14 +205,7 @@ module Tap
       @request = Rack::Request.new(env)
       @response = Rack::Response.new
       
-      # route to an action
-      action, args = route
-      unless action?(action)
-        raise ServerError.new("404 Error: page not found", 404)
-      end
-
-      result = dispatch(action, args)
-      case result
+      case result = dispatch(route)
       when String
         response.write result
         response.finish
@@ -225,13 +227,21 @@ module Tap
     # may be specified using set.  Override this method in subclasses for
     # fancier routes.
     def route
-      blank, action, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-      action = self.class.default_action if action == nil || action.empty?
-
-      [action, args]
+      blank, *route = request.path_info.split("/").collect {|arg| unescape(arg) }
+      route
     end
     
-    def dispatch(action, args)
+    def dispatch(route)
+      action, *args = route
+      
+      if action == nil || action == ""
+        action = self.class.default_action 
+      end
+      
+      unless action?(action)
+        raise ServerError.new("404 Error: page not found", 404)
+      end
+      
       send(action, *args)
     end
     

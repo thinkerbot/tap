@@ -39,8 +39,9 @@ module Tap
     #
     module RestRoutes
       def route
-        blank, *args = request.path_info.split("/").collect {|arg| unescape(arg) }
-        [rest_action(args), args]
+        blank, *route = request.path_info.split("/").collect {|arg| unescape(arg) }
+        route.unshift rest_action(route)
+        route
       end
       
       def rest_action(args)

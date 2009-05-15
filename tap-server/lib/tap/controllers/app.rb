@@ -8,6 +8,13 @@ module Tap
     class App < Tap::Controller
       set :default_action, :info
       
+      nest :schema, Schema do
+        def dispatch(route)
+          route.unshift rest_action(route)
+          super(route)
+        end
+      end
+      
       # Returns the state of app.
       def state
         app.state.to_s
@@ -44,12 +51,6 @@ module Tap
       def terminate
         app.terminate if request.post?
         redirect uri(:info)
-      end
-      
-      def schema(*args)
-        schema = Schema.new(self, :schema)
-        action = schema.rest_action(args)
-        schema.dispatch(action, args)
       end
       
       def build
