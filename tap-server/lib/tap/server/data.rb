@@ -4,39 +4,35 @@ module Tap
     # A very simple wrapper for root providing a CRUD interface for reading and
     # writing files.  Data ids may be integers (if you want to pretend Data is
     # a database), or they can be relative paths.
-    class Data < Tap::Root
+    class Data
       
+      attr_reader :root
       attr_reader :cache
       
-      def initialize(config_or_dir=Dir.pwd)
+      def initialize(root)
         @cache = Hash.new([])
-        
-        if config_or_dir.kind_of?(Tap::Root)
-          config_or_dir = config_or_dir.config.to_hash
-        end
-        
-        super(config_or_dir)
+        @root = root
       end
       
       # A restricted version of the original.  Path raises an error if the
       # final path is not relative to als.
-      def path(als, *paths)
-        path = super
-        unless relative?(:root, path)
-          raise "not relative to root: #{paths.inspect}"
-        end
-        path
-      end
-      
       def entry_path(als, id)
         id = id.to_s
-        raise "no id specified" if id.empty?
-        path(als, id)
+        if id.empty?
+          raise "no id specified" 
+        end
+        
+        path = root.path(als, id)
+        unless root.relative?(als, path)
+          raise "not a subpath: #{id.inspect} (#{als.inspect})"
+        end
+        
+        path
       end
       
       # Returns a list of entry paths.
       def entries(als)
-        glob(als).select do |path|
+        root.glob(als).select do |path|
           File.file?(path)
         end
       end
@@ -44,7 +40,7 @@ module Tap
       # Returns a list of existing ids.
       def index(als)
         entries(als).collect do |path|
-          relative_path(als, path)
+          root.relative_path(als, path)
         end
       end
       
@@ -109,7 +105,7 @@ module Tap
       end
       
       def create_or_update(als, id)
-        path = entry_path(als, id)
+        path = path(als, id)
         create!(path) {|io| yield(io) }
       end
       
@@ -117,7 +113,7 @@ module Tap
         id = upload[:filename] unless id && !id.empty?
         path = non_existant_path(als, id)
         
-        prepare(path)
+        root.prepare(path)
         FileUtils.mv(upload[:tempfile].path, path)
         path
       end
@@ -126,7 +122,7 @@ module Tap
         path = existing_path(als, id)
         new_path = non_existant_path(als, new_id)
         
-        prepare(new_path)
+        root.prepare(new_path)
         FileUtils.mv(path, new_path)
         
         if cache[als].include?(id)
@@ -141,7 +137,7 @@ module Tap
         path = existing_path(als, id)
         new_path = non_existant_path(als, new_id)
         
-        prepare(new_path)
+        root.prepare(new_path)
         FileUtils.copy(path, new_path)
         new_id
       end
@@ -152,7 +148,7 @@ module Tap
       # resolved (using the instance prepare requires a second path
       # resolution)
       def create!(path) # :nodoc:
-        Utils.prepare(path) {|io| yield(io) }
+        Tap::Root::Utils.prepare(path) {|io| yield(io) }
       end
       
       # like find but raises an error if the path doesn't exist

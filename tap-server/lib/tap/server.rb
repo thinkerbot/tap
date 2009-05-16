@@ -109,9 +109,6 @@ module Tap
     # 
     nest(:app, Tap::App, :type => :hidden)
     
-    # The data directory structure for self.
-    nest(:data, Data, :type => :hidden)
-    
     attr_accessor :controller
     attr_reader :handler
     attr_accessor :thread
@@ -122,6 +119,10 @@ module Tap
       @thread = nil
       @cache = {}
       initialize_config(config)
+    end
+    
+    def data
+      Data.new(env.root)
     end
     
     # path should not start with "/"
