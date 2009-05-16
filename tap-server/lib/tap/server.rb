@@ -69,19 +69,21 @@ module Tap
       # specified in root/server.yml.  If shutdown_key is specified, a
       # random shutdown key will be generated and set on the sever.
       #
-      def instantiate(root, secret=false)
+      def instantiate(controller, root, secret=false)
         # setup the server directory
         root = File.expand_path(root)
         FileUtils.mkdir_p(root) unless File.exists?(root)
-
-        # initialize the server
-        env = Tap::Exe.setup(root)
-        env.activate
-        config = Configurable::Utils.load_file(env.root['server.yml'])
         
-        server = new(env, config)
-        server.config[:secret] = rand(10000000000) if secret
-        server
+        # setup the env
+        env = Tap::Exe.setup(:dir => root)
+        env.activate
+        
+        # initialize the server
+        config = Configurable::Utils.load_file(env.root['server.yml'])
+        config[:env] = env
+        config[:secret] = rand(100000000000).to_s if secret
+        
+        new(controller, config)
       end
     end
     

@@ -58,12 +58,12 @@ Gem::Specification.new do |s|
     views/tap/controllers/data/_controls.erb
     views/tap/controllers/data/_index_entry.erb
     views/tap/controllers/data/_upload.erb
-    views/tap/controllers/data/data.erb
+    views/tap/controllers/data/entry.erb
     views/tap/controllers/data/index.erb
     views/tap/controllers/schema/_build.erb
     views/tap/controllers/schema/_index_entry.erb
     views/tap/controllers/schema/join.erb
-    views/tap/controllers/schema/schema.erb
+    views/tap/controllers/schema/entry.erb
     views/tap/controllers/schema/task.erb
     views/tap/controllers/server/access.erb
     views/tap/controllers/server/admin.erb
