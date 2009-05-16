@@ -1,142 +1,79 @@
 require 'rack'
+# require 'tap'
+# require 'tap/server/data'
 require 'tap'
-require 'tap/server/data'
 require 'tap/server/server_error'
 
 module Tap
-  
-  # :::-
-  # Server is a Rack application that dispatches calls to other Rack apps, most
-  # commonly a Tap::Controller.
-  #
-  # == Routes
-  #
-  # Routing is fixed and very simple:
-  #
-  #   /:controller/path/to/resource
-  #
-  # Server dispatches the request to the controller keyed by :controller after 
-  # shifting the key from PATH_INFO to SCRIPT_NAME.
-  #
-  #   server = Server.new
-  #   server.controllers['sample'] = lambda do |env|
-  #     [200, {}, ["Sample got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]]
-  #   end
-  #
-  #   req = Rack::MockRequest.new(server)
-  #   req.get('/sample/path/to/resource').body      # => "Sample got /sample : /path/to/resource"
-  #
-  # Server automatically maps unknown keys to controllers discovered via the
-  # env.controllers manifest.  The only requirement is that the controller
-  # constant is a Rack application.  For instance:
-  #
-  #   # [lib/example.rb] => %q{
-  #   # ::controller
-  #   # class Example
-  #   #   def self.call(env)
-  #   #     [200, {}, ["Example got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]]
-  #   #   end
-  #   # end 
-  #   # }
-  #
-  #   req.get('/example/path/to/resource').body     # => "Example got /example : /path/to/resource"
-  #
-  # If desired, controllers can be set with aliases to map a path key to a
-  # lookup key.
-  #
-  #   server.controllers['sample'] = 'example'
-  #   req.get('/sample/path/to/resource').body      # => "Example got /sample : /path/to/resource"
-  #
-  # If no controller can be found, the request is routed using the
-  # default_controller_key and the request is NOT adjusted.
-  #
-  #   server.default_controller_key = 'app'
-  #   server.controllers['app'] = lambda do |env|
-  #     [200, {}, ["App got #{env['SCRIPT_NAME']} : #{env['PATH_INFO']}"]]
-  #   end
-  #
-  #   req.get('/unknown/path/to/resource').body     # => "App got  : /unknown/path/to/resource"
-  #
-  # In development mode, the controller constant is removed and the constant
-  # require path is reloaded each time it gets called.  This system allows many
-  # web frameworks to be hooked into a Tap server.
-  #
-  # :::+
   class Server
     class << self
       
-      # Instantiates a Server in the specified directory, configured as
-      # specified in root/server.yml.  If shutdown_key is specified, a
-      # random shutdown key will be generated and set on the sever.
-      #
-      def instantiate(controller, root, secret=false)
-        # setup the server directory
-        root = File.expand_path(root)
-        FileUtils.mkdir_p(root) unless File.exists?(root)
+      def parse(argv=ARGV)
+        parse!(argv.dup)
+      end
+      
+      # Same as parse, but removes arguments destructively.
+      def parse!(argv=ARGV)
+        opts = ConfigParser.new
         
-        # setup the env
-        env = Tap::Exe.setup(:dir => root)
-        env.activate
+        unless configurations.empty?
+          opts.separator "configurations:"
+          opts.add(configurations)
+          opts.separator ""
+        end
         
-        # initialize the server
-        config = Configurable::Utils.load_file(env.root['server.yml'])
-        config[:env] = env
-        config[:secret] = rand(100000000000).to_s if secret
+        opts.separator "options:"
         
-        new(controller, config)
+        # add option to specify a config file
+        config_file = nil
+        opts.on('--config FILE', 'Specifies a config file') do |value|
+          config_file = value
+        end
+        
+        yield(opts) if block_given?
+        
+        # parse! (note defaults are not added because in
+        # instantiate the instance is reconfigured rather
+        # than initialized with the configs)
+        argv = opts.parse!(argv, :add_defaults => false)
+        
+        instance = new({})
+        instance.reconfigure(load_config(config_file)) if config_file
+        instance.reconfigure(opts.nested_config)
+        
+        [instance, argv]
       end
     end
     
     include Rack::Utils
     include Configurable
     
-    config :servers, %w[thin mongrel webrick], {        # a list of preferred handlers
+    config :servers, %w[thin mongrel webrick], {    # a list of preferred handlers
       :long => :server
     }, &c.list 
     
-    config :host, 'localhost', &c.string                # the server host
-    config :port, 8080, &c.integer                      # the server port
+    config :host, 'localhost', &c.string            # the server host
+    config :port, 8080, &c.integer_or_nil           # the server port
     
     # Server implements a secret for HTTP administration of the server (ex
     # remote shutdown). Under many circumstances this functionality is
     # undesirable; specify a nil secret, the default, to prevent remote
     # administration.
-    config :secret, nil, &c.string_or_nil               # the admin secret
+    config :secret, nil, &c.string_or_nil        # the admin secret
     
-    # 
-    nest(:env, Tap::Env, :type => :hidden)
+    config :daemonize, false, &c.flag
     
-    # 
-    nest(:app, Tap::App, :type => :hidden)
+    nest :root, Root, :type => :hidden
     
-    attr_accessor :controller
     attr_reader :handler
-    attr_accessor :thread
     
-    def initialize(controller=nil, config={})
-      @controller = controller
+    def initialize(config={})
       @handler = nil
-      @thread = nil
-      @cache = {}
       initialize_config(config)
     end
     
-    def data
-      Data.new(env.root)
-    end
-    
-    # path should not start with "/"
-    def uri(path=nil, params={})
-      query = build_query(params)
-      "http://#{host}:#{port}/#{path}#{query.empty? ? '' : '?'}#{query}"
-    end
-    
-    def path(dir, path)
-      env.path(dir, path) {|path| File.file?(path) }
-    end
-    
-    def module_path(dir, modules, path)
-      env.module_path(dir, modules, path) {|path| File.file?(path) }
+    def uri
+      "http://#{host}:#{port}"
     end
     
     # Returns true if input is equal to the secret, if a secret is set. Used
@@ -146,43 +83,67 @@ module Tap
       secret != nil && input == secret
     end
     
-    # The {Rack}[http://rack.rubyforge.org/doc/] interface method.
-    def call(rack_env)
-      # handle the request
-      rack_env['tap.server'] = self
-      controller.call(rack_env)
-    rescue ServerError
-      $!.response
-    rescue Exception
-      ServerError.response($!)
+    def daemonize!
+      if File.exists?(root[:pid])
+        raise "pid file already exists: #{root[:pid]}"
+      end
+      
+      fork and exit
+      Process.setsid
+      fork and exit
+      Dir.chdir "/"
+      File.umask 0000
+      STDIN.reopen  "/dev/null"
+      STDOUT.reopen root.prepare(:stdout), "a"
+      STDERR.reopen root.prepare(:stderr), "a"
+      
+      root.prepare(:pid) {|io| io << Process.pid }
+      root.prepare(:uri) {|io| io << uri }
+      root.prepare(:secret) {|io| io << secret } if secret
+    end
+    
+    def cleanup!
+      [:pid, :uri, :secret].each do |path|
+        path = root[path]
+        FileUtils.rm(path) if File.exists?(path)
+      end unless running?
+    end
+    
+    def running?
+      @handler != nil
     end
     
     # Runs self as configured, on the specified server, host, and port.  Use an
     # INT signal to interrupt.
-    def run!(handler=rack_handler)
-      handler.run self, :Host => host, :Port => port do |handler_instance|
+    def run!(rack_app, handler=rack_handler)
+      return self if running?
+      
+      daemonize! if daemonize
+      handler.run(rack_app, :Host => host, :Port => port) do |handler_instance|
         @handler = handler_instance
         trap(:INT) { stop! }
         yield if block_given?
       end
+      
+      self
     end
-  
-    # Stops the server if running (ie a handler is set).  Returns true if the
-    # server was stopped, and false otherwise.
+
+    # Stops the server if running (ie a handler is set).
     def stop!
-      if @handler
+      if running?
         # Use thins' hard #stop! if available, otherwise just #stop
         @handler.respond_to?(:stop!) ? @handler.stop! : @handler.stop
         @handler = nil
+        
+        cleanup! if daemonize
         yield if block_given?
-        false
-      else
-        true
       end
+      
+      self
     end
-    
+
     protected
-    
+
     # Looks up and returns the first available Rack::Handler as listed in the
     # servers configuration. (Note rack_handler returns a handler class, not
     # an instance).  Adapted from Sinatra.detect_rack_handler

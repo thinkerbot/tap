@@ -214,6 +214,8 @@ module Tap
         config = argh[:config]
         config_file = argh[:config_file]
         
+        # note this is performed with two reconfigures for indiffernet
+        # access... it's not really ideal to do it this way
         instance = new({}, app)
         instance.reconfigure(load_config(config_file)) if config_file
         instance.reconfigure(config) if config

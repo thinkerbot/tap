@@ -4,11 +4,11 @@
 opts = ConfigParser.new(:file => false, :preview => false)
 
 opts.on("-p", "--preview", "preview the signal") do
-  opts.config[:preview] = true
+  opts[:preview] = true
 end
 
-opts.on("-f", "--file", "pid is read from the file") do
-  opts.config[:file] = true
+opts.on("-f", "--file FILE", "pid is read from the file") do |input|
+  opts[:file] = input
 end
 
 opts.on("-l", "--list", "list available signals") do
@@ -33,21 +33,22 @@ unless Signal.list.any? {|(sig, n)| signal == sig || signal == n }
   exit
 end
 
-if opts.config[:file]
-  unless File.exists?(pid)
-    puts "pid file does not exist: #{pid}"
+if opts[:file]
+  unless File.exists?(opts[:file])
+    puts "pid file does not exist: #{opts[:file]}"
     exit
   end
   
-  pid = File.read(pid)
+  pid = File.read(opts[:file])
 end
 
 unless args.empty?
   warn "ignoring: #{args.inspect}"
 end
 
-if opts.config[:preview]
+if opts[:preview]
   puts "preview: #{signal} #{pid}"
 else
   Process.kill(signal, pid.to_i)
+  FileUtils.rm(opts[:file]) if opts[:file]
 end
