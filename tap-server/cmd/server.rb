@@ -9,15 +9,25 @@ require 'tap/controllers/server'
 env = Tap::Env.instance
 app = Tap::App.instance
 
-server, args = Tap::Server.parse!(ARGV) do |opts|
-  
-  # add option to print help
-  opts.on("-h", "--help", "Show this message") do
-    puts Lazydoc.usage(__FILE__)
-    puts opts
-    exit
+begin
+  server, args = Tap::Server.parse!(ARGV) do |opts|
+
+    # add option to print help
+    opts.on("-h", "--help", "Show this message") do
+      puts Lazydoc.usage(__FILE__)
+      puts opts
+      exit
+    end
   end
+
+  controller = lambda {|env| [200, {}, ['hello']] }
+  server.run!(controller)
+rescue
+  raise if $DEBUG
+  puts $!.message
+  exit(1)
 end
 
-controller = lambda {|env| [200, {}, ['hello']] }
-server.run!(controller)
+exit(0)
+
+

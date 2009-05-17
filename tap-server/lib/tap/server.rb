@@ -5,6 +5,8 @@ require 'tap'
 require 'tap/server/server_error'
 
 module Tap
+  
+  # ::configurable
   class Server
     class << self
       
@@ -14,7 +16,7 @@ module Tap
       
       # Same as parse, but removes arguments destructively.
       def parse!(argv=ARGV)
-        opts = ConfigParser.new(:config_file => nil)
+        opts = ConfigParser.new
         
         unless configurations.empty?
           opts.separator "configurations:"
@@ -25,8 +27,8 @@ module Tap
         opts.separator "options:"
         
         # add option to specify a config file
-        opts.on('--config FILE', 'Specifies a config file') do |value|
-          opts[:config_file] = value
+        opts.on('--config FILE', 'Specifies a config file') do |config_file|
+          opts.config.merge!(load_config(config_file))
         end
         
         yield(opts) if block_given?
@@ -36,16 +38,19 @@ module Tap
         # than initialized with the configs)
         argv = opts.parse!(argv, :add_defaults => false)
         
-        config = opts.nested_config
-        config_file = opts.delete(:config_file)
+        [new(opts.nested_config), argv]
+      end
+      
+      protected
+      
+      # Recursively loads path into a nested configuration file.
+      def load_config(path)
+        # optimization to check for trivial paths
+        return {} if Root::Utils.trivial?(path)
         
-        instance = if config_file
-          new(load_config(config_file)).reconfigure(config)
-        else
-          new(config)
+        Configurable::Utils.load_file(path, true) do |base, key, value|
+          base[key] ||= value if base.kind_of?(Hash)
         end
-        
-        [instance, argv]
       end
     end
     
@@ -91,6 +96,8 @@ module Tap
       if File.exists?(root['pid'])
         raise "pid file already exists: #{root['pid']}"
       end
+      
+      $stdout.puts ">> Detaching Server (#{uri})"
       
       fork and exit
       Process.setsid

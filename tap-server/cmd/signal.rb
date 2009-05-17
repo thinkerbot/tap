@@ -49,6 +49,7 @@ end
 if opts[:preview]
   puts "preview: #{signal} #{pid}"
 else
+  puts "signal: #{signal} #{pid}"
   Process.kill(signal, pid.to_i)
   FileUtils.rm(opts[:file]) if opts[:file]
 end
