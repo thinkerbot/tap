@@ -194,6 +194,8 @@ module Tap
           opts.config.merge!(load_config(config_file))
         end
         
+        yield(opts) if block_given?
+        
         # (note defaults are not added because these are
         # effectively overrides for the defaults)
         argv = opts.parse!(argv, :add_defaults => false)
