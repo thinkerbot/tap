@@ -358,9 +358,8 @@ module Tap
     
     def path(dir, *paths)
       each do |env|
-        env.root.path(dir, *paths).each do |path|
-          return path if !block_given? || yield(path)
-        end
+        path = env.root.path(dir, *paths)
+        return path if !block_given? || yield(path)
       end
       nil
     end
