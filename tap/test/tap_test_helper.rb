@@ -30,6 +30,13 @@ module MethodRoot
     end
     super
   end
+  
+  if RUBY_VERSION > '1.9'
+    def method_name
+      name
+    end
+  end
+  
 end unless Object.const_defined?(:MethodRoot)
 
 module AppInstance
