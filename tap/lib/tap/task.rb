@@ -195,9 +195,8 @@ module Tap
           config_file = value
         end
         
-        # parse! (note defaults are not added because in
-        # instantiate the instance is reconfigured rather
-        # than initialized with the configs)
+        # (note defaults are not added because these are
+        # effectively overrides for the defaults)
         argv = opts.parse!(argv, :add_defaults => false)
         argh = { 
           :config => opts.nested_config,
@@ -211,14 +210,14 @@ module Tap
       # Instantiates an instance of self and returns an instance of self and
       # an array of arguments (implicitly to be enqued to the instance).
       def instantiate(argh={}, app=Tap::App.instance)
-        config = argh[:config]
+        config = argh[:config] || {}
         config_file = argh[:config_file]
         
-        # note this is performed with two reconfigures for indiffernet
-        # access... it's not really ideal to do it this way
-        instance = new({}, app)
-        instance.reconfigure(load_config(config_file)) if config_file
-        instance.reconfigure(config) if config
+        instance = if config_file
+          new(load_config(config_file), app).reconfigure(config)
+        else
+          new(config, app)
+        end
         
         if argh[:cache]
           if app.cache.has_key?(self) && app.cache[self] != instance

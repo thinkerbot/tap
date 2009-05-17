@@ -14,7 +14,7 @@ module Tap
       
       # Same as parse, but removes arguments destructively.
       def parse!(argv=ARGV)
-        opts = ConfigParser.new
+        opts = ConfigParser.new(:config_file => nil)
         
         unless configurations.empty?
           opts.separator "configurations:"
@@ -25,9 +25,8 @@ module Tap
         opts.separator "options:"
         
         # add option to specify a config file
-        config_file = nil
         opts.on('--config FILE', 'Specifies a config file') do |value|
-          config_file = value
+          opts[:config_file] = value
         end
         
         yield(opts) if block_given?
@@ -37,9 +36,14 @@ module Tap
         # than initialized with the configs)
         argv = opts.parse!(argv, :add_defaults => false)
         
-        instance = new({})
-        instance.reconfigure(load_config(config_file)) if config_file
-        instance.reconfigure(opts.nested_config)
+        config = opts.nested_config
+        config_file = opts[:config_file]
+        
+        instance = if config_file
+          new(load_config(config_file)).reconfigure(config)
+        else
+          new(config)
+        end
         
         [instance, argv]
       end
@@ -48,7 +52,7 @@ module Tap
     include Rack::Utils
     include Configurable
     
-    config :servers, %w[thin mongrel webrick], {    # a list of preferred handlers
+    config :servers, %w[thin mongrel webrick], {    # the preferred server handlers
       :long => :server
     }, &c.list 
     
@@ -59,7 +63,7 @@ module Tap
     # remote shutdown). Under many circumstances this functionality is
     # undesirable; specify a nil secret, the default, to prevent remote
     # administration.
-    config :secret, nil, &c.string_or_nil        # the admin secret
+    config :secret, nil, &c.string_or_nil           # the admin secret
     
     config :daemonize, false, &c.flag
     
@@ -84,8 +88,8 @@ module Tap
     end
     
     def daemonize!
-      if File.exists?(root[:pid])
-        raise "pid file already exists: #{root[:pid]}"
+      if File.exists?(root['pid'])
+        raise "pid file already exists: #{root['pid']}"
       end
       
       fork and exit
@@ -94,16 +98,16 @@ module Tap
       Dir.chdir "/"
       File.umask 0000
       STDIN.reopen  "/dev/null"
-      STDOUT.reopen root.prepare(:stdout), "a"
-      STDERR.reopen root.prepare(:stderr), "a"
+      STDOUT.reopen root.prepare('stdout'), "a"
+      STDERR.reopen root.prepare('stderr'), "a"
       
-      root.prepare(:pid) {|io| io << Process.pid }
-      root.prepare(:uri) {|io| io << uri }
-      root.prepare(:secret) {|io| io << secret } if secret
+      root.prepare('pid') {|io| io << Process.pid }
+      root.prepare('uri') {|io| io << uri }
+      root.prepare('secret') {|io| io << secret } if secret
     end
     
     def cleanup!
-      [:pid, :uri, :secret].each do |path|
+      %w{pid uri secret}.each do |path|
         path = root[path]
         FileUtils.rm(path) if File.exists?(path)
       end unless running?
