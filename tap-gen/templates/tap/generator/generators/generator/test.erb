@@ -10,7 +10,7 @@ class <%= const.name %>Test < Test::Unit::TestCase
   acts_as_tap_test 
   
   def test_<%= const.basename %>
-    g = <%= const.name %>.new.extend Preview
+    g = <%= const.const_name %>.new.extend Preview
     
     # check the files and directories
     assert_equal %w{

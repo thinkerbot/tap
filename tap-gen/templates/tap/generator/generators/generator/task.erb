@@ -1,10 +1,10 @@
 require 'tap/generator/base'
 
-<% redirect do |target| %># <%= const.name %>::generator <replace with manifest summary>
+<% redirect do |target| %># <%= const.const_name %>::generator <replace with manifest summary>
 # <replace with command line description>
 
-# <%= const.const_name %> Documentation
-class <%= const.const_name %> < Tap::Generator::Base
+# <%= const.name %> Documentation
+class <%= const.name %> < Tap::Generator::Base
 
   config :key, 'value'           # a sample config
   

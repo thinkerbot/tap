@@ -1,10 +1,10 @@
 require 'tap/task'
 
-<% redirect do |target| %># <%= const.name %>::manifest <replace with manifest summary>
+<% redirect do |target| %># <%= const.const_name %>::manifest <replace with manifest summary>
 # <replace with command line description>
 
-# <%= const.const_name %> Documentation
-class <%= const.const_name %> < Tap::Task
+# <%= const.name %> Documentation
+class <%= const.name %> < Tap::Task
 
   # <config file documentation>
   config :message, 'goodnight'           # a sample config

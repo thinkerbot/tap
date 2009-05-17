@@ -5,7 +5,7 @@ class <%= const.name %>Test < Test::Unit::TestCase
   acts_as_tap_test 
   
   def test_<%= const.basename %>
-    task = <%= const.name %>.new :message => "goodnight"
+    task = <%= const.const_name %>.new :message => "goodnight"
     
     # a simple test
     assert_equal({:message  => 'goodnight'}, task.config)
