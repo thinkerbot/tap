@@ -37,7 +37,7 @@ module Tap
         argv = opts.parse!(argv, :add_defaults => false)
         
         config = opts.nested_config
-        config_file = opts[:config_file]
+        config_file = opts.delete(:config_file)
         
         instance = if config_file
           new(load_config(config_file)).reconfigure(config)

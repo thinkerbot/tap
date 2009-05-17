@@ -147,7 +147,7 @@ class TaskTest < Test::Unit::TestCase
     assert_equal({:key => 'alt'}, instance.config)
   end
   
-  def test_parse_reconfigures_instance_using_config_option
+  def test_parse_adds_configs_from_file_using_config_option
     path = method_root.prepare(:tmp, 'config.yml') do |file| 
       file << YAML.dump({:key => 'alt'})
     end
@@ -156,7 +156,7 @@ class TaskTest < Test::Unit::TestCase
     assert_equal({:key => 'alt'}, instance.config)
   end
   
-  def test_parse_config_files_may_have_string_keys
+  def test_config_files_may_have_string_keys
     path = method_root.prepare(:tmp, 'config.yml') do |file| 
       file << YAML.dump({'key' => 'alt'})
     end
@@ -165,16 +165,16 @@ class TaskTest < Test::Unit::TestCase
     assert_equal({:key => 'alt'}, instance.config)
   end
   
-  def test_parse_configs_in_argv_override_config_file
+  def test_parse_raises_error_for_ambiguity_in_configs
     path = method_root.prepare(:tmp, 'config.yml') do |file| 
       file << {'key' => 'one'}.to_yaml
     end
     
-    instance, argv = ParseClass.parse ["--key", "two", "--config", path]
-    assert_equal({:key => 'two'}, instance.config)
+    err = assert_raises(RuntimeError) { ParseClass.parse ["--key", "two", "--config", path] }
+    assert_equal "multiple values mapped to :key", err.message
     
-    instance, argv = ParseClass.parse ["--config", path, "--key", "two"]
-    assert_equal({:key => 'two'}, instance.config)
+    err = assert_raises(RuntimeError) { ParseClass.parse ["--config", path, "--key", "two"] }
+    assert_equal "multiple values mapped to :key", err.message
   end
   
   def test_parse_returns_remaining_args_in_argv
@@ -195,44 +195,19 @@ class TaskTest < Test::Unit::TestCase
     assert_equal InstantiateClass, instance.class
   end
   
-  def test_instance_is_initialized_default_config
+  def test_instance_is_instantiated_with_default_config
     instance, args = InstantiateClass.instantiate
     assert_equal({:key => 'value'}, instance.config)
   end
   
-  def test_instantiate_reconfigures_instance_using_config
+  def test_instance_is_instantiated_with_user_config
     instance, args = InstantiateClass.instantiate :config => {:key => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
   end
   
-  def test_instantiate_reconfigures_instance_using_config_file
-    path = method_root.prepare(:tmp, 'config.yml') do |file| 
-      file << YAML.dump({:key => 'alt'})
-    end
-    
-    instance, args = InstantiateClass.instantiate :config_file => path
+  def test_instantiate_respects_indifferent_access
+    instance, args = InstantiateClass.instantiate :config => {'key' => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
-  end
-  
-  def test_config_files_may_have_string_keys
-    path = method_root.prepare(:tmp, 'config.yml') do |file| 
-      file << YAML.dump({'key' => 'alt'})
-    end
-    
-    instance, args = InstantiateClass.instantiate :config_file => path
-    assert_equal({:key => 'alt'}, instance.config)
-  end
-  
-  def test_configs_override_config_file
-    path = method_root.prepare(:tmp, 'config.yml') do |file| 
-      file << YAML.dump({'key' => 'one'})
-    end
-    
-    instance, args = InstantiateClass.instantiate :config_file => path, :config => {:key => 'two'}
-    assert_equal({:key => 'two'}, instance.config)
-    
-    instance, args = InstantiateClass.instantiate :config_file => path, :config => {'key' => 'two'}
-    assert_equal({:key => 'two'}, instance.config)
   end
   
   def test_instantiate_returns_args

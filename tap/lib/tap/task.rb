@@ -190,9 +190,8 @@ module Tap
         end
         
         # add option to specify a config file
-        config_file = nil
-        opts.on('--config FILE', 'Specifies a config file') do |value|
-          config_file = value
+        opts.on('--config FILE', 'Specifies a config file') do |config_file|
+          opts.config.merge!(load_config(config_file))
         end
         
         # (note defaults are not added because these are
@@ -200,7 +199,6 @@ module Tap
         argv = opts.parse!(argv, :add_defaults => false)
         argh = { 
           :config => opts.nested_config,
-          :config_file => config_file,
           :args => argv
         }
         
@@ -211,13 +209,7 @@ module Tap
       # an array of arguments (implicitly to be enqued to the instance).
       def instantiate(argh={}, app=Tap::App.instance)
         config = argh[:config] || {}
-        config_file = argh[:config_file]
-        
-        instance = if config_file
-          new(load_config(config_file), app).reconfigure(config)
-        else
-          new(config, app)
-        end
+        instance = new(config, app)
         
         if argh[:cache]
           if app.cache.has_key?(self) && app.cache[self] != instance
