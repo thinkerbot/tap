@@ -10,7 +10,11 @@ module Tap
     autoload(:Gems, 'tap/env/gems')
   
     class << self
-      attr_accessor :instance
+      attr_writer :instance
+      
+      def instance(auto_initialize=true)
+        @instance ||= (auto_initialize ? new : nil)
+      end
       
       def from_gemspec(spec, basename=nil, cache={})
         path = spec.full_gem_path
@@ -276,7 +280,9 @@ module Tap
       return false if active?
       
       @active = true
-      self.class.instance ||= self
+      unless self.class.instance(false)
+        self.class.instance = self
+      end
       
       # freeze envs and load paths
       @envs.freeze
@@ -328,7 +334,7 @@ module Tap
       
       # clear cached data
       klass = self.class
-      if klass.instance == self
+      if klass.instance(false) == self
         klass.instance = nil
       end
       
@@ -491,6 +497,10 @@ module Tap
       end
       manifests[key]
       ###############################################################
+    end
+    
+    def [](key)
+      constant_manifest(key)
     end
     
     # All templaters are yielded to the block before any are built.  This

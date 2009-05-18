@@ -767,18 +767,18 @@ class EnvActivateTest < Test::Unit::TestCase
   end
   
   def test_activate_assigns_self_as_Env_instance
-    assert_nil Env.instance
+    assert_nil Env.instance(false)
     e.activate
-    assert_equal e, Env.instance
+    assert_equal e, Env.instance(false)
   end
   
   def test_activate_does_not_assign_self_as_Env_instance_if_already_set
     e.activate
-    assert_equal e, Env.instance
+    assert_equal e, Env.instance(false)
     
     e1 = Env.new
     e1.activate
-    assert_equal e, Env.instance
+    assert_equal e, Env.instance(false)
   end
   
   #
@@ -826,8 +826,6 @@ class EnvActivateTest < Test::Unit::TestCase
   end
   
   def test_deactivate_does_not_remove_load_paths_unless_deactivated
-    Env.send(:class_variable_set, :@@instance, Env.new)
-    
     e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
     $LOAD_PATH.clear
     $LOAD_PATH.concat ["/path/to/lib", "/path/to/another/lib"]
@@ -854,10 +852,10 @@ class EnvActivateTest < Test::Unit::TestCase
   
   def test_deactivate_unassigns_self_as_Env_instance
     e.activate
-    assert_equal e, Env.instance
+    assert_equal e, Env.instance(false)
     
     e.deactivate
-    assert_nil Env.instance
+    assert_nil Env.instance(false)
   end
   
   #

@@ -123,8 +123,8 @@ module Tap
       #
       # Instance is used to initialize tasks when no app is specified.  Aside
       # from that, there is nothing magical about instance.
-      def instance
-        @instance ||= App.new
+      def instance(auto_initialize=true)
+        @instance ||= (auto_initialize ? new : nil)
       end
     end
     
