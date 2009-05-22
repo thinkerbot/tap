@@ -13,15 +13,6 @@ class DataTest < Test::Unit::TestCase
   end
   
   #
-  # initialization test
-  #
-  
-  def test_initialization
-    p = Data.new(method_root)
-    assert_equal method_root, p.root
-  end
-  
-  #
   # entry_path test
   #
   

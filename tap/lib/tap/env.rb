@@ -410,7 +410,7 @@ module Tap
     end
     
     # Register an object for lookup by seek.
-    def register(type, obj, &block)
+    def register(type, obj)
       objects = entries(type)
       if objects.include?(obj)
         false
@@ -420,10 +420,21 @@ module Tap
       end
     end
     
+    def register_constant(type, constant)
+      const = Tap::Env::Constant.new(constant.to_s)
+      objects = entries(type)
+      if objects.include?(const)
+        false
+      else
+        objects << const
+        true
+      end
+    end
+    
     # Returns an array of objects registered to type.  The objects array is
     # extended with Minimap to allow minikey lookup.
     def entries(type)
-      objects = registry[type] ||= []
+      objects = registry[type.to_s] ||= []
       unless objects.kind_of?(Minimap)
         objects.extend(Minimap)
       end

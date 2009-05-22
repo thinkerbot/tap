@@ -8,7 +8,6 @@ require 'tap/server'
 
 env = Tap::Env.instance
 app = Tap::App.instance
-puts env.inspect
 
 begin
   opts = ConfigParser.new('env' => env, 'app' => app)
@@ -32,7 +31,18 @@ begin
   # (note defaults are not added so they will not
   # conflict with string keys from a config file)
   args = opts.parse!(ARGV, :clear_config => false, :add_defaults => false)
-  Tap::Server.new(opts.nested_config, *args).run!
+  
+  if args.empty?
+    args << 'server'
+  end
+  
+  controller = env[:controller][args.shift]
+  
+  unless args.empty?
+    warn "ignoring args: #{args.inspect}"
+  end
+  
+  Tap::Server.new(controller, opts.nested_config).run!
 rescue
   raise if $DEBUG
   puts $!.message
