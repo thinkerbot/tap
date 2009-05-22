@@ -421,7 +421,7 @@ module Tap
     end
     
     def register_constant(type, constant)
-      const = Tap::Env::Constant.new(constant.to_s)
+      const = Constant.new(constant.to_s)
       objects = entries(type)
       if objects.include?(const)
         false

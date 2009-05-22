@@ -75,7 +75,7 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
   
   def test_info_contains_app_info_and_controls
     body = request.get("/info").body
-    assert body =~ /<form action="http:\/\/localhost:8080\/run".*?method="post">/
+    assert body =~ /<form action="\/run".*?method="post">/
     assert body =~ /\(READY\) queue: 0/
   end
 
@@ -84,7 +84,7 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
   #
   
   def test_run_redirects_to_info
-    assert_equal "http://localhost:8080/info", request.get("/run").headers['Location']
+    assert_equal "/info", request.get("/run").headers['Location']
   end
   
   def test_run_does_not_run_on_get
@@ -105,7 +105,7 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
       sleep(0.1) while hold && !timeout?
     end
     
-    assert_equal "http://localhost:8080/info", request.post("/run").headers['Location']
+    assert_equal "/info", request.post("/run").headers['Location']
     assert_equal Thread, server.thread.class
     
     sleep(0.01)
@@ -137,7 +137,7 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
     assert_equal 1, app.state
     assert_equal true, was_in_block
     
-    assert_equal "http://localhost:8080/info", request.post("/stop").headers['Location']
+    assert_equal "/info", request.post("/stop").headers['Location']
     thread.join
     
     assert_equal 1, app.queue.size
@@ -156,7 +156,7 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
     
     thread = Thread.new { app.run }
     sleep(0.01)
-    assert_equal "http://localhost:8080/info", request.get("/stop").headers['Location']
+    assert_equal "/info", request.get("/stop").headers['Location']
     sleep(0.01)
     
     assert_equal 1, app.state
@@ -188,7 +188,7 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
     assert_equal 1, app.state
     assert_equal true, was_in_block
     
-    assert_equal "http://localhost:8080/info", request.post("/terminate").headers['Location']
+    assert_equal "/info", request.post("/terminate").headers['Location']
     thread.join
     
     assert_equal 0, app.state
@@ -207,7 +207,7 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
     
     thread = Thread.new { app.run }
     sleep(0.01)
-    assert_equal "http://localhost:8080/info", request.get("/terminate").headers['Location']
+    assert_equal "/info", request.get("/terminate").headers['Location']
     sleep(0.01)
     
     assert_equal 1, app.state
@@ -226,7 +226,7 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
   
   def test_build_returns_schema_form_on_get
     body = request.get("/build").body
-    assert body =~ /<form action="http:\/\/localhost:8080\/build" method="post"/
+    assert body =~ /<form action="\/build" method="post"/
     assert body =~ /<input type="submit"/
   end
   
@@ -236,7 +236,7 @@ class Tap::Controllers::AppTest < Test::Unit::TestCase
   
   def test_enque_returns_enque_form_on_get
     body = request.get("/enque").body
-    assert body =~ /<form action="http:\/\/localhost:8080\/enque" method="post"/
+    assert body =~ /<form action="\/enque" method="post"/
     assert body =~ /<input type="submit" value="enque"/
   end
   

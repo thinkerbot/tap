@@ -29,18 +29,6 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
   end
   
   #
-  # pid test
-  #
-  
-  def test_pid_returns_pid_if_admin
-    server.secret = "1234"
-    assert_equal "", request.get("/pid").body
-    assert_equal "", request.get("/pid/").body
-    assert_equal "", request.get("/pid/4321").body
-    assert_equal Process.pid.to_s, request.get("/pid/1234").body
-  end
-  
-  #
   # call test
   #
   
@@ -74,18 +62,4 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
     method_root.prepare(:public, "page.txt") {|file| }
     assert_equal "text/plain", request.get("/page.txt").content_type
   end
-  
-  #
-  # config test
-  #
-  
-  def test_config_returns_public_configs_as_xml
-    server.secret = "1234"
-    response = request.get("/config/1234")
-    
-    assert_equal 'text/xml', response['Content-Type']
-    assert_match(/<uri>#{server.uri}<\/uri>/, response.body)
-    assert_match(/<secret>#{server.secret}<\/secret>/, response.body)
-  end
-  
 end

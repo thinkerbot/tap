@@ -25,9 +25,11 @@ module Tap
     nest :data, Data, :type => :hidden
     
     attr_accessor :controller
+    attr_accessor :thread
     
     def initialize(controller=nil, config={})
       @controller = controller
+      @thread = nil
       super(config)
     end
     

@@ -152,9 +152,11 @@ module Tap
     # the action result and response is ignored.
     attr_accessor :response
     
+    attr_writer :server
+    
     # Initializes a new instance of self.
     def initialize
-      @request = @response = nil
+      @request = @response = @server = @env = nil
     end
     
     # Returns true if action is registered as an action for self.
@@ -163,7 +165,7 @@ module Tap
     end
     
     def server
-      @server ||= request.env['tap.server']
+      @server ||= (request ? request.env['tap.server'] : nil)
     end
     
     def env
