@@ -1,7 +1,5 @@
 require 'rack'
-# require 'tap'
-# require 'tap/server/data'
-require 'tap'
+require 'tap/server/data'
 require 'tap/server/server_error'
 
 module Tap
@@ -70,10 +68,6 @@ module Tap
     # administration.
     config :secret, nil, &c.string_or_nil           # the admin secret
     
-    config :daemonize, false, &c.flag
-    
-    nest :root, Root, :type => :hidden
-    
     attr_reader :handler
     
     def initialize(config={})
@@ -81,8 +75,8 @@ module Tap
       initialize_config(config)
     end
     
-    def uri
-      "http://#{host}:#{port}"
+    def uri(path=nil)
+      "http://#{host}:#{port}#{path ? '/' : ''}#{path}"
     end
     
     # Returns true if input is equal to the secret, if a secret is set. Used
@@ -90,34 +84,6 @@ module Tap
     # action.
     def admin?(input)
       secret != nil && input == secret
-    end
-    
-    def daemonize!
-      if File.exists?(root['pid'])
-        raise "pid file already exists: #{root['pid']}"
-      end
-      
-      $stdout.puts ">> Detaching Server (#{uri})"
-      
-      fork and exit
-      Process.setsid
-      fork and exit
-      Dir.chdir "/"
-      File.umask 0000
-      STDIN.reopen  "/dev/null"
-      STDOUT.reopen root.prepare('stdout'), "a"
-      STDERR.reopen root.prepare('stderr'), "a"
-      
-      root.prepare('pid') {|io| io << Process.pid }
-      root.prepare('uri') {|io| io << uri }
-      root.prepare('secret') {|io| io << secret } if secret
-    end
-    
-    def cleanup!
-      %w{pid uri secret}.each do |path|
-        path = root[path]
-        FileUtils.rm(path) if File.exists?(path)
-      end unless running?
     end
     
     def running?
@@ -129,7 +95,6 @@ module Tap
     def run!(rack_app, handler=rack_handler)
       return self if running?
       
-      daemonize! if daemonize
       handler.run(rack_app, :Host => host, :Port => port) do |handler_instance|
         @handler = handler_instance
         trap(:INT) { stop! }
@@ -146,7 +111,6 @@ module Tap
         @handler.respond_to?(:stop!) ? @handler.stop! : @handler.stop
         @handler = nil
         
-        cleanup! if daemonize
         yield if block_given?
       end
       
