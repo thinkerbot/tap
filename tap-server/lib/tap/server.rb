@@ -57,7 +57,7 @@ module Tap
         route = nil
       end
       
-      rack_env['tap.route'] = route
+      rack_env['tap.route'] = route ? "/#{route}" : ''
       controller
     end
 

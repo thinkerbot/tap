@@ -2,7 +2,9 @@
 <div>Tap <%= Tap::VERSION %></div>
 <div>
 Server:
-<pre class="yaml"><%= YAML.dump(server.config.to_hash) %></pre>
+<% config = server.config.to_hash %>
+<% config.delete(:env) %>
+<pre class="yaml"><%= YAML.dump(config) %></pre>
 </div>
 <% if Object.const_defined?(:Gem) %>
 <div>
