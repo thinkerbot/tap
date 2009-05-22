@@ -39,8 +39,6 @@ module Tap
         opts.separator "configurations:"
         opts.add(configurations)
         
-        yield(opts) if block_given?
-        
         args = opts.parse!(argv, :add_defaults => false)
         
         instantiate({
