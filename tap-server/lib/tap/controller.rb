@@ -93,7 +93,11 @@ module Tap
         end
         
         define_method(key) do |*args|
-          controller.new(self, key).dispatch(args)
+          instance = controller.new
+          instance.request = request
+          instance.response = response
+          instance.request['tap.route'] = "#{request['tap.route']}/#{key}"
+          instance.dispatch(args)
         end
       end
 
@@ -148,22 +152,9 @@ module Tap
     # the action result and response is ignored.
     attr_accessor :response
     
-    # The 'tap.server' specified in env, set during call.
-    attr_accessor :server
-    
-    # 
-    attr_accessor :name
-    
     # Initializes a new instance of self.
-    def initialize(parent=nil, action=nil)
-      if parent
-        @server = parent.server
-        @request = parent.request
-        @response = parent.response
-        @name = "#{parent.name}#{action ? '/' : ''}#{action}"
-      else
-        @server = @request = @response = @name = nil
-      end
+    def initialize
+      @request = @response = nil
     end
     
     # Returns true if action is registered as an action for self.
@@ -171,17 +162,37 @@ module Tap
       self.class.actions.include?(action.to_sym)
     end
     
+    def server
+      @server ||= request.env['tap.server']
+    end
+    
+    def env
+      @env ||= (server ? server.env : Tap::Env.instance)
+    end
+    
     # Returns a uri to the specified action on self.
     def uri(action=nil, params={})
-      server.uri("#{name}#{name && action ? '/' : ''}#{action}", params)
+      uri = [request.env['tap.route'] || '']
+      
+      if action
+        uri << '/'
+        uri << action
+      end
+      
+      unless params.empty?
+        uri << '?'
+        uri << build_query(params)
+      end
+      
+      uri.join
     end
     
     def template_path(path)
-      server.path(:views, path)
+      env.path(:views, path) {|file| File.file?(file) }
     end
     
     def module_path(path, klass=self.class)
-      server.module_path(:views, klass.ancestors, path)
+      env.module_path(:views, klass.ancestors, path) {|file| File.file?(file) }
     end
     
     # Routes the request to an action and returns the response.  Routing is
@@ -211,8 +222,6 @@ module Tap
     #   end
     #
     def call(env)
-      @server = env['tap.server']
-      @name = env['tap.path']
       @request = Rack::Request.new(env)
       @response = Rack::Response.new
       

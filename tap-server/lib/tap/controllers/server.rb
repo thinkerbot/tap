@@ -16,9 +16,7 @@ module Tap
       include Utils
       
       def index
-        render('index.erb', :locals => {
-          :env => server.env
-        }, :layout => true)
+        render('index.erb', :layout => true)
       end
       
       # Returns pong
@@ -30,7 +28,9 @@ module Tap
       # Essentially a login for server administration
       def access
         if request.get?
-          render 'access.erb', :locals => {:secret => request['secret']}, :layout => true
+          render 'access.erb', :locals => {
+            :secret => request['secret']
+          }, :layout => true
         else
           redirect uri("admin", :secret => request['secret'])
         end
@@ -40,31 +40,6 @@ module Tap
       def admin(secret=nil)
         template = server.admin?(secret) ? 'admin.erb' : 'access.erb'
         render template, :locals => {:secret => secret}, :layout => true
-      end
-      
-      # Returns the public server configurations as xml.
-      def config(secret=nil)
-        response['Content-Type'] = 'text/xml'
-        if server.admin?(secret)
-%Q{<?xml version="1.0"?>
-<server>
-<uri>#{uri}</uri>
-<secret>#{server.secret}</secret>
-</server>
-}
-        else
-%q{<?xml version="1.0"?>
-<server />
-}
-        end
-      end
-      
-      # Returns the pid if the correct secret is provided
-      def pid(secret=nil)
-        response['Content-Type'] = "text/plain"
-        
-        return "" unless server.admin?(secret)
-        Process.pid.to_s
       end
       
       # Terminates app and stops self (on post).
@@ -81,18 +56,26 @@ module Tap
       end
       
       def help(type=nil, *key)
-        const = server.env.constant_manifest(type)[key.join('/')]
-        module_render 'help.erb', const, :locals => {:obj => const}
+        if const = env[type][key.join('/')]
+          module_render 'help.erb', const
+        else
+          "unknown #{type}: #{key.join('/')}"
+        end
       end
       
       # ensure server methods are not added as actions
       set :define_action, false
       
-      def call(env)
-        # serve public files before actions
-        server = env['tap.server'] ||= Tap::Server.new
-    
-        if path = server.path(:public, env['PATH_INFO'])
+      def server
+        super or raise "no tap.server is set"
+      end
+      
+      def call(rack_env)
+        server = rack_env['tap.server']
+        env = server ? server.env : Tap::Env.instance
+        
+        path = env.path(:public, rack_env['PATH_INFO']) {|file| File.file?(file) }
+        if path
           static_file(path)
         else
           super
@@ -119,6 +102,7 @@ module Tap
       def stop!
         server.stop!
       end
+      
     end
   end
 end

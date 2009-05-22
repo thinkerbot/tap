@@ -4,14 +4,18 @@ module Tap
     # A very simple wrapper for root providing a CRUD interface for reading and
     # writing files.  Data ids may be integers (if you want to pretend Data is
     # a database), or they can be relative paths.
-    class Data
+    class Data < Tap::Root
       
-      attr_reader :root
       attr_reader :cache
       
-      def initialize(root)
+      def initialize(config_or_dir=Dir.pwd)
         @cache = Hash.new([])
-        @root = root
+        
+        if config_or_dir.kind_of?(Tap::Root)
+          config_or_dir = config_or_dir.config.to_hash
+        end
+        
+        super(config_or_dir)
       end
       
       # A restricted version of the original.  Path raises an error if the
@@ -22,8 +26,8 @@ module Tap
           raise "no id specified" 
         end
         
-        path = root.path(als, id)
-        unless root.relative?(als, path)
+        path = self.path(als, id)
+        unless relative?(als, path)
           raise "not a subpath: #{id.inspect} (#{als.inspect})"
         end
         
@@ -32,7 +36,7 @@ module Tap
       
       # Returns a list of entry paths.
       def entries(als)
-        root.glob(als).select do |path|
+        glob(als).select do |path|
           File.file?(path)
         end
       end
@@ -40,7 +44,7 @@ module Tap
       # Returns a list of existing ids.
       def index(als)
         entries(als).collect do |path|
-          root.relative_path(als, path)
+          relative_path(als, path)
         end
       end
       
@@ -105,7 +109,7 @@ module Tap
       end
       
       def create_or_update(als, id)
-        path = path(als, id)
+        path = entry_path(als, id)
         create!(path) {|io| yield(io) }
       end
       
@@ -148,7 +152,7 @@ module Tap
       # resolved (using the instance prepare requires a second path
       # resolution)
       def create!(path) # :nodoc:
-        Tap::Root::Utils.prepare(path) {|io| yield(io) }
+        Utils.prepare(path) {|io| yield(io) }
       end
       
       # like find but raises an error if the path doesn't exist
