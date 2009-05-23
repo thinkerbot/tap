@@ -40,10 +40,10 @@ module Tap
         end
         
         config = {
-          :root => path,
-          :gems => dependencies,
-          :load_paths => spec.require_paths,
-          :set_load_paths => false
+          'root' => path,
+          'gems' => dependencies,
+          'load_paths' => spec.require_paths,
+          'set_load_paths' => false
         }
         
         if basename
@@ -168,7 +168,12 @@ module Tap
       when String then Root.new(config_or_dir)
       else
         config = config_or_dir
-        root = config.delete(:root) || Dir.pwd
+        
+        if config.has_key?(:root) && config.has_key?('root')
+          raise "multiple values mapped to :root"
+        end
+        
+        root = config.delete(:root) || config.delete('root') || Dir.pwd
         root.kind_of?(Root) ? root : Root.new(root)
       end
       
