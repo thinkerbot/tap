@@ -25,6 +25,7 @@ module Tap
     nest :data, Data, :type => :hidden
     
     attr_accessor :controller
+    
     attr_accessor :thread
     
     def initialize(controller=nil, config={})
@@ -44,20 +45,20 @@ module Tap
       return controller unless router
       
       # route to a controller
-      blank, route, path_info = rack_env['PATH_INFO'].split("/", 3)
-      controller = lookup_controller(unescape(route))
+      blank, path, path_info = rack_env['PATH_INFO'].split("/", 3)
+      controller = lookup_controller(unescape(path))
       
       if controller
         # adjust rack_env if route routes to a controller
-        rack_env['SCRIPT_NAME'] = ["#{rack_env['SCRIPT_NAME'].chomp('/')}/#{route}"]
+        rack_env['SCRIPT_NAME'] = ["#{rack_env['SCRIPT_NAME'].chomp('/')}/#{path}"]
         rack_env['PATH_INFO'] = ["/#{path_info}"]
       else
         # use default controller
         controller = self.controller
-        route = nil
+        path = nil
       end
       
-      rack_env['tap.route'] = route ? "/#{route}" : ''
+      rack_env['tap.controller_path'] = path
       controller
     end
 

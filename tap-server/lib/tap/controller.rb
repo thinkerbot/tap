@@ -94,9 +94,12 @@ module Tap
         
         define_method(key) do |*args|
           instance = controller.new
+          
+          instance.server = server
+          instance.controller_path = "#{controller_path}/#{key}"
           instance.request = request
           instance.response = response
-          instance.request['tap.route'] = "#{request['tap.route']}/#{key}"
+          
           instance.dispatch(args)
         end
       end
@@ -144,6 +147,10 @@ module Tap
     # not be actions in subclasses. 
     set :define_action, false
     
+    attr_accessor :server
+    
+    attr_accessor :controller_path
+    
     # A Rack::Request wrapping env, set during call.
     attr_accessor :request
 
@@ -152,11 +159,9 @@ module Tap
     # the action result and response is ignored.
     attr_accessor :response
     
-    attr_writer :server
-    
     # Initializes a new instance of self.
     def initialize
-      @request = @response = @server = @env = nil
+      @request = @response = @server = @controller_path = nil
     end
     
     # Returns true if action is registered as an action for self.
@@ -164,17 +169,14 @@ module Tap
       self.class.actions.include?(action.to_sym)
     end
     
-    def server
-      @server ||= (request ? request.env['tap.server'] : nil)
-    end
-    
-    def env
-      @env ||= (server ? server.env : Tap::Env.instance)
-    end
-    
     # Returns a uri to the specified action on self.
     def uri(action=nil, params={})
-      uri = [request.env['tap.route'] || '']
+      uri = []
+      
+      if controller_path
+        uri << '/'
+        uri << controller_path
+      end
       
       if action
         uri << '/'
@@ -190,11 +192,11 @@ module Tap
     end
     
     def template_path(path)
-      env.path(:views, path) {|file| File.file?(file) }
+      server.env.path(:views, path) {|file| File.file?(file) }
     end
     
     def module_path(path, klass=self.class)
-      env.module_path(:views, klass.ancestors, path) {|file| File.file?(file) }
+      server.env.module_path(:views, klass.ancestors, path) {|file| File.file?(file) }
     end
     
     # Routes the request to an action and returns the response.  Routing is
@@ -224,6 +226,9 @@ module Tap
     #   end
     #
     def call(env)
+      @server = env['tap.server']
+      @controller_path = env['tap.controller_path']
+      
       @request = Rack::Request.new(env)
       @response = Rack::Response.new
       

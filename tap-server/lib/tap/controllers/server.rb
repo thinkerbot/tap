@@ -56,7 +56,7 @@ module Tap
       end
       
       def help(type=nil, *key)
-        if const = env[type][key.join('/')]
+        if const = server.env[type][key.join('/')]
           module_render 'help.erb', const
         else
           "unknown #{type}: #{key.join('/')}"
@@ -66,15 +66,8 @@ module Tap
       # ensure server methods are not added as actions
       set :define_action, false
       
-      def server
-        super or raise "no tap.server is set"
-      end
-      
       def call(rack_env)
-        server = rack_env['tap.server']
-        env = server ? server.env : Tap::Env.instance
-        
-        path = env.path(:public, rack_env['PATH_INFO']) {|file| File.file?(file) }
+        path = rack_env['tap.server'].env.path(:public, rack_env['PATH_INFO']) {|file| File.file?(file) }
         if path
           static_file(path)
         else

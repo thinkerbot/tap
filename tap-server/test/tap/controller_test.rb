@@ -70,25 +70,6 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
-  # server test
-  #
-  
-  class MockRequestWithServer
-    attr_accessor :env
-  end
-  
-  def test_server_gets_value_from_request_env_if_unset
-    controller.server = nil
-    assert_equal nil, controller.server
-    
-    request = MockRequestWithServer.new
-    request.env = {'tap.server' => 'server'}
-    controller.request = request
-    
-    assert_equal 'server', controller.server
-  end
-  
-  #
   # call test
   #
   
@@ -102,6 +83,24 @@ class ControllerTest < Test::Unit::TestCase
     def action(*args)
       args.join(".")
     end
+  end
+  
+  def test_call_sets_server_from_request_env
+    controller = CallController.new
+    request = Rack::MockRequest.new controller
+    
+    assert_equal nil, controller.server
+    request.get("", 'tap.server' => 'server')
+    assert_equal "server", controller.server
+  end
+  
+  def test_call_sets_controller_path_from_request_env
+    controller = CallController.new
+    request = Rack::MockRequest.new controller
+    
+    assert_equal nil, controller.controller_path
+    request.get("", 'tap.controller_path' => 'controller_path')
+    assert_equal "controller_path", controller.controller_path
   end
   
   def test_call_routes_empty_path_info_default_action
