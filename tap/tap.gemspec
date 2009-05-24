@@ -42,7 +42,6 @@ Gem::Specification.new do |s|
     lib/tap/env/minimap.rb
     lib/tap/env/string_ext.rb
     lib/tap/exe.rb
-    lib/tap/exe/opts.rb
     lib/tap/join.rb
     lib/tap/joins.rb
     lib/tap/joins/switch.rb

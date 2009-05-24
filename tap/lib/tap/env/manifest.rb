@@ -67,7 +67,7 @@ module Tap
 <%= env_key %>:
 <% end %>
 <% entries.each do |key, entry| %>
-  <%= key.ljust(width) %> # <%= entry.comment %>
+  <%= key.ljust(width) %> # <%= entry.respond_to?(:comment) ? entry.comment : entry %>
 <% end %>
 }
 
