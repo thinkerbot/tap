@@ -61,7 +61,7 @@ module Tap
         end
         
         schema = Tap::Schema.load(schema).resolve! do |type, key, data|
-          server.env.constant_manifest(type)[key]
+          server.env.manifest(type)[key]
         end.validate!
         
         if request[:reset] == "on"

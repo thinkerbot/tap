@@ -1,4 +1,4 @@
-<form id="build_<%= id %>" class="build" method="post" action="<%= server.uri("app/build") %>">
+<form id="build_<%= id %>" class="build" method="post" action="<%= uri("../build") %>">
   <input type="hidden" name="_method" value="build" />
   <input type="hidden" name="id" value="<%= id %>" />
   <input type="hidden" name="reset" value="on" />

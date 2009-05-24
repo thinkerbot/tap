@@ -112,17 +112,13 @@ module Tap
         end
         
         schema.resolve! do |type, key, data|
-          env.constant_manifest(type)[key]
+          env.manifest(type)[key]
         end
         
         render "entry.erb", :locals => {
           :id => id,
           :schema => schema
         }, :layout => true
-      end
-      
-      def help_uri(type, obj)
-        server.uri("help/#{type}/#{obj[:id] || obj[:class].to_s.underscore}")
       end
       
       def stringify(obj)

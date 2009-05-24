@@ -21,7 +21,7 @@
   
   <ul>
 <% server.env.minimap.each do |(env_name, env)| %>
-<%   env.constant_manifest(:task).minimap.each do |(name, const)| %>
+<%   env.manifest('task').minimap.each do |(name, const)| %>
 <%     key = "#{env_name}:#{name}" %>
   <li><input name="tasks[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
 <%   end %>
@@ -88,7 +88,6 @@
         :id => "#{id}_task_#{key}", 
         :name => name, 
         :values => task[:config] || default_config(task_class) }) %>
-      <a href="<%= help_uri(:task, task) %>">help</a>
     </li>
 <% end %>
   </ul>
