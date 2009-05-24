@@ -96,7 +96,7 @@ module Tap
           instance = controller.new
           
           instance.server = server
-          instance.controller_path = "#{controller_path}/#{key}"
+          instance.controller_path = controller_path ? "#{controller_path}/#{key}" : key
           instance.request = request
           instance.response = response
           

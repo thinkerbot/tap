@@ -97,7 +97,7 @@ module Tap
           nil
         end
       else
-        env[:controller][key]
+        env['controller'][key]
       end
     end
   end
