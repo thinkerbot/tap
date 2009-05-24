@@ -84,12 +84,8 @@ module Tap
       # Helper methods
       protected
       
-      attr_reader :type
-      
-      # Initializes a new instance of self.
-      def initialize(parent=nil, action=nil)
-        super
-        @type = action || :data
+      def type
+        :data
       end
       
       def data

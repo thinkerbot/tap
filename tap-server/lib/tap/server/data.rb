@@ -117,7 +117,7 @@ module Tap
         id = upload[:filename] unless id && !id.empty?
         path = non_existant_path(als, id)
         
-        root.prepare(path)
+        prepare(path)
         FileUtils.mv(upload[:tempfile].path, path)
         path
       end
@@ -126,7 +126,7 @@ module Tap
         path = existing_path(als, id)
         new_path = non_existant_path(als, new_id)
         
-        root.prepare(new_path)
+        prepare(new_path)
         FileUtils.mv(path, new_path)
         
         if cache[als].include?(id)
@@ -141,7 +141,7 @@ module Tap
         path = existing_path(als, id)
         new_path = non_existant_path(als, new_id)
         
-        root.prepare(new_path)
+        prepare(new_path)
         FileUtils.copy(path, new_path)
         new_id
       end

@@ -482,6 +482,11 @@ module Tap
       manifest(type)
     end
     
+    def reset
+      manifests.clear
+      registries.clear
+    end
+    
     #--
     # Environment-seek
     def eeek(type, key)
