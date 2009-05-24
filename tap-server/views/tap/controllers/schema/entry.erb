@@ -21,7 +21,7 @@
   
   <ul>
 <% server.env.minimap.each do |(env_name, env)| %>
-<%   env.manifest('task').minimap.each do |(name, const)| %>
+<%   env.manifest(:task).minimap.each do |(name, const)| %>
 <%     key = "#{env_name}:#{name}" %>
   <li><input name="tasks[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
 <%   end %>
@@ -79,15 +79,15 @@
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
 <%  name = "schema[tasks][#{key}]" %>
-<%  task_class = task[:class] %>
+<%  task_class = task['class'] %>
     <li id="task_<%= key %>" class="task">
       <h3><a href="#add_<%= id %>"><%= key %></a></h3>
       
-      <input type="hidden" name="<%= name %>[id]" value="<%= task[:id] %>">
+      <input type="hidden" name="<%= name %>[id]" value="<%= task['id'] %>">
 <%=   module_render('task.erb', task_class, :locals => {
         :id => "#{id}_task_#{key}", 
         :name => name, 
-        :values => task[:config] || default_config(task_class),
+        :values => task['config'] || default_config(task_class),
         :task => task }) %>
     </li>
 <% end %>
@@ -96,7 +96,7 @@
   <ul class="joins">
 <% schema.joins.each_with_index do |(inputs, outputs, join), index| %>
 <%  name = "schema[joins][]" %>
-<%  join_class = join[:class] %>
+<%  join_class = join['class'] %>
     <li id="join_<%= index %>" class="join">
       <h3><a href="#add_<%= id %>"><%= index %></a></h3>
 <%    inputs.each do |input| %>
@@ -105,11 +105,11 @@
 <%    outputs.each do |output| %>
       <input type="hidden" name="<%= name %>[1][]" value="<%= output %>">
 <%    end %>
-      <input type="hidden" name="<%= name %>[2][id]" value="<%= join[:id] || 'join' %>">
+      <input type="hidden" name="<%= name %>[2][id]" value="<%= join['id'] || 'join' %>">
 <%=   module_render('join.erb', join_class, :locals => {
         :id => "#{id}_join_#{index}", 
         :name => "#{name}[2]", 
-        :values => join[:config] || default_config(join_class),
+        :values => join['config'] || default_config(join_class),
         :join => join }) %>
     </li>
 <% end %>
@@ -123,7 +123,7 @@
     <li id="queue_<%= index %>" class="queue">
     <h3><%= key %></h3>
     <input type="hidden" name="<%= name %>[0]" value="<%= key %>">
-<%= module_render('input.erb', task[:class], :locals => {
+<%= module_render('input.erb', task['class'], :locals => {
       :id => id, 
       :name => "#{name}[1]",
       :args => args || [],
