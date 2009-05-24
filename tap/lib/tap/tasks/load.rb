@@ -31,7 +31,9 @@ module Tap
     #   end
     #
     class Load < Tap::Task
-    
+      
+      config :file, false, &c.flag         # opens the input as a file
+      
       # The default process simply reads the input data and returns it.
       # See load.
       def process(io=$stdin)
@@ -43,7 +45,7 @@ module Tap
       
         if io.kind_of?(String)
           io = StringIO.new(io)
-        end
+        end unless file
       
         open_io(io) do |data|
           load(data)
