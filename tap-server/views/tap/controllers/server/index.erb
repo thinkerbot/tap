@@ -4,34 +4,34 @@
 
 <div id="content_main">
 <dl id="envs" class="manifest">
-<% env_keys = env.minihash(true) %>
-<% env.each do |current| %>
-<%   root = current.root %>
-<%   env_key = env_keys[current] %>
+<% env_keys = server.env.minihash(true) %>
+<% server.env.each do |env| %>
+<%   root = env.root %>
+<%   env_key = env_keys[env] %>
   <dt class="key"><%= env_key %> (<%= root.root %>)</dt>
   <dd class="value">
-<%   controllers = current.constant_manifest(:controller) %>
+<%   controllers = env.manifest('controller') %>
 <%   unless controllers.empty? %>
     <dl id="controllers" class="manifest">
     <dt class="key">controllers</dt>
     <dd class="value">
       <ol>
 <%     controllers.minimap.each do |(key, const)| %>
-      <li><a href="<%= server.controller_uri(env_key, key) %>"><%= key %></a> (<a href="<%= help_uri(:controller, key) %>"><%= const.require_path %></a>)</li>
+      <li><a href="<%= escape(key) %>"><%= key %></a> (<a href="<%= help_uri('controller', key) %>"><%= const.require_path %></a>)</li>
 <%     end %>
       </ol>
     </dd>
     </dl>
 <%   end %>
 
-<%   tasks = current.constant_manifest(:task) %>
+<%   tasks = env.manifest('task') %>
 <%   unless tasks.empty? %>
     <dl id="tasks" class="manifest">
     <dt class="key">tasks</dt>
     <dd class="value">
       <ol>
 <%     tasks.minimap.each do |(key, const)| %>
-      <li><a href="<%= server.uri("schema", "nodes[0][0]" => "#{env_key}:#{key}") %>"><%= key %></a> (<a href="<%= help_uri(:task, key) %>"><%= const.require_path %></a>)</li>
+      <li><%= key %> (<a href="<%= help_uri('task', key) %>"><%= const.require_path %></a>)</li>
 <%     end %>
       </ol>
     </dd>

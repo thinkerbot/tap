@@ -56,8 +56,8 @@ module Tap
       end
       
       def help(type=nil, *key)
-        if const = server.env[type][key.join('/')]
-          module_render 'help.erb', const
+        if constant = server.env[type][key.join('/')]
+          module_render 'help.erb', constant
         else
           "unknown #{type}: #{key.join('/')}"
         end

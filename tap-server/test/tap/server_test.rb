@@ -52,9 +52,9 @@ class ServerTest < Test::Unit::TestCase
   end
   
   def test_call_routes_to_registered_controller
-    env.register_constant(:controller, RegisteredController)
+    env.register('controller', true) { [Tap::Env::Constant.new(RegisteredController.to_s)] }
     
-    assert_equal RegisteredController, server.env[:controller]['registered_controller']
+    assert_equal RegisteredController, server.env['controller']['registered_controller']
     assert_equal "result", request.get('/registered_controller').body
   end
   
@@ -66,8 +66,8 @@ class ServerTest < Test::Unit::TestCase
   end
   
   def test_call_adjusts_env_to_reflect_reroute
-    env.register_constant(:controller, AdjustController)
-  
+    env.register('controller', true) { [Tap::Env::Constant.new(AdjustController.to_s)] }
+    
     headers = request.get("/adjust_controller").headers
     assert_equal ["/adjust_controller"], headers['script_name']
     assert_equal ["/"], headers['path_info']
@@ -78,7 +78,7 @@ class ServerTest < Test::Unit::TestCase
   end
   
   def test_call_correctly_routes_path_info_with_escapes
-    env.register_constant(:controller, AdjustController)
+    env.register('controller', true) { [Tap::Env::Constant.new(AdjustController.to_s)] }
     
     headers = request.get("/%61djust_controller/a%2Bb/c%20d")
     assert_equal ["/%61djust_controller"], headers['script_name']
