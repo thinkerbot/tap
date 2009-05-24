@@ -34,26 +34,22 @@ Note the middleware API is essentially the same as for {Rack}[http://rack.rubyfo
 
 == Tap::Schema
 
-Schema describe workflows as data.  To build a workflow from a schema, workflow classes need to instantiate themselves using the schema data. The <tt>parse!</tt> and <tt>instantiate</tt> methods are provided to do so.  
+Schema describe workflows as data.  To build a workflow from a schema, workflow classes need to instantiate themselves using the schema data. The <tt>parse</tt> and <tt>instantiate</tt> methods are provided to do so.  
 
-  WorkflowClass.parse!(argv=ARGV, app=App.instance)
+  WorkflowClass.parse(argv=ARGV, app=App.instance)
   WorkflowClass.instantiate(argh, app=App.instance)
   
-As implied in by the inputs, <tt>parse!</tt> instantiates from an array, while <tt>instantiate</tt> instantiates from a hash.  If <tt>parse!</tt> receives a string, it must be able to convert it to an array (ex using Shellwords).
+As implied in by the inputs, <tt>parse</tt> instantiates from an array, while <tt>instantiate</tt> instantiates from a hash with symbol keys.  If <tt>parse</tt> receives a string, it must be able to convert it to an array (ex using Shellwords).
 
-How the class actually performs the instantiation is up to the class but typically:
-
-* <tt>parse!</tt> destructively parses argv
-* <tt>parse!</tt> creates an argh and calls instantiate
-* <tt>parse</tt> is implemented to non-destructively parse argv
+How the class actually performs the instantiation is up to the class but typically parse creates a hash and calls instantiate.
 
 ==== Tap::Task (and subclasses)
 
-Parse and instantate must return: [instance, args]
+Parse and instantiate must return: [instance, args]
 
 ==== Tap::Join (and subclasses)
 
-Parse and instantate must return: [inputs, outputs, instance]
+Parse and instantiate must return: [inputs, outputs, instance]
 
 == Tap::Env
 
