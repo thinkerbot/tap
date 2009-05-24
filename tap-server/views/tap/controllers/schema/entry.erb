@@ -87,7 +87,8 @@
 <%=   module_render('task.erb', task_class, :locals => {
         :id => "#{id}_task_#{key}", 
         :name => name, 
-        :values => task[:config] || default_config(task_class) }) %>
+        :values => task[:config] || default_config(task_class),
+        :task => task }) %>
     </li>
 <% end %>
   </ul>
@@ -108,7 +109,8 @@
 <%=   module_render('join.erb', join_class, :locals => {
         :id => "#{id}_join_#{index}", 
         :name => "#{name}[2]", 
-        :values => join[:config] || default_config(join_class) }) %>
+        :values => join[:config] || default_config(join_class),
+        :join => join }) %>
     </li>
 <% end %>
   </ul>
@@ -124,7 +126,8 @@
 <%= module_render('input.erb', task[:class], :locals => {
       :id => id, 
       :name => "#{name}[1]",
-      :args => args || [] }) %>
+      :args => args || [],
+      :task => task }) %>
     </li>
 <% end %>
   </ul>

@@ -208,7 +208,7 @@ module Rap
     # Registers a task class with the Declarations.env, if necessary.
     # Returns task_class.
     def register(tasc)
-      tasks = Declarations.env.manifest('task')
+      tasks = Declarations.env.manifest(:task)
       
       const_name = tasc.to_s
       constant = tasks.find do |const| 

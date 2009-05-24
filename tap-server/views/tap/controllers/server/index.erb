@@ -10,7 +10,7 @@
 <%   env_key = env_keys[env] %>
   <dt class="key"><%= env_key %> (<%= root.root %>)</dt>
   <dd class="value">
-<%   controllers = env.manifest('controller') %>
+<%   controllers = env.manifest(:controller) %>
 <%   unless controllers.empty? %>
     <dl id="controllers" class="manifest">
     <dt class="key">controllers</dt>
@@ -24,7 +24,7 @@
     </dl>
 <%   end %>
 
-<%   tasks = env.manifest('task') %>
+<%   tasks = env.manifest(:task) %>
 <%   unless tasks.empty? %>
     <dl id="tasks" class="manifest">
     <dt class="key">tasks</dt>

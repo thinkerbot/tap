@@ -47,10 +47,10 @@ ConfigParser.new(app.config) do |opts|
   end
   
   opts.on('-T', '--manifest', 'Print a list of available tasks') do
-    tasks = env.manifest('task')
+    tasks = env.manifest(:task)
     tasks_found = !tasks.all_empty?
     
-    middleware = env.manifest('middleware')
+    middleware = env.manifest(:middleware)
     middleware_found = !middleware.all_empty?
     
     if tasks_found 
@@ -67,7 +67,7 @@ ConfigParser.new(app.config) do |opts|
   end
   
   opts.on('-m', '--middleware MIDDLEWARE', 'Specify app middleware') do |key|
-    middleware = env['middleware'][key] or raise("unknown middleware: #{key}")
+    middleware = env[:middleware][key] or raise("unknown middleware: #{key}")
     app.use(middleware)
   end
   

@@ -36,7 +36,7 @@ begin
     args << 'server'
   end
   
-  controller = env['controller'][args.shift]
+  controller = env[:controller][args.shift]
   
   unless args.empty?
     warn "ignoring args: #{args.inspect}"

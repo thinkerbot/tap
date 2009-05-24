@@ -90,14 +90,14 @@ module Tap
         # controllers will be reloaded each request
           
         env.reset
-        if const = env.seek('controller',key)
+        if const = env.seek(:controller, key)
           const.unload
           const.constantize
         else
           nil
         end
       else
-        env['controller'][key]
+        env[:controller][key]
       end
     end
   end

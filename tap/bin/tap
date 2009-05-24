@@ -40,7 +40,7 @@ exe.launch(ARGV) do
   <%= key.ljust(width) %>
 <% end %>}
 
-  commands = exe.manifest('command').inspect(template,
+  commands = exe.manifest(:command).inspect(template,
     :count => 0,
     :width => 10
   ) do |templater, globals|
