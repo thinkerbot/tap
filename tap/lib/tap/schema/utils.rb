@@ -4,29 +4,26 @@ module Tap
       module_function
       
       def instantiate(data, app)
-        data = data.dup
-        
         case data
-        when Hash  then data[:class].instantiate(data, app)
-        when Array then data.shift.parse!(data, app)
+        when Hash  then data['class'].instantiate(symbolize(data), app)
+        when Array then data.shift.parse(data, app)
         end
       end
       
       def resolved?(data)
         case data
-        when Hash  then data[:class].respond_to?(:instantiate)
-        when Array then data[0].respond_to?(:parse!)
+        when Hash  then data['class'].respond_to?(:instantiate)
+        when Array then data[0].respond_to?(:parse)
         else false
         end
       end
       
       def resolve(data)
-        data = symbolize(data)
         return data if resolved?(data)
         
         case data
         when Hash
-          data[:class] = yield(data[:id], data)
+          data['class'] = yield(data['id'], data)
         when Array 
           data[0] = yield(data[0], data)
         end
