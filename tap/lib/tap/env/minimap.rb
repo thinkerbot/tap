@@ -1,5 +1,3 @@
-require 'tap/root/utils'
-
 module Tap
   class Env
     
