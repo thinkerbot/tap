@@ -24,11 +24,6 @@ module Tap
 
     # Setup an execution environment.
     def self.setup(options={}, argv=ARGV, env=ENV)
-      if argv[-1] == '-d-'
-        argv.pop
-        $DEBUG = true 
-      end
-      
       options = {
         :dir => Dir.pwd,
         :config_file => CONFIG_FILE
@@ -60,11 +55,19 @@ module Tap
       end
       
       # instantiate
-      exe = Env.new(config, config_file).extend(Exe)
+      exe = Env.new(config, :basename => config_file).extend(Exe)
+      
+      if exe.config['debug']
+        $DEBUG = true 
+      end
+      
+      exe.register('command') do |env|
+        env.root.glob(:cmd, "**/*.rb")
+      end
       
       # add the tap env if necessary
       unless exe.any? {|env| env.root.root == TAP_HOME }
-        exe.push Env.new(TAP_HOME) 
+        exe.push Env.new(TAP_HOME, exe.context) 
       end
       
       exe
@@ -76,33 +79,12 @@ module Tap
     # The home directory for Tap
     TAP_HOME = File.expand_path("#{File.dirname(__FILE__)}/../..")
     
-    # The global home directory
-    # GLOBAL_HOME = File.join(user_home, ".tap")
-    
-    def commands
-      manifests['command'] ||= manifest('commands') do |env|
-        env.root.glob(:cmd, "**/*.rb")
-      end
-    end
-    
-    def tasks
-      constant_manifest(:task)
-    end
-    
-    def joins
-      constant_manifest(:join)
-    end
-    
-    def middleware
-      constant_manifest(:middleware)
-    end
-    
     def launch(argv=ARGV)
       case command = argv.shift.to_s  
       when '', '--help'
         yield
       else
-        if path = commands.seek(command)
+        if path = seek('command', command)
           load path # run the command, if it exists
         else
           puts "Unknown command: '#{command}'"
@@ -113,7 +95,7 @@ module Tap
     
     def build(schema, app=Tap::App.instance)
       schema.resolve! do |type, id, data|
-        klass = constant_manifest(type)[id]
+        klass = self[type][id]
         if !klass && block_given?
           klass = yield(type, id, data)
         end

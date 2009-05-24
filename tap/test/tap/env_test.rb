@@ -103,7 +103,7 @@ class EnvTest < Test::Unit::TestCase
       io << YAML.dump(:key => 'value')
     end
     
-    e = Env.new(method_root, 'config.yml')
+    e = Env.new(method_root, :basename => 'config.yml')
     assert_equal "value", e.config[:key]
   end
   
@@ -112,14 +112,8 @@ class EnvTest < Test::Unit::TestCase
       io << YAML.dump(:key => 'value')
     end
     
-    e = Env.new({:root => method_root}, 'config.yml')
+    e = Env.new({:root => method_root}, :basename => 'config.yml')
     assert_equal nil, e.config[:key]
-  end
-  
-  def test_initialize_registers_self_in_cache
-    cache = {}
-    e = Env.new(method_root, nil, cache)
-    assert_equal [e], cache[:env]
   end
   
   def test_initialize_raises_error_if_cache_contains_an_env_with_the_same_root_root
@@ -127,9 +121,9 @@ class EnvTest < Test::Unit::TestCase
     r2 = Tap::Root.new
     assert_equal r1.root, r2.root
     
-    cache = {:env => [Env.new(r1)]}
-    err = assert_raises(RuntimeError) { Env.new(r2, nil, cache) }
-    assert_equal "cache already has an env for: #{r2.root}", err.message
+    context = {:instances => [Env.new(r1)]}
+    err = assert_raises(RuntimeError) { Env.new(r2, context) }
+    assert_equal "context already has an env for: #{r2.root}", err.message
   end
   
   #
@@ -173,7 +167,7 @@ class EnvTest < Test::Unit::TestCase
     
     # one loads one/config.yml, which sets two as an env
     # two loads two/config.yml, which sets three as an env
-    e = Env.new({:env_paths => one}, "config.yml")
+    e = Env.new({:env_paths => one}, :basename => "config.yml")
     
     assert_equal [one], e.envs.collect {|env| env.root.root }
     assert_equal [two], e.envs[0].envs.collect {|env| env.root.root }
@@ -193,7 +187,7 @@ class EnvTest < Test::Unit::TestCase
     
     # one loads one/config.yml, which sets two as an env
     # two loads two/config.yml, which sets one as an env
-    e = Env.new({:env_paths => one}, "config.yml")
+    e = Env.new({:env_paths => one}, :basename => "config.yml")
     
     assert_equal [one], e.envs.collect {|env| env.root.root }
     assert_equal [two], e.envs[0].envs.collect {|env| env.root.root }
@@ -481,40 +475,19 @@ a (0)
   end
   
   #
-  # register test
-  #
-  
-  def test_register_stores_an_object_in_the_registry
-    assert_equal nil, e.registry[:path]
-    e.register(:path, 'a/b/c')
-    e.register(:path, 'd/e/f')
-    assert_equal ['a/b/c', 'd/e/f'], e.registry[:path]
-  end
-  
-  def test_register_does_not_store_objects_twice
-    e.register(:path, 'a/b/c')
-    e.register(:path, 'a/b/c')
-    e.register(:path, 'a/b/c')
-    assert_equal ['a/b/c'], e.registry[:path]
-  end
-  
-  #
-  # entries test
-  #
-  
-  def test_entries_returns_a_minimap_array
-    assert_equal nil, e.registry[:path]
-    assert_equal [], e.entries(:path)
-    assert e.entries(:path).kind_of?(Env::Minimap)
-  end
-  
-  #
   # seek test
   #
   
   def test_seek_traverses_env_for_first_matching_resource_of_the_specified_type
-    e1 = Env.new :root => method_root['a'], :registry => {:type => ["a/one.txt", "a/two.txt"] }
-    e2 = Env.new :root => method_root['b'], :registry => {:type => ["b/one.txt", "b/three.txt"] }
+    context = {
+      :registries => {
+        method_root['a'] => {:type => ["a/one.txt", "a/two.txt"] },
+        method_root['b'] => {:type => ["b/one.txt", "b/three.txt"] }
+      }
+    }
+    
+    e1 = Env.new method_root['a'], context
+    e2 = Env.new method_root['b'], context
     e1.push e2
     
     assert_equal "a/one.txt", e1.seek(:type, "one")
@@ -542,13 +515,17 @@ a (0)
     b_one = method_root.prepare("b/one.txt") { }
     b_three = method_root.prepare("b/three.txt") { }
     
-    e1 = Env.new(method_root['a'])
-    e2 = Env.new(method_root['b'])
+    context = {
+      :builders => {
+        :type => lambda {|env| env.root.glob(:root)}
+      }
+    }
+    
+    e1 = Env.new method_root['a'], context
+    e2 = Env.new method_root['b'], context
     e1.push e2
     
-    m = e1.manifest(:type) do |env|
-      env.root.glob(:root)
-    end
+    m = e1.manifest(:type) 
     
     assert_equal a_one, m.seek("one")
     assert_equal a_two, m.seek("two")
@@ -563,11 +540,8 @@ a (0)
   end
   
   def test_manifest_seek_with_versions
-    e1 = Env.new(Env::Root.new("/path/to/e1"))
-    e2 = Env.new(Env::Root.new("/path/to/e2"))
-    e1.push e2
-    
-    m = e1.manifest(:type) do |env|
+    context = {:builders => {}}
+    context[:builders][:type] = lambda do |env|
       [ "/path/to/one-0.1.0.txt",
         "/path/to/two.txt",
         "/path/to/another/one.txt",
@@ -576,6 +550,12 @@ a (0)
         "/#{File.basename(env.root.root)}#{entry}"
       end
     end
+    
+    e1 = Env.new "/path/to/e1", context
+    e2 = Env.new "/path/to/e2", context
+    e1.push e2
+    
+    m = e1.manifest(:type) 
     
     # simple search of e1
     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("one")
@@ -620,13 +600,15 @@ a (0)
     b_one = method_root.prepare("b/one.txt") {|io| io << "::one"}
     b_three = method_root.prepare("b/three.txt") {|io| io << "::three"}
     
-    e1 = Env.new(method_root['a'])
-    e2 = Env.new(method_root['b'])
+    context = {
+      :builders => {
+        :type => lambda {|env| env.root.glob(:root)}
+      }
+    }
+
+    e1 = Env.new method_root['a'], context
+    e2 = Env.new method_root['b'], context
     e1.push e2
-    
-    m = e1.manifest(:type) do |env|
-      env.root.glob(:root)
-    end
     
     template = %Q{<%= env_key %>:
 <% manifest.minimap.each do |key, value| %>
@@ -641,7 +623,7 @@ a:
 b:
   one: one.txt
   three: three.txt
-}, "\n" + m.inspect(template)
+}, "\n" + e1.manifest(:type).inspect(template)
   end
   
   #

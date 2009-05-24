@@ -6,17 +6,13 @@ module Tap
     # Methods used by the generate and destroy commands.
     module Exe
       
-      def generators
-        constant_manifest(:generator)
-      end
-      
       def run(mod, argv=ARGV)
         if argv.empty? || argv == ['--help']
           yield
         end
         
         name = argv.shift
-        env, const = generators.eeek(name)
+        env, const = eeek('generator', name)
         
         unless const
           raise "unknown generator: #{name}"

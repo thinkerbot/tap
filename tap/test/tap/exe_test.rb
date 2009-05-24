@@ -72,17 +72,4 @@ class ExeTest < Test::Unit::TestCase
     assert_equal 'options', exe.config[:key]
   end
   
-  def test_setup_sets_DEBUG_if_ARGV_ends_in_superopt
-    current = $DEBUG
-    begin
-      $DEBUG = false
-      argv = [1,2,3,"-d-"]
-      Exe.setup({}, argv)
-      
-      assert_equal [1,2,3], argv
-      assert_equal true, $DEBUG
-    ensure
-      $DEBUG = current
-    end
-  end
 end

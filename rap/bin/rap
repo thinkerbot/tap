@@ -43,7 +43,7 @@ when '--help', nil, '-T'
   puts Lazydoc.usage(__FILE__)
   puts
   puts "===  tap tasks ==="
-  puts env.tasks.summarize(summary_template)
+  puts env.manifest('task').summarize(summary_template)
   
   if Rap::Rake.has_rakefile?
     puts

@@ -42,11 +42,6 @@ else
   end
 end
 
-# build the manifests
-[:commands, :tasks].each do |manifest_key|
-  env.send(manifest_key).build_all
-end
-
 # build the summary
 summary = env.inspect(template, :width => 10) do |templater, globals|
   current = templater.env
@@ -61,11 +56,12 @@ summary = env.inspect(template, :width => 10) do |templater, globals|
   width = env_key.length if width < env_key.length
   
   # build up the entries for each type of resource
-  current.registry.to_a.sort_by do |(type, entries)|
+  current.registry(true).to_a.sort_by do |(type, entries)|
     type.to_s
   end.each do |type, entries|
     next if entries.empty?
     
+    entries.extend(Tap::Env::Minimap)
     entries = entries.minimap.collect do |key, entry|
       path = if entry.kind_of?(Tap::Env::Constant)
         entry.require_path

@@ -74,6 +74,7 @@ module Tap
       #   paths.minimatch('file-0.3.0')       # => nil
       #
       def minimatch(key)
+        key = key.to_s
         each do |entry| 
           return entry if minimal_match?(entry_to_minikey(entry), key)
         end

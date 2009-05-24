@@ -5,7 +5,7 @@
 # environment through 'env'.  For example:
 #
 #   % tap console
-#   >> env.tasks['tap/dump']
+#   >> env['task']['tap/dump']
 #   => Tap::Dump
 #   >> app.info
 #   => "state: 0 (READY) queue: 0"

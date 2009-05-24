@@ -124,7 +124,7 @@ Subclass.task(:help) {|task, args| puts "got #{task.helper}"}
 
     method_root.chdir(:tmp) do
       sh_test %q{
-% rap help -d-
+% rap help
 got help
 }
     end

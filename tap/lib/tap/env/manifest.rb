@@ -1,4 +1,5 @@
 require 'tap/env/minimap'
+require 'tap/env/constant'
 
 module Tap
   class Env
@@ -10,52 +11,16 @@ module Tap
       # The environment this manifest summarizes
       attr_reader :env
       
-      # The type used to register and lookup env resources
       attr_reader :type
       
-      # An optional block to discover new entries in env
-      attr_reader :builder
-      
       # Initializes a new Manifest.
-      def initialize(env, type, &builder)
+      def initialize(env, type)
         @env = env
         @type = type
-        @built = false
-        @builder = builder
-        @cache = {}
       end
       
-      # Calls the builder to produce entries for the env.  All entries are
-      # registered with env.
-      def build
-        return false if built?
-        
-        builder.call(env).each do |obj|
-          env.register(type, obj)
-        end if builder
-        @built = true
-      end
-      
-      def build_all
-        env.each do |e|
-          manifest(e).build
-        end
-      end
-    
-      # Identifies if self has been built.
-      def built?
-        @built
-      end
-      
-      # Resets built? to false.
-      def reset
-        @built = false
-      end
-    
-      # Returns the entries in self.  Builds self if necessary and allowed.
-      def entries(allow_build=true)
-        build if allow_build
-        env.entries(type)
+      def entries
+        env.registry[type]
       end
       
       # True if entries are empty.
@@ -64,8 +29,8 @@ module Tap
       end
       
       def all_empty?
-        env.all? do |e|
-          manifest(e).empty?
+        env.all? do |current|
+          current.manifest(type).empty?
         end
       end
       
@@ -74,89 +39,51 @@ module Tap
         entries.each {|entry| yield(entry) }
       end
       
-      # Recursively iterates over the entries of each env manifest.
-      def recursive_each
-        env.each do |e|
-          manifest(e).each do |entry|
-            yield(entry)
-          end
-        end
-      end
-      
-      # Registers the object in env, to type.
-      def register(obj)
-        env.register(type, obj)
-      end
-    
-      # Alias for seek.
-      def [](key)
-        seek(key)
-      end
-      
-      def eeek(key)
-        env.eeek(type, key) do |e, k|
-          manifest(e).minimatch(k)
-        end
-      end
-      
       # Searches across env.each for the first entry minimatching key. A single
       # env can be specified by using a compound key like 'env_key:key'.
       #
       # Returns nil if no matching entry is found.
       def seek(key)
-        env, result = eeek(key)
-        result
+        env.seek(type, key)
+      end
+      
+      def [](key)
+        entry = seek(key)
+        entry.kind_of?(Constant) ? entry.constantize : entry
       end
       
       # Same as env.inspect but adds manifest to the templater
       def inspect(template=nil, globals={}, filename=nil)
         return super() unless template
-        
+
         env.inspect(template, globals, filename) do |templater, globalz|
           env = templater.env
-          templater.manifest = manifest(env)
+          templater.manifest = env.manifest(type)
           yield(templater, globalz) if block_given?
         end
       end
-      
-      SUMMARY_TEMPLATE = %Q{<% unless entries.empty? %>
-#{'-' * 80}
-<%= (env_key + ':').ljust(width) %> (<%= env.root.root %>)
-<% entries.each do |key, value| %>
-  <%= key.ljust(width-2) %> (<%= value %>)
+
+      SUMMARY_TEMPLATE = %Q{<% if !entries.empty? && count > 1 %>
+<%= env_key %>:
 <% end %>
-<% end %>}
+<% entries.each do |key, entry| %>
+  <%= key.ljust(width) %> # <%= entry.comment %>
+<% end %>
+}
 
-      def summarize
-        inspect(SUMMARY_TEMPLATE, :width => 10) do |templater, globals|
-          env_key = templater.env_key
-          manifest = templater.manifest
-          entries = manifest.minimap
+      def summarize(template=SUMMARY_TEMPLATE)
+        inspect(template, :width => 11, :count => 0) do |templater, globals|
           width = globals[:width]
-
-          # determine width
-          width = env_key.length if width < env_key.length
-          entries.each do |key, value|
+          templater.entries = templater.manifest.minimap.collect! do |key, entry|
             width = key.length if width < key.length
+            [key, entry]
           end
-          globals[:width] = width
 
-          # assign locals
-          templater.entries = entries
+          globals[:width] = width
+          globals[:count] += 1 unless templater.entries.empty?
         end
       end
-            
-      # Creates a new instance of self, assigned with env.
-      def another(env)
-        self.class.new(env, type, &builder)
-      end
       
-      protected
-      
-      # helper method to lookup or initialize a manifest like self for env.
-      def manifest(env) # :nodoc:
-        @cache[env] ||= (env == self.env ? self : another(env))
-      end
     end
   end
 end

@@ -1,6 +1,5 @@
 require 'tap/root'
-require 'tap/env/constant_manifest'
-require 'tap/support/intern'
+require 'tap/env/manifest'
 require 'tap/support/templater'
 autoload(:YAML, 'yaml')
 
@@ -16,8 +15,9 @@ module Tap
         @instance ||= (auto_initialize ? new : nil)
       end
       
-      def from_gemspec(spec, basename=nil, cache={})
+      def from_gemspec(spec, context={})
         path = spec.full_gem_path
+        basename = context[:basename]
         
         dependencies = []
         spec.dependencies.each do |dependency|
@@ -46,11 +46,11 @@ module Tap
           'set_load_paths' => false
         }
         
-        if basename
-          config.merge!(Env.load_config(File.join(path, basename)))
+        if context[:basename]
+          config.merge!(Env.load_config(File.join(path, context[:basename])))
         end
         
-        new(config, basename, cache)
+        new(config, context)
       end
       
       # Loads configurations from path as YAML.  Returns an empty hash if the path
@@ -62,6 +62,41 @@ module Tap
           Root::Utils.trivial?(path) ? {} : (YAML.load_file(path) || {})
         rescue(Exception)
           raise ConfigError.new($!, path)
+        end
+      end
+      
+      def scan(load_path, pattern='**/*.rb')
+        Dir.chdir(load_path) do 
+          Dir.glob(pattern).each do |require_path|
+            next unless File.file?(require_path)
+
+            default_const_name = require_path.chomp('.rb').camelize
+            
+            # note: the default const name has to be set here to allow for implicit
+            # constant attributes (because a dir is needed to figure the relative path).
+            # A conflict could arise if the same path is globed from two different
+            # dirs... no surefire solution.
+            document = Lazydoc[require_path]
+            case document.default_const_name
+            when nil then document.default_const_name = default_const_name
+            when default_const_name
+            else raise "found a conflicting default const name"
+            end
+            
+            # scan for constants
+            Lazydoc::Document.scan(File.read(require_path)) do |const_name, type, comment|
+              const_name = default_const_name if const_name.empty?
+              constant = Constant.new(const_name, require_path, comment)
+              yield(type, constant)
+              
+              ###############################################################
+              # [depreciated] manifest as a task key will be removed at 1.0
+              if type == 'manifest'
+                yield('task', constant)
+              end
+              ###############################################################
+            end
+          end
         end
       end
     end
@@ -84,12 +119,7 @@ module Tap
     # + gem environments (in that order).
     attr_reader :envs
     
-    # The basename for dynamically loading configurations.  See new.
-    attr_reader :basename
-    
-    # A cache of data internally used for optimization and to prevent infinite
-    # loops for nested envs.  Not recommended for casual use.
-    attr_reader :cache
+    attr_reader :context
     
     attr_reader :manifests
     
@@ -143,9 +173,6 @@ module Tap
       @set_load_paths = Configurable::Validation.boolean[input]
     end
     
-    # A hash of resources registered with env, used to build manifests.
-    config :registry, {}, &c.hash
-    
     # Initializes a new Env linked to the specified directory.  A config file
     # basename may be specified to load configurations from 'dir/basename' as
     # YAML.  If a basename is specified, the same basename will be used to 
@@ -157,9 +184,10 @@ module Tap
     #
     # The cache is used internally to prevent infinite loops of nested envs,
     # and to optimize the generation of manifests.
-    def initialize(config_or_dir=Dir.pwd, basename=nil, cache={})
+    def initialize(config_or_dir=Dir.pwd, context={})
       @active = false
       @manifests = {}
+      @context = context
       
       # setup root
       config = nil
@@ -177,18 +205,14 @@ module Tap
         root.kind_of?(Root) ? root : Root.new(root)
       end
       
-      # load configurations if specified
-      @basename = basename
       if basename && !config
         config = Env.load_config(File.join(@root.root, basename))
       end
       
-      # set instances
-      @cache = cache
-      if cached_env(@root.root)
-        raise "cache already has an env for: #{@root.root}"
+      if instance(@root.root)
+        raise "context already has an env for: #{@root.root}"
       end
-      cache[:env] << self
+      instances << self
       
       # set these for reset_env
       @gems = nil
@@ -199,14 +223,6 @@ module Tap
     # The minikey for self (root.root).
     def minikey
       root.root
-    end
-    
-    def reset
-      each do |env| 
-        env.cache.delete_if {|k, v| k != :env }
-        env.registry.clear
-        env.manifests.clear
-      end
     end
     
     # Sets envs removing duplicates and instances of self.  Setting envs
@@ -414,36 +430,56 @@ module Tap
       module_path(dir, superclasses, *paths, &block)
     end
     
-    # Register an object for lookup by seek.
-    def register(type, obj)
-      objects = entries(type)
-      if objects.include?(obj)
-        false
-      else
-        objects << obj
-        true
+    def registry(build=false)
+      builders.each_pair do |type, builder|
+        registry[type] ||= builder.call(self)
+      end if build
+      
+      registries[minikey] ||= begin
+        registry = {}
+        load_paths.each do |load_path|
+          next unless File.directory?(load_path)
+          
+          Env.scan(load_path) do |type, constant|
+            entries = registry[type.to_sym] ||= []
+            entries << constant
+          end
+        end
+        
+        registry
       end
     end
     
-    def register_constant(type, constant)
-      const = Constant.new(constant.to_s)
-      objects = entries(type)
-      if objects.include?(const)
-        false
-      else
-        objects << const
-        true
+    def register(type, override=false, &block)
+      type = type.to_sym
+      
+      # error for existing, or overwrite
+      case
+      when override
+        builders.delete(type)
+        registries.each {|root, registry| registry.delete(type) }
+      when builders.has_key?(type)
+        raise "a builder is already registered for: #{type.inspect}"
+      when registries.any? {|root, registry| registry.has_key?(type) }
+        raise "entries are already registered for: #{type.inspect}"
       end
+      
+      builders[type] = block
     end
     
-    # Returns an array of objects registered to type.  The objects array is
-    # extended with Minimap to allow minikey lookup.
-    def entries(type)
-      objects = registry[type.to_s] ||= []
-      unless objects.kind_of?(Minimap)
-        objects.extend(Minimap)
+    def manifest(type) # :yields: env
+      type = type.to_sym
+      
+      registry[type] ||= begin
+        builder = builders[type]
+        builder ? builder.call(self) : []
       end
-      objects
+      
+      manifests[type] ||= Manifest.new(self, type)
+    end
+    
+    def [](type)
+      manifest(type)
     end
     
     #--
@@ -462,13 +498,9 @@ module Tap
       # traverse envs looking for the first
       # manifest entry matching key
       envs.each do |env|
-        result = if block_given? 
-          yield(env, key)
-        else
-          env.entries(type).minimatch(key)
+        if result = env.manifest(type).minimatch(key)
+          return [env, result]
         end
-        
-        return [env, result] if result
       end
     
       nil
@@ -481,42 +513,6 @@ module Tap
     def seek(type, key, &block) # :yields: env, key
       env, result = eeek(type, key, &block)
       result
-    end
-    
-    # Creates a manifest with entries defined by the return of the block.  The
-    # manifest will be cached in manifests if a key is provided.
-    def manifest(type, klass=Manifest, &builder) # :yields: env 
-      klass.new(self, type, &builder)
-    end
-    
-    def constant_manifest(key)
-      key = key.to_s
-      manifests[key] ||= manifest(key, Env::ConstantManifest) do |env|
-        paths = []
-        env.load_paths.each do |load_path|
-          pattern = File.join(load_path, '**/*.rb')
-          Dir.glob(pattern).each do |path|
-            relative_path = Tap::Root::Utils.relative_path(load_path, path)
-            paths << [relative_path, path]
-          end
-        end
-        
-        paths.uniq!
-        paths.sort!
-        paths
-      end
-      
-      ###############################################################
-      # [depreciated] manifest as a task key will be removed at 1.0
-      if key == 'task'
-        manifests[key].const_attr = /task|manifest/
-      end
-      manifests[key]
-      ###############################################################
-    end
-    
-    def [](key)
-      constant_manifest(key)
     end
     
     # All templaters are yielded to the block before any are built.  This
@@ -538,9 +534,24 @@ module Tap
     
     protected
     
-    # returns the env cached for path, if it exists (used to prevent infinite nests)
-    def cached_env(path) # :nodoc:
-      (cache[:env] ||= []).find {|env| env.root.root == path }
+    def registries # :nodoc:
+      context[:registries] ||= {}
+    end
+    
+    def basename # :nodoc:
+      context[:basename]
+    end
+    
+    def builders # :nodoc:
+      context[:builders] ||= {}
+    end
+    
+    def instances # :nodoc:
+      context[:instances] ||= []
+    end
+    
+    def instance(path) # :nodoc:
+      instances.find {|env| env.root.root == path }
     end
     
     # resets envs using the current env_paths and gems.  does nothing
@@ -548,9 +559,9 @@ module Tap
     def reset_envs # :nodoc:
       if env_paths && gems
         self.envs = env_paths.collect do |path| 
-          cached_env(path) || Env.new(path, basename, cache)
+          instance(path) || Env.new(path, context)
         end + gems.collect do |spec|
-          cached_env(spec.full_gem_path) || Env.from_gemspec(spec, basename, cache)
+          instance(spec.full_gem_path) || Env.from_gemspec(spec, context)
         end
       end
     end

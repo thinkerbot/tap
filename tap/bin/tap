@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
-# usage: tap <command> {options} [args] [-d-]
+# usage: tap <command> {options} [args]
 #
-# Launches a tap command. To enable debugging, append the -d- superflag.
+# Launches a tap command.
 #
 # examples:
 #   tap generate root .                  # generates a root dir
@@ -40,7 +40,7 @@ exe.launch(ARGV) do
   <%= key.ljust(width) %>
 <% end %>}
 
-  commands = exe.commands.inspect(template,
+  commands = exe.manifest('command').inspect(template,
     :count => 0,
     :width => 10
   ) do |templater, globals|

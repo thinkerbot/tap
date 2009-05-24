@@ -37,7 +37,6 @@ Gem::Specification.new do |s|
     lib/tap/tasks/dump.rb
     lib/tap/env.rb
     lib/tap/env/constant.rb
-    lib/tap/env/constant_manifest.rb
     lib/tap/env/gems.rb
     lib/tap/env/manifest.rb
     lib/tap/env/minimap.rb

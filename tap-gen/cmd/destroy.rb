@@ -16,6 +16,6 @@ env.run(Tap::Generator::Destroy, ARGV) do
   puts Lazydoc.usage(__FILE__)
   puts
   puts "generators:"
-  puts env.generators.summarize
+  puts env.manifest('generator').summarize
   exit(1)
 end

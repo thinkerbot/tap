@@ -208,16 +208,19 @@ module Rap
     # Registers a task class with the Declarations.env, if necessary.
     # Returns task_class.
     def register(tasc)
-      tasks = Declarations.env.entries('task')
+      tasks = Declarations.env.manifest('task')
       
       const_name = tasc.to_s
       constant = tasks.find do |const| 
         const.const_name == const_name
-      end || Tap::Env::Constant.new(const_name)
+      end
+      
+      unless constant
+        constant = Tap::Env::Constant.new(const_name)
+        tasks.entries << constant
+      end
       
       constant.comment = tasc.desc(false)
-      Declarations.env.register('task', constant)
-      
       tasc
     end
   end
