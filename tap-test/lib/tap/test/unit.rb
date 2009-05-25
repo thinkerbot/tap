@@ -1,7 +1,7 @@
 require 'test/unit'
 require 'tap/test'
 
-if RUBY_VERSION >= "1.9"
+if Object.const_defined?(:MiniTest)
   
   ################################
   # MiniTest shims (ruby 1.9)
