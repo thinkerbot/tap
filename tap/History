@@ -1,4 +1,4 @@
-== 0.17.0 / 2009-05-03
+== 0.17.0 / 2009-05-25
 
 Significant reorganization and update to Tap internals.
 The workflow syntax for joins has changed in incompatible
@@ -30,7 +30,7 @@ Changes:
 * reworked App to use aggregators that respond_to? call
 * reworked Join so that it may be dumped as YAML
 * reworked Schema syntax
-* many other small changes
+* etc
 
 == 0.12.4 / 2009-03-23
 

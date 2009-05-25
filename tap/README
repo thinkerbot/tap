@@ -110,6 +110,10 @@ A synchronized merge where the results of each input are collected into an array
   % tap run -- load goodnight -- load moon -- dump --[0,1][2].sync
   goodnightmoon
 
+== Known Issues
+
+Tap::Env and Tap::Schema are still in flux and have poor documentation.  Neither should be treated as stable.
+
 == Installation
 
 Tap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:

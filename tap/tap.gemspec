@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "tap"
   s.bindir = "bin"
   s.executables = "tap"
-  s.add_dependency("configurable", ">= 0.4.3")
+  s.add_dependency("configurable", ">= 0.5.0")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\s(Task\sApplication)}
    

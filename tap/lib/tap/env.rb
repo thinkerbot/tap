@@ -92,6 +92,7 @@ module Tap
               ###############################################################
               # [depreciated] manifest as a task key will be removed at 1.0
               if type == 'manifest'
+                warn "depreciation: ::task should be used instead of ::manifest as a resource key (#{require_path})"
                 yield('task', constant)
               end
               ###############################################################
