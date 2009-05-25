@@ -24,6 +24,11 @@ module Tap
 
     # Setup an execution environment.
     def self.setup(options={}, argv=ARGV, env=ENV)
+      if argv[-1] == "-d-"
+        argv.pop
+        $DEBUG = true 
+      end
+      
       options = {
         :dir => Dir.pwd,
         :config_file => CONFIG_FILE
@@ -56,10 +61,6 @@ module Tap
       
       # instantiate
       exe = Env.new(config, :basename => config_file).extend(Exe)
-      
-      if exe.config['debug']
-        $DEBUG = true 
-      end
       
       exe.register('command') do |env|
         env.root.glob(:cmd, "**/*.rb")
