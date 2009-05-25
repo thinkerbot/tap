@@ -1,4 +1,4 @@
-== 0.1.0 
+== 0.1.0 / 2009-05-25
 
 As of the 0.17.0 release, Tap is distributes its test modules independently
 in this gem.  Test modules have been cleaned up and are in many cases not

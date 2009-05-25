@@ -19,10 +19,7 @@ Gem::Specification.new do |s|
     History}
   
   s.files = %W{
-    cmd/app.rb
-    cmd/client.rb
     cmd/server.rb
-    data/results.txt
     lib/tap/controller.rb
     lib/tap/controller/rest_routes.rb
     lib/tap/controller/utils.rb
@@ -30,7 +27,7 @@ Gem::Specification.new do |s|
     lib/tap/controllers/data.rb
     lib/tap/controllers/schema.rb
     lib/tap/controllers/server.rb
-    lib/tap/router.rb
+    lib/tap/server/runner.rb
     lib/tap/server.rb
     lib/tap/server/data.rb
     lib/tap/server/server_error.rb
@@ -70,5 +67,6 @@ Gem::Specification.new do |s|
     views/tap/controllers/server/help.erb
     views/tap/controllers/server/index.erb
     views/tap/task/input.erb
+    views/tap/tasks/load/input.erb
     }
 end
