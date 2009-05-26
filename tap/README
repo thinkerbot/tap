@@ -20,7 +20,7 @@ and a
 {server}[http://tap.rubyforge.org/tap-server/index.html] 
 to execute workflows via HTTP.
 
-* {Tutorial}[link:files/doc/Tutorial.html], {API}[link:files/doc/API.html], {Structure}[link:files/doc/Class%20Reference.html]
+* {Tutorial}[http://tap.rubyforge.org/tap-suite/files/doc/Tutorial.html], {API}[link:files/doc/API.html], {Structure}[link:files/doc/Class%20Reference.html]
 * Website[http://tap.rubyforge.org]
 * Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
 * Github[http://github.com/bahuvrihi/tap/tree/master]

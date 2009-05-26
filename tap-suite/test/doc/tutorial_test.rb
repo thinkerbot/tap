@@ -85,7 +85,7 @@ hello world
     end
   end
   
-  # Goodnight::manifest your basic goodnight moon task
+  # Goodnight::task your basic goodnight moon task
   # Says goodnight with a configurable message.
   class Goodnight < Tap::Task
     config :message, 'goodnight'
@@ -108,7 +108,7 @@ hello world
   def test_goodnight_with_validations
     method_root.prepare(:tmp,'lib/goodnight.rb') do |file|
         file << %q{
-# Goodnight::manifest a fancy goodnight moon task
+# Goodnight::task a fancy goodnight moon task
 # Says goodnight with a configurable message.
 class Goodnight < Tap::Task
   config :message, 'goodnight'           # a goodnight message

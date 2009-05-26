@@ -103,7 +103,7 @@ maps to a class definition:
   
 Here is a corresponding class:
 
-  # Goodnight::manifest your basic goodnight moon task
+  # Goodnight::task your basic goodnight moon task
   # Says goodnight with a configurable message.
   class Goodnight < Tap::Task
     config :message, 'goodnight'
@@ -139,7 +139,7 @@ module.
 
   [lib/goodnight.rb]
   
-  # Goodnight::manifest a fancy goodnight moon task
+  # Goodnight::task a fancy goodnight moon task
   # Says goodnight with a configurable message.
   class Goodnight < Tap::Task
     config :message, 'goodnight'           # a goodnight message
@@ -250,7 +250,7 @@ Take a look at the task files and you find something like this:
 
   [lib/goodnight.rb]
   
-  # Goodnight::manifest <replace with manifest summary>
+  # Goodnight::task <replace with manifest summary>
   # <replace with command line description>
 
   # Goodnight Documentation
