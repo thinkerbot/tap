@@ -2,7 +2,7 @@ require 'tap/tasks/dump'
 
 module Tap
   module Tasks
-    class Dump < Tap::Task
+    class Dump
       
       # :startdoc::task inspect and dump an object
       #
