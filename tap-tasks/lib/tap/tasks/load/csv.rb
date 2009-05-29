@@ -9,17 +9,24 @@ module Tap
       #
       # Load CSV data as an array of arrays, selecting the specified rows and
       # columns.
+      # 
+      #   % tap run -- load/csv 'a,b,c.d,e,f' --row-sep '.' --: inspect
+      #   [["a", "b", "c"], ["d", "e", "f"]]
+      # 
+      # Note this task is quite inefficient in that it will load all data
+      # before making a selection; large files or edge selections may benefit
+      # from an alternate task.
       #
       class Csv < Load
-      
-        config :columns, nil, &c.range_or_nil
-        config :rows, nil, &c.range_or_nil
         
-        config :col_sep, nil, &c.string_or_nil
-        config :row_sep, nil, &c.string_or_nil
+        config :columns, nil, &c.range_or_nil   # specify a range of columns
+        config :rows, nil, &c.range_or_nil      # specify a range of rows
         
+        config :col_sep, nil, &c.string_or_nil  # the column separator (",")
+        config :row_sep, nil, &c.string_or_nil  # the row separator ("\r\n" or "\n")
+        
+        # Loads the io data as CSV, into an array of arrays.
         def load(io)
-          
           data = CSV.parse(io.read, col_sep, row_sep)
           
           if rows

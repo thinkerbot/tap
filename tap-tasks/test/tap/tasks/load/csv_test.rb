@@ -1,7 +1,7 @@
 require File.join(File.dirname(__FILE__), '../../../tap_test_helper.rb') 
 require 'tap/tasks/load/csv'
 
-class CsvTest < Test::Unit::TestCase
+class LoadCsvTest < Test::Unit::TestCase
   acts_as_tap_test 
   
   Csv = Tap::Tasks::Load::Csv
