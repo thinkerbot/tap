@@ -30,4 +30,40 @@ class Tap::LoadTest < Test::Unit::TestCase
   def test_process_return_string_inputs
     assert_equal("string", load.process("string"))
   end
+  
+  def test_process_closes_io
+    io = StringIO.new
+    load.process(io)
+    assert io.closed?
+  end
+  
+  class RequeLoad < Load
+    attr_accessor :enqued
+    
+    def initialize
+      @enqued = nil
+    end
+    
+    def complete?(io, last)
+      last == "last"
+    end
+    
+    def enq(*inputs)
+      @enqued = inputs
+    end
+  end
+  
+  def test_process_enques_self_unless_complete
+    load = RequeLoad.new
+    io = StringIO.new("one")
+    
+    assert_equal nil, load.enqued
+    assert_equal("one", load.process(io))
+    assert_equal [io], load.enqued
+    
+    load.enqued = nil
+    io = StringIO.new("last")
+    assert_equal("last", load.process(io))
+    assert_equal nil, load.enqued
+  end
 end

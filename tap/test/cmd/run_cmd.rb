@@ -105,12 +105,12 @@ No such schema file - unknown
   def test_run_identifies_unknown_tasks_in_schema
     sh_test %Q{
 % tap run -- unknown
-unknown task: unknown
+unknown task: ["unknown"]
 }
 
     sh_test %Q{
 % tap run -- load -- unknown -- dump
-unknown task: unknown
+unknown task: ["unknown"]
 }
   end
   
@@ -146,9 +146,9 @@ missing join input: 2
     sh_test %Q{
 % tap run -- a '--: c' b --[3][4]
 5 build errors
-unknown task: a
-unknown task: b
-unknown join: c
+unknown task: ["a"]
+unknown task: ["b"]
+unknown join: ["c"]
 missing join input: 3
 missing join output: 4
 }
