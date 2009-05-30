@@ -1,6 +1,8 @@
 == 
 
 * documentation and interface updates
+* reworked load to allow recurrent loads
+* modified stack to check_terminate before calling a node
 
 == 0.17.0 / 2009-05-25
 
