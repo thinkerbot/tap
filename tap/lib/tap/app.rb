@@ -167,7 +167,7 @@ module Tap
       super() # monitor
       
       @state = State::READY
-      @stack = options[:stack] || Stack.new
+      @stack = options[:stack] || Stack.new(self)
       @queue = options[:queue] || Queue.new
       @cache = options[:cache] || {}
       @trace = []
@@ -230,7 +230,7 @@ module Tap
           raise "cannot reset unless READY"
         end
         
-        @stack = Stack.new
+        @stack = Stack.new(self)
         cache.clear
         queue.clear
       end
@@ -312,23 +312,19 @@ module Tap
         return self unless state == State::READY
         @state = State::RUN
       end
-
-      # TODO: log starting run
+      
       begin
         until queue.empty? || state != State::RUN
-          dispatch(*queue.deq)
+          node, inputs = queue.deq
+          dispatch(node, inputs)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors
-      rescue(Exception)
-        # handle other errors accordingly
-        raise if debug?
-        log($!.class, $!.message)
+        queue.unshift(node, inputs)
       ensure
         synchronize { @state = State::READY }
       end
       
-      # TODO: log run complete
       self
     end
     
@@ -362,6 +358,7 @@ module Tap
     # check_terminate to provide breakpoints in long-running processes.
     def check_terminate
       if state == App::State::TERMINATE
+        yield if block_given?
         raise App::TerminateError.new
       end
     end
@@ -401,13 +398,6 @@ module Tap
         # print basic headers
         target.puts "# date: #{Time.now.strftime(options[:date_format])}" if options[:date]
         target.puts "# info: #{info}" if options[:info]
-        
-        # # print load paths and requires
-        # target.puts "# load paths"
-        # target.puts $:.to_yaml
-        # 
-        # target.puts "# requires"
-        # target.puts $".to_yaml
         
         # dump yaml, fixing as necessary
         yaml = YAML.dump(self)

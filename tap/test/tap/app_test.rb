@@ -534,29 +534,7 @@ class AppTest < Test::Unit::TestCase
   # error tests
   #
   
-  def set_stringio_logger
-    output = StringIO.new('')
-    app.logger = Logger.new(output)
-    app.logger.formatter = Tap::App::DEFAULT_LOGGER.formatter
-    output.string
-  end
-  
-  def test_unhandled_exception_is_logged_when_debug_is_false
-    was_in_block = false
-    app.bq do
-      was_in_block = true
-      raise "error"
-    end
-     
-    string = set_stringio_logger
-    app.debug = false
-    app.run
-    
-    assert was_in_block
-    assert string =~ /RuntimeError error/
-  end
-  
-  def test_terminate_errors_are_ignored
+  def test_terminate_errors_are_handled
     was_in_block = false
     app.bq do
       was_in_block = true
@@ -566,5 +544,25 @@ class AppTest < Test::Unit::TestCase
     
     app.run
     assert was_in_block
+  end
+  
+  def test_terminate_errors_reque_the_latest_node
+    was_in_block = false
+    terminate = true
+    node = app.bq(1,2,3) do |*inputs|
+      was_in_block = true
+      raise Tap::App::TerminateError if terminate
+    end
+    another = app.bq {}
+    
+    assert_equal [[node, [1,2,3]], [another, []]], app.queue.to_a
+    
+    app.run
+    assert was_in_block
+    assert_equal [[node, [1,2,3]], [another, []]], app.queue.to_a
+    
+    terminate = false
+    app.run
+    assert_equal [], app.queue.to_a
   end
 end
