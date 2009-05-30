@@ -30,7 +30,7 @@ module Tap
     # Dump serves as a baseclass for more complicated dumps.  A YAML dump
     # (see {tap-tasks}[http://tap.rubyforge.org/tap-tasks]) looks like this:
     #
-    #   class Yaml < Tap::Dump
+    #   class Yaml < Tap::Tasks::Dump
     #     def dump(obj, io)
     #       YAML.dump(obj, io)
     #     end
