@@ -31,9 +31,9 @@ module Tap
     #   end
     #
     # Load is constructed to reque itself in cases where objects are to
-    # be read sequentially from the same source.  To enable this feature,
-    # override the complete? method to return false until no more objects
-    # are available.  An example is a prompt task:
+    # be read sequentially from the same io.  Normally load will reque until
+    # the end-of-file is reached, but this behavior can be modified by
+    # overriding the complete? method.  An example is a prompt task:
     #
     #   class Prompt < Tap::Tasks::Load
     #     config :exit_seq, "\n"
@@ -50,9 +50,6 @@ module Tap
     #       line == nil || line == exit_seq
     #     end
     #   end
-    #
-    # Using this feature a load task can repeatedly load objects and pass
-    # them into a workflow.
     #
     # Note that Load closes io when complete? is true.  If this behavior
     # is undesirable, or if io requires a fancy cleanup, override the
@@ -111,10 +108,10 @@ module Tap
         io.close
       end
       
-      # Returns true.  Override in subclasses for the desired behavior
+      # Returns io.eof?  Override in subclasses for the desired behavior
       # (see process).
       def complete?(io, last)
-        true
+        io.eof?
       end
     end
   end
