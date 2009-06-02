@@ -31,8 +31,12 @@ class Tap::LoadTest < Test::Unit::TestCase
     assert_equal("string", load.process("string"))
   end
   
-  def test_process_closes_io
+  def test_process_closes_io_when_use_close_is_true
     io = StringIO.new
+    load.process(io)
+    assert !io.closed?
+    
+    load.use_close = true
     load.process(io)
     assert io.closed?
   end
@@ -40,8 +44,9 @@ class Tap::LoadTest < Test::Unit::TestCase
   class RequeLoad < Load
     attr_accessor :enqued
     
-    def initialize
+    def initialize(config={})
       @enqued = nil
+      super(config)
     end
     
     def complete?(io, last)

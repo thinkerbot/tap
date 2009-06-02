@@ -31,8 +31,8 @@ module Tap
     #   end
     #
     # Load is constructed to reque itself in cases where objects are to
-    # be read sequentially from the same io.  Normally load will reque until
-    # the end-of-file is reached, but this behavior can be modified by
+    # be loaded sequentially from the same io.  Load will reque until the
+    # end-of-file is reached, but this behavior can be modified by
     # overriding the complete? method.  An example is a prompt task:
     #
     #   class Prompt < Tap::Tasks::Load
@@ -51,12 +51,13 @@ module Tap
     #     end
     #   end
     #
-    # Note that Load closes io when complete? is true.  If this behavior
-    # is undesirable, or if io requires a fancy cleanup, override the
-    # close method.
+    # If the use_close configuration is specified, load will close io upon
+    # completion.  Files opened by load are always closed upon completion.
+    #
     class Load < Tap::Task
       
-      config :file, false, &c.flag         # Opens the input as a file
+      config :file, false, &c.flag                         # Opens the input as a file
+      config :use_close, false, :long => :close, &c.flag   # Close the input when complete
       
       # Loads data from io.  Process will open the input io object, load
       # a result, then check to see if the loading is complete (using the
@@ -67,7 +68,9 @@ module Tap
         result = load(io)
         
         if complete?(io, result)
-          close(io)
+          if use_close || file
+            close(io)
+          end
         else
           enq(io)
         end
@@ -77,19 +80,17 @@ module Tap
       
       # Opens the io; specifically this means:
       #
-      # * Opening a File for String inputs (file true)
-      # * Creating a StringIO for String inputs (file false)
+      # * Opening a File (file true)
+      # * Creating a StringIO for String inputs
       # * Opening an IO for integer file descriptors
       # * Returning all other objects
       #
       def open(io)
+        return File.open(io) if file
+        
         case io
         when String
-          if file
-            File.open(io)
-          else
-            StringIO.new(io)
-          end
+          StringIO.new(io)
         when Integer
           IO.open(io)
         else 
