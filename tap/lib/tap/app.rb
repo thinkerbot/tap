@@ -314,13 +314,13 @@ module Tap
       end
       
       begin
-        until queue.empty? || state != State::RUN
-          node, inputs = queue.deq
-          dispatch(node, inputs)
+        while state == State::RUN
+          break unless entry = queue.deq
+          dispatch(*entry)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors
-        queue.unshift(node, inputs)
+        queue.unshift(*entry)
       ensure
         synchronize { @state = State::READY }
       end
