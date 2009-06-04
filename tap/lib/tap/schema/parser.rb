@@ -30,12 +30,11 @@ module Tap
     #   schema.joins                  # => [['join', [1],[2]]]
     #
     # In the example, the indicies of the tasks participating in the sequence
-    # are inferred as the last and next tasks in the schema, and obviously the
-    # location of the sequence break is significant.  This isn't the case when
-    # the tasks in a join are explicitly specified.  These both sequence a to
-    # b, and b to c.
+    # are inferred as the last and next tasks in the schema.  Alternatively
+    # the tasks participating in the sequence may be written out directly;
+    # these also sequence b to c.
     #
-    #   schema = Parser.new("a -- b -- c --0:1 --1:2").schema
+    #   schema = Parser.new("a -- b -- c --1:2").schema
     #   schema.tasks                  
     #   # => {
     #   # 0 => ["a"], 
@@ -44,11 +43,10 @@ module Tap
     #   # }
     #   schema.joins                  
     #   # => [
-    #   # [[0],[1]],
-    #   # [[1],[2]],
+    #   # [[1],[2]]
     #   # ]
     #
-    #   schema = Parser.new("a --1:2 --0:1 b -- c").schema
+    #   schema = Parser.new("a --1:2 b -- c").schema
     #   schema.tasks
     #   # => {
     #   # 0 => ["a"], 
@@ -57,8 +55,7 @@ module Tap
     #   # }
     #   schema.joins                  
     #   # => [
-    #   # [[1],[2]],
-    #   # [[0],[1]],
+    #   # [[1],[2]]
     #   # ]
     #
     # ==== Multi-Join Syntax
@@ -309,17 +306,17 @@ module Tap
 
       # Same as parse, but removes parsed args from argv.
       def parse!(argv)
-        @current_index = 0
         @schema = Schema.new
         
         # prevent the addition of an empty task to schema
-        return if argv.empty?
+        return schema if argv.empty?
         
         argv = Shellwords.shellwords(argv) if argv.kind_of?(String)
-        argv.unshift('--')
+        argv.unshift('--') unless argv[0] =~ BREAK
         
+        @current_index = -1
+        @current_task = nil
         escape = false
-        current_task = nil
         while !argv.empty?
           arg = argv.shift
 
@@ -329,7 +326,7 @@ module Tap
             if arg == ESCAPE_END
               escape = false
             else
-              (current_task ||= task(current_index)) << arg
+              current_task << arg
             end
 
             next
@@ -345,13 +342,9 @@ module Tap
             break
           
           when BREAK
-            # a breaking argument was reached:
-            # unless the current argv is empty,
-            # append and start a new definition
-            if current_task && !current_task.empty?
-              self.current_index += 1
-              current_task = nil
-            end
+            # a breaking argument was reached
+            @current_index += 1
+            @current_task = nil
             
             # parse the break string for any
             # schema modifications
@@ -361,10 +354,16 @@ module Tap
             # add all other non-breaking args to
             # the current argv; this includes
             # both inputs and configurations
-            (current_task ||= task(current_index)) << arg
+            current_task << arg
             
           end
         end
+        
+        # determine the queue as all tasks not
+        # used as a join output
+        queue = schema.tasks.keys
+        schema.joins.each {|join| queue -= join[1] }
+        schema.queue.concat(queue)
         
         schema
       end
@@ -372,7 +371,11 @@ module Tap
       protected
       
       # The index of the task currently being parsed.
-      attr_accessor :current_index # :nodoc:
+      attr_reader :current_index # :nodoc:
+      
+      def current_task
+        @current_task ||= task(current_index)
+      end
       
       # helper to initialize a task at the specified index
       def task(index) # :nodoc:
@@ -388,25 +391,13 @@ module Tap
       def parse_break(arg) # :nodoc:
         case arg
         when ""
-          unless schema.queue.include?(current_index)
-            schema.queue << current_index
-          end
         when SEQUENCE
-          parse_sequence($1, $2).each {|join| set_join(join) }
+          schema.joins.concat parse_sequence($1, $2)
         when JOIN
-          set_join(parse_join($1, $2, $3))
+          schema.joins << parse_join($1, $2, $3)
         else
           raise ArgumentError, "invalid break argument: #{arg}"
         end
-      end
-      
-      # constructs the specified join and removes the targets of the
-      # join from the queue
-      def set_join(join) # :nodoc:
-        join[1].each do |output|
-          schema.queue.delete(output)
-        end
-        schema.joins << join
       end
     end
   end

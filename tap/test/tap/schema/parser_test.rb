@@ -282,18 +282,16 @@ class ParserTest < Test::Unit::TestCase
     assert_equal [[[1],[2]]], schema.joins
     assert_equal [0,1], schema.queue
     
-    schema = Parser.new("a -- b -- c --0:1 --1:2").schema
+    schema = Parser.new("a -- b -- c --1:2").schema
     assert_equal({0 => ["a"], 1 => ["b"], 2 => ["c"]}, schema.tasks)
     assert_equal [
-      [[0],[1]],
       [[1],[2]]
     ], schema.joins
   
-    schema = Parser.new("a --1:2 --0:1 b -- c").schema
+    schema = Parser.new("a --1:2 b -- c").schema
     assert_equal({0 => ["a"], 1 => ["b"], 2 => ["c"]}, schema.tasks)
     assert_equal [
-      [[1],[2]],
-      [[0],[1]]
+      [[1],[2]]
     ], schema.joins
   
     schema = Parser.new("a -- b -- c").schema
@@ -423,6 +421,25 @@ class ParserTest < Test::Unit::TestCase
       [[0], [1]],
       [[1], [2]]
     ], schema.joins
+  end
+  
+  def test_parse_correctly_handles_empty_breaks
+    [
+      "--[0][3] a -- -- -- b",
+      "-- a --[0][3] -- -- b",
+      "-- a -- --[0][3] -- b",
+      "-- a -- -- --[0][3] b ",
+      "-- a -- -- -- b --[0][3]",
+      "-- a -- -- -- b -- --[0][3]",
+      "-- a -- -- --[0][3] b --"
+    ].each do |str|
+      parser = Parser.new str
+      schema = parser.schema
+    
+      assert_equal({0 => ["a"], 3 => ["b"]}, schema.tasks)
+      assert_equal [[[0], [3]]], schema.joins
+      assert_equal [0], schema.queue
+    end
   end
   
   def test_parse_splits_string_argv_using_shellwords

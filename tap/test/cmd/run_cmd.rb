@@ -127,13 +127,12 @@ missing join output: 2
 
     sh_test %Q{
 % tap run -- --: dump
-missing join input: -1
+missing join input: 0
 }
 
-    # just to make sure -1 won't refer to the last task...
     sh_test %Q{
 % tap run -- --: dump -- load
-missing join input: -1
+missing join input: 0
 }
 
     sh_test %Q{
