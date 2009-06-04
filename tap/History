@@ -5,6 +5,7 @@
 * modified stack to check_terminate before calling a node
 * fixed parsing of empty breaks in command line schema
 * simplified/standardized YAML schema syntax
+* added support for middleware to parser
 
 == 0.17.0 / 2009-05-25
 

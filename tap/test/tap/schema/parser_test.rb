@@ -44,6 +44,9 @@ class ParserUtilsTest < Test::Unit::TestCase
     assert "--[1,2][3,4]s.join" =~ r
     assert_equal "[1,2][3,4]s.join", $1
     
+    assert "--.middleware" =~ r
+    assert_equal ".middleware", $1
+    
     # non-matching
     assert "goodnight" !~ r
     assert "moon" !~ r
@@ -178,6 +181,23 @@ class ParserUtilsTest < Test::Unit::TestCase
     assert " join -i -s" !~ r
     assert " " !~ r
     assert "1" !~ r
+  end
+  
+  #
+  # MIDDLEWARE test
+  #
+  
+  def test_MIDDLEWARE_regexp
+    r = MIDDLEWARE
+    
+    assert ". middleware --flag" =~ r
+    assert_equal " middleware --flag", $1
+
+    assert ".middleware" =~ r
+    assert_equal "middleware", $1
+  
+    # non-matching
+    assert "middleware" !~ r
   end
   
   #
@@ -397,6 +417,26 @@ class ParserTest < Test::Unit::TestCase
   def test_join_targets_are_removed_from_queue
     parser = Parser.new "-- a -- b -- c -- d -- e --[1][2] --[3][4,5]"
     assert_equal [0,1,3], parser.schema.queue
+  end
+  
+  #
+  # middleware tests
+  #
+  
+  def test_parse_middlware
+    parser = Parser.new  "a --.middleware b"
+    schema = parser.schema
+    
+    assert_equal({0 => ["a"], 1 => ["b"]}, schema.tasks)
+    assert_equal [], schema.joins
+    assert_equal [["middleware"]], schema.middleware
+    
+    parser = Parser.new  "a \"--. middleware --with inputs\" b"
+    schema = parser.schema
+    
+    assert_equal({0 => ["a"], 1 => ["b"]}, schema.tasks)
+    assert_equal [], schema.joins
+    assert_equal [["middleware", "--with", "inputs"]], schema.middleware
   end
   
   #

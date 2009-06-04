@@ -146,17 +146,17 @@ module Tap
         # Matches any breaking arg. Examples:
         #
         #   --
-        #   --+
         #   --1:2
         #   --[1][2]
         #   --[1,2,3][4,5,6]is.join
+        #   --.middleware
         #
         # After the match:
         #
         #   $1:: The string after the break
         #        (ex: '--' => '', '--:' => ':', '--[1,2][3,4]is.join' => '[1,2][3,4]is.join')
         #
-        BREAK =  /\A--(\z|[\d\:\[].*\z)/
+        BREAK =  /\A--(\z|[\d\:\[\.].*\z)/
 
         # Matches a sequence break. Examples:
         #
@@ -200,6 +200,18 @@ module Tap
         #        (ex: 'is.sync' => 'sync')
         #
         JOIN_MODIFIER = /\A([A-z]*)(?:\.(.*))?\z/
+        
+        # Matches a generic middleware break. Examples:
+        #
+        #   ". middleware --flag"
+        #   .middleware
+        #
+        # After the match:
+        #
+        #   $1:: The modifier string.
+        #        (ex: '.middleware' => 'middleware')
+        #
+        MIDDLEWARE = /\A\.(.*)\z/
         
         # Parses an indicies str along commas, and collects the indicies
         # as integers. Ex:
@@ -255,8 +267,8 @@ module Tap
 
         # Parses the match of a JOIN regexp into a [input_indicies,
         # output_indicies, metadata] array. The inputs corresponds to $1, $2,
-        # and $3 for a match to a JOIN regexp.  A join type of  'join' is
-        # assumed unless otherwise specified.
+        # and $3 for the match.  A join type of  'join' is assumed unless
+        # otherwise specified.
         #
         #   parse_join("1", "2,3", "")         # => [[1], [2,3]]
         #   parse_join("", "", "is.type")      # => [[], [], ['type', '-i', '-s']]
@@ -284,6 +296,13 @@ module Tap
           else
             Shellwords.shellwords(modifier)
           end
+        end
+        
+        # Parses the match of a MIDDLEWARE regexp into metadata array.
+        # The input corresponds to $1 for the match. Currently this
+        # method is an alias for Shellwords.shellwords.
+        def parse_middleware(one)
+          Shellwords.shellwords(one)
         end
       end
       
@@ -395,6 +414,8 @@ module Tap
           schema.joins.concat parse_sequence($1, $2)
         when JOIN
           schema.joins << parse_join($1, $2, $3)
+        when MIDDLEWARE
+          schema.middleware << parse_middleware($1)
         else
           raise ArgumentError, "invalid break argument: #{arg}"
         end
