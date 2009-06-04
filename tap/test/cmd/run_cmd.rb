@@ -144,7 +144,7 @@ missing join input: 2
   def test_multiple_errors_are_collected
     sh_test %Q{
 % tap run -- a '--: c' b --[3][4]
-5 build errors
+5 schema errors
 unknown task: ["a"]
 unknown task: ["b"]
 unknown join: ["c"]
@@ -199,49 +199,27 @@ goodnight moon
   CANONICAL_SCHEMA = %q{
 tasks:
   0: {id: load}
+  1: {id: dump}
+joins:
+  - [[0], [1], {id: join}]
+queue:
+  - [0, [goodnight moon]]
+---
+tasks:
+  0: [load]
   1: [dump]
 joins:
-  0: [[0], [1], {id: join}]
+  - [[0], [1], [join]]
 queue:
-  0: [0, [goodnight moon]]
+  - [0, [goodnight moon]]
 ---
 tasks:
-- {id: load}
-- [dump]
+  load: [load, goodnight moon]
+  dump:
 joins:
-- [[0], [1], {id: join}]
+  - [[load], [dump]]
 queue:
-- [0, [goodnight moon]]
----
-tasks:
-- id: load
-  args: [goodnight moon]
-- [dump]
-joins:
-- [[0], [1], {id: join}]
-queue:
-- 0
----
-tasks:
-- id: load
-- [dump]
-joins:
-  0:
-    0: [0]
-    1: [1]
-    2: [join]
-queue:
-  0: 
-    0: 0
-    1: [goodnight moon]
----
-tasks:
-- [load, goodnight moon]
-- [dump]
-joins:
-- [[0], [1]]
-queue:
-- 0
+  - load
 }
 
   def test_run_with_canonical_schema

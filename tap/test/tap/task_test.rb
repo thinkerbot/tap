@@ -107,25 +107,9 @@ class TaskTest < Test::Unit::TestCase
   # Task.parse test
   #
   
-  def test_parse_returns_instance_and_args
-    instance, args = Task.parse([1,2,3])
+  def test_parse_returns_instance
+    instance = Task.parse([1,2,3])
     assert_equal Task, instance.class
-    assert_equal [1,2,3], args
-  end
-  
-  def test_parse_uses_ARGV_if_unspecified
-    current_argv = ARGV.dup
-    begin
-      ARGV.clear
-      ARGV.concat([1,2,3])
-      
-      instance, args = Task.parse
-      assert_equal Task, instance.class
-      assert_equal [1,2,3], args
-    ensure
-      ARGV.clear
-      ARGV.concat(current_argv)
-    end
   end
   
   class ParseClass < Tap::Task
@@ -133,17 +117,17 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_parse_returns_instance_of_subclass
-    instance, argv = ParseClass.parse([])
+    instance = ParseClass.parse([])
     assert_equal ParseClass, instance.class
   end
   
   def test_parse_instance_is_initialized_with_default_config
-    instance, argv = ParseClass.parse([])
+    instance = ParseClass.parse([])
     assert_equal({:key => 'value'}, instance.config)
   end
   
   def test_parse_reconfigures_instance_using_configs_in_argv
-    instance, argv = ParseClass.parse(%w{--key alt})
+    instance = ParseClass.parse(%w{--key alt})
     assert_equal({:key => 'alt'}, instance.config)
   end
   
@@ -152,7 +136,7 @@ class TaskTest < Test::Unit::TestCase
       file << YAML.dump({:key => 'alt'})
     end
     
-    instance, argv = ParseClass.parse(["--config", path])
+    instance = ParseClass.parse(["--config", path])
     assert_equal({:key => 'alt'}, instance.config)
   end
   
@@ -161,7 +145,7 @@ class TaskTest < Test::Unit::TestCase
       file << YAML.dump({'key' => 'alt'})
     end
     
-    instance, argv = ParseClass.parse(["--config", path])
+    instance = ParseClass.parse(["--config", path])
     assert_equal({:key => 'alt'}, instance.config)
   end
   
@@ -177,9 +161,29 @@ class TaskTest < Test::Unit::TestCase
     assert_equal "multiple values mapped to :key", err.message
   end
   
-  def test_parse_returns_remaining_args_in_argv
-    instance, argv = ParseClass.parse(%w{1 --key value 2 3})
-    assert_equal %w{1 2 3}, argv
+  def test_parse_uses_ARGV_if_unspecified
+    current_argv = ARGV.dup
+    begin
+      ARGV.clear
+      ARGV.concat(%w{--key alt})
+      
+      instance = ParseClass.parse
+      assert_equal({:key => 'alt'}, instance.config)
+    ensure
+      ARGV.clear
+      ARGV.concat(current_argv)
+    end
+  end
+  
+  #
+  # parse! test
+  #
+  
+  def test_parse_bang_removes_args_from_input
+    argv = [1, "--key", "alt", 2, 3]
+    instance = ParseClass.parse!(argv)
+    assert_equal({:key => 'alt'}, instance.config)
+    assert_equal [1,2,3], argv
   end
   
   #
@@ -191,28 +195,23 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_instantiate_returns_instance_of_subclass
-    instance, args = InstantiateClass.instantiate
+    instance = InstantiateClass.instantiate
     assert_equal InstantiateClass, instance.class
   end
   
   def test_instance_is_instantiated_with_default_config
-    instance, args = InstantiateClass.instantiate
+    instance = InstantiateClass.instantiate
     assert_equal({:key => 'value'}, instance.config)
   end
   
   def test_instance_is_instantiated_with_user_config
-    instance, args = InstantiateClass.instantiate :config => {:key => 'alt'}
+    instance = InstantiateClass.instantiate :config => {:key => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
   end
   
   def test_instantiate_respects_indifferent_access
-    instance, args = InstantiateClass.instantiate :config => {'key' => 'alt'}
+    instance = InstantiateClass.instantiate :config => {'key' => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
-  end
-  
-  def test_instantiate_returns_args
-    instance, args = InstantiateClass.instantiate :args => %w{1 2 3}
-    assert_equal %w{1 2 3}, args
   end
   
   class NestedInstantiateClass < Tap::Task
@@ -227,7 +226,7 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_instantiate_reconfigures_nested_tasks
-    instance, args = NestingInstantiateClass.instantiate :config => {
+    instance = NestingInstantiateClass.instantiate :config => {
       'key' => 'one',
       'nest' => {'key' => 'two'}
     }

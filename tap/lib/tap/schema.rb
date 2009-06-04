@@ -38,11 +38,12 @@ module Tap
     attr_reader :joins
     
     # An array of [key, [args]] data that indicates the tasks and arguments
-    # to be added to an application during build.  If args are not specified,
-    # then the arguments specified in the task schema are used.
+    # to be added to an application during build.  A key may be specified
+    # alone if tasks[key] is an array; in that case, the arguments remaining
+    # in tasks[key] after instantiation will be used.
     #
     #   queue:
-    #   - key                  # uses tasks[key] arguments
+    #   - key                  # uses tasks[key]
     #   - [key, [1, 2, 3]]     # enques tasks[key] with [1, 2, 3]
     #
     attr_reader :queue
@@ -51,40 +52,36 @@ module Tap
     attr_reader :middleware
     
     def initialize(schema={})
-      @tasks = hashify(schema['tasks'] || {})
-      
-      @joins = dehashify(schema['joins'] || []).collect do |join|
-        inputs, outputs, join = dehashify(join)
-        [inputs, outputs, join]
-      end
-      
-      @queue = dehashify(schema['queue'] || []).collect do |queue|
-        dehashify(queue)
-      end
-      
-      @middleware = dehashify(schema['middleware'] || [])
+      @tasks = schema['tasks'] || {}
+      @joins = schema['joins'] || []
+      @queue = schema['queue'] || []
+      @middleware = schema['middleware'] || []
     end
     
     def resolve!
-      tasks.dup.each_pair do |key, task|
+      tasks.each_pair do |key, task|
         task ||= {}
-        tasks[key] = resolve(task) do |id, data|
-          yield(:task, id || key, data)
+        tasks[key] = resolve(task) do |id|
+          yield(:task, id || key)
         end
       end
       
       joins.collect! do |inputs, outputs, join|
         join ||= {}
-        join = resolve(join) do |id, data|
-          yield(:join, id || 'join', data)
+        join = resolve(join) do |id|
+          yield(:join, id || 'join')
         end
         [inputs, outputs, join]
       end
       
       middleware.collect! do |m|
-        resolve(m) do |id, data|
-          yield(:middleware, id, data)
+        resolve(m) do |id|
+          yield(:middleware, id)
         end
+      end
+      
+      queue.collect! do |(key, inputs)|
+        [key, inputs || tasks[key]]
       end
       
       self
@@ -92,7 +89,7 @@ module Tap
     
     def validate!
       errors = []
-      tasks.each do |key, task|
+      tasks.each_value do |task|
         unless resolved?(task)
           errors << "unknown task: #{task.inspect}"
         end
@@ -116,11 +113,15 @@ module Tap
         end
       end
       
-      # queue.each do |(key, args)| 
-      #   unless tasks.has_key?(key)
-      #     errors << "missing task: #{key}"
-      #   end
-      # end
+      queue.each do |(key, args)| 
+        if tasks.has_key?(key)
+          unless args.kind_of?(Array)
+            errors << "non-array args: #{args.inspect}"
+          end
+        else
+          errors << "missing task: #{key}"
+        end
+      end
       
       middleware.each do |m|
         unless resolved?(m)
@@ -130,7 +131,7 @@ module Tap
       
       unless errors.empty?
         prefix = if errors.length > 1
-          "#{errors.length} build errors\n"
+          "#{errors.length} schema errors\n"
         else
            ""
         end
@@ -163,45 +164,40 @@ module Tap
     end
     
     def scrub!
-      tasks.each do |key, task|
+      tasks.each_value do |task|
         yield(task)
       end
       
       joins.each do |inputs, outputs, join|
         yield(join)
       end
+      
+      middleware.each do |middleware|
+        yield(middleware)
+      end
     end
     
     def build(app)
       # instantiate tasks
-      tasks = {}
-      arguments = {}
-      self.tasks.each_pair do |key, task|
-        instance, args = instantiate(task, app)
-      
-        tasks[key] = instance
-        arguments[key] = args
+      tasks.each_pair do |key, task|
+        tasks[key] = instantiate(task, app)
       end
       
       # build the workflow
-      self.joins.each do |inputs, outputs, join|
+      joins.collect! do |inputs, outputs, join|
         inputs = inputs.collect {|key| tasks[key] }
         outputs = outputs.collect {|key| tasks[key] }
         instantiate(join, app).join(inputs, outputs)
       end
       
       # utilize middleware
-      self.middleware.each do |middleware|
+      middleware.collect! do |middleware|
         instantiate(middleware, app)
       end
       
       # enque tasks
       queue.each do |(key, inputs)|
-        unless inputs
-          inputs = arguments[key]
-        end
-        
-        app.enq(tasks[key], *inputs) if inputs
+        app.enq(tasks[key], *inputs)
       end
       
       tasks
@@ -209,12 +205,12 @@ module Tap
     
     def traverse
       map = {}
-      self.tasks.each_pair do |key, task|
+      tasks.each_key do |key|
         map[key] = [[],[]]
       end
       
       index = 0
-      self.joins.each do |inputs, outputs, join|
+      joins.each do |inputs, outputs, join|
         inputs.each do |key|
           map[key][1] << index
         end

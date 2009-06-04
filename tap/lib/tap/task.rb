@@ -197,12 +197,8 @@ module Tap
         # (note defaults are not added so they will not
         # conflict with string keys from a config file)
         argv = opts.parse!(argv, :add_defaults => false)
-        argh = { 
-          :config => opts.nested_config,
-          :args => argv
-        }
         
-        instantiate(argh, app)
+        instantiate({:config => opts.nested_config}, app)
       end
       
       # Instantiates an instance of self and returns an instance of self and
@@ -219,7 +215,7 @@ module Tap
           app.cache[self] = instance
         end
         
-        [instance, argh[:args]]
+        instance
       end
 
       DEFAULT_HELP_TEMPLATE = %Q{<% desc = task_class::desc %>

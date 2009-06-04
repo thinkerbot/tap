@@ -19,49 +19,10 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   #
-  # initialize test
-  #
-  
-  def test_initialize_hashifies_tasks_array
-    schema = Schema.new 'tasks' => [:a, :b, :c]
-    assert_equal({0 => :a, 1 => :b, 2 => :c}, schema.tasks)
-  end
-  
-  def test_initialize_arrayifies_joins_hash
-    schema = Schema.new 'joins' => {
-      0 => [[2],[3]],
-      1 => [[4],[5]]
-    }
-    assert_equal [
-      [[2],[3], nil], 
-      [[4],[5], nil]
-    ], schema.joins
-  end
-  
-  def test_initialize_arrayifies_individual_joins
-    schema = Schema.new 'joins' => {
-      0 => {
-        0 => [2],
-        1 => [3],
-        2 => ['join']
-      },
-      1 => {
-        '0' => [4],
-        '1' => [5],
-        '2' => {'class' => 'join'}
-      }
-    }
-    assert_equal [
-      [[2],[3], ['join']], 
-      [[4],[5], {'class' => 'join'}]
-    ], schema.joins
-  end
-  
-  #
   # resolve! test
   #
   
-  def test_resolve_replaces_missing_class_with_block_return
+  def test_resolve_replaces_missing_class_with_block_return_and_symbolizes
     schema.tasks[0] = ['task array id']
     schema.tasks[1] = {'id' => 'task hash id'}
     
@@ -74,26 +35,13 @@ class SchemaTest < Test::Unit::TestCase
     
     assert_equal({
       0 => [Instantiable],
-      1 => {'class' => Instantiable, 'id' => 'task hash id'}
+      1 => {:class => Instantiable, :id => 'task hash id'}
     }, schema.tasks)
     
     assert_equal([
       [[], [], [Instantiable]],
-      [[], [], {'class' => Instantiable, 'id' => 'join hash id'}]
+      [[], [], {:class => Instantiable, :id => 'join hash id'}]
     ], schema.joins)
-  end
-  
-  def test_resolve_allows_modification_of_data
-    schema.tasks[0] = ['task array id']
-    schema.joins << [[], [], ['join array id']]
-
-    schema.resolve! do |type, id, data|
-      data << :value
-      Instantiable
-    end
-    
-    assert_equal [Instantiable, :value], schema.tasks[0]
-    assert_equal [[], [], [Instantiable, :value]], schema.joins[0]
   end
   
   def test_resolve_provides_key_as_task_id_if_unspecified
@@ -103,7 +51,7 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal({'class' => Instantiable}, schema.tasks['key'])
+    assert_equal({:class => Instantiable}, schema.tasks['key'])
     
     # now for array
     schema.tasks['key'] = []
@@ -121,7 +69,7 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal({'class' => Instantiable}, schema.tasks['key'])
+    assert_equal({:class => Instantiable}, schema.tasks['key'])
   end
   
   def test_resolve_provides_default_join_id_if_unspecified
@@ -131,6 +79,6 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal [[], [], {'class' => Instantiable}], schema.joins[0]
+    assert_equal [[], [], {:class => Instantiable}], schema.joins[0]
   end
 end
