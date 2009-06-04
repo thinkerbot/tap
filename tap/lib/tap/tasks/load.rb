@@ -61,8 +61,9 @@ module Tap
       
       # Loads data from io.  Process will open the input io object, load
       # a result, then check to see if the loading is complete (using the
-      # complete? method).  If loading is complete, process will close io.
-      # Otherwise process will (re)enque io to self.
+      # complete? method).  Unless loading is complete, process will enque
+      # io to self.  Process will close io when loading is complete, provided
+      # use_close or file is specified.
       def process(io=$stdin)
         io = open(io)
         result = load(io)

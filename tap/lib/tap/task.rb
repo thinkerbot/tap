@@ -156,8 +156,7 @@ module Tap
         instance
       end
       
-      # Parses the argv into an instance of self and an array of arguments
-      # (implicitly to be enqued to the instance).  By default parse 
+      # Parses the argv into an instance of self.  By default parse 
       # parses an argh then calls instantiate, but there is no requirement
       # that this occurs in subclasses.
       def parse(argv=ARGV, app=Tap::App.instance)
