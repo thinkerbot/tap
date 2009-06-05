@@ -35,12 +35,12 @@ class SchemaTest < Test::Unit::TestCase
     
     assert_equal({
       0 => [Instantiable],
-      1 => {:class => Instantiable, :id => 'task hash id'}
+      1 => {"class" => Instantiable, "id" => 'task hash id'}
     }, schema.tasks)
     
     assert_equal([
       [[], [], [Instantiable]],
-      [[], [], {:class => Instantiable, :id => 'join hash id'}]
+      [[], [], {"class" => Instantiable, "id" => 'join hash id'}]
     ], schema.joins)
   end
   
@@ -51,7 +51,7 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal({:class => Instantiable}, schema.tasks['key'])
+    assert_equal({"class" => Instantiable}, schema.tasks['key'])
     
     # now for array
     schema.tasks['key'] = []
@@ -69,7 +69,7 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal({:class => Instantiable}, schema.tasks['key'])
+    assert_equal({"class" => Instantiable}, schema.tasks['key'])
   end
   
   def test_resolve_provides_default_join_id_if_unspecified
@@ -79,6 +79,6 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal [[], [], {:class => Instantiable}], schema.joins[0]
+    assert_equal [[], [], {"class" => Instantiable}], schema.joins[0]
   end
 end

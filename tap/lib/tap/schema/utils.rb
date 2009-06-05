@@ -4,7 +4,7 @@ module Tap
       
       def instantiate(data, app)
         case data
-        when Hash  then data[:class].instantiate(data, app)
+        when Hash  then data['class'].instantiate(symbolize(data), app)
         when Array then data.shift.parse!(data, app)
         else raise "cannot instantiate: #{data.inspect}"
         end
@@ -12,7 +12,7 @@ module Tap
       
       def resolved?(data)
         case data
-        when Hash  then data[:class].respond_to?(:instantiate)
+        when Hash  then data['class'].respond_to?(:instantiate)
         when Array then data[0].respond_to?(:parse!)
         else false
         end
@@ -23,9 +23,8 @@ module Tap
         
         case data
         when Hash
-          data = symbolize(data)
           unless resolved?(data)
-            data[:class] = yield(data[:id]) || data[:id]
+            data['class'] = yield(data['id']) || data['id']
           end
         when Array 
           data[0] = yield(data[0]) || data[0]
