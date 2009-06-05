@@ -72,22 +72,29 @@ end.parse!(argv, :clear_config => false, :add_defaults => false)
 #
 
 begin
+  if ARGV.empty?
+    msg = "No schema specified"
+    
+    unless argv.empty?
+      args = argv[0, 3].join(' ') + (argv.length > 3 ? ' ...' : '')
+      msg = "#{msg} (did you mean 'tap run -- #{args}'?)"
+    end
+    
+    puts msg
+    exit(0)
+  end
+  
   # parse argv schema
   schema = Tap::Schema.parse(ARGV)
-  ARGV.replace(argv)
-  
   app.build(schema, :resources => env)
-  if app.queue.empty?
-    raise "no nodes specified"
-  end
+  
+  ARGV.replace(argv)
   Tap::Exe.set_signals(app)
+  
   app.run
 rescue
   raise if $DEBUG
   puts $!.message
-  if $!.message == "no nodes specified" && !ARGV.empty?
-    puts "(did you mean 'tap run -- #{ARGV.join(' ')}'?)"
-  end
   exit(1)
 end
 

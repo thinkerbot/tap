@@ -79,22 +79,16 @@ tap:
   def test_run_without_schema_prints_no_task_specified
     sh_test %Q{
 % tap run
-no nodes specified
-}
-
-    sh_test %Q{
-% tap run -- -- --
-no nodes specified
+No schema specified
 }
 
     # likely incorrect syntax
     sh_test %Q{
 % tap run unknown
-no nodes specified
-(did you mean 'tap run -- unknown'?)
+No schema specified (did you mean 'tap run -- unknown'?)
 }
   end
-    
+  
   def test_run_identifies_unknown_tasks_in_schema
     sh_test %Q{
 % tap run -- unknown
