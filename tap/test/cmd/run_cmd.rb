@@ -94,13 +94,6 @@ no nodes specified
 (did you mean 'tap run -- unknown'?)
 }
   end
-
-  def test_run_identifies_unknown_schema
-    sh_test %Q{
-% tap run -s unknown
-No such schema file - unknown
-}
-  end
     
   def test_run_identifies_unknown_tasks_in_schema
     sh_test %Q{
@@ -164,86 +157,18 @@ goodnight moon
 }
   end
   
-  def test_run_loads_and_runs_schema
-    schema = Tap::Schema.parse("load 'goodnight moon' --: dump")
-    tempfile do |io, path|
-      io << schema.dump
-      io.flush
-      
-      sh_test %Q{
-% tap run -s#{path}
-goodnight moon
-}
-    end
-  end
-  
-  def test_run_loads_and_runs_multiple_schema
-    tempfile do |a, path_a|
-      a << Tap::Schema.parse("load 'goodnight moon' --: dump").dump
-      a.flush
-      
-      tempfile do |b, path_b|
-        b << Tap::Schema.parse("load 'hello world' --: dump").dump
-        b.flush
-
-        sh_test %Q{
-% tap run -s#{path_a} -s#{path_b} -s#{path_a}
-goodnight moon
-hello world
-goodnight moon
-}
-      end
-    end
-  end
-  
-  CANONICAL_SCHEMA = %q{
-tasks:
-  0: {id: load}
-  1: {id: dump}
-joins:
-  - [[0], [1], {id: join}]
-queue:
-  - [0, [goodnight moon]]
----
-tasks:
-  0: [load]
-  1: [dump]
-joins:
-  - [[0], [1], [join]]
-queue:
-  - [0, [goodnight moon]]
----
-tasks:
-  load: [load, goodnight moon]
-  dump:
-joins:
-  - [[load], [dump]]
-queue:
-  - load
-}
-
-  def test_run_with_canonical_schema
-    CANONICAL_SCHEMA.split("---").each do |schema|
-      tempfile do |io, path|
-        io << schema
-        io.flush
-        
-        sh_test %Q{
-% tap run -s#{path}
-goodnight moon
-}
-      end
-    end
-  end
-  
   #
   # middleware
   #
   
-  def test_allows_the_specification_of_middleware
+  def test_run_allows_the_specification_of_middleware
     method_root.prepare(:lib, 'middleware.rb') do |io|
       io << %q{# ::middleware
         class Middleware
+          def self.parse!(argv=ARGV, app=Tap::App.instance)
+            app.use(self, *argv)
+          end
+          
           attr_reader :stack
           def initialize(stack)
             @stack = stack
@@ -257,7 +182,7 @@ goodnight moon
     end
     
     sh_test %Q{
-% tap run -m middleware -- load 'goodnight moon' --: dump
+% tap run -- load 'goodnight moon' --: dump --.middleware
 Tap::Tasks::Load
 Tap::Tasks::Dump
 goodnight moon

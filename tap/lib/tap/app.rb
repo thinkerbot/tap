@@ -219,8 +219,8 @@ module Tap
     end
     
     # Adds the specified middleware to the stack.
-    def use(middleware)
-      @stack = middleware.new(@stack)
+    def use(middleware, *argv)
+      @stack = middleware.new(@stack, *argv)
     end
     
     def build(schema, options={})

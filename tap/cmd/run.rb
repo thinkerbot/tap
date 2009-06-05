@@ -25,7 +25,6 @@ while !ARGV.empty? && ARGV[0] !~ break_regexp
 end
 
 # parse options
-schemas = []
 ConfigParser.new(app.config) do |opts|
   opts.separator ""
   opts.separator "configurations:"
@@ -66,20 +65,6 @@ ConfigParser.new(app.config) do |opts|
     exit(0)
   end
   
-  opts.on('-m', '--middleware MIDDLEWARE', 'Specify app middleware') do |key|
-    middleware = env[:middleware][key] or raise("unknown middleware: #{key}")
-    app.use(middleware)
-  end
-  
-  opts.on("-s", "--schema FILE", "Build the schema file") do |path|
-    unless File.exists?(path)
-      puts "No such schema file - #{path}"
-      exit(1)
-    end
-    
-    schemas << Tap::Schema.load_file(path)
-  end
-  
 end.parse!(argv, :clear_config => false, :add_defaults => false)
 
 #
@@ -88,17 +73,13 @@ end.parse!(argv, :clear_config => false, :add_defaults => false)
 
 begin
   # parse argv schema
-  schemas << Tap::Schema.parse(ARGV)
+  schema = Tap::Schema.parse(ARGV)
   ARGV.replace(argv)
   
-  schemas.each do |schema|
-    app.build(schema, :resources => env)
-  end
-  
+  app.build(schema, :resources => env)
   if app.queue.empty?
     raise "no nodes specified"
   end
-
   Tap::Exe.set_signals(app)
   app.run
 rescue
