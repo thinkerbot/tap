@@ -78,12 +78,16 @@ module Rap
       end
       
       # Instantiates the instance of self for app and reconfigures it as
-      # specified in argh (ie argh[:config]).
+      # specified in argh.
       def instantiate(argh={}, app=Tap::App.instance)
         instance = self.instance(app)
         
         if config = argh[:config]
           instance.reconfigure(config)
+        end
+        
+        if args = argh[:args]
+          instance.args = args
         end
         
         instance
