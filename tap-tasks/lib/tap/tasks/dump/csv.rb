@@ -16,8 +16,8 @@ module Tap
       #
       class Csv < Dump
         
-        config :col_sep, ",", &c.string    # the column separator (",")
-        config :row_sep, "\n", &c.string   # the row separator ("\n")
+        config :col_sep, ",", &c.string    # The column separator (",")
+        config :row_sep, "\n", &c.string   # The row separator ("\n")
         
         # Dumps the data to io as CSV.  Data is converted to an array using
         # to_ary.
