@@ -15,30 +15,35 @@ module Tap
           id = data.next_id(type).to_s
         end
         
-        tasks = request['tasks'] || []
-        inputs = request['inputs'] || []
-        outputs = request['outputs'] || []
-        queue = request['queue'] || []
-        
         update_schema(id) do |schema|
-          current = schema.tasks
-          tasks.each do |task|
-            key = task
-            while current.has_key?(key)
-              i ||= 0
-              key = "#{task}_#{i}"
-              i += 1
+          # tasks[]
+          if tasks = request['tasks']
+            tasks.each do |task|
+              key = 0
+              key += 1 while schema.tasks.has_key?(key.to_s)
+              schema.tasks[key.to_s] = {'id' => task}
             end
-            
-            current[key] = {'id' => task}
           end
           
+          # inputs[] outputs[] join
+          inputs = request['inputs'] || []
+          outputs = request['outputs'] || []
           if !inputs.empty? && !outputs.empty?
-            schema.joins << [inputs, outputs]
+            schema.joins << [inputs, outputs, {'id' => request['join'] || 'join'}]
           end
           
-          queue.each do |task|
-            schema.queue << [task]
+          # queue[]
+          if queue = request['queue']
+            queue.each do |key|
+              schema.queue << [key, []]
+            end
+          end
+          
+          # middleware[]
+          if middleware = request['middleware']
+            middleware.each do |middleware|
+              schema.middleware << {'id' => middleware}
+            end
           end
         end
         
@@ -82,9 +87,7 @@ module Tap
         end
         
         schema = Tap::Schema.new(request['schema'] || {})
-        schema.scrub! do |obj|
-          scrub(obj['config'])
-        end
+        scrub_nils(schema)
         
         data.create_or_update(type, id) do |io| 
           io << schema.dump
@@ -111,8 +114,8 @@ module Tap
           Tap::Schema.new
         end
         
-        schema.resolve! do |type, key, data|
-          env.manifest(type)[key]
+        schema.resolve! do |type, key|
+          env[type][key]
         end
         
         render "entry.erb", :locals => {
@@ -143,6 +146,16 @@ module Tap
         end
       end
       
+      def scrub_nils(schema)
+        resources = schema.tasks.values +
+          schema.joins.collect {|join| join[2] } +
+          schema.middleware
+        
+        resources.each do |resource|
+          scrub(resource['config'])
+        end
+      end
+      
       def scrub(obj)
         case obj
         when Hash
@@ -169,6 +182,30 @@ module Tap
         end
         
         id
+      end
+      
+      def summarize(schema)
+        summary = {}
+        schema.tasks.each_key do |key|
+          summary[key] = [[],[]]
+        end
+
+        index = 0
+        schema.joins.each do |inputs, outputs, join|
+          inputs.each do |key|
+            summary[key][1] << index
+          end
+
+          outputs.each do |key|
+            summary[key][0] << index
+          end
+
+          index += 1
+        end
+
+        summary.keys.sort.collect do |key|
+          [key, *summary[key]]
+        end
       end
     end
   end

@@ -3,12 +3,12 @@
 
 <h2>Design:</h2>
 <!-- add form --> 
-<% traverse = schema.traverse %>
+<% summary = summarize(schema) %>
 <form id="add_<%= id %>" class="add" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="add" />
   
   <table>
-<% traverse.each do |(key, inputs, outputs)| %>
+<% summary.each do |(key, inputs, outputs)| %>
   <tr>
     <td><input name="outputs[]" value="<%= key %>" type="checkbox" /></td>
     <td><a href="#task_<%= key %>"><%= key %></a></td>
@@ -29,7 +29,7 @@
   </ul>
   
   <ul>
-<% traverse.each do |(key, inputs, outputs)| %>
+<% summary.each do |(key, inputs, outputs)| %>
   <li><input name="queue[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
 <% end %>
   </ul>
@@ -42,7 +42,7 @@
   <input type="hidden" name="_method" value="remove" />
   
   <ul>
-<% traverse.each do |(key, inputs, outputs)| %>
+<% summary.each do |(key, inputs, outputs)| %>
   <li>
     <input name="tasks[]" value="<%= key %>" type="checkbox" />
     <a href="#task_<%= key %>"><%= key %></a>
