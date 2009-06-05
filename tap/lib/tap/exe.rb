@@ -94,20 +94,7 @@ module Tap
       end
     end
     
-    def build(schema, app=Tap::App.instance)
-      schema.resolve! do |type, id, data|
-        klass = self[type][id]
-        if !klass && block_given?
-          klass = yield(type, id, data)
-        end
-        
-        klass || id
-      end
-      schema.validate!
-      schema.build(app)
-    end
-    
-    def set_signals(app)
+    def self.set_signals(app)
       # info signal -- Note: some systems do 
       # not support the INFO signal 
       # (windows, fedora, at least)
@@ -139,20 +126,5 @@ module Tap
         end
       end if signals.include?("INT")
     end
-    
-    def run(schemas, app=Tap::App.instance, &block)
-      schemas = [schemas] unless schemas.kind_of?(Array)
-      schemas.each do |schema|
-        build(schema, app, &block)
-      end
-      
-      if app.queue.empty?
-        raise "no nodes specified"
-      end
-
-      set_signals(app)
-      app.run
-    end
-    
   end
 end

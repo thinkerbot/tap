@@ -4,6 +4,7 @@ require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
+require 'tap/schema'
 
 module Tap
   
@@ -220,6 +221,26 @@ module Tap
     # Adds the specified middleware to the stack.
     def use(middleware)
       @stack = middleware.new(@stack)
+    end
+    
+    def build(schema, options={})
+      unless schema.kind_of?(Schema)
+        schema = Schema.new(schema)
+      end
+      
+      if resources = options[:resources]
+        schema.resolve! do |type, id|
+          resources[type][id]
+        end
+      end
+      
+      schema.validate!
+      
+      if options[:clean]
+        reset
+      end
+      
+      schema.build(self)
     end
     
     # Clears the cache, the queue, and resets the stack so that no middleware

@@ -25,9 +25,11 @@ module Tap
         case data
         when Hash
           data = symbolize(data)
-          data[:class] = yield(data[:id])
+          unless resolved?(data)
+            data[:class] = yield(data[:id]) || data[:id]
+          end
         when Array 
-          data[0] = yield(data[0])
+          data[0] = yield(data[0]) || data[0]
         end
         
         data

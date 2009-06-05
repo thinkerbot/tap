@@ -91,7 +91,16 @@ begin
   schemas << Tap::Schema.parse(ARGV)
   ARGV.replace(argv)
   
-  env.run(schemas, app)
+  schemas.each do |schema|
+    app.build(schema, :resources => env)
+  end
+  
+  if app.queue.empty?
+    raise "no nodes specified"
+  end
+
+  Tap::Exe.set_signals(app)
+  app.run
 rescue
   raise if $DEBUG
   puts $!.message
