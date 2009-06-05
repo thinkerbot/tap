@@ -19,8 +19,7 @@ app = Tap::App.new
 
 # separate out argv schema
 argv = []
-break_regexp = Tap::Schema::Parser::BREAK
-while !ARGV.empty? && ARGV[0] !~ break_regexp
+while !ARGV.empty? && ARGV[0] !~ Tap::Schema::Parser::BREAK
   argv << ARGV.shift
 end
 

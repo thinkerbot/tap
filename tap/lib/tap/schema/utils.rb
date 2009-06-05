@@ -1,7 +1,6 @@
 module Tap
   class Schema
     module Utils
-      module_function
       
       def instantiate(data, app)
         case data

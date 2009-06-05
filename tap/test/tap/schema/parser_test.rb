@@ -414,6 +414,15 @@ class ParserTest < Test::Unit::TestCase
     ], parser.schema.joins
   end
   
+  def test_join_does_not_infer_lead_or_end_index
+    parser = Parser.new "--[][] --[1][] --[][2]"
+    assert_equal [
+      [[], []],
+      [[1], []],
+      [[], [2]]
+    ], parser.schema.joins
+  end
+  
   def test_join_targets_are_removed_from_queue
     parser = Parser.new "-- a -- b -- c -- d -- e --[1][2] --[3][4,5]"
     assert_equal [0,1,3], parser.schema.queue

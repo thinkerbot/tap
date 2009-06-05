@@ -240,7 +240,7 @@ module Tap
         reset
       end
       
-      schema.build(self)
+      schema.build!(self)
     end
     
     # Clears the cache, the queue, and resets the stack so that no middleware

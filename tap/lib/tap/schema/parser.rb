@@ -334,7 +334,7 @@ module Tap
         argv.unshift('--') unless argv[0] =~ BREAK
         
         @current_index = -1
-        @current_task = nil
+        @current = nil
         escape = false
         while !argv.empty?
           arg = argv.shift
@@ -345,7 +345,7 @@ module Tap
             if arg == ESCAPE_END
               escape = false
             else
-              current_task << arg
+              current << arg
             end
 
             next
@@ -363,7 +363,7 @@ module Tap
           when BREAK
             # a breaking argument was reached
             @current_index += 1
-            @current_task = nil
+            @current = nil
             
             # parse the break string for any
             # schema modifications
@@ -373,7 +373,7 @@ module Tap
             # add all other non-breaking args to
             # the current argv; this includes
             # both inputs and configurations
-            current_task << arg
+            current << arg
             
           end
         end
@@ -392,8 +392,8 @@ module Tap
       # The index of the task currently being parsed.
       attr_reader :current_index # :nodoc:
       
-      def current_task
-        @current_task ||= task(current_index)
+      def current
+        @current ||= task(current_index)
       end
       
       # helper to initialize a task at the specified index

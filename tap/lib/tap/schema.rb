@@ -163,21 +163,7 @@ module Tap
       self
     end
     
-    def scrub!
-      tasks.each_value do |task|
-        yield(task)
-      end
-      
-      joins.each do |inputs, outputs, join|
-        yield(join)
-      end
-      
-      middleware.each do |middleware|
-        yield(middleware)
-      end
-    end
-    
-    def build(app)
+    def build!(app)
       # instantiate tasks
       tasks.each_pair do |key, task|
         tasks[key] = instantiate(task, app)
@@ -201,30 +187,6 @@ module Tap
       end
       
       tasks
-    end
-    
-    def traverse
-      map = {}
-      tasks.each_key do |key|
-        map[key] = [[],[]]
-      end
-      
-      index = 0
-      joins.each do |inputs, outputs, join|
-        inputs.each do |key|
-          map[key][1] << index
-        end
-        
-        outputs.each do |key|
-          map[key][0] << index
-        end
-        
-        index += 1
-      end
-      
-      map.keys.sort.collect do |key|
-        [key, *map[key]]
-      end
     end
     
     # Creates an hash dump of self.
