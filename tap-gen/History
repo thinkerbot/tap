@@ -1,3 +1,8 @@
+==
+
+* bug fix in config generator
+* minor documentation updates + cleanup
+
 == 0.1.1 / 2009-05-25
 
 * oops, ::manifest in template instead of ::task
