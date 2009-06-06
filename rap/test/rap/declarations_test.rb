@@ -25,7 +25,7 @@ class DeclarationsTest < Test::Unit::TestCase
   # documentation tests
   #
   
-  class Alt < Rap::DeclarationTask
+  class Alt < Rap::Task
   end
   
   def test_documentation
@@ -38,11 +38,11 @@ class DeclarationsTest < Test::Unit::TestCase
     end
     assert was_in_block
     
-    desc "task one, a subclass of DeclarationTask"
+    desc "task one, a subclass of Rap::Task"
     o = Rap.task(:one)
     assert_equal One, o.class
-    assert_equal Rap::DeclarationTask, o.class.superclass
-    assert_equal "task one, a subclass of DeclarationTask", o.class.desc.to_s
+    assert_equal Rap::Task, o.class.superclass
+    assert_equal "task one, a subclass of Rap::Task", o.class.desc.to_s
     
     was_in_block = false
     namespace(:nest) do
@@ -79,24 +79,24 @@ class DeclarationsTest < Test::Unit::TestCase
     assert Rap.respond_to?(:sh)
   end
   
-  def test_declaration_API_is_hidden_on_DeclarationTask
-    assert Rap::DeclarationTask.respond_to?(:task)
-    assert !Rap::DeclarationTask.respond_to?(:namespace)
-    assert Rap::DeclarationTask.respond_to?(:desc)
-    assert Rap::DeclarationTask.desc.kind_of?(Lazydoc::Comment)
-    assert !Rap::DeclarationTask.respond_to?(:register)
-    assert !Rap::DeclarationTask.respond_to?(:sh)
+  def test_declaration_API_is_hidden_on_Task
+    assert Rap::Task.respond_to?(:task)
+    assert !Rap::Task.respond_to?(:namespace)
+    assert Rap::Task.respond_to?(:desc)
+    assert Rap::Task.desc.kind_of?(Lazydoc::Comment)
+    assert !Rap::Task.respond_to?(:register)
+    assert !Rap::Task.respond_to?(:sh)
   end
   
   #
   # task test
   #
   
-  class DeclarationSubclass < Rap::DeclarationTask
+  class DeclarationSubclass < Rap::Task
   end
   
   def test_task_returns_a_subclass_of_self
-    assert_equal Rap::DeclarationTask, Rap::DeclarationTask.task(:task0).class.superclass
+    assert_equal Rap::Task, Rap::Task.task(:task0).class.superclass
     assert_equal DeclarationSubclass, DeclarationSubclass.task(:task1).class.superclass
   end
   
@@ -185,7 +185,7 @@ class DeclarationsTest < Test::Unit::TestCase
     instance = task(:task0)
     assert_equal Task0, instance.class
     assert_equal Rap::Declarations.instance(Task0), instance
-    assert_equal Rap::DeclarationTask, Task0.superclass
+    assert_equal Rap::Task, Task0.superclass
   end
   
   def test_task_nests_subclass_in_namespace
@@ -197,7 +197,7 @@ class DeclarationsTest < Test::Unit::TestCase
       end
     end
     
-    assert_equal Rap::DeclarationTask, Task0::Task1::Task2.superclass
+    assert_equal Rap::Task, Task0::Task1::Task2.superclass
   end
   
   def test_multiple_calls_to_task_with_the_same_name_return_same_instance
@@ -226,8 +226,8 @@ class DeclarationsTest < Test::Unit::TestCase
     task(:task0 => Tap::Task)
     assert_equal [Tap::Task], Task0.dependencies
     
-    instance = task(:task1 => [Tap::Task, Rap::DeclarationTask])
-    assert_equal [Tap::Task, Rap::DeclarationTask], Task1.dependencies
+    instance = task(:task1 => [Tap::Task, Rap::Task])
+    assert_equal [Tap::Task, Rap::Task], Task1.dependencies
   end
   
   def test_undefined_dependencies_are_resolved_into_tasks_using_declare

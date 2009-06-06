@@ -102,7 +102,7 @@ minor and sometimes no changes.
 
 ==== Regarding Tap
 
-Rap tasks (ie subclasses of Rap::DeclarationTask) are designed to behave like
+Rap tasks (ie subclasses of Rap::Task) are designed to behave like
 Rake tasks. As such Rap tasks:
 
 * return nil and pass nil in workflows 

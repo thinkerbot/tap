@@ -5,7 +5,7 @@ require 'rap/description'
 
 module Rap
   
-  # DeclarationTasks are a special breed of Tap::Task designed to behave much
+  # Rap tasks are a special breed of Tap::Task designed to behave much
   # like Rake tasks.  As such, declaration tasks:
   #
   # * return nil and pass nil in workflows 
@@ -13,7 +13,7 @@ module Rap
   # * are effectively singletons (one instance per app)
   # * allow for multiple actions
   #
-  # The DeclarationTask class partially includes Declarations so subclasses
+  # The Rap::Task class partially includes Declarations so subclasses
   # may directly declare tasks.  A few alias acrobatics makes it so that ONLY
   # Declarations#task is made available (desc cannot be used because Task
   # classes already use that method for documentation, and namespace
@@ -22,7 +22,7 @@ module Rap
   # Weird? Yes, but it leads to this syntax:
   #
   #   # [Rapfile]
-  #   # class Subclass < Rap::DeclarationTask
+  #   # class Subclass < Rap::Task
   #   #   def helper(); "help"; end
   #   # end
   #   #
@@ -32,7 +32,7 @@ module Rap
   #   % rap help
   #   got help
   #
-  class DeclarationTask < Tap::Task
+  class Task < Tap::Task
     class << self
       
       # Sets actions.
@@ -93,7 +93,7 @@ module Rap
         instance
       end
       
-      # Looks up or creates the DeclarationTask subclass specified by const_name
+      # Looks up or creates the Rap::Task subclass specified by const_name
       # and adds the configs and dependencies.
       #
       # Configurations are always validated using the yaml transformation block
@@ -105,7 +105,7 @@ module Rap
           constants.inject(base) do |namespace, const|
             # nesting Task classes into other Task classes is required
             # for namespaces with the same name as a task
-            namespace.const_set(const, Class.new(DeclarationTask))
+            namespace.const_set(const, Class.new(Rap::Task))
           end.const_set(subclass_const, Class.new(self))
         end
 

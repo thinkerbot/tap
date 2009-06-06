@@ -1,6 +1,8 @@
 ==
 
-Updates for Tap-0.17.1
+Updates for Tap-0.17.1.
+
+* Refactored DeclarationTask as Rap::Task
 
 == 0.13.0 / 2009-05-25
 

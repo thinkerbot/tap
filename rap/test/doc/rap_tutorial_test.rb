@@ -31,6 +31,6 @@ class RapTutorialTest < Test::Unit::TestCase
 
     assert_equal C, c.class
     assert c == C.instance(@app)
-    assert_equal Rap::DeclarationTask, C.superclass
+    assert_equal Rap::Task, C.superclass
   end
 end

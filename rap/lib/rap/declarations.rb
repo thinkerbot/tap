@@ -1,4 +1,4 @@
-require 'rap/declaration_task'
+require 'rap/task'
 require 'rap/utils'
 
 module Rap
@@ -21,19 +21,19 @@ module Rap
   #     t.class                          # => Nested::Sample
   #   end
   #
-  # Normally all declared tasks are subclasses of DeclarationTask, but
-  # subclasses of DeclarationTask can declare tasks as well.
+  # Normally all declared tasks are subclasses of Rap::Task, but
+  # subclasses of Rap::Task can declare tasks as well.
   #
-  #   class Alt < DeclarationTask
+  #   class Alt < Rap::Task
   #   end
   #
   #   include Rap::Declarations
   #
-  #   desc "task one, a subclass of DeclarationTask"
+  #   desc "task one, a subclass of Rap::Task"
   #   o = Rap.task(:one)
   #   o.class                            # => One
-  #   o.class.superclass                 # => DeclarationTask
-  #   o.class.desc.to_s                  # => "task one, a subclass of DeclarationTask"
+  #   o.class.superclass                 # => Rap::Task
+  #   o.class.desc.to_s                  # => "task one, a subclass of Rap::Task"
   #
   #   namespace(:nest) do
   #     desc "task two, a nested subclass of Alt"
@@ -43,10 +43,10 @@ module Rap
   #     t.class.desc.to_s                # => "task two, a nested subclass of Alt"
   #   end
   #
-  # This feature is only available to subclasses of DeclarationTask and can
+  # This feature is only available to subclasses of Rap::Task and can
   # be very useful for creating inheritance hierarchies.  Note that other
   # declaration methods like 'desc' and 'namespace' are not available on
-  # DeclarationTask or subclasses, just 'task'.
+  # Rap::Task or subclasses, just 'task'.
   #
   # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for more
   # information.
@@ -81,11 +81,11 @@ module Rap
     end
     
     # Declares a task with a rake-like syntax.  Task generates a subclass of
-    # DeclarationTask, nested within the current namespace.
+    # Rap::Task, nested within the current namespace.
     def task(*args, &action)
       # resolve arguments and declare unknown dependencies
       name, configs, dependencies, arg_names = resolve_args(args) do |dependency| 
-        register DeclarationTask.subclass(dependency)
+        register Rap::Task.subclass(dependency)
       end
       
       # generate the task class
@@ -198,11 +198,11 @@ module Rap
       name.to_s.tr(":", "/")
     end
     
-    # The class of task declared by task, by default DeclarationTask. 
+    # The class of task declared by task, by default Rap::Task. 
     # Used as a hook to set the declaring class in including modules 
-    # (such as DeclarationTask itself).
+    # (such as Rap::Task itself).
     def declaration_class
-      DeclarationTask
+      Rap::Task
     end
     
     # Registers a task class with the Declarations.env, if necessary.
@@ -225,7 +225,7 @@ module Rap
     end
   end
   
-  class DeclarationTask
+  class Task
     class << self
       # :stopdoc:
       alias original_desc desc

@@ -22,7 +22,7 @@ Gem::Specification.new do |s|
     }
   
   s.files = %W{
-    lib/rap/declaration_task.rb
+    lib/rap/task.rb
     lib/rap/declarations.rb
     lib/rap/description.rb
     lib/rap/rake.rb

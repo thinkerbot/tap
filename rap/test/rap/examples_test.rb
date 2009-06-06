@@ -20,8 +20,8 @@ class ExamplesTest < Test::Unit::TestCase
   
   task(:A) { print "result" }
   
-  def test_declarations_subclass_DeclarationTask
-    assert_equal Rap::DeclarationTask, A.superclass
+  def test_declarations_subclass_Task
+    assert_equal Rap::Task, A.superclass
   end
   
   def test_declarations_add_action_to_subclass
@@ -49,7 +49,7 @@ class ExamplesTest < Test::Unit::TestCase
   task(:D1 => [:D0])
   
   def test_declaration_declares_new_dependencies
-    assert_equal Rap::DeclarationTask, D0.superclass
+    assert_equal Rap::Task, D0.superclass
   end
   
   def test_declaration_adds_dependencies
@@ -83,7 +83,7 @@ class ExamplesTest < Test::Unit::TestCase
   end
   
   def test_namespaces_nest_a_task
-    assert_equal Rap::DeclarationTask, G::G.superclass
+    assert_equal Rap::Task, G::G.superclass
   end
   
   ###########################
