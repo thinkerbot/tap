@@ -1,3 +1,12 @@
+== 0.1.2 / 2009-06-05
+
+* bug fix in config generator
+* minor documentation updates + cleanup
+
+== 0.1.1 / 2009-05-25
+
+* oops, ::manifest in template instead of ::task
+
 == 0.1.0 / 2009-05-25
 
 Extracted from Tap-0.12.0, with updates for

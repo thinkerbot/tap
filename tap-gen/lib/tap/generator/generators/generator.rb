@@ -7,8 +7,6 @@ module Tap::Generator::Generators
   # Generates a new generator.
   class Generator < Tap::Generator::Generators::Task
     
-    config :test, true, &c.switch  # specifies creation of a test file
-    
     def manifest(m, const_name)
       super
       

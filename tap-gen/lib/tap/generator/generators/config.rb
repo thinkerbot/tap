@@ -7,10 +7,10 @@ module Tap::Generator::Generators
   #
   # Configurations for other types of configurable resources may also be
   # generated.  Specify the constant attribute identifying the resource
-  # using the 'resource' flag.  This generates a config file for the Root
+  # using the 'type' flag.  This generates a config file for the Root
   # generator:
   #
-  #   % tap generate config root --resource generator
+  #   % tap generate config root --type generator
   #
   class Config < Tap::Generator::Base
     
@@ -67,20 +67,20 @@ module Tap::Generator::Generators
     # used when the doc config is false.
     NODOC_FORMAT = nodoc_format
     
-    config :doc, true, &c.switch        # include documentation in the config
-    config :nest, false, &c.switch      # generate nested config files
-    config :blanks, true, &c.switch     # allow generation of empty config files
-    config :resource, 'task'            # specify the resource type
+    config :doc, true, &c.switch        # Include documentation in the config
+    config :nest, false, &c.switch      # Generate nested config files
+    config :blanks, true, &c.switch     # Allow generation of empty config files
+    config :type, 'task'                # Specify the resource type
     
-    # Lookup the named resource class.  Lookup happens through the active Env 
+    # Lookup the named resource.  Lookup happens through the active Env 
     # instance, specifically using:
     #
-    #   Env.instance.constant_manifest(resource)[name]
+    #   Env.instance[type][name]
     #
     # Raises an error if the name cannot be resolved to a resource.
     def lookup(name)
       env = Tap::Env.instance
-      env.constant_manifest(resource)[name] or raise "unknown #{resource}: #{name}"
+      env[type][name] or raise "unknown #{type}: #{name}"
     end
     
     def manifest(m, name, config_name=nil)
