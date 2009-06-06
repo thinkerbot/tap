@@ -60,14 +60,8 @@ module Rap
         args
       end
       
-      # Instantiates the instance of self for app and reconfigures it using
-      # argh.  Configurations are set, the task name is set, and the
-      # arguments are stored on the instance.  The arguments are returned
-      # as normal in the [instance, args] result.
-      #
-      # These atypical behaviors handle various situations on the command
-      # line.  Setting the args this way, for example, allows arguments to
-      # be specified on dependency tasks:
+      # Parses as normal, but also stores the arguments on the instance to
+      # allows arguments to be specified on dependency tasks:
       #
       #   # [Rapfile]
       #   # Rap.task(:a, :obj) {|t, a| puts "A #{a.obj}"}
@@ -77,16 +71,26 @@ module Rap
       #   A hello
       #   B world
       #
-      def instantiate(argh={}, app=Tap::App.instance)
-        config = argh[:config]
-        config_file = argh[:config_file]
-        
-        instance = self.instance(app)
-        instance.reconfigure(load_config(config_file)) if config_file
-        instance.reconfigure(config) if config
-        instance.args = argh[:args]
+      def parse!(argv=ARGV, app=Tap::App.instance)
+        instance = super
+        instance.args = argv
+        instance
+      end
       
-        [instance, instance.args]
+      # Instantiates the instance of self for app and reconfigures it as
+      # specified in argh.
+      def instantiate(argh={}, app=Tap::App.instance)
+        instance = self.instance(app)
+        
+        if config = argh[:config]
+          instance.reconfigure(config)
+        end
+        
+        if args = argh[:args]
+          instance.args = args
+        end
+        
+        instance
       end
       
       # Looks up or creates the DeclarationTask subclass specified by const_name

@@ -56,15 +56,19 @@ when '--help', nil, '-T'
 else
   begin
     schema = Tap::Schema.parse(ARGV)
-    env.run(schema) do |type, key, metadata|
-      if type == :task && Rap::Rake.has_rakefile?
-        warn "warning: implict rake for '#{metadata.join(' ')}'"
-        metadata.unshift(key)
-        Rap::Rake
-      else
-        nil
+    schema.tasks.each_pair do |key, task|
+      if tasc = env[:task][task[0]]
+        task[0] = tasc
+      elsif Rap::Rake.has_rakefile?
+        warn "warning: implict rake for '#{task.join(' ')}'"
+        task.unshift(Rap::Rake)
       end
     end
+    
+    app = Tap::App.instance
+    app.build(schema, :resources => env)
+    Tap::Exe.set_signals(app)
+    app.run
   rescue
     raise if $DEBUG
     puts $!.message
