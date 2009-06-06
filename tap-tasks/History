@@ -1,3 +1,8 @@
+==
+
+* added load/dump csv tasks
+* updated glob task with include/exclude filters
+
 == 0.2.0 / 2009-05-25
 
 Updates for use with Tap-0.17.0

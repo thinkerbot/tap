@@ -2,8 +2,8 @@
 #
 # examples:
 #   tap run --help                     Prints this help
-#   tap run -w workflow.yml            Build and run a workflow
-#   tap run -w workflow.yml a b c      Same with [a, b, c] ARGV
+#   tap run -s schema.yml              Build and run a workflow
+#   tap run -s schema.yml a b c        Same with [a, b, c] ARGV
 #
 # schema:
 #   tap run -- task --help             Prints help for task

@@ -2,7 +2,7 @@ require 'tap/tasks/load'
 
 module Tap
   module Tasks
-    class Load < Tap::Task
+    class Load
       
       # :startdoc::task loads data as YAML
       #

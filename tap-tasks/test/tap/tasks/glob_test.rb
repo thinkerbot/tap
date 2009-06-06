@@ -86,16 +86,18 @@ class GlobTest < Test::Unit::TestCase
   
   def test_process_filters_by_filters
     ctr.chdir(:root) do
-      g.filters << /a/
+      g.excludes = [/a/]
       
       assert_equal %w{
         b.txt
         c/b.txt
       }, g.process("**/*")
       
-      g.filters << /txt/
+      g.includes = [/c/]
+      
       assert_equal %w{
-      }, g.process("*")
+        c/b.txt
+      }, g.process("**/*")
     end
   end
 end

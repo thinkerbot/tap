@@ -94,24 +94,24 @@ module Tap
       errors = []
       tasks.each do |key, task|
         unless resolved?(task)
-          errors << "unknown task: #{task}"
+          errors << "unknown task: #{task.inspect}"
         end
       end
       
       joins.each do |inputs, outputs, join|
         unless resolved?(join)
-          errors << "unknown join: #{join}"
+          errors << "unknown join: #{join.inspect}"
         end
         
         inputs.each do |key| 
           unless tasks.has_key?(key)
-            errors << "missing join input: #{key}"
+            errors << "missing join input: #{key.inspect}"
           end
         end
         
         outputs.each do |key| 
           unless tasks.has_key?(key)
-            errors << "missing join output: #{key}"
+            errors << "missing join output: #{key.inspect}"
           end
         end
       end
