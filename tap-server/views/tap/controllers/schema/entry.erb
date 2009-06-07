@@ -1,12 +1,28 @@
 <%=  render('_build.erb', :locals => {:id => id}) %>
 <%=  render('_controls.erb', :locals => {:id => id}) %>
 
-<h2>Design:</h2>
 <!-- add form --> 
 <% summary = summarize(schema) %>
 <form id="add_<%= id %>" class="add" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="add" />
   
+  <h2>Add:</h2>
+  <p>
+    Select resources to add or enque.  To add a join, select the join 
+    and the input and output indices for the join in the summary table.  
+  </p>
+  
+  <h3>Tasks</h3>
+  <ul>
+<% server.env.minimap.each do |(env_name, env)| %>
+<%   env.manifest(:task).minimap.each do |(name, const)| %>
+<%     key = "#{env_name}:#{name}" %>
+  <li><input name="tasks[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
+<%   end %>
+<% end %>
+  </ul>
+  
+  <h3>Joins</h3>
   <table>
 <% summary.each do |(key, inputs, outputs)| %>
   <tr>
@@ -18,22 +34,32 @@
   </tr>
 <% end %>
   </table>
-  
   <ul>
 <% server.env.minimap.each do |(env_name, env)| %>
-<%   env.manifest(:task).minimap.each do |(name, const)| %>
+<%   env.manifest(:join).minimap.each do |(name, const)| %>
 <%     key = "#{env_name}:#{name}" %>
-  <li><input name="tasks[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
+  <li><input name="join" value="<%= key %>" type="radio"><%= key %></input></li>
 <%   end %>
 <% end %>
   </ul>
   
+  <h3>Middleware</h3>
+  <ul>
+<% server.env.minimap.each do |(env_name, env)| %>
+<%   env.manifest(:middleware).minimap.each do |(name, const)| %>
+<%     key = "#{env_name}:#{name}" %>
+  <li><input name="middleware[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
+<%   end %>
+<% end %>
+  </ul>
+    
+  <h3>Queue</h3>
   <ul>
 <% summary.each do |(key, inputs, outputs)| %>
   <li><input name="queue[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
 <% end %>
   </ul>
-
+    
   <input type="submit" value="Add" />
 </form>
 
@@ -41,30 +67,36 @@
 <form id="remove_<%= id %>" class="remove" method="post" action="<%= uri(id) %>">
   <input type="hidden" name="_method" value="remove" />
   
+  <h2>Remove:</h2>
+  <p>
+    Select resources to remove.
+  </p>
+  
+  <h3>Tasks</h3>
   <ul>
 <% summary.each do |(key, inputs, outputs)| %>
-  <li>
-    <input name="tasks[]" value="<%= key %>" type="checkbox" />
-    <a href="#task_<%= key %>"><%= key %></a>
-  </li>
-<% end %>
-  </ul>
-
-  <ul>
-<% schema.joins.each_index do |index| %>
-  <li>
-    <input name="joins[]" value="<%= index %>" type="checkbox" />
-    <a href="#join_<%= index %>"><%= index %></a>
-  </li>
+  <li><input name="tasks[]" value="<%= key %>" type="checkbox"><%= key %></input></li>
 <% end %>
   </ul>
   
+  <h3>Joins</h3>
+  <ul>
+<% schema.joins.each_index do |index| %>
+  <li><input name="joins[]" value="<%= index %>" type="checkbox"><%= index %></input></li>
+<% end %>
+  </ul>
+  
+  <h3>Middleware</h3>
+  <ul>
+<% schema.middleware.each_index do |index| %>
+  <li><input name="middleware[]" value="<%= index %>" type="checkbox"><%= index %></input></li>
+<% end %>
+  </ul>
+    
+  <h3>Queue</h3>
   <ul>
 <% schema.queue.each_index do |index| %>
-  <li>
-    <input name="queue[]" value="<%= index %>" type="checkbox" />
-    <a href="#queue_<%= index %>"><%= index %></a>
-  </li>
+  <li><input name="queue[]" value="<%= index %>" type="checkbox"><%= index %></input></li>
 <% end %>
   </ul>
   
@@ -76,28 +108,25 @@
   <input type="hidden" name="_method" value="configure" />
   
   <h2>Configure:</h2>
+  
+  <h3>Tasks</h3>
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
 <%  name = "schema[tasks][#{key}]" %>
-<%  task_class = task['class'] %>
-    <li id="task_<%= key %>" class="task">
+    <li id="task_<%= key %>">
       <h3><a href="#add_<%= id %>"><%= key %></a></h3>
       
       <input type="hidden" name="<%= name %>[id]" value="<%= task['id'] %>">
-<%=   module_render('task.erb', task_class, :locals => {
-        :id => "#{id}_task_#{key}", 
-        :name => name, 
-        :values => task['config'] || default_config(task_class),
-        :task => task }) %>
+<%=   render_config("#{name}[config]", task['class'], task['config']) %>
     </li>
 <% end %>
   </ul>
   
+  <h3>Joins</h3>
   <ul class="joins">
 <% schema.joins.each_with_index do |(inputs, outputs, join), index| %>
 <%  name = "schema[joins][]" %>
-<%  join_class = join['class'] %>
-    <li id="join_<%= index %>" class="join">
+    <li id="join_<%= index %>">
       <h3><a href="#add_<%= id %>"><%= index %></a></h3>
 <%    inputs.each do |input| %>
       <input type="hidden" name="<%= name %>[0][]" value="<%= input %>">
@@ -106,30 +135,10 @@
       <input type="hidden" name="<%= name %>[1][]" value="<%= output %>">
 <%    end %>
       <input type="hidden" name="<%= name %>[2][id]" value="<%= join['id'] || 'join' %>">
-<%=   module_render('join.erb', join_class, :locals => {
-        :id => "#{id}_join_#{index}", 
-        :name => "#{name}[2]", 
-        :values => join['config'] || default_config(join_class),
-        :join => join }) %>
+<%=   render_config("#{name}[2][config]", join['class'], join['config']) %>
     </li>
 <% end %>
   </ul>
-  
-  <h2>Enque:</h2>
-  <ul class="queue">
-<% schema.queue.each_with_index do |(key, args), index| %>
-<%  name = "schema[queue][]" %>
-<%  task = schema.tasks[key] %>
-    <li id="queue_<%= index %>" class="queue">
-    <h3><%= key %></h3>
-    <input type="hidden" name="<%= name %>[0]" value="<%= key %>">
-<%= module_render('input.erb', task['class'], :locals => {
-      :id => id, 
-      :name => "#{name}[1]",
-      :args => args || [],
-      :task => task }) %>
-    </li>
-<% end %>
-  </ul>
+
   <input type="submit" value="Save" />
 </form>

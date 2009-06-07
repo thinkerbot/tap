@@ -135,25 +135,23 @@ module Tap
         }, :layout => true
       end
       
-      def stringify(obj)
-        case obj
-        when String, Numeric, true, false
-          obj.to_s
-        when Symbol, Regexp
-          obj.inspect
-        when nil
-          '~'
-        when $stdout
-          'data/results.txt'
-        else
-          obj
-        end
+      #########################
+      # Helpers
+      #########################
+      
+      def render_config(name, configurable, values=nil)
+        module_render "_configs.erb", configurable, 
+          :locals => {
+            :name => name,
+            :configs => configurable.configurations, 
+            :values => values || default_config(configurable)
+          }
       end
       
       def default_config(configurable)
         configs = configurable.configurations
         Configurable::DelegateHash.new(configs).to_hash do |hash, key, value|
-          hash[key.to_s] = stringify(value)
+          hash[key.to_s] = value
         end
       end
       
@@ -202,7 +200,10 @@ module Tap
         end
 
         index = 0
+        join_order = []
         schema.joins.each do |inputs, outputs, join|
+          join_order.concat inputs
+          
           inputs.each do |key|
             summary[key][1] << index
           end
@@ -214,7 +215,9 @@ module Tap
           index += 1
         end
 
-        summary.keys.sort.collect do |key|
+        summary.keys.sort_by do |key|
+          join_order.index(key) || join_order.length
+        end.collect do |key|
           [key, *summary[key]]
         end
       end

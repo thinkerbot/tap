@@ -1,27 +1,30 @@
 <dl class="configs">
-<% configurations.each_pair do |key, config| %>
+<% configs.each_pair do |key, config| %>
 <%  next if config[:type] == :hidden %>
 <%  if config.is_nest? %>
+<%  value = values[key.to_s] %>
   <dt class="name"><%= key %></dt>
   <dd class="nested-configs">
 <%=   module_render("_configs.erb", obj, :locals => {
-        :id => id,
         :name => "#{name}[#{key}]",
-        :configurations => config.default(false).delegates, 
-        :values => values[key.to_s]
+        :configs => config.default(false).delegates, 
+        :values => value
       }) %>
   </dd>
 <%  else %>
   <dt><%= key %></dt>
   <dd class="config">
+<%  if config_template = module_path("_#{config[:type]}.erb", obj)  %>
 <%=   render(
-        :file => module_path("_#{config[:type]}.erb", obj) || module_path("_config.erb", obj), 
+        :file => config_template, 
         :locals => {
-          :id => "#{id}_config_#{key}",
           :obj => obj,
           :name => "#{name}[#{key}]",
           :config => config,
-          :value => values[key.to_s]}) %>
+          :value => value}) %>
+<%  else%>
+  <input name="<%= name %>" type="text" value="<%= escape_html(value) %>" />
+<%  end %>
   </dd>
 <%  end %>
 <% end %>
