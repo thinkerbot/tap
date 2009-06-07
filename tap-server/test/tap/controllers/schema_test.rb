@@ -23,12 +23,6 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
     @timeout_error = false
   end
   
-  def prepare_schema(id, str)
-    method_root.prepare(:schema, id.to_s) do |file|
-      file << Schema.parse(str).dump
-    end
-  end
-  
   def load_schema(id)
     Schema.load_file method_root.path(:schema, id.to_s)
   end
@@ -118,59 +112,167 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
   # remove test
   #
   
-  def test_post_remove_removes_nodes_indicated_in_both_inputs_and_outputs
-    path = prepare_schema(0, "a -- b -- c")
-    assert_equal 302, request.post("/0?action=remove&inputs[]=1&outputs[]=1", opts).status
-    
-    schema = Schema.load_file(path)
-    assert_equal "-- a -- c", schema.to_s
+  def test_remove_redirects_to_show
+    response = request.post("/0?_method=remove")
+    assert_equal 302, response.status
+    assert_equal "/0", response.location
   end
   
-  def test_remove_removes_join_outputs_for_inputs
-    path = prepare_schema(0, "a -- b -- c --0:1:2")
-    assert_equal 302, request.post("/0?action=remove&inputs[]=0", opts).status
+  def test_remove_removes_tasks_in_the_tasks_parameter
+    method_root.prepare(:schema, 0.to_s) do |file|
+      file << {
+        'tasks' => {
+          'a' => {'id' => 'load'},
+          'b' => {'id' => 'dump'}
+        }
+      }.to_yaml
+    end
     
-    schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --[1][2]", schema.to_s
+    request.post("/0?_method=remove&tasks[]=a")
+    assert_equal({"b" => {"id" => "dump"}}, load_schema(0).tasks)
   end
   
-  def test_remove_removes_join_inputs_for_outputs
-    path = prepare_schema(0, "a -- b -- c --0:1:2")
-    assert_equal 302, request.post("/0?action=remove&outputs[]=1", opts).status
+  def test_remove_removes_joins_in_the_joins_parameter
+    method_root.prepare(:schema, 0.to_s) do |file|
+      file << {
+        'tasks' => {
+          'a' => {},
+          'b' => {},
+          'c' => {}
+        },
+        'joins' => [
+          [['a'],['b']],
+          [['b'],['c']],
+          [['c'],['a']]
+        ]
+      }.to_yaml
+    end
     
-    schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --[0][] --[1][2]", schema.to_s
+    request.post("/0?_method=remove&joins[]=1")
+    assert_equal([
+      [['a'],['b']], 
+      [['c'],['a']]
+    ], load_schema(0).joins)
   end
   
-  def test_remove_removes_join_and_not_node_when_joins_exist
-    path = prepare_schema(0, "a -- b -- c --0:1:2")
-    assert_equal 302, request.post("/0?action=remove&inputs[]=1&outputs[]=1", opts).status
+  def test_remove_removes_queues_in_the_queue_parameter
+    method_root.prepare(:schema, 0.to_s) do |file|
+      file << {
+        'tasks' => {
+          'a' => {},
+          'b' => {},
+          'c' => {}
+        },
+        'queue' => [
+          ['a', []],
+          ['b', []],
+          ['c', []]
+        ]
+      }.to_yaml
+    end
     
-    schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c --[0][]", schema.to_s
+    request.post("/0?_method=remove&queue[]=1")
+    assert_equal([
+      ['a', []],
+      ['c', []]
+    ], load_schema(0).queue)
   end
   
-  def test_remove_removes_join_when_two_joined_nodes_are_both_selected
-    path = prepare_schema(0, "a -- b --0:1")
-    assert_equal 302, request.post("/0?action=remove&inputs[]=0&inputs[]=1&outputs[]=0&outputs[]=1", opts).status
+  def test_remove_removes_middleware_in_the_middleware_parameter
+    method_root.prepare(:schema, 0.to_s) do |file|
+      file << {
+        'middleware' => [
+          {'id' => 'a'},
+          {'id' => 'b'},
+          {'id' => 'c'}
+        ]
+      }.to_yaml
+    end
     
-    schema = Schema.load_file(path)
-    assert_equal "-- a -- b", schema.to_s
+    request.post("/0?_method=remove&middleware[]=1")
+    assert_equal([
+      {'id' => 'a'},
+      {'id' => 'c'}
+    ], load_schema(0).middleware)
   end
   
-  def test_remove_does_not_remove_nodes_unless_indicated_in_both_inputs_and_outputs
-    path = prepare_schema(0, "a -- b -- c")
-    assert_equal 302, request.post("/0?action=remove&inputs[]=0&outputs[]=1", opts).status
+  def test_remove_cleans_up_orphaned_joins
+    method_root.prepare(:schema, 0.to_s) do |file|
+      file << {
+        'tasks' => {
+          'a' => {},
+          'b' => {}
+        },
+        'joins' => [
+          [['a'],['b']],
+          [[],['b']],
+          [['b'],[]],
+          [['c'],['d']]
+        ]
+      }.to_yaml
+    end
     
-    schema = Schema.load_file(path)
-    assert_equal "-- a -- b -- c", schema.to_s
+    request.post("/0?_method=remove&joins[]=1")
+    assert_equal([
+      [['a'],['b']]
+    ], load_schema(0).joins)
   end
   
-  def test_remove_does_not_create_nodes_for_out_of_bounds_indicies
-    path = prepare_schema(0, "a")
-    assert_equal 302, request.post("/0?action=remove&inputs[]=0&inputs[]=1&outputs[]=1&outputs[]=2", opts).status
+  def test_remove_cleans_up_orphaned_queues
+    method_root.prepare(:schema, 0.to_s) do |file|
+      file << {
+        'tasks' => {
+          'a' => {}
+        },
+        'queue' => [
+          ['a', []],
+          ['b', []]
+        ]
+      }.to_yaml
+    end
     
-    schema = Schema.load_file(path)
-    assert_equal "-- a", schema.to_s
+    request.post("/0?_method=remove")
+    assert_equal([
+      ['a', []]
+    ], load_schema(0).queue)
+  end
+  
+  def test_tasks_are_removed_before_cleanup
+    method_root.prepare(:schema, 0.to_s) do |file|
+      file << {
+        'tasks' => {
+          'a' => {},
+          'b' => {},
+          'c' => {}
+        },
+        'joins' => [
+          [['a'],['b']],
+          [['b'],['c']],
+          [['c'],['a']]
+        ],
+        'queue' => [
+          ['a', []],
+          ['b', []],
+          ['c', []]
+        ]
+      }.to_yaml
+    end
+    
+    request.post("/0?_method=remove&tasks[]=b")
+    
+    schema = load_schema(0)
+    assert_equal({
+      'a' => {},
+      'c' => {}
+    }, schema.tasks)
+    
+    assert_equal([
+      [['c'],['a']]
+    ], schema.joins)
+    
+    assert_equal([
+      ['a', []],
+      ['c', []]
+    ], schema.queue)
   end
 end

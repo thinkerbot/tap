@@ -4,11 +4,18 @@ module Tap
   module Controllers
     class Schema < Data
       
-      # Adds tasks or joins to the schema.  Parameters:
+      # Adds to the specified schema.  Parameters:
       #
-      # tasks[]::   An array of tasks to add to the schema.
-      # inputs[]::  An array of task indicies used as inputs to a join.
-      # outputs[]:: An array of task indicies used as outputs for a join.
+      # tasks[]:: The specified task ids are added to the schema
+      # queue[]:: Queues with empty inputs are added for the task ids
+      # middleware[]:: Middleware by the specified ids are added
+      #
+      # Joins are a bit more complicated.  A join is added if inputs
+      # and outputs are specified.
+      #
+      # inputs[]::  An array inputs to a join
+      # outputs[]:: An array outputs for a join
+      # join:: The join id, 'join' if unspecified
       #
       def add(id)
         if id == "new"
@@ -54,6 +61,8 @@ module Tap
       #
       # tasks[]:: An array of task keys to remove.
       # joins[]:: An array of join indicies to remove.
+      # queue[]:: An array of queue indicies to remove.
+      # middleware[]:: An array of middleware indicies to remove.
       #
       def remove(id)
         if id == "new"
@@ -63,17 +72,19 @@ module Tap
         tasks = request['tasks'] || []
         joins = request['joins'] || []
         queue = request['queue'] || []
+        middleware = request['middleware'] || []
         
         update_schema(id) do |schema|
-          tasks.each do |key|
-            schema.tasks.delete(key)
-          end
+          tasks.each {|key| schema.tasks.delete(key) }
           
           joins.each {|index| schema.joins[index.to_i] = nil }
           schema.joins.compact!
           
           queue.each {|index| schema.queue[index.to_i] = nil }
           schema.queue.compact!
+          
+          middleware.each {|index| schema.middleware[index.to_i] = nil }
+          schema.middleware.compact!
           
           schema.cleanup!
         end
