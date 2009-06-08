@@ -1,0 +1,32 @@
+<h1 class="class"><%= obj %></h1>
+
+<ul>
+<li class="source_file">
+  <h2>Source File</h2>
+  <p><%= obj.source_file %><p>
+</li>
+<li>
+  <h2>Summary</h2>
+  <%= obj.desc.subject %>
+</li>
+<li>
+  <h2>Documentation</h2>
+  <pre class="desc"><%= obj.desc.wrap %></pre>
+</li>
+<li class="ancestors">
+  <h2>Actions</h2>
+  <ol>
+<% obj.actions.each do |action| %>
+    <li><%= action %></li>
+<% end %>
+  </ol>
+</li>
+<li class="ancestors">
+  <h2>Ancestors</h2>
+  <ol>
+<% obj.ancestors.each do |ancestor| %>
+    <li><%= ancestor %></li>
+<% end %>
+  </ol>
+</li>
+</ul>
