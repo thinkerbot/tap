@@ -51,11 +51,16 @@ module Tap
     # An array of middleware to build onto the app.
     attr_reader :middleware
     
+    # The app used to build self
+    attr_reader :app
+    
     def initialize(schema={})
       @tasks = schema['tasks'] || {}
       @joins = schema['joins'] || []
       @queue = schema['queue'] || []
       @middleware = schema['middleware'] || []
+      
+      @app = nil
     end
     
     def resolve!
@@ -91,13 +96,13 @@ module Tap
       errors = []
       tasks.each_value do |task|
         unless resolved?(task)
-          errors << "unknown task: #{task.inspect}"
+          errors << "unresolvable task: #{task.inspect}"
         end
       end
       
       joins.each do |inputs, outputs, join|
         unless resolved?(join)
-          errors << "unknown join: #{join.inspect}"
+          errors << "unresolvable join: #{join.inspect}"
         end
         
         inputs.each do |key| 
@@ -125,7 +130,7 @@ module Tap
       
       middleware.each do |m|
         unless resolved?(m)
-          errors << "unknown middleware: #{m}"
+          errors << "unresolvable middleware: #{m.inspect}"
         end
       end
       
@@ -163,7 +168,9 @@ module Tap
       self
     end
     
-    def build!(app)
+    def build!(app, validate=true)
+      validate! if validate
+      
       # instantiate tasks
       tasks.each_pair do |key, task|
         tasks[key] = instantiate(task, app)
@@ -186,7 +193,25 @@ module Tap
         app.enq(tasks[key], *inputs)
       end
       
+      @app = app
       tasks
+    end
+    
+    def built?
+      @app != nil
+    end
+    
+    def enque(key, *inputs)
+      unless built?
+        raise "cannot enque unless built"
+      end
+      
+      unless task = tasks[key]
+        raise "unknown task: #{key.inspect}"
+      end
+      
+      app.queue.enq(task, inputs)
+      task
     end
     
     # Creates an hash dump of self.

@@ -89,15 +89,20 @@ No schema specified (did you mean 'tap run -- unknown'?)
 }
   end
   
-  def test_run_identifies_unknown_tasks_in_schema
+  def test_run_identifies_unresolvable_tasks_in_schema
     sh_test %Q{
 % tap run -- unknown
-unknown task: ["unknown"]
+unresolvable task: ["unknown"]
+}
+
+    sh_test %Q{
+% tap run -- unknown 1 2 3
+unresolvable task: ["unknown", "1", "2", "3"]
 }
 
     sh_test %Q{
 % tap run -- load -- unknown -- dump
-unknown task: ["unknown"]
+unresolvable task: ["unknown"]
 }
   end
   
@@ -130,13 +135,14 @@ missing join input: 2
 
   def test_multiple_errors_are_collected
     sh_test %Q{
-% tap run -- a '--: c' b --[3][4]
-5 schema errors
-unknown task: ["a"]
-unknown task: ["b"]
-unknown join: ["c"]
+% tap run -- a '--: c' b --[3][4] --.middleware
+6 schema errors
+unresolvable task: ["a"]
+unresolvable task: ["b"]
+unresolvable join: ["c"]
 missing join input: 3
 missing join output: 4
+unresolvable middleware: ["middleware"]
 }
   end
   
