@@ -43,14 +43,6 @@ As implied in by the inputs, <tt>parse!</tt> instantiates from an array, while <
 
 How the class actually performs the instantiation is up to the class but typically parse creates a hash and calls instantiate.
 
-==== Tap::Task (and subclasses)
-
-Parse and instantiate must return: [instance, args]
-
-==== Tap::Join (and subclasses)
-
-Parse and instantiate must return: [inputs, outputs, instance]
-
 == Tap::Env
 
 Envs identify resources by a constant attribute using Tap::Env#constant_manifest.  For instance this identifies the Sample node:

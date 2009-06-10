@@ -130,8 +130,6 @@ namespace :test do
   desc 'run task tests'
   task :task do
     test %w{
-      test/tap/load_test.rb
-      test/tap/dump_test.rb
       test/tap/join_test.rb
     } + Dir[
       'test/tap/task*_test.rb',
