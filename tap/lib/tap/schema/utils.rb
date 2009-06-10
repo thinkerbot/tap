@@ -50,6 +50,22 @@ module Tap
         result
       end
       
+      # Stringifies the keys of hash.  Returns non-hash values directly and
+      # raises an error in the event of a stringify conflict.
+      def stringify(hash)
+        result = {}
+        hash.each_pair do |key, value|
+          key = key.to_s
+          
+          if result.has_key?(key)
+            raise "stringify conflict: #{hash.inspect} (#{key.inspect})"
+          end
+          
+          result[key] = value
+        end
+        result
+      end
+      
     end
   end
 end

@@ -151,6 +151,13 @@ module Tap
       end
     end
     
+    def to_hash
+      {
+        :class => self.class,
+        :config => config.to_hash
+      }
+    end
+    
     protected
     
     # Dispatches the results to the node.

@@ -22,6 +22,40 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   #
+  # add test
+  #
+  
+  def test_add_adds_task_hash_to_tasks
+    task = Tap::Task.new
+    schema.add(task)
+    assert_equal({
+      task => {
+        'class' => Tap::Task,
+        'config' => {}
+      }
+    }, schema.tasks)
+  end
+  
+  def test_add_adds_tasks_in_join
+    a = Tap::Task.new
+    b = Tap::Task.new
+    c = Tap::Task.new
+    d = Tap::Task.new
+    
+    Tap::Join.new.join([a,b], [c,d])
+    
+    schema.add(a)
+    
+    [a,b,c,d].each do |task|
+      assert schema.tasks.include?(task)
+    end
+    
+    assert_equal [
+      [[a,b], [c,d], {'class' => Tap::Join, 'config' => {:enq=>false, :splat=>false, :iterate=>false}}]
+    ], schema.joins
+  end
+  
+  #
   # rename test
   #
   

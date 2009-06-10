@@ -63,6 +63,21 @@ module Tap
       @app = nil
     end
     
+    def add(task, inputs=nil)
+      collect_tasks(task).collect do |task|
+        tasks[task] = stringify(task.to_hash)
+        task.joins
+      end.flatten.uniq.each do |join|
+        joins << [join.inputs, join.outputs, stringify(join.to_hash)]
+      end
+      
+      if inputs
+        queue << [task, inputs]
+      end
+      
+      self
+    end
+    
     # Renames the current_key task to new_key.  References in joins and
     # queue are updated by rename.  Raises an error if built? or if the
     # specified task does not exist.
@@ -272,6 +287,23 @@ module Tap
     # Converts self to a hash and serializes it to YAML.
     def dump(io=nil)
       YAML.dump(to_hash, io)
+    end
+    
+    protected
+    
+    # helper to collect all tasks and tasks joined to task
+    def collect_tasks(task, collection=[]) # :nodoc:
+      unless collection.include?(task)
+        collection << task
+        
+        task.joins.each do |join|
+          (join.inputs + join.outputs).each do |input|
+            collect_tasks(input, collection)
+          end
+        end
+      end
+      
+      collection
     end
   end
 end

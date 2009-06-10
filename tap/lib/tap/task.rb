@@ -518,5 +518,12 @@ module Tap
     def inspect
       "#<#{self.class.to_s}:#{object_id} #{config.to_hash.inspect} >"
     end
+    
+    def to_hash
+      {
+        :class => self.class,
+        :config => config.to_hash
+      }
+    end
   end
 end
