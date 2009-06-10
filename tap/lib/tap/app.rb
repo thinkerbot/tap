@@ -220,17 +220,21 @@ module Tap
     
     # Adds the specified middleware to the stack.
     def use(middleware, *argv)
-      @stack = middleware.new(@stack, *argv)
+      synchronize do
+        @stack = middleware.new(@stack, *argv)
+      end
     end
     
     # Returns an array of middlware in use by self.
     def middleware
       middleware = []
       
-      current = stack
-      until current.kind_of?(Stack)
-        middleware << current
-        current = current.stack
+      synchronize do
+        current = stack
+        until current.kind_of?(Stack)
+          middleware << current
+          current = current.stack
+        end
       end
       
       middleware
