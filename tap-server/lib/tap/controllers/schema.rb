@@ -92,16 +92,13 @@ module Tap
         redirect uri(id)
       end
       
-      def configure(id)
+      def save(id)
         if id == "new"
           id = data.next_id(type).to_s
         end
         
-        schema = Tap::Schema.new(request['schema'] || {})
-        scrub_nils(schema)
-        
         data.create_or_update(type, id) do |io| 
-          io << schema.dump
+          io << yamlize(request['schema'] || '')
         end
         
         redirect uri(id)

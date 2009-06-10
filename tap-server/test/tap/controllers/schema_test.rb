@@ -275,4 +275,23 @@ class Tap::Controllers::SchemaTest < Test::Unit::TestCase
       ['c', []]
     ], schema.queue)
   end
+  
+  #
+  # save test
+  #
+  
+  def test_save_upates_task_config
+    request.post("/0?_method=save&schema[tasks][0][id]=a&schema[tasks][0][config][:key]=value")
+    
+    schema = load_schema(0)
+    assert_equal({
+      0 => {
+        'id' => 'a',
+        'config' => {
+          :key => 'value'
+        }
+      }
+    }, schema.tasks)
+  end
+  
 end
