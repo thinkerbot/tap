@@ -110,6 +110,10 @@ class SchemaTest < Test::Unit::TestCase
     assert_equal "undefined method `instantiate' for nil:NilClass", err.message
   end
   
+  def test_build_returns_self
+    assert_equal schema, schema.build!(app)
+  end
+  
   #
   # built?
   #

@@ -224,6 +224,11 @@ module Tap
     end
     
     def build(schema, options={})
+      options = {
+        :clean => true,
+        :validate => true
+      }.merge(options)
+      
       unless schema.kind_of?(Schema)
         schema = Schema.new(schema)
       end
@@ -234,13 +239,11 @@ module Tap
         end
       end
       
-      schema.validate!
-      
       if options[:clean]
         reset
       end
       
-      schema.build!(self)
+      schema.build!(self, options[:validate])
     end
     
     # Clears the cache, the queue, and resets the stack so that no middleware

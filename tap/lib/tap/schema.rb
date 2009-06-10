@@ -194,7 +194,7 @@ module Tap
       end
       
       @app = app
-      tasks
+      self
     end
     
     def built?
