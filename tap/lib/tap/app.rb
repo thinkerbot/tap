@@ -223,6 +223,19 @@ module Tap
       @stack = middleware.new(@stack, *argv)
     end
     
+    # Returns an array of middlware in use by self.
+    def middleware
+      middleware = []
+      
+      current = stack
+      until current.kind_of?(Stack)
+        middleware << current
+        current = current.stack
+      end
+      
+      middleware
+    end
+    
     def build(schema, options={})
       options = {
         :clean => true,

@@ -218,6 +218,21 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
+  # middleware test
+  #
+  
+  def test_middleware_returns_an_array_of_middleware_in_use_by_self
+    a = app.use(Middleware)
+    b = app.use(Middleware)
+    
+    assert_equal [b,a], app.middleware
+  end
+  
+  def test_middleware_returns_an_empty_array_if_no_middleware_is_in_use
+    assert_equal [], app.middleware
+  end
+  
+  #
   # resolve test
   #
   
