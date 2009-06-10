@@ -22,6 +22,50 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   #
+  # rename test
+  #
+  
+  def test_rename_renames_task
+    schema.tasks['a'] = {'id' => 'task'}
+    schema.rename('a', 'b')
+    assert_equal({'b' => {'id' => 'task'}}, schema.tasks)
+  end
+  
+  def test_rename_renames_join_references
+    schema.tasks['a'] = {'id' => 'task'}
+    
+    schema.joins << [['a', 'x'], ['a', 'z'], {'id' => 'join'}]
+    schema.rename('a', 'b')
+    assert_equal [[['b', 'x'], ['b', 'z'], {'id' => 'join'}]], schema.joins
+  end
+  
+  def test_rename_renames_queue_references
+    schema.tasks['a'] = {'id' => 'task'}
+    
+    schema.queue << 'a'
+    schema.queue << ['a', []]
+    schema.queue << ['x', []]
+    
+    schema.rename('a', 'b')
+    assert_equal [
+      'b',
+      ['b', []],
+      ['x', []]
+    ], schema.queue
+  end
+  
+  def test_rename_raises_error_if_built
+    schema.build!(app)
+    err = assert_raise(RuntimeError) { schema.rename('a', 'b') }
+    assert_equal "cannot rename if built", err.message
+  end
+  
+  def test_rename_raises_error_for_unknown_task
+    err = assert_raise(RuntimeError) { schema.rename('a', 'b') }
+    assert_equal "unknown task: \"a\"", err.message
+  end
+  
+  #
   # resolve! test
   #
   

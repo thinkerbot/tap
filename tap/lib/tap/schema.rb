@@ -63,6 +63,48 @@ module Tap
       @app = nil
     end
     
+    # Renames the current_key task to new_key.  References in joins and
+    # queue are updated by rename.  Raises an error if built? or if the
+    # specified task does not exist.
+    def rename(current_key, new_key)
+      if built?
+        raise "cannot rename if built"
+      end
+      
+      # rename task
+      unless task = tasks.delete(current_key)
+        raise "unknown task: #{current_key.inspect}"
+      end
+      tasks[new_key] = task
+      
+      # update join references
+      joins.each do |inputs, outputs, join|
+        inputs.each_index do |index|
+          inputs[index] = new_key if inputs[index] == current_key
+        end
+        
+        outputs.each_index do |index|
+          outputs[index] = new_key if outputs[index] == current_key
+        end
+      end
+      
+      # update queue references, note both array and 
+      # reference-style entries must be handled
+      queue.each_index do |index|
+        if queue[index].kind_of?(Array)
+          if queue[index][0] == current_key
+            queue[index][0] = new_key
+          end
+        else
+          if queue[index] == current_key
+            queue[index] = new_key
+          end
+        end
+      end
+      
+      self
+    end
+    
     def resolve!
       tasks.each_pair do |key, task|
         task ||= {}
@@ -175,6 +217,7 @@ module Tap
       tasks.each_pair do |key, task|
         tasks[key] = instantiate(task, app)
       end
+      tasks.freeze
       
       # build the workflow
       joins.collect! do |inputs, outputs, join|
@@ -182,16 +225,19 @@ module Tap
         outputs = outputs.collect {|key| tasks[key] }
         instantiate(join, app).join(inputs, outputs)
       end
+      joins.freeze
       
       # utilize middleware
       middleware.collect! do |middleware|
         instantiate(middleware, app)
       end
+      middleware.freeze
       
       # enque tasks
       queue.each do |(key, inputs)|
         app.enq(tasks[key], *inputs)
       end
+      queue.clear.freeze
       
       @app = app
       self
