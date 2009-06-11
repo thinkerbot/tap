@@ -46,7 +46,7 @@ module Tap
         open_io(output, overwrite ? 'w' : 'a') do |io|
           dump(input, io)
         end
-        output
+        input
       end
     
       # Dumps the object to io, by default dump puts (not prints) obj.to_s.

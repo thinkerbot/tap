@@ -51,4 +51,9 @@ class DumpTest < Test::Unit::TestCase
     dump.process('input')
     assert_equal "input\n", File.read(path)
   end
+  
+  def test_process_returns_the_input
+    assert_equal 1, dump.process(1)
+  end
+  
 end
