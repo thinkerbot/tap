@@ -87,7 +87,7 @@ module Tap
       # * Returning all other objects
       #
       def open(io)
-        return File.open(io) if file
+        return(io.kind_of?(File) ? io : File.open(io)) if file
         
         case io
         when String
