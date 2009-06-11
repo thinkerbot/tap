@@ -15,6 +15,8 @@ module Tap
       config :exit_seq, "\n", &c.string_or_nil  # The prompt exit sequence
       config :terminal, $stdout, &c.io_or_nil   # The terminal IO
       
+      configurations[:use_close].default = true
+      
       def load(io)
         open_io(terminal) do |terminal|
           terminal.print prompt
