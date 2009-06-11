@@ -27,4 +27,15 @@ key: value
     io = StringIO.new "--- \nkey: value\n"
     assert_equal({'key' => 'value'}, Load::Yaml.new.load(io))
   end
+  
+  def test_load_loads_multiple_documents_in_stream_mode
+    io = StringIO.new %Q{--- :one\n--- :two\n--- :three}
+    Load::Yaml.new(:stream => true).enq(io)
+    
+    results = []
+    app.on_complete {|result| results << result }
+    app.run
+    
+    assert_equal([:one, :two, :three], results)
+  end
 end
