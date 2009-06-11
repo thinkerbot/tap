@@ -26,7 +26,7 @@ end.parse!(ARGV)
 require "irb"
 
 def app
-  @app ||= Tap::App.new
+  @app ||= Tap::App.instance
 end
 
 def env
