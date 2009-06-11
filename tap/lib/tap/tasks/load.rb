@@ -22,7 +22,7 @@ module Tap
     # :startdoc::task-
     #
     # Load serves as a baseclass for more complicated loads.  A YAML load
-    # (see {tap-tasks}[http://tap.rubyforge.org/tap-tasks]) looks like this:
+    # could look like this:
     #
     #   class Yaml < Tap::Tasks::Load
     #     def load(io)
@@ -30,10 +30,9 @@ module Tap
     #     end
     #   end
     #
-    # Load is constructed to reque itself in cases where objects are to
-    # be loaded sequentially from the same io.  Load will reque until the
-    # end-of-file is reached, but this behavior can be modified by
-    # overriding the complete? method.  An example is a prompt task:
+    # Load subclasses may be constructed to reque itself in cases where objects
+    # are sequentially loaded from the same io.  Load will reque until the
+    # complete? method returns true.  An example is a prompt task:
     #
     #   class Prompt < Tap::Tasks::Load
     #     config :exit_seq, "\n"
@@ -110,10 +109,10 @@ module Tap
         io.close
       end
       
-      # Returns io.eof?  Override in subclasses for the desired behavior
-      # (see process).
+      # Returns true by default.  Override in subclasses to allow recurrent 
+      # loading (see process).
       def complete?(io, last)
-        io.eof?
+        true
       end
     end
   end

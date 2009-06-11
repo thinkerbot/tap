@@ -3,6 +3,8 @@
 * bug fix in console (app now refers to Tap::App.instance)
 * bug fix in load for recurrently loading from a file
 * fixed a mistake in run help
+* made load only load once by default, stream loading must
+  be enabled in subclasses
 
 == 0.17.1 / 2009-06-06
 
