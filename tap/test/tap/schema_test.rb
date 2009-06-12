@@ -30,8 +30,8 @@ class SchemaTest < Test::Unit::TestCase
     schema.add(task)
     assert_equal({
       task => {
-        'class' => Tap::Task,
-        'config' => {}
+        :class => Tap::Task,
+        :config => {}
       }
     }, schema.tasks)
   end
@@ -51,7 +51,7 @@ class SchemaTest < Test::Unit::TestCase
     end
     
     assert_equal [
-      [[a,b], [c,d], {'class' => Tap::Join, 'config' => {:enq=>false, :splat=>false, :iterate=>false}}]
+      [[a,b], [c,d], {:class => Tap::Join, :config => {:enq=>false, :splat=>false, :iterate=>false}}]
     ], schema.joins
   end
   
@@ -60,21 +60,21 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   def test_rename_renames_task
-    schema.tasks['a'] = {'id' => 'task'}
+    schema.tasks['a'] = {:id => 'task'}
     schema.rename('a', 'b')
-    assert_equal({'b' => {'id' => 'task'}}, schema.tasks)
+    assert_equal({'b' => {:id => 'task'}}, schema.tasks)
   end
   
   def test_rename_renames_join_references
-    schema.tasks['a'] = {'id' => 'task'}
+    schema.tasks['a'] = {:id => 'task'}
     
-    schema.joins << [['a', 'x'], ['a', 'z'], {'id' => 'join'}]
+    schema.joins << [['a', 'x'], ['a', 'z'], {:id => 'join'}]
     schema.rename('a', 'b')
-    assert_equal [[['b', 'x'], ['b', 'z'], {'id' => 'join'}]], schema.joins
+    assert_equal [[['b', 'x'], ['b', 'z'], {:id => 'join'}]], schema.joins
   end
   
   def test_rename_renames_queue_references
-    schema.tasks['a'] = {'id' => 'task'}
+    schema.tasks['a'] = {:id => 'task'}
     
     schema.queue << 'a'
     schema.queue << ['a', []]
@@ -105,10 +105,10 @@ class SchemaTest < Test::Unit::TestCase
   
   def test_resolve_replaces_missing_class_with_block_return_and_symbolizes
     schema.tasks[0] = ['task array id']
-    schema.tasks[1] = {'id' => 'task hash id'}
+    schema.tasks[1] = {:id => 'task hash id'}
     
     schema.joins << [[], [], ['join array id']]
-    schema.joins << [[], [], {'id' => 'join hash id'}]
+    schema.joins << [[], [], {:id => 'join hash id'}]
     
     schema.resolve! do |type, id, data|
       Instantiable
@@ -116,12 +116,12 @@ class SchemaTest < Test::Unit::TestCase
     
     assert_equal({
       0 => [Instantiable],
-      1 => {"class" => Instantiable, "id" => 'task hash id'}
+      1 => {:class => Instantiable, :id => 'task hash id'}
     }, schema.tasks)
     
     assert_equal([
       [[], [], [Instantiable]],
-      [[], [], {"class" => Instantiable, "id" => 'join hash id'}]
+      [[], [], {:class => Instantiable, :id => 'join hash id'}]
     ], schema.joins)
   end
   
@@ -132,7 +132,7 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal({"class" => Instantiable}, schema.tasks['key'])
+    assert_equal({:class => Instantiable}, schema.tasks['key'])
     
     # now for array
     schema.tasks['key'] = []
@@ -150,7 +150,7 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal({"class" => Instantiable}, schema.tasks['key'])
+    assert_equal({:class => Instantiable}, schema.tasks['key'])
   end
   
   def test_resolve_provides_default_join_id_if_unspecified
@@ -160,7 +160,7 @@ class SchemaTest < Test::Unit::TestCase
       Instantiable
     end
     
-    assert_equal [[], [], {"class" => Instantiable}], schema.joins[0]
+    assert_equal [[], [], {:class => Instantiable}], schema.joins[0]
   end
   
   #
@@ -168,7 +168,7 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   def test_build_instantiates_tasks_to_app
-    schema.tasks['key'] = {'class' => Tap::Task}
+    schema.tasks['key'] = {:class => Tap::Task}
     schema.build!(app)
     
     task = schema.tasks['key']
@@ -207,7 +207,7 @@ class SchemaTest < Test::Unit::TestCase
   #
   
   def test_enque_enques_task_to_app
-    schema.tasks['key'] = {'class' => Tap::Task}
+    schema.tasks['key'] = {:class => Tap::Task}
     schema.build!(app)
     
     assert app.queue.empty?

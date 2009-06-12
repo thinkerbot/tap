@@ -5,7 +5,7 @@ module Tap
   class Schema
     class << self
       def load(str)
-        new(YAML.load(str) || {})
+        new(schema ? Utils.symbolize(schema) : {})
       end
       
       def load_file(path)
@@ -55,20 +55,20 @@ module Tap
     attr_reader :app
     
     def initialize(schema={})
-      @tasks = schema['tasks'] || {}
-      @joins = schema['joins'] || []
-      @queue = schema['queue'] || []
-      @middleware = schema['middleware'] || []
+      @tasks = schema[:tasks] || {}
+      @joins = schema[:joins] || []
+      @queue = schema[:queue] || []
+      @middleware = schema[:middleware] || []
       
       @app = nil
     end
     
     def add(task, inputs=nil)
       collect_tasks(task).collect do |task|
-        tasks[task] = stringify(task.to_hash)
+        tasks[task] = task.to_hash
         task.joins
       end.flatten.uniq.each do |join|
-        joins << [join.inputs, join.outputs, stringify(join.to_hash)]
+        joins << [join.inputs, join.outputs, join.to_hash]
       end
       
       if inputs

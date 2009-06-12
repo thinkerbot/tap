@@ -5,7 +5,7 @@ module Tap
       
       def instantiate(data, app)
         case data
-        when Hash  then data['class'].instantiate(symbolize(data), app)
+        when Hash  then data[:class].instantiate(data, app)
         when Array then data.shift.parse!(data, app)
         else raise "cannot instantiate: #{data.inspect}"
         end
@@ -13,7 +13,7 @@ module Tap
       
       def resolved?(data)
         case data
-        when Hash  then data['class'].respond_to?(:instantiate)
+        when Hash  then data[:class].respond_to?(:instantiate)
         when Array then data[0].respond_to?(:parse!)
         else false
         end
@@ -25,7 +25,8 @@ module Tap
         case data
         when Hash
           unless resolved?(data)
-            data['class'] = yield(data['id']) || data['id']
+            data = symbolize(data)
+            data[:class] = yield(data[:id]) || data[:id]
           end
         when Array 
           data[0] = yield(data[0]) || data[0]
@@ -43,22 +44,6 @@ module Tap
           
           if result.has_key?(key)
             raise "symbolize conflict: #{hash.inspect} (#{key.inspect})"
-          end
-          
-          result[key] = value
-        end
-        result
-      end
-      
-      # Stringifies the keys of hash.  Returns non-hash values directly and
-      # raises an error in the event of a stringify conflict.
-      def stringify(hash)
-        result = {}
-        hash.each_pair do |key, value|
-          key = key.to_s
-          
-          if result.has_key?(key)
-            raise "stringify conflict: #{hash.inspect} (#{key.inspect})"
           end
           
           result[key] = value
