@@ -55,6 +55,11 @@ module Tap
         target
       end
       
+      # Returns :destroy
+      def action
+        :destroy
+      end
+      
     end
   end
 end

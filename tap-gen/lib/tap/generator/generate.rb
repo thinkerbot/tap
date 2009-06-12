@@ -62,6 +62,11 @@ module Tap
         target
       end
       
+      # Returns :generate
+      def action
+        :generate
+      end
+      
       protected
       
       # Ask the user interactively whether to force collision.

@@ -158,4 +158,37 @@ class BaseTest < Test::Unit::TestCase
       [c, 'c/a']
     ], results
   end
+  
+  #
+  # on test
+  #
+  
+  module Action
+    attr_accessor :action
+  end
+  
+  def test_on_calls_block_if_actions_include_action
+    b.extend Action
+    b.action = :test
+    
+    was_in_block = false
+    b.on(:test) { was_in_block = true }
+    assert_equal true,  was_in_block
+    
+    was_in_block = false
+    b.on(:a, :test, :b) { was_in_block = true }
+    assert_equal true,  was_in_block
+    
+    was_in_block = false
+    b.on(:a, :b) { was_in_block = true }
+    assert_equal false, was_in_block
+  end
+  
+  #
+  # action test
+  #
+  
+  def test_action_raises_not_implemented_error
+    assert_raises(NotImplementedError) { b.action }
+  end
 end

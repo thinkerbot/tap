@@ -34,8 +34,12 @@ module Tap
       # content built to files.
       attr_accessor :preview
       
+      # The action for self (default :preview)
+      attr_accessor :action
+      
       def self.extended(base) # :nodoc:
         base.instance_variable_set(:@preview, {})
+        base.instance_variable_set(:@action, :preview)
       end
       
       # Returns the path of path, relative to destination_root.  If path

@@ -171,6 +171,18 @@ module Tap
         end
       end
       
+      # Calls the block when specified by the action for self.
+      def on(*actions, &block)
+        if actions.include?(action)
+          block.call
+        end
+      end
+      
+      # Returns the action for self (ie :generate or :destroy)
+      def action
+        raise NotImplementedError
+      end
+      
       # Logs the action with the relative filepath from Dir.pwd to path.
       def log_relative(action, path)
         log(action, Tap::Root::Utils.relative_path(Dir.pwd, path))
