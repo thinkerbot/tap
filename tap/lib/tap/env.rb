@@ -492,7 +492,7 @@ module Tap
     # single env can be specified by using a compound key like 'env_key:key'.
     #
     # Returns nil if no matching object is found.
-    def seek(type, key, result_only=true)
+    def seek(type, key, value_only=true)
       key =~ COMPOUND_KEY
       envs = if $2
         # compound key, match for env
@@ -506,8 +506,20 @@ module Tap
       # traverse envs looking for the first
       # manifest entry matching key
       envs.each do |env|
-        if result = env.manifest(type).minimatch(key)
-          return result_only ? result : [env, result]
+        if value = env.manifest(type).minimatch(key)
+          return value_only ? value : [env, value]
+        end
+      end
+    
+      nil
+    end
+    
+    def reverse_seek(type, key_only=true, &block)
+      each do |env|
+        manifest = env.manifest(type)
+        if value = manifest.find(&block)
+          key = manifest.minihash(true)[value]
+          return key_only ? key : "#{minihash(true)[env]}:#{key}"
         end
       end
     

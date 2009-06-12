@@ -43,8 +43,8 @@ module Tap
       # env can be specified by using a compound key like 'env_key:key'.
       #
       # Returns nil if no matching entry is found.
-      def seek(key, result_only=true)
-        env.seek(type, key, result_only)
+      def seek(key, value_only=true)
+        env.seek(type, key, value_only)
       end
       
       def [](key)
