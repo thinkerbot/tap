@@ -18,12 +18,14 @@ module Tap
       # Commands longer than these limits fail, usually with something like: 'the input
       # line is too long'
       module ShellUtils
-
+        
+        # :::-
         # Run the system command +cmd+, passing the result to the block, if given.
         # Raises an error if the command fails. Uses the same semantics as 
         # Kernel::exec and Kernel::system.
         #
         # Based on FileUtils#sh from Rake.
+        # :::+
         def sh(*cmd) # :yields: ok, status
           ok = system(*cmd)
 
