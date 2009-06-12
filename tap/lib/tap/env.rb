@@ -488,9 +488,11 @@ module Tap
       registries.clear
     end
     
-    #--
-    # Environment-seek
-    def eeek(type, key)
+    # Searches across each for the first registered object minimatching key. A
+    # single env can be specified by using a compound key like 'env_key:key'.
+    #
+    # Returns nil if no matching object is found.
+    def seek(type, key, result_only=true)
       key =~ COMPOUND_KEY
       envs = if $2
         # compound key, match for env
@@ -505,20 +507,11 @@ module Tap
       # manifest entry matching key
       envs.each do |env|
         if result = env.manifest(type).minimatch(key)
-          return [env, result]
+          return result_only ? result : [env, result]
         end
       end
     
       nil
-    end
-    
-    # Searches across each for the first registered object minimatching key. A
-    # single env can be specified by using a compound key like 'env_key:key'.
-    #
-    # Returns nil if no matching object is found.
-    def seek(type, key, &block) # :yields: env, key
-      env, result = eeek(type, key, &block)
-      result
     end
     
     # All templaters are yielded to the block before any are built.  This
