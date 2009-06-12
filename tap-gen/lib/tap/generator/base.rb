@@ -152,6 +152,8 @@ module Tap
       # the specified attributes.  Source is expanded relative to
       # template_dir.  Options are passed onto file.
       def template(target, source, attributes={}, options={})
+        raise "no template dir is set" unless template_dir
+        
         template_path = File.expand_path(source, template_dir)
         templater = Support::Templater.new(File.read(template_path), attributes)
         
@@ -163,6 +165,8 @@ module Tap
       # Yields each source file under template_dir to the block, with
       # a target path of the source relative to template_dir.
       def template_files
+        raise "no template dir is set" unless template_dir
+        
         Dir.glob(template_dir + "/**/*").sort.each do |source|
           next unless File.file?(source)
           

@@ -135,6 +135,12 @@ class BaseTest < Test::Unit::TestCase
     assert_equal [['target', {:opt => 'value'}], "value was templated"], t.file_call
   end
   
+  def test_template_raises_error_if_no_template_dir_is_set
+    b.template_dir = nil
+    err = assert_raises(RuntimeError) { b.template('target', 'source') }
+    assert_equal "no template dir is set", err.message
+  end
+  
   #
   # template_files test
   #
@@ -157,6 +163,12 @@ class BaseTest < Test::Unit::TestCase
       [b, 'b'],
       [c, 'c/a']
     ], results
+  end
+  
+  def test_template_files_raises_error_if_no_template_dir_is_set
+    b.template_dir = nil
+    err = assert_raises(RuntimeError) { b.template_files {} }
+    assert_equal "no template dir is set", err.message
   end
   
   #
