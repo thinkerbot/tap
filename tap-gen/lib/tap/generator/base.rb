@@ -189,7 +189,8 @@ module Tap
       
       # Logs the action with the relative filepath from Dir.pwd to path.
       def log_relative(action, path)
-        log(action, Tap::Root::Utils.relative_path(Dir.pwd, path))
+        relative_path = Tap::Root::Utils.relative_path(Dir.pwd, path)
+        log(action, relative_path || path)
       end
     end
   end
