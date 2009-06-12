@@ -20,6 +20,7 @@ while !ARGV.empty? && ARGV[0] !~ Tap::Schema::Parser::BREAK
 end
 
 # parse options
+mode = :run
 ConfigParser.new(app.config) do |opts|
   opts.separator ""
   opts.separator "configurations:"
@@ -38,6 +39,10 @@ ConfigParser.new(app.config) do |opts|
     puts Lazydoc.usage(__FILE__)
     puts opts
     exit(0)
+  end
+  
+  opts.on('-s', '--schema', 'Print schema as YAML') do
+    mode = :schema
   end
   
   opts.on('-T', '--manifest', 'Print a list of available tasks') do
@@ -82,11 +87,25 @@ begin
   # parse argv schema
   schema = Tap::Schema.parse(ARGV)
   app.build(schema, :resources => env)
-  
   ARGV.replace(argv)
-  Tap::Exe.set_signals(app)
   
-  app.run
+  case mode
+  when :run
+    Tap::Exe.set_signals(app)
+    app.run
+  when :schema
+    app.to_schema do |type, resources|
+      reverse_map = {}
+      env[type].minihash(true).each_pair do |const, key|
+        reverse_map[const.const_name] = key
+      end
+      
+      resources.each do |resource|
+        resource[:id] = reverse_map[resource.delete(:class).to_s]
+      end
+    end.dump($stdout)
+  end
+  
 rescue
   raise if $DEBUG
   puts $!.message

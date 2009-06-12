@@ -1,7 +1,58 @@
+require 'tap/app'
 require 'tap/schema/utils'
 require 'tap/schema/parser'
 
 module Tap
+  class App
+    def build(schema, options={})
+      options = {
+        :clean => true,
+        :validate => true
+      }.merge(options)
+      
+      unless schema.kind_of?(Schema)
+        schema = Schema.new(schema)
+      end
+      
+      if resources = options[:resources]
+        schema.resolve! do |type, id|
+          resources[type][id]
+        end
+      end
+      
+      if options[:clean]
+        reset
+      end
+      
+      schema.build!(self, options[:validate])
+    end
+    
+    def to_schema
+      schema = Schema.new
+      queue.to_a.each do |task, inputs|
+        schema.add(task, inputs)
+      end
+      
+      middleware.reverse_each do |m|
+        schema.use(m)
+      end
+      
+      index = 0
+      schema.tasks.each_key do |task|
+        schema.rename(task, index)
+        index += 1
+      end
+      
+      if block_given?
+        schema.resources.each_pair do |type, resource|
+          yield(type, resource)
+        end
+      end
+      
+      schema
+    end
+  end
+  
   class Schema
     class << self
       def load(str)
@@ -290,10 +341,10 @@ module Tap
     
     # Creates an hash dump of self.
     def to_hash
-      { 'tasks' => tasks, 
-        'joins' => joins, 
-        'queue' => queue, 
-        'middleware' => middleware
+      { :tasks => tasks, 
+        :joins => joins, 
+        :queue => queue, 
+        :middleware => middleware
       }
     end
     

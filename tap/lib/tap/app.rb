@@ -4,7 +4,6 @@ require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
-require 'tap/schema'
 
 module Tap
   
@@ -238,29 +237,6 @@ module Tap
       end
       
       middleware
-    end
-    
-    def build(schema, options={})
-      options = {
-        :clean => true,
-        :validate => true
-      }.merge(options)
-      
-      unless schema.kind_of?(Schema)
-        schema = Schema.new(schema)
-      end
-      
-      if resources = options[:resources]
-        schema.resolve! do |type, id|
-          resources[type][id]
-        end
-      end
-      
-      if options[:clean]
-        reset
-      end
-      
-      schema.build!(self, options[:validate])
     end
     
     # Clears the cache, the queue, and resets the stack so that no middleware
