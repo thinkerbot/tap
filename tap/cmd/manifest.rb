@@ -82,14 +82,34 @@ puts summary
 
 if ARGV.empty?
   templaters = []
-  globals = env.recursive_inject([0, nil]) do |(nesting_depth, last), current|
-    leader = nesting_depth == 0 ? "" : '|   ' * (nesting_depth - 1) + (last == current ? "`- " : "|- ")
+  visited = []
+  globals = env.recursive_inject([nil, nil]) do |(leader, last), current|
+    current_leader = if leader
+      leader.to_s + (last == current ? "`- " : "|- ")
+    else
+      ""
+    end
+    
     templaters << Tap::Support::Templater.new("<%= leader %><%= env_key %> \n", 
       :env_key => env_keys[current],
-      :leader => leader
+      :leader => current_leader
     )
     
-    [nesting_depth + 1, current.envs[-1]]
+    if leader
+      leader += (last == current ? '    ' : '|   ')
+    else
+      leader = ""
+    end
+    
+    visited << current
+    current.envs.reverse_each do |e|
+      unless visited.include?(e)
+        last = e
+        break
+      end
+    end
+    
+    [leader, last]
   end
 
   tree = templaters.collect do |templater|
