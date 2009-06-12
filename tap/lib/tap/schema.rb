@@ -78,6 +78,19 @@ module Tap
       self
     end
     
+    def use(middleware)
+      self.middleware << middleware.to_hash
+      self
+    end
+    
+    def resources
+      {
+        :task => tasks.values,
+        :join => joins.collect {|join| join[2] },
+        :middleware => middleware
+      }
+    end
+    
     # Renames the current_key task to new_key.  References in joins and
     # queue are updated by rename.  Raises an error if built? or if the
     # specified task does not exist.

@@ -56,6 +56,22 @@ class SchemaTest < Test::Unit::TestCase
   end
   
   #
+  # resources test
+  #
+  
+  def test_resources_returns_all_resolvable_resources_organized_by_type
+    schema.tasks['a'] = {:id => 'task'}
+    schema.joins << [[],[], {:id => 'join'}]
+    schema.middleware << {:id => 'middleware'}
+    
+    assert_equal({
+      :task => [{:id => 'task'}],
+      :join => [{:id => 'join'}],
+      :middleware => [{:id => 'middleware'}]
+    }, schema.resources)
+  end
+  
+  #
   # rename test
   #
   
