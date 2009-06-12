@@ -96,12 +96,17 @@ begin
   when :schema
     app.to_schema do |type, resources|
       reverse_map = {}
-      env[type].minihash(true).each_pair do |const, key|
-        reverse_map[const.const_name] = key
+      env.each do |e|
+        e[type].minihash(true).each_pair do |const, key|
+          reverse_map[const.const_name] = key
+        end
       end
       
       resources.each do |resource|
-        resource[:id] = reverse_map[resource.delete(:class).to_s]
+        const_name = resource.delete(:class).to_s
+        unless resource[:id] = reverse_map[const_name]
+          raise "could not reverse map to an id: #{const_name} (#{type})"
+        end
       end
     end.dump($stdout)
   end

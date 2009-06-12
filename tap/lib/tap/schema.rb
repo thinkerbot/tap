@@ -38,7 +38,7 @@ module Tap
       end
       
       index = 0
-      schema.tasks.each_key do |task|
+      schema.tasks.keys.each do |task|
         schema.rename(task, index)
         index += 1
       end
