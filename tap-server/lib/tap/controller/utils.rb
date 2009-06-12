@@ -33,21 +33,26 @@ module Tap
             lines << case value
             when Hash, Array
               "#{indent}#{key}:\n#{yamlize(value, indent + '  ')}"
+            when '#'
+              next
             else
               "#{indent}#{key}: #{value}"
             end
           end
-          lines.join("\n")
+          lines.empty? ? "#{indent}{}" : lines.join("\n")
         when Array
-          lines = obj.collect do |value|
-            case value
+          lines = []
+          obj.each do |value|
+            lines << case value
             when Hash, Array
               "#{indent}-\n#{yamlize(value, indent + '  ')}"
+            when '#'
+              next
             else
               "#{indent}- #{value}"
             end
           end
-          lines.join("\n")
+          lines.empty? ? "#{indent}[]" : lines.join("\n")
         else
           obj
         end

@@ -105,19 +105,19 @@
 
 <!-- configure form --> 
 <form id="configure_<%= id %>" class="configure" method="post" action="<%= uri(id) %>">
-  <input type="hidden" name="_method" value="configure" />
+  <input type="hidden" name="_method" value="save" />
   
   <h2>Configure:</h2>
   
   <h3>Tasks</h3>
   <ul class="tasks">
 <% schema.tasks.each_pair do |key, task| %>
-<%  name = "schema[tasks][#{key}]" %>
+<%  name = "schema[:tasks][#{key}]" %>
     <li id="task_<%= key %>">
       <h3><a href="#add_<%= id %>"><%= key %></a></h3>
       
-      <input type="hidden" name="<%= name %>[id]" value="<%= task['id'] %>">
-<%=   render_config("#{name}[config]", task['class'], task['config']) %>
+      <input type="hidden" name="<%= name %>[:id]" value="<%= task[:id] %>">
+<%=   render_config(task, "#{name}[:config]") %>
     </li>
 <% end %>
   </ul>
@@ -125,7 +125,7 @@
   <h3>Joins</h3>
   <ul class="joins">
 <% schema.joins.each_with_index do |(inputs, outputs, join), index| %>
-<%  name = "schema[joins][]" %>
+<%  name = "schema[:joins][]" %>
     <li id="join_<%= index %>">
       <h3><a href="#add_<%= id %>"><%= index %></a></h3>
 <%    inputs.each do |input| %>
@@ -134,8 +134,8 @@
 <%    outputs.each do |output| %>
       <input type="hidden" name="<%= name %>[1][]" value="<%= output %>">
 <%    end %>
-      <input type="hidden" name="<%= name %>[2][id]" value="<%= join['id'] || 'join' %>">
-<%=   render_config("#{name}[2][config]", join['class'], join['config']) %>
+      <input type="hidden" name="<%= name %>[2][:id]" value="<%= join[:id] || 'join' %>">
+<%=   render_config(join, "#{name}[2][:config]") %>
     </li>
 <% end %>
   </ul>

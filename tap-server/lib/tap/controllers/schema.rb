@@ -136,45 +136,24 @@ module Tap
       # Helpers
       #########################
       
-      def render_config(name, configurable, values=nil)
-        module_render "_configs.erb", configurable, 
+      def render_config(resource, name="")
+        klass = resource[:class]
+        values = resource[:config] || default_config(klass.configurations)
+        
+        module_render "_configs.erb", klass, 
           :locals => {
             :name => name,
-            :configs => configurable.configurations, 
-            :values => values || default_config(configurable)
+            :configs => klass.configurations, 
+            :values => values
           }
       end
       
-      def default_config(configurable)
-        configs = configurable.configurations
-        Configurable::DelegateHash.new(configs).to_hash do |hash, key, value|
-          hash[key.to_s] = value
-        end
+      def default_config(configs)
+        Configurable::DelegateHash.new(configs).to_hash
       end
       
-      def scrub_nils(schema)
-        resources = schema.tasks.values +
-          schema.joins.collect {|join| join[2] } +
-          schema.middleware
-        
-        resources.each do |resource|
-          scrub(resource['config'])
-        end
-      end
-      
-      def scrub(obj)
-        case obj
-        when Hash
-          obj.delete_if do |key, value|
-            value ? scrub(value) : true
-          end
-        when Array
-          obj.delete_if do |value| 
-            value ? scrub(value) : true
-          end
-        end
-        
-        false
+      def format_yaml(object)
+        object == nil ? "~" : YAML.dump(object)[4...-1].strip
       end
       
       def update_schema(id)        

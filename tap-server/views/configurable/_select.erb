@@ -1,6 +1,5 @@
 <select name="<%= name %>">
 <% (config[:options] || []).each do |option| %>
-<%   option = stringify(option) %>
-  <option value="<%= escape_html(option) %>" <%= value == option ? "selected='true' " : ""%>><%= option %></option>
+  <option value="<%= format_yaml(option) %>" <%= value == option ? "selected='true' " : ""%>><%= option %></option>
 <% end %>
 </select>
