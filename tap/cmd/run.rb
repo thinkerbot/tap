@@ -18,6 +18,8 @@ argv = []
 while !ARGV.empty? && ARGV[0] !~ Tap::Schema::Parser::BREAK
   argv << ARGV.shift
 end
+schema = ARGV.empty? ? nil : Tap::Schema.parse(ARGV)
+ARGV.replace(argv)
 
 # parse options
 mode = :run
@@ -41,8 +43,17 @@ ConfigParser.new(app.config) do |opts|
     exit(0)
   end
   
-  opts.on('-s', '--schema', 'Print schema as YAML') do
-    mode = :schema
+  opts.on('-s', '--schema FILE', 'Use the specifed schema') do |file|
+    if schema
+      puts "An inline schema cannot be specified with a file schema."
+      exit(0)
+    end
+    
+    schema = Tap::Schema.load_file(file)
+  end
+  
+  opts.on('-p', '--preview', 'Print schema as YAML') do
+    mode = :preview
   end
   
   opts.on('-T', '--manifest', 'Print a list of available tasks') do
@@ -65,27 +76,25 @@ ConfigParser.new(app.config) do |opts|
     exit(0)
   end
   
-end.parse!(argv, :clear_config => false, :add_defaults => false)
+end.parse!(ARGV, :clear_config => false, :add_defaults => false)
 
 #
 # build and run
 #
 
-begin
-  if ARGV.empty?
-    msg = "No schema specified"
-    
-    unless argv.empty?
-      args = argv[0, 3].join(' ') + (argv.length > 3 ? ' ...' : '')
-      msg = "#{msg} (did you mean 'tap run -- #{args}'?)"
-    end
-    
-    puts msg
-    exit(0)
+unless schema
+  msg = "No schema specified"
+
+  unless ARGV.empty?
+    args = ARGV[0, 3].join(' ') + (argv.length > 3 ? ' ...' : '')
+    msg = "#{msg} (did you mean 'tap run -- #{args}'?)"
   end
-  
-  # parse argv schema
-  schema = Tap::Schema.parse(ARGV)
+
+  puts msg
+  exit(0)
+end
+
+begin
   app.build(schema, :resources => env)
   ARGV.replace(argv)
   
@@ -93,7 +102,7 @@ begin
   when :run
     Tap::Exe.set_signals(app)
     app.run
-  when :schema
+  when :preview
     app.to_schema do |type, resources|
       resources.each do |resource|
         const_name = resource.delete(:class).to_s

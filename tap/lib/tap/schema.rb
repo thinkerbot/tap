@@ -56,6 +56,7 @@ module Tap
   class Schema
     class << self
       def load(str)
+        schema = YAML.load(str)
         new(schema ? Utils.symbolize(schema) : {})
       end
       
@@ -114,8 +115,8 @@ module Tap
       @app = nil
     end
     
-    def add(task, inputs=nil)
-      collect_tasks(task).collect do |task|
+    def add(node, inputs=nil)
+      collect_tasks(node).collect do |task|
         tasks[task] = task.to_hash
         task.joins
       end.flatten.uniq.each do |join|
@@ -123,7 +124,7 @@ module Tap
       end
       
       if inputs
-        queue << [task, inputs]
+        queue << [node, inputs]
       end
       
       self
