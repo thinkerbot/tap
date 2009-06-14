@@ -1,4 +1,9 @@
-==
+== 0.18.0 / 2009-06-14
+
+Several updates to simplify Tap.  Most significantly,
+dependencies have been removed because their general
+utility is quite doubtful, and it it easy to implement
+in situations that require them (ex rap).
 
 * bug fix in console (app now refers to Tap::App.instance)
 * bug fix in load for recurrently loading from a file

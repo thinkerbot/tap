@@ -1,4 +1,4 @@
-==
+== 0.3.0 / 2009-06-14
 
 * added load/dump csv tasks
 * updated glob task with include/exclude filters

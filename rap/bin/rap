@@ -52,7 +52,7 @@ when '--help', nil, '-T'
   end
   
   puts
-  puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
+  puts "version #{Rap::VERSION} -- #{Rap::WEBSITE}"
 else
   begin
     schema = Tap::Schema.parse(ARGV)

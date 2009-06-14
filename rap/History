@@ -1,11 +1,11 @@
-==
+==  0.14.0 / 2009-06-14
 
 * added dependencies directly to Rap::Task
 * removed sh method from Declarations
-  (include Tap::Utils instead)
-* removed Rap::Utils
+  (include Rap::Utils instead)
+* updates for Tap-0.18.0
 
-== 0.17.1 / 2009-06-06
+== 0.13.1 / 2009-06-06
 
 Updates for Tap-0.17.1.
 

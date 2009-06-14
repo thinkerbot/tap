@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap-gen"
-  s.version = "0.1.3"
+  s.version = "0.2.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org/tap-gen"
@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.summary = "Generators for Tap"
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 0.17.1")
+  s.add_dependency("tap", ">= 0.18.0")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Generator}
   
