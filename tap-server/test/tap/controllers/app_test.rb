@@ -2,8 +2,6 @@ require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/controllers/app'
 
 class Tap::Controllers::AppTest < Test::Unit::TestCase
-  include Tap::Support
-  
   acts_as_tap_test
   acts_as_subset_test
   cleanup_dirs << :views << :public

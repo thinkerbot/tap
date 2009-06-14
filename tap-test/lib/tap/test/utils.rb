@@ -1,7 +1,7 @@
 require 'tap/root'
 require 'fileutils'
 require 'tempfile'
-require 'tap/support/templater'
+require 'tap/templater'
 
 module Tap
 
@@ -120,7 +120,7 @@ module Tap
         end
       end
       
-      # Uses a Tap::Support::Templater to template and replace the contents of path, 
+      # Uses a Tap::Templater to template and replace the contents of path, 
       # for the duration of the block.  The attributes will be available in the
       # template context.
       def template(paths, attributes={}, tempdir=Dir::tmpdir)
@@ -135,7 +135,7 @@ module Tap
             # template the source file
             content = File.read(path)
             File.open(path, "wb") do |file|
-              file << Support::Templater.new(content, attributes).build
+              file << Templater.new(content, attributes).build
             end
             
             mapped_paths << [path, tempfile]

@@ -2,7 +2,6 @@ require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/controllers/server'
 
 class Tap::Controllers::ServerTest < Test::Unit::TestCase
-  include Tap::Support
   
   acts_as_tap_test
   acts_as_subset_test

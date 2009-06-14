@@ -155,7 +155,7 @@ module Tap
         raise "no template dir is set" unless template_dir
         
         template_path = File.expand_path(source, template_dir)
-        templater = Support::Templater.new(File.read(template_path), attributes)
+        templater = Templater.new(File.read(template_path), attributes)
         
         file(target, options) do |file| 
           file << templater.build
