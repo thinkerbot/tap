@@ -4,6 +4,7 @@
 * updated glob task with include/exclude filters
 * updated load/yaml with stream loading
 * removed argv task
+* removed FileTask
 
 == 0.2.0 / 2009-05-25
 
