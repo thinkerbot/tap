@@ -1,0 +1,198 @@
+/*  Typography
+ *  Partially adapted from generic.css from Tripoli 
+    -----------------------------------------------
+
+    Tripoli is a generic CSS standard for HTML rendering. 
+    Copyright (C) 2007  David Hellsing
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+/*
+-----------------------------
+GENERIC
+-----------------------------
+*/
+
+/* MAIN TYPOGRAPHY */
+
+/*html { font-size: 62.5%; font-family: helvetica, "microsoft sans serif", arial, sans-serif; }*/
+strong, th, thead td, h1, h2, h3, h4, h5, h6 { font-weight: bold; }
+cite, em, dfn { font-style: italic; }
+code, kbd, samp, pre, tt, var, input[type='text'], textarea { font-size: 92%; font-family: monaco, "Lucida Console", courier, mono-space; }
+del { text-decoration: line-through; color: #666; }
+ins, dfn { border-bottom: 1px solid #ccc; }
+small, sup, sub { font-size: 85%; }
+abbr, acronym { text-transform: uppercase; font-size: 85%; letter-spacing: .1em; }
+a abbr, a acronym { border: none; }
+abbr[title], acronym[title], dfn[title] { cursor: help; border-bottom: 1px solid #ccc; }
+sup { vertical-align: super; }
+sub { vertical-align: sub; }
+
+/* QUOTES */
+
+blockquote { border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; color: #666; }
+blockquote *:first-child:before { content: "\201C"; }
+blockquote *:first-child:after { content: "\201D"; }
+
+/* language specific quotes! */
+
+q { quotes: "\201C" "\201D" "\2018" "\2019"; }
+:lang(af), :lang(nl), :lang(pl) { quotes: '\201E' '\201D' '\201A' '\2019'; }
+:lang(bg), :lang(cs), :lang(de), :lang(is), :lang(lt), :lang(sk), :lang(sr), :lang(ro) { quotes: '\201E' '\201C' '\201A' '\2018'; }
+:lang(da), :lang(hr) { quotes: '\00BB' '\00AB' '\203A' '\2039'; }
+:lang(el), :lang(es), :lang(sq), :lang(tr) { quotes: '\00AB' '\00BB' '\2039' '\203A'; }
+:lang(en-GB) { quotes: '\2018' '\2019' '\201C' '\201D'; }
+:lang(fi), :lang(sv) { quotes: '\201D' '\201D' '\2019' '\2019'; }
+:lang(fr) { quotes: '\ab\2005' '\2005\bb' '\2039\2005' '\2005\203a'; }
+
+/* NOTE: safari refuses to support the quotes syntax. I only added the english language quotes for safari to save space. */
+html[lang|='en'] q:before   { content: '\201C'; }
+html[lang|='en'] q:after    { content: '\201D'; }
+html[lang|='en'] q q:before { content: '\2018'; }
+html[lang|='en'] q q:after  { content: '\2019'; }
+
+/* FORMS */
+
+fieldset { border: 1px solid #ccc; }
+legend { background: #fff; }
+textarea, input[type='text'], select { border: 1px solid #ccc; background: #fff; }
+textarea:hover, input[type='text']:hover, input[type='password']:hover, select:hover { border-color: #aaa; }
+textarea:focus, input[type='text']:focus, input[type='password']:focus, select:focus { border-color: #888; outline: 2px solid #ffffaa; }
+input, select { cursor: pointer; }
+input[type='text'] { cursor: text; }
+
+
+/*
+-----------------------------
+CONTENT ONLY
+-----------------------------
+*/
+
+/* BASE SIZES */
+
+div#content h1 { font-size: 1.8em; }
+div#content h2 { font-size: 1.5em; }
+div#content h3 { font-size: 1.3em; }
+div#content h4 { font-size: 1em; }
+div#content h5 { font-size: 1em; }
+div#content h6 { font-size: 1em; }
+
+
+/* HR */
+
+div#content_main hr { display: block; background: #aaa; color: #aaa; width: 100%; height: 1px; border: none; }
+
+/* LISTS */
+
+div#content_main ul li { text-indent: -.85em; margin-left: .85em; }
+div#content_main ul li:before { content: "\2022\00a0\00a0"; }
+div#content_main ol { list-style-position: outside; list-style-type: decimal; }
+div#content_main dt { font-weight: bold; }
+
+/* TABLES */
+
+div#content_main table { border-top: 1px solid #ccc;  border-left: 1px solid #ccc; }
+div#content_main th, div#content_main td { border-bottom: 1px solid #ddd; border-right: 1px solid #ccc; }
+
+/* MARGINS & PADDINGS */
+
+div#content_main blockquote *:first-child { margin: .8em 0; }
+div#content_main hr, div#content_main p, div#content_main ul, div#content_main ol, div#content_main dl, div#content_main pre, div#content_main blockquote, div#content_main address, div#content_main table, div#content_main form { margin-bottom: 1.6em; }
+div#content_main p+p { margin-top: -.8em; }
+/* NOTE: Calulate header margins: TOP: 1.6em/size, BOTTOM: 1.6em/size/2 */
+div#content_main h1 { margin: 1em 0 .5em;  }
+div#content_main h2 { margin: 1.07em 0 .535em; }
+div#content_main h3 { margin: 1.14em 0 .57em; }
+div#content_main h4 { margin: 1.23em 0 .615em; }
+div#content_main h5 { margin: 1.33em 0 .67em; }
+div#content_main h6 { margin: 1.6em 0 .8em; }
+div#content_main th, div#content_main td { padding: .8em; }
+div#content_main caption { padding-bottom: .8em; } /* padding instead of margin for IE */
+div#content_main blockquote { padding: 0 1em; margin: 1.6em 0; }
+div#content_main fieldset { padding: 0 1em 1em 1em; margin: 1.6em 0; } /* padding-top is margin-top for fieldsets in Opera */
+div#content_main legend { padding-left: .8em; padding-right: .8em; }
+div#content_main legend+* { margin-top: 1em; } /* compensates for the opera margin bug */
+div#content_main textarea, div#content_main input { padding: .3em .4em .15em .4em; }
+div#content_main select { padding: .1em .2em 0 .2em; }
+div#content_main option { padding: 0 .4em; }
+/*div#content_main a { position: relative; padding: 0.3em 0 .1em 0; }  for larger click-area */
+div#content_main dt { margin-top: .8em; margin-bottom: .4em; }
+div#content_main ul { margin-left: 1.5em; }
+div#content_main ol { margin-left: 2.35em; }
+div#content_main ol ol, div#content_main ul ol { margin-left: 2.5em; }
+div#content_main form div { margin-bottom: .8em; }
+
+/* Custom */
+
+body {
+  font-family: Verdana, Helvetica, Arial, sans-serif; 
+  font-size: 76%;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Times New Roman', Times, serif; 
+}
+h1 {
+  font-weight: bold; 
+  line-height: 120%;
+  margin: 0; 
+  border-bottom: 1px solid; 
+  padding: 0 0 0.1em 0;
+}
+
+pre {
+  overflow:auto;
+  font-size:1.1em;
+  padding-left: 1em;
+}
+
+div#branding_main, div#branding_sub, div#content_sub, div#nav_main, div#site_info {
+  text-align: center;	
+}
+
+div#content_main {
+  text-align:left;	
+}
+
+div#content_sub {
+  font-size:1.1em;
+}
+
+span#branding_tap {
+  font-weight: normal;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 4.5em;
+}
+
+span#branding_sub_tap {
+  font-weight: bold;
+  font-family: "Courier New", Courier, monospace;
+  font-size:  2em;
+}
+
+ul#nav_site li a {
+  font-size: 1.4em;
+}
+
+div.section p {
+  line-height: 1.4em;
+  margin-bottom: 1.0em;
+  text-align: justify;
+}
+
+div#site_info {
+  font-size: .9em;
+}

@@ -1,0 +1,12 @@
+/* Inman clearing */
+.pc,.sc { position: absolute; top: 0; left: 0;} 
+.clear_children,.cc_tallest { position: relative; } 
+/*\*/ 
+/* Disabled because it actually messed something up in IE6
+-----------------------------------------------
+* html .clear_children { display: inline;} 
+-----------------------------------------------
+*/
+/**/
+.cc_tallest:after { content: ''; } /* PREVENTS A REDRAW BUG IN SAFARI */
+

@@ -1,0 +1,82 @@
+/*  Color Scheme and Images
+ *  #010101 - dark background
+ *  #fff - light background
+ *
+ *  #191F1B - dark text
+ *  #2A441D - dark text highlight 
+ *  #5C6958 - dark text highlight 
+ *
+ *  #323F76 - blue text
+ *  #7F82AD - blue text highlight 
+ 
+ *  Partially adapted from generic.css from Tripoli 
+    -----------------------------------------------
+
+    Tripoli is a generic CSS standard for HTML rendering. 
+    Copyright (C) 2007  David Hellsing
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+html {
+  background-color: #fff;
+}
+
+body {
+  background-color: #fff;
+}
+
+/* branding */
+div#branding_main {
+  background-color: #fff;
+}
+
+/* navigation */
+div#nav_main {
+  border: thin solid #3B3A5A;
+}
+
+/*
+ul#nav_site li a {
+  color: #fff;
+  font-size: 0.9em;
+  font-weight:bold;
+  text-decoration: none;
+} */
+
+/* content 
+div#content {
+  background: #fff url('../images/border1.gif') repeat-x left top;
+}*/ 
+
+/* site_info 
+div#site_info {
+  background: #fff url('../images/border2.gif') repeat-x left top;
+}*/
+
+/*
+-----------------------------
+CONTENT ONLY
+-----------------------------
+*/
+
+/* COLORS */
+
+ a:link { color: #c33; }
+ a:visited {  color: #c33; } /* FF7F12 */
+ a:hover { color: #321987; }
+ a:active, div#content_main a:focus { color: #c33; }
+ 
+ 
+div#content_main code, .content pre { color:#321987; } /* very optional, but still useful. W3C uses about the same colors for codes */
+

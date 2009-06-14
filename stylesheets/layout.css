@@ -1,0 +1,147 @@
+/*
+  Adapted by Simon Chiang in 2007 from:
+  
+  Transcending CSS by Andy Clarke
+  www.transcendingcss.com/
+*/
+
+@import url(reset.css);
+@import url(inman.css);
+
+/*  Layout
+ *  Notes:  do not set position for content div (main and sub) 
+ *  -- these must be set by the inman clearing css in normalize
+*/
+html {}
+
+body {
+  position: relative;
+  width: 82em;
+  margin: 0 auto;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+/* main layout divisions */ 
+div#branding_main, div#banner, div#nav_main, div#site_info {
+  position: relative;
+  width: 100%;
+}
+
+div#branding_sub, div#content {
+  position: relative;
+  width: 80%;
+}
+
+div.center_div {
+  margin: 0 auto;
+}
+
+div.main_div {
+  left: 0%;
+  width: 80%;
+}
+
+div.sub_div {
+  left: 80%;
+  width: 20%;
+}
+
+/* branding */
+div#branding_main {
+}
+
+div#branding_sub {
+  height: 6em;
+}
+
+div#branding_text {
+  position: absolute;
+  left: 18em;
+  top: 1.5em;
+}
+
+span#branding_tap {
+  position: absolute;
+  left: 0em;
+  top: 0.2em; 
+}
+
+div#branding_sub_text {
+  position:absolute;
+  top: 1.5em;
+}
+
+img#branding_img {
+  width: 50em;
+  height: 28em;
+}
+
+img#branding_sub_img {
+  width:6em;
+  height:6em;
+}
+
+/* navigation */
+div#nav_main {
+  margin-top: 2em;
+  width: 30em;
+  height: 2em;
+}
+
+ul#nav_site {
+}
+
+ul#nav_site li {
+  position: absolute;
+  width: 10em;
+  top: 0.2em;
+}
+
+li#install {
+  left: 0em;
+}
+
+li#documentation {
+  left: 10em;
+}
+
+li#tutorial {
+  left: 20em;
+}
+
+.nav_div {
+  margin-bottom: 1em;
+}
+
+.nav_sub li {
+  width: 100%;
+}
+
+/* content */ 
+div#content_main {
+  min-height: 20em;
+  padding-top: 1em;
+  padding-bottom: 1em;
+}
+
+/* min-height for Internet Explorer */
+/*\*/
+* html .container {
+height: 20em;
+}
+/**/
+
+.section {
+	padding-left: 1em;
+	padding-right: 1em;
+}
+
+div#content_sub {
+  padding-top: 2em;
+}
+
+/* site_info */
+div#site_info {
+  padding-top: 2em;
+}
