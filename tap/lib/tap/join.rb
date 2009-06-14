@@ -25,10 +25,7 @@ module Tap
         super
       end
       
-      # Parses the argv into an array like [inputs, outputs, instance] where
-      # inputs and outputs implicitly define the inputs and output for the
-      # instance.  By default parse parses an argh then calls instantiate,
-      # but there is no requirement that this occurs in subclasses.
+      # Parses the argv into an instance of self.
       def parse(argv=ARGV, app=Tap::App.instance)
         parse!(argv.dup, app)
       end
@@ -47,8 +44,7 @@ module Tap
         }, app)
       end
       
-      # Instantiates an instance of self and return an array like [inputs,
-      # outputs, instance].
+      # Instantiates an instance of self.
       def instantiate(argh, app=Tap::App.instance)
         new(argh[:config] || {}, app)
       end
