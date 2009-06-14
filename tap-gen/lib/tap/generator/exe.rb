@@ -20,10 +20,10 @@ module Tap
         
         generator = const.constantize.parse(argv)
         
-        # do not reassign dir unless a templates directory
+        # do not reassign dir unless a template directory
         # is found, otherwise you get an error
-        if dir = env.class_path(:templates, generator) {|dir| File.directory?(dir) }        
-          generator.template_dir = dir
+        if template_dir = env.class_path(:templates, generator) {|dir| File.directory?(dir) }        
+          generator.template_dir = template_dir
         end
         
         generator.extend(mod).process(*argv)

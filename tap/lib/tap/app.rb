@@ -149,7 +149,6 @@ module Tap
       @stack = options[:stack] || Stack.new(self)
       @queue = options[:queue] || Queue.new
       @cache = options[:cache] || {}
-      @trace = []
       @default_joins = []
       on_complete(&block)
       
@@ -373,8 +372,8 @@ module Tap
       target
     end
     
-    # Sets the block to receive the audited result of nodes with no join
-    # (ie the block is set as default_join).
+    # Sets the block to receive the result of nodes with no joins
+    # (ie the block is set as a default_join).
     def on_complete(&block) # :yields: _result
       self.default_joins << block if block
       self
@@ -385,13 +384,6 @@ module Tap
     # TerminateErrors are raised to kill executing nodes when terminate is 
     # called on an running App.  They are handled by the run rescue code.
     class TerminateError < RuntimeError
-    end
-    
-    # Raised when Tap::App#resolve detects a circular dependency.
-    class DependencyError < StandardError
-      def initialize(trace)
-        super "circular dependency: [#{trace.join(', ')}]"
-      end
     end
   end
 end
