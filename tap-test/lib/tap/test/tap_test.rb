@@ -1,3 +1,5 @@
+require 'tap/app'
+
 module Tap
   module Test
     
