@@ -1,8 +1,8 @@
-require File.join(File.dirname(__FILE__), '../../../tap_test_helper')
-require 'tap/support/templater'
+require File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require 'tap/templater'
 
 class TemplaterUtilsTest < Test::Unit::TestCase
-  include Tap::Support::Templater::Utils
+  include Tap::Templater::Utils
   
   #
   # yamlize test

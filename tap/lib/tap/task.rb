@@ -3,9 +3,7 @@ require 'tap/root'
 require 'tap/env/string_ext'
 
 module Tap
-  module Support
-    autoload(:Templater, 'tap/support/templater')
-  end
+  autoload(:Templater, 'tap/templater')
   
   class App
     # Generates a task with the specified config, initialized to self.
@@ -25,7 +23,7 @@ module Tap
     def task(config={}, klass=Task, &block)
       instance = klass.new(config, self)
       if block_given?
-        instance.extend Support::Intern(:process)
+        instance.extend Intern
         instance.process_block = block
       end
       instance
@@ -199,7 +197,7 @@ module Tap
       
       # Returns the class help.
       def help
-        Tap::Support::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
+        Tap::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
       end
       
       # Recursively loads path into a nested configuration file.

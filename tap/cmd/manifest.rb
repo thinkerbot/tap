@@ -90,7 +90,7 @@ if ARGV.empty?
       ""
     end
     
-    templaters << Tap::Support::Templater.new("<%= leader %><%= env_key %> \n", 
+    templaters << Tap::Templater.new("<%= leader %><%= env_key %> \n", 
       :env_key => env_keys[current],
       :leader => current_leader
     )

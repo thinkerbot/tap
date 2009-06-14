@@ -1,6 +1,6 @@
 require 'tap/root'
 require 'tap/env/manifest'
-require 'tap/support/templater'
+require 'tap/templater'
 autoload(:YAML, 'yaml')
 
 module Tap
@@ -535,7 +535,7 @@ module Tap
       
       env_keys = minihash(true)
       collect do |env|
-        templater = Support::Templater.new(template, :env => env, :env_key => env_keys[env])
+        templater = Templater.new(template, :env => env, :env_key => env_keys[env])
         yield(templater, globals) if block_given? 
         templater
       end.collect! do |templater|

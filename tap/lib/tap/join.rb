@@ -1,5 +1,5 @@
 require 'tap/app'
-require 'tap/support/intern'
+require 'tap/intern'
 
 module Tap
   class App
@@ -61,7 +61,7 @@ module Tap
       def intern(config={}, app=Tap::App.instance, &block) # :yields: join, result
         instance = new(config, app)
         if block_given?
-          instance.extend Support::Intern(:call)
+          instance.extend Intern(:call)
           instance.call_block = block
         end
         instance

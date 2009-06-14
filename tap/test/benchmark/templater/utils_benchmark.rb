@@ -1,10 +1,10 @@
-require File.join(File.dirname(__FILE__), '../../../tap_test_helper')
-require 'tap/support/templater'
+require File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require 'tap/templater'
 require 'benchmark'
 
 class TemplaterUtilsBenchmark < Test::Unit::TestCase
   include Benchmark
-  include Tap::Support::Templater::Utils
+  include Tap::Templater::Utils
   
   def test_nest_speed
     puts method_name
