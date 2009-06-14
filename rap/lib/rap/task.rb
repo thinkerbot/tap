@@ -308,4 +308,11 @@ module Rap
     end
     
   end
+  
+  # Raised when Tap::App#resolve detects a circular dependency.
+  class DependencyError < StandardError
+    def initialize(trace)
+      super "circular dependency: [#{trace.join(', ')}]"
+    end
+  end
 end

@@ -1,5 +1,4 @@
 require 'rap/task'
-require 'rap/utils'
 
 module Rap
   
@@ -51,8 +50,6 @@ module Rap
   # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for more
   # information.
   module Declarations
-    include Utils
-    
     # The environment in which declared task classes are registered.
     # By default a Tap::Env for Dir.pwd.
     def Declarations.env() @@env ||= Tap::Env.new; end
@@ -238,7 +235,7 @@ module Rap
       alias desc original_desc
       
       # hide remaining Declarations methods (including Utils methods)
-      private :namespace, :sh
+      private :namespace
       # :startdoc:
       
       private

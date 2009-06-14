@@ -79,7 +79,6 @@ class DeclarationsTest < Test::Unit::TestCase
     assert Rap.respond_to?(:namespace)
     assert Rap.respond_to?(:desc)
     assert Rap.respond_to?(:task)
-    assert Rap.respond_to?(:sh)
   end
   
   def test_declaration_API_is_hidden_on_Task
@@ -88,7 +87,6 @@ class DeclarationsTest < Test::Unit::TestCase
     assert Rap::Task.respond_to?(:desc)
     assert Rap::Task.desc.kind_of?(Lazydoc::Comment)
     assert !Rap::Task.respond_to?(:register)
-    assert !Rap::Task.respond_to?(:sh)
   end
   
   #
