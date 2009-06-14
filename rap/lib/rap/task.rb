@@ -226,7 +226,10 @@ module Rap
       end
     end
     
-    # Conditional call to the super call; only calls once.  Returns result.
+    # Conditional call to the super call; only calls once and with args (if
+    # set).  Call recursively resolves dependencies and raises an error for
+    # circular dependencies.
+    #
     def call
       case @resolved
       when true
@@ -236,12 +239,17 @@ module Rap
       when false
         # unresolved
         @resolved = nil
-        dependencies.each do |dependency|
-          dependency.call
+        begin
+          dependencies.each do |dependency|
+            dependency.call
+          end
+        rescue(DependencyError)
+          $!.trace.unshift(self)
+          raise $!
         end
 
         @resolved = true
-        @result = super(*args)
+        @result = args ? super(*args) : super()
         
       else
         # resolving
@@ -249,11 +257,7 @@ module Rap
       end
     end
     
-    # Dispatches each dependency of node.  A block can be given to do something
-    # else with the nodes (ex: reset single-execution dependencies).  Resolve
-    # will recursively yield dependencies if specified.
-    #
-    # Resolve raises an error for circular dependencies.
+    # Alias for call.
     def resolve!
       call
     end
@@ -309,10 +313,17 @@ module Rap
     
   end
   
-  # Raised when Tap::App#resolve detects a circular dependency.
+  # Raised for circular dependencies during Rap::Task.resolve!
   class DependencyError < StandardError
-    def initialize(trace)
-      super "circular dependency: [#{trace.join(', ')}]"
+    attr_reader :trace
+    
+    def initialize(task)
+      @trace = [task]
+      super()
+    end
+    
+    def message
+      "circular dependency: [#{trace.collect {|task| task.class.to_s }.join(', ')}]"
     end
   end
 end
