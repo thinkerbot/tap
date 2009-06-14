@@ -102,21 +102,23 @@ end
   #
   
   def test_task
-    t = Tap::Task.intern {|task| 1 + 2 }
+    app = Tap::App.instance
+    
+    t = app.task {|task| 1 + 2 }
     assert_equal 3, t.process
 
-    t = Tap::Task.intern {|task, x, y| x + y }
+    t = app.task {|task, x, y| x + y }
     assert_equal 3, t.process(1, 2)
 
     runlist = []
     results = []
 
-    t1 = Tap::Task.intern(:key => 'one') do |task, input| 
+    t1 = app.task(:key => 'one') do |task, input| 
       runlist << task
       "#{input}:#{task.config[:key]}"
     end
 
-    t2 = Tap::Task.intern do |task, input|
+    t2 = app.task do |task, input|
       runlist << task
       "#{input}:two"
     end
@@ -127,7 +129,6 @@ end
 
     t1.sequence(t2)
     
-    app = Tap::App.instance
     app.enq(t1, "input")
     app.run
 

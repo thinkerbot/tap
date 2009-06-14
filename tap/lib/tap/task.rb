@@ -8,9 +8,27 @@ module Tap
   end
   
   class App
-    # Generates a task initialized to self.
+    # Generates a task with the specified config, initialized to self.
+    #
+    # A block may be provided to overrride the process method; it will be
+    # called with the task instance, plus any inputs.
+    #
+    #   no_inputs = app.task {|task| [] }
+    #   one_input = app.task {|task, input| [input] }
+    #   mixed_inputs = app.task {|task, a, b, *args| [a, b, args] }
+    #
+    #   no_inputs.execute                            # => []
+    #   one_input.execute(:a)                        # => [:a]
+    #   mixed_inputs.execute(:a, :b)                 # => [:a, :b, []]
+    #   mixed_inputs.execute(:a, :b, 1, 2, 3)        # => [:a, :b, [1,2,3]]
+    #
     def task(config={}, klass=Task, &block)
-      klass.intern(config, self, &block)
+      instance = klass.new(config, self)
+      if block_given?
+        instance.extend Support::Intern(:process)
+        instance.process_block = block
+      end
+      instance
     end
   end
   
@@ -39,18 +57,6 @@ module Tap
   #   OneInput.new.execute(:a)                     # => [:a]
   #   MixedInputs.new.execute(:a, :b)              # => [:a, :b, []]
   #   MixedInputs.new.execute(:a, :b, 1, 2, 3)     # => [:a, :b, [1,2,3]]
-  #
-  # Tasks may be created with new, or with intern.  Intern overrides process
-  # using a block that receives the task and the inputs.
-  #
-  #   no_inputs = Task.intern {|task| [] }
-  #   one_input = Task.intern {|task, input| [input] }
-  #   mixed_inputs = Task.intern {|task, a, b, *args| [a, b, args] }
-  #
-  #   no_inputs.execute                            # => []
-  #   one_input.execute(:a)                        # => [:a]
-  #   mixed_inputs.execute(:a, :b)                 # => [:a, :b, []]
-  #   mixed_inputs.execute(:a, :b, 1, 2, 3)        # => [:a, :b, [1,2,3]]
   #
   # === Configuration 
   #
@@ -130,20 +136,6 @@ module Tap
           child.instance_variable_set(:@source_file, File.expand_path($1)) 
         end
         super
-      end
-      
-      # Instantiates a new task with the input arguments and overrides
-      # process with the block.  The block will be called with the task
-      # instance, plus any inputs.
-      #
-      # Simply instantiates a new task if no block is given.
-      def intern(config={}, app=Tap::App.instance, &block) # :yields: task, inputs...
-        instance = new(config, app)
-        if block_given?
-          instance.extend Support::Intern(:process)
-          instance.process_block = block
-        end
-        instance
       end
       
       # Parses the argv into an instance of self.  By default parse 

@@ -162,13 +162,14 @@ and, using the Configurable and Lazydoc metadata, map to the command line as
 miniature applications. That said, tasks are perfectly useful as ordinary
 objects.
 
-When subclassing is too much, tasks may be interned with a block that
-effectively replaces <tt>process</tt>:
+A quick way to make and work with tasks is to intern them for an app.  The
+block provided will effectively replace <tt>process</tt>:
 
-  t = Tap::Task.intern {|task| 1 + 2 }
+  app = Tap::App.instance
+  t = app.task {|task| 1 + 2 }
   t.process                # => 3
 
-  t = Tap::Task.intern {|task, x, y| x + y }
+  t = app.task {|task, x, y| x + y }
   t.process(1, 2)          # => 3
 
 Tasks can be configured and joined into workflows.
@@ -176,12 +177,12 @@ Tasks can be configured and joined into workflows.
   runlist = []
   results = []
   
-  t1 = Tap::Task.intern(:key => 'one') do |task, input| 
+  t1 = app.task(:key => 'one') do |task, input| 
     runlist << task
     "#{input}:#{task.config[:key]}"
   end
 
-  t2 = Tap::Task.intern do |task, input|
+  t2 = app.task do |task, input|
     runlist << task
     "#{input}:two"
   end
@@ -194,7 +195,6 @@ Tasks can be configured and joined into workflows.
 
 Results may be collected by the underlying Tap::App.
 
-  app = Tap::App.instance
   app.enq(t1)
   app.run
   
