@@ -177,8 +177,7 @@ module Tap
         instantiate({:config => opts.nested_config}, app)
       end
       
-      # Instantiates an instance of self and returns an instance of self and
-      # an array of arguments (implicitly to be enqued to the instance).
+      # Instantiates an instance of self and returns an instance of self.
       def instantiate(argh={}, app=Tap::App.instance)
         new(argh[:config] || {}, app)
       end
