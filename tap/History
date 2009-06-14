@@ -6,6 +6,7 @@
 * made load only load once by default, stream loading must
   be enabled in subclasses
 * dump now returns the input, not the io
+* removed dependencies from tap
 
 == 0.17.1 / 2009-06-06
 

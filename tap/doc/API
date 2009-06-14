@@ -11,14 +11,7 @@ Applications require the following API for nodes, joins, and middleware.
 Note the signature for call can be modified as necessary.
 
   call(*inputs)    any return is allowed
-  dependencies()   returns an array of dependency nodes
   joins()          returns an array of joins
-
-==== Dependency
-
-Same as a node, but call must be able to execute without inputs. For instance
-signatures like call(), call(a=:default), or call(*inputs) are allowed, but
-call(a, b, c) is not.
 
 ==== Join
 

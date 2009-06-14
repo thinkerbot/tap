@@ -93,26 +93,6 @@ module Tap
   # 
   # Middleware can be nested with multiple calls to use.
   #
-  # === Dependencies
-  #
-  # Nodes allow the construction of dependency-based workflows.  A node only
-  # executes after its dependencies have been resolved (ie executed).
-  #
-  #   runlist = []
-  #   n0 = app.node { runlist << 0 }
-  #   n1 = app.node { runlist << 1 }
-  #
-  #   n0.depends_on(n1)
-  #   app.enq(n0)
-  #
-  #   app.run
-  #   runlist                        # => [1, 0]
-  #
-  # Dependencies are resolved <em>every time</em> a node executes; individual
-  # dependencies can implement single-execution if desired.  Dependencies are
-  # not resolved with arguments, ie dependency nodes must be able to execute
-  # without inputs.
-  #
   class App
     class << self
       # Sets the current app instance
@@ -147,8 +127,7 @@ module Tap
     # The application queue
     attr_reader :queue
     
-    # A cache of application-specific data.  Internally used to store class
-    # instances of tasks.  Not recommended for casual use.
+    # A cache of application-specific data.
     attr_reader :cache
     
     # The default joins for nodes that have no joins set
@@ -253,36 +232,6 @@ module Tap
       end
     end
     
-    # Dispatches each dependency of node.  A block can be given to do something
-    # else with the nodes (ex: reset single-execution dependencies).  Resolve
-    # will recursively yield dependencies if specified.
-    #
-    # Resolve raises an error for circular dependencies.
-    def resolve(node, recursive=false, &block)
-      node.dependencies.each do |dependency|
-        if @trace.include?(dependency)
-          @trace.push dependency
-          raise DependencyError.new(@trace)
-        end
-
-        # mark the results at the index to prevent
-        # infinite loops with circular dependencies
-        @trace.push dependency
-        
-        if recursive
-          resolve(dependency, recursive, &block)
-        end
-        
-        if block_given?
-          yield(dependency)
-        else
-          dispatch(dependency)
-        end
-        
-        @trace.pop
-      end
-    end
-    
     # Dispatches node to the application stack with the inputs.
     def execute(node, *inputs)
       dispatch(node, inputs)
@@ -291,13 +240,11 @@ module Tap
     # Dispatch sends the node into the application stack with the inputs.
     # Dispatch does the following in order:
     #
-    # - resolve node dependencies using resolve_dependencies
     # - call stack with the node and inputs
     # - call the node joins, if set, or the default_joins with the results
     #
     # Dispatch returns the node result.
     def dispatch(node, inputs=[])
-      resolve(node)
       result = stack.call(node, inputs)
       
       joins = node.joins.empty? ? default_joins : node.joins

@@ -110,29 +110,28 @@ end
 
     runlist = []
     results = []
-    
+
     t1 = Tap::Task.intern(:key => 'one') do |task, input| 
       runlist << task
       "#{input}:#{task.config[:key]}"
     end
 
-    t0 = Tap::Task.intern {|task| runlist << task }
-    t1.depends_on(t0)
-
     t2 = Tap::Task.intern do |task, input|
       runlist << task
       "#{input}:two"
     end
-    t1.sequence(t2)
+
     t2.on_complete do |result|
       results << result
     end
+
+    t1.sequence(t2)
     
     app = Tap::App.instance
     app.enq(t1, "input")
     app.run
 
-    assert_equal [t0, t1, t2], runlist
+    assert_equal [t1, t2], runlist
     assert_equal ["input:one:two"], results
   end
   

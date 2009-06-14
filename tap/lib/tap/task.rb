@@ -124,21 +124,11 @@ module Tap
     include Configurable
     
     class << self
-      # Returns class dependencies
-      attr_reader :dependencies
-      
-      # Returns or initializes the instance of self cached with app.
-      def instance(app=Tap::App.instance, auto_initialize=true)
-        app.cache[self] ||= (auto_initialize ? new({}, app) : nil)
-      end
-      
       def inherited(child) # :nodoc:
         unless child.instance_variable_defined?(:@source_file)
           caller[0] =~ Lazydoc::CALLER_REGEXP
           child.instance_variable_set(:@source_file, File.expand_path($1)) 
         end
-        
-        child.instance_variable_set(:@dependencies, dependencies.dup)
         super
       end
       
@@ -249,44 +239,6 @@ module Tap
       
       protected
       
-      # Sets a class-level dependency; when task class B depends_on another
-      # task class A, instances of B are initialized to depend on a shared
-      # instance of A.  The shared instance is specific to an app and can
-      # be accessed through instance(app).
-      #
-      # If a non-nil name is specified, depends_on will create a reader of 
-      # the dependency instance.
-      #
-      #   class A < Tap::Task
-      #   end
-      #
-      #   class B < Tap::Task
-      #     depends_on :a, A
-      #   end
-      #
-      #   app = Tap::App.new
-      #   b = B.new({}, app)
-      #   b.dependencies           # => [A.instance(app)]
-      #   b.a                      # => A.instance(app)
-      #
-      # Returns self.
-      def depends_on(name, dependency_class)
-        unless dependencies.include?(dependency_class)
-          dependencies << dependency_class
-        end
-        
-        if name
-          # returns the resolved result of the dependency
-          define_method(name) do
-            dependency_class.instance(app)
-          end
-        
-          public(name)
-        end
-        
-        self
-      end
-      
       # Defines a task subclass with the specified configurations and process
       # block. During initialization the subclass is instantiated and made
       # accessible through the name method.  
@@ -379,7 +331,6 @@ module Tap
     end
     
     instance_variable_set(:@source_file, __FILE__)
-    instance_variable_set(:@dependencies, [])
     
     lazy_attr :desc, 'task'
     lazy_attr :args, :process
@@ -407,15 +358,9 @@ module Tap
     def initialize(config={}, app=Tap::App.instance)
       @app = app
       @joins = []
-      @dependencies = []
       
       # initialize configs
       initialize_config(config)
-      
-      # setup class dependencies
-      self.class.dependencies.each do |dependency_class|
-        depends_on dependency_class.instance(app)
-      end
     end
     
     # Auditing method call.  Resolves dependencies, executes method_name,

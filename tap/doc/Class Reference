@@ -171,39 +171,34 @@ effectively replaces <tt>process</tt>:
   t = Tap::Task.intern {|task, x, y| x + y }
   t.process(1, 2)          # => 3
 
-Tasks can be configured,
+Tasks can be configured and joined into workflows.
 
   runlist = []
+  results = []
+  
   t1 = Tap::Task.intern(:key => 'one') do |task, input| 
     runlist << task
     "#{input}:#{task.config[:key]}"
   end
 
-joined into dependency-based workflows,
-
-  t0 = Tap::Task.intern {|task| runlist << task }
-  t1.depends_on(t0)
-
-and imperative workflows.
-
   t2 = Tap::Task.intern do |task, input|
     runlist << task
     "#{input}:two"
   end
-  t1.sequence(t2)
   
-  results = []
   t2.on_complete do |result|
     results << result
   end
   
+  t1.sequence(t2)
+
 Results may be collected by the underlying Tap::App.
 
   app = Tap::App.instance
   app.enq(t1)
   app.run
   
-  runlist                  # => [t0, t1, t2]
+  runlist                  # => [t1, t2]
   results                  # => ["input:one:two"]
 
 == Apps

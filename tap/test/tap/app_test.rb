@@ -93,17 +93,6 @@ class AppTest < Test::Unit::TestCase
     n1, n2
     ]
     assert_equal expected, auditor.audit
-    
-    ###
-    runlist = []
-    n0 = app.node { runlist << 0 }
-    n1 = app.node { runlist << 1 }
-  
-    n0.depends_on(n1)
-    app.enq(n0)
-  
-    app.run
-    assert_equal [1, 0], runlist
   end
   
   #
@@ -233,81 +222,6 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # resolve test
-  #
-  
-  def test_resolve_dispatches_dependencies_of_node
-    n0 = intern {}
-    n1 = intern { runlist << 1 }
-    n2 = intern { runlist << 2 }
-    n3 = intern { runlist << 3 }
-    
-    n0.depends_on(n1)
-    n0.depends_on(n2)
-    n2.depends_on(n3)
-    
-    app.resolve(n0)
-    assert_equal [1,3,2], runlist
-    
-    app.resolve(n0)
-    assert_equal [1,3,2,1,3,2], runlist
-  end
-  
-  def test_resolve_yields_dependencies_to_block_if_given
-    n0 = intern {}
-    n1 = intern {}
-    n2 = intern {}
-    n3 = intern {}
-    
-    n0.depends_on(n1)
-    n0.depends_on(n2)
-    n2.depends_on(n3)
-    
-    dependencies = []
-    app.resolve(n0) do |dependency|
-      dependencies << dependency
-    end
-    assert_equal [n1, n2], dependencies
-  end
-  
-  def test_resolve_recursively_yields_dependencies_to_block_if_specified
-    n0 = intern {}
-    n1 = intern {}
-    n2 = intern {}
-    n3 = intern {}
-    
-    n0.depends_on(n1)
-    n0.depends_on(n2)
-    n2.depends_on(n3)
-    
-    dependencies = []
-    app.resolve(n0, true) do |dependency|
-      dependencies << dependency
-    end
-    assert_equal [n1, n3, n2], dependencies
-  end
-  
-  def test_resolve_raises_error_for_circular_dependencies
-    n0 = intern {}
-    n1 = intern {}
-    
-    n0.depends_on(n1)
-    n1.depends_on(n0)
-    
-    assert_raises(App::DependencyError) { app.resolve(n0) }
-  end
-  
-  def test_resolve_raises_error_for_circular_dependencies_via_a_join
-    n0 = intern {}
-    n1 = intern {}
-    
-    n0.depends_on(n1)
-    n1.on_complete {|r| app.dispatch(n0) }
-    
-    assert_raises(App::DependencyError) { app.resolve(n0) }
-  end
-  
-  #
   # execute test
   #
   
@@ -396,19 +310,7 @@ class AppTest < Test::Unit::TestCase
     assert was_in_block_a
     assert was_in_block_b
   end
-  
-  def test_dispatch_resolves_dependencies_before_execution
-    n1 = intern { runlist << 1 }
-    n2 = intern { runlist << 2 }
-    n3 = intern { runlist << 3 }
-    
-    n1.depends_on(n2)
-    n2.depends_on(n3)
-    
-    app.dispatch(n1)
-    assert_equal [3,2,1], runlist
-  end
-  
+
   #
   # run tests
   #

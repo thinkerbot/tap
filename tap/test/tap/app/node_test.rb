@@ -18,7 +18,6 @@ class NodeTest < Test::Unit::TestCase
     m = Node.intern { "result" }
     assert m.kind_of?(Node)
     assert_equal [], m.joins
-    assert_equal [], m.dependencies
     assert_equal "result", m.call
   end
   
@@ -30,7 +29,6 @@ class NodeTest < Test::Unit::TestCase
     m = lambda {}.extend Node
     assert m.kind_of?(Node)
     assert_equal [], m.joins
-    assert_equal [], m.dependencies
   end
   
   #
@@ -48,30 +46,5 @@ class NodeTest < Test::Unit::TestCase
   
   def test_on_complete_returns_self
     assert_equal m, m.on_complete
-  end
-  
-  #
-  # depends_on test
-  #
-  
-  def test_depends_on_pushes_dependency_onto_dependencies
-    m.dependencies << nil
-    
-    d1 = Node.intern {}
-    m.depends_on(d1)
-    assert_equal [nil, d1], m.dependencies
-  end
-  
-  def test_depends_on_does_not_add_duplicates
-    d1 = Node.intern {}
-    m.dependencies << d1
-    
-    m.depends_on(d1)
-    assert_equal [d1], m.dependencies
-  end
-  
-  def test_depends_on_raises_error_for_self_as_dependency
-    err = assert_raises(RuntimeError) { m.depends_on m }
-    assert_equal "cannot depend on self", err.message
   end
 end
