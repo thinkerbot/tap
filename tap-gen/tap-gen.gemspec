@@ -32,21 +32,25 @@ Gem::Specification.new do |s|
     lib/tap/generator/generators/command.rb
     lib/tap/generator/generators/config.rb
     lib/tap/generator/generators/generator.rb
+    lib/tap/generator/generators/middleware.rb
+    lib/tap/generator/generators/resource.rb
     lib/tap/generator/generators/root.rb
     lib/tap/generator/generators/task.rb
     lib/tap/generator/manifest.rb
     lib/tap/generator/preview.rb
     tap.yml
     templates/tap/generator/generators/command/command.erb
-    templates/tap/generator/generators/generator/task.erb
+    templates/tap/generator/generators/generator/resource.erb
     templates/tap/generator/generators/generator/test.erb
+    templates/tap/generator/generators/middleware/resource.erb
+    templates/tap/generator/generators/middleware/test.erb
     templates/tap/generator/generators/root/MIT-LICENSE
     templates/tap/generator/generators/root/README
     templates/tap/generator/generators/root/Rakefile
     templates/tap/generator/generators/root/Rapfile
     templates/tap/generator/generators/root/gemspec
     templates/tap/generator/generators/root/test/tap_test_helper.rb
-    templates/tap/generator/generators/task/task.erb
+    templates/tap/generator/generators/task/resource.erb
     templates/tap/generator/generators/task/test.erb
   }
 end

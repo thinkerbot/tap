@@ -1,0 +1,18 @@
+require 'tap/middleware'
+
+<% redirect do |target| %># :startdoc::middleware <replace with summary>
+# <replace with description>
+
+# <%= const.name %> Documentation
+class <%= const.name %> < Tap::Middleware
+
+  attr_reader :stack
+  
+  def initialize(stack)
+    @stack = stack
+  end
+  
+  def call(node, inputs=[])
+    stack.call(node, inputs)
+  end
+end <% module_nest(const.nesting, '  ') { target } end %>

@@ -1,0 +1,15 @@
+require File.join(File.dirname(__FILE__), '<%= '../' * const.nesting_depth %>tap_test_helper.rb') 
+require '<%= const.path %>'
+
+class <%= const.name %>Test < Test::Unit::TestCase
+  acts_as_tap_test
+  
+  def test_<%= const.basename %>_calls_stack
+    runlist = []
+    n = app.node {|input| runlist << input}
+    m = app.use(<%= const.const_name %>)
+    
+    m.call(n, ['input'])
+    assert_equal ['input'], runlist
+  end
+end

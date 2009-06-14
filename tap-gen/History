@@ -1,3 +1,8 @@
+
+* reworked task, generator generators as variations of
+  a resource generator
+* added middleware generator
+
 == 0.2.0 / 2009-06-14
 
 Updates for Tap-0.18.0

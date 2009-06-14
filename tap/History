@@ -1,3 +1,6 @@
+
+* added Middleware baseclass
+
 == 0.18.0 / 2009-06-14
 
 Several updates to simplify Tap.  Most significantly,
