@@ -1,8 +1,8 @@
-require File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap/utils'
+require File.join(File.dirname(__FILE__), '../rap_test_helper')
+require 'rap/utils'
 
 class UtilsTest < Test::Unit::TestCase
-  include Tap::Utils
+  include Rap::Utils
 
   #
   # capture_sh test

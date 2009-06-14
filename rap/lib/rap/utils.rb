@@ -1,6 +1,6 @@
 require 'tempfile'
 
-module Tap
+module Rap
   # Provides several shell utility methods for calling programs.
   #
   # == Windows 
@@ -15,13 +15,13 @@ module Tap
   # line is too long'
   module Utils
     
-    # :::-
+    # :startdoc:::-
     # Run the system command +cmd+, passing the result to the block, if given.
     # Raises an error if the command fails. Uses the same semantics as 
     # Kernel::exec and Kernel::system.
     #
     # Based on FileUtils#sh from Rake.
-    # :::+
+    # :startdoc:::+
     def sh(*cmd) # :yields: ok, status
       ok = system(*cmd)
 
