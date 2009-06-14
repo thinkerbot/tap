@@ -43,7 +43,7 @@ Now from the command line:
   --------------------------------------------------------------------------------
     Says goodnight with a configurable message.
   --------------------------------------------------------------------------------
-  usage: rap goodnight OBJ
+  usage: tap run -- goodnight OBJ
 
   configurations:
           --message MESSAGE

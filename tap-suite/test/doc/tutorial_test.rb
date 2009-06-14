@@ -43,7 +43,7 @@ Goodnight -- your basic goodnight moon task
 --------------------------------------------------------------------------------
   Says goodnight with a configurable message.
 --------------------------------------------------------------------------------
-usage: rap goodnight OBJ
+usage: tap run -- goodnight OBJ
 
 configurations:
         --message MESSAGE
@@ -142,7 +142,7 @@ Goodnight -- a fancy goodnight moon task
 --------------------------------------------------------------------------------
   Says goodnight with a configurable message.
 --------------------------------------------------------------------------------
-usage: rap goodnight OBJECTS...
+usage: tap run -- goodnight OBJECTS...
 
 configurations:
         --message MESSAGE            a goodnight message

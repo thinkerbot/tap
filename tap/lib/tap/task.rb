@@ -159,12 +159,7 @@ module Tap
         
         # add option to print help
         opts.on("--help", "Print this help") do
-          prg = case $0
-          when /rap$/ then 'rap'
-          else 'tap run --'
-          end
-          
-          puts "#{help}usage: #{prg} #{to_s.underscore} #{args}"
+          puts "#{help}usage: tap run -- #{to_s.underscore} #{args}"
           puts          
           puts opts
           exit
@@ -185,18 +180,7 @@ module Tap
       # Instantiates an instance of self and returns an instance of self and
       # an array of arguments (implicitly to be enqued to the instance).
       def instantiate(argh={}, app=Tap::App.instance)
-        config = argh[:config] || {}
-        instance = new(config, app)
-        
-        if argh[:cache]
-          if app.cache.has_key?(self) && app.cache[self] != instance
-            raise "cache already has an instance for: #{self}"
-          end
-        
-          app.cache[self] = instance
-        end
-        
-        instance
+        new(argh[:config] || {}, app)
       end
 
       DEFAULT_HELP_TEMPLATE = %Q{<% desc = task_class::desc %>

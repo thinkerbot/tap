@@ -81,7 +81,7 @@ end
       sh_test "% rap task_with_doc --help" do |output|
         assert output =~ /RapTest::TaskWithDoc -- task summary/
         assert output =~ /long description/
-        assert output =~ /usage: rap rap_test\/task_with_doc/
+        assert output =~ /rap_test\/task_with_doc/
       end
       
       sh_test "% rap task_with_empty_desc --help" do |output|
@@ -91,12 +91,12 @@ end
       
       sh_test "% rap task_without_doc --help" do |output|
         assert output =~ /RapTest::TaskWithoutDoc/
-        assert output =~ /usage: rap rap_test\/task_without_doc/
+        assert output =~ /rap_test\/task_without_doc/
       end
     
       sh_test "% rap task_with_desc --help" do |output|
         assert output =~ /RapTest::TaskWithDesc -- desc/
-        assert output =~ /usage: rap rap_test\/task_with_desc/
+        assert output =~ /rap_test\/task_with_desc/
       end
     end
   end
@@ -142,11 +142,11 @@ end
 
     method_root.chdir(:tmp) do
       sh_test "% rap task_without_args --help" do |output|
-        assert output =~ /usage: rap rap_test\/task_without_args\s*$/
+        assert output =~ /rap_test\/task_without_args\s*$/
       end
       
       sh_test "% rap task_with_args --help" do |output|
-        assert output =~ /usage: rap rap_test\/task_with_args A B\s*$/
+        assert output =~ /rap_test\/task_with_args A B\s*$/
       end
     end
   end

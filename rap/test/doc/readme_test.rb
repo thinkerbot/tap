@@ -44,7 +44,7 @@ goodnight moon
       sh_test "% rap goodnight --help" do |output|
         assert output =~ /Goodnight -- your basic goodnight moon task/
         assert output =~ /Says goodnight with a configurable message/
-        assert output =~ /rap goodnight OBJ/
+        assert output =~ /tap run -- goodnight OBJ/
         assert output =~ /--message MESSAGE/
       end
     end
