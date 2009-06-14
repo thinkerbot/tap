@@ -179,6 +179,37 @@ class RapTaskTest < Test::Unit::TestCase
     err = assert_raises(DependencyError) { t0.call }
     assert_equal "circular dependency: [Task0, Task1, Task2, Task0]", err.message
   end
+  
+  #
+  # depends_on test
+  #
+
+  def test_depends_on_pushes_dependency_onto_dependencies
+    t0 = Task.subclass('Task0').instance
+    t1 = Task.subclass('Task1').instance
+    
+    t0.dependencies << nil
+    
+    t0.depends_on(t1)
+    assert_equal [nil, t1], t0.dependencies
+  end
+
+  def test_depends_on_does_not_add_duplicates
+    t0 = Task.subclass('Task0').instance
+    t1 = Task.subclass('Task1').instance
+    
+    t0.depends_on(t1)
+    t0.depends_on(t1)
+    
+    assert_equal [t1], t0.dependencies
+  end
+
+  def test_depends_on_raises_error_for_self_as_dependency
+    t0 = Task.subclass('Task0').instance
+    err = assert_raises(RuntimeError) { t0.depends_on t0 }
+    assert_equal "cannot depend on self", err.message
+  end
+  
 end
 
 class TaskDocTest < Test::Unit::TestCase
