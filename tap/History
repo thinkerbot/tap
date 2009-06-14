@@ -8,6 +8,9 @@
 * dump now returns the input, not the io
 * removed dependencies from tap
 * removed intern method on Task (now use app.task)
+* removed Support module (ie refactored Templater to
+  Tap::Templater)
+* removed Task.help method
 
 == 0.17.1 / 2009-06-06
 

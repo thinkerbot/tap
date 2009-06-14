@@ -3,8 +3,6 @@ require 'tap/root'
 require 'tap/env/string_ext'
 
 module Tap
-  autoload(:Templater, 'tap/templater')
-  
   class App
     # Generates a task with the specified config, initialized to self.
     #
@@ -157,7 +155,17 @@ module Tap
         
         # add option to print help
         opts.on("--help", "Print this help") do
-          puts "#{help}usage: tap run -- #{to_s.underscore} #{args}"
+          lines = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : []
+          lines.collect! {|line| "  #{line}"}
+          unless lines.empty?
+            line = '-' * 80
+            lines.unshift(line)
+            lines.push(line)
+          end
+
+          puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
+          puts lines.join("\n")
+          puts "usage: tap run -- #{to_s.underscore} #{args}"
           puts          
           puts opts
           exit
@@ -179,29 +187,9 @@ module Tap
       def instantiate(argh={}, app=Tap::App.instance)
         new(argh[:config] || {}, app)
       end
-
-      DEFAULT_HELP_TEMPLATE = %Q{<% desc = task_class::desc %>
-<%= task_class %><%= desc.empty? ? '' : ' -- ' %><%= desc.to_s %>
-
-<% desc = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : [] %>
-<% unless desc.empty? %>
-<%= '-' * 80 %>
-
-<% desc.each do |line| %>
-  <%= line %>
-<% end %>
-<%= '-' * 80 %>
-<% end %>
-
-}
-      
-      # Returns the class help.
-      def help
-        Tap::Templater.new(DEFAULT_HELP_TEMPLATE, :task_class => self).build
-      end
       
       # Recursively loads path into a nested configuration file.
-      def load_config(path)
+      def load_config(path) # :nodoc:
         # optimization to check for trivial paths
         return {} if Root::Utils.trivial?(path)
         
