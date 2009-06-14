@@ -1,11 +1,11 @@
-require 'tap/generator/generators/task'
+require 'tap/generator/generators/resource'
 
 module Tap::Generator::Generators
   
   # :startdoc::generator a generator task and test
   #
   # Generates a new generator.
-  class Generator < Tap::Generator::Generators::Task
+  class Generator < Resource
     
     def manifest(m, const_name)
       super
