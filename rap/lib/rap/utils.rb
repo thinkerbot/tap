@@ -1,5 +1,6 @@
 module Rap
   module Utils
+    
     # :::-
     # Run the system command +cmd+, passing the result to the block, if given.
     # Raises an error if the command fails. Uses the same semantics as 
@@ -15,6 +16,13 @@ module Rap
       else
         ok or raise "Command failed with status (#{$?.exitstatus}): [#{cmd.join(' ')}]"
       end
+    end
+  end
+  
+  # Raised when Tap::App#resolve detects a circular dependency.
+  class DependencyError < StandardError
+    def initialize(trace)
+      super "circular dependency: [#{trace.join(', ')}]"
     end
   end
 end

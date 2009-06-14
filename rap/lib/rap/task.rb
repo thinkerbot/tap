@@ -35,6 +35,24 @@ module Rap
   class Task < Tap::Task
     class << self
       
+      # Returns class dependencies
+      attr_reader :dependencies
+
+      # Returns or initializes the instance of self cached with app.
+      def instance(app=Tap::App.instance, auto_initialize=true)
+        app.cache[self] ||= (auto_initialize ? new({}, app) : nil)
+      end
+
+      def inherited(child) # :nodoc:
+        unless child.instance_variable_defined?(:@source_file)
+          caller[0] =~ Lazydoc::CALLER_REGEXP
+          child.instance_variable_set(:@source_file, File.expand_path($1)) 
+        end
+
+        child.instance_variable_set(:@dependencies, dependencies.dup)
+        super
+      end
+      
       # Sets actions.
       attr_writer :actions
       
@@ -73,7 +91,12 @@ module Rap
       #
       def parse!(argv=ARGV, app=Tap::App.instance)
         instance = super
-        instance.args = argv
+        
+        # store args on instance and clear so that instance
+        # will not be enqued with any inputs
+        instance.args = argv.dup
+        argv.clear
+        
         instance
       end
       
@@ -135,60 +158,118 @@ module Rap
         
         subclass
       end
+      
+      # Sets a class-level dependency; when task class B depends_on another
+      # task class A, instances of B are initialized to depend on a shared
+      # instance of A.  The shared instance is specific to an app and can
+      # be accessed through instance(app).
+      #
+      # If a non-nil name is specified, depends_on will create a reader of 
+      # the dependency instance.
+      #
+      #   class A < Rap::Task
+      #   end
+      #
+      #   class B < Rap::Task
+      #     depends_on :a, A
+      #   end
+      #
+      #   app = Tap::App.new
+      #   b = B.new({}, app)
+      #   b.dependencies           # => [A.instance(app)]
+      #   b.a                      # => A.instance(app)
+      #
+      # Returns self.
+      def depends_on(name, dependency_class)
+        unless dependency_class.ancestors.include?(Rap::Task)
+          raise "not a Rap::Task: #{dependency_class}"
+        end
+        
+        unless dependencies.include?(dependency_class)
+          dependencies << dependency_class
+        end
+        
+        if name
+          # returns the resolved result of the dependency
+          define_method(name) do
+            dependency_class.instance(app)
+          end
+        
+          public(name)
+        end
+        
+        self
+      end
     end
+    
+    instance_variable_set(:@dependencies, [])
+    
+    # An array of node dependencies
+    attr_reader :dependencies
     
     # The result of self, set by call.
     attr_reader :result
     
-    # The arguments assigned to self during call.
+    # The arguments assigned to self.
     attr_accessor :args
     
     def initialize(config={}, app=Tap::App.instance)
       super
+      @dependencies = []
       @resolved = false
       @result = nil
       @args = nil
+      
+      # setup class dependencies
+      self.class.dependencies.each do |dependency_class|
+        depends_on dependency_class.instance(app)
+      end
     end
     
     # Conditional call to the super call; only calls once.  Returns result.
-    def call(*args)
-      
-      # Declaration tasks function as dependencies, but unlike normal
-      # dependencies, they CAN take arguments from the command line.
-      # Such arguments will be set as args, and be used to enque the
-      # task.  
-      #
-      # If the task executes from the queue first, args will be
-      # provided to call and they should equal self.args.  If the task
-      # executes as a dependency first, call will not receive args and
-      # in that case self.args will be used.
-      #
-      # This warns for cases that odd workflows can produce where the
-      # args have been set and DIFFERENT args are used to enque the task.
-      # In these cases always go with the pre-set args but warn the issue.
-      self.args ||= args
-      unless self.args == args
-        if @resolved
-          warn "warn: ignorning dependency task inputs #{args.inspect} (#{self})"
-        else
-          warn "warn: invoking dependency task with preset args #{self.args.inspect} and not inputs #{args.inspect} (#{self})"
+    def call
+      case @resolved
+      when true
+        # resolved
+        @result
+        
+      when false
+        # unresolved
+        @resolved = nil
+        dependencies.each do |dependency|
+          dependency.call
         end
-      end
-      
-      unless @resolved
+
         @resolved = true
-        @result = super(*self.args)
+        @result = super(*args)
+        
+      else
+        # resolving
+        raise DependencyError.new(self)
       end
-      result
     end
     
+    # Dispatches each dependency of node.  A block can be given to do something
+    # else with the nodes (ex: reset single-execution dependencies).  Resolve
+    # will recursively yield dependencies if specified.
+    #
+    # Resolve raises an error for circular dependencies.
+    def resolve!
+      call
+    end
+
     # Returns true if already resolved by call.
     def resolved?
-      @resolved
+      @resolved == true
+    end
+    
+    def resolving?
+      @resolved == nil
     end
     
     # Resets self so call will call again.  Also sets result to nil.
     def reset
+      raise "cannot reset when resolving" if resolving?
       @resolved = false
       @result = nil
     end
@@ -216,5 +297,15 @@ module Rap
       
       nil
     end
+    
+    # Adds the dependency to self.
+    def depends_on(dependency)
+      raise "cannot depend on self" if dependency == self
+      unless dependencies.include?(dependency)
+        dependencies << dependency
+      end
+      self
+    end
+    
   end
 end

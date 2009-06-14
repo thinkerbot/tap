@@ -21,6 +21,9 @@ class DeclarationsTest < Test::Unit::TestCase
     end
   end
   
+  class Subclass < Rap::Task
+  end
+  
   #
   # documentation tests
   #
@@ -92,12 +95,9 @@ class DeclarationsTest < Test::Unit::TestCase
   # task test
   #
   
-  class DeclarationSubclass < Rap::Task
-  end
-  
   def test_task_returns_a_subclass_of_self
     assert_equal Rap::Task, Rap::Task.task(:task0).class.superclass
-    assert_equal DeclarationSubclass, DeclarationSubclass.task(:task1).class.superclass
+    assert_equal Subclass, Subclass.task(:task1).class.superclass
   end
   
   #
@@ -223,11 +223,11 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_task_subclass_sets_dependencies_using_initial_hash_if_given
-    task(:task0 => Tap::Task)
-    assert_equal [Tap::Task], Task0.dependencies
+    task(:task0 => Subclass)
+    assert_equal [Subclass], Task0.dependencies
     
-    instance = task(:task1 => [Tap::Task, Rap::Task])
-    assert_equal [Tap::Task, Rap::Task], Task1.dependencies
+    instance = task(:task1 => [Subclass, Rap::Task])
+    assert_equal [Subclass, Rap::Task], Task1.dependencies
   end
   
   def test_undefined_dependencies_are_resolved_into_tasks_using_declare
