@@ -207,9 +207,6 @@ module Rap
     # An array of node dependencies
     attr_reader :dependencies
     
-    # The result of self, set by call.
-    attr_reader :result
-    
     # The arguments assigned to self.
     attr_accessor :args
     
@@ -217,7 +214,6 @@ module Rap
       super
       @dependencies = []
       @resolved = false
-      @result = nil
       @args = nil
       
       # setup class dependencies
@@ -231,30 +227,26 @@ module Rap
     # circular dependencies.
     #
     def call
-      case @resolved
-      when true
-        # resolved
-        @result
-        
-      when false
-        # unresolved
-        @resolved = nil
-        begin
-          dependencies.each do |dependency|
-            dependency.call
-          end
-        rescue(DependencyError)
-          $!.trace.unshift(self)
-          raise $!
-        end
-
-        @resolved = true
-        @result = args ? super(*args) : super()
-        
-      else
-        # resolving
+      if resolved?
+        return
+      end
+      
+      if resolving?
         raise DependencyError.new(self)
       end
+      
+      @resolved = nil
+      begin
+        dependencies.each do |dependency|
+          dependency.call
+        end
+      rescue(DependencyError)
+        $!.trace.unshift(self)
+        raise $!
+      end
+
+      @resolved = true
+      args ? super(*args) : super()
     end
     
     # Alias for call.
@@ -275,7 +267,6 @@ module Rap
     def reset
       raise "cannot reset when resolving" if resolving?
       @resolved = false
-      @result = nil
     end
     
     # Collects the inputs into an OpenStruct according to the class arg_names,
