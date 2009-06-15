@@ -18,7 +18,7 @@ module Tap
         @extname = nil if @extname.empty?
         args = super
 
-        unless args.empty? && extname
+        unless args.empty? || extname == nil
           args.last.chomp!(extname)
         end
 

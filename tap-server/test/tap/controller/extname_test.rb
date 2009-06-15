@@ -7,6 +7,10 @@ class ExtnameTest < Test::Unit::TestCase
   class ExtnameController < Tap::Controller
     include Extname
     
+    def index
+      "index"
+    end
+    
     def action(*args)
       args << extname if extname
       args.join(",")
@@ -17,6 +21,7 @@ class ExtnameTest < Test::Unit::TestCase
     controller = ExtnameController.new
     request = Rack::MockRequest.new controller
     
+    assert_equal "index", request.get("/").body
     assert_equal "", request.get("/action").body
     assert_equal ".js", request.get("/action.js").body
     assert_equal "a,b,c", request.get("/action/a/b/c").body
