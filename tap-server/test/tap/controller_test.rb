@@ -70,6 +70,39 @@ class ControllerTest < Test::Unit::TestCase
   end
   
   #
+  # uri test
+  #
+  
+  def test_uri_returns_a_uri_to_the_action
+    assert_equal "/action", controller.uri(:action)
+  end
+  
+  def test_uri_prepends_controller_path_if_specified
+    controller.controller_path = "controller/path"
+    assert_equal "/controller/path/action", controller.uri(:action)
+  end
+  
+  def test_uri_add_query_for_params
+    assert_equal "/action?key=value", controller.uri(:action, :key => 'value')
+  end
+  
+  def test_uri_adds_host_port_etc_if_specified
+    assert_equal "http://host.com:8000/action", controller.uri(:action, {}, {:host => 'host.com', :port => 8000, :scheme => 'http'})
+  end
+  
+  def test_default_ports_are_omitted
+    assert_equal "http://host.com/action", controller.uri(:action, {}, {:host => 'host.com', :port => 80, :scheme => 'http'})
+    assert_equal "https://host.com/action", controller.uri(:action, {}, {:host => 'host.com', :port => 443, :scheme => 'https'})
+  end
+  
+  def test_request_host_port_etc_are_used_if_unspecified
+    env = Rack::MockRequest.env_for "http://host.com:8808/index"
+    controller.request = Rack::Request.new(env)
+    
+    assert_equal "http://host.com:8808/action", controller.uri(:action, {}, {})
+  end
+  
+  #
   # call test
   #
   

@@ -170,8 +170,11 @@ module Tap
       self.class.actions.include?(action.to_sym)
     end
     
-    # Returns a uri to the specified action on self.
-    def uri(action=nil, params={})
+    # Returns a uri to the specified action on self.  The parameters will
+    # be built into a query string, if specified.  By default the uri will
+    # not specify a protocol or host.  Specifying an option hash will add
+    # these to the uri.
+    def uri(action=nil, params={}, options=nil)
       uri = []
       
       if controller_path
@@ -187,6 +190,20 @@ module Tap
       unless params.empty?
         uri << '?'
         uri << build_query(params)
+      end
+      
+      if options
+        scheme = (options[:scheme] || request.scheme)
+        port = (options[:port] || request.port)
+        
+        if scheme == "https" && port != 443 ||
+            scheme == "http" && port != 80
+          uri.unshift ":#{port}"
+        end
+        
+        uri.unshift(options[:host] || request.host)
+        uri.unshift("://")
+        uri.unshift(scheme)
       end
       
       uri.join

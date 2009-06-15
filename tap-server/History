@@ -1,5 +1,6 @@
 
 * added Extname routes
+* Controller.uri can now add scheme, host, port
 
 == 0.4.0 / 2009-05-25
 
