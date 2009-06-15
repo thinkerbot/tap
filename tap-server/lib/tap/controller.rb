@@ -174,7 +174,17 @@ module Tap
     # be built into a query string, if specified.  By default the uri will
     # not specify a protocol or host.  Specifying an option hash will add
     # these to the uri.
-    def uri(action=nil, params={}, options=nil)
+    def uri(action=nil, params=nil, options=nil)
+      if action.kind_of?(Hash)
+        unless params == nil && options == nil
+          raise "extra arguments specified for uri hash syntax"
+        end
+        
+        options = action
+        params = options[:params]
+        action = options[:action]
+      end
+      
       uri = []
       
       if controller_path
@@ -187,7 +197,7 @@ module Tap
         uri << action
       end
       
-      unless params.empty?
+      unless params == nil || params.empty?
         uri << '?'
         uri << build_query(params)
       end

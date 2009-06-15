@@ -102,6 +102,19 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal "http://host.com:8808/action", controller.uri(:action, {}, {})
   end
   
+  def test_uri_allows_everything_to_be_specified_in_a_hash
+    assert_equal "http://host.com:8000/action?key=value", controller.uri(
+      :action => :action, 
+      :params => {:key => 'value'}, 
+      :host => 'host.com', 
+      :port => 8000, 
+      :scheme => 'http')
+  end
+  
+  def test_uri_raises_error_if_extra_args_are_present_on_hash_syntax
+    err = assert_raises(RuntimeError) { controller.uri({}, :arg) }
+    assert_equal "extra arguments specified for uri hash syntax", err.message
+  end
   #
   # call test
   #
