@@ -1,5 +1,6 @@
 require 'erb'
 require 'tap/server'
+require 'tap/controller/extname'
 require 'tap/controller/rest_routes'
 require 'tap/controller/utils'
 
