@@ -28,13 +28,47 @@ class ControllerTest < Test::Unit::TestCase
   class ChildController < ParentController
   end
   
-  def test_actions_are_inherited_by_duplication
+  def test_actions_are_inherited
     assert_equal [:a, :b, :c], ChildController.actions
-    assert ParentController.actions.object_id != ChildController.actions.object_id
   end
   
   def test_default_action_is_inherited
     assert_equal 'alt', ChildController.default_action
+  end
+  
+  def test_set_variables_are_inherited_by_duplication
+    assert_equal [:a, :b, :c], ChildController.actions
+    assert ParentController.actions.object_id != ChildController.actions.object_id
+    
+    assert_equal 'alt', ChildController.default_action
+    assert ParentController.default_action.object_id != ChildController.default_action.object_id
+    
+    assert_equal 'default', ChildController.get(:default_layout)
+    assert ParentController.get(:default_layout).object_id != ChildController.get(:default_layout).object_id
+  end
+  
+  def test_default_define_action_is_set_to_true_in_subclasses
+    a = Class.new(Tap::Controller)
+    assert_equal true, a.get(:define_action)
+    
+    a.set(:define_action, false)
+    assert_equal false, a.get(:define_action)
+    
+    b = Class.new(a)
+    assert_equal true, b.get(:define_action)
+  end
+  
+  class AnotherParentController < Tap::Controller
+    set :int, 2
+    set :bool, false
+    set :nil, nil
+  end
+  
+  def test_set_variables_do_not_cause_an_error_if_they_cannot_be_duplicated
+    subclass = Class.new(AnotherParentController)
+    assert_equal 2, subclass.get(:int)
+    assert_equal false, subclass.get(:bool)
+    assert_equal nil, subclass.get(:nil)
   end
   
   #

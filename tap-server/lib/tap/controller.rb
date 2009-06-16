@@ -32,10 +32,11 @@ module Tap
         end
         
         set_variables.each do |variable|
-          child.set(variable, get(variable))
+          value = get(variable)
+          value = value.dup if Configurable::Delegate.duplicable_value?(value)
+          child.set(variable, value)
         end
         
-        child.set(:actions, actions.dup)
         child.set(:define_action, true)
       end
 
@@ -53,17 +54,14 @@ module Tap
 
       # Sets an instance variable for self (ie the class), short for:
       #
-      #   instance_variable_set(:@attribute, input)
+      #   instance_variable_set(:@attribute, value)
       #
-      # These variables are meaningful to a default Tap::Controller and will
-      # be inherited by subclasses:
-      #
-      #   actions:: sets actions
-      #   default_action:: the default action (:index)
-      #
-      def set(variable, input)
+      # Set variables inherited by subclasses.  The value is duplicated on
+      # the subclass so the parent and child variable may be modified
+      # independently.
+      def set(variable, value)
         set_variables << variable
-        instance_variable_set("@#{variable}", input)
+        instance_variable_set("@#{variable}", value)
       end
       
       # Gets the value of an instance variable set via set.  Returns nil for
@@ -73,7 +71,7 @@ module Tap
         instance_variable_get("@#{variable}")
       end
       
-      # An array of variables set via set.  set_variables are inherited.
+      # An array of variables set via set.
       def set_variables
         @set_variables ||= []
       end
