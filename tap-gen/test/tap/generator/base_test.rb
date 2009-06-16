@@ -106,6 +106,14 @@ class BaseTest < Test::Unit::TestCase
     ], d.directory_calls
   end
   
+  def test_directories_returns_collected_results_of_directory_calls
+    d = Directories.new
+    
+    # dumb test but it is what it is.
+    r = d.directory_calls
+    assert_equal [r,r,r,r], d.directories('root', ['a', 'b', 'c'])
+  end
+  
   #
   # template test
   #
@@ -165,6 +173,17 @@ class BaseTest < Test::Unit::TestCase
     ], results
   end
   
+  def test_template_files_returns_targets
+    a = method_root.prepare(:tmp, 'a') {}
+    b = method_root.prepare(:tmp, 'b') {}
+    c = method_root.prepare(:tmp, 'c/a') {} 
+
+    base = Base.new
+    base.template_dir = method_root[:tmp]
+    
+    assert_equal ['a', 'b', 'c/a'], base.template_files {|s,t| }
+  end
+  
   def test_template_files_raises_error_if_no_template_dir_is_set
     b.template_dir = nil
     err = assert_raises(RuntimeError) { b.template_files {} }
@@ -194,6 +213,14 @@ class BaseTest < Test::Unit::TestCase
     was_in_block = false
     b.on(:a, :b) { was_in_block = true }
     assert_equal false, was_in_block
+  end
+  
+  def test_on_returns_block_return_if_called_and_nil_otherwise
+    b.extend Action
+    b.action = :test
+    
+    assert_equal :result, b.on(:test) { :result }
+    assert_equal nil, b.on(:not_called) { :result }
   end
   
   #

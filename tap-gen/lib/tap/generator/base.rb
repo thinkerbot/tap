@@ -142,10 +142,11 @@ module Tap
       # Makes (or destroys) the root and each of the targets, relative
       # to root.  Options are passed onto directory.
       def directories(root, targets, options={})
-        directory(root, options)
+        results = [directory(root, options)]
         targets.each do |target|
-          directory(File.join(root, target), options)
+          results << directory(File.join(root, target), options)
         end
+        results
       end
       
       # Makes (or destroys) the target by templating the source using
@@ -167,18 +168,23 @@ module Tap
       def template_files
         raise "no template dir is set" unless template_dir
         
+        targets = []
         Dir.glob(template_dir + "/**/*").sort.each do |source|
           next unless File.file?(source)
           
           target = Tap::Root::Utils.relative_path(template_dir, source)
           yield(source, target)
+          targets << target
         end
+        targets
       end
       
       # Calls the block when specified by the action for self.
       def on(*actions, &block)
         if actions.include?(action)
           block.call
+        else
+          nil
         end
       end
       
