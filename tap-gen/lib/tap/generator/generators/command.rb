@@ -1,3 +1,5 @@
+require 'tap/generator/base'
+
 module Tap::Generator::Generators
   
   # :startdoc::generator a new tap command

@@ -1,3 +1,4 @@
+require 'tap/generator/base'
 require 'tap/env'
 
 module Tap::Generator::Generators
