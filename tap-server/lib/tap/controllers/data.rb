@@ -3,11 +3,12 @@ require 'tap/controller'
 module Tap
   module Controllers
     # ::controller
-    class Data < Tap::Controller
+    class Data < Tap::Controller  
       include RestRoutes
       include Utils
       
       set :default_layout, 'layout.erb'
+      set :reserved_ids, ['new']
       
       # GET /projects
       def index
@@ -39,6 +40,8 @@ module Tap
       def create(id)
         if id == "new"
           id = data.next_id(type).to_s
+        else
+          check_id(id)
         end
         
         data.create(type, id) {|io| io << parse_entry }
@@ -62,7 +65,8 @@ module Tap
       end
       
       def upload(id=nil)
-        check_id(id)
+        check_id(id) if id
+        
         data.import(type, request[type], id)
         redirect uri
       end
@@ -74,11 +78,21 @@ module Tap
       
       # Renames id to request['name'] in the schema data.
       def rename(id)
-        redirect data.move(type, id, request['new_id'])
+        if new_id = request['new_id']
+          check_id(new_id)
+        else
+          raise "no new id specified"
+        end
+        
+        redirect data.move(type, id, new_id)
       end
       
       def duplicate(id)
-        redirect data.copy(type, id, request['new_id'] || "#{id}_copy")
+        if new_id = request['new_id']
+          check_id(new_id)
+        end
+        
+        redirect data.copy(type, id, new_id || "#{id}_copy")
       end
       
       # Helper methods
@@ -123,7 +137,7 @@ module Tap
       end
       
       def check_id(id)
-        if id == "new"
+        if self.class.get(:reserved_ids).include?(id)
           raise "reserved id: #{id.inspect}"
         end
       end
