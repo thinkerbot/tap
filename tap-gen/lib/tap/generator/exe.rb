@@ -18,7 +18,7 @@ module Tap
           raise "unknown generator: #{name}"
         end
         
-        generator = const.constantize.parse(argv)
+        generator = const.constantize.parse!(argv)
         
         # do not reassign dir unless a template directory
         # is found, otherwise you get an error

@@ -1,4 +1,4 @@
-autoload(:Tempfile, 'tempfile')
+require 'tempfile'
 
 module Tap
   module Generator
