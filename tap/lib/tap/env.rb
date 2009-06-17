@@ -65,7 +65,7 @@ module Tap
         end
       end
       
-      def scan(load_path, pattern='**/*.rb')
+      def scan_dir(load_path, pattern='**/*.rb')
         Dir.chdir(load_path) do 
           Dir.glob(pattern).each do |require_path|
             next unless File.file?(require_path)
@@ -73,15 +73,9 @@ module Tap
             default_const_name = require_path.chomp('.rb').camelize
             
             # note: the default const name has to be set here to allow for implicit
-            # constant attributes (because a dir is needed to figure the relative path).
-            # A conflict could arise if the same path is globed from two different
-            # dirs... no surefire solution.
-            document = Lazydoc[require_path]
-            case document.default_const_name
-            when nil then document.default_const_name = default_const_name
-            when default_const_name
-            else raise "found a conflicting default const name"
-            end
+            # constant attributes. An error can arise if the same path is globed
+            # from two different dirs... no surefire solution.
+            Lazydoc[require_path].default_const_name = default_const_name
             
             # scan for constants
             Lazydoc::Document.scan(File.read(require_path)) do |const_name, type, comment|
@@ -98,6 +92,27 @@ module Tap
               ###############################################################
             end
           end
+        end
+      end
+      
+      def scan(path)
+        Lazydoc::Document.scan(File.read(path)) do |const_name, type, comment|
+          if const_name.empty?
+            unless const_name = Lazydoc[path].default_const_name
+              raise "could not determine a constant name for #{type} in: #{path.inspect}"
+            end
+          end
+          
+          constant = Constant.new(const_name, path, comment)
+          yield(type, constant)
+          
+          ###############################################################
+          # [depreciated] manifest as a task key will be removed at 1.0
+          if type == 'manifest'
+            warn "depreciation: ::task should be used instead of ::manifest as a resource key (#{require_path})"
+            yield('task', constant)
+          end
+          ###############################################################
         end
       end
     end
@@ -441,9 +456,8 @@ module Tap
         load_paths.each do |load_path|
           next unless File.directory?(load_path)
           
-          Env.scan(load_path) do |type, constant|
-            entries = registry[type.to_sym] ||= []
-            entries << constant
+          Env.scan_dir(load_path) do |type, constant|
+            (registry[type.to_sym] ||= []) << constant
           end
         end
         
@@ -466,6 +480,15 @@ module Tap
       end
       
       builders[type] = block
+    end
+    
+    #--
+    # Potential bug, constants can be added twice.
+    def scan(path)
+      registry = self.registry
+      Env.scan(path) do |type, constant|
+        (registry[type.to_sym] ||= []) << constant
+      end
     end
     
     def manifest(type) # :yields: env

@@ -52,11 +52,11 @@ ConfigParser.new(app.config) do |opts|
     schema = Tap::Schema.load_file(file)
   end
   
-  opts.on('-p', '--preview', 'Print schema as YAML') do
+  opts.on('-p', '--preview', 'Print the schema as YAML') do
     mode = :preview
   end
   
-  opts.on('-t', '--resource-manifest', 'Print a list of available resources') do
+  opts.on('-t', '--manifest', 'Print a list of available resources') do
     tasks = env.manifest(:task)
     tasks_found = !tasks.all_empty?
     
@@ -84,7 +84,7 @@ ConfigParser.new(app.config) do |opts|
     exit(0)
   end
   
-  opts.on('-T', '--manifest', 'Print a list of available tasks') do
+  opts.on('-T', '--tasks', 'Print a list of available tasks') do
     puts env.manifest(:task).summarize
     exit(0)
   end

@@ -475,6 +475,43 @@ a (0)
   end
   
   #
+  # scan test
+  #
+  
+  def test_scan_scans_path_for_resources
+    path = method_root.prepare(:tmp, 'a') do |io|
+      io.puts "# A::resource"
+      io.puts "# B::resource"
+      io.puts "# B::alt"
+    end
+    
+    assert e.manifest(:resource).empty?
+    
+    e.scan(path)
+    assert_equal ["A", "B"], e.manifest(:resource).collect {|const| const.const_name }
+    assert_equal ["B"], e.manifest(:alt).collect {|const| const.const_name }
+  end
+  
+  def test_scan_uses_default_const_name_if_specified
+    path = method_root.prepare(:tmp, 'a') do |io|
+      io.puts "# ::resource"
+    end
+    
+    Lazydoc[path].default_const_name = "A"
+    e.scan(path)
+    assert_equal ["A"], e.manifest(:resource).collect {|const| const.const_name }
+  end
+  
+  def test_scan_raises_error_if_no_const_name_can_be_determined
+    path = method_root.prepare(:tmp, 'a') do |io|
+      io.puts "# ::resource"
+    end
+    
+    assert_equal nil, Lazydoc[path].default_const_name
+    err = assert_raises(RuntimeError) { e.scan(path) }
+    assert_equal "could not determine a constant name for resource in: #{path.inspect}", err.message
+  end
+  #
   # seek test
   #
   
