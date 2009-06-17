@@ -159,7 +159,7 @@ module Tap
         templater = Templater.new(File.read(template_path), attributes)
         
         file(target, options) do |file| 
-          file << templater.build
+          file << templater.build(nil, template_path)
         end
       end
       
