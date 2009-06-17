@@ -95,8 +95,8 @@ module Tap
         end
       end
       
-      def scan(path)
-        Lazydoc::Document.scan(File.read(path)) do |const_name, type, comment|
+      def scan(path, key='[a-z_]+')
+        Lazydoc::Document.scan(File.read(path), key) do |const_name, type, comment|
           if const_name.empty?
             unless const_name = Lazydoc[path].default_const_name
               raise "could not determine a constant name for #{type} in: #{path.inspect}"
@@ -484,9 +484,9 @@ module Tap
     
     #--
     # Potential bug, constants can be added twice.
-    def scan(path)
+    def scan(path, key='[a-z_]+')
       registry = self.registry
-      Env.scan(path) do |type, constant|
+      Env.scan(path, key) do |type, constant|
         (registry[type.to_sym] ||= []) << constant
       end
     end

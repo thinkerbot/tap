@@ -24,6 +24,7 @@ end
 
 Dir.glob('[TtRr]apfile{,.rb}').each do |rapfile|
   next unless File.file?(rapfile)
+  env.scan(rapfile, "task|join|middleware")
   load rapfile
 end
 

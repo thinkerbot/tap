@@ -151,8 +151,28 @@ end
     end
   end
   
-  def test_rap_runs_tasks_from_rapfile
+  def test_rap_runs_rap_tasks_from_rapfile
     method_root.prepare(:tmp, 'Rapfile') {|file| file << "Rap.task(:echo) { puts 'echo!' }"}
+    method_root.chdir(:tmp) do
+      sh_test %q{
+% rap echo
+echo!
+}
+    end
+  end
+  
+  def test_rap_runs_tap_tasks_from_rapfile
+    method_root.prepare(:tmp, 'Rapfile') do |file| 
+      file << %Q{
+# Echo::task
+class Echo < Tap::Task
+  def process
+    puts "echo!"
+  end
+end
+}
+
+    end
     method_root.chdir(:tmp) do
       sh_test %q{
 % rap echo
