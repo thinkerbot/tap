@@ -6,9 +6,9 @@ A configurable, distributable workflow framework.
 
 == Description
 
-Tap allows the construction of imperative and dependency-based workflows that
-may be defined, configured, and run from the command line. The tasks and joins
-composing a workflow are easy to test, subclass, and distribute as gems.
+Tap allows the construction of workflows that may be defined, configured, and
+run from the command line. The tasks and joins composing a workflow are easy
+to test, subclass, and distribute as gems.
 
 Tap is the core of the
 {Tap-Suite}[http://tap.rubyforge.org/tap-suite/index.html] 
@@ -42,7 +42,7 @@ Tasks are defined as subclasses of Tap::Task.
     end
   end
 
-Tap automatically discovers and pulls documentation out to generate manifests:
+Tap automatically discovers tasks.
 
   % tap run -T
     sample:
@@ -51,7 +51,7 @@ Tap automatically discovers and pulls documentation out to generate manifests:
       dump        # the default dump task
       load        # the default load task
       
-And help:
+And generates documentation.
 
   % tap run -- goodnight --help
   Goodnight -- your basic goodnight moon task
@@ -68,44 +68,45 @@ And help:
           --name NAME                  Specifies the task name
           --config FILE                Specifies a config file
 
-Tasks are available immediately for use in workflows. The process method takes
-inputs from the command line and passes its result to other tasks.
+Tasks are immediately available for use in workflows.
 
   % tap run -- goodnight moon --: dump
   goodnight moon
 
-Tasks may be configured as if they were individual executables:
+Tasks may be configured as if they were individual executables.
 
   % tap run -- goodnight world --message hello --: dump
   hello world
 
 === Workflow Syntax
 
-Workflows are specified on the command line using argument vectors separated by option breaks.  The argument vectors define the tasks and modifications to the breaks (--: or --[i,j][k]) specify joins.
+Workflows are specified on the command line using argument vectors separated
+by option breaks. The vectors define the tasks and modifications to the breaks
+specify joins.
 
-A simple sequence:
+A simple sequence.
 
   % tap run -- load 'goodnight moon' --: dump
   goodnight moon
 
-A more formal way of specifying a sequence:
+A more formal way of specifying a sequence.
 
   % tap run -- load 'goodnight moon' -- dump --[0][1]
   goodnight moon
 
-A fork:
+A fork.
 
   % tap run -- load 'goodnight moon' -- dump -- dump --[0][1,2]
   goodnight moon
   goodnight moon
 
-A merge (note that dump receives the inputs in serial):
+A merge (note that dump receives the inputs in serial).
 
   % tap run -- load goodnight -- load moon -- dump --[0,1][2]
   goodnight
   moon
 
-A synchronized merge where the results of each input are collected into an array before being passed to dump. The printout is: ['goodnight', 'moon'].to_s
+A synchronized merge (the printout is ['goodnight', 'moon'].to_s).
 
   % tap run -- load goodnight -- load moon -- dump --[0,1][2].sync
   goodnightmoon

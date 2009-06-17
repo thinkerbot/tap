@@ -2,7 +2,7 @@
 
 === Sequence
 
-A simple sequence using the --: syntax that joins the previous to next task.
+A simple sequence using the --: syntax.
 
   % tap run -- load 'goodnight moon' --: dump
   goodnight moon

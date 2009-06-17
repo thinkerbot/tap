@@ -4,14 +4,16 @@
 
 == Tap::App
 
-Applications require the following API for nodes, joins, and middleware.
+Applications require the following API for nodes, joins, and middleware. Tap
+provides modules or base classes that implement these APIs and may be used as
+the foundation for subclasses.
 
 ==== Node
 
-Note the signature for call can be modified as necessary.
-
   call(*inputs)    any return is allowed
   joins()          returns an array of joins
+
+The signature for call can be modified as necessary.
 
 ==== Join
 
@@ -23,47 +25,59 @@ Note the signature for call can be modified as necessary.
   call(node, inputs=[])   any return is allowed
   stack()                 returns the original stack
 
-Note the middleware API is essentially the same as for {Rack}[http://rack.rubyforge.org/].
+The middleware API is essentially the same as for {Rack}[http://rack.rubyforge.org/].
 
 == Tap::Schema
 
-Schema describe workflows as data.  To build a workflow from a schema, workflow classes need to instantiate themselves using the schema data. The <tt>parse!</tt> and <tt>instantiate</tt> methods are provided to do so.  
+Schema describe workflows as data. To build a workflow from a schema, workflow
+resources like nodes, joins, and middleware need to instantiate themselves
+using the schema data. The <tt>parse!</tt> and <tt>instantiate</tt> methods
+must be provided to do so.
 
-  WorkflowClass.parse!(argv=ARGV, app=App.instance)
-  WorkflowClass.instantiate(argh, app=App.instance)
-  
-As implied in by the inputs, <tt>parse!</tt> instantiates from an array, while <tt>instantiate</tt> instantiates from a hash with symbol keys.  If <tt>parse!</tt> receives a string, it must be able to convert it to an array (ex using Shellwords).
+  Resource.parse!(argv=ARGV, app=App.instance)
+  Resource.instantiate(argh, app=App.instance)
 
-How the class actually performs the instantiation is up to the class but typically parse creates a hash and calls instantiate.
+As implied in by the inputs, <tt>parse!</tt> instantiates from an array, while
+<tt>instantiate</tt> instantiates from a hash with symbol keys. If
+<tt>parse!</tt> receives a string, it must be able to convert it to an array
+(ex using Shellwords).
+
+How the class actually performs the instantiation is up to the class but
+typically parse creates a hash and calls instantiate.
 
 == Tap::Env
 
-Envs identify resources by a constant attribute using Tap::Env#constant_manifest.  For instance this identifies the Sample node:
+Envs identify resources by resource identifiers (ie constant attributes
+recognized by Lazydoc). This identifies 'Sample' as an 'example' resource.
+
+  [file.rb]
+
+  # Sample::example summary
+  # description
+  class Sample
+  end
+
+The constant name will be inferred from the path for the file containing the
+resource identifier if no constant name is specified.
 
   [sample.rb]
   
-  # ::node summary
+  # ::example summary
   # description
-  class Sample < Tap::Node
+  class Sample
   end
 
-Here the constant name is inferred using the filepath.  A more formal declaration allows resources to be placed in files that are not named after the resource:
+Resources may be accessed using Tap::Env#manifest. Resources intended to be
+discovered by Env must map the identifier documentation to the class 'desc'
+method. The easiest way to do so is with a
+{lazy_attr}[link:lazydoc/classes/Lazydoc/Attributes.html].
 
-  [alt.rb]
+  # ::example summary
+  # description
+  class Sample
+    lazy_attr :desc, 'example'
+  end
   
-  # Sample::node summary
-  # description
-  class Sample < Tap::Node
-  end
-
-Joins are similarly identified by <tt>::join</tt>.  Resources intended to be discovered by constant_manifest must map the attribute documentation to the class 'desc' method.  
-
   Sample::desc.summary         # => "summary"
   Sample::desc.to_s            # => "description"
   
-The easiest way to do so is with a {lazy_attr}[link:lazydoc/classes/Lazydoc/Attributes.html].
-
-  # ::resource
-  class Resource
-    lazy_attr :desc, 'resource'
-  end
