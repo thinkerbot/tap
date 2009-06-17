@@ -188,12 +188,12 @@ module Tap
       @_erbout << input
     end
     
-    # Build the template.  All methods of self will be 
-    # accessible in the template.
-    def build(attrs={}, filename=nil)
+    # Build the template, setting the attributes and filename if specified.
+    # All methods of self will be accessible in the template.
+    def build(attrs=nil, filename=nil)
       attrs.each_pair do |key, value|
         send("#{key}=", value)
-      end
+      end if attrs
       
       @template.filename = filename
       @template.result(binding)
