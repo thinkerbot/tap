@@ -56,23 +56,36 @@ ConfigParser.new(app.config) do |opts|
     mode = :preview
   end
   
-  opts.on('-T', '--manifest', 'Print a list of available tasks') do
+  opts.on('-t', '--resource-manifest', 'Print a list of available resources') do
     tasks = env.manifest(:task)
     tasks_found = !tasks.all_empty?
+    
+    joins = env.manifest(:join)
+    joins_found = !joins.all_empty?
     
     middleware = env.manifest(:middleware)
     middleware_found = !middleware.all_empty?
     
     if tasks_found 
-      puts "=== tasks ===" if middleware_found
+      puts "=== tasks ===" if middleware_found || joins_found
       puts tasks.summarize
     end
 
+    if joins_found
+      puts "=== joins ===" if tasks_found || middleware_found
+      puts joins.summarize
+    end
+    
     if middleware_found
-      puts "=== middleware ===" if tasks_found
+      puts "=== middleware ===" if tasks_found || joins_found
       puts middleware.summarize
     end
     
+    exit(0)
+  end
+  
+  opts.on('-T', '--manifest', 'Print a list of available tasks') do
+    puts env.manifest(:task).summarize
     exit(0)
   end
   

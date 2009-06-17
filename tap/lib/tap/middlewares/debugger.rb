@@ -3,7 +3,7 @@ require 'tap/middleware'
 module Tap
   module Middlewares
     
-    # :startdoc::middleware
+    # :startdoc::middleware the default debugger
     class Debugger < Middleware
       module Utils
         module_function

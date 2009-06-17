@@ -9,7 +9,7 @@ module Tap
     end
   end
   
-  # :startdoc::join a simple, unsyncrhonized, multi-way join
+  # :startdoc::join an unsyncrhonized, multi-way join
   #
   # Join defines an unsynchronized, multi-way join where n inputs send their
   # results to m outputs.  Flags can augment how the results are passed, in

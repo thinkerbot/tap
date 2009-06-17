@@ -66,10 +66,16 @@ tap:
 tap:
   dump        # the default dump task
   load        # the default load task
+=== joins ===
+  join        # an unsyncrhonized, multi-way join
+  sync        # a synchronized multi-way join
 === middleware ===
+#{File.basename(method_root[:root])}:
   middle      # a sample middleware
+tap:
+  debugger    # the default debugger
 }
-    assert_equal expected, "\n" + sh("#{CMD} run -T")
+    assert_equal expected, "\n" + sh("#{CMD} run -t")
   end
   
   #
