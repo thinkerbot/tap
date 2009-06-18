@@ -137,12 +137,20 @@ module Tap
       # Parses the argv into an instance of self.  By default parse 
       # parses an argh then calls instantiate, but there is no requirement
       # that this occurs in subclasses.
-      def parse(argv=ARGV, app=Tap::App.instance)
-        parse!(argv.dup, app)
+      #
+      # ==== Block Overrides
+      #
+      # For convenience, parse will yield the internal ConfigParser to the
+      # block, if given.  This functionality was added to Task so they are
+      # more flexible in executable files but it is not a part of the API
+      # requirements for parse/parse!.
+      #
+      def parse(argv=ARGV, app=Tap::App.instance, &block) # :yields: opts
+        parse!(argv.dup, app, &block)
       end
       
       # Same as parse, but removes arguments destructively.
-      def parse!(argv=ARGV, app=Tap::App.instance)
+      def parse!(argv=ARGV, app=Tap::App.instance) # :yields: opts
         opts = ConfigParser.new
         
         unless configurations.empty?
@@ -175,6 +183,8 @@ module Tap
         opts.on('--config FILE', 'Specifies a config file') do |config_file|
           opts.config.merge!(load_config(config_file))
         end
+        
+        yield(opts) if block_given?
         
         # (note defaults are not added so they will not
         # conflict with string keys from a config file)

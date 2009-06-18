@@ -1,5 +1,6 @@
 
 * added Middleware baseclass
+* Task.parse now yields opts to block for modifications
 
 == 0.18.0 / 2009-06-14
 

@@ -181,6 +181,21 @@ class TaskTest < Test::Unit::TestCase
     end
   end
   
+  def test_parse_yields_opts_to_block_if_given
+    instance = ParseClass.parse(['--new-flag']) do |opts|
+      opts.on "--new-flag" do 
+        opts['new_flag_parsed'] = true
+      end
+      
+      opts.on "--another-new-flag" do 
+        opts['another_new_flag_parsed'] = true
+      end
+    end
+    
+    assert_equal true, instance.config['new_flag_parsed']
+    assert_equal nil, instance.config['another_new_flag_parsed']
+  end
+  
   #
   # parse! test
   #
