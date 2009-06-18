@@ -46,6 +46,7 @@ Gem::Specification.new do |s|
     lib/tap/joins.rb
     lib/tap/joins/switch.rb
     lib/tap/joins/sync.rb
+    lib/tap/middleware.rb
     lib/tap/tasks/load.rb
     lib/tap/root.rb
     lib/tap/root/utils.rb

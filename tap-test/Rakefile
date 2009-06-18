@@ -3,9 +3,6 @@ require 'rake/testtask'
 require 'rake/rdoctask'
 require 'rake/gempackagetask'
 
-$:.unshift File.expand_path("#{File.dirname(__FILE__)}/lib")
-require 'tap/version'
-
 #
 # Gem specification
 #

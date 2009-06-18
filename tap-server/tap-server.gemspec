@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap-server"
-  s.version = "0.4.0"
+  s.version = "0.5.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -21,6 +21,7 @@ Gem::Specification.new do |s|
   s.files = %W{
     cmd/server.rb
     lib/tap/controller.rb
+    lib/tap/controller/extname.rb
     lib/tap/controller/rest_routes.rb
     lib/tap/controller/utils.rb
     lib/tap/controllers/app.rb
@@ -39,7 +40,6 @@ Gem::Specification.new do |s|
     tap.yml
     views/404.erb
     views/500.erb
-    views/configurable/_config.erb
     views/configurable/_configs.erb
     views/configurable/_flag.erb
     views/configurable/_list_select.erb
@@ -47,6 +47,7 @@ Gem::Specification.new do |s|
     views/configurable/_switch.erb
     views/layout.erb
     views/object/obj.erb
+    views/tap/controller/help.erb
     views/tap/controllers/app/_action.erb
     views/tap/controllers/app/build.erb
     views/tap/controllers/app/enque.erb
@@ -59,13 +60,11 @@ Gem::Specification.new do |s|
     views/tap/controllers/data/index.erb
     views/tap/controllers/schema/_build.erb
     views/tap/controllers/schema/_index_entry.erb
-    views/tap/controllers/schema/join.erb
     views/tap/controllers/schema/entry.erb
-    views/tap/controllers/schema/task.erb
     views/tap/controllers/server/access.erb
     views/tap/controllers/server/admin.erb
-    views/tap/controllers/server/help.erb
     views/tap/controllers/server/index.erb
+    views/tap/task/help.erb
     views/tap/task/input.erb
     views/tap/tasks/load/input.erb
     }
