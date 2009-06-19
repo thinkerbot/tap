@@ -197,7 +197,7 @@ class JoinTest < Test::Unit::TestCase
     a = app.node { 'a' }
     b = app.node { 'b' }
     
-    join = Join.new
+    join = Join.new({}, app)
     join.join([a], [])
     assert_equal [join], a.joins
     assert_equal [], b.joins

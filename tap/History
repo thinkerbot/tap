@@ -2,6 +2,7 @@
 
 * updated API to allow nodes that do not respond to joins
 * fixed bug in reassigning Sync joins
+* added Collect join to pair with iterate
 
 == 0.18.0 / 2009-06-17
 

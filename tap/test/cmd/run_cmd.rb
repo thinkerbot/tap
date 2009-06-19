@@ -68,6 +68,7 @@ tap:
   load        # the default load task
 === joins ===
   join        # an unsyncrhonized, multi-way join
+  collect     # collects results before the join
   sync        # a synchronized multi-way join
 === middleware ===
 #{File.basename(method_root[:root])}:

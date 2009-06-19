@@ -1,4 +1,5 @@
 require 'tap/join'
+require 'tap/joins/collect'
 require 'tap/joins/switch'
 require 'tap/joins/sync'
 

@@ -78,7 +78,7 @@ module Tap
     
     lazy_attr :desc, 'join'
     
-    # Causes the targets to be enqued rather than executed immediately.
+    # Causes the outputs to be enqued rather than executed immediately.
     config :enq, false, :short => 'q', &c.flag
     
     # Splats the result to the outputs, allowing a many-to-one join

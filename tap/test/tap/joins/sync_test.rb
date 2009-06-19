@@ -194,7 +194,7 @@ class SyncTest < Test::Unit::TestCase
     a = app.node { 'a' }
     b = app.node { 'b' }
     
-    join = Sync.new
+    join = Sync.new({}, app)
     join.join([a], [])
     assert_equal [join], a.joins.collect {|j| j.join }
     assert_equal [], b.joins.collect {|j| j.join }
