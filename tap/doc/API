@@ -11,9 +11,9 @@ the foundation for subclasses.
 ==== Node
 
   call(*inputs)    any return is allowed
-  joins()          returns an array of joins
+  joins()          returns an array of joins, or nil
 
-The signature for call can be modified as necessary.
+The signature for call can be modified as necessary.  Joins is optional, but must adhere to the API if provided.
 
 ==== Join
 

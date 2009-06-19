@@ -236,20 +236,36 @@ module Tap
       dispatch(node, inputs)
     end
     
-    # Dispatch sends the node into the application stack with the inputs.
     # Dispatch does the following in order:
     #
     # - call stack with the node and inputs
-    # - call the node joins, if set, or the default_joins with the results
+    # - call the node joins (if node responds to joins)
     #
     # Dispatch returns the node result.
+    #
+    # ==== Default Joins
+    #
+    # The default_joins for self will be called if node.joins returns
+    # an empty array.  To prevent default_joins from being called, setup
+    # node.joins to return false or nil.  Nodes that do not respond to
+    # join will not call the default joins either.
+    #
     def dispatch(node, inputs=[])
       result = stack.call(node, inputs)
       
-      joins = node.joins.empty? ? default_joins : node.joins
-      joins.each do |join|
-        join.call(result)
+      if node.respond_to?(:joins)
+        if joins = node.joins
+
+          if joins.empty?
+            joins = default_joins
+          end
+        
+          joins.each do |join|
+            join.call(result)
+          end
+        end
       end
+      
       result
     end
     

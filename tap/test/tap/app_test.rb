@@ -291,7 +291,7 @@ class AppTest < Test::Unit::TestCase
     assert was_in_block_b
   end
   
-  def test_dispatch_calls_default_joins_if_no_join_is_specified
+  def test_dispatch_calls_default_joins_if_no_joins_are_specified
     n = intern { "result" }
     
     was_in_block_a = false
@@ -310,7 +310,48 @@ class AppTest < Test::Unit::TestCase
     assert was_in_block_a
     assert was_in_block_b
   end
-
+  
+  class NilJoins
+    def call
+      "result"
+    end
+    def joins
+      nil
+    end
+  end
+  
+  def test_dispatch_does_not_call_default_joins_if_joins_returns_nil
+    n = NilJoins.new
+    
+    was_in_block = false
+    app.on_complete do |result|
+      assert_equal "result", result
+      was_in_block = true
+    end
+    
+    assert_equal "result", app.dispatch(n)
+    assert_equal false, was_in_block
+  end
+  
+  class NoJoins
+    def call
+      "result"
+    end
+  end
+  
+  def test_dispatch_does_not_call_default_joins_node_does_not_respond_to_joins
+    n = NoJoins.new
+    
+    was_in_block = false
+    app.on_complete do |result|
+      assert_equal "result", result
+      was_in_block = true
+    end
+    
+    assert_equal "result", app.dispatch(n)
+    assert_equal false, was_in_block
+  end
+  
   #
   # run tests
   #
