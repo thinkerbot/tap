@@ -33,7 +33,9 @@ module Tap
       # correct 'results' slot.
       def join(inputs, outputs)
         @inputs.each do |input|
-          input.joins.delete(self)
+          input.joins.delete_if do |join|
+            join.kind_of?(Callback) && join.join == self
+          end
         end if @inputs
 
         @inputs = inputs

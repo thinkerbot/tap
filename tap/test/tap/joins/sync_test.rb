@@ -189,4 +189,18 @@ class SyncTest < Test::Unit::TestCase
       [e, []]
     ], app.queue.to_a
   end
+  
+  def test_sync_removes_callbacks_from_existing_inputs_on_join
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    
+    join = Sync.new
+    join.join([a], [])
+    assert_equal [join], a.joins.collect {|j| j.join }
+    assert_equal [], b.joins.collect {|j| j.join }
+    
+    join.join([b], [])
+    assert_equal [], a.joins.collect {|j| j.join }
+    assert_equal [join], b.joins.collect {|j| j.join }
+  end
 end

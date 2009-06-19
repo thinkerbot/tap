@@ -192,4 +192,18 @@ class JoinTest < Test::Unit::TestCase
       ['b2.d'],
     ], results[d]
   end
+  
+  def test_join_removes_self_from_existing_inputs_on_join
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    
+    join = Join.new
+    join.join([a], [])
+    assert_equal [join], a.joins
+    assert_equal [], b.joins
+    
+    join.join([b], [])
+    assert_equal [], a.joins
+    assert_equal [join], b.joins
+  end
 end
