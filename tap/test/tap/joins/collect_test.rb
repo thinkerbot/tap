@@ -112,4 +112,66 @@ class CollectTest < Test::Unit::TestCase
       ["a.d", "a.d", "a.d", "b.d", "b.d"]
     ], results[d]
   end
+  
+  def test_collect_from_imperative_workflow
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node { 'c' }
+    d = app.node { 'd' }
+    e = app.node { 'e' }
+    f = app.node { 'f' }
+    g = app.node {|inputs| inputs.collect {|input| "#{input}.g" } }
+    
+    app.join([b], [c])
+    app.join([c], [d,e])
+    join = app.join([a,d,e,f], [g], {}, Collect)
+    
+    app.enq a
+    app.enq b
+    app.enq f
+    app.run
+    
+    assert_equal [
+      a, b, c, d, e, f,
+      join, g
+    ], runlist
+    
+    assert_equal [
+      ["a.g", "d.g", "e.g", "f.g"]
+    ], results[g]
+  end
+  
+  def test_collect_from_enque_workflow
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node { 'c' }
+    d = app.node { 'd' }
+    e = app.node { 'e' }
+    f = app.node { 'f' }
+    g = app.node {|inputs| inputs.collect {|input| "#{input}.g" } }
+    
+    app.join([b], [d], :enq => true)
+    app.join([d], [e,f], :enq => true)
+    join = app.join([a,c,e,f], [g], {:enq => true}, Collect)
+    
+    app.enq a
+    app.enq b
+    app.enq c
+    app.run
+    
+    assert_equal [
+      a, b, c,
+      join, 
+      d, 
+      g, 
+      e, f,
+      join,
+      g
+    ], runlist
+    
+    assert_equal [
+      ["a.g", "c.g"],
+      ["e.g", "f.g"]
+    ], results[g]
+  end
 end
