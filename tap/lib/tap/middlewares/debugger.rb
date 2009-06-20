@@ -15,9 +15,27 @@ module Tap
       
       include Utils
       
+      config :verbose, false, &c.flag
+      config :output, $stderr, &c.io
+      
       def call(node, inputs=[])
+        open_io(output) do |io|
+          io.puts "- - #{node.class}"
+          io.puts "  - #{summarize(inputs)}"
+        end
+        
         check_signature(node, inputs)
         super
+      end
+      
+      def summarize(inputs)
+        unless verbose
+          inputs = inputs.collect do |input|
+            input.class
+          end
+        end
+        
+        inputs.inspect
       end
       
       def check_signature(node, inputs)
@@ -47,7 +65,7 @@ module Tap
       class InvalidSignatureError < StandardError
         def initialize(node, inputs, method, arity)
           lines = []
-          lines << "Invalid Signature (#{method}): #{node.class}"
+          lines << "Invalid input signature to: #{node.class} (#{method})"
           lines << "Expected #{arity} input but was given #{inputs.length}" 
           super(lines.join("\n"))
         end
