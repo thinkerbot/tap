@@ -56,6 +56,15 @@ ConfigParser.new(app.config) do |opts|
     mode = :preview
   end
   
+  opts.on('-q', '--quick-queue', 'Removes thread-safety from queue') do
+    mod = Module.new do
+      def synchronize
+        yield
+      end
+    end
+    app.queue.extend(mod)
+  end
+  
   opts.on('-t', '--manifest', 'Print a list of available resources') do
     tasks = env.manifest(:task)
     tasks_found = !tasks.all_empty?
