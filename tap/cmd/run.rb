@@ -43,6 +43,10 @@ ConfigParser.new(app.config) do |opts|
     exit(0)
   end
   
+  opts.on('-p', '--preview', 'Print the schema as YAML') do
+    mode = :preview
+  end
+  
   opts.on('-s', '--schema FILE', 'Use the specifed schema') do |file|
     if schema
       puts "An inline schema cannot be specified with a file schema."
@@ -50,19 +54,6 @@ ConfigParser.new(app.config) do |opts|
     end
     
     schema = Tap::Schema.load_file(file)
-  end
-  
-  opts.on('-p', '--preview', 'Print the schema as YAML') do
-    mode = :preview
-  end
-  
-  opts.on('-q', '--quick-queue', 'Removes thread-safety from queue') do
-    mod = Module.new do
-      def synchronize
-        yield
-      end
-    end
-    app.queue.extend(mod)
   end
   
   opts.on('-t', '--manifest', 'Print a list of available resources') do
@@ -96,6 +87,15 @@ ConfigParser.new(app.config) do |opts|
   opts.on('-T', '--tasks', 'Print a list of available tasks') do
     puts env.manifest(:task).summarize
     exit(0)
+  end
+  
+  opts.on('-u', '--quick-queue', 'Removes thread-safety from queue') do
+    mod = Module.new do
+      def synchronize
+        yield
+      end
+    end
+    app.queue.extend(mod)
   end
   
 end.parse!(ARGV, :clear_config => false, :add_defaults => false)

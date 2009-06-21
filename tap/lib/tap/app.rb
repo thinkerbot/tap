@@ -136,10 +136,10 @@ module Tap
     # The application logger
     attr_reader :logger
     
-    config :debug, false, &c.flag                 # Flag debugging
-    config :force, false, &c.flag                 # Force execution at checkpoints
-    config :quiet, false, &c.flag                 # Suppress logging
-    config :verbose, false, &c.flag               # Enables extra logging (overrides quiet)
+    config :debug, false, :short => :d, &c.flag      # Flag debugging
+    config :force, false, :short => :f, &c.flag      # Force execution at checkpoints
+    config :quiet, false, :short => :q, &c.flag      # Suppress logging
+    config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, options={}, &block)

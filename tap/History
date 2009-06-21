@@ -4,6 +4,7 @@
 * fixed bug in reassigning Sync joins
 * added Collect join to pair with iterate
 * added quick-queue option to run
+* added short options to app configs
 
 == 0.18.0 / 2009-06-17
 
