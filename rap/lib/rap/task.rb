@@ -44,11 +44,6 @@ module Rap
       end
 
       def inherited(child) # :nodoc:
-        unless child.instance_variable_defined?(:@source_file)
-          caller[0] =~ Lazydoc::CALLER_REGEXP
-          child.instance_variable_set(:@source_file, File.expand_path($1)) 
-        end
-
         child.instance_variable_set(:@dependencies, dependencies.dup)
         super
       end

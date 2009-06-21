@@ -126,14 +126,6 @@ module Tap
     include Configurable
     
     class << self
-      def inherited(child) # :nodoc:
-        unless child.instance_variable_defined?(:@source_file)
-          caller[0] =~ Lazydoc::CALLER_REGEXP
-          child.instance_variable_set(:@source_file, File.expand_path($1)) 
-        end
-        super
-      end
-      
       # Parses the argv into an instance of self.  By default parse 
       # parses an argh then calls instantiate, but there is no requirement
       # that this occurs in subclasses.

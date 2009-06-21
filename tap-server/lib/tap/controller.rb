@@ -26,11 +26,6 @@ module Tap
       def inherited(child) # :nodoc:
         super
         
-        unless child.instance_variable_defined?(:@source_file)
-          caller[0] =~ Lazydoc::CALLER_REGEXP
-          child.instance_variable_set(:@source_file, File.expand_path($1)) 
-        end
-        
         set_variables.each do |variable|
           value = get(variable)
           value = value.dup if Configurable::Delegate.duplicable_value?(value)
