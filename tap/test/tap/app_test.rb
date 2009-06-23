@@ -142,6 +142,77 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
+  # log test
+  #
+  
+  class MockLogger
+    attr_accessor :logs, :level
+    def initialize
+      @logs = []
+    end
+    def add(*args)
+      logs << args
+    end
+  end
+  
+  def test_log_logs_to_log_device
+    logger = MockLogger.new
+    app.logger = logger
+    app.log(:action, "message")
+    
+    assert_equal [[Logger::INFO, "message", "action"]], logger.logs
+  end
+  
+  def test_log_does_not_log_if_quiet
+    logger = MockLogger.new
+    app.logger = logger
+    app.quiet = true
+    
+    app.log(:action, "message")
+    
+    assert_equal [], logger.logs
+  end
+  
+  def test_log_forces_log_if_verbose
+    logger = MockLogger.new
+    app.logger = logger
+    app.quiet = true
+    app.verbose = true
+    
+    app.log(:action, "message")
+    assert_equal [[Logger::INFO, "message", "action"]], logger.logs
+  end
+  
+  def test_log_calls_block_for_message_if_unspecified
+    logger = MockLogger.new
+    app.logger = logger
+    
+    was_in_block = false
+    app.log(:action) do
+      was_in_block = true
+      "message"
+    end
+    
+    assert_equal true, was_in_block
+    assert_equal [[Logger::INFO, "message", "action"]], logger.logs
+  end
+  
+  def test_log_does_not_call_block_if_quiet
+    logger = MockLogger.new
+    app.logger = logger
+    app.quiet = true
+    
+    was_in_block = false
+    app.log(:action) do
+      was_in_block = true
+      "message"
+    end
+    
+    assert_equal false, was_in_block
+    assert_equal [], logger.logs
+  end
+  
+  #
   # node test
   #
   

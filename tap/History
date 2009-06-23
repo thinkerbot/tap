@@ -5,6 +5,7 @@
 * added Collect join to pair with iterate
 * added quick-queue option to run
 * added short options to app configs
+* added blocks to app.log
 
 == 0.18.0 / 2009-06-17
 

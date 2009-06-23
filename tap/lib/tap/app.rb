@@ -171,10 +171,32 @@ module Tap
       @logger = logger
     end
     
-    # Logs the action and message at the input level (default INFO).  
+    # Logs the action and message at the input level (default INFO).  The
+    # message is expected to come from a block if left unspecified as nil.
+    #
     # Logging is suppressed if quiet is true.
-    def log(action, msg="", level=Logger::INFO)
-      logger.add(level, msg, action.to_s) if !quiet || verbose
+    #
+    # ==== Performance Considerations
+    #
+    # Using a block to generate a message is quicker if logging is off,
+    # but slower when logging is on.  However, when messages use a lot of
+    # interpolation the log time is dominated by the interpolation; at
+    # some point the penalty for using a block is outweighed by the
+    # benefit of being able to skip the interpolation.
+    #
+    # For example:
+    #
+    #   log(:action, "this is fast")
+    #   log(:action) { "and there's not much benefit to the block" }
+    #
+    #   log(:action, "but a message with #{a}, #{b}, #{c}, and #{d}")
+    #   log(:action) { "may be #{best} in a block because you can #{turn} #{it} #{off}" }
+    #
+    def log(action, msg=nil, level=Logger::INFO)
+      if !quiet || verbose
+        msg ||= yield
+        logger.add(level, msg, action.to_s)
+      end
     end
     
     # Returns a new node that executes block on call.
