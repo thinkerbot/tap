@@ -1,7 +1,8 @@
 require 'tap/task'
 require 'tap/env'
-require 'ostruct'
 require 'rap/description'
+require 'rap/utils'
+require 'ostruct'
 
 module Rap
   

@@ -1,6 +1,7 @@
 ==
 
 * moved version information into separate file
+* made Rap::Utils required by Rap::Task
 
 ==  0.14.0 / 2009-06-17
 
