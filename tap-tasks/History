@@ -1,3 +1,7 @@
+==
+
+* added short options to load/dump csv
+
 == 0.3.0 / 2009-06-17
 
 * added load/dump csv tasks
