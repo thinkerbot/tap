@@ -13,6 +13,8 @@ module Tap
       # An array of results collected thusfar.
       attr_reader :results
       
+      config :limit, nil, &c.integer_or_nil   # Pass results after limit
+      
       def initialize(config={}, app=Tap::App.instance)
         super
         @results = nil
@@ -27,11 +29,14 @@ module Tap
           
           if result == @results
             @results = nil
-            outputs.each do |output|
-              dispatch(output, result)
-            end
+            super(result)
           else
             @results << result
+            
+            if limit && @results.length >= limit
+              super(@results.dup)
+              @results.clear
+            end
           end
           
         else

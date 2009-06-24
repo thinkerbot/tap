@@ -113,6 +113,44 @@ class CollectTest < Test::Unit::TestCase
     ], results[d]
   end
   
+  def test_collect_with_limit
+    a = app.node { 'a' }
+    b = app.node { 'b' }
+    c = app.node {|inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|inputs| inputs.collect {|input| "#{input}.d" } }
+    e = app.node { 'd' }
+    join = app.join([a,b], [c,d], {:limit => 2}, Collect)
+    
+    app.enq a
+    app.enq a
+    app.enq a
+    app.enq b
+    app.enq b
+    app.enq e
+    app.run
+    
+    assert_equal [
+      a, a, c, d,
+      a, b, c, d,
+      b,
+      e,
+      join,
+      c, d
+    ], runlist
+    
+    assert_equal [
+      ["a.c", "a.c"], 
+      ["a.c", "b.c"], 
+      ["b.c"]
+    ], results[c]
+    
+    assert_equal [
+      ["a.d", "a.d"], 
+      ["a.d", "b.d"], 
+      ["b.d"]
+    ], results[d]
+  end
+  
   def test_collect_from_imperative_workflow
     a = app.node { 'a' }
     b = app.node { 'b' }
