@@ -1,9 +1,9 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/joins'
+require 'tap/joins/gate'
 require 'tap/app/tracer'
 
-class CollectTest < Test::Unit::TestCase
-  Collect = Tap::Joins::Collect
+class GateTest < Test::Unit::TestCase
+  Gate = Tap::Joins::Gate
   
   attr_reader :app, :results, :runlist
   
@@ -19,10 +19,10 @@ class CollectTest < Test::Unit::TestCase
   # join test
   #
   
-  def test_collect_join_enques_self_after_call_when_results_are_nil
+  def test_gate_join_enques_self_after_call_when_results_are_nil
     assert_equal [], app.queue.to_a
     
-    join = Collect.new({}, app)
+    join = Gate.new({}, app)
     join.join([], [])
     
     assert_equal nil, join.results
@@ -51,8 +51,8 @@ class CollectTest < Test::Unit::TestCase
     ], app.queue.to_a
   end
   
-  def test_collect_join_collect_results_on_each_call
-    join = Collect.new({}, app)
+  def test_gate_join_gate_results_on_each_call
+    join = Gate.new({}, app)
     join.call('a')
     join.call('b')
     join.call('c')
@@ -60,14 +60,14 @@ class CollectTest < Test::Unit::TestCase
     assert_equal ['a', 'b', 'c'], join.results
   end
   
-  def test_collect_join_dispatches_results_when_called_with_results
+  def test_gate_join_dispatches_results_when_called_with_results
     was_in_block = false
     node = app.node do |inputs|
       assert_equal ['a', 'b', 'c'], inputs
       was_in_block = true
     end
     
-    join = Collect.new({}, app)
+    join = Gate.new({}, app)
     join.call('a')
     join.call('b')
     join.call('c')
@@ -80,13 +80,13 @@ class CollectTest < Test::Unit::TestCase
     assert_equal nil, join.results
   end
   
-  def test_simple_collect
+  def test_simple_gate
     a = app.node { 'a' }
     b = app.node { 'b' }
     c = app.node {|inputs| inputs.collect {|input| "#{input}.c" } }
     d = app.node {|inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
-    join = app.join([a,b], [c,d], {}, Collect)
+    join = app.join([a,b], [c,d], {}, Gate)
     
     app.enq a
     app.enq a
@@ -113,13 +113,13 @@ class CollectTest < Test::Unit::TestCase
     ], results[d]
   end
   
-  def test_collect_with_limit
+  def test_gate_with_limit
     a = app.node { 'a' }
     b = app.node { 'b' }
     c = app.node {|inputs| inputs.collect {|input| "#{input}.c" } }
     d = app.node {|inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
-    join = app.join([a,b], [c,d], {:limit => 2}, Collect)
+    join = app.join([a,b], [c,d], {:limit => 2}, Gate)
     
     app.enq a
     app.enq a
@@ -151,7 +151,7 @@ class CollectTest < Test::Unit::TestCase
     ], results[d]
   end
   
-  def test_collect_from_imperative_workflow
+  def test_gate_from_imperative_workflow
     a = app.node { 'a' }
     b = app.node { 'b' }
     c = app.node { 'c' }
@@ -162,7 +162,7 @@ class CollectTest < Test::Unit::TestCase
     
     app.join([b], [c])
     app.join([c], [d,e])
-    join = app.join([a,d,e,f], [g], {}, Collect)
+    join = app.join([a,d,e,f], [g], {}, Gate)
     
     app.enq a
     app.enq b
@@ -179,7 +179,7 @@ class CollectTest < Test::Unit::TestCase
     ], results[g]
   end
   
-  def test_collect_from_enque_workflow
+  def test_gate_from_enque_workflow
     a = app.node { 'a' }
     b = app.node { 'b' }
     c = app.node { 'c' }
@@ -190,7 +190,7 @@ class CollectTest < Test::Unit::TestCase
     
     app.join([b], [d], :enq => true)
     app.join([d], [e,f], :enq => true)
-    join = app.join([a,c,e,f], [g], {:enq => true}, Collect)
+    join = app.join([a,c,e,f], [g], {:enq => true}, Gate)
     
     app.enq a
     app.enq b

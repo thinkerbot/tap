@@ -1,14 +1,16 @@
+require 'tap/join'
+
 module Tap
   module Joins
     
     # :startdoc::join collects results before the join
     #
-    # Collects a series of results before dispatching them them to the join
-    # outputs.  Doing so requires a little trick.  A Collect join enques
+    # Gates a series of results before dispatching them them to the join
+    # outputs.  Doing so requires a little trick.  A Gate join enques
     # itself to app the first time it is called, and then collects results
     # until it gets run.  When app runs the join, the results are dispatched.
     #
-    class Collect < Join
+    class Gate < Join
       
       # An array of results collected thusfar.
       attr_reader :results
