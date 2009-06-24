@@ -2,10 +2,10 @@
 
 * updated API to allow nodes that do not respond to joins
 * fixed bug in reassigning Sync joins
-* added Collect join to pair with iterate
 * added quick-queue option to run
 * added short options to app configs
 * added blocks to app.log
+* recurrent loads now reque to the top of the queue
 
 == 0.18.0 / 2009-06-17
 

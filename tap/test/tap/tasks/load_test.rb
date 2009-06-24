@@ -53,12 +53,12 @@ class Tap::LoadTest < Test::Unit::TestCase
       last == "last"
     end
     
-    def enq(*inputs)
+    def reque(*inputs)
       @enqued = inputs
     end
   end
   
-  def test_process_enques_self_unless_complete
+  def test_process_reques_self_unless_complete
     load = RequeLoad.new
     io = StringIO.new("one")
     

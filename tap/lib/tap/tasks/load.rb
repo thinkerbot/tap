@@ -72,7 +72,7 @@ module Tap
             close(io)
           end
         else
-          enq(io)
+          reque(io)
         end
         
         result
@@ -113,6 +113,11 @@ module Tap
       # loading (see process).
       def complete?(io, last)
         true
+      end
+      
+      # Reques self with io to the top of the queue.
+      def reque(io)
+        app.queue.unshift(self, [io])
       end
     end
   end
