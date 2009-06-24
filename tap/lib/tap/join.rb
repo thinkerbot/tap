@@ -28,6 +28,22 @@ module Tap
         opts.separator "configurations:"
         opts.add(configurations)
         
+        # add option to print help
+        opts.on("--help", "Print this help") do
+          lines = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : []
+          lines.collect! {|line| "  #{line}"}
+          unless lines.empty?
+            line = '-' * 80
+            lines.unshift(line)
+            lines.push(line)
+          end
+
+          puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
+          puts lines.join("\n")
+          puts opts
+          exit
+        end
+        
         args = opts.parse!(argv, :add_defaults => false)
         
         instantiate({
@@ -71,7 +87,7 @@ module Tap
     lazy_attr :desc, 'join'
     
     # Causes the outputs to be enqued rather than executed immediately.
-    config :enq, false, :short => 'q', &c.flag
+    config :enq, false, :short => 'q', &c.flag      # Enque output nodes
     
     # Splats the result to the outputs, allowing a many-to-one join
     # from the perspective of the results.
@@ -80,7 +96,7 @@ module Tap
     #   # outputs: call(*inputs)
     #   app.execute(output, *result)
     #
-    config :splat, false, :short => 's', &c.flag
+    config :splat, false, :short => 's', &c.flag    # Splat results to outputs
     
     # Iterates the results to the outputs, allowing a many-to-one join
     # from the perspective of the results.  Non-array results are converted
@@ -96,7 +112,7 @@ module Tap
     #   # outputs: call(*inputs)
     #   result.to_ary.each {|r| app.execute(output, *r) }
     #
-    config :iterate, false, :short => 'i', &c.flag
+    config :iterate, false, :short => 'i', &c.flag  # Iterate results to outputs
     
     # The App receiving self during enq
     attr_accessor :app

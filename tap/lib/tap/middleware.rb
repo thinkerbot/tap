@@ -16,6 +16,22 @@ module Tap
         opts.separator "configurations:"
         opts.add(configurations)
         
+        # add option to print help
+        opts.on("--help", "Print this help") do
+          lines = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : []
+          lines.collect! {|line| "  #{line}"}
+          unless lines.empty?
+            line = '-' * 80
+            lines.unshift(line)
+            lines.push(line)
+          end
+
+          puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
+          puts lines.join("\n")
+          puts opts
+          exit
+        end
+        
         args = opts.parse!(argv, :add_defaults => false)
         instantiate({:config => opts.nested_config}, app)
       end
@@ -28,6 +44,8 @@ module Tap
     end
     
     include Configurable
+    
+    lazy_attr :desc, 'join'
     
     # The call stack.
     attr_reader :stack

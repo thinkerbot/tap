@@ -6,6 +6,7 @@
 * added short options to app configs
 * added blocks to app.log
 * recurrent loads now reque to the top of the queue
+* added --help flag for joins, middleware
 
 == 0.18.0 / 2009-06-17
 

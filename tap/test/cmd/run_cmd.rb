@@ -33,6 +33,18 @@ class RunCmd < Test::Unit::TestCase
     /--output OUTPUT              The dump target file/
   end
   
+  def test_run_prints_join_help
+    sh_match "% tap run -- load --:'join --help' dump", 
+    /Tap::Join -- an unsyncrhonized, multi-way join/,
+    /--enq                        Enque output nodes/
+  end
+  
+  def test_run_prints_middleware_help
+    sh_match "% tap run -- --.'debugger --help'", 
+    /Tap::Middlewares::Debugger/,
+    /--help                       Print this help/
+  end
+  
   def test_run_prints_manifest
     expected = %Q{
   dump        # the default dump task
