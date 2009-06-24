@@ -417,8 +417,8 @@ module Tap
     end
     
     # Logs the inputs to the application logger (via app.log)
-    def log(action, msg="", level=Logger::INFO)
-      app.log(action, msg, level)
+    def log(action, msg=nil, level=Logger::INFO)
+      app.log(action, msg, level) { yield }
     end
     
     # Provides an abbreviated version of the default inspect, with only
