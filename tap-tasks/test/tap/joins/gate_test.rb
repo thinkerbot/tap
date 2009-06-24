@@ -2,6 +2,43 @@ require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/joins/gate'
 require 'tap/app/tracer'
 
+class GateDocumentationTest < Test::Unit::TestCase 
+  acts_as_shell_test(SH_TEST_OPTIONS)
+  
+  def test_gate_documentation
+      sh_test %Q{
+% tap run -- load a -- load b -- inspect --[0,1][2].gate
+["a", "b"]
+}
+      sh_test %Q{
+% tap run -- load/yaml "[1, 2, 3]" --:i inspect --:.gate inspect
+1
+2
+3
+[1, 2, 3]
+}
+
+      sh_test %Q{
+% tap run -- load/yaml "[1, 2, 3]" --:i inspect --:.sync inspect
+1
+[1]
+2
+[2]
+3
+[3]
+}
+
+      sh_test %Q{
+% tap run -- load/yaml "[1, 2, 3]" --:i inspect --:"gate --limit 2" inspect
+1
+2
+[1, 2]
+3
+[3]
+}
+  end
+end
+
 class GateTest < Test::Unit::TestCase
   Gate = Tap::Joins::Gate
   

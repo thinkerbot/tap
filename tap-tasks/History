@@ -1,6 +1,7 @@
 ==
 
 * added short options to load/dump csv
+* added Gate join
 
 == 0.3.0 / 2009-06-17
 
