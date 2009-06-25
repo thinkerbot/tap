@@ -2,6 +2,7 @@
 
 * added short options to load/dump csv
 * added Gate join
+* added Null task
 
 == 0.3.0 / 2009-06-17
 
