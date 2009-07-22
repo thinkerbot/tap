@@ -3,6 +3,9 @@
 * added short options to load/dump csv
 * added Gate join
 * added Null task
+* added Stream task for stream loading
+* updated load/yaml to only load a single document
+* added stream/yaml for stream loading documents
 
 == 0.3.0 / 2009-06-17
 

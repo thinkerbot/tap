@@ -8,11 +8,27 @@ module Tap
       #
       # Stream loads data from the input IO as YAML.
       #
+      #   [example.yml]
+      #   --- 
+      #   :sym
+      #   --- 
+      #   - 1
+      #   - 2
+      #   - 3
+      #   --- 
+      #   key: value
+      # 
+      #   % tap run -- stream/yaml --file example.yml --: inspect
+      #   :sym
+      #   [1, 2, 3]
+      #   {"key"=>"value"}
+      #
       class Yaml < Stream
         
         # Streams data from io as YAML.
-        def load(io)          
+        def load(io)
           lines = []
+          
           while !io.eof?
             line = io.readline
 

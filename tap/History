@@ -7,7 +7,9 @@
 * added blocks to app.log
 * recurrent loads now reque to the top of the queue
 * added --help flag for joins, middleware
-
+* removed stream loading hooks from load
+  (see tap-tasks:tap/tasks/stream)
+  
 == 0.18.0 / 2009-06-17
 
 Several updates to simplify Tap.  Most significantly,

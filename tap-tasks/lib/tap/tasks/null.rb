@@ -10,7 +10,6 @@ module Tap
     #
     #   % tap run -- load a --: null
     #
-    # See? no output.
     class Null < Tap::Task 
       def process(*args)
         nil

@@ -7,6 +7,27 @@ class StreamYamlTest < Test::Unit::TestCase
   acts_as_tap_test
   acts_as_shell_test(SH_TEST_OPTIONS)
 
+  def test_stream_yaml_documentation
+    path = method_root.prepare(:tmp, 'data.yml') do |io|
+      io << %q{--- 
+:sym
+--- 
+- 1
+- 2
+- 3
+--- 
+key: value
+}
+    end
+
+    sh_test %Q{
+% tap run -- stream/yaml --file "#{path}" --: inspect
+:sym
+[1, 2, 3]
+{"key"=>"value"}
+}
+  end
+    
   #
   # load test
   #
@@ -27,18 +48,4 @@ class StreamYamlTest < Test::Unit::TestCase
     assert_equal([:one, :two, :three], results)
   end
   
-  def test_stream_yaml_loads_multiple_documents_from_file
-    path = method_root.prepare(:tmp, 'data.yml') do |io|
-      YAML.dump(:sym, io)
-      YAML.dump([1,2,3], io)
-      YAML.dump({:key => 'value'}, io)
-    end
-    
-    sh_test %Q{
-% tap run -- stream/yaml "#{path}" --file --: inspect
-:sym
-[1, 2, 3]
-{:key=>\"value\"}
-}
-  end
 end
