@@ -27,30 +27,5 @@ key: value
     io = StringIO.new "--- \nkey: value\n"
     assert_equal({'key' => 'value'}, Load::Yaml.new.load(io))
   end
-  
-  def test_load_loads_multiple_documents_in_stream_mode
-    io = StringIO.new %Q{--- :one\n--- :two\n--- :three}
-    Load::Yaml.new(:stream => true).enq(io)
-    
-    results = []
-    app.on_complete {|result| results << result }
-    app.run
-    
-    assert_equal([:one, :two, :three], results)
-  end
-  
-  def test_load_loads_multiple_documents_from_file
-    path = method_root.prepare(:tmp, 'data.yml') do |io|
-      YAML.dump(:sym, io)
-      YAML.dump([1,2,3], io)
-      YAML.dump({:key => 'value'}, io)
-    end
-    
-    sh_test %Q{
-% tap run -- load/yaml "#{path}" --file --stream --: inspect
-:sym
-[1, 2, 3]
-{:key=>\"value\"}
-}
-  end
+
 end

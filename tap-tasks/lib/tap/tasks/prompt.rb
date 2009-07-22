@@ -1,4 +1,4 @@
-require 'tap/tasks/load'
+require 'tap/tasks/stream'
 
 module Tap
   module Tasks
@@ -10,7 +10,7 @@ module Tap
     #   % tap run -- prompt --: dump
     #   >
     #
-    class Prompt < Load
+    class Prompt < Stream
       config :prompt, "> ", &c.string_or_nil    # The prompt sequence
       config :exit_seq, "\n", &c.string_or_nil  # The prompt exit sequence
       config :terminal, $stdout, &c.io_or_nil   # The terminal IO

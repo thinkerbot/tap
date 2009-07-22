@@ -30,26 +30,6 @@ module Tap
     #     end
     #   end
     #
-    # Load subclasses may be constructed to reque itself in cases where objects
-    # are sequentially loaded from the same io.  Load will reque until the
-    # complete? method returns true.  An example is a prompt task:
-    #
-    #   class Prompt < Tap::Tasks::Load
-    #     config :exit_seq, "\n"
-    #
-    #     def load(io)
-    #       if io.eof?
-    #         nil
-    #       else
-    #         io.readline
-    #       end
-    #     end
-    #
-    #     def complete?(io, line)
-    #       line == nil || line == exit_seq
-    #     end
-    #   end
-    #
     # If the use_close configuration is specified, load will close io upon
     # completion.  Files opened by load are always closed upon completion.
     #
@@ -59,20 +39,14 @@ module Tap
       config :use_close, false, :long => :close, &c.flag   # Close the input when complete
       
       # Loads data from io.  Process will open the input io object, load
-      # a result, then check to see if the loading is complete (using the
-      # complete? method).  Unless loading is complete, process will enque
-      # io to self.  Process will close io when loading is complete, provided
+      # a result.  Process will close io when loading is complete, provided
       # use_close or file is specified.
       def process(io=$stdin)
         io = open(io)
         result = load(io)
         
-        if complete?(io, result)
-          if use_close || file
-            close(io)
-          end
-        else
-          reque(io)
+        if use_close || file
+          close(io)
         end
         
         result
@@ -80,13 +54,12 @@ module Tap
       
       # Opens the io; specifically this means:
       #
-      # * Opening a File (file true)
       # * Creating a StringIO for String inputs
       # * Opening an IO for integer file descriptors
       # * Returning all other objects
       #
       def open(io)
-        return(io.kind_of?(File) ? io : File.open(io)) if file
+        return open_file(io) if file
         
         case io
         when String
@@ -98,6 +71,11 @@ module Tap
         end
       end
       
+      # Opens io as a File.
+      def open_file(io)
+        io.kind_of?(File) ? io : File.open(io)
+      end
+      
       # Loads data from io using io.read.  Load is intended as a hook
       # for subclasses.
       def load(io)
@@ -107,17 +85,6 @@ module Tap
       # Closes io.
       def close(io)
         io.close
-      end
-      
-      # Returns true by default.  Override in subclasses to allow recurrent 
-      # loading (see process).
-      def complete?(io, last)
-        true
-      end
-      
-      # Reques self with io to the top of the queue.
-      def reque(io)
-        app.queue.unshift(self, [io])
       end
     end
   end
