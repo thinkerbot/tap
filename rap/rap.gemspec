@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "rap"
-  s.version = "0.14.0"
+  s.version = "0.14.1"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -28,6 +28,7 @@ Gem::Specification.new do |s|
     lib/rap/rake.rb
     lib/rap.rb
     lib/rap/utils.rb
+    lib/rap/version.rb
     tap.yml
     }
 end

@@ -1,4 +1,4 @@
-==
+== 0.4.0
 
 * added short options to load/dump csv
 * added Gate join
@@ -6,6 +6,7 @@
 * added Stream task for stream loading
 * updated load/yaml to only load a single document
 * added stream/yaml for stream loading documents
+* added Profiler middleware
 
 == 0.3.0 / 2009-06-17
 

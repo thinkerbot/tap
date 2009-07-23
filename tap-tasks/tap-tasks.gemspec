@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap-tasks"
-  s.version = "0.3.0"
+  s.version = "0.4.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http:/tap.rubyforge.org/tap-tasks/"
@@ -23,13 +23,19 @@ Gem::Specification.new do |s|
   # list the files you want to include here. you can
   # check this manifest using 'rap print_manifest'
   s.files = %W{
+    lib/tap/joins/gate.rb
+    lib/tap/middlewares/profiler.rb
     lib/tap/tasks/dump/csv.rb
     lib/tap/tasks/dump/inspect.rb
     lib/tap/tasks/dump/yaml.rb
     lib/tap/tasks/load/yaml.rb
     lib/tap/tasks/load/csv.rb
+    lib/tap/tasks/null.rb
     lib/tap/tasks/glob.rb
     lib/tap/tasks/prompt.rb
+    lib/tap/tasks/stream.rb
+    lib/tap/tasks/stream/yaml.rb
+    lib/tap/tasks/version.rb
     tap.yml
   }
 end

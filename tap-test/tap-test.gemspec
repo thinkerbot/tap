@@ -32,6 +32,7 @@ Gem::Specification.new do |s|
     lib/tap/test/tap_test.rb
     lib/tap/test/unit.rb
     lib/tap/test/utils.rb
+    lib/tap/test/version.rb
     tap.yml
   }
 end

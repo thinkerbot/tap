@@ -15,7 +15,7 @@ module Tap
       def initialize(stack, config={})
         super
         reset
-        at_exit { puts summary.join("\n") }
+        at_exit { app.quiet = false; app.log(:profile, "\n" + summary.join("\n")) }
       end
       
       def reset
