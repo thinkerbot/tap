@@ -33,6 +33,7 @@ Gem::Specification.new do |s|
     lib/tap/app/queue.rb
     lib/tap/app/stack.rb
     lib/tap/app/state.rb
+    lib/tap/app/api.rb
     lib/tap/version.rb
     lib/tap/tasks/dump.rb
     lib/tap/env.rb

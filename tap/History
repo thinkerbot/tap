@@ -1,3 +1,7 @@
+==
+
+* extracted task/join/middleware code to make Api base class
+
 == 0.18.1
 
 * updated API to allow nodes that do not respond to joins

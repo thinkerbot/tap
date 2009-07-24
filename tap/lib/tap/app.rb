@@ -1,5 +1,6 @@
 require 'logger'
 require 'configurable'
+require 'tap/app/api'
 require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'

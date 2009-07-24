@@ -121,26 +121,11 @@ module Tap
   #     end
   #   end
   #
-  class Task
+  class Task < App::Api
     include App::Node
-    include Configurable
     
     class << self
-      # Parses the argv into an instance of self.  By default parse 
-      # parses an argh then calls instantiate, but there is no requirement
-      # that this occurs in subclasses.
-      #
-      # ==== Block Overrides
-      #
-      # For convenience, parse will yield the internal ConfigParser to the
-      # block, if given.  This functionality was added to Task so they are
-      # more flexible in executable files but it is not a part of the API
-      # requirements for parse/parse!.
-      #
-      def parse(argv=ARGV, app=Tap::App.instance, &block) # :yields: opts
-        parse!(argv.dup, app, &block)
-      end
-      
+
       # Same as parse, but removes arguments destructively.
       def parse!(argv=ARGV, app=Tap::App.instance) # :yields: opts
         opts = ConfigParser.new
@@ -164,7 +149,7 @@ module Tap
           end
 
           puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
-          puts lines.join("\n")
+          puts help
           puts "usage: tap run -- #{to_s.underscore} #{args}"
           puts          
           puts opts
@@ -183,11 +168,6 @@ module Tap
         argv = opts.parse!(argv, :add_defaults => false)
         
         instantiate({:config => opts.nested_config}, app)
-      end
-      
-      # Instantiates an instance of self and returns an instance of self.
-      def instantiate(argh={}, app=Tap::App.instance)
-        new(argh[:config] || {}, app)
       end
       
       # Recursively loads path into a nested configuration file.
@@ -295,7 +275,6 @@ module Tap
     
     instance_variable_set(:@source_file, __FILE__)
     
-    lazy_attr :desc, 'task'
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
     

@@ -1,51 +1,7 @@
-require 'configurable'
+require 'tap/app'
 
 module Tap
-  class Middleware
-    class << self
-      
-      # Instantiates an instance of self and causes app to use the instance
-      # as middleware.
-      def parse(argv=ARGV, app=Tap::App.instance)
-        parse!(argv.dup, app)
-      end
-      
-      # Same as parse, but removes arguments destructively.
-      def parse!(argv=ARGV, app=Tap::App.instance)
-        opts = ConfigParser.new
-        opts.separator "configurations:"
-        opts.add(configurations)
-        
-        # add option to print help
-        opts.on("--help", "Print this help") do
-          lines = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : []
-          lines.collect! {|line| "  #{line}"}
-          unless lines.empty?
-            line = '-' * 80
-            lines.unshift(line)
-            lines.push(line)
-          end
-
-          puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
-          puts lines.join("\n")
-          puts opts
-          exit
-        end
-        
-        args = opts.parse!(argv, :add_defaults => false)
-        instantiate({:config => opts.nested_config}, app)
-      end
-      
-      # Instantiates an instance of self and causes app to use the instance
-      # as middleware.
-      def instantiate(argh, app=Tap::App.instance)
-        app.use(self, argh[:config] || {})
-      end
-    end
-    
-    include Configurable
-    
-    lazy_attr :desc, 'join'
+  class Middleware < App::Api
     
     # The call stack.
     attr_reader :stack

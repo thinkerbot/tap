@@ -15,47 +15,8 @@ module Tap
   # results to m outputs.  Flags can augment how the results are passed, in
   # particular for array results.
   #
-  class Join
+  class Join < App::Api
     class << self
-      # Parses the argv into an instance of self.
-      def parse(argv=ARGV, app=Tap::App.instance)
-        parse!(argv.dup, app)
-      end
-      
-      # Same as parse, but removes arguments destructively.
-      def parse!(argv=ARGV, app=Tap::App.instance)
-        opts = ConfigParser.new
-        opts.separator "configurations:"
-        opts.add(configurations)
-        
-        # add option to print help
-        opts.on("--help", "Print this help") do
-          lines = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : []
-          lines.collect! {|line| "  #{line}"}
-          unless lines.empty?
-            line = '-' * 80
-            lines.unshift(line)
-            lines.push(line)
-          end
-
-          puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
-          puts lines.join("\n")
-          puts opts
-          exit
-        end
-        
-        args = opts.parse!(argv, :add_defaults => false)
-        
-        instantiate({
-          :config => opts.nested_config,
-          :args => args
-        }, app)
-      end
-      
-      # Instantiates an instance of self.
-      def instantiate(argh, app=Tap::App.instance)
-        new(argh[:config] || {}, app)
-      end
       
       # Instantiates a new join with the input arguments and overrides
       # call with the block.  The block will be called with the join
@@ -82,9 +43,6 @@ module Tap
         end
       end
     end
-    include Configurable
-    
-    lazy_attr :desc, 'join'
     
     # Causes the outputs to be enqued rather than executed immediately.
     config :enq, false, :short => 'q', &c.flag      # Enque output nodes
