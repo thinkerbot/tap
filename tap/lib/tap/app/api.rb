@@ -12,7 +12,7 @@ module Tap
         end
       
         # Parses the argv into an instance of self.  By default parse 
-        # parses an argh then calls instantiate, but there is no requirement
+        # parses an argh then calls build, but there is no requirement
         # that this occurs in subclasses.
         def parse(argv=ARGV, app=Tap::App.instance)
           parse!(argv.dup, app)
@@ -33,10 +33,10 @@ module Tap
           end
         
           args = opts.parse!(argv, :add_defaults => false)
-          instantiate({:config => opts.nested_config}, app)
+          build({:config => opts.nested_config}, app)
         end
       
-        def instantiate(spec={}, app=Tap::App.instance)
+        def build(spec={}, app=Tap::App.instance)
           new(spec[:config] || {}, app)
         end
       

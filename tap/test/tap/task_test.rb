@@ -193,46 +193,46 @@ class TaskTest < Test::Unit::TestCase
   end
   
   #
-  # instantiate test
+  # build test
   #
   
-  class InstantiateClass < Tap::Task
+  class BuildClass < Tap::Task
     config :key, 'value'
   end
   
-  def test_instantiate_returns_instance_of_subclass
-    instance = InstantiateClass.instantiate
-    assert_equal InstantiateClass, instance.class
+  def test_build_returns_instance_of_subclass
+    instance = BuildClass.build
+    assert_equal BuildClass, instance.class
   end
   
-  def test_instance_is_instantiated_with_default_config
-    instance = InstantiateClass.instantiate
+  def test_instance_is_built_with_default_config
+    instance = BuildClass.build
     assert_equal({:key => 'value'}, instance.config)
   end
   
-  def test_instance_is_instantiated_with_user_config
-    instance = InstantiateClass.instantiate :config => {:key => 'alt'}
+  def test_instance_is_built_with_user_config
+    instance = BuildClass.build :config => {:key => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
   end
   
-  def test_instantiate_respects_indifferent_access
-    instance = InstantiateClass.instantiate :config => {'key' => 'alt'}
+  def test_build_respects_indifferent_access
+    instance = BuildClass.build :config => {'key' => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
   end
   
-  class NestedInstantiateClass < Tap::Task
+  class NestedBuildClass < Tap::Task
     config :key, nil
   end
   
-  class NestingInstantiateClass < Tap::Task
+  class NestingBuildClass < Tap::Task
     config :key, nil
-    define :nest, NestedInstantiateClass do |config|
-      NestedInstantiateClass.new(config)
+    define :nest, NestedBuildClass do |config|
+      NestedBuildClass.new(config)
     end
   end
   
-  def test_instantiate_reconfigures_nested_tasks
-    instance = NestingInstantiateClass.instantiate :config => {
+  def test_build_reconfigures_nested_tasks
+    instance = NestingBuildClass.build :config => {
       'key' => 'one',
       'nest' => {'key' => 'two'}
     }

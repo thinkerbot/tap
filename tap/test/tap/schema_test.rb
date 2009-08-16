@@ -17,7 +17,7 @@ class SchemaTest < Test::Unit::TestCase
   class Instantiable
     def self.parse!
     end
-    def self.instantiate
+    def self.build
     end
   end
   
@@ -201,7 +201,7 @@ class SchemaTest < Test::Unit::TestCase
   def test_build_does_not_validate_self_unless_specified
     schema.tasks['key'] = {}
     err = assert_raises(NoMethodError) { schema.build!(app, false) }
-    assert_equal "undefined method `instantiate' for nil:NilClass", err.message
+    assert_equal "undefined method `build' for nil:NilClass", err.message
   end
   
   def test_build_returns_self

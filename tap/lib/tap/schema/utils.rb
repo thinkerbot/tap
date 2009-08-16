@@ -5,7 +5,7 @@ module Tap
       
       def instantiate(data, app)
         case data
-        when Hash  then data[:class].instantiate(data, app)
+        when Hash  then data[:class].build(data, app)
         when Array then data.shift.parse!(data, app)
         else raise "cannot instantiate: #{data.inspect}"
         end
@@ -13,7 +13,7 @@ module Tap
       
       def resolved?(data)
         case data
-        when Hash  then data[:class].respond_to?(:instantiate)
+        when Hash  then data[:class].respond_to?(:build)
         when Array then data[0].respond_to?(:parse!)
         else false
         end

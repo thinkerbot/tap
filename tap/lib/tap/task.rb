@@ -167,7 +167,7 @@ module Tap
         # conflict with string keys from a config file)
         argv = opts.parse!(argv, :add_defaults => false)
         
-        instantiate({:config => opts.nested_config}, app)
+        build({:config => opts.nested_config}, app)
       end
       
       # Recursively loads path into a nested configuration file.
