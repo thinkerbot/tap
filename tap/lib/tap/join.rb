@@ -32,14 +32,34 @@ module Tap
         instance
       end
       
+      def parse!(argv=ARGV, app=Tap::App.instance)
+        parser = self.parser
+        
+        inputs, outputs, *args = parser.parse!(argv, :add_defaults => false)
+        inputs = parse_indicies(inputs).collect {|var| app.obj(var) }
+        outputs = parse_indicies(outputs).collect {|var| app.obj(var) }
+        
+        instance = build({
+          'config' => parser.nested_config,
+          'inputs' => inputs,
+          'outputs' => outputs
+        }, app)
+          
+        [instance, args]
+      end
+      
+      def build(spec={}, app=Tap::App.instance)
+        new(spec['config'] || {}, app).join(spec['inputs'], spec['outputs'])
+      end
+      
       protected
       
-      def parse_array(obj) # :nodoc:
-        case obj
-        when nil then []
-        when Array then obj
-        else
-          obj.split(",").collect {|str| str.to_i }
+      # parses an str along commas, and collects the indicies as integers
+      def parse_indicies(str) # :nodoc:
+        return [] if str.nil? || str.empty?
+        
+        str.split(",").delete_if do |n|
+          n.empty?
         end
       end
     end
@@ -113,10 +133,11 @@ module Tap
       end
     end
     
-    def to_hash
+    def to_spec
       {
-        :class => self.class,
-        :config => config.to_hash
+        'config' => config.to_hash,
+        'inputs' => inputs.collect {|node| app.var(node) },
+        'outputs' => outputs.collect {|node| app.var(node) }
       }
     end
     

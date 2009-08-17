@@ -183,6 +183,38 @@ module Tap
       
       argv
     end
+    
+    def build(app, auto_enque=true)
+      results = specs.collect do |spec|
+        if spec[1] # type
+          app.build(spec)
+        else
+          var, type, sig, *args = spec
+          app.obj(var).signal(sig, *args)
+        end
+      end
+      
+      if auto_enque
+        queue = []
+        deque = []
+        
+        results.select do |result|
+          obj, args = result
+          
+          case obj.class.type
+          when 'task' then queue << result
+          when 'join' then deque.concat(obj.outputs)
+          end
+        end
+        
+        deque.uniq!
+        queue.delete_if {|(node, args)| deque.include?(node) }
+        app.queue.concat(queue)
+      end
+      
+      specs.clear
+      results
+    end
   
     private
     

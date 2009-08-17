@@ -1,6 +1,5 @@
 require 'tap/env'
 require 'tap/task'
-require 'tap/schema'
 
 module Tap
   module Exe

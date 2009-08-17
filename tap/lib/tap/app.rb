@@ -1,5 +1,4 @@
 require 'logger'
-require 'configurable'
 require 'tap/app/api'
 require 'tap/app/node'
 require 'tap/app/state'
@@ -111,6 +110,7 @@ module Tap
     
     include Configurable
     include MonitorMixin
+    include Signals
     
     # The default App logger writes to $stderr at level INFO.
     DEFAULT_LOGGER = Logger.new($stderr)
@@ -137,10 +137,14 @@ module Tap
     # The application logger
     attr_reader :logger
     
+    attr_accessor :env
+    
     config :debug, false, :short => :d, &c.flag      # Flag debugging
     config :force, false, :short => :f, &c.flag      # Force execution at checkpoints
     config :quiet, false, :short => :q, &c.flag      # Suppress logging
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
+    
+    signal :build
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, options={}, &block)
@@ -223,6 +227,57 @@ module Tap
       synchronize do
         @stack = middleware.new(@stack, *argv)
       end
+    end
+    
+    # Stores the object by var, unless var is nil.  Returns obj.
+    def store(var, obj)
+      cache[var] = obj if var
+      obj
+    end
+    
+    # Fetches the stored object registerd to var.  Nil var returns self.
+    def fetch(var)
+      var ? cache[var] : self
+    end
+    
+    def obj(var)
+      cache[var]
+    end
+    
+    # Returns the variable for the object, if stored, or nil otherwise.
+    def var(obj)
+      cache.each_pair do |var, object|
+        return var if obj == object
+      end
+      nil
+    end
+    
+    def build(spec)
+      if spec.kind_of?(Array)
+        spec = {
+          'set' => spec.shift,
+          'type' => spec.shift,
+          'class' => spec.shift,
+          'args' => spec
+        }
+      end
+      
+      var = spec['set']
+      args = spec['args'] || spec
+      type = spec['type']
+      klass = spec['class']
+      
+      klass = env[type][klass] if env
+      method = args.kind_of?(Array) ? :parse : :build
+      
+      unless klass.respond_to?(method)
+        raise "unresolvable #{type}: #{klass}"
+      end
+      
+      obj, args = klass.send(method, args, self)
+      store(var, obj)
+      
+      [obj, args]
     end
     
     # Returns an array of middlware in use by self.
@@ -418,7 +473,88 @@ module Tap
       self
     end
     
-    protected
+    def to_schema
+      objects = cache.values
+      objects.concat queue.collect {|(node, args)| node }
+      objects.concat middlewere
+      
+      specs = {}
+      master_order = []
+      objects.uniq.collect do |obj|
+        order = trace(obj, specs)
+        master_order.concat(order)
+      end
+      
+      master_order.uniq.collect do |obj|
+        specs[obj]
+      end
+    end
+    
+    private
+    
+    # Traces each object backwards and forwards for node, joins, etc. and
+    # adds each to specs as needed.  The trace determines and returns the
+    # order in which these specs must be initialized to make sense.  
+    # Circular traces are detected.
+    #
+    # Note that order is not provided for the first call; order problems
+    # are trace-specific.  For example (a -> b means 'a' references or
+    # requires 'b' so read backwards for order):
+    #
+    #   # Circular trace [a,c,b,a]
+    #   a -> b -> c -> a
+    #
+    #   # Not a problem [[b,a], [b,c]] => [b,a,c]
+    #   a -> b
+    #   c -> b
+    # 
+    # As in the example, a consistent master order may be compiled with
+    # flatten.uniq.
+    #
+    def trace(obj, specs, order=[]) # :nodoc:
+      if specs.has_key?(obj)
+        if order.include?(obj)
+          return order
+        else
+          raise "circular trace detected"
+        end 
+      end
+      
+      klass = obj.class
+      spec = obj.to_spec
+      if BUILD_KEYS.find {|key| spec.has_key?(key) }
+        spec = {'spec' => spec} 
+      end
+      
+      spec['set'] = var(obj)
+      spec['type'] = klass.type
+      spec['class'] = klass
+      specs[obj] = spec
+      
+      refs, brefs = obj.associations
+      # refs, brefs = obj.refs, obj.brefs
+      # refs, brefs = case klass.type
+      # when 'task' then [nil, obj.joins]
+      # when 'join' then [obj.inputs + obj.outputs, nil]
+      # when 'middleware' then [obj.nodes, nil]
+      # end
+      
+      # references to other objects
+      # (these must exist prior to obj)
+      refs.each do |ref|
+        collect_specs(ref, specs, order)
+      end if refs
+      
+      order << obj
+      
+      # back-references to objects that refer to obj
+      # (ie obj must exist before the bref)
+      brefs.each do |bref|
+        collect_specs(bref, specs, order)
+      end if brefs
+      
+      order
+    end
     
     # TerminateErrors are raised to kill executing nodes when terminate is 
     # called on an running App.  They are handled by the run rescue code.

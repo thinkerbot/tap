@@ -26,6 +26,11 @@ class RunCmd < Test::Unit::TestCase
     /usage: tap run/
   end
   
+  def test_run_prints_help_from_end
+    sh_match "% tap run -- dump a --- --help", 
+    /usage: tap run/
+  end
+  
   def test_run_prints_task_help
     sh_match "% tap run -- dump --help", 
     /Tap::Tasks::Dump -- the default dump task/,
@@ -34,13 +39,13 @@ class RunCmd < Test::Unit::TestCase
   end
   
   def test_run_prints_join_help
-    sh_match "% tap run -- load --:'join --help' dump", 
+    sh_match "% tap run -- load --:h.join dump", 
     /Tap::Join -- an unsyncrhonized, multi-way join/,
     /--enq                        Enque output nodes/
   end
   
-  def test_run_prints_middleware_help
-    sh_match "% tap run -- --.'debugger --help'", 
+  def test_run_prints_spec_help
+    sh_match "% tap run -- --. middleware debugger --help", 
     /Tap::Middlewares::Debugger/,
     /--help                       Print this help/
   end
@@ -94,19 +99,24 @@ tap:
   # error cases
   #
   
-  def test_run_without_schema_prints_no_task_specified
-    sh_test %Q{
-% tap run
-No schema specified
-}
-
-    # likely incorrect syntax
+  def test_run_identifies_unknown_schema_files
     sh_test %Q{
 % tap run unknown
-No schema specified (did you mean 'tap run -- unknown'?)
+No such file or directory - unknown
 }
   end
-  
+
+  def test_run_prints_error_backtrace_with_debug_flag
+    sh_test %Q{
+% tap run -- dump 2>&1
+wrong number of arguments (0 for 1)
+}
+
+    sh_match "% tap run -- dump --- -d 2>&1", 
+    /wrong number of arguments \(0 for 1\) \(ArgumentError\)/,
+    /from .*:in /
+  end
+
   def test_run_identifies_unresolvable_tasks_in_schema
     sh_test %Q{
 % tap run -- unknown
@@ -175,6 +185,26 @@ goodnight moon
 }
   end
   
+  def test_run_loads_schema_from_file
+    schema = method_root.prepare(:tmp, 'schema.yml') do |io|
+      YAML.dump([
+        {'var' => '0', 'type' => 'task', 'class' => 'load'},
+        {'var' => '1', 'type' => 'task', 'class' => 'dump'},
+        {'type' => 'join', 'class' => 'join', 'inputs' => ['0'], 'outputs' => ['1']},
+        {'var' => '0', 'sig' => 'enq', 'args' => ['goodnight moon']}
+      ], io)
+    end
+
+    sh_test %Q{
+% tap run '#{schema}'
+goodnight moon
+} 
+    sh_test %Q{
+% tap run '#{schema}'
+goodnight moon
+}
+  end
+  
   #
   # middleware
   #
@@ -182,7 +212,7 @@ goodnight moon
   def test_run_allows_the_specification_of_middleware
     method_root.prepare(:lib, 'middleware.rb') do |io|
       io << %q{# ::middleware
-        class Middleware
+        class Middleware < Tap::App::Api
           def self.parse!(argv=ARGV, app=Tap::App.instance)
             app.use(self, *argv)
           end
@@ -200,7 +230,7 @@ goodnight moon
     end
     
     sh_test %Q{
-% tap run -- load 'goodnight moon' --: dump --.middleware
+% tap run -- load 'goodnight moon' --: dump --. middleware middleware
 Tap::Tasks::Load
 Tap::Tasks::Dump
 goodnight moon

@@ -138,10 +138,11 @@ namespace :test do
     ].uniq
   end
   
-  desc 'run schema tests'
-  task :schema do
-    test_section :schema
-  end
+  desc 'run signals tests'
+  task(:signals) { test_section :signals }
+  
+  desc 'run parser tests'
+  task(:parser) { test_section :parser }
   
   desc 'run env tests'
   task(:env) { test_section :env }

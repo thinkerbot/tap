@@ -167,7 +167,7 @@ module Tap
         # conflict with string keys from a config file)
         argv = opts.parse!(argv, :add_defaults => false)
         
-        build({:config => opts.nested_config}, app)
+        [build({'config' => opts.nested_config}, app), argv]
       end
       
       # Recursively loads path into a nested configuration file.
@@ -293,6 +293,8 @@ module Tap
     end
     ###############################################################
     
+    signal :enq
+    
     # The App receiving self during enq
     attr_reader :app
 
@@ -404,13 +406,6 @@ module Tap
     # the task class, object_id, and configurations listed.
     def inspect
       "#<#{self.class.to_s}:#{object_id} #{config.to_hash.inspect} >"
-    end
-    
-    def to_hash
-      {
-        :class => self.class,
-        :config => config.to_hash
-      }
     end
   end
 end

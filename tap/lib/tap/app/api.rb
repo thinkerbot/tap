@@ -1,16 +1,40 @@
+require 'configurable'
+require 'tap/signals'
+
 module Tap
   class App
     class Api
       class << self
-      
+        
+        attr_reader :type
+        
         def inherited(child)
           super
-        
+          
+          type = self.type || child.to_s.split('::').last.downcase
+          child.instance_variable_set(:@type, type)
+          
           unless child.respond_to?(:desc)
-            child.lazy_attr(:desc, File.basename(child.to_s.underscore))
+            child.lazy_attr(:desc, type)
           end
         end
       
+        def parser
+          opts = ConfigParser.new
+          opts.separator "configurations:"
+          opts.add(configurations)
+        
+          # add option to print help
+          opts.on("-h", "--help", "Print this help") do
+            puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
+            puts help
+            puts opts
+            exit
+          end
+          
+          opts
+        end
+        
         # Parses the argv into an instance of self.  By default parse 
         # parses an argh then calls build, but there is no requirement
         # that this occurs in subclasses.
@@ -20,24 +44,13 @@ module Tap
       
         # Same as parse, but removes arguments destructively.
         def parse!(argv=ARGV, app=Tap::App.instance)
-          opts = ConfigParser.new
-          opts.separator "configurations:"
-          opts.add(configurations)
-        
-          # add option to print help
-          opts.on("--help", "Print this help") do
-            puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
-            puts help
-            puts opts
-            exit
-          end
-        
-          args = opts.parse!(argv, :add_defaults => false)
-          build({:config => opts.nested_config}, app)
+          parser = self.parser
+          args = parser.parse!(argv, :add_defaults => false)
+          [build({'config' => parser.nested_config}, app), args]
         end
       
         def build(spec={}, app=Tap::App.instance)
-          new(spec[:config] || {}, app)
+          new(spec['config'] || {}, app)
         end
       
         def help
@@ -51,14 +64,16 @@ module Tap
 
           lines.join("\n")
         end
-      
-        def action(method, &block)
-        end
       end
     
       include Configurable
-    
-      def api(spec)
+      include Signals
+      
+      def associations
+      end
+      
+      def to_spec
+        {'config' => config.to_hash}
       end
     end
   end

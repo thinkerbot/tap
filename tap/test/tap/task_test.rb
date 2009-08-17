@@ -114,7 +114,7 @@ class TaskTest < Test::Unit::TestCase
   #
   
   def test_parse_returns_instance
-    instance = Task.parse([1,2,3])
+    instance, args = Task.parse([1,2,3])
     assert_equal Task, instance.class
   end
   
@@ -123,17 +123,17 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_parse_returns_instance_of_subclass
-    instance = ParseClass.parse([])
+    instance, args = ParseClass.parse([])
     assert_equal ParseClass, instance.class
   end
   
   def test_parse_instance_is_initialized_with_default_config
-    instance = ParseClass.parse([])
+    instance, args = ParseClass.parse([])
     assert_equal({:key => 'value'}, instance.config)
   end
   
   def test_parse_reconfigures_instance_using_configs_in_argv
-    instance = ParseClass.parse(%w{--key alt})
+    instance, args = ParseClass.parse(%w{--key alt})
     assert_equal({:key => 'alt'}, instance.config)
   end
   
@@ -142,7 +142,7 @@ class TaskTest < Test::Unit::TestCase
       file << YAML.dump({:key => 'alt'})
     end
     
-    instance = ParseClass.parse(["--config", path])
+    instance, args = ParseClass.parse(["--config", path])
     assert_equal({:key => 'alt'}, instance.config)
   end
   
@@ -151,7 +151,7 @@ class TaskTest < Test::Unit::TestCase
       file << YAML.dump({'key' => 'alt'})
     end
     
-    instance = ParseClass.parse(["--config", path])
+    instance, args = ParseClass.parse(["--config", path])
     assert_equal({:key => 'alt'}, instance.config)
   end
   
@@ -173,7 +173,7 @@ class TaskTest < Test::Unit::TestCase
       ARGV.clear
       ARGV.concat(%w{--key alt})
       
-      instance = ParseClass.parse
+      instance, args = ParseClass.parse
       assert_equal({:key => 'alt'}, instance.config)
     ensure
       ARGV.clear
@@ -187,7 +187,7 @@ class TaskTest < Test::Unit::TestCase
   
   def test_parse_bang_removes_args_from_input
     argv = [1, "--key", "alt", 2, 3]
-    instance = ParseClass.parse!(argv)
+    instance, args = ParseClass.parse!(argv)
     assert_equal({:key => 'alt'}, instance.config)
     assert_equal [1,2,3], argv
   end
@@ -201,22 +201,22 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_build_returns_instance_of_subclass
-    instance = BuildClass.build
+    instance, args = BuildClass.build
     assert_equal BuildClass, instance.class
   end
   
   def test_instance_is_built_with_default_config
-    instance = BuildClass.build
+    instance, args = BuildClass.build
     assert_equal({:key => 'value'}, instance.config)
   end
   
   def test_instance_is_built_with_user_config
-    instance = BuildClass.build :config => {:key => 'alt'}
+    instance, args = BuildClass.build 'config' => {:key => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
   end
   
   def test_build_respects_indifferent_access
-    instance = BuildClass.build :config => {'key' => 'alt'}
+    instance, args = BuildClass.build 'config' => {'key' => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
   end
   
@@ -232,7 +232,7 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_build_reconfigures_nested_tasks
-    instance = NestingBuildClass.build :config => {
+    instance, args = NestingBuildClass.build 'config' => {
       'key' => 'one',
       'nest' => {'key' => 'two'}
     }

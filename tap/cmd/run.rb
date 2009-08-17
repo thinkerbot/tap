@@ -8,22 +8,17 @@
 
 env = Tap::Env.instance
 app = Tap::App.new
+app.env = env
+
+require 'tap/parser'
 
 #
 # parse argv
 #
 
-# separate out argv schema
-argv = []
-while !ARGV.empty? && ARGV[0] !~ Tap::Schema::Parser::BREAK
-  argv << ARGV.shift
-end
-schema = ARGV.empty? ? nil : Tap::Schema.parse(ARGV)
-ARGV.replace(argv)
-
-# parse options
 mode = :run
-ConfigParser.new(app.config) do |opts|
+parser = Tap::Parser.new
+config_parser = ConfigParser.bind(app.config) do |opts|
   opts.separator ""
   opts.separator "configurations:"
   
@@ -97,29 +92,31 @@ ConfigParser.new(app.config) do |opts|
     end
     app.queue.extend(mod)
   end
-  
-end.parse!(ARGV, :clear_config => false, :add_defaults => false)
+end
 
 #
 # build and run
 #
 
-unless schema
-  msg = "No schema specified"
+begin
+  loop do
+    break if ARGV.empty?
 
-  unless ARGV.empty?
-    args = ARGV[0, 3].join(' ') + (argv.length > 3 ? ' ...' : '')
-    msg = "#{msg} (did you mean 'tap run -- #{args}'?)"
+    config_parser.scan(ARGV) do |path|
+      YAML.load_file(path).each do |spec|
+        sig = spec['sig'] || 'build'
+        args = spec['args'] || spec
+
+        app.signal(sig, args)
+      end
+    end
+
+    break if ARGV.empty?
+
+    parser.parse!(ARGV)
+    parser.build(app)
   end
 
-  puts msg
-  exit(0)
-end
-
-begin
-  app.build(schema, :resources => env)
-  ARGV.replace(argv)
-  
   case mode
   when :run
     Tap::Exe.set_signals(app)
@@ -136,7 +133,7 @@ begin
   end
   
 rescue
-  raise if $DEBUG
+  raise if app.debug?
   puts $!.message
   exit(1)
 end

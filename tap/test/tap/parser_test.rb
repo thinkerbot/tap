@@ -11,29 +11,6 @@ class ParserTest < Test::Unit::TestCase
     @parser = Parser.new  
   end
   
-#   #
-#   # doucmentation test
-#   #
-#   
-#   def test_parse_documentation
-#     assert_equal [
-#       ["0", "task", "a"],
-#       ["1", "task", "b"],
-#       ["2", "task", "c"],
-#       [nil, "join", "join", ["1"], ["2"]],
-#     ], Tap::Schema.parse("a -- b --: c").specs
-#     
-#     assert_equal [
-#       ["0", "task", "a", "--", "b"],
-#       ["1", "task", "c"]
-#     ], Tap::Schema.parse("a -. -- b .- -- c").specs
-#     
-#     assert_equal [
-#       ["0", "task", "a"],
-#       ["1", "task", "b"]
-#     ], Tap::Schema.parse("a -- b --- c").specs
-#   end
-#   
   #
   # BREAK test
   #
