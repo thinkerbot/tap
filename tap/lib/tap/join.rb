@@ -36,20 +36,23 @@ module Tap
         parser = self.parser
         
         inputs, outputs, *args = parser.parse!(argv, :add_defaults => false)
-        inputs = parse_indicies(inputs).collect {|var| app.obj(var) }
-        outputs = parse_indicies(outputs).collect {|var| app.obj(var) }
-        
         instance = build({
           'config' => parser.nested_config,
-          'inputs' => inputs,
-          'outputs' => outputs
+          'inputs' => parse_indicies(inputs),
+          'outputs' => parse_indicies(outputs)
         }, app)
           
         [instance, args]
       end
       
       def build(spec={}, app=Tap::App.instance)
-        new(spec['config'] || {}, app).join(spec['inputs'], spec['outputs'])
+        inputs = spec['inputs']
+        inputs.collect! {|var| app.obj(var) } if inputs
+        
+        outputs = spec['outputs']
+        outputs.collect! {|var| app.obj(var) } if outputs
+        
+        new(spec['config'] || {}, app).join(inputs, outputs)
       end
       
       protected
@@ -131,6 +134,10 @@ module Tap
       outputs.each do |output|
         dispatch(output, result)
       end
+    end
+    
+    def associations
+      [inputs + outputs]
     end
     
     def to_spec

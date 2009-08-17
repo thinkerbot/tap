@@ -307,6 +307,10 @@ module Tap
       initialize_config(config)
     end
     
+    def associations
+      [nil, joins]
+    end
+    
     # Auditing method call.  Resolves dependencies, executes method_name,
     # and sends the audited result to the on_complete_block (if set).
     #

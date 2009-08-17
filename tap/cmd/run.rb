@@ -104,10 +104,7 @@ begin
 
     config_parser.scan(ARGV) do |path|
       YAML.load_file(path).each do |spec|
-        sig = spec['sig'] || 'build'
-        args = spec['args'] || spec
-
-        app.signal(sig, args)
+        app.route(spec)
       end
     end
 
@@ -116,20 +113,13 @@ begin
     parser.parse!(ARGV)
     parser.build(app)
   end
-
+  
   case mode
   when :run
     Tap::Exe.set_signals(app)
     app.run
   when :preview
-    app.to_schema do |type, resources|
-      resources.each do |resource|
-        const_name = resource.delete(:class).to_s
-        resource[:id] = env.reverse_seek(type, false) do |const|
-          const.const_name == const_name
-        end
-      end
-    end.dump($stdout)
+    YAML.dump(app.to_schema, $stdout)
   end
   
 rescue

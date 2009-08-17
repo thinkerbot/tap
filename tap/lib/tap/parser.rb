@@ -186,11 +186,14 @@ module Tap
     
     def build(app, auto_enque=true)
       results = specs.collect do |spec|
-        if spec[1] # type
-          app.build(spec)
+        var = spec.shift
+        type = spec.shift
+        klass = spec.shift
+        
+        if type
+          app.build('set' => var, 'type' => type, 'class' => klass, 'args' => spec)
         else
-          var, type, sig, *args = spec
-          app.obj(var).signal(sig, *args)
+          app.route('var' => var, 'sig' => klass, 'args' => spec)
         end
       end
       
@@ -200,6 +203,7 @@ module Tap
         
         results.select do |result|
           obj, args = result
+          next unless args
           
           case obj.class.type
           when 'task' then queue << result

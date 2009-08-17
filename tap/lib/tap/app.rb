@@ -252,6 +252,14 @@ module Tap
       nil
     end
     
+    def route(spec)
+      var = spec['var']
+      sig = spec['sig'] || 'build'
+      args = spec['args'] || spec
+
+      fetch(var).signal(sig, args)
+    end
+    
     def build(spec)
       if spec.kind_of?(Array)
         spec = {
@@ -475,8 +483,8 @@ module Tap
     
     def to_schema
       objects = cache.values
-      objects.concat queue.collect {|(node, args)| node }
-      objects.concat middlewere
+      queue.to_a.each {|(node, args)| objects << node }
+      objects.concat middleware
       
       specs = {}
       master_order = []
@@ -491,6 +499,8 @@ module Tap
     end
     
     private
+    
+    BUILD_KEYS = %w{set type class spec}
     
     # Traces each object backwards and forwards for node, joins, etc. and
     # adds each to specs as needed.  The trace determines and returns the
@@ -513,36 +523,38 @@ module Tap
     #
     def trace(obj, specs, order=[]) # :nodoc:
       if specs.has_key?(obj)
-        if order.include?(obj)
-          return order
-        else
-          raise "circular trace detected"
-        end 
+        return order
+      end
+      
+      spec = {}
+      if var = self.var(obj)
+        spec['set'] = var
       end
       
       klass = obj.class
-      spec = obj.to_spec
-      if BUILD_KEYS.find {|key| spec.has_key?(key) }
-        spec = {'spec' => spec} 
+      type = klass.type
+      const_name = klass.to_s
+      klass = env.reverse_seek(type, false) do |const|
+        const_name == const.const_name
+      end
+      spec['type'] = type
+      spec['class'] = klass
+      
+      obj_spec = obj.to_spec
+      if BUILD_KEYS.find {|key| obj_spec.has_key?(key) }
+        spec['spec'] = obj_spec
+      else
+        spec.merge!(obj_spec)
       end
       
-      spec['set'] = var(obj)
-      spec['type'] = klass.type
-      spec['class'] = klass
       specs[obj] = spec
       
       refs, brefs = obj.associations
-      # refs, brefs = obj.refs, obj.brefs
-      # refs, brefs = case klass.type
-      # when 'task' then [nil, obj.joins]
-      # when 'join' then [obj.inputs + obj.outputs, nil]
-      # when 'middleware' then [obj.nodes, nil]
-      # end
       
       # references to other objects
       # (these must exist prior to obj)
       refs.each do |ref|
-        collect_specs(ref, specs, order)
+        trace(ref, specs, order)
       end if refs
       
       order << obj
@@ -550,7 +562,7 @@ module Tap
       # back-references to objects that refer to obj
       # (ie obj must exist before the bref)
       brefs.each do |bref|
-        collect_specs(bref, specs, order)
+        trace(bref, specs, order)
       end if brefs
       
       order

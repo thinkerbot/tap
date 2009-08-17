@@ -188,8 +188,8 @@ goodnight moon
   def test_run_loads_schema_from_file
     schema = method_root.prepare(:tmp, 'schema.yml') do |io|
       YAML.dump([
-        {'var' => '0', 'type' => 'task', 'class' => 'load'},
-        {'var' => '1', 'type' => 'task', 'class' => 'dump'},
+        {'set' => '0', 'type' => 'task', 'class' => 'load'},
+        {'set' => '1', 'type' => 'task', 'class' => 'dump'},
         {'type' => 'join', 'class' => 'join', 'inputs' => ['0'], 'outputs' => ['1']},
         {'var' => '0', 'sig' => 'enq', 'args' => ['goodnight moon']}
       ], io)
@@ -199,10 +199,6 @@ goodnight moon
 % tap run '#{schema}'
 goodnight moon
 } 
-    sh_test %Q{
-% tap run '#{schema}'
-goodnight moon
-}
   end
   
   #
