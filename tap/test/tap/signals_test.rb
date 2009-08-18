@@ -40,11 +40,16 @@ class SignalsTest < Test::Unit::TestCase
     assert_equal ["echo"], obj.signal('echo')
   end
   
+  #
+  # signal options
+  #
+  
+  #
   class SignalAsTest < SignalsClass
-    signal :echo, :as => :alt
+    signal :alt, :method_name => :echo
   end
   
-  def test_signal_as_option_aliases_signal
+  def test_signal_method_name_sets_method_name
     assert !SignalAsTest.signals.has_key?(:echo)
     
     alt = SignalAsTest.signals[:alt]
@@ -60,6 +65,18 @@ class SignalsTest < Test::Unit::TestCase
   def test_signal_calls_method_with_block_return
     obj = SignalBlockTest.new
     assert_equal [3,2,1, "echo"], obj.signal(:echo, [1,2,3])
+  end
+  
+  class SignalWithoutMethodTest < SignalsClass
+    signal :sig, :method_name => nil do |argv|
+      argv << "was in block"
+      argv
+    end
+  end
+  
+  def test_signals_return_block_return_if_not_bound_to_a_method
+    res = SignalWithoutMethodTest.new.signal(:sig, [1,2,3])
+    assert_equal [1,2,3, "was in block"], res
   end
   
   class SignalSignatureTest < SignalsClass
@@ -81,6 +98,10 @@ class SignalsTest < Test::Unit::TestCase
     obj = SignalOrderTest.new
     assert_equal [3,2,1, "echo"], obj.signal(:echo, :a => 1, :b => 2, :c => 3)
   end
+  
+  #
+  # signal documentation
+  #
   
   class SignalDescTest < SignalsClass
     # content...
@@ -106,4 +127,37 @@ class SignalsTest < Test::Unit::TestCase
     assert !SignalConstTest.const_defined?(:B)
     assert !SignalConstTest.const_defined?(:C)
   end
+  
+  #
+  # inheritance
+  #
+  
+  class SignalParent < SignalsClass
+    signal :a
+    signal :b
+  end
+  
+  class SignalChild < SignalParent
+    signal :b
+    signal :c
+  end
+  
+  def test_signals_are_inherited
+    assert_equal true, SignalParent.signals.has_key?(:a)
+    assert_equal true, SignalParent.signals.has_key?(:b)
+    assert_equal false, SignalParent.signals.has_key?(:c)
+    
+    assert_equal true, SignalChild.signals.has_key?(:a)
+    assert_equal true, SignalChild.signals.has_key?(:b)
+    assert_equal true, SignalChild.signals.has_key?(:c)
+  end
+  
+  def test_signals_can_be_overridden
+    assert_equal SignalParent::A, SignalParent.signals[:a]
+    assert_equal SignalParent::B, SignalParent.signals[:b]
+    
+    assert_equal SignalParent::A, SignalChild.signals[:a]
+    assert_equal SignalChild::B, SignalChild.signals[:b]
+  end
+  
 end

@@ -1,6 +1,14 @@
 require 'tap/signals/class_methods'
 
 module Tap
+  
+  # Signals is a module providing signaling capbilities for objects.  Signals
+  # are effectively bound to methods with pre-processing that allows inputs
+  # from the command line (ie an ARGV) or from interfaces like HTTP that
+  # commonly produce a parameters hash.
+  #
+  #
+  
   module Signals
     def self.included(mod)
       mod.extend ClassMethods
