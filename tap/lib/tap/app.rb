@@ -229,27 +229,33 @@ module Tap
       end
     end
     
-    # Stores the object by var, unless var is nil.  Returns obj.
-    def store(var, obj)
+    # Sets the object to the specified variable, unless var is nil.
+    # Returns obj.
+    def set(var, obj)
       cache[var] = obj if var
       obj
     end
     
-    # Fetches the stored object registerd to var.  Nil var returns self.
-    def fetch(var)
+    # Returns the object set to var.  Returns self for nil var.
+    def obj(var)
       var ? cache[var] : self
     end
     
-    def obj(var)
-      cache[var]
-    end
-    
-    # Returns the variable for the object, if stored, or nil otherwise.
+    # Returns the variable for the object.  If the object is not assigned to a
+    # variable, the object is set to an unused variable and the new variable is
+    # returned.
     def var(obj)
       cache.each_pair do |var, object|
         return var if obj == object
       end
-      nil
+      
+      var = cache.length
+      while cache.has_key?(var)
+        var += 1 
+      end
+      
+      set(var, obj)
+      var
     end
     
     def route(spec)
@@ -257,7 +263,7 @@ module Tap
       sig = spec['sig'] || 'build'
       args = spec['args'] || spec
 
-      fetch(var).signal(sig, args)
+      obj(var).signal(sig, args)
     end
     
     def build(spec)
@@ -275,15 +281,19 @@ module Tap
       type = spec['type']
       klass = spec['class']
       
-      klass = env[type][klass] if env
-      method = args.kind_of?(Array) ? :parse : :build
+      if env
+        unless types = env[type]
+          raise "unknown type: #{type.inspect}"
+        end
+        
+        unless klass = types[klass]
+          raise "unresolvable #{type}: #{spec['class'].inspect}"
+        end
+      end 
       
-      unless klass.respond_to?(method)
-        raise "unresolvable #{type}: #{spec['class'].inspect}"
-      end
-      
+      method = args.kind_of?(Hash) ? :build : :parse!
       obj, args = klass.send(method, args, self)
-      store(var, obj)
+      set(var, obj)
       
       [obj, args]
     end

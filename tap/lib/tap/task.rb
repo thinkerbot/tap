@@ -295,16 +295,10 @@ module Tap
     
     signal :enq
     
-    # The App receiving self during enq
-    attr_reader :app
-
     # Initializes a new Task.
     def initialize(config={}, app=Tap::App.instance)
-      @app = app
       @joins = []
-      
-      # initialize configs
-      initialize_config(config)
+      super
     end
     
     def associations

@@ -69,6 +69,14 @@ module Tap
       include Configurable
       include Signals
       
+      # The App receiving self during enq
+      attr_reader :app
+      
+      def initialize(config={}, app=Tap::App.instance)
+        @app = app
+        initialize_config(config)
+      end
+      
       def associations
       end
       

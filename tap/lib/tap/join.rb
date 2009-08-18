@@ -99,9 +99,6 @@ module Tap
     #
     config :iterate, false, :short => 'i', &c.flag  # Iterate results to outputs
     
-    # The App receiving self during enq
-    attr_accessor :app
-    
     # An array of input nodes, or nil if the join has not been set.
     attr_reader :inputs
     
@@ -110,10 +107,9 @@ module Tap
     
     # Initializes a new join with the specified configuration.
     def initialize(config={}, app=Tap::App.instance)
-      @app = app
       @inputs = nil
       @outputs = nil
-      initialize_config(config)
+      super
     end
     
     # Sets self as a join between the inputs and outputs.

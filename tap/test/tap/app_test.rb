@@ -278,6 +278,130 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
+  # set test
+  #
+  
+  def test_set_sets_obj_into_cache_by_var
+    assert_equal nil, app.cache[:var]
+    
+    obj = Object.new
+    app.set(:var, obj)
+    
+    assert_equal obj, app.cache[:var]
+  end
+  
+  def test_set_does_not_set_obj_if_var_is_nil
+    assert_equal nil, app.cache[nil]
+    app.set(nil, Object.new)
+    assert_equal nil, app.cache[nil]
+  end
+  
+  #
+  # obj test
+  #
+  
+  def test_obj_returns_object_in_cache_keyed_by_var
+    obj = Object.new
+    app.cache[:var] = obj
+    
+    assert_equal obj, app.obj(:var)
+  end
+  
+  def test_obj_returns_self_for_nil_var
+    assert app.cache.empty?
+    assert_equal app, app.obj(nil)
+  end
+  
+  #
+  # var test
+  #
+  
+  def test_var_returns_key_for_obj_in_cache
+    obj = Object.new
+    app.cache[:var] = obj
+    
+    assert_equal :var, app.var(obj)
+  end
+  
+  def test_var_stores_obj_and_returns_key_for_objects_not_in_cache
+    assert app.cache.empty?
+    
+    obj = Object.new
+    var = app.var(obj)
+    assert_equal obj, app.cache[var]
+  end
+  
+  #
+  # build test
+  #
+  
+  class BuildClass < Tap::App::Api
+    config :key, 'value'
+  end
+  
+  def test_build_instantiates_class
+    obj, args = app.build('class' => BuildClass)
+    assert_equal BuildClass, obj.class
+    assert_equal 'value', obj.key
+  end
+  
+  def test_build_resolves_class_in_env_if_env_is_set
+    app.env = {'tipe' => {'klass' => BuildClass}}
+    obj, args = app.build('type' => 'tipe', 'class' => 'klass')
+    assert_equal BuildClass, obj.class
+  end
+  
+  def test_build_raises_error_for_unknown_type
+    app.env = {}
+    err = assert_raises(RuntimeError) { app.build('type' => 'tipe', 'class' => 'klass') }
+    assert_equal "unknown type: \"tipe\"", err.message
+  end
+  
+  def test_build_raises_error_for_unresolvable_class
+    app.env = {'tipe' => {}}
+    err = assert_raises(RuntimeError) { app.build('type' => 'tipe', 'class' => 'klass') }
+    assert_equal "unresolvable tipe: \"klass\"", err.message
+  end
+  
+  def test_build_builds_class_using_args_if_specified
+    obj, args = app.build(
+      'class' => BuildClass, 
+      'args' => {'config' => {'key' => 'alt'}})
+    assert_equal 'alt', obj.key
+  end
+  
+  def test_build_uses_spec_as_args_if_args_is_not_specified
+    obj, args = app.build(
+      'class' => BuildClass, 
+      'config' => {'key' => 'alt'})
+    assert_equal 'alt', obj.key
+  end
+  
+  def test_build_parses_non_hash_args
+    obj, args = app.build(
+      'class' => BuildClass, 
+      'args' => "--key alt")
+    assert_equal 'alt', obj.key
+  end
+  
+  def test_build_returns_remaining_args
+    obj, args = app.build(
+      'class' => BuildClass, 
+      'args' => "a --key alt b c")
+    assert_equal ["a", "b", "c"], args
+  end
+  
+  def test_build_stores_class_by_set_if_specified
+    app.build('class' => BuildClass)
+    assert_equal({}, app.cache)
+    
+    obj, args = app.build(
+      'set' => 'variable', 
+      'class' => BuildClass)
+    assert_equal({'variable' => obj}, app.cache)
+  end
+
+  #
   # middleware test
   #
   
