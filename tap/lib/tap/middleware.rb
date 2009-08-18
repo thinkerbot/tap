@@ -2,6 +2,11 @@ require 'tap/app'
 
 module Tap
   class Middleware < App::Api
+    class << self
+      def build(spec={}, app=Tap::App.instance)
+        app.use(self, spec['config'] || {})
+      end
+    end
     
     # The call stack.
     attr_reader :stack

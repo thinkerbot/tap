@@ -194,16 +194,11 @@ goodnight moon
   
   def test_run_allows_the_specification_of_middleware
     method_root.prepare(:lib, 'middleware.rb') do |io|
-      io << %q{# ::middleware
-        class Middleware < Tap::App::Api
-          def self.parse!(argv=ARGV, app=Tap::App.instance)
-            app.use(self, *argv)
-          end
-          
-          attr_reader :stack
-          def initialize(stack)
-            @stack = stack
-          end
+      io << %q{
+        require 'tap/middleware'
+        
+        # ::middleware
+        class Middleware < Tap::Middleware
           def call(node, inputs=[])
             puts node.class
             stack.call(node, inputs)
