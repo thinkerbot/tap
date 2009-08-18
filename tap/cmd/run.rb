@@ -6,17 +6,9 @@
 #   tap run -- load hello --: dump     Say hello
 #
 
-env = Tap::Env.instance
-app = Tap::App.new
-app.env = env
-
 require 'tap/parser'
 
-#
-# parse argv
-#
-
-mode = :run
+app = Tap::App.new
 parser = Tap::Parser.new
 config_parser = ConfigParser.bind(app.config) do |opts|
   opts.separator ""
@@ -39,19 +31,12 @@ config_parser = ConfigParser.bind(app.config) do |opts|
   end
   
   opts.on('-p', '--preview', 'Print the schema as YAML') do
-    mode = :preview
-  end
-  
-  opts.on('-s', '--schema FILE', 'Use the specifed schema') do |file|
-    if schema
-      puts "An inline schema cannot be specified with a file schema."
-      exit(0)
-    end
-    
-    schema = Tap::Schema.load_file(file)
+    YAML.dump(app.to_schema, $stdout)
   end
   
   opts.on('-t', '--manifest', 'Print a list of available resources') do
+    env = app.env
+    
     tasks = env.manifest(:task)
     tasks_found = !tasks.all_empty?
     
@@ -80,7 +65,7 @@ config_parser = ConfigParser.bind(app.config) do |opts|
   end
   
   opts.on('-T', '--tasks', 'Print a list of available tasks') do
-    puts env.manifest(:task).summarize
+    puts app.env.manifest(:task).summarize
     exit(0)
   end
   
@@ -115,13 +100,7 @@ begin
     parser.build(app)
   end
   
-  case mode
-  when :run
-    Tap::Exe.set_signals(app)
-    app.run
-  when :preview
-    YAML.dump(app.to_schema, $stdout)
-  end
+  app.run
   
 rescue
   raise if app.debug?

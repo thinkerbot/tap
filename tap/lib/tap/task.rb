@@ -1,6 +1,5 @@
 require 'tap/joins'
 require 'tap/root'
-require 'tap/env/string_ext'
 
 module Tap
   class App

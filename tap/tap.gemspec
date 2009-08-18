@@ -29,34 +29,35 @@ Gem::Specification.new do |s|
     cmd/run.rb
     lib/tap.rb
     lib/tap/app.rb
+    lib/tap/app/api.rb
     lib/tap/app/node.rb
     lib/tap/app/queue.rb
     lib/tap/app/stack.rb
     lib/tap/app/state.rb
-    lib/tap/app/api.rb
-    lib/tap/version.rb
-    lib/tap/tasks/dump.rb
     lib/tap/env.rb
     lib/tap/env/constant.rb
     lib/tap/env/gems.rb
     lib/tap/env/manifest.rb
     lib/tap/env/minimap.rb
     lib/tap/env/string_ext.rb
-    lib/tap/exe.rb
+    lib/tap/intern.rb
     lib/tap/join.rb
     lib/tap/joins.rb
     lib/tap/joins/switch.rb
     lib/tap/joins/sync.rb
     lib/tap/middleware.rb
-    lib/tap/tasks/load.rb
+    lib/tap/middlewares/debugger.rb
+    lib/tap/parser.rb
     lib/tap/root.rb
     lib/tap/root/utils.rb
     lib/tap/root/versions.rb
-    lib/tap/schema.rb
-    lib/tap/schema/parser.rb
-    lib/tap/schema/utils.rb
-    lib/tap/intern.rb
-    lib/tap/templater.rb
+    lib/tap/signals.rb
+    lib/tap/signals/class_methods.rb
+    lib/tap/signals/signal.rb
     lib/tap/task.rb
+    lib/tap/tasks/dump.rb
+    lib/tap/tasks/load.rb
+    lib/tap/templater.rb
+    lib/tap/version.rb
     }
 end

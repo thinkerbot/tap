@@ -340,6 +340,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_build_instantiates_class
+    app.env = nil
     obj, args = app.build('class' => BuildClass)
     assert_equal BuildClass, obj.class
     assert_equal 'value', obj.key
@@ -364,6 +365,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_build_builds_class_using_args_if_specified
+    app.env = nil
     obj, args = app.build(
       'class' => BuildClass, 
       'args' => {'config' => {'key' => 'alt'}})
@@ -371,6 +373,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_build_uses_spec_as_args_if_args_is_not_specified
+    app.env = nil
     obj, args = app.build(
       'class' => BuildClass, 
       'config' => {'key' => 'alt'})
@@ -378,6 +381,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_build_parses_non_hash_args
+    app.env = nil
     obj, args = app.build(
       'class' => BuildClass, 
       'args' => "--key alt")
@@ -385,6 +389,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_build_returns_remaining_args
+    app.env = nil
     obj, args = app.build(
       'class' => BuildClass, 
       'args' => "a --key alt b c")
@@ -392,6 +397,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_build_stores_class_by_set_if_specified
+    app.env = nil
     app.build('class' => BuildClass)
     assert_equal({}, app.cache)
     

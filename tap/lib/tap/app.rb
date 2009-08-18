@@ -4,6 +4,7 @@ require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
+require 'tap/env'
 
 module Tap
   
@@ -137,6 +138,7 @@ module Tap
     # The application logger
     attr_reader :logger
     
+    # The application environment, typically a Tap::Env
     attr_accessor :env
     
     config :debug, false, :short => :d, &c.flag      # Flag debugging
@@ -154,6 +156,7 @@ module Tap
       @stack = options[:stack] || Stack.new(self)
       @queue = options[:queue] || Queue.new
       @cache = options[:cache] || {}
+      @env = options[:env] || Tap::Env.instance
       @default_joins = []
       on_complete(&block)
       

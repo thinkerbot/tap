@@ -19,7 +19,7 @@ require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 #
 
 begin
-  exe = Tap::Exe.setup
+  env = Tap::Env.instance
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
@@ -31,8 +31,13 @@ end
 # launch tap
 #
 
-exe.activate
-exe.launch(ARGV) do
+env.activate
+env.register('command') do |env|
+  env.root.glob(:cmd, "**/*.rb")
+end
+
+case command = ARGV.shift.to_s  
+when '', '--help'
   template = %Q{<% unless entries.empty? || count <= 1 %>
 <%= env_key %>:
 <% end %>
@@ -40,13 +45,13 @@ exe.launch(ARGV) do
   <%= key.ljust(width) %>
 <% end %>}
 
-  commands = exe.manifest(:command).inspect(template,
+  commands = env.manifest(:command).inspect(template,
     :count => 0,
     :width => 10
   ) do |templater, globals|
     entries = templater.manifest.minimap
     templater.entries = entries
-    
+
     # determine width, count
     width = globals[:width]
     entries.each do |key, path|
@@ -55,13 +60,20 @@ exe.launch(ARGV) do
     globals[:width] = width
     globals[:count] += 1 unless entries.empty?
   end
-  
+
   puts Lazydoc.usage(__FILE__)
   puts
   puts "available commands:"
   puts commands
   puts
   puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
+else
+  if path = env.seek('command', command)
+    load path
+  else
+    puts "Unknown command: '#{command}'"
+    puts "Type 'tap --help' for usage information."
+  end
 end
 
 exit(0)

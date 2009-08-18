@@ -12,7 +12,49 @@ module Tap
       attr_writer :instance
       
       def instance(auto_initialize=true)
-        @instance ||= (auto_initialize ? new : nil)
+        @instance ||= (auto_initialize ? setup : nil)
+      end
+      
+      def setup(options={}, env_vars=ENV)
+        options = {
+          :dir => Dir.pwd,
+          :config_file => CONFIG_FILE
+        }.merge(options)
+
+        # load configurations
+        dir = options.delete(:dir)
+        config_file = options.delete(:config_file)
+        user_config_file = config_file ? File.join(dir, config_file) : nil
+
+        user = load_config(user_config_file)
+        global = {}
+        env_vars.each_pair do |key, value|
+          if key =~ /\ATAP_(.*)\z/
+            global[$1.downcase] = value
+          end
+        end
+
+        config = {
+          'root' => dir,
+          'gems' => :all
+        }.merge(global).merge(user).merge(options)
+
+        # keys must be symbolize as they are immediately 
+        # used to initialize the Env configs
+        config = config.inject({}) do |options, (key, value)|
+          options[key.to_sym || key] = value
+          options
+        end
+
+        # instantiate
+        env = new(config, :basename => config_file)
+        
+        # add the tap env if necessary
+        unless env.any? {|e| e.root.root == TAP_HOME }
+          env.push new(TAP_HOME, env.context) 
+        end
+
+        env
       end
       
       def from_gemspec(spec, context={})
@@ -121,6 +163,12 @@ module Tap
     include Enumerable
     include Configurable
     include Minimap
+    
+    # The config file path
+    CONFIG_FILE = "tap.yml"
+    
+    # The home directory for Tap
+    TAP_HOME = File.expand_path("#{File.dirname(__FILE__)}/../..")
     
     # Matches a compound registry search key.  After the match, if the key is
     # compound then:
