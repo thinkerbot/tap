@@ -109,7 +109,8 @@ begin
     end
 
     break if ARGV.empty?
-
+    
+    ARGV.unshift("--")
     parser.parse!(ARGV)
     parser.build(app)
   end

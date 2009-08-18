@@ -279,7 +279,7 @@ module Tap
       method = args.kind_of?(Array) ? :parse : :build
       
       unless klass.respond_to?(method)
-        raise "unresolvable #{type}: #{klass}"
+        raise "unresolvable #{type}: #{spec['class'].inspect}"
       end
       
       obj, args = klass.send(method, args, self)

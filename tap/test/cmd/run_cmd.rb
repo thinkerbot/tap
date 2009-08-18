@@ -120,24 +120,24 @@ wrong number of arguments (0 for 1)
   def test_run_identifies_unresolvable_tasks_in_schema
     sh_test %Q{
 % tap run -- unknown
-unresolvable task: ["unknown"]
+unresolvable task: "unknown"
 }
 
     sh_test %Q{
 % tap run -- unknown 1 2 3
-unresolvable task: ["unknown", "1", "2", "3"]
+unresolvable task: "unknown"
 }
 
     sh_test %Q{
 % tap run -- load -- unknown -- dump
-unresolvable task: ["unknown"]
+unresolvable task: "unknown"
 }
   end
   
   def test_run_identifies_missing_tasks_in_schema
     sh_test %Q{
 % tap run -- load --: 
-missing join output: 1
+unresolvable task: nil
 }
     
     sh_test %Q{
@@ -161,19 +161,6 @@ missing join input: 2
 }
   end
 
-  def test_multiple_errors_are_collected
-    sh_test %Q{
-% tap run -- a '--: c' b --[3][4] --.middleware
-6 schema errors
-unresolvable task: ["a"]
-unresolvable task: ["b"]
-unresolvable join: ["c"]
-missing join input: 3
-missing join output: 4
-unresolvable middleware: ["middleware"]
-}
-  end
-  
   #
   # success cases
   #

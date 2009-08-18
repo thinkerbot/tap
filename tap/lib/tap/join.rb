@@ -47,10 +47,14 @@ module Tap
       
       def build(spec={}, app=Tap::App.instance)
         inputs = spec['inputs']
-        inputs.collect! {|var| app.obj(var) } if inputs
+        inputs.collect! do |var| 
+          app.obj(var) or raise "missing join input: #{var}"
+        end if inputs
         
         outputs = spec['outputs']
-        outputs.collect! {|var| app.obj(var) } if outputs
+        outputs.collect! do |var| 
+          app.obj(var) or raise "missing join output: #{var}"
+        end if outputs
         
         new(spec['config'] || {}, app).join(inputs, outputs)
       end
