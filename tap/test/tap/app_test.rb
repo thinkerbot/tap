@@ -323,11 +323,14 @@ class AppTest < Test::Unit::TestCase
     assert_equal :var, app.var(obj)
   end
   
-  def test_var_stores_obj_and_returns_key_for_objects_not_in_cache
+  def test_var_auto_assigns_a_variable_when_specified
     assert app.cache.empty?
     
     obj = Object.new
-    var = app.var(obj)
+    assert_equal nil, app.var(obj)
+    
+    var = app.var(obj, true)
+    assert !var.nil?
     assert_equal obj, app.cache[var]
   end
   

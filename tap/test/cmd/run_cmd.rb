@@ -172,20 +172,30 @@ goodnight moon
 }
   end
   
+  SAMPLE_SCHEMA = [
+    {'set' => '0', 'type' => 'task', 'class' => 'tap:load', "config"=>{"use_close"=>false, "file"=>false}},
+    {'set' => '1', 'type' => 'task', 'class' => 'tap:dump', "config"=>{"overwrite"=>false}},
+    {'type' => 'join', 'class' => 'tap:join', 'inputs' => ['0'], 'outputs' => ['1'], "config"=>{"splat"=>false, "enq"=>false, "iterate"=>false}},
+    {'sig' => 'enque', 'args' => ['0', 'goodnight moon']}
+  ]
+  
   def test_run_loads_schema_from_file
     schema = method_root.prepare(:tmp, 'schema.yml') do |io|
-      YAML.dump([
-        {'set' => '0', 'type' => 'task', 'class' => 'load'},
-        {'set' => '1', 'type' => 'task', 'class' => 'dump'},
-        {'type' => 'join', 'class' => 'join', 'inputs' => ['0'], 'outputs' => ['1']},
-        {'var' => '0', 'sig' => 'enq', 'args' => ['goodnight moon']}
-      ], io)
+      YAML.dump(SAMPLE_SCHEMA, io)
     end
 
     sh_test %Q{
 % tap run '#{schema}'
 goodnight moon
 } 
+  end
+  
+  def test_run_prints_schema_on_preview
+    path = method_root.prepare(:tmp, 'schema.yml')
+    sh %Q{#{CMD} run -- load 'goodnight moon' --: dump --- -p > '#{path}'}
+    
+    schema = YAML.load_file(path)
+    assert_equal SAMPLE_SCHEMA, schema
   end
   
   #

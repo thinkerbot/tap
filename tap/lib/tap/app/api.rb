@@ -81,7 +81,8 @@ module Tap
       end
       
       def to_spec
-        {'config' => config.to_hash}
+        config = self.config.to_hash {|hash, key, value| hash[key.to_s] = value }
+        {'config' => config}
       end
     end
   end

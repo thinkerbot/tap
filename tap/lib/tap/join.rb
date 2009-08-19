@@ -141,11 +141,10 @@ module Tap
     end
     
     def to_spec
-      {
-        'config' => config.to_hash,
-        'inputs' => inputs.collect {|node| app.var(node) },
-        'outputs' => outputs.collect {|node| app.var(node) }
-      }
+      spec = super
+      spec['inputs'] = inputs.collect {|node| app.var(node) }
+      spec['outputs'] = outputs.collect {|node| app.var(node) }
+      spec
     end
     
     protected

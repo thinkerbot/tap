@@ -9,32 +9,32 @@
 require 'tap/parser'
 
 app = Tap::App.new
-parser = Tap::Parser.new
-config_parser = ConfigParser.bind(app.config) do |opts|
-  opts.separator ""
-  opts.separator "configurations:"
+mode = nil
+parser = ConfigParser.bind(app.config) do |psr|
+  psr.separator ""
+  psr.separator "configurations:"
   
   root_keys = Tap::Root.configurations.keys
   Tap::App.configurations.each_pair do |key, config|
     next if root_keys.include?(key)
-    opts.define(key, config.default, config.attributes)
+    psr.define(key, config.default, config.attributes)
   end
  
-  opts.separator ""
-  opts.separator "options:"
+  psr.separator ""
+  psr.separator "options:"
   
-  opts.on("-h", "--help", "Show this message") do
+  psr.on("-h", "--help", "Show this message") do
     Tap::App.lazydoc.resolve
     puts Lazydoc.usage(__FILE__)
-    puts opts
+    puts psr
     exit(0)
   end
   
-  opts.on('-p', '--preview', 'Print the schema as YAML') do
-    YAML.dump(app.to_schema, $stdout)
+  psr.on('-p', '--preview', 'Print the schema as YAML') do
+    mode = :preview
   end
   
-  opts.on('-t', '--manifest', 'Print a list of available resources') do
+  psr.on('-t', '--manifest', 'Print a list of available resources') do
     env = app.env
     
     tasks = env.manifest(:task)
@@ -64,12 +64,12 @@ config_parser = ConfigParser.bind(app.config) do |opts|
     exit(0)
   end
   
-  opts.on('-T', '--tasks', 'Print a list of available tasks') do
+  psr.on('-T', '--tasks', 'Print a list of available tasks') do
     puts app.env.manifest(:task).summarize
     exit(0)
   end
   
-  opts.on('-u', '--quick-queue', 'Removes thread-safety from queue') do
+  psr.on('-u', '--quick-queue', 'Removes thread-safety from queue') do
     mod = Module.new do
       def synchronize
         yield
@@ -87,7 +87,7 @@ begin
   loop do
     break if ARGV.empty?
 
-    config_parser.scan(ARGV) do |path|
+    parser.scan(ARGV) do |path|
       YAML.load_file(path).each do |spec|
         app.route(spec)
       end
@@ -96,11 +96,15 @@ begin
     break if ARGV.empty?
     
     ARGV.unshift("--")
-    parser.parse!(ARGV)
-    parser.build(app)
+    Tap::Parser.parse!(ARGV).build(app)
   end
   
-  app.run
+  case mode
+  when :preview
+    YAML.dump(app.to_schema, $stdout)
+  else
+    app.run
+  end
   
 rescue
   raise if app.debug?

@@ -147,6 +147,7 @@ module Tap
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
     
     signal :build
+    signal :enque
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, options={}, &block)
@@ -245,18 +246,19 @@ module Tap
     end
     
     # Returns the variable for the object.  If the object is not assigned to a
-    # variable, the object is set to an unused variable and the new variable is
-    # returned.
-    def var(obj)
+    # variable and auto_assign is true, then the object is set to an unused
+    # variable and the new variable is returned.
+    def var(obj, auto_assign=false)
       cache.each_pair do |var, object|
         return var if obj == object
       end
+      return nil unless auto_assign
       
       var = cache.length
       while cache.has_key?(var)
         var += 1 
       end
-      
+    
       set(var, obj)
       var
     end
@@ -299,6 +301,12 @@ module Tap
       set(var, obj)
       
       [obj, args]
+    end
+    
+    def enque(var, *args)
+      node = obj(var)
+      queue.enq(node, args)
+      node
     end
     
     # Returns an array of middlware in use by self.
@@ -496,7 +504,12 @@ module Tap
     
     def to_schema
       objects = cache.values
-      queue.to_a.each {|(node, args)| objects << node }
+      
+      signals = queue.to_a.collect do |(node, args)|
+        objects << node
+        {'sig' => 'enque', 'args' => [var(node)] + args}
+      end
+      
       objects.concat middleware
       
       specs = {}
@@ -508,7 +521,7 @@ module Tap
       
       master_order.uniq.collect do |obj|
         specs[obj]
-      end
+      end + signals
     end
     
     private

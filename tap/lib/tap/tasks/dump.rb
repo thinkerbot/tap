@@ -53,6 +53,12 @@ module Tap
       def dump(input, io)
         io.puts input.to_s
       end
+      
+      def to_spec
+        spec = super
+        spec['config'].delete('output') if output == $stdout
+        spec
+      end
     end
   end
 end

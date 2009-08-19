@@ -50,6 +50,13 @@ module Tap
   #   # ]
   #
   class Parser
+    class << self
+      def parse!(argv=ARGV)
+        parser = new
+        parser.parse!(argv)
+        parser
+      end
+    end
     
     # The escape begin argument
     ESCAPE_BEGIN = "-."
