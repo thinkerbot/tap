@@ -146,6 +146,11 @@ missing join output: 2
 }
 
     sh_test %Q{
+% tap run --: dump
+invalid break: --: (no prior entry)
+}
+
+    sh_test %Q{
 % tap run -- --: dump
 missing join input: 0
 }
@@ -187,6 +192,18 @@ goodnight moon
     sh_test %Q{
 % tap run '#{schema}'
 goodnight moon
+} 
+  end
+  
+  def test_run_may_modify_objects_from_schema_file
+    schema = method_root.prepare(:tmp, 'schema.yml') do |io|
+      YAML.dump(SAMPLE_SCHEMA, io)
+    end
+
+    sh_test %Q{
+% tap run '#{schema}' --@ 0 'hello world'
+goodnight moon
+hello world
 } 
   end
   

@@ -246,10 +246,10 @@ class ParserTest < Test::Unit::TestCase
   
   def test_parse_raises_error_for_invalid_breaks
     err = assert_raises(RuntimeError) { parser.parse "--[]" }
-    assert_equal "invalid break: \"--[]\" (invalid modifier)", err.message
+    assert_equal "invalid break: --[] (invalid modifier)", err.message
     
     err = assert_raises(RuntimeError) { parser.parse "--[][]123" }
-    assert_equal "invalid break: \"--[][]123\" (invalid join modifier)", err.message
+    assert_equal "invalid break: --[][]123 (invalid join modifier)", err.message
   end
   
   #

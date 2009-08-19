@@ -91,16 +91,16 @@ end
 begin
   loop do
     break if ARGV.empty?
-
-    parser.scan(ARGV) do |path|
+    parser.scan(ARGV, 
+      :option_break => Tap::Parser::BREAK,
+      :keep_break => true
+    ) do |path|
       YAML.load_file(path).each do |spec|
         app.route(spec)
       end
     end
 
     break if ARGV.empty?
-    
-    ARGV.unshift("--")
     Tap::Parser.parse!(ARGV).build(app, auto_enque)
   end
   

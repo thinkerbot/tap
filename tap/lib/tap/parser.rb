@@ -168,7 +168,7 @@ module Tap
             @current_index += 1
             @current = parse_break($1)
           rescue
-            raise "invalid break: #{arg.inspect} (#{$!.message})"
+            raise "invalid break: #{arg} (#{$!.message})"
           end
           next
 
@@ -274,6 +274,10 @@ module Tap
     
     # parses the match of a SEQUENCE regexp
     def parse_sequence(one) # :nodoc:
+      unless @current_index > 0
+        raise "no prior entry"
+      end
+      
       @current = nil
       argv = current
       parse_join_spec(one, "#{@current_index - 1}", @current_index.to_s)
