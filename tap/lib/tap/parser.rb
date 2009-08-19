@@ -219,7 +219,16 @@ module Tap
         end
         
         deque.uniq!
-        queue.delete_if {|(node, args)| deque.include?(node) }
+        queue.delete_if do |(node, args)|
+          if deque.include?(node)
+            unless args.empty?
+              warn "ignoring args: #{args.inspect}"
+            end
+            true
+          else
+            false
+          end
+        end
         app.queue.concat(queue)
       end
       

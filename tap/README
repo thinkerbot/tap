@@ -65,7 +65,7 @@ And generates documentation.
 
   options:
           --help                       Print this help
-          --name NAME                  Specifies the task name
+          --enque                      Enques self with args
           --config FILE                Specifies a config file
 
 Tasks are immediately available for use in workflows.

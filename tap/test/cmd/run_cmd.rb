@@ -192,12 +192,36 @@ goodnight moon
   
   def test_run_prints_schema_on_preview
     path = method_root.prepare(:tmp, 'schema.yml')
-    sh %Q{#{CMD} run -- load 'goodnight moon' --: dump --- -p > '#{path}'}
+    sh %Q{#{CMD} run -p -- load 'goodnight moon' --: dump > '#{path}'}
     
     schema = YAML.load_file(path)
     assert_equal SAMPLE_SCHEMA, schema
   end
   
+  def test_run_auto_enques_after_parsing_a_section
+    sh_test %Q{
+% tap run -- load a --: dump --@ 0 b --- -- --@ 0 c
+b
+a
+c
+}
+  end
+  
+  def test_require_enque_prevents_auto_enque
+    sh_test %Q{
+% tap run --require-enque -- load a -- load b --enque -- dump --[0,1][2] --@ 0 c
+b
+c
+}
+  end
+  
+  def test_run_notifies_unused_args
+    sh_test %Q{
+% tap run -- load a --[0][0] 2>&1
+ignoring args: ["a"]
+}
+  end
+    
   #
   # middleware
   #
@@ -224,32 +248,4 @@ Tap::Tasks::Dump
 goodnight moon
 }
   end
-  
-  #
-  # misc
-  #
-  
-#   # see http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets/148-exerun-flubs-stopterminate
-#   def test_run_does_not_suffer_from_stop_bug
-#     method_root.prepare(:lib, 'echo.rb') do |io|
-#       io << %q{# ::task
-#         class Echo < Tap::Task
-#           def process(input); puts input; end
-#         end
-#       }
-#     end
-#     
-#     method_root.prepare(:lib, 'stop.rb') do |io|
-#       io << %q{# ::task
-#         class Stop < Tap::Task
-#           def process; app.stop; end
-#         end
-#       }
-#     end
-#     
-#     sh_test %Q{
-# % tap run -- echo before -- stop --+ echo after
-# before
-# }
-#   end
 end

@@ -155,6 +155,11 @@ module Tap
           exit
         end
         
+        enque = false
+        opts.on('--enque', 'Enques self with args') do
+          enque = true
+        end
+        
         # add option to specify a config file
         opts.on('--config FILE', 'Specifies a config file') do |config_file|
           opts.config.merge!(load_config(config_file))
@@ -165,8 +170,14 @@ module Tap
         # (note defaults are not added so they will not
         # conflict with string keys from a config file)
         argv = opts.parse!(argv, :add_defaults => false)
+        instance = build({'config' => opts.nested_config}, app)
         
-        [build({'config' => opts.nested_config}, app), argv]
+        if enque
+          instance.enq(*argv)
+          argv = nil
+        end
+        
+        [instance, argv]
       end
       
       # Recursively loads path into a nested configuration file.

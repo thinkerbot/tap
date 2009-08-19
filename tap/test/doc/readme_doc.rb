@@ -46,6 +46,7 @@ configurations:
 
 options:
         --help                       Print this help
+        --enque                      Enques self with args
         --config FILE                Specifies a config file
 }
       

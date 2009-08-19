@@ -10,6 +10,7 @@ require 'tap/parser'
 
 app = Tap::App.new
 mode = nil
+auto_enque = true
 parser = ConfigParser.bind(app.config) do |psr|
   psr.separator ""
   psr.separator "configurations:"
@@ -69,6 +70,10 @@ parser = ConfigParser.bind(app.config) do |psr|
     exit(0)
   end
   
+  psr.on('-e', '--require-enque', 'Require manual enque for tasks') do
+    auto_enque = false
+  end
+  
   psr.on('-u', '--quick-queue', 'Removes thread-safety from queue') do
     mod = Module.new do
       def synchronize
@@ -96,7 +101,7 @@ begin
     break if ARGV.empty?
     
     ARGV.unshift("--")
-    Tap::Parser.parse!(ARGV).build(app)
+    Tap::Parser.parse!(ARGV).build(app, auto_enque)
   end
   
   case mode
