@@ -1,9 +1,11 @@
 <h1><%= type %></h1>
+
 <%=  render('_upload.erb') %>
-<form id="manage_<%= type %>" class="manage" method="post" action="<%= uri %>">
+
+<form method="post" action="<%= uri %>">
   <ul>
 <% data.index(type).each do |id| %>
-  <li><input type="checkbox" name="id[]" value="<%= id %>" /> <%= render('_index_entry.erb', :locals => {:id => id})%></li>
+  <li><input type="checkbox" name="id[]" value="<%= id %>" /><%= data.cache[type].include?(id) ? "*" : "" %><a href="<%= uri(id) %>"><%= id %></a></li>
 <% end %>
   <li><a href="<%= uri('new') %>">new</a></li>
   </ul>
