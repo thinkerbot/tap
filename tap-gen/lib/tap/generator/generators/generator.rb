@@ -8,9 +8,7 @@ module Tap::Generator::Generators
   class Generator < Resource
     
     def manifest(m, const_name)
-      super
-      
-      const = Tap::Env::Constant.new(const_name.camelize)
+      const = super
       
       # make the templates directory
       m.directory path('templates', const.path)
@@ -21,6 +19,8 @@ module Tap::Generator::Generators
       m.file path('templates', const.path, 'template_file.erb') do |file|
         file << "# A sample template file.\nkey: <%= key %>\n"
       end
+      
+      const
     end
   end
 end
