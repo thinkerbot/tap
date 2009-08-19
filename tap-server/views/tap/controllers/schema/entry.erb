@@ -14,7 +14,7 @@
   
   <h3>Tasks</h3>
   <ul>
-<% server.env.minimap.each do |(env_name, env)| %>
+<% serve.app.env.minimap.each do |(env_name, env)| %>
 <%   env.manifest(:task).minimap.each do |(name, const)| %>
 <%     key = "#{env_name}:#{name}" %>
   <li><input name="tasks[]" value="<%= key %>" type="checkbox"><%= key %></input></li>

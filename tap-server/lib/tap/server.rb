@@ -18,8 +18,6 @@ module Tap
     
     config :router, true, &c.switch
     
-    nest :env, Tap::Env, :type => :hidden
-    
     nest :app, Tap::App, :type => :hidden
     
     nest :data, Data, :type => :hidden
@@ -32,6 +30,10 @@ module Tap
       @controller = controller
       @thread = nil
       super(config)
+    end
+    
+    def env
+      app.env
     end
     
     # Returns true if input is equal to the secret, if a secret is set. Used

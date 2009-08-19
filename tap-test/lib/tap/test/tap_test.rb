@@ -16,13 +16,11 @@ module Tap
 
       def setup
         super
-        @env = Tap::Env.instance = Tap::Env.new(:gems => :none)
-        @app = Tap::App.instance = Tap::App.new(:debug => true, :quiet => true, :env => @env)
-        @env.activate
+        Tap::Env.instance = @env ||= Tap::Env.new(:gems => :none)
+        Tap::App.instance = @app ||= Tap::App.new(:debug => true, :quiet => true, :env => @env)
       end
 
       def teardown
-        @env.deactivate
         Tap::Env.instance = nil
         Tap::App.instance = nil
         super

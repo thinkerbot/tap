@@ -10,7 +10,8 @@ class ControllerTest < Test::Unit::TestCase
   
   def setup
     super
-    @server = Tap::Server.new nil, :env => Tap::Env.new(method_root)
+    env.root = method_root
+    @server = Tap::Server.new nil, :app => app
     @controller = Tap::Controller.new
     @controller.server = @server
   end

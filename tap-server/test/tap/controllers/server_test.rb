@@ -7,12 +7,13 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
   acts_as_subset_test
   cleanup_dirs << :views << :public
   
-  attr_reader :env, :server, :request
+  attr_reader :server, :request
   
   def setup
     super
-    @env = Tap::Env.new(:root => method_root, :env_paths => TEST_ROOT)
-    @server = Tap::Server.new Tap::Controllers::Server, :env => env
+    
+    env.reconfigure(:root => method_root, :env_paths => TEST_ROOT)
+    @server = Tap::Server.new Tap::Controllers::Server, :app => app
     @request = Rack::MockRequest.new(server)
   end
   

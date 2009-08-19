@@ -513,7 +513,13 @@ module Tap
       end
     end
     
-    # block should return an array of entries
+    # block should return an array of entries, for example:
+    #
+    #   env.register('type', true) { [Tap::Env::Constant.new(Class.to_s)] }
+    #
+    #--
+    # Note this is non-ideal because the registries have to be built
+    # before a type is registered... making this expensive
     def register(type, override=false, &block) # :yields: env
       type = type.to_sym
       
@@ -521,10 +527,10 @@ module Tap
       case
       when override
         builders.delete(type)
-        registries.each {|root, registry| registry.delete(type) }
+        each {|env| env.registry.delete(type) }
       when builders.has_key?(type)
         raise "a builder is already registered for: #{type.inspect}"
-      when registries.any? {|root, registry| registry.has_key?(type) }
+      when any? {|env| env.registry.has_key?(type) }
         raise "entries are already registered for: #{type.inspect}"
       end
       

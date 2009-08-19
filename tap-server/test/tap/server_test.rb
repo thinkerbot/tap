@@ -5,24 +5,16 @@ class ServerTest < Test::Unit::TestCase
   Server = Tap::Server
   ServerError = Tap::Server::ServerError
   
-  acts_as_file_test
+  acts_as_tap_test
   cleanup_dirs << :root
   
-  attr_reader :controller, :env, :server, :request
+  attr_reader :controller, :server, :request
   
   def setup
     super
     @controller = lambda {|env| [200, {}, ['controller']]}
-    @env = Tap::Env.new(:root => method_root, :gems => :none)
-    @env.activate
-    
-    @server = Server.new(controller, :env => env)
+    @server = Server.new(controller, :app => app)
     @request = Rack::MockRequest.new(@server)
-  end
-  
-  def teardown
-    super
-    @env.deactivate
   end
   
   #
