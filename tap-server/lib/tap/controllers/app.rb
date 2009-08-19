@@ -1,5 +1,4 @@
 require 'tap/controller'
-require 'tap/controllers/schema'
 
 module Tap
   module Controllers
@@ -8,12 +7,12 @@ module Tap
     class App < Tap::Controller
       set :default_action, :info
       
-      nest :schema, Schema do
-        def dispatch(route)
-          route.unshift rest_action(route)
-          super(route)
-        end
-      end
+      # nest :schema, Schema do
+      #   def dispatch(route)
+      #     route.unshift rest_action(route)
+      #     super(route)
+      #   end
+      # end
       
       # Returns the state of app.
       def state
