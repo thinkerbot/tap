@@ -1,0 +1,14 @@
+require 'tap/controller'
+
+<% redirect do |target| %># :startdoc::controller <replace with summary>
+# <replace with description>
+
+# <%= const.name %> Documentation
+class <%= const.name %> < Tap::Controller
+
+  # Methods define actions on the controller
+  def index
+    render 'index.erb', :locals => {:obj => 'moon'}, :layout => true
+  end
+  
+end <% module_nest(const.nesting, '  ') { target } end %>
