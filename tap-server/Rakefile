@@ -110,4 +110,8 @@ namespace :test do
       sh("ruby -rubygems #{file}")
     end
   end
+  
+  task :js do
+    sh("open spec/spec.html")
+  end
 end
