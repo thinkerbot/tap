@@ -134,17 +134,7 @@ unresolvable task: "unknown"
 }
   end
   
-  def test_run_identifies_missing_tasks_in_schema
-    sh_test %Q{
-% tap run -- load --: 
-unresolvable task: nil
-}
-    
-    sh_test %Q{
-% tap run -- load -- dump  --[0][2]
-missing join output: 2
-}
-
+  def test_run_identifies_missing_tasks_in_join
     sh_test %Q{
 % tap run --: dump
 invalid break: --: (no prior entry)
@@ -156,13 +146,29 @@ missing join input: 0
 }
 
     sh_test %Q{
-% tap run -- --: dump -- load
-missing join input: 0
+% tap run -- load --:
+missing join output: 1
+}
+
+    sh_test %Q{
+% tap run -- load --: -- dump
+missing join output: 1
+}
+
+    sh_test %Q{
+% tap run -- load -- dump --[0][2]
+missing join output: 2
 }
 
     sh_test %Q{
 % tap run -- load -- dump --[2][1]
 missing join input: 2
+}
+  end
+  
+  def test_run_silently_ignores_fragments
+    sh_test %Q{
+% tap run --. task --. join
 }
   end
 
@@ -209,7 +215,9 @@ hello world
   
   def test_run_prints_schema_on_preview
     path = method_root.prepare(:tmp, 'schema.yml')
-    sh %Q{#{CMD} run -p -- load 'goodnight moon' --: dump > '#{path}'}
+    sh_test %Q{
+% tap run -p -- load 'goodnight moon' --: dump > '#{path}'
+}
     
     schema = YAML.load_file(path)
     assert_equal SAMPLE_SCHEMA, schema

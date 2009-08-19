@@ -196,6 +196,10 @@ module Tap
         raise "cannot build unless app is ready"
       end
       
+      specs.delete_if do |spec|
+        spec.length < 3
+      end
+      
       jobs = {}
       deque = []
       results = specs.collect do |spec|

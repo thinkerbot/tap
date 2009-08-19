@@ -46,7 +46,7 @@ module Doctest
   end
   
   def sh_test(cmd)
-    unless cmd =~ /\A\s#{CMD_PATTERN}(.*?)\n(.+)\z/m
+    unless cmd =~ /\A\s#{CMD_PATTERN}(.*?)\n(.*)\z/m
       raise "invalid sh_test command: #{cmd}"
     end
     
