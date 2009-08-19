@@ -44,6 +44,7 @@ Now from the command line:
 
   options:
       -h, --help                       Print this help
+          --enque                      Enques self with args
           --config FILE                Specifies a config file
   
 The declaration syntax is obviously similar to rake; configurations are new
@@ -189,6 +190,7 @@ Now from the command line:
 
   options:
       -h, --help                       Print this help
+          --enque                      Enques self with args
           --config FILE                Specifies a config file
 
 Take a quick look at the documentation. Class definitions map documentation
@@ -220,8 +222,8 @@ This is a stand-alone goodnight script:
     end
   end
 
-  instance = Goodnight.parse!(ARGV)
-  instance.execute(*ARGV)
+  instance, args = Goodnight.parse!(ARGV)
+  instance.execute(args)
   
 Now, from the command line:
 

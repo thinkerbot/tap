@@ -227,7 +227,7 @@ class TaskDocTest < Test::Unit::TestCase
     :env => {'TAP_GEMS' => ''}
   )
   
-  def test_instantiate_doc
+  def test_build_doc
     method_root.prepare(:tmp, 'Rapfile') do |file|
       file << %q{
 Rap.task(:a, :obj) {|t, a| puts "A #{a.obj}"}

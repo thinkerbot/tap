@@ -51,8 +51,8 @@ module Rap
   # information.
   module Declarations
     # The environment in which declared task classes are registered.
-    # By default a Tap::Env for Dir.pwd.
-    def Declarations.env() @@env ||= Tap::Env.new; end
+    # By default Tap::Env.instance.
+    def Declarations.env() @@env ||= Tap::Env.instance; end
     
     # Sets the declaration environment.
     def Declarations.env=(env) @@env=env; end

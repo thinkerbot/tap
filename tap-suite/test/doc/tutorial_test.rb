@@ -50,6 +50,7 @@ configurations:
 
 options:
         --help                       Print this help
+        --enque                      Enques self with args
         --config FILE                Specifies a config file
 }
     end
@@ -151,6 +152,7 @@ configurations:
 
 options:
         --help                       Print this help
+        --enque                      Enques self with args
         --config FILE                Specifies a config file
 }
     end
@@ -174,8 +176,8 @@ class Goodnight < Tap::Task
   end
 end
 
-instance = Goodnight.parse!(ARGV)
-instance.execute(*ARGV)
+instance, args = Goodnight.parse!(ARGV)
+instance.execute(args)
 }
     end
     

@@ -86,31 +86,31 @@ module Rap
       #   B world
       #
       def parse!(argv=ARGV, app=Tap::App.instance)
-        instance = super
+        instance, args = super
         
         # store args on instance and clear so that instance
         # will not be enqued with any inputs
-        instance.args = argv.dup
-        argv.clear
+        instance.args = args
         
-        instance
+        [instance, []]
       end
       
       # Instantiates the instance of self for app and reconfigures it as
       # specified in argh.
-      def instantiate(argh={}, app=Tap::App.instance)
+      def build(argh={}, app=Tap::App.instance)
         instance = self.instance(app)
         
-        if config = argh[:config]
+        if config = argh['config']
           instance.reconfigure(config)
         end
         
-        if args = argh[:args]
+        if args = argh['args']
           instance.args = args
         end
         
         instance
       end
+
       
       # Looks up or creates the Rap::Task subclass specified by const_name
       # and adds the configs and dependencies.

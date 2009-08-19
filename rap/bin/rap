@@ -3,12 +3,15 @@
 
 $:.unshift "#{File.dirname(__FILE__)}/../lib"
 require 'rap'
+require 'tap/parser'
 
 # setup the environment
 begin
   
-  env = Tap::Exe.setup
-  Rap::Declarations.env = env
+  env = Tap::Env.instance
+  unless env.any? {|e| e.root.root == Rap::RAP_HOME }
+    env.push Tap::Env.new(Rap::RAP_HOME, env.context) 
+  end
   env.activate
   
 rescue(Tap::Env::ConfigError)
@@ -56,22 +59,21 @@ when '--help', nil, '-T'
   puts "version #{Rap::VERSION} -- #{Rap::WEBSITE}"
 else
   begin
-    schema = Tap::Schema.parse(ARGV)
-    schema.tasks.each_pair do |key, task|
-      if tasc = env[:task][task[0]]
-        task[0] = tasc
-      elsif Rap::Rake.has_rakefile?
-        warn "warning: implict rake for '#{task.join(' ')}'"
-        task.unshift(Rap::Rake)
+    parser = Tap::Parser.parse!(ARGV)
+    parser.specs.each do |spec|
+      var, type, klass = spec
+      next unless type == 'task'
+      
+      if env[type][klass] == nil && Rap::Rake.has_rakefile?
+        warn "warning: implict rake for #{spec.inspect}"
+        spec.insert(2, 'rap:rake')
       end
     end
     
     app = Tap::App.instance
-    app.build(schema, :resources => env)
-    Tap::Exe.set_signals(app)
+    parser.build(app)
     app.run
   rescue
-    raise if $DEBUG
     puts $!.message
     exit(1)
   end

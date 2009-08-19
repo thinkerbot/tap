@@ -17,9 +17,7 @@ module Rap
   #
   class Rake < Tap::Task
     class << self
-
-      # Overrides Tap::Support::FrameworkClass#parse! to do  
-      # nothing so that all args get passed forward to rake.
+      
       def parse!(argv, app=Tap::App.instance) # => instance, argv
         if argv.include?('--help')
           puts help
@@ -27,7 +25,7 @@ module Rap
         end
         argv.collect! {|arg| arg == '--rake-help' ? '--help' : arg}
         
-        new({}, app)
+        [new({}, app), argv]
       end
       
       # Returns true if Rake detects a rakefile.

@@ -34,7 +34,7 @@ module Tap
     # and then pass the results.  Any leftover results are still passed at the
     # end.
     #
-    #   % tap run -- load/yaml "[1, 2, 3]" --:i inspect --:"gate --limit 2" inspect
+    #   % tap run -- load/yaml "[1, 2, 3]" --:i inspect -- inspect --. join gate 1 2 --limit 2
     #   1
     #   2
     #   [1, 2]
