@@ -198,18 +198,19 @@ goodnight moon
     assert_equal SAMPLE_SCHEMA, schema
   end
   
-  def test_run_auto_enques_after_parsing_a_section
+  def test_run_auto_enque_preserves_order
     sh_test %Q{
 % tap run -- load a --: dump --@ 0 b --- -- --@ 0 c
-b
 a
+b
 c
 }
   end
   
   def test_require_enque_prevents_auto_enque
     sh_test %Q{
-% tap run --require-enque -- load a -- load b --enque -- dump --[0,1][2] --@ 0 c
+% tap run --require-enque -- load a -- load b --enque -- dump --[0,1][2] --@ 0 c 2>&1
+ignoring args: ["a"]
 b
 c
 }

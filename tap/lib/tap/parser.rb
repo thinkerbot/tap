@@ -192,44 +192,49 @@ module Tap
     end
     
     def build(app, auto_enque=true)
+      unless app.state == App::State::READY
+        raise "cannot build unless app is ready"
+      end
+      
+      jobs = {}
+      deque = []
       results = specs.collect do |spec|
         var = spec.shift
         type = spec.shift
         klass = spec.shift
         
         if type
-          app.build('set' => var, 'type' => type, 'class' => klass, 'args' => spec)
+          array = app.build('set' => var, 'type' => type, 'class' => klass, 'args' => spec)
+          obj, args = array
+          
+          if auto_enque
+            case obj.class.type
+            when 'task'
+              app.queue.concat([array])
+              jobs[obj] = array
+            when 'join'
+              deque.concat(obj.outputs)
+            end if args
+          else
+            if args && !args.empty?
+              warn "ignoring args: #{args.inspect}"
+            end
+          end
+          
+          array
         else
           app.route('var' => var, 'sig' => klass, 'args' => spec)
         end
       end
       
       if auto_enque
-        queue = []
-        deque = []
-        
-        results.select do |result|
-          obj, args = result
-          next unless args
-          
-          case obj.class.type
-          when 'task' then queue << result
-          when 'join' then deque.concat(obj.outputs)
+        queue = app.queue.queue
+        deque.uniq.each do |obj|
+          obj, args = queue.delete(jobs[obj])
+          unless args.empty?
+            warn "ignoring args: #{args.inspect}"
           end
         end
-        
-        deque.uniq!
-        queue.delete_if do |(node, args)|
-          if deque.include?(node)
-            unless args.empty?
-              warn "ignoring args: #{args.inspect}"
-            end
-            true
-          else
-            false
-          end
-        end
-        app.queue.concat(queue)
       end
       
       specs.clear
