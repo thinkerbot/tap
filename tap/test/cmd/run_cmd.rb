@@ -221,6 +221,13 @@ c
 ignoring args: ["a"]
 }
   end
+  
+  def test_auto_enque_does_not_conflict_with_manual_enque
+    sh_test %Q{
+% tap run -- load a --enque --: dump
+a
+}
+  end
     
   #
   # middleware

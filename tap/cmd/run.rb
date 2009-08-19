@@ -70,10 +70,6 @@ parser = ConfigParser.bind(app.config) do |psr|
     exit(0)
   end
   
-  psr.on('-e', '--require-enque', 'Require manual enque for tasks') do
-    auto_enque = false
-  end
-  
   psr.on('-u', '--quick-queue', 'Removes thread-safety from queue') do
     mod = Module.new do
       def synchronize
@@ -81,6 +77,10 @@ parser = ConfigParser.bind(app.config) do |psr|
       end
     end
     app.queue.extend(mod)
+  end
+  
+  psr.on('-e', '--require-enque', 'Require manual enque for tasks') do
+    auto_enque = false
   end
 end
 

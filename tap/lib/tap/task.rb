@@ -124,21 +124,12 @@ module Tap
     include App::Node
     
     class << self
-
-      # Same as parse, but removes arguments destructively.
-      def parse!(argv=ARGV, app=Tap::App.instance) # :yields: opts
-        opts = ConfigParser.new
-        
-        unless configurations.empty?
-          opts.separator "configurations:"
-          opts.add(configurations)
-          opts.separator ""
-        end
-        
-        opts.separator "options:"
+      
+      def parser
+        opts = super
         
         # add option to print help
-        opts.on("--help", "Print this help") do
+        opts.on!("--help", "Print this help") do
           lines = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : []
           lines.collect! {|line| "  #{line}"}
           unless lines.empty?
@@ -155,9 +146,8 @@ module Tap
           exit
         end
         
-        enque = false
         opts.on('--enque', 'Enques self with args') do
-          enque = true
+          opts['enque'] = true
         end
         
         # add option to specify a config file
@@ -165,11 +155,17 @@ module Tap
           opts.config.merge!(load_config(config_file))
         end
         
-        yield(opts) if block_given?
+        opts
+      end
+      
+      # Same as parse, but removes arguments destructively.
+      def parse!(argv=ARGV, app=Tap::App.instance) # :yields: opts
+        opts = parser
         
         # (note defaults are not added so they will not
         # conflict with string keys from a config file)
         argv = opts.parse!(argv, :add_defaults => false)
+        enque = opts.config.delete('enque')
         instance = build({'config' => opts.nested_config}, app)
         
         if enque

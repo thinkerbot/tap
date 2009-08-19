@@ -21,8 +21,14 @@ module Tap
       
         def parser
           opts = ConfigParser.new
-          opts.separator "configurations:"
-          opts.add(configurations)
+          
+          unless configurations.empty?
+            opts.separator "configurations:"
+            opts.add(configurations)
+            opts.separator ""
+          end
+
+          opts.separator "options:"
         
           # add option to print help
           opts.on("-h", "--help", "Print this help") do
