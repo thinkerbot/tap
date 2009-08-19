@@ -34,10 +34,8 @@ module Tap
       end
       
       if args.kind_of?(Hash)
-        args = if signal.signature
-          signal.signature.collect {|key| args[key] }
-        else
-          [args]
+        if signal.signature
+          args = signal.signature.collect {|key| args[key] }
         end
       end
       

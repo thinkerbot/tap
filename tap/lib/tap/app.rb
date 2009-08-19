@@ -105,7 +105,7 @@ module Tap
       # Instance is used to initialize tasks when no app is specified.  Aside
       # from that, there is nothing magical about instance.
       def instance(auto_initialize=true)
-        @instance ||= (auto_initialize ? new : nil)
+        @instance ||= (auto_initialize ? new(:env => Tap::Env.instance) : nil)
       end
     end
     
@@ -129,7 +129,7 @@ module Tap
     # The application queue
     attr_reader :queue
     
-    # A cache of application-specific data.
+    # A cache of application objects
     attr_reader :cache
     
     # The default joins for nodes that have no joins set
@@ -138,15 +138,25 @@ module Tap
     # The application logger
     attr_reader :logger
     
-    # The application environment, typically a Tap::Env
-    attr_accessor :env
-    
     config :debug, false, :short => :d, &c.flag      # Flag debugging
     config :force, false, :short => :f, &c.flag      # Force execution at checkpoints
     config :quiet, false, :short => :q, &c.flag      # Suppress logging
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
+    nest :env, Env, :type => :hidden                 # The application environment
     
-    signal :build
+    signal(:build) do |args|
+      unless args.kind_of?(Hash)
+        args = {
+          'set' => args.shift,
+          'type' => args.shift,
+          'class' => args.shift,
+          'args' => args
+        }
+      end
+      
+      [args]
+    end
+    
     signal :enque
     
     # Creates a new App with the given configuration.  
@@ -157,7 +167,6 @@ module Tap
       @stack = options[:stack] || Stack.new(self)
       @queue = options[:queue] || Queue.new
       @cache = options[:cache] || {}
-      @env = options[:env] || Tap::Env.instance
       @default_joins = []
       on_complete(&block)
       
@@ -272,29 +281,14 @@ module Tap
     end
     
     def build(spec)
-      if spec.kind_of?(Array)
-        spec = {
-          'set' => spec.shift,
-          'type' => spec.shift,
-          'class' => spec.shift,
-          'args' => spec
-        }
-      end
-      
       var = spec['set']
       args = spec['args'] || spec
       type = spec['type']
       klass = spec['class']
       
-      if env
-        unless types = env[type]
-          raise "unknown type: #{type.inspect}"
-        end
-        
-        unless klass = types[klass]
-          raise "unresolvable #{type}: #{spec['class'].inspect}"
-        end
-      end 
+      unless klass = env[type][klass]
+        raise "unresolvable #{type}: #{spec['class'].inspect}"
+      end
       
       method = args.kind_of?(Hash) ? :build : :parse!
       obj, args = klass.send(method, args, self)

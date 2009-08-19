@@ -339,74 +339,71 @@ class AppTest < Test::Unit::TestCase
   #
   
   class BuildClass < Tap::App::Api
+    def self.minikey; "klass"; end
     config :key, 'value'
   end
   
-  def test_build_instantiates_class
-    app.env = nil
-    obj, args = app.build('class' => BuildClass)
+  def test_build_instantiates_class_as_resolved_by_env
+    app.env.registry[:tipe] = [BuildClass]
+    
+    obj, args = app.build('type' => 'tipe', 'class' => 'klass')
     assert_equal BuildClass, obj.class
     assert_equal 'value', obj.key
   end
   
-  def test_build_resolves_class_in_env_if_env_is_set
-    app.env = {'tipe' => {'klass' => BuildClass}}
-    obj, args = app.build('type' => 'tipe', 'class' => 'klass')
-    assert_equal BuildClass, obj.class
-  end
-  
-  def test_build_raises_error_for_unknown_type
-    app.env = {}
-    err = assert_raises(RuntimeError) { app.build('type' => 'tipe', 'class' => 'klass') }
-    assert_equal "unknown type: \"tipe\"", err.message
-  end
-  
   def test_build_raises_error_for_unresolvable_class
-    app.env = {'tipe' => {}}
+    app.env.registry[:tipe] = []
     err = assert_raises(RuntimeError) { app.build('type' => 'tipe', 'class' => 'klass') }
     assert_equal "unresolvable tipe: \"klass\"", err.message
   end
   
   def test_build_builds_class_using_args_if_specified
-    app.env = nil
+    app.env.registry[:tipe] = [BuildClass]
+    
     obj, args = app.build(
-      'class' => BuildClass, 
+      'type' => 'tipe', 
+      'class' => 'klass',
       'args' => {'config' => {'key' => 'alt'}})
     assert_equal 'alt', obj.key
   end
   
   def test_build_uses_spec_as_args_if_args_is_not_specified
-    app.env = nil
+    app.env.registry[:tipe] = [BuildClass]
+    
     obj, args = app.build(
-      'class' => BuildClass, 
+      'type' => 'tipe', 
+      'class' => 'klass',
       'config' => {'key' => 'alt'})
     assert_equal 'alt', obj.key
   end
   
   def test_build_parses_non_hash_args
-    app.env = nil
+    app.env.registry[:tipe] = [BuildClass]
+    
     obj, args = app.build(
-      'class' => BuildClass, 
+      'type' => 'tipe', 
+      'class' => 'klass',
       'args' => "--key alt")
     assert_equal 'alt', obj.key
   end
   
   def test_build_returns_remaining_args
-    app.env = nil
+    app.env.registry[:tipe] = [BuildClass]
+    
     obj, args = app.build(
-      'class' => BuildClass, 
+      'type' => 'tipe', 
+      'class' => 'klass',
       'args' => "a --key alt b c")
     assert_equal ["a", "b", "c"], args
   end
   
-  def test_build_stores_class_by_set_if_specified
-    app.env = nil
-    app.build('class' => BuildClass)
+  def test_build_stores_obj_by_set_if_specified
+    app.env.registry[:tipe] = [BuildClass]
+    
+    obj, args = app.build('type' => 'tipe', 'class' => 'klass')
     assert_equal({}, app.cache)
     
-    obj, args = app.build(
-      'set' => 'variable', 
-      'class' => BuildClass)
+    obj, args = app.build('set' => 'variable', 'type' => 'tipe', 'class' => 'klass')
     assert_equal({'variable' => obj}, app.cache)
   end
 

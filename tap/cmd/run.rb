@@ -8,7 +8,7 @@
 
 require 'tap/parser'
 
-app = Tap::App.new
+app = Tap::App.instance
 mode = nil
 auto_enque = true
 parser = ConfigParser.bind(app.config) do |psr|

@@ -513,7 +513,8 @@ module Tap
       end
     end
     
-    def register(type, override=false, &block)
+    # block should return an array of entries
+    def register(type, override=false, &block) # :yields: env
       type = type.to_sym
       
       # error for existing, or overwrite
