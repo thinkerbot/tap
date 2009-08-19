@@ -1,8 +1,6 @@
 <h1><%= type %></h1>
 <%=  render('_upload.erb') %>
-<form id="select_<%= type %>" class="select" method="post" action="<%= uri %>">
-  <input type="hidden" name="_method" value="select" />
-  
+<form id="manage_<%= type %>" class="manage" method="post" action="<%= uri %>">
   <ul>
 <% data.index(type).each do |id| %>
   <li><input type="checkbox" name="id[]" value="<%= id %>" /> <%= render('_index_entry.erb', :locals => {:id => id})%></li>
@@ -10,5 +8,10 @@
   <li><a href="<%= uri('new') %>">new</a></li>
   </ul>
   
-  <input type="submit" value="Select" />
+  <ul>
+  <li><input type="radio" name="_method" value="select" checked="true">Select</input></li>
+  <li><input type="radio" name="_method" value="delete">Delete</input></li>
+  </ul>
+  
+  <input type="submit" value="Submit" />
 </form>

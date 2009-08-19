@@ -31,7 +31,7 @@ class Tap::Controllers::DataTest < Test::Unit::TestCase
     assert_equal 500, res.status
     assert_match(/reserved id: "reserved"/, res.body)
   end
-
+  
   #
   # rename test
   #

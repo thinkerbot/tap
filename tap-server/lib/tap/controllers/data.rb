@@ -61,6 +61,7 @@ module Tap
       # POST /projects?_method=put&id=id
       def destroy(id)
         data.destroy(type, id)
+        deselect([id])
         redirect uri
       end
       
@@ -73,6 +74,13 @@ module Tap
       
       def select(ids=[])
         data.cache[type] = ids
+        redirect uri
+      end
+      
+      def deselect(ids=[])
+        if current = data.cache[type]
+          current -= ids
+        end
         redirect uri
       end
       
