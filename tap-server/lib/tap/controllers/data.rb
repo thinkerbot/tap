@@ -73,14 +73,21 @@ module Tap
       end
       
       def select(ids=[])
-        data.cache[type] = ids
+        current = data.cache[type] ||= []
+        data.cache[type] = current | ids
         redirect uri
       end
       
       def deselect(ids=[])
         if current = data.cache[type]
-          current -= ids
+          data.cache[type] = current - ids
         end
+        redirect uri
+      end
+      
+      def destroy_all(ids=[])
+        ids.each {|id| data.destroy(type, id) }
+        deselect(ids)
         redirect uri
       end
       

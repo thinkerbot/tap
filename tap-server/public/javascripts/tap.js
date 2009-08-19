@@ -1,6 +1,7 @@
 var Tap = {
   App: {},
   Schema: {},
+  Utils: {},
 };
 
 Tap.App = {
@@ -108,5 +109,23 @@ Tap.Schema = {
       insertion: Insertion.Bottom,
       parameters: Tap.Schema.parameters(id)
     });
+  },
+};
+
+Tap.Utils = {
+  select_all_by_name: function(name) {
+    elements = document.getElementsByName(name);
+    for (i=0;i<elements.length;i++) {
+      element = elements[i];
+      element.checked = true;
+    };
+  },
+  
+  deselect_all_by_name: function(name) {
+    elements = document.getElementsByName(name);
+    for (i=0;i<elements.length;i++) {
+      element = elements[i];
+      element.checked = false;
+    };
   },
 };
