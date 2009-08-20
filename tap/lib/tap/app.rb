@@ -148,7 +148,7 @@ module Tap
     signal :stop
     signal :terminate
     signal :enque
-    signal_hash(:build, :signature => ['set', 'type', 'class'], :remainder => 'args')
+    signal_hash :build, :signature => ['set', 'type', 'class'], :remainder => 'args'
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, options={}, &block)
@@ -266,19 +266,6 @@ module Tap
         else
           set(var, obj)
           return var
-        end
-      end
-    end
-    
-    def prompt
-      loop do
-        print "--/"
-        begin
-          line = gets
-          break if self == call(line)
-        rescue
-          puts $!.message
-          puts $!.backtrace if debug?
         end
       end
     end

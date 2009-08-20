@@ -93,6 +93,30 @@ end
 # build and run
 #
 
+prompt = lambda do
+  require 'readline'
+  
+  loop do
+    begin
+      line = Readline.readline('--/', true)
+      result = app.call(line)
+      if result == app
+        break
+      else
+        puts "=> #{result}"
+      end
+    rescue
+      puts $!.message
+      puts $!.backtrace if app.debug?
+    end
+  end
+end
+
+Signal.trap('INT') do
+  puts
+  prompt.call
+end
+
 begin
   loop do
     break if ARGV.empty?
@@ -113,7 +137,7 @@ begin
   when :preview
     YAML.dump(app.to_schema, $stdout)
   when :prompt
-    app.prompt
+    prompt.call
   else
     app.run
   end
