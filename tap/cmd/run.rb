@@ -9,6 +9,7 @@
 require 'tap/parser'
 
 app = Tap::App.instance
+
 mode = nil
 auto_enque = true
 parser = ConfigParser.bind(app.config) do |psr|
@@ -33,6 +34,10 @@ parser = ConfigParser.bind(app.config) do |psr|
   
   psr.on('-p', '--preview', 'Print the schema as YAML') do
     mode = :preview
+  end
+  
+  psr.on('-P', '--prompt', 'Enter the signal prompt') do
+    mode = :prompt
   end
   
   psr.on('-t', '--manifest', 'Print a list of available resources') do
@@ -96,7 +101,7 @@ begin
       :keep_break => true
     ) do |path|
       YAML.load_file(path).each do |spec|
-        app.route(spec)
+        app.call(spec)
       end
     end
 
@@ -107,6 +112,8 @@ begin
   case mode
   when :preview
     YAML.dump(app.to_schema, $stdout)
+  when :prompt
+    app.prompt
   else
     app.run
   end

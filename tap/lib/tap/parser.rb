@@ -227,7 +227,7 @@ module Tap
           
           array
         else
-          app.route('var' => var, 'sig' => klass, 'args' => spec)
+          app.call('var' => var, 'sig' => klass, 'args' => spec)
         end
       end
       

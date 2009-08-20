@@ -144,8 +144,11 @@ module Tap
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
     nest :env, Env, :type => :hidden                 # The application environment
     
-    signal_hash(:build, :signature => ['set', 'type', 'class'], :remainder => 'args')
+    signal :run
+    signal :stop
+    signal :terminate
     signal :enque
+    signal_hash(:build, :signature => ['set', 'type', 'class'], :remainder => 'args')
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, options={}, &block)
@@ -267,11 +270,36 @@ module Tap
       end
     end
     
-    def route(spec)
+    def prompt
+      loop do
+        print "--/"
+        begin
+          line = gets
+          break if self == call(line)
+        rescue
+          puts $!.message
+          puts $!.backtrace if debug?
+        end
+      end
+    end
+    
+    def call(spec)
+      if spec.kind_of?(String)
+        argv = Shellwords.shellwords(spec)
+        var, *args = argv.shift.to_s.split("/")
+        args.concat(argv)
+        
+        spec = {
+          'var' => var,
+          'sig' => args.shift,
+          'args' => args
+        }
+      end
+      
       var = spec['var']
       sig = spec['sig'] || 'build'
       args = spec['args'] || spec
-
+      
       obj(var).signal(sig, args)
     end
     
