@@ -319,9 +319,18 @@ class ParserTest < Test::Unit::TestCase
   #
   
   def test_parser_parses_signals
+    parser.parse  "--/variable/signal a b c"
+    parser.parse  "--//signal a b c"
     parser.parse  "--/variable signal a b c"
+    parser.parse  "--/ signal a b c"
+    parser.parse  "--/a/b/c d e f"
+    
     assert_equal [
-      ["variable", nil, "signal", "a", "b", "c"]
+      ["variable", nil, "signal", "a", "b", "c"],
+      ["", nil, "signal", "a", "b", "c"],
+      ["variable", nil, "signal", "a", "b", "c"],
+      [nil, nil, "signal", "a", "b", "c"],
+      ["a", nil, "b", "c", "d", "e", "f"]
     ], parser.specs
   end
   

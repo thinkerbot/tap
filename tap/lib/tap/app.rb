@@ -242,16 +242,19 @@ module Tap
       end
     end
     
-    # Sets the object to the specified variable, unless var is nil.
-    # Returns obj.
+    # Sets the object to the specified variable, unless var is empty.
+    # Non-string variables are converted to strings. Returns obj.
     def set(var, obj)
-      cache[var] = obj if var
+      var = var.to_s
+      cache[var] = obj unless var.empty?
       obj
     end
     
-    # Returns the object set to var.  Returns self for nil var.
+    # Returns the object set to var, or self for empty var.  Non-string
+    # variables are converted to strings.
     def obj(var)
-      var ? cache[var] : self
+      var = var.to_s
+      var.empty? ? self : cache[var]
     end
     
     # Returns the variable for the object.  If the object is not assigned to a
@@ -263,13 +266,17 @@ module Tap
       end
       return nil unless auto_assign
       
-      var = cache.length
-      while cache.has_key?(var)
-        var += 1 
+      index = cache.length
+      loop do 
+        var = index.to_s
+        
+        if cache.has_key?(var)
+          index += 1
+        else
+          set(var, obj)
+          return var
+        end
       end
-    
-      set(var, obj)
-      var
     end
     
     def route(spec)

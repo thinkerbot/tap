@@ -292,7 +292,7 @@ module Tap
     def parse_join(one, two, three) # :nodoc:
       parse_join_spec(three, one, two)
     end
-        
+    
     # parses a join modifier string into an argv.
     def parse_join_spec(modifier, inputs, outputs) # :nodoc:
       argv = [nil, 'join']
@@ -314,10 +314,11 @@ module Tap
       specs << argv
       argv
     end
-        
+    
     # parses the match of a SIGNAL regexp
     def parse_signal(one) # :nodoc:
-      spec(one, nil)
+      var, *args = one.to_s.split("/")
+      spec(var, nil, *args)
     end
     
     def parse_spec # :nodoc:

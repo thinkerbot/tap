@@ -282,18 +282,31 @@ class AppTest < Test::Unit::TestCase
   #
   
   def test_set_sets_obj_into_cache_by_var
-    assert_equal nil, app.cache[:var]
+    assert app.cache.empty?
+    
+    obj = Object.new
+    app.set('var', obj)
+    assert_equal obj, app.cache['var']
+  end
+  
+  def test_set_converts_var_to_string
+    assert app.cache.empty?
     
     obj = Object.new
     app.set(:var, obj)
-    
-    assert_equal obj, app.cache[:var]
+    assert_equal obj, app.cache['var']
   end
   
-  def test_set_does_not_set_obj_if_var_is_nil
-    assert_equal nil, app.cache[nil]
+  def test_set_returns_obj
+    obj = Object.new
+    assert_equal obj, app.set('var', obj)
+  end
+  
+  def test_set_does_not_set_obj_if_var_is_empty
+    assert app.cache.empty?
+    app.set('', Object.new)
     app.set(nil, Object.new)
-    assert_equal nil, app.cache[nil]
+    assert app.cache.empty?
   end
   
   #
@@ -302,13 +315,19 @@ class AppTest < Test::Unit::TestCase
   
   def test_obj_returns_object_in_cache_keyed_by_var
     obj = Object.new
-    app.cache[:var] = obj
-    
+    app.cache['var'] = obj 
+    assert_equal obj, app.obj('var')
+  end
+  
+  def test_obj_converts_var_to_string
+    obj = Object.new
+    app.cache['var'] = obj
     assert_equal obj, app.obj(:var)
   end
   
-  def test_obj_returns_self_for_nil_var
+  def test_obj_returns_self_for_empty_var
     assert app.cache.empty?
+    assert_equal app, app.obj('')
     assert_equal app, app.obj(nil)
   end
   
@@ -318,9 +337,8 @@ class AppTest < Test::Unit::TestCase
   
   def test_var_returns_key_for_obj_in_cache
     obj = Object.new
-    app.cache[:var] = obj
-    
-    assert_equal :var, app.var(obj)
+    app.cache['var'] = obj
+    assert_equal 'var', app.var(obj)
   end
   
   def test_var_auto_assigns_a_variable_when_specified

@@ -257,7 +257,7 @@ a
   
   def test_run_using_signals
     sh_test %Q{
-% tap run --/ build 0 task load --/ build 1 task dump --/ build '' join join 0 1 --/ enque 0 'hello world'
+% tap run --/ build 0 task load --//build 1 task dump --//build//join/join/0/1 --/0/enq 'hello world'
 hello world
 }
   end
