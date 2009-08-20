@@ -15,13 +15,49 @@ module Tap
         end
       end
       
-      def signal(sig, opts={}, &block)
+      def signal(sig, opts={}) # :yields: argv
+        define_signal(sig, opts) do |method_name, signature, desc|
+          
+          Signal.bind(method_name, desc) do |args|
+            if args.kind_of?(Hash)
+              args = signature.collect {|key| args[key] }
+            end
+
+            block_given? ? yield(args) : args
+          end
+        end
+      end
+      
+      def signal_hash(sig, opts={}) # :yields: argh
+        remainder = opts[:remainder]
+        define_signal(sig, opts) do |method_name, signature, desc|
+          
+          Signal.bind(method_name, desc) do |argh|
+            if argh.kind_of?(Array)
+              args, argh = argh, {}
+              signature.each do |key|
+                argh[key] = args.shift
+              end
+              
+              if remainder
+                argh[remainder] = args
+              end
+            end
+            
+            [block_given? ? yield(argh) : argh]
+          end
+        end
+      end
+      
+      private
+      
+      def define_signal(sig, opts) # :nodoc:
         method_name = opts.has_key?(:method_name) ? opts[:method_name] : sig
-        signature = opts[:signature]
-        desc = opts.has_key?(:desc) ? opts[:desc] : Lazydoc.register_caller(Lazydoc::Trailer)
+        signature = opts[:signature] || []
+        desc = opts.has_key?(:desc) ? opts[:desc] : Lazydoc.register_caller(Lazydoc::Trailer, 2)
         
         # generate a subclass of signal to bind the methods
-        signal = Signal.bind(method_name, signature, desc, &block)
+        signal = yield(method_name, signature, desc)
         signals[sig.to_sym] = signal
         
         # set the new constant, if specified
@@ -30,7 +66,6 @@ module Tap
         
         signal
       end
-
     end
   end
 end

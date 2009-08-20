@@ -15,6 +15,11 @@ class SignalsTest < Test::Unit::TestCase
       args << 'echo'
       args
     end
+    
+    def echo_hash(argh)
+      argh['echo'] = true
+      argh
+    end
   end
   
   def test_signal_raises_error_for_non_existant_signal
@@ -83,7 +88,7 @@ class SignalsTest < Test::Unit::TestCase
     signal :echo, :signature => [:a, :b, :c]
   end
   
-  def test_signal_builds_argv_from_signature
+  def test_signal_builds_argv_from_hash_signature
     obj = SignalSignatureTest.new
     assert_equal [1,2,3, "echo"], obj.signal(:echo, :a => 1, :b => 2, :c => 3)
   end
@@ -97,6 +102,61 @@ class SignalsTest < Test::Unit::TestCase
   def test_signal_sends_built_argv_to_parse
     obj = SignalOrderTest.new
     assert_equal [3,2,1, "echo"], obj.signal(:echo, :a => 1, :b => 2, :c => 3)
+  end
+  
+  #
+  # signal_hash test
+  #
+  
+  class SignalHashSignatureTest < SignalsClass
+    signal_hash :echo_hash, :signature => [:a, 'b', :c]
+  end
+  
+  def test_signal_hash_builds_argh_from_array_signature
+    obj = SignalHashSignatureTest.new
+    assert_equal({
+      :a => 1, 
+      'b' => 2, 
+      :c => 3, 
+      'echo' => true
+    }, obj.signal(:echo_hash, [1,2,3]))
+  end
+  
+  class SignalHashArgsTest < SignalsClass
+    signal_hash :echo_hash, :signature => [:a], :remainder => :args
+  end
+  
+  def test_signal_hash_adds_remaining_args_to_remainder_if_specified
+    obj = SignalHashArgsTest.new
+    assert_equal({
+      :a => 1, 
+      :args => [2,3],
+      'echo' => true
+    }, obj.signal(:echo_hash, [1,2,3]))
+    
+    assert_equal({
+      :a => 1, 
+      :args => [],
+      'echo' => true
+    }, obj.signal(:echo_hash, [1]))
+  end
+  
+  class SignalHashOrderTest < SignalsClass
+    signal_hash :echo_hash, :signature => [:a, :b, :c] do |argh|
+      argh['was_in_block'] = true
+      argh
+    end
+  end
+  
+  def test_signal_hash_sends_built_argh_to_parse
+    obj = SignalHashOrderTest.new
+    assert_equal({
+      :a => 1,
+      :b => 2, 
+      :c => 3, 
+      'echo' => true, 
+      'was_in_block' => true
+    }, obj.signal(:echo_hash, [1,2,3]))
   end
   
   #

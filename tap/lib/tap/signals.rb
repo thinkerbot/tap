@@ -33,12 +33,6 @@ module Tap
         raise "unknown signal: #{sig} (#{self.class})"
       end
       
-      if args.kind_of?(Hash)
-        if signal.signature
-          args = signal.signature.collect {|key| args[key] }
-        end
-      end
-      
       signal.new(self).call(args)
     end
   end

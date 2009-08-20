@@ -9,27 +9,21 @@ module Tap
         # The method name signaled by this class
         attr_reader :method_name
         
-        # An array of parameters extracted from a hash
-        # signal to produce an argv.
-        attr_reader :signature
-        
         # A description of self
         attr_reader :desc
         
         def inherited(child) # :nodoc:
           super
           child.instance_variable_set(:@method_name, method_name)
-          child.instance_variable_set(:@signature, signature)
           child.instance_variable_set(:@desc, nil)
         end
         
         # Produces a subclass of self that will call the specified method on
         # objects.  If a block is given it will pre-process arguments before
         # the method is called.
-        def bind(method_name, signature=nil, desc="", &block)
+        def bind(method_name, desc="", &block)
           signal = Class.new(self)
           signal.instance_variable_set(:@method_name, method_name)
-          signal.instance_variable_set(:@signature, signature)
           signal.instance_variable_set(:@desc, desc)
           signal.send(:define_method, :process, &block) if block_given?
           

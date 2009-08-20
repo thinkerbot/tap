@@ -144,19 +144,7 @@ module Tap
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
     nest :env, Env, :type => :hidden                 # The application environment
     
-    signal(:build) do |args|
-      unless args.kind_of?(Hash)
-        args = {
-          'set' => args.shift,
-          'type' => args.shift,
-          'class' => args.shift,
-          'args' => args
-        }
-      end
-      
-      [args]
-    end
-    
+    signal_hash(:build, :signature => ['set', 'type', 'class'], :remainder => 'args')
     signal :enque
     
     # Creates a new App with the given configuration.  
