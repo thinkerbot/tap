@@ -114,7 +114,7 @@ class AppTest < Test::Unit::TestCase
     assert_equal(App::Queue, app.queue.class)
     assert app.queue.empty?
     assert_equal(App::Stack, app.stack.class)
-    assert_equal [], app.default_joins
+    assert_equal [], app.joins
     assert_equal({}, app.cache)
     assert_equal App::State::READY, app.state
   end
@@ -122,7 +122,7 @@ class AppTest < Test::Unit::TestCase
   def test_initialization_with_block_sets_a_default_join
     b = lambda {}
     app = App.new(&b)
-    assert_equal [b], app.default_joins
+    assert_equal [b], app.joins
   end
   
   #
@@ -510,7 +510,7 @@ class AppTest < Test::Unit::TestCase
     assert was_in_block_b
   end
   
-  def test_dispatch_calls_default_joins_if_no_joins_are_specified
+  def test_dispatch_calls_app_joins_if_no_joins_are_specified
     n = intern { "result" }
     
     was_in_block_a = false
@@ -539,7 +539,7 @@ class AppTest < Test::Unit::TestCase
     end
   end
   
-  def test_dispatch_does_not_call_default_joins_if_joins_returns_nil
+  def test_dispatch_does_not_call_app_joins_if_joins_returns_nil
     n = NilJoins.new
     
     was_in_block = false
@@ -558,7 +558,7 @@ class AppTest < Test::Unit::TestCase
     end
   end
   
-  def test_dispatch_does_not_call_default_joins_node_does_not_respond_to_joins
+  def test_dispatch_does_not_call_app_joins_if_node_does_not_respond_to_joins
     n = NoJoins.new
     
     was_in_block = false
@@ -695,12 +695,12 @@ class AppTest < Test::Unit::TestCase
   #
   
   def test_on_complete_sets_a_default_join_for_self
-    app.default_joins.clear
+    app.joins.clear
 
     b = lambda {}
     app.on_complete(&b)
     
-    assert_equal [b], app.default_joins
+    assert_equal [b], app.joins
   end
   
   def test_on_complete_returns_self

@@ -261,7 +261,14 @@ a
 hello world
 }
   end
-    
+  
+  def test_run_can_modify_app
+    sh_test %Q{
+% tap run --/ enque app "app build 0 task dump --enque 'hello world'"
+hello world
+}
+  end
+  
   #
   # middleware
   #

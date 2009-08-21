@@ -117,6 +117,7 @@ module Tap
     include Configurable
     include MonitorMixin
     include Signals
+    include Node
     
     # The default App logger writes to $stderr at level INFO.
     DEFAULT_LOGGER = Logger.new($stderr)
@@ -137,9 +138,6 @@ module Tap
     # A cache of application objects
     attr_reader :cache
     
-    # The default joins for nodes that have no joins set
-    attr_accessor :default_joins
-    
     # The application logger
     attr_reader :logger
     
@@ -152,8 +150,10 @@ module Tap
     signal :run
     signal :stop
     signal :terminate
-    signal :enque
+    signal :info
+    
     signal_hash :build, :signature => ['set', 'type', 'class'], :remainder => 'args'
+    signal :enque
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, options={}, &block)
@@ -163,7 +163,7 @@ module Tap
       @stack = options[:stack] || Stack.new(self)
       @queue = options[:queue] || Queue.new
       @cache = options[:cache] || {}
-      @default_joins = []
+      @joins = []
       on_complete(&block)
       
       initialize_config(config)
@@ -242,6 +242,7 @@ module Tap
     # Non-string variables are converted to strings. Returns obj.
     def set(var, obj)
       var = var.to_s
+      var = '' if var == 'app'
       cache[var] = obj unless var.empty?
       obj
     end
@@ -250,6 +251,7 @@ module Tap
     # variables are converted to strings.
     def obj(var)
       var = var.to_s
+      var = '' if var == 'app'
       var.empty? ? self : cache[var]
     end
     
@@ -361,10 +363,10 @@ module Tap
     #
     # ==== Default Joins
     #
-    # The default_joins for self will be called if node.joins returns
-    # an empty array.  To prevent default_joins from being called, setup
-    # node.joins to return false or nil.  Nodes that do not respond to
-    # join will not call the default joins either.
+    # The joins for self will be called if node.joins returns an empty array.
+    # These 'default' joins will not be called if node.joins returns false or
+    # nil.  Nodes that do not respond to joins will not call the default
+    # joins either.
     #
     def dispatch(node, inputs=[])
       result = stack.call(node, inputs)
@@ -373,7 +375,7 @@ module Tap
         if joins = node.joins
 
           if joins.empty?
-            joins = default_joins
+            joins = self.joins
           end
         
           joins.each do |join|
@@ -502,13 +504,6 @@ module Tap
       end
       
       target
-    end
-    
-    # Sets the block to receive the result of nodes with no joins
-    # (ie the block is set as a default_join).
-    def on_complete(&block) # :yields: _result
-      self.default_joins << block if block
-      self
     end
     
     def to_schema

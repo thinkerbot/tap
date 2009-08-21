@@ -99,7 +99,7 @@ module Tap
     #   $3:: The modifier string, or nil
     #        (ex: '[][]is' => 'is')
     #
-    JOIN = /\A\[([\d,]*)\]\[([\d,]*)\](.+)?\z/
+    JOIN = /\A\[(.*?)\]\[(.*?)\](.+)?\z/
   
     # Matches a join modifier. After the match:
     #
