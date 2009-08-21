@@ -10,12 +10,33 @@ class AppBenchmark < Test::Unit::TestCase
   
   def test_run_speed
     app = Tap::App.new(:quiet => true) {|audit| }
-    t = Tap::App::Node.intern {}
     
     puts method_name
     Benchmark.bm(20) do |x|
       n = 10000
-          
+      
+      t = app.node {}
+      x.report("10k enq ") { n.times { app.enq(t) } }
+      x.report("10k run ") { n.times {}; app.run }
+      x.report("10k call ") { n.times { t.call } }
+    end
+  end
+  
+  module Unsynchronize
+    def synchronize
+      yield
+    end
+  end
+  
+  def test_unsynchronized_run_speed
+    app = Tap::App.new(:quiet => true) {|audit| }
+    app.queue.extend(Unsynchronize)
+    
+    puts method_name
+    Benchmark.bm(20) do |x|
+      n = 10000
+      
+      t = app.node {}
       x.report("10k enq ") { n.times { app.enq(t) } }
       x.report("10k run ") { n.times {}; app.run }
       x.report("10k call ") { n.times { t.call } }
