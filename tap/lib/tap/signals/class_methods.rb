@@ -15,7 +15,7 @@ module Tap
         end
       end
       
-      def signal(sig, opts={}) # :yields: argv
+      def signal(sig, opts={}) # :yields: sig, argv
         define_signal(sig, opts) do |method_name, signature, desc|
           
           Signal.bind(method_name, desc) do |args|
@@ -23,12 +23,12 @@ module Tap
               args = signature.collect {|key| args[key] }
             end
 
-            block_given? ? yield(args) : args
+            block_given? ? yield(self, args) : args
           end
         end
       end
       
-      def signal_hash(sig, opts={}) # :yields: argh
+      def signal_hash(sig, opts={}) # :yields: sig, argh
         remainder = opts[:remainder]
         define_signal(sig, opts) do |method_name, signature, desc|
           
@@ -44,7 +44,7 @@ module Tap
               end
             end
             
-            [block_given? ? yield(argh) : argh]
+            [block_given? ? yield(sig, argh) : argh]
           end
         end
       end

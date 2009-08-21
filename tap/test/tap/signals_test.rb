@@ -62,7 +62,7 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   class SignalBlockTest < SignalsClass
-    signal :echo do |argv|
+    signal :echo do |sig, argv|
       argv.reverse
     end
   end
@@ -73,7 +73,7 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   class SignalWithoutMethodTest < SignalsClass
-    signal :sig, :method_name => nil do |argv|
+    signal :sig, :method_name => nil do |sig, argv|
       argv << "was in block"
       argv
     end
@@ -94,7 +94,7 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   class SignalOrderTest < SignalsClass
-    signal :echo, :signature => [:a, :b, :c] do |argv|
+    signal :echo, :signature => [:a, :b, :c] do |sig, argv|
       argv.reverse
     end
   end
@@ -142,7 +142,7 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   class SignalHashOrderTest < SignalsClass
-    signal_hash :echo_hash, :signature => [:a, :b, :c] do |argh|
+    signal_hash :echo_hash, :signature => [:a, :b, :c] do |sig, argh|
       argh['was_in_block'] = true
       argh
     end

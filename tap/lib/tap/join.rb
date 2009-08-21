@@ -38,33 +38,45 @@ module Tap
         inputs, outputs, *args = parser.parse!(argv, :add_defaults => false)
         instance = build({
           'config' => parser.nested_config,
-          'inputs' => parse_indicies(inputs),
-          'outputs' => parse_indicies(outputs)
+          'inputs' => inputs,
+          'outputs' => outputs
         }, app)
           
         [instance, args]
       end
       
       def build(spec={}, app=Tap::App.instance)
-        inputs = spec['inputs']
-        inputs.collect! do |var| 
+        inputs = resolve(spec['inputs']) do |var|
           app.obj(var) or raise "missing join input: #{var}"
-        end if inputs
+        end
         
-        outputs = spec['outputs']
-        outputs.collect! do |var| 
+        outputs = resolve(spec['outputs']) do |var|
           app.obj(var) or raise "missing join output: #{var}"
-        end if outputs
+        end
         
         new(spec['config'] || {}, app).join(inputs, outputs)
       end
       
       protected
       
+      def resolve(refs) # :nodoc:
+        refs = case refs
+        when String then parse_indicies(refs)
+        when nil then []
+        else refs
+        end
+        
+        refs.collect! do |var|
+          if var.kind_of?(String)
+            yield(var)
+          else
+            var
+          end
+        end
+      end
+      
       # parses an str along commas, and collects the indicies as integers
       def parse_indicies(str) # :nodoc:
-        return [] if str.nil? || str.empty?
-        
         str.split(",").delete_if do |n|
           n.empty?
         end
@@ -98,6 +110,20 @@ module Tap
     #   result.to_ary.each {|r| app.execute(output, *r) }
     #
     config :iterate, false, :short => 'i', &c.flag  # Iterate results to outputs
+    
+    signal :join do |sig, (inputs, outputs)|
+      app = sig.obj.app
+      
+      inputs = resolve(inputs) do |var|
+        app.obj(var) or raise "missing join input: #{var}"
+      end
+      
+      outputs = resolve(outputs) do |var|
+        app.obj(var) or raise "missing join output: #{var}"
+      end
+      
+      [inputs, outputs]
+    end
     
     # An array of input nodes, or nil if the join has not been set.
     attr_reader :inputs

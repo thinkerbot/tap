@@ -260,9 +260,12 @@ a
 % tap run --/ build 0 task load --//build 1 task dump --//build//join/join/0/1 --/0/enq 'hello world'
 hello world
 }
-  end
-  
-  def test_run_can_modify_app
+
+    sh_test %Q{
+% tap run -e -- load --enque 'hello world' -- dump --/ build 2 join join --/2 join 0 1 
+hello world
+}
+
     sh_test %Q{
 % tap run --/ enque app "app build 0 task dump --enque 'hello world'"
 hello world
