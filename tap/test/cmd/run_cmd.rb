@@ -44,12 +44,6 @@ class RunCmd < Test::Unit::TestCase
     /--enq                        Enque output nodes/
   end
   
-  def test_run_prints_spec_help
-    sh_match "% tap run -- --. middleware debugger --help", 
-    /Tap::Middlewares::Debugger/,
-    /--help                       Print this help/
-  end
-  
   def test_run_prints_manifest
     expected = %Q{
   dump        # the default dump task
@@ -166,12 +160,6 @@ missing join input: 2
 }
   end
   
-  def test_run_silently_ignores_fragments
-    sh_test %Q{
-% tap run --. task --. join
-}
-  end
-
   #
   # success cases
   #
@@ -207,7 +195,7 @@ goodnight moon
     end
 
     sh_test %Q{
-% tap run '#{schema}' --@ 0 'hello world'
+% tap run '#{schema}' --/0/enq 'hello world'
 goodnight moon
 hello world
 } 
@@ -225,7 +213,7 @@ hello world
   
   def test_run_auto_enque_preserves_order
     sh_test %Q{
-% tap run -- load a --: dump --@ 0 b --- -- --@ 0 c
+% tap run -- load a --: dump --/0/enq b --- -- --/0/enq c
 a
 b
 c
@@ -234,7 +222,7 @@ c
   
   def test_require_enque_prevents_auto_enque
     sh_test %Q{
-% tap run --require-enque -- load a -- load b --enque -- dump --[0,1][2] --@ 0 c 2>&1
+% tap run --require-enque -- load a -- load b --enque -- dump --[0,1][2] --/0/enq c 2>&1
 ignoring args: ["a"]
 b
 c
@@ -257,18 +245,41 @@ a
   
   def test_run_using_signals
     sh_test %Q{
-% tap run --/ build 0 task load --//build 1 task dump --//build//join/join/0/1 --/0/enq 'hello world'
-hello world
+% tap run --//build 0 task load --//build 1 task dump --//build 2 join join 0 1 --//enque 0 'goodnight moon'
+goodnight moon
+}
+    sh_test %Q{
+% tap run --// 0 task load --// 1 task dump --// 2 join join 0 1 --/0/enq 'goodnight moon'
+goodnight moon
 }
 
     sh_test %Q{
-% tap run -e -- load --enque 'hello world' -- dump --/ build 2 join join --/2 join 0 1 
-hello world
+% tap run -e -- load --enque 'goodnight moon' -- dump --//build 2 join join --/2/join 0 1 
+goodnight moon
 }
 
     sh_test %Q{
-% tap run --/ enque app "app build 0 task dump --enque 'hello world'"
-hello world
+% tap run --//enque app "/build 0 task dump --enque 'goodnight moon'"
+goodnight moon
+}
+  end
+  
+  def test_run_allows_the_use_of_app_as_a_node
+    method_root.prepare(:lib, 'null.rb') do |io|
+      io << %q{
+        require 'tap/task'
+
+        # ::task
+        class Null < Tap::Task
+          def joins
+          end
+        end
+      }
+    end
+
+    sh_test %Q{
+% tap run -- dump --: null --[app][0] --//enque app /info
+state: 1 (RUN) queue: 0
 }
   end
   
@@ -292,7 +303,7 @@ hello world
     end
     
     sh_test %Q{
-% tap run -- load 'goodnight moon' --: dump --. middleware middleware
+% tap run -- load 'goodnight moon' --: dump --//use middleware
 Tap::Tasks::Load
 Tap::Tasks::Dump
 goodnight moon

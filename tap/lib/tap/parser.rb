@@ -117,12 +117,6 @@ module Tap
     #
     SIGNAL = /\A\/(.+)?\z/
   
-    # Matches a spec break.
-    SPEC = "."
-    
-    # Matches a job break.
-    JOB = "@"
-  
     attr_reader :specs
     
     def initialize(specs=[])
@@ -196,6 +190,7 @@ module Tap
         raise "cannot build unless app is ready"
       end
       
+      # remove spec fragments
       specs.delete_if do |spec|
         spec.length < 3
       end
@@ -261,16 +256,12 @@ module Tap
     def parse_break(one) # :nodoc:
       case one
       when nil
-      when JOB
-        parse_job
       when SEQUENCE
         parse_sequence($1)
       when JOIN
         parse_join($1, $2, $3)
       when SIGNAL
         parse_signal($1)
-      when SPEC
-        parse_spec
       else
         raise "invalid modifier"
       end
@@ -317,16 +308,8 @@ module Tap
     
     # parses the match of a SIGNAL regexp
     def parse_signal(one) # :nodoc:
-      var, *args = one.to_s.split("/")
-      spec(var, nil, *args)
-    end
-    
-    def parse_spec # :nodoc:
-      spec(@current_index.to_s)
-    end
-    
-    def parse_job # :nodoc:
-      spec(nil, nil, 'enque')
+      var, sig = one.to_s.split("/")
+      spec(var, nil, sig)
     end
   end
 end

@@ -152,8 +152,18 @@ module Tap
     signal :terminate
     signal :info
     
-    signal_hash :build, :signature => ['set', 'type', 'class'], :remainder => 'args'
     signal :enque
+    signal_hash :build, 
+      :signature => ['set', 'type', 'class'], 
+      :remainder => 'args'
+    signal_hash(:use, 
+      :method_name => :build, 
+      :signature => ['class'], 
+      :remainder => 'args'
+    ) do |sig, argh|
+      argh['type'] = 'middleware'
+      argh
+    end
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, options={}, &block)
@@ -279,13 +289,12 @@ module Tap
     
     def call(spec)
       if spec.kind_of?(String)
-        argv = Shellwords.shellwords(spec)
-        var, *args = argv.shift.to_s.split("/")
-        args.concat(argv)
+        args = Shellwords.shellwords(spec)
+        var, sig = args.shift.to_s.split("/")
         
         spec = {
           'var' => var,
-          'sig' => args.shift,
+          'sig' => sig,
           'args' => args
         }
       end

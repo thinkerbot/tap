@@ -36,14 +36,6 @@ class ParserTest < Test::Unit::TestCase
     assert "--[1,2][3,4]is.join" =~ r
     assert_equal "[1,2][3,4]is.join", $1
     
-    # enq
-    assert "--@" =~ r
-    assert_equal "@", $1
-    
-    # init
-    assert "--." =~ r
-    assert_equal ".", $1
-    
     # signal
     assert "--/var" =~ r
     assert_equal "/var", $1
@@ -320,39 +312,15 @@ class ParserTest < Test::Unit::TestCase
   
   def test_parser_parses_signals
     parser.parse  "--/variable/signal a b c"
+    parser.parse  "--/variable/ a b c"
     parser.parse  "--//signal a b c"
-    parser.parse  "--/variable signal a b c"
-    parser.parse  "--/ signal a b c"
-    parser.parse  "--/a/b/c d e f"
+    parser.parse  "--// a b c"
     
     assert_equal [
       ["variable", nil, "signal", "a", "b", "c"],
+      ["variable", nil, nil, "a", "b", "c"],
       ["", nil, "signal", "a", "b", "c"],
-      ["variable", nil, "signal", "a", "b", "c"],
-      [nil, nil, "signal", "a", "b", "c"],
-      ["a", nil, "b", "c", "d", "e", "f"]
-    ], parser.specs
-  end
-  
-  #
-  # spec tests
-  #
-  
-  def test_parser_parses_spec
-    parser.parse  "--. type class a b c"
-    assert_equal [
-      ["0", "type", "class", "a", "b", "c"]
-    ], parser.specs
-  end
-  
-  #
-  # job tests
-  #
-  
-  def test_parser_parses_job
-    parser.parse  "--@ a b c"
-    assert_equal [
-      [nil, nil, "enque", "a", "b", "c"]
+      [nil, nil, nil, "a", "b", "c"],
     ], parser.specs
   end
 end
