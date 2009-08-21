@@ -24,7 +24,7 @@ class SignalsTest < Test::Unit::TestCase
   
   def test_signal_raises_error_for_non_existant_signal
     obj = SignalsClass.new
-    err = assert_raises(RuntimeError) { obj.signal(:echo) }
+    err = assert_raises(RuntimeError) { obj.signal('echo') }
     assert_equal "unknown signal: echo (SignalsTest::SignalsClass)", err.message
   end
   
@@ -33,16 +33,16 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   def test_signal_creates_a_signal_for_the_specified_method
-    assert SignalDefTest.signals.has_key?(:echo)
+    assert SignalDefTest.signals.has_key?('echo')
     
     obj = SignalDefTest.new
-    assert_equal ["echo"], obj.signal(:echo)
-    assert_equal [1,2,3, "echo"], obj.signal(:echo, [1,2,3])
+    assert_equal ["echo"], obj.signal('echo')
+    assert_equal [1,2,3, "echo"], obj.signal('echo', [1,2,3])
   end
   
-  def test_signal_symbolizes_string_sigs
+  def test_signal_stringifies_sig
     obj = SignalDefTest.new
-    assert_equal ["echo"], obj.signal('echo')
+    assert_equal ["echo"], obj.signal(:echo)
   end
   
   #
@@ -55,9 +55,9 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   def test_signal_method_name_sets_method_name
-    assert !SignalAsTest.signals.has_key?(:echo)
+    assert !SignalAsTest.signals.has_key?('echo')
     
-    alt = SignalAsTest.signals[:alt]
+    alt = SignalAsTest.signals['alt']
     assert_equal :echo, alt.method_name
   end
   
@@ -69,7 +69,7 @@ class SignalsTest < Test::Unit::TestCase
   
   def test_signal_calls_method_with_block_return
     obj = SignalBlockTest.new
-    assert_equal [3,2,1, "echo"], obj.signal(:echo, [1,2,3])
+    assert_equal [3,2,1, "echo"], obj.signal('echo', [1,2,3])
   end
   
   class SignalWithoutMethodTest < SignalsClass
@@ -80,7 +80,7 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   def test_signals_return_block_return_if_not_bound_to_a_method
-    res = SignalWithoutMethodTest.new.signal(:sig, [1,2,3])
+    res = SignalWithoutMethodTest.new.signal('sig', [1,2,3])
     assert_equal [1,2,3, "was in block"], res
   end
   
@@ -90,7 +90,7 @@ class SignalsTest < Test::Unit::TestCase
   
   def test_signal_builds_argv_from_hash_signature
     obj = SignalSignatureTest.new
-    assert_equal [1,2,3, "echo"], obj.signal(:echo, :a => 1, :b => 2, :c => 3)
+    assert_equal [1,2,3, "echo"], obj.signal('echo', :a => 1, :b => 2, :c => 3)
   end
   
   class SignalOrderTest < SignalsClass
@@ -101,7 +101,7 @@ class SignalsTest < Test::Unit::TestCase
   
   def test_signal_sends_built_argv_to_parse
     obj = SignalOrderTest.new
-    assert_equal [3,2,1, "echo"], obj.signal(:echo, :a => 1, :b => 2, :c => 3)
+    assert_equal [3,2,1, "echo"], obj.signal('echo', :a => 1, :b => 2, :c => 3)
   end
   
   #
@@ -169,7 +169,7 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   def test_signal_documents_description
-    desc = SignalDescTest.signals[:echo].desc
+    desc = SignalDescTest.signals['echo'].desc
     assert_equal "subject", desc.to_s
     assert_equal "content...", desc.wrap
   end
@@ -203,21 +203,21 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   def test_signals_are_inherited
-    assert_equal true, SignalParent.signals.has_key?(:a)
-    assert_equal true, SignalParent.signals.has_key?(:b)
-    assert_equal false, SignalParent.signals.has_key?(:c)
+    assert_equal true, SignalParent.signals.has_key?('a')
+    assert_equal true, SignalParent.signals.has_key?('b')
+    assert_equal false, SignalParent.signals.has_key?('c')
     
-    assert_equal true, SignalChild.signals.has_key?(:a)
-    assert_equal true, SignalChild.signals.has_key?(:b)
-    assert_equal true, SignalChild.signals.has_key?(:c)
+    assert_equal true, SignalChild.signals.has_key?('a')
+    assert_equal true, SignalChild.signals.has_key?('b')
+    assert_equal true, SignalChild.signals.has_key?('c')
   end
   
   def test_signals_can_be_overridden
-    assert_equal SignalParent::A, SignalParent.signals[:a]
-    assert_equal SignalParent::B, SignalParent.signals[:b]
+    assert_equal SignalParent::A, SignalParent.signals['a']
+    assert_equal SignalParent::B, SignalParent.signals['b']
     
-    assert_equal SignalParent::A, SignalChild.signals[:a]
-    assert_equal SignalChild::B, SignalChild.signals[:b]
+    assert_equal SignalParent::A, SignalChild.signals['a']
+    assert_equal SignalChild::B, SignalChild.signals['b']
   end
   
 end

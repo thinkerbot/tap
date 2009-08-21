@@ -34,6 +34,7 @@ Gem::Specification.new do |s|
     lib/tap/app/queue.rb
     lib/tap/app/stack.rb
     lib/tap/app/state.rb
+    lib/tap/app/tracer.rb
     lib/tap/env.rb
     lib/tap/env/constant.rb
     lib/tap/env/gems.rb
@@ -53,6 +54,7 @@ Gem::Specification.new do |s|
     lib/tap/root/versions.rb
     lib/tap/signals.rb
     lib/tap/signals/class_methods.rb
+    lib/tap/signals/index.rb
     lib/tap/signals/signal.rb
     lib/tap/task.rb
     lib/tap/tasks/dump.rb

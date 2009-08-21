@@ -12,7 +12,8 @@ module Tap
   module Signals
     def self.included(mod)
       mod.extend ClassMethods
-      mod.instance_variable_set(:@signals, {})
+      mod.initialize_signals
+      mod.signal("", :class => Index)
       super
     end
     
@@ -25,11 +26,8 @@ module Tap
     # 
     # Should handle array args or hash.
     def signal(sig, args=[])
-      if sig.nil?
-        # make index, return
-      end
-      
-      unless signal = self.class.signals[sig.to_sym]
+      sig = sig.to_s
+      unless signal = self.class.signals[sig]
         raise "unknown signal: #{sig} (#{self.class})"
       end
       
@@ -37,3 +35,4 @@ module Tap
     end
   end
 end
+

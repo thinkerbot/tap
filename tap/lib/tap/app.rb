@@ -147,10 +147,10 @@ module Tap
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
     nest :env, Env, :type => :hidden                 # The application environment
     
-    signal :run
-    signal :stop
-    signal :terminate
-    signal :info
+    signal :run             # run the app
+    signal :stop            # stop the app
+    signal :terminate       # terminate the app
+    signal :info            # prints app status
     
     signal :enque
     signal_hash :build, 
@@ -300,8 +300,10 @@ module Tap
       end
       
       var = spec['var']
-      sig = spec['sig'] || 'build'
+      sig = spec['sig']
       args = spec['args'] || spec
+      
+      sig ||= args.empty? ? nil : 'build'
       
       obj(var).signal(sig, args)
     end
