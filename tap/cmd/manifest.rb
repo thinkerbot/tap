@@ -32,7 +32,7 @@ template = %Q{<% unless manifests.empty? %>
 }
 
 # filter envs to manifest
-env = Tap::Env.instance
+env = Tap::App.instance.env
 env_keys = env.minihash(true)
 filter = if ARGV.empty?
   env_keys.keys

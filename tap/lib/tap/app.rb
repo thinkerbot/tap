@@ -105,7 +105,12 @@ module Tap
       # Instance is used to initialize tasks when no app is specified.  Aside
       # from that, there is nothing magical about instance.
       def instance(auto_initialize=true)
-        @instance ||= (auto_initialize ? new(:env => Tap::Env.instance) : nil)
+        @instance ||= (auto_initialize ? new : nil)
+      end
+      
+      def setup(options={}, env_vars=ENV)
+        env = Env.setup(options, env_vars)
+        @instance = new(:env => env)
       end
     end
     

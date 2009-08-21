@@ -774,9 +774,6 @@ class EnvActivateTest < Test::Unit::TestCase
   attr_accessor :e
   
   def setup
-    @current_instance = Env.instance
-    Env.instance = nil
-    
     @current_load_paths = $LOAD_PATH.dup
     $LOAD_PATH.clear
 
@@ -784,7 +781,6 @@ class EnvActivateTest < Test::Unit::TestCase
   end
   
   def teardown
-    Env.instance = @current_instance
     $LOAD_PATH.clear
     $LOAD_PATH.concat(@current_load_paths)
   end
@@ -840,21 +836,6 @@ class EnvActivateTest < Test::Unit::TestCase
     e.activate
     
     assert_equal [], $LOAD_PATH
-  end
-  
-  def test_activate_assigns_self_as_Env_instance
-    assert_nil Env.instance(false)
-    e.activate
-    assert_equal e, Env.instance(false)
-  end
-  
-  def test_activate_does_not_assign_self_as_Env_instance_if_already_set
-    e.activate
-    assert_equal e, Env.instance(false)
-    
-    e1 = Env.new
-    e1.activate
-    assert_equal e, Env.instance(false)
   end
   
   #
@@ -924,14 +905,6 @@ class EnvActivateTest < Test::Unit::TestCase
     e.deactivate
     
     assert_equal ["pre", e.root["/path/to/lib"], e.root["/path/to/another/lib"], "post"], $LOAD_PATH
-  end
-  
-  def test_deactivate_unassigns_self_as_Env_instance
-    e.activate
-    assert_equal e, Env.instance(false)
-    
-    e.deactivate
-    assert_nil Env.instance(false)
   end
   
   #

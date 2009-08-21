@@ -15,11 +15,11 @@
 require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 
 #
-# setup the environment
+# setup the application
 #
 
 begin
-  env = Tap::Env.instance
+  app = Tap::App.setup
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
@@ -28,10 +28,10 @@ rescue(Tap::Env::ConfigError)
 end
 
 #
-# launch tap
+# launch the command
 #
 
-env.activate
+env = app.env
 env.register('command') do |env|
   env.root.glob(:cmd, "**/*.rb")
 end

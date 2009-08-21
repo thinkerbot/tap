@@ -19,7 +19,7 @@ class ConsoleCmd < Test::Unit::TestCase
   #
   
   #   % tap console
-  #   >> env[:task][:dump]
+  #   >> app.env[:task][:dump]
   #   => Tap::Tasks::Dump
   #   >> app.info
   #   => "state: 0 (READY) queue: 0"
@@ -30,12 +30,12 @@ class ConsoleCmd < Test::Unit::TestCase
       
       cmd = "% tap console > #{path}".sub(CMD_PATTERN, CMD)
       IO.popen(cmd, 'w') do |io|
-        io.puts "env[:task][:dump]"
+        io.puts "app.env[:task][:dump]"
         io.puts "app.info"
       end
       
       assert_equal %q{
-env[:task][:dump]
+app.env[:task][:dump]
 Tap::Tasks::Dump
 app.info
 "state: 0 (READY) queue: 0"

@@ -9,54 +9,6 @@ module Tap
     autoload(:Gems, 'tap/env/gems')
   
     class << self
-      attr_writer :instance
-      
-      def instance(auto_initialize=true)
-        @instance ||= (auto_initialize ? setup : nil)
-      end
-      
-      def setup(options={}, env_vars=ENV)
-        options = {
-          :dir => Dir.pwd,
-          :config_file => CONFIG_FILE
-        }.merge(options)
-
-        # load configurations
-        dir = options.delete(:dir)
-        config_file = options.delete(:config_file)
-        user_config_file = config_file ? File.join(dir, config_file) : nil
-
-        user = load_config(user_config_file)
-        global = {}
-        env_vars.each_pair do |key, value|
-          if key =~ /\ATAP_(.*)\z/
-            global[$1.downcase] = value
-          end
-        end
-
-        config = {
-          'root' => dir,
-          'gems' => :all
-        }.merge(global).merge(user).merge(options)
-
-        # keys must be symbolize as they are immediately 
-        # used to initialize the Env configs
-        config = config.inject({}) do |options, (key, value)|
-          options[key.to_sym || key] = value
-          options
-        end
-
-        # instantiate
-        env = new(config, :basename => config_file)
-        
-        # add the tap env if necessary
-        unless env.any? {|e| e.root.root == TAP_HOME }
-          env.push new(TAP_HOME, env.context) 
-        end
-
-        env
-      end
-      
       def from_gemspec(spec, context={})
         path = spec.full_gem_path
         basename = context[:basename]
@@ -93,6 +45,49 @@ module Tap
         end
         
         new(config, context)
+      end
+      
+      def setup(options={}, env_vars=ENV)
+        options = {
+          :dir => Dir.pwd,
+          :config_file => CONFIG_FILE
+        }.merge(options)
+
+        # load configurations
+        dir = options.delete(:dir)
+        config_file = options.delete(:config_file)
+        user_config_file = config_file ? File.join(dir, config_file) : nil
+
+        user = load_config(user_config_file)
+        global = {}
+        env_vars.each_pair do |key, value|
+          if key =~ /\ATAP_(.*)\z/
+            global[$1.downcase] = value
+          end
+        end
+
+        config = {
+          'root' => dir,
+          'gems' => :all
+        }.merge(global).merge(user).merge(options)
+
+        # keys must be symbolized as they are immediately 
+        # used to initialize the Env configs
+        config = config.inject({}) do |options, (key, value)|
+          options[key.to_sym || key] = value
+          options
+        end
+
+        # instantiate
+        env = new(config, :basename => config_file)
+        
+        # add the tap env if necessary
+        unless env.any? {|e| e.root.root == HOME }
+          env.push new(HOME, env.context) 
+        end
+        
+        env.activate
+        env
       end
       
       # Loads configurations from path as YAML.  Returns an empty hash if the path
@@ -158,7 +153,6 @@ module Tap
         end
       end
     end
-    self.instance = nil
     
     include Enumerable
     include Configurable
@@ -168,7 +162,7 @@ module Tap
     CONFIG_FILE = "tap.yml"
     
     # The home directory for Tap
-    TAP_HOME = File.expand_path("#{File.dirname(__FILE__)}/../..")
+    HOME = File.expand_path("#{File.dirname(__FILE__)}/../..")
     
     # Matches a compound registry search key.  After the match, if the key is
     # compound then:
@@ -354,7 +348,6 @@ module Tap
     
     # Activates self by doing the following, in order:
     #
-    # * sets Env.instance to self (unless already set)
     # * activate nested environments
     # * unshift load_paths to $LOAD_PATH (if set_load_paths is true)
     #
@@ -365,9 +358,6 @@ module Tap
       return false if active?
       
       @active = true
-      unless self.class.instance(false)
-        self.class.instance = self
-      end
       
       # freeze envs and load paths
       @envs.freeze
@@ -394,7 +384,6 @@ module Tap
     #
     # * deactivates nested environments
     # * removes load_paths from $LOAD_PATH (if set_load_paths is true)
-    # * sets Env.instance to nil (if set to self)
     # * clears cached manifest data
     #
     # Once deactivated, envs and load_paths are unfrozen and may be modified.
@@ -416,12 +405,6 @@ module Tap
       # unfreeze envs and load paths
       @envs = @envs.dup
       @load_paths = @load_paths.dup
-      
-      # clear cached data
-      klass = self.class
-      if klass.instance(false) == self
-        klass.instance = nil
-      end
       
       true
     end

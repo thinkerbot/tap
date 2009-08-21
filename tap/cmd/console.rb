@@ -5,7 +5,7 @@
 # environment through 'env'.  For example:
 #
 #   % tap console
-#   >> env[:task][:dump]
+#   >> app.env[:task][:dump]
 #   => Tap::Tasks::Dump
 #   >> app.info
 #   => "state: 0 (READY) queue: 0"
@@ -27,10 +27,6 @@ require "irb"
 
 def app
   @app ||= Tap::App.instance
-end
-
-def env
-  @env ||= Tap::Env.instance
 end
 
 IRB.start
