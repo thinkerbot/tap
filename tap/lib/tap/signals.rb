@@ -18,21 +18,13 @@ module Tap
       mod.signals[""] = Index
     end
     
-    # To mount as a controller (provided in utils):
-    #
-    #   lambda do |env|
-    #     obj.signal(env.path_info, env.query)
-    #   end
-    #
-    # 
-    # Should handle array args or hash.
-    def signal(sig, args=[])
+    def signal(sig)
       sig = sig.to_s
       unless signal = self.class.signals[sig]
         raise "unknown signal: #{sig} (#{self.class})"
       end
       
-      signal.new(self).call(args)
+      signal.new(self)
     end
   end
 end

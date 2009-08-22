@@ -307,7 +307,7 @@ module Tap
       
       sig ||= args.empty? ? nil : 'build'
       
-      obj(var).signal(sig, args)
+      obj(var).signal(sig).call(args)
     end
     
     def build(spec)

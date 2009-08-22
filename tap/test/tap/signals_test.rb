@@ -36,13 +36,13 @@ class SignalsTest < Test::Unit::TestCase
     assert SignalDefTest.signals.has_key?('echo')
     
     obj = SignalDefTest.new
-    assert_equal ["echo"], obj.signal('echo')
-    assert_equal [1,2,3, "echo"], obj.signal('echo', [1,2,3])
+    assert_equal ["echo"], obj.signal('echo').call([])
+    assert_equal [1,2,3, "echo"], obj.signal('echo').call([1,2,3])
   end
   
   def test_signal_stringifies_sig
     obj = SignalDefTest.new
-    assert_equal ["echo"], obj.signal(:echo)
+    assert_equal ["echo"], obj.signal(:echo).call([])
   end
   
   #
@@ -57,7 +57,7 @@ class SignalsTest < Test::Unit::TestCase
     assert !SignalAsTest.signals.has_key?('echo')
     
     obj = SignalAsTest.new
-    assert_equal [1,2,3, "echo"], obj.signal('alt', [1,2,3])
+    assert_equal [1,2,3, "echo"], obj.signal('alt').call([1,2,3])
   end
   
   class SignalBlockTest < SignalsClass
@@ -68,7 +68,7 @@ class SignalsTest < Test::Unit::TestCase
   
   def test_signal_calls_method_with_block_return
     obj = SignalBlockTest.new
-    assert_equal [3,2,1, "echo"], obj.signal('echo', [1,2,3])
+    assert_equal [3,2,1, "echo"], obj.signal('echo').call([1,2,3])
   end
   
   class SignalWithoutMethodTest < SignalsClass
@@ -79,7 +79,7 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   def test_signals_return_block_return_if_not_bound_to_a_method
-    res = SignalWithoutMethodTest.new.signal('sig', [1,2,3])
+    res = SignalWithoutMethodTest.new.signal('sig').call([1,2,3])
     assert_equal [1,2,3, "was in block"], res
   end
   
@@ -89,7 +89,7 @@ class SignalsTest < Test::Unit::TestCase
   
   def test_signal_builds_argv_from_hash_signature
     obj = SignalSignatureTest.new
-    assert_equal [1,2,3, "echo"], obj.signal('echo', :a => 1, :b => 2, :c => 3)
+    assert_equal [1,2,3, "echo"], obj.signal('echo').call(:a => 1, :b => 2, :c => 3)
   end
   
   class SignalOrderTest < SignalsClass
@@ -100,7 +100,7 @@ class SignalsTest < Test::Unit::TestCase
   
   def test_signal_sends_built_argv_to_parse
     obj = SignalOrderTest.new
-    assert_equal [3,2,1, "echo"], obj.signal('echo', :a => 1, :b => 2, :c => 3)
+    assert_equal [3,2,1, "echo"], obj.signal('echo').call(:a => 1, :b => 2, :c => 3)
   end
   
   #
@@ -118,7 +118,7 @@ class SignalsTest < Test::Unit::TestCase
       'b' => 2, 
       :c => 3, 
       'echo' => true
-    }, obj.signal(:echo_hash, [1,2,3]))
+    }, obj.signal(:echo_hash).call([1,2,3]))
   end
   
   class SignalHashArgsTest < SignalsClass
@@ -131,13 +131,13 @@ class SignalsTest < Test::Unit::TestCase
       :a => 1, 
       :args => [2,3],
       'echo' => true
-    }, obj.signal(:echo_hash, [1,2,3]))
+    }, obj.signal(:echo_hash).call([1,2,3]))
     
     assert_equal({
       :a => 1, 
       :args => [],
       'echo' => true
-    }, obj.signal(:echo_hash, [1]))
+    }, obj.signal(:echo_hash).call([1]))
   end
   
   class SignalHashOrderTest < SignalsClass
@@ -155,7 +155,7 @@ class SignalsTest < Test::Unit::TestCase
       :c => 3, 
       'echo' => true, 
       'was_in_block' => true
-    }, obj.signal(:echo_hash, [1,2,3]))
+    }, obj.signal(:echo_hash).call([1,2,3]))
   end
   
   #
