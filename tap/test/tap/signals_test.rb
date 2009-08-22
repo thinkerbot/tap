@@ -49,7 +49,6 @@ class SignalsTest < Test::Unit::TestCase
   # signal options
   #
   
-  #
   class SignalAsTest < SignalsClass
     signal :alt, :method_name => :echo
   end
@@ -57,8 +56,8 @@ class SignalsTest < Test::Unit::TestCase
   def test_signal_method_name_sets_method_name
     assert !SignalAsTest.signals.has_key?('echo')
     
-    alt = SignalAsTest.signals['alt']
-    assert_equal :echo, alt.method_name
+    obj = SignalAsTest.new
+    assert_equal [1,2,3, "echo"], obj.signal('alt', [1,2,3])
   end
   
   class SignalBlockTest < SignalsClass

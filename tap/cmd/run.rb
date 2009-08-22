@@ -96,6 +96,7 @@ end
 prompt = lambda do
   require 'readline'
   
+  puts "starting prompt (enter for help):"
   loop do
     begin
       line = Readline.readline('--/', true)

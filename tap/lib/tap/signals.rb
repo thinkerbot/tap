@@ -7,14 +7,15 @@ module Tap
   # from the command line (ie an ARGV) or from interfaces like HTTP that
   # commonly produce a parameters hash.
   #
-  #
-  
   module Signals
     def self.included(mod)
+      super
+      
       mod.extend ClassMethods
       mod.initialize_signals
-      mod.signal("", :class => Index)
-      super
+      
+      # initialize the default index signal
+      mod.signals[""] = Index
     end
     
     # To mount as a controller (provided in utils):

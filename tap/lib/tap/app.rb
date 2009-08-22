@@ -288,6 +288,8 @@ module Tap
     end
     
     def call(spec)
+      return self unless spec
+      
       if spec.kind_of?(String)
         args = Shellwords.shellwords(spec)
         var, sig = args.shift.to_s.split("/")

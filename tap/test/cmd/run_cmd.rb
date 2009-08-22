@@ -169,6 +169,22 @@ missing join input: 2
 % tap run -- load 'goodnight moon' --: dump
 goodnight moon
 }
+    sh_test %Q{
+% tap run -- load 'goodnight moon' -- dump --[0][1]
+goodnight moon
+}
+    sh_test %Q{
+% tap run -- load --enque 'goodnight moon' --: dump
+goodnight moon
+}
+    sh_test %Q{
+% tap run -e -- load --enque 'goodnight moon' --: dump
+goodnight moon
+}
+    sh_test %Q{
+% tap run -e -- load --: dump --/0/enq 'goodnight moon'
+goodnight moon
+}
   end
   
   SAMPLE_SCHEMA = [
