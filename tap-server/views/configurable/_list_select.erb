@@ -1,6 +1,0 @@
-<input type="hidden" name="<%= name %>[]" value="#" />
-<select name="<%= name %>[]" multiple="true">
-<% (config[:options] || []).each do |option| %>
-  <option value="<%= format_yaml(option) %>" <%= value && value.include?(option) ? "selected='true' " : ""%>><%= option %></option>
-<% end %>
-</select>

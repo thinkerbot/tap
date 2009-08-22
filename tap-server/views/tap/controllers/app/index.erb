@@ -1,0 +1,46 @@
+<div>
+<% [:run, :stop, :terminate].each do |signal| %>
+<form action="<%= uri(nil, signal) %>" style="display:inline" method="post">
+  <input type="submit" value="<%= signal %>" />
+</form>
+<% end %>
+<%= app.info %>
+</div>
+
+<h3>Build:</h3>
+<% env = app.env %>
+<% objects = app.cache %>
+<form action="<%= uri nil, :build %>" method="post">
+<input type="text" name="set" value="<%= objects.length %>">Variable</input><br/>
+<input type="text" name="type">Type</input><br/>
+<input type="text" name="class">Class</input><br/>
+<input type="submit" value="build" />
+</form>
+
+<form method="post" action="<%= uri(nil) %>">
+  <h3>Objects:</h3>
+  
+<% if objects.empty? %>
+  <span>(no workflow built)</span>
+<% end %>
+  <ul>
+<% objects.each_pair do |id, obj| %>
+  <li>
+    <input type="checkbox" name="ids[]" value="<%= id %>" />
+    <a href="<%= uri(id) %>"><%= id %></a> (<%= obj.class %>)
+  </li>
+<% end %>
+  </ul>
+  
+  <ul>
+  <li><a href="javascript:Tap.Utils.select_all_by_name('ids[]')">All</a></li>
+  <li><a href="javascript:Tap.Utils.deselect_all_by_name('ids[]')">None</a></li>
+  </ul>
+  
+  <h3>Action</h3>
+  <ul>
+  <li><input type="radio" name="_method" value="destroy_all">Delete</input></li>
+  </ul>
+  
+  <input type="submit" value="Submit" />
+</form>

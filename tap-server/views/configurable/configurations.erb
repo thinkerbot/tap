@@ -1,0 +1,57 @@
+<dl>
+<% configurations.each_pair do |key, config|  %>
+<%  next if config[:type] == :hidden %>
+<%  name = "#{name_base}[#{key.inspect}]" %>
+<%  value = values[key] %>
+
+<%  if config.is_nest? %>
+  <dt class="name"><%= key %></dt>
+  <dd class="nested-configs">
+<%=   module_render("configurations.erb", obj, :locals => {
+        :name_base => name,
+        :configurations => config.default(false).delegates, 
+        :values => value
+      }) %>
+  </dd>
+<%    next %>  
+<%  end %>
+
+  <dt><%= key %></dt>
+  <dd>
+<%  case config[:type] %>
+<%  when :flag %>
+  <input name="<%= name %>" type="hidden" value="false" />
+  <input name="<%= name %>" type="checkbox" value="true" <%= value ? 'checked="true"' : '' %> />
+  
+<%  when :switch %>
+  <input name="<%= name %>" type="radio" value="true"  <%= value  ? 'checked="true" ' : '' %>>on</input>
+  <input name="<%= name %>" type="radio" value="false" <%= !value ? 'checked="true" ' : '' %>>off</input>
+  
+<%  when :select %>
+  <select name="<%= name %>">
+  <% (config[:options] || []).each do |option| %>
+    <option value="<%= option %>" <%= value == option ? "selected='true' " : ""%>><%= option %></option>
+  <% end %>
+  </select>
+  
+<%  when :list_select %>
+  <input type="hidden" name="<%= name %>[]" value="#" />
+  <select name="<%= name %>[]" multiple="true">
+  <% (config[:options] || []).each do |option| %>
+    <option value="<%= option %>" <%= value && value.include?(option) ? "selected='true' " : ""%>><%= option %></option>
+  <% end %>
+  </select>
+
+<%  when :hidden %>
+<%    next %>
+<%  else %>
+<%=   render(
+        :file =>  module_path("#{config[:type]}.erb", obj.class) || template_path("configurable/default.erb"), 
+        :locals => {
+          :name => name,
+          :config => config,
+          :value => value}) %>    
+<%  end %>
+  </dd>
+<% end %>
+</dl>

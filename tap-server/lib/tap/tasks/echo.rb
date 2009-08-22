@@ -15,7 +15,7 @@ module Tap
       #config :sym, :sym, &c.symbol           # sym
       config :integer, 10, &c.integer        # integer
       config :numeric, 10, &c.numeric        # numeric
-      config :float, 10, &c.float            # float
+      config :float, 10.0, &c.float            # float
       
       config :string_or_nil, nil, &c.string_or_nil   # string_or_nil (nil)
       #config :sym_or_nil, nil, &c.symbol_or_nil      # symbol_or_nil (nil)

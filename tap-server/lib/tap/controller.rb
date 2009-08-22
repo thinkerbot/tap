@@ -374,8 +374,7 @@ module Tap
     end
     
     def module_render(path, obj, options={})
-      obj = obj.class unless obj.kind_of?(Module)
-      options[:file] = module_path(path, obj) || module_path(path)
+      options[:file] = module_path(path, obj.class) || module_path(path)
       
       locals = options[:locals] ||= {}
       locals[:obj] ||= obj

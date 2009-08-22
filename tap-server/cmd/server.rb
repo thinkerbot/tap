@@ -6,11 +6,10 @@
 require 'tap'
 require 'tap/server'
 
-env = Tap::Env.instance
 app = Tap::App.instance
 
 begin
-  opts = ConfigParser.new('env' => env, 'app' => app)
+  opts = ConfigParser.new('app' => app)
   opts.separator ""
   opts.separator "configurations:"
   opts.add(Tap::Server.configurations)
@@ -36,7 +35,7 @@ begin
     args << 'server'
   end
   
-  controller = env[:controller][args.shift]
+  controller = app.env[:controller][args.shift]
   
   unless args.empty?
     warn "ignoring args: #{args.inspect}"

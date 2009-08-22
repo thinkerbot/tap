@@ -313,8 +313,13 @@ module Tap
     def build(spec)
       var = spec['set']
       args = spec['args'] || spec
-      type = spec['type']
-      klass = spec['class']
+      type = spec['type'].to_s.strip
+      klass = spec['class'].to_s.strip
+      
+      # these checks exist because the server interface 
+      # isn't smart enough to do them yet
+      raise "no type specified" if type.empty?
+      raise "no class specified" if klass.empty?
       
       unless klass = env[type][klass]
         raise "unresolvable #{type}: #{spec['class'].inspect}"
