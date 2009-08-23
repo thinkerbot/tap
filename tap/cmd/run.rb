@@ -9,19 +9,13 @@
 require 'tap/parser'
 
 app = Tap::App.instance
-
-mode = nil
-auto_enque = true
+opts = {:auto_enque => true}
 parser = ConfigParser.bind(app.config) do |psr|
   psr.separator ""
   psr.separator "configurations:"
   
-  root_keys = Tap::Root.configurations.keys
-  Tap::App.configurations.each_pair do |key, config|
-    next if root_keys.include?(key)
-    psr.define(key, config.default, config.attributes)
-  end
- 
+  psr.add Tap::App.configurations
+  
   psr.separator ""
   psr.separator "options:"
   
@@ -33,11 +27,11 @@ parser = ConfigParser.bind(app.config) do |psr|
   end
   
   psr.on('-p', '--preview', 'Print the schema as YAML') do
-    mode = :preview
+    opts[:preview] = true
   end
   
   psr.on('-P', '--prompt', 'Enter the signal prompt') do
-    mode = :prompt
+    opts[:prompt] = true
   end
   
   psr.on('-t', '--manifest', 'Print a list of available resources') do
@@ -85,7 +79,7 @@ parser = ConfigParser.bind(app.config) do |psr|
   end
   
   psr.on('-e', '--require-enque', 'Require manual enque for tasks') do
-    auto_enque = false
+    opts[:auto_enque] = false
   end
 end
 
@@ -93,6 +87,10 @@ end
 # build and run
 #
 
+# A prompt to signal a running app. Any signals that return app (ie /run /stop
+# /terminate) will exit the block.  Note that app should be running when the
+# prompt is called so that a run signal defers to the running app and allows
+# the prompt to exit.
 prompt = lambda do
   require 'readline'
   
@@ -113,9 +111,34 @@ prompt = lambda do
   end
 end
 
+# Traps interrupt the normal flow of the program and so I assume thread safety
+# is an issue (ex if the INT occurs during an enque and a signal specifies
+# another enque). A safer way to go is to enque the prompt... when the prompt
+# is executed the app won't be be doing anything else so thread safety
+# shouldn't be an issue.
 Signal.trap('INT') do
   puts
-  prompt.call
+  puts "Interrupt!  Note signals from an interruption are not thread-safe."
+  
+  call_prompt = true
+  3.times do
+    print "Wait for thread-safe break? (y/n): "
+    
+    case gets.strip
+    when /^y(es)?$/i
+      puts "waiting for break..."
+      app.queue.unshift(prompt, [])
+      call_prompt = false
+      break
+      
+    when /^no?$/i
+      break
+    end
+  end
+  
+  if call_prompt
+    prompt.call
+  end
 end
 
 begin
@@ -131,17 +154,22 @@ begin
     end
 
     break if ARGV.empty?
-    Tap::Parser.parse!(ARGV).build(app, auto_enque)
+    Tap::Parser.parse!(ARGV).build(app, opts[:auto_enque])
   end
   
-  case mode
-  when :preview
+  if opts[:preview]
     YAML.dump(app.to_schema, $stdout)
-  when :prompt
-    prompt.call
-  else
-    app.run
+    exit(0)
   end
+  
+  if opts[:prompt]
+    # ensures the app is running for the prompt
+    app.queue.unshift(prompt, [])
+  end
+  
+  opts = nil
+  parser = nil
+  app.run
   
 rescue
   raise if app.debug?
