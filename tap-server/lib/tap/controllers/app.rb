@@ -26,7 +26,23 @@ module Tap
         args = params['args'] || params
         sig ||= args.empty? ? nil : 'build'
         
-        app.obj(var).signal(sig).call(args)
+        signal = app.obj(var).signal(sig)
+        
+        # The app is likely running on a separate thread so immediately calling
+        # the signal (the default) is not thread-safe.  Alternate modes are
+        # provided to enque the signal, which is a safe way to go because when
+        # the signal is executed it will have full control over the app.
+        #
+        # Thread mode is provided for long-running signals like /run.
+        case params.delete('_mode')
+        when 'safe'
+          app.enque(signal, args)
+        when 'thread'
+          Thread.new { signal.call(args) }
+        else
+          signal.call(args)
+        end
+        
         redirect uri(var)
       end
       

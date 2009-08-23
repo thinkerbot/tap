@@ -1,6 +1,7 @@
 <div>
 <% [:run, :stop, :terminate].each do |signal| %>
 <form action="<%= uri(nil, signal) %>" style="display:inline" method="post">
+  <input type="hidden" name="_mode" value="thread" />
   <input type="submit" value="<%= signal %>" />
 </form>
 <% end %>

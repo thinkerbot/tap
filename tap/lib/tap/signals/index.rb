@@ -16,7 +16,7 @@ module Tap
           
           desc = signal.desc.to_s
           desc = " # #{desc}" unless desc.empty?
-          lines << "  #{key.ljust(width)}#{desc}"
+          lines << "  /#{key.ljust(width)}#{desc}"
         end
         
         "#{self.class.desc}\n#{lines.join("\n")}"
