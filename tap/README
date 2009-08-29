@@ -68,12 +68,11 @@ And generates documentation.
           --enque                      Enques self with args
           --config FILE                Specifies a config file
 
-Tasks are immediately available for use in workflows.
+Tasks are immediately available for use in workflows, and may be configured as
+if they were individual executables.
 
   % tap run -- goodnight moon --: dump
   goodnight moon
-
-Tasks may be configured as if they were individual executables.
 
   % tap run -- goodnight world --message hello --: dump
   hello world
@@ -113,7 +112,7 @@ A synchronized merge (the printout is ['goodnight', 'moon'].to_s).
 
 == Known Issues
 
-Tap::Env and Tap::Schema are still in flux and have poor documentation.  Neither should be treated as stable.
+Tap::Env is still in flux and should not be treated as stable.
 
 == Installation
 
