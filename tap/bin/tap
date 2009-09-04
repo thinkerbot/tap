@@ -19,7 +19,7 @@ require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 #
 
 begin
-  app = Tap::App.setup
+  env = Tap::Env.setup
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
@@ -30,43 +30,6 @@ end
 #
 # launch the command
 #
-
-env = app.env
-env.register(:command) do |env|
-  env.root.glob(:cmd, "**/*.rb")
-end
-
-env.register(:constant) do |env|
-  constants = Hash.new do |hash, const_name|
-    hash[const_name] = Tap::Env::Constant.new(const_name)
-  end
-  
-  env.load_paths.each do |load_path|
-    next unless File.directory?(load_path)
-    
-    # note changing dir here makes require paths relative to load_path,
-    # hence they can be directly converted into a default_const_name
-    # rather than first performing Root.relative_path
-    Dir.chdir(load_path) do 
-      Dir.glob("**/*.rb").each do |path| 
-        default_const_name = path.chomp('.rb').camelize
-        
-        # scan for constants
-        Lazydoc::Document.scan(File.read(path)) do |const_name, type, summary|
-          const_name = default_const_name if const_name.empty?
-          
-          constant = constants[const_name]
-          constant.register_as(type, summary)
-          constant.require_paths << path
-        end
-      end
-    end
-  end
-  
-  constants.keys.sort!.collect! do |key| 
-    constants[key]
-  end
-end
 
 case command = ARGV.shift.to_s  
 when '', '--help'

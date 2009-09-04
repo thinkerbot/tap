@@ -9,6 +9,8 @@
 require 'tap/parser'
 
 app = Tap::App.instance
+app.env = Tap::Env.instance
+
 opts = {:auto_enque => true}
 parser = ConfigParser.bind(app.config) do |psr|
   psr.separator ""

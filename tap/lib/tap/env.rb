@@ -27,8 +27,8 @@ module Tap
   #
   #   env.glob(:root, "*.rb")
   #   # => [
-  #   # "/one/a.rb"
-  #   # "/one/b.rb"
+  #   # "/one/a.rb",
+  #   # "/one/b.rb",
   #   # "/two/c.rb"
   #   # ]       
   # 
@@ -36,10 +36,53 @@ module Tap
   # nesting environment. Envs provide additional methods for finding files
   # associated with a specific class.
   #
+  # === Manifests
+  #
+  # Envs can generate manifests of various resources and identify them using
+  # minipaths (see Minimap for details regarding minipaths).  Resources may
+  # be a collection of paths or other objects, such as constants available
+  # for use in a workflow.
+  #
+  # To create a manifest, register a block that receives an env and returns
+  # an array of paths, an array of objects that can be converted to paths by
+  # calling entry.path, or a Minimap.  Afterwards, objects can be accessed
+  # using the seek method.
+  #
+  # Using the same env as above:
+  #
+  #   Env.manifest(:path) {|e| e.root.glob(:root, "*.rb") }
+  #
+  #   env.seek(:path, "a")          # => "/one/a.rb"
+  #   env.seek(:path, "b")          # => "/one/b.rb"
+  #   env.seek(:path, "c")          # => "/two/c.rb"
+  #
+  # Seek finds the first entry across all envs that matches the input
+  # minipath.  A minipath for the env may be prefixed to only seek within
+  # a specific env.
+  #
+  #   env.seek(:path, "one:b")      # => "/one/b.rb"
+  #   env.seek(:path, "two:b")      # => "/two/b.rb"
+  #
   class Env
     autoload(:Gems, 'tap/env/gems')
   
     class << self
+      
+      attr_writer :instance
+      
+      def instance(auto_initialize=true)
+        @instance ||= (auto_initialize ? new : nil)
+      end
+      
+      # A hash of (type, builder) pairs that define how to build a manifest
+      # of the specified type.
+      attr_reader :manifests
+
+      # Inherits manifests to the child by duplication.
+      def inherited(child) # :nodoc:
+        child.instance_variable_set(:@manifests, manifests.dup)
+        super
+      end
       
       # Initializes the Env used by the tap executable.  The Env will be
       # configured as described in the tap.yml file for the working directory.
@@ -213,11 +256,18 @@ module Tap
         
         constants
       end
+      
+      def manifest(type, &block) # :yields: env
+        manifests[type] = block
+      end
     end
     
     include Enumerable
     include Configurable
     include Minimap
+    
+    @instance = nil
+    @manifests = {}
     
     # The config file path
     CONFIG_FILE = "tap.yml"
@@ -233,7 +283,7 @@ module Tap
     #
     # If the key is not compound, $2 is nil and $1 is the key.
     COMPOUND_KEY = /^((?:[A-z]:(?:\/|\\))?.*?)(?::(.*))?$/
-  
+    
     # An array of nested Envs, by default comprised of the env_path
     # + gem environments (in that order).
     attr_reader :envs
@@ -290,6 +340,42 @@ module Tap
     config_attr :set_load_paths, true do |input|
       raise "set_load_paths cannot be modified once active" if active?
       @set_load_paths = Configurable::Validation.boolean[input]
+    end
+    
+    manifest :command do |env|
+      env.root.glob(:cmd, "**/*.rb")
+    end
+
+    manifest :constant do |env|
+      constants = Hash.new do |hash, const_name|
+        hash[const_name] = Tap::Env::Constant.new(const_name)
+      end
+
+      env.load_paths.each do |load_path|
+        next unless File.directory?(load_path)
+
+        # note changing dir here makes require paths relative to load_path,
+        # hence they can be directly converted into a default_const_name
+        # rather than first performing Root.relative_path
+        Dir.chdir(load_path) do 
+          Dir.glob("**/*.rb").each do |path| 
+            default_const_name = path.chomp('.rb').camelize
+
+            # scan for constants
+            Lazydoc::Document.scan(File.read(path)) do |const_name, type, summary|
+              const_name = default_const_name if const_name.empty?
+
+              constant = constants[const_name]
+              constant.register_as(type, summary)
+              constant.require_paths << path
+            end
+          end
+        end
+      end
+
+      constants.keys.sort!.collect! do |key| 
+        constants[key]
+      end
     end
     
     # Initializes a new Env linked to the specified directory.  A config file
@@ -367,6 +453,7 @@ module Tap
       end
       self
     end
+    alias_method :<<, :push
   
     # Passes each nested env to the block in order, starting with self.
     def each
@@ -418,6 +505,9 @@ module Tap
       return false if active?
       
       @active = true
+      unless self.class.instance(false)
+        self.class.instance = self
+      end
       
       # freeze envs and load paths
       @envs.freeze
@@ -464,6 +554,11 @@ module Tap
       # unfreeze envs and load paths
       @envs = @envs.dup
       @load_paths = @load_paths.dup
+      
+      klass = self.class
+      if klass.instance(false) == self
+        klass.instance = nil
+      end
       
       true
     end
@@ -549,12 +644,15 @@ module Tap
       module_path(dir, superclasses, *paths, &block)
     end
     
-    def register(type, &block) # :yields: env
-      context.manifests[type] = block
-    end
-    
     def manifest(type)
-      cache[type] ||= context.manifests[type].call(self).extend(Minimap)
+      cache[type] ||= begin
+        unless builder = self.class.manifests[type]
+          raise "no manifest is registered to: #{type.inspect}"
+        end
+        
+        manifest = builder.call(self)
+        manifest.kind_of?(Minimap) ? manifest : manifest.extend(Minimap)
+      end
     end
     
     def [](key)

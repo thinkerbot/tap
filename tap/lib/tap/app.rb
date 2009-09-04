@@ -107,11 +107,6 @@ module Tap
       def instance(auto_initialize=true)
         @instance ||= (auto_initialize ? new : nil)
       end
-      
-      def setup(options={}, env_vars=ENV)
-        env = Env.setup(options, env_vars)
-        @instance = new(:env => env)
-      end
     end
     
     include Configurable
@@ -145,7 +140,10 @@ module Tap
     config :force, false, :short => :f, &c.flag      # Force execution at checkpoints
     config :quiet, false, :short => :q, &c.flag      # Suppress logging
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
-    nest :env, Env, :type => :hidden                 # The application environment
+    
+    nest :env, Env, 
+      :type => :hidden,
+      :instance_writer => false                      # The application environment
     
     signal :run             # run the app
     signal :stop            # stop the app

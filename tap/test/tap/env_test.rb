@@ -16,6 +16,45 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
+  # documentation test
+  #
+  
+  def test_env_documentation
+    # /one
+    # |-- a.rb
+    # `-- b.rb
+    #
+    # /two
+    # |-- b.rb
+    # `-- c.rb
+    method_root.prepare(:one, 'a.rb') {|io|}
+    method_root.prepare(:one, 'b.rb') {|io|}
+    method_root.prepare(:two, 'b.rb') {|io|}
+    method_root.prepare(:two, 'c.rb') {|io|}
+    
+    env =  Env.new(method_root[:one])
+    env << Env.new(method_root[:two])
+  
+    assert_equal([method_root[:one], method_root[:two]], env.collect {|e| e.root.root})
+    
+    expected = [
+      method_root.path(:one, "a.rb"),
+      method_root.path(:one, "b.rb"),
+      method_root.path(:two, "c.rb"),
+    ]
+    assert_equal expected, env.glob(:root, "*.rb")
+  
+    Env.manifest(:path) {|e| e.root.glob(:root, "*.rb") }
+    
+    assert_equal method_root.path(:one, "a.rb"), env.seek(:path, "a")
+    assert_equal method_root.path(:one, "b.rb"), env.seek(:path, "b")
+    assert_equal method_root.path(:two, "c.rb"), env.seek(:path, "c")
+  
+    assert_equal method_root.path(:one, "b.rb"), env.seek(:path, "one:b")
+    assert_equal method_root.path(:two, "b.rb"), env.seek(:path, "two:b")
+  end
+  
+  #
   # setup test
   #
   
