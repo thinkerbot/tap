@@ -107,6 +107,11 @@ module Tap
       def instance(auto_initialize=true)
         @instance ||= (auto_initialize ? new : nil)
       end
+      
+      def setup(options={}, env_vars=ENV)
+        env = Env.setup(options, env_vars)
+        @instance = new(:env => env)
+      end
     end
     
     include Configurable
@@ -152,16 +157,13 @@ module Tap
     
     signal :enque
     signal_hash :build, 
-      :signature => ['set', 'type', 'class'], 
+      :signature => ['set', 'class'], 
       :remainder => 'args'
-    signal_hash(:use, 
+    signal_hash :use, 
       :method_name => :build, 
       :signature => ['class'], 
       :remainder => 'args'
-    ) do |sig, argh|
-      argh['type'] = 'middleware'
-      argh
-    end
+    
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, options={}, &block)
@@ -322,8 +324,8 @@ module Tap
       # isn't smart enough to do them yet
       raise "no class specified" if klass.empty?
       
-      unless klass = env[klass]
-        raise "unresolvable class: #{spec['class'].inspect}"
+      unless klass = env ? env[klass] : Env::Constant.constantize(klass)
+        raise "unresolvable constant: #{spec['class'].inspect}"
       end
       
       method = args.kind_of?(Hash) ? :build : :parse!
@@ -581,13 +583,13 @@ module Tap
       end
       
       klass = obj.class
-      type = klass.type
-      const_name = klass.to_s
-      klass = env.reverse_seek(type, false) do |const|
-        const_name == const.const_name
+      if env
+        const_name = klass.to_s
+        klass = env.constants.reverse_seek(false) do |const|
+          const_name == const.const_name
+        end
       end
-      spec['type'] = type
-      spec['class'] = klass
+      spec['class'] = klass.to_s
       
       obj_spec = obj.to_spec
       if BUILD_KEYS.find {|key| obj_spec.has_key?(key) }

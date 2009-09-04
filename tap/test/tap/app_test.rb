@@ -371,8 +371,8 @@ class AppTest < Test::Unit::TestCase
   
   def test_build_raises_error_for_unresolvable_class
     app.env = {}
-    err = assert_raises(RuntimeError) { app.build('type' => 'tipe', 'class' => 'klass') }
-    assert_equal "unresolvable class: \"klass\"", err.message
+    err = assert_raises(RuntimeError) { app.build('class' => 'klass') }
+    assert_equal "unresolvable constant: \"klass\"", err.message
   end
   
   def test_build_builds_class_using_args_if_specified

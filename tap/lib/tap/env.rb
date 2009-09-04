@@ -1,7 +1,7 @@
 require 'tap/root'
-require 'tap/env/minimap'
 require 'tap/env/constant'
 require 'tap/env/context'
+require 'tap/env/manifest'
 require 'tap/templater'
 autoload(:YAML, 'yaml')
 
@@ -50,39 +50,23 @@ module Tap
   #
   # Using the same env as above:
   #
-  #   Env.manifest(:path) {|e| e.root.glob(:root, "*.rb") }
+  #   manifest = env.manifest {|e| e.root.glob(:root, "*.rb") }
   #
-  #   env.seek(:path, "a")          # => "/one/a.rb"
-  #   env.seek(:path, "b")          # => "/one/b.rb"
-  #   env.seek(:path, "c")          # => "/two/c.rb"
+  #   manifest.seek("a")          # => "/one/a.rb"
+  #   manifest.seek("b")          # => "/one/b.rb"
+  #   manifest.seek("c")          # => "/two/c.rb"
   #
   # Seek finds the first entry across all envs that matches the input
   # minipath.  A minipath for the env may be prefixed to only seek within
   # a specific env.
   #
-  #   env.seek(:path, "one:b")      # => "/one/b.rb"
-  #   env.seek(:path, "two:b")      # => "/two/b.rb"
+  #   manifest.seek("one:b")      # => "/one/b.rb"
+  #   manifest.seek("two:b")      # => "/two/b.rb"
   #
   class Env
     autoload(:Gems, 'tap/env/gems')
   
     class << self
-      
-      attr_writer :instance
-      
-      def instance(auto_initialize=true)
-        @instance ||= (auto_initialize ? new : nil)
-      end
-      
-      # A hash of (type, builder) pairs that define how to build a manifest
-      # of the specified type.
-      attr_reader :manifests
-
-      # Inherits manifests to the child by duplication.
-      def inherited(child) # :nodoc:
-        child.instance_variable_set(:@manifests, manifests.dup)
-        super
-      end
       
       # Initializes the Env used by the tap executable.  The Env will be
       # configured as described in the tap.yml file for the working directory.
@@ -256,33 +240,17 @@ module Tap
         
         constants
       end
-      
-      def manifest(type, &block) # :yields: env
-        manifests[type] = block
-      end
     end
     
     include Enumerable
     include Configurable
     include Minimap
     
-    @instance = nil
-    @manifests = {}
-    
     # The config file path
     CONFIG_FILE = "tap.yml"
     
     # The home directory for Tap
     HOME = File.expand_path("#{File.dirname(__FILE__)}/../..")
-    
-    # Matches a compound registry search key.  After the match, if the key is
-    # compound then:
-    #
-    #  $1:: env_key
-    #  $2:: key
-    #
-    # If the key is not compound, $2 is nil and $1 is the key.
-    COMPOUND_KEY = /^((?:[A-z]:(?:\/|\\))?.*?)(?::(.*))?$/
     
     # An array of nested Envs, by default comprised of the env_path
     # + gem environments (in that order).
@@ -340,42 +308,6 @@ module Tap
     config_attr :set_load_paths, true do |input|
       raise "set_load_paths cannot be modified once active" if active?
       @set_load_paths = Configurable::Validation.boolean[input]
-    end
-    
-    manifest :command do |env|
-      env.root.glob(:cmd, "**/*.rb")
-    end
-
-    manifest :constant do |env|
-      constants = Hash.new do |hash, const_name|
-        hash[const_name] = Tap::Env::Constant.new(const_name)
-      end
-
-      env.load_paths.each do |load_path|
-        next unless File.directory?(load_path)
-
-        # note changing dir here makes require paths relative to load_path,
-        # hence they can be directly converted into a default_const_name
-        # rather than first performing Root.relative_path
-        Dir.chdir(load_path) do 
-          Dir.glob("**/*.rb").each do |path| 
-            default_const_name = path.chomp('.rb').camelize
-
-            # scan for constants
-            Lazydoc::Document.scan(File.read(path)) do |const_name, type, summary|
-              const_name = default_const_name if const_name.empty?
-
-              constant = constants[const_name]
-              constant.register_as(type, summary)
-              constant.require_paths << path
-            end
-          end
-        end
-      end
-
-      constants.keys.sort!.collect! do |key| 
-        constants[key]
-      end
     end
     
     # Initializes a new Env linked to the specified directory.  A config file
@@ -505,9 +437,6 @@ module Tap
       return false if active?
       
       @active = true
-      unless self.class.instance(false)
-        self.class.instance = self
-      end
       
       # freeze envs and load paths
       @envs.freeze
@@ -554,11 +483,6 @@ module Tap
       # unfreeze envs and load paths
       @envs = @envs.dup
       @load_paths = @load_paths.dup
-      
-      klass = self.class
-      if klass.instance(false) == self
-        klass.instance = nil
-      end
       
       true
     end
@@ -644,92 +568,52 @@ module Tap
       module_path(dir, superclasses, *paths, &block)
     end
     
-    def manifest(type)
-      cache[type] ||= begin
-        unless builder = self.class.manifests[type]
-          raise "no manifest is registered to: #{type.inspect}"
+    def manifest(type=nil, &block) # :yields: env
+      cache = type ? (context.cache[type] ||= {}) : {}
+      Manifest.new(self, block, cache)
+    end
+    
+    def constants
+      @constants ||= manifest(:constants) do |env|
+        constants = Hash.new do |hash, const_name|
+          hash[const_name] = Tap::Env::Constant.new(const_name)
         end
-        
-        manifest = builder.call(self)
-        manifest.kind_of?(Minimap) ? manifest : manifest.extend(Minimap)
+
+        env.load_paths.each do |load_path|
+          next unless File.directory?(load_path)
+
+          # note changing dir here makes require paths relative to load_path,
+          # hence they can be directly converted into a default_const_name
+          # rather than first performing Root.relative_path
+          Dir.chdir(load_path) do 
+            Dir.glob("**/*.rb").each do |path| 
+              default_const_name = path.chomp('.rb').camelize
+
+              # scan for constants
+              Lazydoc::Document.scan(File.read(path)) do |const_name, type, summary|
+                const_name = default_const_name if const_name.empty?
+
+                constant = constants[const_name]
+                constant.register_as(type, summary)
+                constant.require_paths << path
+              end
+            end
+          end
+        end
+
+        constants.keys.sort!.collect! do |key| 
+          constants[key]
+        end
       end
     end
     
     def [](key)
-      seek(:constant, key).constantize
+      unless constant = constants.seek(key)
+        raise "unresolvable constant: #{key.inspect}"
+      end
+      constant.constantize
     end
     
-    # Searches across each for the first registered constant minimatching key. A
-    # single env can be specified by using a compound key like 'env_key:key'.
-    #
-    # Returns nil if no matching constant is found.
-    def seek(type, key, value_only=true)
-      key =~ COMPOUND_KEY
-      envs = if $2
-        # compound key, match for env
-        key = $2
-        [minimatch($1)].compact
-      else
-        # not a compound key, search all envs by iterating self
-        self
-      end
-
-      # traverse envs looking for the first
-      # manifest entry matching key
-      envs.each do |env|
-        if value = env.manifest(type).minimatch(key)
-          return value_only ? value : [env, value]
-        end
-      end
-
-      nil
-    end
-
-    def reverse_seek(type, value, key_only=true)
-      each do |env|
-        objects = env.manifest(type)
-        if object = objects.find {|obj| obj == value }
-          key = objects.minihash(true)[object]
-          return key_only ? key : "#{minihash(true)[env]}:#{key}"
-        end
-      end
-      
-      nil
-    end
-    
-    SUMMARY_TEMPLATE = %Q{<% if !entries.empty? && count > 1 %>
-<%= env_key %>:
-<% end %>
-<% entries.each do |key, entry| %>
-  <%= key.ljust(width) %> # <%= entry %>
-<% end %>
-}
-
-    def summarize(type, template=SUMMARY_TEMPLATE)
-      inspect(template, :width => 11, :count => 0) do |templater, globals|
-        width = globals[:width]
-
-        entries = templater.env.manifest(type).minimap
-        
-        if block_given?
-          entries.collect! do |key, entry| 
-            entry = yield(entry)
-            entry ? [key, entry] : nil
-          end
-          entries.compact! 
-        end
-        
-        entries.each do |key, entry|
-          width = key.length if width < key.length
-        end
-
-        globals[:width] = width
-        globals[:count] += 1 unless entries.empty?
-
-        templater.entries = entries
-      end
-    end
-        
     # All templaters are yielded to the block before any are built.  This
     # allows globals to be determined for all environments.
     def inspect(template=nil, globals={}, filename=nil) # :yields: templater, globals
@@ -748,10 +632,6 @@ module Tap
     end
 
     protected
-    
-    def cache # :nodoc:
-      context.cache(self)
-    end
     
     # helper for Minimap
     def entry_to_path(env) # :nodoc:

@@ -1,24 +1,21 @@
 module Tap
   class Env
     class Context
-      attr_reader :registry
-      
-      attr_reader :instances
+      attr_reader :cache
       
       attr_reader :basename
       
-      attr_reader :manifests
+      attr_reader :instances
       
       def initialize(options={})
         options = {
-          :registry => {},
+          :cache => {},
           :basename => Env::CONFIG_FILE
         }.merge(options)
         
-        @registry = options[:registry]
-        @instances = []
-        @manifests = {}
+        @cache = options[:cache]
         @basename = options[:basename]
+        @instances = []
       end
       
       def register(env)
@@ -30,10 +27,6 @@ module Tap
         
         instances << env
         self
-      end
-      
-      def cache(env)
-        registry[env.root.root] ||= {}
       end
       
       # gets the instance for the path currently in instances, or nil

@@ -9,7 +9,6 @@
 require 'tap/parser'
 
 app = Tap::App.instance
-app.env = Tap::Env.instance
 
 opts = {:auto_enque => true}
 parser = ConfigParser.bind(app.config) do |psr|
@@ -37,10 +36,10 @@ parser = ConfigParser.bind(app.config) do |psr|
   end
   
   psr.on('-t', '--manifest', 'Print a list of available resources') do
-    env = app.env
+    constants = app.env.constants
     
     tasks, joins, middleware = %w{task join middleware}.collect do |type|
-      env.summarize(:constant) do |constant|
+      constants.summarize do |constant|
         constant.types[type]
       end
     end
@@ -64,7 +63,12 @@ parser = ConfigParser.bind(app.config) do |psr|
   end
   
   psr.on('-T', '--tasks', 'Print a list of available tasks') do
-    puts app.env.summarize(:constant) {|constant| constant.types['task']}
+    constants = app.env.constants
+    tasks = constants.summarize do |constant|
+      constant.types['task']
+    end
+    
+    puts tasks
     exit(0)
   end
   

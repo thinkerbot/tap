@@ -111,20 +111,20 @@ wrong number of arguments (0 for 1)
     /from .*:in /
   end
 
-  def test_run_identifies_unresolvable_tasks_in_schema
+  def test_run_identifies_unresolvable_constants_in_schema
     sh_test %Q{
 % tap run -- unknown
-unresolvable task: "unknown"
+unresolvable constant: "unknown"
 }
 
     sh_test %Q{
-% tap run -- unknown 1 2 3
-unresolvable task: "unknown"
+% tap run --//build 0 unknown
+unresolvable constant: "unknown"
 }
 
     sh_test %Q{
-% tap run -- load -- unknown -- dump
-unresolvable task: "unknown"
+% tap run -- load --:.unknown dump
+unresolvable constant: "unknown"
 }
   end
   
@@ -188,9 +188,9 @@ goodnight moon
   end
   
   SAMPLE_SCHEMA = [
-    {'set' => '0', 'type' => 'task', 'class' => 'tap:load', "config"=>{"use_close"=>false, "file"=>false}},
-    {'set' => '1', 'type' => 'task', 'class' => 'tap:dump', "config"=>{"overwrite"=>false}},
-    {'type' => 'join', 'class' => 'tap:join', 'inputs' => ['0'], 'outputs' => ['1'], "config"=>{"splat"=>false, "enq"=>false, "iterate"=>false}},
+    {'set' => '0', 'class' => 'tap:load', "config"=>{"use_close"=>false, "file"=>false}},
+    {'set' => '1', 'class' => 'tap:dump', "config"=>{"overwrite"=>false}},
+    {'class' => 'tap:join', 'inputs' => ['0'], 'outputs' => ['1'], "config"=>{"splat"=>false, "enq"=>false, "iterate"=>false}},
     {'sig' => 'enque', 'args' => ['0', 'goodnight moon']}
   ]
   
@@ -261,21 +261,21 @@ a
   
   def test_run_using_signals
     sh_test %Q{
-% tap run --//build 0 task load --//build 1 task dump --//build 2 join join 0 1 --//enque 0 'goodnight moon'
+% tap run --//build 0 load --//build 1 dump --//build 2 join 0 1 --//enque 0 'goodnight moon'
 goodnight moon
 }
     sh_test %Q{
-% tap run --// 0 task load --// 1 task dump --// 2 join join 0 1 --/0/enq 'goodnight moon'
-goodnight moon
-}
-
-    sh_test %Q{
-% tap run -e -- load --enque 'goodnight moon' -- dump --//build 2 join join --/2/join 0 1 
+% tap run --// 0 load --// 1 dump --// 2 join 0 1 --/0/enq 'goodnight moon'
 goodnight moon
 }
 
     sh_test %Q{
-% tap run --//enque app "/build 0 task dump --enque 'goodnight moon'"
+% tap run -e -- load --enque 'goodnight moon' -- dump --//build 2 join --/2/join 0 1 
+goodnight moon
+}
+
+    sh_test %Q{
+% tap run --//enque app "/build 0 dump --enque 'goodnight moon'"
 goodnight moon
 }
   end

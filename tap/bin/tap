@@ -19,7 +19,7 @@ require "#{File.dirname(__FILE__)}/../lib/tap.rb"
 #
 
 begin
-  env = Tap::Env.setup
+  app = Tap::App.setup
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
@@ -31,23 +31,27 @@ end
 # launch the command
 #
 
+commands = app.env.manifest do |env|
+  env.root.glob(:cmd, "**/*.rb")
+end
+
 case command = ARGV.shift.to_s  
 when '', '--help'
-  template = %Q{<% unless entries.empty? || count <= 1 %>
+  template = %Q{<% unless minimap.empty? || count <= 1 %>
 <%= env_key %>:
 <% end %>
-<% entries.each do |key, path| %>
+<% minimap.each do |key, path| %>
   <%= key.ljust(width) %>
 <% end %>}
 
   puts Lazydoc.usage(__FILE__)
   puts
   puts "available commands:"
-  puts env.summarize(:command, template)
+  puts commands.summarize(template)
   puts
   puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
 else
-  if path = env.seek(:command, command)
+  if path = commands.seek(command)
     load path
   else
     puts "Unknown command: '#{command}'"

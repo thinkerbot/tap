@@ -44,14 +44,14 @@ class EnvTest < Test::Unit::TestCase
     ]
     assert_equal expected, env.glob(:root, "*.rb")
   
-    Env.manifest(:path) {|e| e.root.glob(:root, "*.rb") }
+    manifest = env.manifest {|e| e.root.glob(:root, "*.rb") }
     
-    assert_equal method_root.path(:one, "a.rb"), env.seek(:path, "a")
-    assert_equal method_root.path(:one, "b.rb"), env.seek(:path, "b")
-    assert_equal method_root.path(:two, "c.rb"), env.seek(:path, "c")
+    assert_equal method_root.path(:one, "a.rb"), manifest.seek("a")
+    assert_equal method_root.path(:one, "b.rb"), manifest.seek("b")
+    assert_equal method_root.path(:two, "c.rb"), manifest.seek("c")
   
-    assert_equal method_root.path(:one, "b.rb"), env.seek(:path, "one:b")
-    assert_equal method_root.path(:two, "b.rb"), env.seek(:path, "two:b")
+    assert_equal method_root.path(:one, "b.rb"), manifest.seek("one:b")
+    assert_equal method_root.path(:two, "b.rb"), manifest.seek("two:b")
   end
   
   #
@@ -109,55 +109,6 @@ class EnvTest < Test::Unit::TestCase
     
     env = Env.setup({:dir => method_root.root, :config_file => 'config.yml', 'key' => 'options'}, {'TAP_KEY' => 'global'})
     assert_equal 'options', env.config[:key]
-  end
-  
-  #
-  # COMPOUND_KEY test
-  #
-  
-  def test_COMPOUND_KEY_regexp
-    r = Env::COMPOUND_KEY
-    
-    # key only
-    assert r =~ "key"
-    assert_equal ["key", nil], [$1, $2]
-    
-    assert r =~ "path/to/key"
-    assert_equal ["path/to/key", nil], [$1, $2]
-    
-    assert r =~ "/path/to/key"
-    assert_equal ["/path/to/key", nil], [$1, $2]
-    
-    assert r =~ "C:/path/to/key"
-    assert_equal ["C:/path/to/key", nil], [$1, $2]
-    
-    assert r =~ 'C:\path\to\key'
-    assert_equal ['C:\path\to\key', nil], [$1, $2]
-    
-    # env_key and key
-    assert r =~ "env_key:key"
-    assert_equal ["env_key", "key"], [$1, $2]
-    
-    assert r =~ "path/to/env_key:path/to/key"
-    assert_equal ["path/to/env_key", "path/to/key"], [$1, $2]
-    
-    assert r =~ "/path/to/env_key:/path/to/key"
-    assert_equal ["/path/to/env_key", "/path/to/key"], [$1, $2]
-    
-    assert r =~ "C:/path/to/env_key:C:/path/to/key"
-    assert_equal ["C:/path/to/env_key", "C:/path/to/key"], [$1, $2]
-    
-    assert r =~ 'C:\path\to\env_key:C:\path\to\key'
-    assert_equal ['C:\path\to\env_key', 'C:\path\to\key'], [$1, $2]
-    
-    assert r =~ "/path/to/env_key:C:/path/to/key"
-    assert_equal ["/path/to/env_key", "C:/path/to/key"], [$1, $2]
-    
-    assert r =~ "C:/path/to/env_key:/path/to/key"
-    assert_equal ["C:/path/to/env_key", "/path/to/key"], [$1, $2]
-    
-    assert r =~ "a:b"
-    assert_equal ["a", "b"], [$1, $2]
   end
   
   #
