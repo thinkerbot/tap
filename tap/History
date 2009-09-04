@@ -1,7 +1,12 @@
 ==
 
-* extracted task/join/middleware code to make Api base class
+Significant rework of Tap internals.
 
+* extracted task/join/middleware code to make Api base class
+* some changes to semantics of Minimap; entry_to_minikey is
+  now entry_to_path.  Likewise entries now specify their own
+  path using entry.path rather than entry.minikey
+  
 == 0.18.1
 
 * updated API to allow nodes that do not respond to joins

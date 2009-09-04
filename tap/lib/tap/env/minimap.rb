@@ -1,7 +1,10 @@
 module Tap
   class Env
     
-    # Minimap adds minimization and search methods to an array of paths.
+    # Minimap adds minimization and search methods to an array of paths.  The
+    # minimized paths are refered to as 'minipaths' and represent the shortest
+    # basename that uniquely identifies a path within a collection of paths.
+    # File extensions and versions are removed when possible.
     # 
     #   paths = %w{
     #     path/to/file-0.1.0.txt 
@@ -10,20 +13,33 @@ module Tap
     #   }
     #   paths.extend Env::Minimap
     #
+    #   paths.minimap
+    #   # => [
+    #   # ['file-0.1.0',  'path/to/file-0.1.0.txt'],
+    #   # ['file-0.2.0',  'path/to/file-0.2.0.txt'],
+    #   # ['another_file','path/to/another_file.txt']]
+    #
+    # Minipaths can be used as keys to uniquely match a path.  Longer, more
+    # complete paths may also be used (they add specificity, even though it
+    # is not needed).  Likewise shorter paths may be used; the minimatch
+    # method returns the first matching path.
+    #
     #   paths.minimatch('file')             # => 'path/to/file-0.1.0.txt'
     #   paths.minimatch('file-0.2.0')       # => 'path/to/file-0.2.0.txt'
-    #   paths.minimatch('another_file')     # => 'path/to/another_file.txt'
+    #   paths.minimatch('to/another_file')  # => 'path/to/another_file.txt'
     #
-    # More generally, Minimap may extend any object responding to each.
-    # Non-string entries are allowed; if the entry responds to minikey, then
-    # minimap will call that method to determine the 'path' to the entry.
-    # Otherwise, to_s is used.  Override the entry_to_minikey method to
-    # change this default behavior.
+    # === Usage
+    #
+    # Minimap may extend any object responding to each, or be included in
+    # classes that implement each.  Non-string entries are converted to paths
+    # by calling entry.path, if entry responds to path, or entry.to_s if it
+    # does not.  Override the entry_to_path method to change this default
+    # behavior.
     #
     #   class ConstantMap < Array
     #     include Env::Minimap
     #
-    #     def entry_to_minikey(const)
+    #     def entry_to_path(const)
     #       const.underscore
     #     end
     #   end 
@@ -34,7 +50,8 @@ module Tap
     #
     module Minimap
 
-      # Provides a minimized map of the entries using keys provided minikey.
+      # Determines the minipaths for each entry in self and returns a mapping
+      # of the minipaths to their corresponding entry.
       #
       #   paths = %w{
       #     path/to/file-0.1.0.txt 
@@ -51,7 +68,7 @@ module Tap
       def minimap
         hash = {}
         map = []
-        each {|entry| map << (hash[entry_to_minikey(entry)] = [entry]) }
+        each {|entry| map << (hash[entry_to_path(entry)] = [entry]) }
         minimize(hash.keys) do |key, mini_key|
           hash[key].unshift mini_key
         end
@@ -59,8 +76,8 @@ module Tap
         map
       end
     
-      # Returns the first entry whose minikey mini-matches the input, or nil if
-      # no such entry exists.
+      # Returns the first entry that mini-matches the input, or nil if no such
+      # entry exists.
       #
       #   paths = %w{
       #     path/to/file-0.1.0.txt 
@@ -74,12 +91,12 @@ module Tap
       def minimatch(key)
         key = key.to_s
         each do |entry| 
-          return entry if minimal_match?(entry_to_minikey(entry), key)
+          return entry if minimal_match?(entry_to_path(entry), key)
         end
         nil
       end
       
-      # Returns minimap as a hash of (minikey, value) pairs.
+      # Returns minimap as a hash of (minipath, value) pairs.
       def minihash(reverse=false)
         hash = {}
         minimap.each do |key, value|
@@ -94,17 +111,17 @@ module Tap
     
       protected
     
-      # A hook to convert entries to minikeys.  Returns the entry by default, 
-      # or entry.minikey if the entry responds to minikey.
-      def entry_to_minikey(entry)
-        entry.respond_to?(:minikey) ? entry.minikey : entry.to_s
+      # A hook to convert entries to paths.  Returns entry.to_s by default, 
+      # or entry.path if the entry responds to path.
+      def entry_to_path(entry)
+        entry.respond_to?(:path) ? entry.path : entry.to_s
       end
     
       module_function
     
-      # Minimizes a set of paths to the set of shortest basepaths that unqiuely 
-      # identify the paths.  The path extension and versions are removed from
-      # the basepath if possible.  For example:
+      # Determines the shortest basepaths that unqiuely identifies a path
+      # within a collection of paths. The path extension and versions are
+      # removed from the basepath if possible.  For example:
       #
       #   Minimap.minimize ['path/to/a.rb', 'path/to/b.rb']
       #   # => ['a', 'b']
@@ -129,13 +146,13 @@ module Tap
       #   Minimap.minimize ['path/to/a-0.1.0.rb', 'path/to/a-0.2.0.rb']
       #   # => ['a-0.1.0', 'a-0.2.0']
       #
-      # If a block is given, each (path, mini-path) pair will be passed
+      # If a block is given, each (path, minipath) pair will be passed
       # to it after minimization.
-      def minimize(paths) # :yields: path, mini_path
+      def minimize(paths) # :yields: path, minipath
         unless block_given?
-          mini_paths = []
-          minimize(paths) {|p, mp| mini_paths << mp }
-          return mini_paths  
+          minipaths = []
+          minimize(paths) {|path, minipath| minipaths << minipath }
+          return minipaths  
         end
       
         splits = paths.uniq.collect do |path|
@@ -191,13 +208,13 @@ module Tap
         end
       end
     
-      # Returns true if the mini_path matches path.  Matching logic reverses
+      # Returns true if the minipath matches path.  Matching logic reverses
       # that of minimize:
       #
-      # * a match occurs when path ends with mini_path
-      # * if mini_path doesn't specify an extension, then mini_path
+      # * a match occurs when path ends with minipath
+      # * if minipath doesn't specify an extension, then minipath
       #   must only match path up to the path extension
-      # * if mini_path doesn't specify a version, then mini_path
+      # * if minipath doesn't specify a version, then minipath
       #   must only match path up to the path basename (minus the
       #   version and extname)
       #
@@ -219,11 +236,11 @@ module Tap
       #   Minimap.minimal_match?('dir/file-0.1.0.txt', 'ile')           # => false
       #   Minimap.minimal_match?('dir/file-0.1.0.txt', 'r/file')        # => true
       #
-      def minimal_match?(path, mini_path)
-        extname = non_version_extname(mini_path)
-        version = mini_path =~ /(-\d+(\.\d+)*)#{extname}$/ ? $1 : ''
+      def minimal_match?(path, minipath)
+        extname = non_version_extname(minipath)
+        version = minipath =~ /(-\d+(\.\d+)*)#{extname}$/ ? $1 : ''
  
-        match_path = case
+        path = case
         when !extname.empty?
           # force full match
           path
@@ -231,14 +248,13 @@ module Tap
           # match up to version
           path.chomp(non_version_extname(path))
         else
-          # match up base
+          # match up to base
           path.chomp(non_version_extname(path)).sub(/(-\d+(\.\d+)*)$/, '')
         end
       
-        # key ends with pattern AND basenames of each are equal... 
-        # the last check ensures that a full path segment has 
-        # been specified
-        match_path[-mini_path.length, mini_path.length] == mini_path  && File.basename(match_path) == File.basename(mini_path)
+        # match if path ends with minipath. note the basename check ensures a full
+        # path segment has been specified. (ex: 'ile' should not match 'file.txt')
+        path[-minipath.length, minipath.length] == minipath && File.basename(path) == File.basename(minipath)
       end
     
       # utility method for minimize -- joins the

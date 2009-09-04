@@ -35,6 +35,7 @@ module Tap
   # As illustrated, files in the nested environment are accessible within the
   # nesting environment. Envs provide additional methods for finding files
   # associated with a specific class.
+  #
   class Env
     autoload(:Gems, 'tap/env/gems')
   
@@ -340,11 +341,6 @@ module Tap
       @gems = nil
       @env_paths = nil
       initialize_config(config || {})
-    end
-    
-    # The minikey for self (root.root).
-    def minikey
-      root.root
     end
     
     # Sets envs removing duplicates and instances of self.  Setting envs
@@ -657,6 +653,11 @@ module Tap
     
     def cache # :nodoc:
       context.cache(self)
+    end
+    
+    # helper for Minimap
+    def entry_to_path(env) # :nodoc:
+      env.root.root
     end
     
     # resets envs using the current env_paths and gems.  does nothing

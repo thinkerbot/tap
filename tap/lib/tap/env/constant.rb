@@ -221,11 +221,6 @@ module Tap
       def inspect
         "#<#{self.class}:#{object_id} #{const_name} #{require_paths.inspect}>"
       end
-      
-      # Returns the minikey for self, ie path.  (see Tap::Env::Minimap)
-      def minikey
-        path
-      end
     end
   end
 end

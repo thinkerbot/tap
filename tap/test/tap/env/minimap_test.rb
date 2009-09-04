@@ -8,7 +8,7 @@ class MinimapTest < Test::Unit::TestCase
   class ConstantMap < Array
     include Tap::Env::Minimap
 
-    def entry_to_minikey(const)
+    def entry_to_path(const)
       const.to_s.underscore
     end
   end
@@ -20,7 +20,14 @@ class MinimapTest < Test::Unit::TestCase
       path/to/another_file.txt
     }
     paths.extend Minimap
-  
+    
+    expected = [
+    ['file-0.1.0',  'path/to/file-0.1.0.txt'],
+    ['file-0.2.0',  'path/to/file-0.2.0.txt'],
+    ['another_file','path/to/another_file.txt']]
+    
+    assert_equal expected, paths.minimap
+    
     assert_equal 'path/to/file-0.1.0.txt', paths.minimatch('file')
     assert_equal 'path/to/file-0.2.0.txt', paths.minimatch('file-0.2.0')
     assert_equal 'path/to/another_file.txt', paths.minimatch('another_file')
@@ -58,6 +65,52 @@ class MinimapTest < Test::Unit::TestCase
     ['another_file','path/to/another_file.txt']]
     
     assert_equal expected, paths.minimap
+  end
+  
+  def test_minimap_converts_entries_to_paths_using_to_s
+    entries = [
+      :'path/to/file-0.1.0.txt',
+      :'path/to/file-0.2.0.txt',
+      :'path/to/another_file.txt'
+    ].extend Minimap
+  
+    expected = [
+    ['file-0.1.0', :'path/to/file-0.1.0.txt'],
+    ['file-0.2.0', :'path/to/file-0.2.0.txt'],
+    ['another_file', :'path/to/another_file.txt']]
+    
+    assert_equal expected, entries.minimap
+  end
+  
+  class Entry
+    attr_reader :path
+    
+    def initialize(path)
+      @path = path
+    end
+    
+    def to_s
+      raise "to_s should not have been called"
+    end
+  end
+  
+  def test_minimap_converts_entries_to_paths_using_path_if_possible
+    e1, e2, e3 = %w{
+      path/to/file-0.1.0.txt 
+      path/to/file-0.2.0.txt
+      path/to/another_file.txt
+    }.collect do |path|
+      Entry.new(path)
+    end
+    
+    entries = [e1, e2, e3].extend Minimap
+  
+    expected = [
+    ['file-0.1.0',e1],
+    ['file-0.2.0', e2],
+    ['another_file', e3]]
+    
+    assert_equal expected, entries.minimap
   end
   
   #
