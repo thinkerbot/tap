@@ -362,66 +362,62 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_build_instantiates_class_as_resolved_by_env
-    app.env.registry[:tipe] = [BuildClass]
+    app.env = {'klass' => BuildClass}
     
-    obj, args = app.build('type' => 'tipe', 'class' => 'klass')
+    obj, args = app.build('class' => 'klass')
     assert_equal BuildClass, obj.class
     assert_equal 'value', obj.key
   end
   
   def test_build_raises_error_for_unresolvable_class
-    app.env.registry[:tipe] = []
+    app.env = {}
     err = assert_raises(RuntimeError) { app.build('type' => 'tipe', 'class' => 'klass') }
-    assert_equal "unresolvable tipe: \"klass\"", err.message
+    assert_equal "unresolvable class: \"klass\"", err.message
   end
   
   def test_build_builds_class_using_args_if_specified
-    app.env.registry[:tipe] = [BuildClass]
+    app.env = {'klass' => BuildClass}
     
     obj, args = app.build(
-      'type' => 'tipe', 
       'class' => 'klass',
       'args' => {'config' => {'key' => 'alt'}})
     assert_equal 'alt', obj.key
   end
   
   def test_build_uses_spec_as_args_if_args_is_not_specified
-    app.env.registry[:tipe] = [BuildClass]
+    app.env = {'klass' => BuildClass}
     
     obj, args = app.build(
-      'type' => 'tipe', 
       'class' => 'klass',
       'config' => {'key' => 'alt'})
     assert_equal 'alt', obj.key
   end
   
   def test_build_parses_non_hash_args
-    app.env.registry[:tipe] = [BuildClass]
+    app.env = {'klass' => BuildClass}
     
     obj, args = app.build(
-      'type' => 'tipe', 
       'class' => 'klass',
       'args' => "--key alt")
     assert_equal 'alt', obj.key
   end
   
   def test_build_returns_remaining_args
-    app.env.registry[:tipe] = [BuildClass]
+    app.env = {'klass' => BuildClass}
     
     obj, args = app.build(
-      'type' => 'tipe', 
       'class' => 'klass',
       'args' => "a --key alt b c")
     assert_equal ["a", "b", "c"], args
   end
   
   def test_build_stores_obj_by_set_if_specified
-    app.env.registry[:tipe] = [BuildClass]
+    app.env = {'klass' => BuildClass}
     
-    obj, args = app.build('type' => 'tipe', 'class' => 'klass')
+    obj, args = app.build('class' => 'klass')
     assert_equal({}, app.cache)
     
-    obj, args = app.build('set' => 'variable', 'type' => 'tipe', 'class' => 'klass')
+    obj, args = app.build('set' => 'variable', 'class' => 'klass')
     assert_equal({'variable' => obj}, app.cache)
   end
 

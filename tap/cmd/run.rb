@@ -37,35 +37,32 @@ parser = ConfigParser.bind(app.config) do |psr|
   psr.on('-t', '--manifest', 'Print a list of available resources') do
     env = app.env
     
-    tasks = env.manifest(:task)
-    tasks_found = !tasks.all_empty?
+    tasks, joins, middleware = %w{task join middleware}.collect do |type|
+      env.summarize(:constant) do |constant|
+        constant.types[type]
+      end
+    end
     
-    joins = env.manifest(:join)
-    joins_found = !joins.all_empty?
-    
-    middleware = env.manifest(:middleware)
-    middleware_found = !middleware.all_empty?
-    
-    if tasks_found 
-      puts "=== tasks ===" if middleware_found || joins_found
-      puts tasks.summarize
+    unless tasks.empty? 
+      puts "=== tasks ===" unless middleware.empty? && joins.empty?
+      puts tasks
     end
 
-    if joins_found
-      puts "=== joins ===" if tasks_found || middleware_found
-      puts joins.summarize
+    unless joins.empty?
+      puts "=== joins ===" unless tasks.empty? && middleware.empty?
+      puts joins
     end
     
-    if middleware_found
-      puts "=== middleware ===" if tasks_found || joins_found
-      puts middleware.summarize
+    unless middleware.empty?
+      puts "=== middleware ===" unless tasks.empty? && joins.empty?
+      puts middleware
     end
     
     exit(0)
   end
   
   psr.on('-T', '--tasks', 'Print a list of available tasks') do
-    puts app.env.manifest(:task).summarize
+    puts app.env.summarize(:constant) {|constant| constant.types['task']}
     exit(0)
   end
   

@@ -180,6 +180,11 @@ module Tap
       self.logger = options[:logger] || DEFAULT_LOGGER
     end
     
+    def env=(env)
+      Validation.validate_api(env, [:[]]) unless env.nil?
+      @env = env
+    end
+    
     # True if debug or the global variable $DEBUG is true.
     def debug?
       debug || $DEBUG
@@ -313,16 +318,14 @@ module Tap
     def build(spec)
       var = spec['set']
       args = spec['args'] || spec
-      type = spec['type'].to_s.strip
       klass = spec['class'].to_s.strip
       
       # these checks exist because the server interface 
       # isn't smart enough to do them yet
-      raise "no type specified" if type.empty?
       raise "no class specified" if klass.empty?
       
-      unless klass = env[type][klass]
-        raise "unresolvable #{type}: #{spec['class'].inspect}"
+      unless klass = env[klass]
+        raise "unresolvable class: #{spec['class'].inspect}"
       end
       
       method = args.kind_of?(Hash) ? :build : :parse!

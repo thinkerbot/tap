@@ -164,7 +164,7 @@ class EnvTest < Test::Unit::TestCase
     assert_equal "value", e.config[:key]
   end
   
-  def test_initialize_does_not_load_configurations_if_configs_initialize_self
+  def test_initialize_does_not_load_configurations_when_configs_are_specified
     method_root.prepare('config.yml') do |io|
       io << YAML.dump(:key => 'value')
     end
@@ -173,12 +173,14 @@ class EnvTest < Test::Unit::TestCase
     assert_equal nil, e.config[:key]
   end
   
-  def test_initialize_raises_error_if_cache_contains_an_env_with_the_same_root_root
+  def test_initialize_raises_error_if_context_contains_an_env_with_the_same_root_root
     r1 = Tap::Root.new
     r2 = Tap::Root.new
     assert_equal r1.root, r2.root
     
-    context = {:instances => [Env.new(r1)]}
+    context = Env.new(r1).context
+    assert_equal(true, context.instances.any? {|env| env.root.root == r2.root})
+    
     err = assert_raises(RuntimeError) { Env.new(r2, context) }
     assert_equal "context already has an env for: #{r2.root}", err.message
   end
@@ -336,17 +338,17 @@ class EnvTest < Test::Unit::TestCase
     end
   end
   
-  def test_gems_selects_all_with_all
+  def test_gems_selects_all_with_ALL
     gem_test do
-      e.gems = :all
+      e.gems = :ALL
       gems = Gem.source_index.gems.collect {|(name, spec)| spec }
       assert gems.sort == e.gems.sort
     end
   end
   
-  def test_gems_selects_latest_with_latest
+  def test_gems_selects_latest_with_LATEST
     gem_test do
-      e.gems = :latest
+      e.gems = :LATEST
       gems = Gem.source_index.latest_specs
       assert gems.sort == e.gems.sort
     end
@@ -531,241 +533,241 @@ a (0)
     assert_equal [a, b, c, d], result
   end
   
-  #
-  # scan test
-  #
-  
-  def test_scan_scans_path_for_resources
-    path = method_root.prepare(:tmp, 'a') do |io|
-      io.puts "# A::resource"
-      io.puts "# B::resource"
-      io.puts "# B::alt"
-    end
-    
-    assert e.manifest(:resource).empty?
-    
-    e.scan(path)
-    assert_equal ["A", "B"], e.manifest(:resource).collect {|const| const.const_name }
-    assert_equal ["B"], e.manifest(:alt).collect {|const| const.const_name }
-  end
-  
-  def test_scan_uses_default_const_name_if_specified
-    path = method_root.prepare(:tmp, 'a') do |io|
-      io.puts "# ::resource"
-    end
-    
-    Lazydoc[path].default_const_name = "A"
-    e.scan(path)
-    assert_equal ["A"], e.manifest(:resource).collect {|const| const.const_name }
-  end
-  
-  def test_scan_raises_error_if_no_const_name_can_be_determined
-    path = method_root.prepare(:tmp, 'a') do |io|
-      io.puts "# ::resource"
-    end
-    
-    assert_equal nil, Lazydoc[path].default_const_name
-    err = assert_raises(RuntimeError) { e.scan(path) }
-    assert_equal "could not determine a constant name for resource in: #{path.inspect}", err.message
-  end
-  #
-  # seek test
-  #
-  
-  def test_seek_traverses_env_for_first_matching_resource_of_the_specified_type
-    context = {
-      :registries => {
-        method_root['a'] => {:type => ["a/one.txt", "a/two.txt"] },
-        method_root['b'] => {:type => ["b/one.txt", "b/three.txt"] }
-      }
-    }
-    
-    e1 = Env.new method_root['a'], context
-    e2 = Env.new method_root['b'], context
-    e1.push e2
-    
-    assert_equal "a/one.txt", e1.seek(:type, "one")
-    assert_equal "a/two.txt", e1.seek(:type, "two")
-    assert_equal "b/three.txt", e1.seek(:type, "three")
-    
-    assert_equal nil, e1.seek(:type, "a:three")
-    assert_equal "a/one.txt", e1.seek(:type, "a:one")
-    assert_equal "b/one.txt", e1.seek(:type, "b:one")
-    assert_equal nil, e1.seek(:type, "b:two")
-    assert_equal nil, e1.seek(:type, "c:one")
-    assert_equal nil, e1.seek(:type, "four")
-    
-    assert_equal "b/one.txt", e2.seek(:type, "one")
-    assert_equal nil, e2.seek(:type, "two")
-  end
-  
-  #
-  # manifest.seek test
-  #
-  
-  def test_seek_for_manifest
-    a_one = method_root.prepare("a/one.txt") { }
-    a_two = method_root.prepare("a/two.txt") { }
-    b_one = method_root.prepare("b/one.txt") { }
-    b_three = method_root.prepare("b/three.txt") { }
-    
-    context = {
-      :builders => {
-        :type => lambda {|env| env.root.glob(:root)}
-      }
-    }
-    
-    e1 = Env.new method_root['a'], context
-    e2 = Env.new method_root['b'], context
-    e1.push e2
-    
-    m = e1.manifest(:type) 
-    
-    assert_equal a_one, m.seek("one")
-    assert_equal a_two, m.seek("two")
-    assert_equal b_three, m.seek("three")
-    
-    assert_equal nil, m.seek("a:three")
-    assert_equal a_one, m.seek("a:one")
-    assert_equal b_one, m.seek("b:one")
-    assert_equal nil, m.seek("b:two")
-    assert_equal nil, m.seek("c:one")
-    assert_equal nil, m.seek("four")
-  end
-  
-  def test_manifest_seek_with_versions
-    context = {:builders => {}}
-    context[:builders][:type] = lambda do |env|
-      [ "/path/to/one-0.1.0.txt",
-        "/path/to/two.txt",
-        "/path/to/another/one.txt",
-        "/path/to/one-0.2.0.txt", 
-      ].collect do |entry|
-        "/#{File.basename(env.root.root)}#{entry}"
-      end
-    end
-    
-    e1 = Env.new "/path/to/e1", context
-    e2 = Env.new "/path/to/e2", context
-    e1.push e2
-    
-    m = e1.manifest(:type) 
-    
-    # simple search of e1
-    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("/path/to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("e1/path/to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("/e1/path/to/one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("one-0.1.0")
-    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("one-0.1.0.txt")
-    
-    assert_equal "/e1/path/to/two.txt", m.seek("two")
-    assert_equal "/e1/path/to/another/one.txt", m.seek("another/one")
-    assert_equal "/e1/path/to/one-0.2.0.txt", m.seek("one-0.2.0")
-    
-    # check e1 searches e2
-    assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/e2/path/to/one")
-    assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/e2/path/to/one-0.1.0")
-    assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/e2/path/to/one-0.1.0.txt")
-    
-    # check with env pattern
-    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("e1:one")
-    assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("/path/to/e1:one")
-  
-    assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("e2:one")
-    assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/path/to/e2:to/one")
-    
-    # a variety of nil cases
-    assert_nil m.seek("e3:one")
-    assert_nil m.seek("another/path/to/e1:one")
-    assert_nil m.seek("/another/path/to/one")
-    assert_nil m.seek("/path/to")
-    assert_nil m.seek("non_existant")
-  end
-
-  #
-  # manifest.inspect test
-  #
-  
-  def test_inspect_for_manifest
-    a_one = method_root.prepare("a/one.txt") {|io| io << "::one"}
-    a_two = method_root.prepare("a/two.txt") {|io| io << "::two"}
-    b_one = method_root.prepare("b/one.txt") {|io| io << "::one"}
-    b_three = method_root.prepare("b/three.txt") {|io| io << "::three"}
-    
-    context = {
-      :builders => {
-        :type => lambda {|env| env.root.glob(:root)}
-      }
-    }
-
-    e1 = Env.new method_root['a'], context
-    e2 = Env.new method_root['b'], context
-    e1.push e2
-    
-    template = %Q{<%= env_key %>:
-<% manifest.minimap.each do |key, value| %>
-  <%= key %>: <%= File.basename(value) %>
-<% end %>
-}
-
-    assert_equal %q{
-a:
-  one: one.txt
-  two: two.txt
-b:
-  one: one.txt
-  three: three.txt
-}, "\n" + e1.manifest(:type).inspect(template)
-  end
-  
-  #
-  # inspect test
-  #
-  
-  def test_inspect_visits_ERB_template_with_each_env_and_env_key
-    a,b,c,d,e = ('a'..'e').collect {|name| Env.new(name) }
-
-    a.push(b).push(c)
-    b.push(d).push(e)
-    
-    template = "\n<%= env_key %><%= env.object_id %>"
-    expected =  %Q{
-a#{a.object_id}
-b#{b.object_id}
-d#{d.object_id}
-e#{e.object_id}
-c#{c.object_id}}
-    assert_equal expected, a.inspect(template)
-  end
-  
-  def test_inspect_passes_templates_to_block_before_templating
-    a,b,c = ('a'..'c').collect {|name| Env.new(name) }
-
-    a.push(b)
-    b.push(c)
-    
-    count = 0
-    result = a.inspect("<%= count %>") do |templater, globals|
-      count += 1
-      templater.count = count
-    end
-    assert_equal "123", result
-  end
-  
-  def test_inspect_passes_globals_to_template
-    a,b,c = ('a'..'c').collect {|name| Env.new(name) }
-
-    a.push(b)
-    b.push(c)
-    
-    result = a.inspect("<%= count %>(<%= total %>)\n", :total => 0) do |templater, globals|
-      globals[:total] += 1
-      templater.count = globals[:total]
-    end
-    assert_equal "1(3)\n2(3)\n3(3)\n", result
-  end
+#   #
+#   # scan test
+#   #
+#   
+#   def test_scan_scans_path_for_resources
+#     path = method_root.prepare(:tmp, 'a') do |io|
+#       io.puts "# A::resource"
+#       io.puts "# B::resource"
+#       io.puts "# B::alt"
+#     end
+#     
+#     assert e.manifest(:resource).empty?
+#     
+#     e.scan(path)
+#     assert_equal ["A", "B"], e.manifest(:resource).collect {|const| const.const_name }
+#     assert_equal ["B"], e.manifest(:alt).collect {|const| const.const_name }
+#   end
+#   
+#   def test_scan_uses_default_const_name_if_specified
+#     path = method_root.prepare(:tmp, 'a') do |io|
+#       io.puts "# ::resource"
+#     end
+#     
+#     Lazydoc[path].default_const_name = "A"
+#     e.scan(path)
+#     assert_equal ["A"], e.manifest(:resource).collect {|const| const.const_name }
+#   end
+#   
+#   def test_scan_raises_error_if_no_const_name_can_be_determined
+#     path = method_root.prepare(:tmp, 'a') do |io|
+#       io.puts "# ::resource"
+#     end
+#     
+#     assert_equal nil, Lazydoc[path].default_const_name
+#     err = assert_raises(RuntimeError) { e.scan(path) }
+#     assert_equal "could not determine a constant name for resource in: #{path.inspect}", err.message
+#   end
+#   #
+#   # seek test
+#   #
+#   
+#   def test_seek_traverses_env_for_first_matching_resource_of_the_specified_type
+#     context = {
+#       :registries => {
+#         method_root['a'] => {:type => ["a/one.txt", "a/two.txt"] },
+#         method_root['b'] => {:type => ["b/one.txt", "b/three.txt"] }
+#       }
+#     }
+#     
+#     e1 = Env.new method_root['a'], context
+#     e2 = Env.new method_root['b'], context
+#     e1.push e2
+#     
+#     assert_equal "a/one.txt", e1.seek(:type, "one")
+#     assert_equal "a/two.txt", e1.seek(:type, "two")
+#     assert_equal "b/three.txt", e1.seek(:type, "three")
+#     
+#     assert_equal nil, e1.seek(:type, "a:three")
+#     assert_equal "a/one.txt", e1.seek(:type, "a:one")
+#     assert_equal "b/one.txt", e1.seek(:type, "b:one")
+#     assert_equal nil, e1.seek(:type, "b:two")
+#     assert_equal nil, e1.seek(:type, "c:one")
+#     assert_equal nil, e1.seek(:type, "four")
+#     
+#     assert_equal "b/one.txt", e2.seek(:type, "one")
+#     assert_equal nil, e2.seek(:type, "two")
+#   end
+#   
+#   #
+#   # manifest.seek test
+#   #
+#   
+#   def test_seek_for_manifest
+#     a_one = method_root.prepare("a/one.txt") { }
+#     a_two = method_root.prepare("a/two.txt") { }
+#     b_one = method_root.prepare("b/one.txt") { }
+#     b_three = method_root.prepare("b/three.txt") { }
+#     
+#     context = {
+#       :builders => {
+#         :type => lambda {|env| env.root.glob(:root)}
+#       }
+#     }
+#     
+#     e1 = Env.new method_root['a'], context
+#     e2 = Env.new method_root['b'], context
+#     e1.push e2
+#     
+#     m = e1.manifest(:type) 
+#     
+#     assert_equal a_one, m.seek("one")
+#     assert_equal a_two, m.seek("two")
+#     assert_equal b_three, m.seek("three")
+#     
+#     assert_equal nil, m.seek("a:three")
+#     assert_equal a_one, m.seek("a:one")
+#     assert_equal b_one, m.seek("b:one")
+#     assert_equal nil, m.seek("b:two")
+#     assert_equal nil, m.seek("c:one")
+#     assert_equal nil, m.seek("four")
+#   end
+#   
+#   def test_manifest_seek_with_versions
+#     context = {:builders => {}}
+#     context[:builders][:type] = lambda do |env|
+#       [ "/path/to/one-0.1.0.txt",
+#         "/path/to/two.txt",
+#         "/path/to/another/one.txt",
+#         "/path/to/one-0.2.0.txt", 
+#       ].collect do |entry|
+#         "/#{File.basename(env.root.root)}#{entry}"
+#       end
+#     end
+#     
+#     e1 = Env.new "/path/to/e1", context
+#     e2 = Env.new "/path/to/e2", context
+#     e1.push e2
+#     
+#     m = e1.manifest(:type) 
+#     
+#     # simple search of e1
+#     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("one")
+#     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("to/one")
+#     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("/path/to/one")
+#     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("e1/path/to/one")
+#     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("/e1/path/to/one")
+#     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("one-0.1.0")
+#     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("one-0.1.0.txt")
+#     
+#     assert_equal "/e1/path/to/two.txt", m.seek("two")
+#     assert_equal "/e1/path/to/another/one.txt", m.seek("another/one")
+#     assert_equal "/e1/path/to/one-0.2.0.txt", m.seek("one-0.2.0")
+#     
+#     # check e1 searches e2
+#     assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/e2/path/to/one")
+#     assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/e2/path/to/one-0.1.0")
+#     assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/e2/path/to/one-0.1.0.txt")
+#     
+#     # check with env pattern
+#     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("e1:one")
+#     assert_equal "/e1/path/to/one-0.1.0.txt", m.seek("/path/to/e1:one")
+#   
+#     assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("e2:one")
+#     assert_equal "/e2/path/to/one-0.1.0.txt", m.seek("/path/to/e2:to/one")
+#     
+#     # a variety of nil cases
+#     assert_nil m.seek("e3:one")
+#     assert_nil m.seek("another/path/to/e1:one")
+#     assert_nil m.seek("/another/path/to/one")
+#     assert_nil m.seek("/path/to")
+#     assert_nil m.seek("non_existant")
+#   end
+# 
+#   #
+#   # manifest.inspect test
+#   #
+#   
+#   def test_inspect_for_manifest
+#     a_one = method_root.prepare("a/one.txt") {|io| io << "::one"}
+#     a_two = method_root.prepare("a/two.txt") {|io| io << "::two"}
+#     b_one = method_root.prepare("b/one.txt") {|io| io << "::one"}
+#     b_three = method_root.prepare("b/three.txt") {|io| io << "::three"}
+#     
+#     context = {
+#       :builders => {
+#         :type => lambda {|env| env.root.glob(:root)}
+#       }
+#     }
+# 
+#     e1 = Env.new method_root['a'], context
+#     e2 = Env.new method_root['b'], context
+#     e1.push e2
+#     
+#     template = %Q{<%= env_key %>:
+# <% manifest.minimap.each do |key, value| %>
+#   <%= key %>: <%= File.basename(value) %>
+# <% end %>
+# }
+# 
+#     assert_equal %q{
+# a:
+#   one: one.txt
+#   two: two.txt
+# b:
+#   one: one.txt
+#   three: three.txt
+# }, "\n" + e1.manifest(:type).inspect(template)
+#   end
+#   
+#   #
+#   # inspect test
+#   #
+#   
+#   def test_inspect_visits_ERB_template_with_each_env_and_env_key
+#     a,b,c,d,e = ('a'..'e').collect {|name| Env.new(name) }
+# 
+#     a.push(b).push(c)
+#     b.push(d).push(e)
+#     
+#     template = "\n<%= env_key %><%= env.object_id %>"
+#     expected =  %Q{
+# a#{a.object_id}
+# b#{b.object_id}
+# d#{d.object_id}
+# e#{e.object_id}
+# c#{c.object_id}}
+#     assert_equal expected, a.inspect(template)
+#   end
+#   
+#   def test_inspect_passes_templates_to_block_before_templating
+#     a,b,c = ('a'..'c').collect {|name| Env.new(name) }
+# 
+#     a.push(b)
+#     b.push(c)
+#     
+#     count = 0
+#     result = a.inspect("<%= count %>") do |templater, globals|
+#       count += 1
+#       templater.count = count
+#     end
+#     assert_equal "123", result
+#   end
+#   
+#   def test_inspect_passes_globals_to_template
+#     a,b,c = ('a'..'c').collect {|name| Env.new(name) }
+# 
+#     a.push(b)
+#     b.push(c)
+#     
+#     result = a.inspect("<%= count %>(<%= total %>)\n", :total => 0) do |templater, globals|
+#       globals[:total] += 1
+#       templater.count = globals[:total]
+#     end
+#     assert_equal "1(3)\n2(3)\n3(3)\n", result
+#   end
 end
 
 class EnvActivateTest < Test::Unit::TestCase

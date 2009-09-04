@@ -96,19 +96,17 @@ module Tap
       # The full constant name
       attr_reader :const_name
     
-      # The path to load to initialize a missing constant
-      attr_reader :require_path
-    
-      # An optional comment
-      attr_accessor :comment
+      attr_reader :require_paths
+      
+      attr_reader :types
     
       # Initializes a new Constant with the specified constant name,
       # require_path, and comment.  The const_name should be a valid
       # constant name.
-      def initialize(const_name, require_path=nil, comment=nil)
+      def initialize(const_name, *require_paths)
         @const_name = const_name
-        @require_path = require_path
-        @comment = comment
+        @require_paths = require_paths
+        @types = {}
       end
     
       # Returns the underscored const_name.
@@ -158,21 +156,24 @@ module Tap
       def nesting_depth
         @nesting_depth ||= nesting.split(/::/).length
       end
-
-      # Returns the Lazydoc document for require_path.
-      def document
-        require_path ? Lazydoc[require_path] : nil 
-      end
-    
+      
       # True if another is a Constant with the same const_name,
       # require_path, and comment as self.
       def ==(another)
         another.kind_of?(Constant) && 
         another.const_name == self.const_name &&
-        another.require_path == self.require_path &&
-        another.comment == self.comment
+        another.require_paths == self.require_paths
       end
     
+      def register_as(type, summary=nil, override=false)
+        if types.include?(type) && !override
+          raise "already registered as a #{type}"
+        end
+        
+        types[type] = summary
+        self
+      end
+      
       # Looks up and returns the constant indicated by const_name. If the
       # constant cannot be found, constantize requires require_path and
       # tries again.
@@ -180,7 +181,10 @@ module Tap
       # Raises a NameError if the constant cannot be found.
       def constantize
         Constant.constantize(const_name) do
-          require require_path if require_path
+          require_paths.each do |require_path|
+            require require_path
+          end
+          
           Constant.constantize(const_name)
         end
       end
@@ -199,10 +203,10 @@ module Tap
         const = nesting.empty? ? Object : Constant.constantize(nesting) { Object }
       
         if const.const_defined?(name)
-          if unrequire && require_path
+          require_paths.each do |require_path|
             path = File.extname(require_path).empty? ? "#{require_path}.rb" : require_path
             $".delete(path)
-          end
+          end if unrequire
         
           return const.send(:remove_const, name)
         end
@@ -215,7 +219,7 @@ module Tap
       #   "#<Tap::Env::Constant:object_id Const::Name (require_path)>"
       #
       def inspect
-        "#<#{self.class}:#{object_id} #{const_name}#{@require_path == nil ? "" : " (#{@require_path})"}>"
+        "#<#{self.class}:#{object_id} #{const_name} #{require_paths.inspect}>"
       end
       
       # Returns the minikey for self, ie path.  (see Tap::Env::Minimap)

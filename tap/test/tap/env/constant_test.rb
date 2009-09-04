@@ -130,11 +130,11 @@ class ConstantTest < Test::Unit::TestCase
   def test_initialize
     c = Constant.new('ConstName')
     assert_equal 'ConstName', c.const_name
-    assert_equal nil, c.require_path
+    assert_equal [], c.require_paths
     
     c = Constant.new('Sample::Const', '/path/to/sample/const.rb')
     assert_equal 'Sample::Const', c.const_name
-    assert_equal '/path/to/sample/const.rb', c.require_path
+    assert_equal ['/path/to/sample/const.rb'], c.require_paths
   end
   
   #
@@ -210,31 +210,16 @@ class ConstantTest < Test::Unit::TestCase
     assert_equal 1, Constant.new("Const::Name").nesting_depth
   end
   
-  #
-  # document test
-  #
-  
-  def test_document_returns_document_for_require_path
-    c = Constant.new('Sample::Const', '/path/to/sample/const_test_file.rb')
-    assert_equal Lazydoc['/path/to/sample/const_test_file.rb'], c.document
-  end
-  
-  def test_document_returns_nil_if_require_path_is_not_set
-    assert_equal nil, c.require_path
-    assert_equal nil, c.document
-  end
-  
   # 
   # == test
   #
   
-  def test_constants_are_equal_if_const_name_require_path_and_comment_are_equal
+  def test_constants_are_equal_if_const_name_and_require_paths_are_equal
     c1 = Constant.new('Sample::Const', '/require/path.rb')
     c2 = Constant.new('Sample::Const', '/require/path.rb')
     
     c3 = Constant.new('Another::Const', '/require/path.rb')
     c4 = Constant.new('Sample::Const', '/another/path.rb')
-    c5 = Constant.new('Sample::Const', '/require/path.rb', 'comment')
     
     assert c1.object_id != c2.object_id
     assert_equal c1, c2
@@ -243,7 +228,6 @@ class ConstantTest < Test::Unit::TestCase
     assert c2 == c1
     assert c1 != c3
     assert c1 != c4
-    assert c1 != c5
   end
   
   #
@@ -328,9 +312,9 @@ class ConstantTest < Test::Unit::TestCase
   
   def test_inspect
     c = Constant.new('Sample::Const')
-    assert_equal "#<Tap::Env::Constant:#{c.object_id} Sample::Const>", c.inspect
+    assert_equal "#<Tap::Env::Constant:#{c.object_id} Sample::Const []>", c.inspect
     
     c = Constant.new('Sample::Const', '/require/path.rb')
-    assert_equal "#<Tap::Env::Constant:#{c.object_id} Sample::Const (/require/path.rb)>", c.inspect
+    assert_equal "#<Tap::Env::Constant:#{c.object_id} Sample::Const [\"/require/path.rb\"]>", c.inspect
   end
 end
