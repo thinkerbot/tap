@@ -163,33 +163,33 @@ class ParserTest < Test::Unit::TestCase
   # parse test
   #
   
-  def test_parse_parses_task_and_enque_along_option_break
+  def test_parse_parses_specs_along_option_break
     parser.parse %w{-- a b c -- x y z}
     assert_equal [
-      ["0", "task", "a", "b", "c"],
-      ["1", "task", "x", "y", "z"]
+      [:task, "0", "a", "b", "c"],
+      [:task, "1", "x", "y", "z"]
     ], parser.specs
   end
   
   def test_parse_unshifts_option_break_if_argv_does_not_start_with_a_break
     parser.parse %w{a b c}
     assert_equal [
-      ["0", "task", "a", "b", "c"],
+      [:task, "0", "a", "b", "c"],
     ], parser.specs
   end
   
-  def test_parse_allows_options_in_tasks
+  def test_parse_allows_options_in_specs
     parser.parse %w{-- a -b --c}
     assert_equal [
-      ["0", "task", "a", "-b", "--c"],
+      [:task, "0", "a", "-b", "--c"],
     ], parser.specs
   end
   
-  def test_parse_incrementes_index_but_does_not_add_tasks_for_empty_breaks
+  def test_parse_incrementes_index_but_does_not_add_specs_for_empty_breaks
     parser.parse %w{-- a -- -- -- b --}
     assert_equal [
-      ["0", "task", "a"],
-      ["3", "task", "b"]
+      [:task, "0", "a"],
+      [:task, "3", "b"]
     ], parser.specs
   end
   
@@ -202,15 +202,15 @@ class ParserTest < Test::Unit::TestCase
   def test_parse_does_not_parse_escaped_args
     parser.parse %w{-- a -. -- --: -z- .- b -- c}
     assert_equal [
-      ["0", "task", "a", "--", "--:", "-z-", "b"],
-      ["1", "task", "c"]
+      [:task, "0", "a", "--", "--:", "-z-", "b"],
+      [:task, "1", "c"]
     ], parser.specs
   end
   
   def test_parse_stops_at_end_flag
     parser.parse %w{-- a --- -- b}
     assert_equal [
-      ["0", "task", "a"]
+      [:task, "0", "a"]
     ], parser.specs
   end
   
@@ -222,8 +222,8 @@ class ParserTest < Test::Unit::TestCase
   def test_parse_splits_string_to_argv
     assert_equal ['c'], parser.parse("a -- b --- c")
     assert_equal [
-      ["0", "task", "a"],
-      ["1", "task", "b"]
+      [:task, "0", "a"],
+      [:task, "1", "b"]
     ], parser.specs
   end
   
@@ -231,8 +231,8 @@ class ParserTest < Test::Unit::TestCase
     parser.parse %w{-- a b c}
     parser.parse %w{-- x y z}
     assert_equal [
-      ["0", "task", "a", "b", "c"],
-      ["0", "task", "x", "y", "z"]
+      [:task, "0", "a", "b", "c"],
+      [:task, "0", "x", "y", "z"]
     ], parser.specs
   end
   
@@ -261,20 +261,20 @@ class ParserTest < Test::Unit::TestCase
   def test_sequence_breaks_assign_sequence_joins
     parser.parse "-- a --: b --: c"
     assert_equal [
-      ["0", "task", "a"],
-      ["1", "task", "b"],
-      [nil, "join", "join", "0", "1"],
-      ["2", "task", "c"],
-      [nil, "join", "join", "1", "2"]
+      [:task, "0", "a"],
+      [:task, "1", "b"],
+      [:join, nil, "tap:join", "0", "1"],
+      [:task, "2", "c"],
+      [:join, nil, "tap:join", "1", "2"]
     ], parser.specs
   end
   
   def test_sequence_with_modifier
     parser.parse  "-- a --:is.class b"
     assert_equal [
-      ["0", "task", "a"],
-      ["1", "task", "b"],
-      [nil, "join", "class", "0", "1", "-i", "-s"],
+      [:task, "0", "a"],
+      [:task, "1", "b"],
+      [:join, nil, "class", "0", "1", "-i", "-s"],
     ], parser.specs
   end
   
@@ -285,24 +285,24 @@ class ParserTest < Test::Unit::TestCase
   def test_parser_parses_joins
     parser.parse "--[1][2] --[1][2,3]"
     assert_equal [
-      [nil, "join", "join", "1", "2"],
-      [nil, "join", "join", "1", "2,3"]
+      [:join, nil, "tap:join", "1", "2"],
+      [:join, nil, "tap:join", "1", "2,3"]
     ], parser.specs
   end
   
   def test_join_does_not_infer_lead_or_end_index
     parser.parse "--[][] --[1][] --[][2]"
     assert_equal [
-      [nil, "join", "join", "", ""],
-      [nil, "join", "join", "1", ""],
-      [nil, "join", "join", "", "2"]
+      [:join, nil, "tap:join", "", ""],
+      [:join, nil, "tap:join", "1", ""],
+      [:join, nil, "tap:join", "", "2"]
     ], parser.specs
   end
   
   def test_join_with_modifier
     parser.parse  "--[][]is.class"
     assert_equal [
-      [nil, "join", "class", "", "", "-i", "-s"]
+      [:join, nil, "class", "", "", "-i", "-s"]
     ], parser.specs
   end
   
@@ -317,10 +317,10 @@ class ParserTest < Test::Unit::TestCase
     parser.parse  "--// a b c"
     
     assert_equal [
-      ["variable", nil, "signal", "a", "b", "c"],
-      ["variable", nil, nil, "a", "b", "c"],
-      ["", nil, "signal", "a", "b", "c"],
-      [nil, nil, nil, "a", "b", "c"],
+      [:signal, "variable", "signal", "a", "b", "c"],
+      [:signal, "variable", nil, "a", "b", "c"],
+      [:signal, "", "signal", "a", "b", "c"],
+      [:signal, nil, nil, "a", "b", "c"],
     ], parser.specs
   end
 end

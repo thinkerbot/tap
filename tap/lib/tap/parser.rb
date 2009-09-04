@@ -116,7 +116,7 @@ module Tap
     #        (ex: '/var' => 'var')
     #
     SIGNAL = /\A\/(.+)?\z/
-  
+    
     attr_reader :specs
     
     def initialize(specs=[])
@@ -198,20 +198,20 @@ module Tap
       jobs = {}
       deque = []
       results = specs.collect do |spec|
-        var = spec.shift
-        type = spec.shift
-        klass = spec.shift
+        type, var, sig, *args = spec
         
-        if type
-          array = app.build('set' => var, 'type' => type, 'class' => klass, 'args' => spec)
+        if type == :signal
+          app.call('var' => var, 'sig' => sig, 'args' => args)
+        else
+          array = app.build('set' => var, 'class' => sig, 'args' => args)
           obj, args = array
           
           if auto_enque
-            case obj.class.type
-            when 'task'
+            case type
+            when :task
               app.queue.concat([array])
               jobs[obj] = array
-            when 'join'
+            when :join
               deque.concat(obj.outputs)
             end if args
           else
@@ -221,8 +221,6 @@ module Tap
           end
           
           array
-        else
-          app.call('var' => var, 'sig' => klass, 'args' => spec)
         end
       end
       
@@ -249,7 +247,7 @@ module Tap
     
     # returns the current argv or a task argv for the current index
     def current # :nodoc:
-      @current ||= spec(@current_index.to_s, 'task')
+      @current ||= spec(:task, @current_index.to_s)
     end
   
     # determines the type of break and modifies self appropriately
@@ -286,11 +284,11 @@ module Tap
     
     # parses a join modifier string into an argv.
     def parse_join_spec(modifier, inputs, outputs) # :nodoc:
-      argv = [nil, 'join']
+      argv = [:join, nil]
       
       case 
       when modifier.nil?
-        argv << 'join'
+        argv << 'tap:join'
         argv << inputs
         argv << outputs
       when modifier =~ JOIN_MODIFIER
@@ -309,7 +307,7 @@ module Tap
     # parses the match of a SIGNAL regexp
     def parse_signal(one) # :nodoc:
       var, sig = one.to_s.split("/")
-      spec(var, nil, sig)
+      spec(:signal, var, sig)
     end
   end
 end
