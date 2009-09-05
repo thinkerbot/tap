@@ -221,6 +221,10 @@ module Tap
       def inspect
         "#<#{self.class}:#{object_id} #{const_name} #{require_paths.inspect}>"
       end
+      
+      def to_s
+        const_name
+      end
     end
   end
 end

@@ -572,7 +572,7 @@ module Tap
     #
     # If a block is given, a path for each env will be yielded until the block
     # returns a true value.  Returns nil if the block never returns true.
-    def path(dir, *paths)
+    def path(dir = :root, *paths)
       each do |env|
         path = env.root.path(dir, *paths)
         return path if !block_given? || yield(path)
@@ -625,9 +625,7 @@ module Tap
     # Alternatively, a Minimap may be returned.
     #
     # If a type is specified, then the manifest cache will be linked to the
-    # context cache.  In this case, the manifest data is expected to be
-    # dumpable/loadable as YAML.  No such requirement exists if type is left
-    # unspecified.
+    # context cache.
     def manifest(type=nil, &block) # :yields: env
       cache = type ? (context.cache[type] ||= {}) : {}
       Manifest.new(self, block, cache)
@@ -711,7 +709,8 @@ module Tap
 
     protected
     
-    # helper for Minimap
+    # helper for Minimap; note that specifying env.root.root via path
+    # is not possible because path is required for other purposes.
     def entry_to_path(env) # :nodoc:
       env.root.root
     end

@@ -585,7 +585,7 @@ module Tap
       klass = obj.class
       if env
         const_name = klass.to_s
-        klass = env.constants.reverse_seek(false) do |const|
+        klass = env.constants.unseek(true) do |const|
           const_name == const.const_name
         end
       end
