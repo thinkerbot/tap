@@ -11,7 +11,6 @@ class EnvTest < Test::Unit::TestCase
   include MethodRoot
   
   Env = Tap::Env
-  Context = Tap::Env::Context
   
   attr_reader :e
   
@@ -94,7 +93,7 @@ class EnvTest < Test::Unit::TestCase
       io.puts "env_paths: [#{method_root.path(:three)}]"
     end
   
-    env = Env.new(method_root.path(:one))
+    env = Env.new(method_root.path(:one), :basename => "tap.yml")
     assert_equal [
       method_root.path(:one),
       method_root.path(:two),
@@ -207,7 +206,7 @@ class EnvTest < Test::Unit::TestCase
       io << YAML.dump(:key => 'value')
     end
     
-    e = Env.new(method_root, Context.new(:basename => 'config.yml'))
+    e = Env.new(method_root, :basename => 'config.yml')
     assert_equal "value", e.config[:key]
   end
   
@@ -216,7 +215,7 @@ class EnvTest < Test::Unit::TestCase
       io << YAML.dump(:key => 'value')
     end
     
-    e = Env.new({:root => method_root}, Context.new(:basename => 'config.yml'))
+    e = Env.new({:root => method_root}, :basename => 'config.yml')
     assert_equal nil, e.config[:key]
   end
   
@@ -273,7 +272,7 @@ class EnvTest < Test::Unit::TestCase
     
     # one loads one/config.yml, which sets two as an env
     # two loads two/config.yml, which sets three as an env
-    e = Env.new({:env_paths => one}, Context.new(:basename => "config.yml"))
+    e = Env.new({:env_paths => one}, :basename => "config.yml")
     
     assert_equal [one], e.envs.collect {|env| env.root.root }
     assert_equal [two], e.envs[0].envs.collect {|env| env.root.root }
@@ -293,7 +292,7 @@ class EnvTest < Test::Unit::TestCase
     
     # one loads one/config.yml, which sets two as an env
     # two loads two/config.yml, which sets one as an env
-    e = Env.new({:env_paths => one}, Context.new(:basename => "config.yml"))
+    e = Env.new({:env_paths => one}, :basename => "config.yml")
     
     assert_equal [one], e.envs.collect {|env| env.root.root }
     assert_equal [two], e.envs[0].envs.collect {|env| env.root.root }
