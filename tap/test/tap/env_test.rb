@@ -2,11 +2,16 @@ require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/env'
 require 'rubygems'
 
+# used in documentation test
+class A; end
+class B < A; end
+
 class EnvTest < Test::Unit::TestCase
   include Tap::Env::Utils
   include MethodRoot
   
   Env = Tap::Env
+  Context = Tap::Env::Context
   
   attr_reader :e
   
@@ -44,6 +49,33 @@ class EnvTest < Test::Unit::TestCase
     ]
     assert_equal expected, env.glob(:root, "*.rb")
   
+    ###
+  
+    assert_equal method_root.path(:one, "a"), env.class_path(:root, A)
+    assert_equal method_root.path(:one, "b"), env.class_path(:root, B)
+  
+    assert_equal method_root.path(:one, "a/index.html"), env.class_path(:root, A, "index.html")
+    assert_equal method_root.path(:one, "b/index.html"), env.class_path(:root, B, "index.html")
+  
+    method_root.prepare(:two, "a/index.html") {}
+  
+    visited_paths = []
+    actual = env.class_path(:root, B, "index.html") do |path|
+      visited_paths << path
+      File.exists?(path)
+    end
+    assert_equal method_root.path(:two, "a/index.html"), actual
+  
+    expected = [
+      method_root.path(:one, "b/index.html"),
+      method_root.path(:two, "b/index.html"),
+      method_root.path(:one, "a/index.html"),
+      method_root.path(:two, "a/index.html")
+    ]
+    assert_equal expected, visited_paths
+    
+    ###
+    
     manifest = env.manifest {|e| e.root.glob(:root, "*.rb") }
     
     assert_equal method_root.path(:one, "a.rb"), manifest.seek("a")
@@ -52,29 +84,29 @@ class EnvTest < Test::Unit::TestCase
   
     assert_equal method_root.path(:one, "b.rb"), manifest.seek("one:b")
     assert_equal method_root.path(:two, "b.rb"), manifest.seek("two:b")
+    
+    ###
+    method_root.prepare(:one, "tap.yml") do |io|
+      io.puts "env_paths: [#{method_root.path(:two)}]"
+    end
+
+    method_root.prepare(:two, "tap.yml") do |io|
+      io.puts "env_paths: [#{method_root.path(:three)}]"
+    end
+  
+    env = Env.new(method_root.path(:one))
+    assert_equal [
+      method_root.path(:one),
+      method_root.path(:two),
+      method_root.path(:three)
+    ], env.collect {|e| e.root.root}
   end
   
   #
   # setup test
   #
   
-  def test_setup_sets_dir_as_env_root
-    env = Env.setup :dir => method_root[:dir], :config_file => nil
-    assert_equal method_root[:dir], env.root.root
-  end
-  
-  def test_setup_loads_configs_from_dir_config_file
-    method_root.prepare('config.yml') do |io|
-      io << "key: value"
-    end
-    env = Env.setup :dir => method_root.root, :config_file => 'config.yml'
-    assert_equal 'value', env.config[:key]
-  end
-  
-  def test_setup_loads_configs_from_ENV
-    env = Env.setup({:dir => method_root.root, :config_file => nil}, {'TAP_KEY' => 'value'})
-    assert_equal 'value', env.config[:key]
-    
+  def env_test
     current = {}
     ENV.each_pair do |key, value|
       current[key] = value
@@ -82,9 +114,7 @@ class EnvTest < Test::Unit::TestCase
     
     begin
       ENV.clear
-      ENV['TAP_KEY'] = "value"
-      env = Env.setup :dir => method_root.root, :config_file => nil
-      assert_equal 'value', env.config[:key]
+      yield
     ensure
       ENV.clear
       current.each_pair do |key, value|
@@ -93,22 +123,49 @@ class EnvTest < Test::Unit::TestCase
     end
   end
   
-  def test_setup_merges_default_global_user_options
+  def test_setup_sets_dir_as_env_root
+    env_test do
+      env = Env.setup(method_root[:dir], nil)
+      assert_equal method_root[:dir], env.root.root
+    end
+  end
+  
+  def test_setup_loads_configs_from_dir_config_file
+    method_root.prepare('config.yml') do |io|
+      io << "key: value"
+    end
+    
+    env_test do
+      env = Env.setup(method_root.root, 'config.yml')
+      assert_equal 'value', env.config[:key]
+    end
+  end
+  
+  def test_setup_loads_configs_from_ENV
+    env_test do
+      ENV['TAP_KEY'] = 'value'
+      
+      env = Env.setup(method_root.root, nil)
+      assert_equal 'value', env.config[:key]
+    end
+  end
+  
+  def test_setup_merges_default_global_user_configs
     method_root.prepare('config.yml') do |io|
       io << "key: user"
     end
     
-    env = Env.setup :dir => method_root.root, :config_file => nil
-    assert_equal nil, env.config[:key]
+    env_test do
+      env = Env.setup(method_root.root, nil)
+      assert_equal nil, env.config[:key]
     
-    env = Env.setup({:dir => method_root.root, :config_file => nil}, {'TAP_KEY' => 'global'})
-    assert_equal 'global', env.config[:key]
+      ENV['TAP_KEY'] = 'global'
+      env = Env.setup(method_root.root, nil)
+      assert_equal 'global', env.config[:key]
     
-    env = Env.setup({:dir => method_root.root, :config_file => 'config.yml'}, {'TAP_KEY' => 'global'})
-    assert_equal 'user', env.config[:key]
-    
-    env = Env.setup({:dir => method_root.root, :config_file => 'config.yml', 'key' => 'options'}, {'TAP_KEY' => 'global'})
-    assert_equal 'options', env.config[:key]
+      env = Env.setup(method_root.root, 'config.yml')
+      assert_equal 'user', env.config[:key]
+    end
   end
   
   #
@@ -150,7 +207,7 @@ class EnvTest < Test::Unit::TestCase
       io << YAML.dump(:key => 'value')
     end
     
-    e = Env.new(method_root, :basename => 'config.yml')
+    e = Env.new(method_root, Context.new(:basename => 'config.yml'))
     assert_equal "value", e.config[:key]
   end
   
@@ -159,7 +216,7 @@ class EnvTest < Test::Unit::TestCase
       io << YAML.dump(:key => 'value')
     end
     
-    e = Env.new({:root => method_root}, :basename => 'config.yml')
+    e = Env.new({:root => method_root}, Context.new(:basename => 'config.yml'))
     assert_equal nil, e.config[:key]
   end
   
@@ -216,7 +273,7 @@ class EnvTest < Test::Unit::TestCase
     
     # one loads one/config.yml, which sets two as an env
     # two loads two/config.yml, which sets three as an env
-    e = Env.new({:env_paths => one}, :basename => "config.yml")
+    e = Env.new({:env_paths => one}, Context.new(:basename => "config.yml"))
     
     assert_equal [one], e.envs.collect {|env| env.root.root }
     assert_equal [two], e.envs[0].envs.collect {|env| env.root.root }
@@ -236,7 +293,7 @@ class EnvTest < Test::Unit::TestCase
     
     # one loads one/config.yml, which sets two as an env
     # two loads two/config.yml, which sets one as an env
-    e = Env.new({:env_paths => one}, :basename => "config.yml")
+    e = Env.new({:env_paths => one}, Context.new(:basename => "config.yml"))
     
     assert_equal [one], e.envs.collect {|env| env.root.root }
     assert_equal [two], e.envs[0].envs.collect {|env| env.root.root }

@@ -1,5 +1,16 @@
 module Tap
   class Env
+    
+    
+    # Envs utilize a Context to track information shared by a set of Env
+    # instances, for instance cached manifest data.  Caching data in a shared
+    # space optimizes performance under normal circumstances, and facilitates
+    # loading manifests from a manifest file.
+    #
+    # Contexts also ensure only one env in initialized to a given directory
+    # (at least among envs that share the same context). This prevents errors
+    # that arise when one env eventually nests itself.
+    #
     class Context
       attr_reader :cache
       

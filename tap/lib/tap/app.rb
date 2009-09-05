@@ -108,8 +108,8 @@ module Tap
         @instance ||= (auto_initialize ? new : nil)
       end
       
-      def setup(options={}, env_vars=ENV)
-        env = Env.setup(options, env_vars)
+      def setup(dir=Dir.pwd)
+        env = Env.setup(dir)
         @instance = new(:env => env)
       end
     end
