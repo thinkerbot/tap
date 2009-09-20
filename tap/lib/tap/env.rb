@@ -293,7 +293,7 @@ module Tap
     attr_reader :context
     
     # The Root directory structure for self.
-    nest(:root, Root, :set_default => false)
+    nest(:root, Root, :init => false)
   
     # Specify gems to add as nested Envs.  Gems may be specified by name
     # and/or version, like 'gemname >= 1.2'; by default the latest version

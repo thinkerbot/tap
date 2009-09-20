@@ -54,14 +54,14 @@ module Tap
     include Utils
   
     # The root directory.
-    config_attr(:root, '.', :writer => false, :set_default => false)
+    config_attr(:root, '.', :writer => false, :init => false)
   
     # A hash of (alias, relative path) pairs for aliased paths relative
     # to root.
-    config_attr(:relative_paths, {}, :writer => false, :set_default => false, :type => :hash)
+    config_attr(:relative_paths, {}, :writer => false, :init => false, :type => :hash)
   
     # A hash of (alias, relative path) pairs for aliased absolute paths.
-    config_attr(:absolute_paths, {}, :reader => false, :writer => false, :set_default => false, :type => :hash)
+    config_attr(:absolute_paths, {}, :reader => false, :writer => false, :init => false, :type => :hash)
   
     # A hash of (alias, expanded path) pairs for expanded relative and
     # absolute paths.

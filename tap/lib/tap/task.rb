@@ -279,25 +279,8 @@ module Tap
       end
     end
     
-    instance_variable_set(:@source_file, __FILE__)
-    
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
-    
-    ###############################################################
-    # [depreciated] manifest will be removed at 1.0
-    lazy_attr :manifest
-    def self.desc(resolve=true)
-      comment = const_attrs['task'] ||= self.manifest
-      resolve && comment.kind_of?(Lazydoc::Comment) ? comment.resolve : comment
-    end
-    def self.manifest
-      # :::-
-      #"warn manifest is depreciated, use ::task instead"
-      # :::+
-      const_attrs['manifest'] ||= Lazydoc::Subject.new(nil, lazydoc)
-    end
-    ###############################################################
     
     signal :enq
     

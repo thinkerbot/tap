@@ -21,7 +21,6 @@ parser = ConfigParser.bind(app.config) do |psr|
   psr.separator "options:"
   
   psr.on("-h", "--help", "Show this message") do
-    Tap::App.lazydoc.resolve
     puts Lazydoc.usage(__FILE__)
     puts psr
     exit(0)

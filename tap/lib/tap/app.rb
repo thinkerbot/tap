@@ -148,7 +148,7 @@ module Tap
     
     nest :env, Env, 
       :type => :hidden,
-      :instance_writer => false                      # The application environment
+      :writer => false                               # The application environment
     
     signal :run             # run the app
     signal :stop            # stop the app
@@ -163,7 +163,6 @@ module Tap
       :method_name => :build, 
       :signature => ['class'], 
       :remainder => 'args'
-    
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, options={}, &block)

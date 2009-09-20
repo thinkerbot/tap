@@ -102,14 +102,6 @@ class TaskTest < Test::Unit::TestCase
   end
   
   #
-  # Task.source_file test
-  #
-  
-  def test_source_file_is_set_to_file_where_subclass_first_inherits_Task
-    assert_equal File.expand_path(__FILE__), Sample.source_file
-  end
-  
-  #
   # Task.parse test
   #
   
@@ -161,10 +153,10 @@ class TaskTest < Test::Unit::TestCase
     end
     
     err = assert_raises(RuntimeError) { ParseClass.parse ["--key", "two", "--config", path] }
-    assert_equal "multiple values mapped to :key", err.message
+    assert_equal "multiple values map to config: :key", err.message
     
     err = assert_raises(RuntimeError) { ParseClass.parse ["--config", path, "--key", "two"] }
-    assert_equal "multiple values mapped to :key", err.message
+    assert_equal "multiple values map to config: :key", err.message
   end
   
   def test_parse_uses_ARGV_if_unspecified
@@ -408,10 +400,9 @@ class TaskTest < Test::Unit::TestCase
     assert Define.configurations.key?(:define_task)
     config = Define.configurations[:define_task]
     
-    assert_equal :define_task_config_reader, config.reader
-    assert_equal :define_task_config_writer, config.writer
-    assert_equal Configurable::DelegateHash, config.default.class
-    assert_equal Define::DefineTask.configurations, config.default.delegates
+    assert_equal :define_task, config.reader
+    assert_equal :define_task=, config.writer
+    assert_equal Define::DefineTask, config.nest_class
   end
   
   def test_instance_is_initialized_with_configs_by_the_same_name
@@ -519,16 +510,6 @@ class TaskTest < Test::Unit::TestCase
   def test_initialization_with_config
     t = Task.new({:key => 'value'})
     assert_equal({:key => 'value'}, t.config)
-  end
-  
-  def test_initialize_binds_delegate_hashes_to_self
-    dhash = Configurable::DelegateHash.new
-    assert !dhash.bound?
-    
-    s = Sample.new(dhash)
-    assert dhash.bound?
-    assert_equal s, dhash.receiver
-    assert_equal dhash, s.config
   end
   
   #
