@@ -3,17 +3,39 @@ require 'tap/signals/index'
 module Tap
   module Signals
     module ClassMethods
-
-      # A hash of (key, Signal) pairs defining signals available to the class.
-      attr_reader :signals
+      SIGNALS_CLASS = Configurable::ClassMethods::CONFIGURATIONS_CLASS
       
-      def inherited(child) # :nodoc:
-        super
+      # A hash of (key, Signal) pairs defining signals available to the class.
+      attr_reader :signal_registry
+      
+      def self.initialize(base)
+        unless base.instance_variable_defined?(:@signal_registry)
+          base.instance_variable_set(:@signal_registry, SIGNALS_CLASS.new)
+        end
         
-        unless child.signals
-          child.instance_variable_set(:@signals, signals.dup)
+        unless base.instance_variable_defined?(:@signals)
+          base.instance_variable_set(:@signals, nil)
         end
       end
+      
+      def signals
+        return @signals if @signals
+
+        signals = SIGNALS_CLASS.new
+        ancestors.reverse.each do |ancestor|
+          next unless ancestor.kind_of?(ClassMethods)
+          signals.merge!(ancestor.signal_registry)
+        end
+
+        signals
+      end
+
+      def cache_signals(on=true)
+        @signals = nil
+        @signals = self.signals if on
+      end
+      
+      protected
       
       # Defines a signal to call a method using an argument vector. The argv
       # is sent to the method using a splat, so any method may be signaled.
@@ -62,11 +84,10 @@ module Tap
       end
       
       private
-      
-      # a helper to initialize signals for the first time,
-      # mainly implemented as a hook for OrderedHashPatch
-      def initialize_signals # :nodoc:
-        @signals ||= {}
+
+      def inherited(base)
+       ClassMethods.initialize(base)
+       super
       end
       
       def define_signal(sig, opts, &block) # :nodoc:
@@ -76,7 +97,7 @@ module Tap
         klass = opts[:class] || Signal
         
         signal = klass.bind(method_name, desc, &block)
-        signals[sig.to_s] = signal
+        signal_registry[sig.to_s] = signal
         
         # set the new constant, if specified
         const_name = opts.has_key?(:const_name) ? opts[:const_name] : sig.to_s.capitalize
@@ -87,18 +108,5 @@ module Tap
         signal
       end
     end
-    
-    #--
-    # This is a patch to track the order of signals as they are registered and
-    # is only required for ruby versions before 1.9.  Afterwards, a regular hash
-    # will do.
-    module ClassMethods
-      undef_method :initialize_signals
-
-      # applies the OrderedHashPatch
-      def initialize_signals # :nodoc:
-        @signals ||= Configurable::OrderedHashPatch.new
-      end
-    end if RUBY_VERSION < '1.9'
   end
 end

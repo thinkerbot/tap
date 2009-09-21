@@ -1,4 +1,4 @@
-require 'tap/signals/class_methods'
+require 'tap/signals/module_methods'
 
 module Tap
   
@@ -8,16 +8,6 @@ module Tap
   # commonly produce a parameters hash.
   #
   module Signals
-    def self.included(mod)
-      super
-      
-      mod.extend ClassMethods
-      mod.initialize_signals
-      
-      # initialize the default index signal
-      mod.signals[""] = Index
-    end
-    
     def signal(sig)
       sig = sig.to_s
       unless signal = self.class.signals[sig]
