@@ -5,6 +5,9 @@ require 'rubygems'
 # used in documentation test
 class A; end
 class B < A; end
+class CustomTask
+  def call; end
+end
 
 class EnvTest < Test::Unit::TestCase
   include Tap::Env::Utils
@@ -83,6 +86,13 @@ class EnvTest < Test::Unit::TestCase
   
     assert_equal method_root.path(:one, "b.rb"), manifest.seek("one:b")
     assert_equal method_root.path(:two, "b.rb"), manifest.seek("two:b")
+    
+    env.register(CustomTask).register_as(:task, "this is a custom task")
+    
+    const = env.constants.seek('custom_task')
+    assert_equal "CustomTask", const.const_name
+    assert_equal({:task => "this is a custom task"}, const.types)
+    assert_equal CustomTask, const.constantize
     
     ###
     method_root.prepare(:one, "tap.yml") do |io|
@@ -613,6 +623,41 @@ a (0)
   #   err = assert_raises(RuntimeError) { e.scan(path) }
   #   assert_equal "could not determine a constant name for resource in: #{path.inspect}", err.message
   # end
+  
+  #
+  # register test
+  #
+  
+  module SampleConstant
+  end
+  
+  def test_register_adds_a_Constant_for_the_input_constant_to_the_constants_cache_for_self
+    assert_equal({}, e.constants.cache)
+    const = e.register(SampleConstant)
+    
+    assert_equal "EnvTest::SampleConstant", const.const_name
+    assert_equal({e => [const]}, e.constants.cache)
+  end
+  
+  def test_register_returns_the_constant_already_registered_to_self
+    existing = Env::Constant.new("EnvTest::SampleConstant")
+    e.constants.cache[e] = [existing]
+    assert_equal existing.object_id, e.register(SampleConstant).object_id
+  end
+  
+  def test_register_does_not_check_nested_environments_for_an_existing_constant
+    a = Env.new(method_root[:a])
+    b = Env.new(method_root[:b])
+    a << b
+    
+    existing = Env::Constant.new("EnvTest::SampleConstant")
+    a.constants.cache[b] = [existing].extend(Env::Minimap)
+    
+    assert_equal existing, a.constants.seek('sample_constant')
+    const = a.register(SampleConstant)
+    assert existing.object_id != const.object_id
+    assert_equal const, a.constants.seek('sample_constant')
+  end
   
   #
   # manifest.summarize test

@@ -10,7 +10,7 @@ module Tap
   # == Description
   #
   # Env provides access to an execution environment spanning many directories,
-  # such as the working directory and a series of gem directories.  Envs merge
+  # such as the working directory plus a series of gem directories.  Envs merge
   # the files from each directory into an abstract directory that may be 
   # globbed and accessed as a single unit.  For example:
   #
@@ -61,9 +61,9 @@ module Tap
   #   env.class_path(:root, A, "index.html") # => "/one/a/index.html"
   #   env.class_path(:root, B, "index.html") # => "/one/b/index.html"
   #
-  # More significantly a block may be given to filter paths, for instance to
-  # test if a given file exists.  The class_path method will check each env
-  # then roll up the inheritance hierarchy until the block returns true.  
+  # A block may be given to filter paths, for instance to test if a given file
+  # exists.  The class_path method will check each env then roll up the
+  # inheritance hierarchy until the block returns true.  
   #
   #   FileUtils.touch("/two/a/index.html")
   #
@@ -106,6 +106,21 @@ module Tap
   #
   #   manifest.seek("one:b")      # => "/one/b.rb"
   #   manifest.seek("two:b")      # => "/two/b.rb"
+  #
+  # Env caches a manifest of constants identified by {constant attributes}[http://tap.rubyforge.org/lazydoc]
+  # in .rb files located under the Env.load_paths.  These constants are used
+  # when interpreting signals from the command line.  Constants may be manually
+  # registered to the constants manifest and classified by type like this:
+  #
+  #   class CustomTask
+  #     def call; end
+  #   end
+  #   env.register(CustomTask).register_as(:task, "this is a custom task")
+  #
+  #   const = env.constants.seek('custom_task')
+  #   const.const_name           # => "CustomTask"
+  #   const.types                # => {:task => "this is a custom task"}
+  #   const.constantize          # => CustomTask
   #
   # == Setup
   #
@@ -676,6 +691,23 @@ module Tap
         raise "unresolvable constant: #{key.inspect}"
       end
       constant.constantize
+    end
+    
+    # Registers a constant with self.  The constant is stored as a new
+    # Constant in the constants manifest.  Returns the new Constant.
+    # If the constant is already registered, the existing Constant is
+    # returned.
+    def register(constant)
+      const_name = constant.to_s
+      entries = constants.entries(self)
+      
+      # try to find the existing Constant before making a new constant
+      unless constant = entries.find {|const| const.const_name == const_name}
+        constant = Constant.new(const_name)
+        entries << constant
+      end
+      
+      constant
     end
     
     # When no template is specified, inspect generates a fairly standard
