@@ -231,6 +231,35 @@ class ConstantTest < Test::Unit::TestCase
   end
   
   #
+  # register_as test
+  #
+  
+  def test_register_as_adds_the_type_and_summary_to_types
+    c = Constant.new('ConstName')
+    assert_equal({}, c.types)
+    
+    c.register_as(:type, "summary")
+    assert_equal({:type => "summary"}, c.types)
+  end
+  
+  def test_register_as_raises_an_error_if_already_registered_to_the_type
+    c = Constant.new('ConstName')
+    c.types[:type] = "summary"
+    
+    err = assert_raises(RuntimeError) { c.register_as(:type, "override summary") }
+    assert_equal "already registered as a :type", err.message
+    assert_equal({:type => "summary"}, c.types)
+  end
+  
+  def test_register_as_overrides_if_specified
+    c = Constant.new('ConstName')
+    c.types[:type] = "summary"
+    
+    c.register_as(:type, "override summary", true)
+    assert_equal({:type => "override summary"}, c.types)
+  end
+  
+  #
   # constantize test
   #
   
@@ -316,5 +345,13 @@ class ConstantTest < Test::Unit::TestCase
     
     c = Constant.new('Sample::Const', '/require/path.rb')
     assert_equal "#<Tap::Env::Constant:#{c.object_id} Sample::Const [\"/require/path.rb\"]>", c.inspect
+  end
+  
+  #
+  # to_s test
+  #
+  
+  def test_to_s_returns_const_name
+    assert_equal 'Sample::Const', Constant.new('Sample::Const').to_s
   end
 end

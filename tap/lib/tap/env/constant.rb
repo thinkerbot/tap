@@ -17,10 +17,10 @@ module Tap
     # === Unloading
     #
     # Constant also supports constant unloading.  Unloading can be useful in
-    # various development modes, but make cause code to behave unpredictably.
-    # When a Constant unloads, the constant value is detached from the nesting
-    # constant and the require path is removed from $".  This allows a require
-    # statement to re-require, and in theory, reload the constant.
+    # various development modes, but may cause code to behave unpredictably.
+    # When a Constant unloads, the constant value is removed from the nesting
+    # constant and the require paths are removed from $".  This allows a
+    # require statement to re-require, and in theory, reload the constant.
     #
     #   # [simple.rb]
     #   # class Simple
@@ -39,6 +39,17 @@ module Tap
     # Unloading and reloading works best for scripts that have no side effects;
     # ie scripts that do not require other files and only define the specified
     # class or module.
+    #
+    #--
+    # ==== Rationale for that last statement
+    #
+    # Scripts that require other files will not re-require the other files
+    # because unload doesn't remove the other files from $".  Likewise scripts
+    # that define other constants effectively overwrite the existing constant;
+    # that may or may not be a big deal, but it can cause warnings.  Moreover,
+    # if a script actually DOES something (like create a file), that something
+    # will be repeated when it gets re-required.
+    #
     class Constant
       class << self
       
@@ -76,8 +87,8 @@ module Tap
         private
       
         # helper method.  Determines if the named constant is defined in const.
-        # The implementation (annoyingly) has to be different for ruby 1.9 due
-        # to changes in the API.
+        # The implementation has to be different for ruby 1.9 due to changes
+        # in the API.
         case RUBY_VERSION
         when /^1.9/
           def const_is_defined?(const, const_name) # :nodoc:
@@ -96,8 +107,11 @@ module Tap
       # The full constant name
       attr_reader :const_name
     
+      # An array of paths that will be required when the constantize is called
+      # and the constant does not exist.  Require paths are required in order.
       attr_reader :require_paths
       
+      # A hash of (type, summary) pairs used to classify self.
       attr_reader :types
     
       # Initializes a new Constant with the specified constant name,
@@ -165,9 +179,11 @@ module Tap
         another.require_paths == self.require_paths
       end
     
+      # Registers the type and summary with self.  Raises an error if self is
+      # already registerd as the type and override is false.
       def register_as(type, summary=nil, override=false)
         if types.include?(type) && !override
-          raise "already registered as a #{type}"
+          raise "already registered as a #{type.inspect}"
         end
         
         types[type] = summary
@@ -175,8 +191,8 @@ module Tap
       end
       
       # Looks up and returns the constant indicated by const_name. If the
-      # constant cannot be found, constantize requires require_path and
-      # tries again.
+      # constant cannot be found, constantize requires the require_paths
+      # in order and tries again.
       #
       # Raises a NameError if the constant cannot be found.
       def constantize
@@ -190,7 +206,7 @@ module Tap
       end
     
       # Undefines the constant indicated by const_name.  The nesting constants
-      # are not removed.  If specified, require_path will be removed from $".
+      # are not removed.  If specified, the require_paths will be removed from $".
       #
       # When removing require_path, unload will add '.rb' to the require_path if
       # require_path has no extension (this echos the behavior of require).
@@ -222,6 +238,7 @@ module Tap
         "#<#{self.class}:#{object_id} #{const_name} #{require_paths.inspect}>"
       end
       
+      # Returns const_name
       def to_s
         const_name
       end
