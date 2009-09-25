@@ -159,6 +159,98 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   #
+  # remove_signal test
+  #
+  
+  class RemoveSignal
+    include Tap::Signals
+    signal :a
+    signal :b
+  end
+  
+  def test_remove_signal_removes_constant_if_specified
+    assert_equal true, RemoveSignal.const_defined?(:A)
+    RemoveSignal.send(:remove_signal, :a)
+    assert_equal(["", "b"], RemoveSignal.signals.keys)
+    assert_equal false, RemoveSignal.const_defined?(:A)
+    
+    RemoveSignal.send(:remove_signal, :b, :remove_const => false)
+    assert_equal([""], RemoveSignal.signals.keys)
+    assert_equal true, RemoveSignal.const_defined?(:B)
+  end
+  
+  class CachedRemoveSignal
+    include Tap::Signals
+    signal :a
+    signal :b
+    
+    cache_signals
+  end
+  
+  def test_remove_signal_recaches_cached_signals
+    assert_equal(["", "a", "b"], CachedRemoveSignal.signals.keys)
+    CachedRemoveSignal.send(:remove_signal, :a)
+    assert_equal(["", "b"], CachedRemoveSignal.signals.keys)
+  end
+  
+  class NoCacheRemoveSignal
+    include Tap::Signals
+    signal :a
+    signal :b
+  end
+  
+  def test_remove_signal_does_not_accidentally_cache_uncached_signals
+    NoCacheRemoveSignal.send(:remove_signal, :a)
+    assert NoCacheRemoveSignal.signals.object_id != NoCacheRemoveSignal.signals.object_id
+  end
+  
+  #
+  # undef_signal test
+  #
+  
+  class UndefSignal
+    include Tap::Signals
+    signal :a
+    signal :b
+  end
+  
+  def test_undef_signal_removes_constant_if_specified
+    assert_equal true, UndefSignal.const_defined?(:A)
+    UndefSignal.send(:undef_signal, :a)
+    assert_equal(["", "b"], UndefSignal.signals.keys)
+    assert_equal false, UndefSignal.const_defined?(:A)
+    
+    UndefSignal.send(:undef_signal, :b, :remove_const => false)
+    assert_equal([""], UndefSignal.signals.keys)
+    assert_equal true, UndefSignal.const_defined?(:B)
+  end
+  
+  class CachedUndefSignal
+    include Tap::Signals
+    signal :a
+    signal :b
+    
+    cache_signals
+  end
+  
+  def test_undef_signal_recaches_cached_signals
+    assert_equal(["", "a", "b"], CachedUndefSignal.signals.keys)
+    CachedUndefSignal.send(:undef_signal, :a)
+    assert_equal(["", "b"], CachedUndefSignal.signals.keys)
+  end
+  
+  class NoCacheUndefSignal
+    include Tap::Signals
+    signal :a
+    signal :b
+  end
+  
+  def test_undef_signal_does_not_accidentally_cache_uncached_signals
+    NoCacheUndefSignal.send(:undef_signal, :a)
+    assert NoCacheUndefSignal.signals.object_id != NoCacheUndefSignal.signals.object_id
+  end
+  
+  #
   # signal documentation
   #
   

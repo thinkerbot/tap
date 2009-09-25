@@ -18,18 +18,34 @@ module Tap
         end
       end
       
+      # A hash of (key, Signal) pairs representing all signals defined on this
+      # class or inherited from ancestors.  The signals hash is generated on
+      # each call to ensure it accurately reflects any signals added on
+      # ancestors.  This slows down signal calls through instance.signal.
+      #
+      # Call cache_signals after all signals have been declared in order
+      # to prevent regeneration of signals and to significantly improve
+      # performance.
       def signals
         return @signals if @signals
 
         signals = SIGNALS_CLASS.new
         ancestors.reverse.each do |ancestor|
           next unless ancestor.kind_of?(ClassMethods)
-          signals.merge!(ancestor.signal_registry)
+          ancestor.signal_registry.each_pair do |key, value|
+            if value.nil?
+              signals.delete(key)
+            else
+              signals[key] = value
+            end
+          end
         end
 
         signals
       end
 
+      # Caches the signals hash so as to improve peformance.  Call with on set to
+      # false to turn off caching.
       def cache_signals(on=true)
         @signals = nil
         @signals = self.signals if on
@@ -83,9 +99,66 @@ module Tap
         end
       end
       
+      # Removes a signal much like remove_method removes a method.  The signal
+      # constant is likewise removed unless the :remove_const option is set to
+      # to true.
+      def remove_signal(key, options={})
+        key = key.to_s
+        unless signal_registry.has_key?(key)
+          raise NameError.new("#{key} is not a signal for #{self}")
+        end
+
+        options = {
+          :remove_const => true
+        }.merge(options)
+
+        signal = signal_registry.delete(key)
+        cache_signals(@signals != nil)
+
+        if options[:remove_const]
+          const_name = signal.to_s.split("::").pop
+          remove_const(const_name) if const_defined?(const_name)
+        end 
+      end
+
+      # Undefines a signal much like undef_method undefines a method.  The signal
+      # constant is likewise removed unless the :remove_const option is set to
+      # to true.
+      #
+      # ==== Implementation Note
+      #
+      # Signals are undefined by setting the key to nil in the registry. Deleting
+      # the signal is not sufficient because the registry needs to convey to self
+      # and subclasses to not inherit the signal from ancestors.
+      #
+      # This is unlike remove_signal where the signal is simply deleted from
+      # the signal_registry.
+      #
+      def undef_signal(key, options={})
+        # temporarily cache as an optimization
+        sigs = signals
+        key = key.to_s
+        unless sigs.has_key?(key)
+          raise NameError.new("#{key} is not a signal for #{self}")
+        end
+
+        options = {
+          :remove_const => true
+        }.merge(options)
+        
+        signal = sigs[key]
+        signal_registry[key] = nil
+        cache_signals(@signals != nil)
+        
+        if options[:remove_const]
+          const_name = signal.to_s.split("::").pop
+          remove_const(const_name) if const_defined?(const_name)
+        end
+      end
+      
       private
 
-      def inherited(base)
+      def inherited(base) # :nodoc:
        ClassMethods.initialize(base)
        super
       end

@@ -139,7 +139,9 @@ namespace :test do
   end
   
   desc 'run signals tests'
-  task(:signals) { test_section :signals }
+  task(:signals) do
+    test Dir["test/tap/signals*_test.rb", "test/tap/signals/**/*_test.rb"].uniq
+  end
   
   desc 'run parser tests'
   task(:parser) { test_section :parser }
