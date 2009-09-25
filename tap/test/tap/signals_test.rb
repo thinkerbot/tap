@@ -171,11 +171,11 @@ class SignalsTest < Test::Unit::TestCase
   def test_remove_signal_removes_constant_if_specified
     assert_equal true, RemoveSignal.const_defined?(:A)
     RemoveSignal.send(:remove_signal, :a)
-    assert_equal(["", "b"], RemoveSignal.signals.keys)
+    assert_equal(["b"], RemoveSignal.signals.keys)
     assert_equal false, RemoveSignal.const_defined?(:A)
     
     RemoveSignal.send(:remove_signal, :b, :remove_const => false)
-    assert_equal([""], RemoveSignal.signals.keys)
+    assert_equal([], RemoveSignal.signals.keys)
     assert_equal true, RemoveSignal.const_defined?(:B)
   end
   
@@ -188,9 +188,9 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   def test_remove_signal_recaches_cached_signals
-    assert_equal(["", "a", "b"], CachedRemoveSignal.signals.keys)
+    assert_equal(["a", "b"], CachedRemoveSignal.signals.keys)
     CachedRemoveSignal.send(:remove_signal, :a)
-    assert_equal(["", "b"], CachedRemoveSignal.signals.keys)
+    assert_equal(["b"], CachedRemoveSignal.signals.keys)
   end
   
   class NoCacheRemoveSignal
@@ -217,11 +217,11 @@ class SignalsTest < Test::Unit::TestCase
   def test_undef_signal_removes_constant_if_specified
     assert_equal true, UndefSignal.const_defined?(:A)
     UndefSignal.send(:undef_signal, :a)
-    assert_equal(["", "b"], UndefSignal.signals.keys)
+    assert_equal(["b"], UndefSignal.signals.keys)
     assert_equal false, UndefSignal.const_defined?(:A)
     
     UndefSignal.send(:undef_signal, :b, :remove_const => false)
-    assert_equal([""], UndefSignal.signals.keys)
+    assert_equal([], UndefSignal.signals.keys)
     assert_equal true, UndefSignal.const_defined?(:B)
   end
   
@@ -234,9 +234,9 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   def test_undef_signal_recaches_cached_signals
-    assert_equal(["", "a", "b"], CachedUndefSignal.signals.keys)
+    assert_equal(["a", "b"], CachedUndefSignal.signals.keys)
     CachedUndefSignal.send(:undef_signal, :a)
-    assert_equal(["", "b"], CachedUndefSignal.signals.keys)
+    assert_equal(["b"], CachedUndefSignal.signals.keys)
   end
   
   class NoCacheUndefSignal

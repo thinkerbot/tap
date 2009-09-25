@@ -1,8 +1,8 @@
-require 'tap/signals/signal'
+require 'tap/signals'
 
 module Tap
-  module Signals
-    class Index < Signal
+  class App
+    class Index < Signals::Signal
       
       def call(args)
         signals = obj.class.signals

@@ -12,9 +12,6 @@ module Tap
 
         # initialize any class variables
         ClassMethods.initialize(base)
-        
-        # initialize the default index signal
-        base.signal_registry[""] = Index
       end
     end
   

@@ -1,4 +1,4 @@
-require 'tap/signals/index'
+require 'tap/signals/signal'
 
 module Tap
   module Signals
