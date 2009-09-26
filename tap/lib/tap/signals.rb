@@ -16,6 +16,11 @@ module Tap
       
       signal.new(self)
     end
+    
+    def signal?(sig)
+      sig = sig.to_s
+      self.class.signals.has_key?(sig.to_s)
+    end
   end
 end
 

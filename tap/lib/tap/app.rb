@@ -309,9 +309,15 @@ module Tap
       sig = spec['sig']
       args = spec['args'] || spec
       
-      sig ||= args.empty? ? nil : 'build'
+      sig ||= (var.nil? && !args.empty? ? 'build' : nil)
       
-      obj(var).signal(sig).call(args)
+      object = obj(var)
+      if object.kind_of?(Signals)
+        object.signal(sig).call(args)
+      else
+        hint = signal?(var) ? " (did you mean '--//#{var}'?)" : nil
+        raise "unknown object: #{var}#{hint}"
+      end
     end
     
     def build(spec)
