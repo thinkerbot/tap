@@ -167,6 +167,82 @@ value
 }, :env => {'SAMPLE' => 'value'}
   end
   
+  def test_sh_test_correctly_matches_no_output
+    sh_test %Q{
+ruby -e ""
+}
+
+    sh_test %Q{ruby -e ""}
+  end
+  
+  def test_sh_test_correctly_matches_whitespace_output
+    sh_test %Q{
+ruby -e 'print "\\t\\n  "'
+\t
+  }
+    sh_test %Q{
+echo
+
+}
+    sh_test %Q{echo
+
+}
+  end
+  
+  def test_sh_test_fails_on_mismatch
+    err = assert_raises(Test::Unit::AssertionFailedError) { sh_test %Q{ruby -e ""\nflunk} }
+    assert_equal %Q{
+ruby -e "".
+<"flunk"> expected but was
+<"">.}, "\n" + err.message
+
+    err = assert_raises(Test::Unit::AssertionFailedError) { sh_test %Q{echo pass\nflunk} }
+    assert_equal %Q{
+echo pass.
+<"flunk"> expected but was
+<"pass\\n">.}, "\n" + err.message
+  end
+  
+  #
+  # sh_match test
+  #
+
+  def test_sh_match_matches_regexps_to_output
+    opts = {
+      :cmd_pattern => '% argv_inspect',
+      :cmd => 'ruby -e "puts ARGV.inspect"'
+    }
+
+    sh_match "% argv_inspect goodnight moon",
+    /goodnight/,
+    /mo+n/,
+    opts
+
+    sh_match "echo goodnight moon",
+    /goodnight/,
+    /mo+n/
+  end
+  
+  def test_sh_match_fails_on_mismatch
+    err = assert_raises(Test::Unit::AssertionFailedError) do
+      sh_match "ruby -e ''", /output/
+    end
+    
+    assert_equal %Q{
+ruby -e ''.
+<""> expected to be =~
+</output/>.}, "\n" + err.message
+
+    err = assert_raises(Test::Unit::AssertionFailedError) do
+      sh_match "echo pass", /pas+/, /fail/
+    end
+    
+    assert_equal %Q{
+echo pass.
+<"pass\\n"> expected to be =~
+</fail/>.}, "\n" + err.message
+  end
+    
   #
   # sh_test_options test
   #

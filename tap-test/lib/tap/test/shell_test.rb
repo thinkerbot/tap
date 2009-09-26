@@ -128,6 +128,29 @@ module Tap
         end
       end
       
+      def capture_sh(cmd, options)
+        options = sh_test_options.merge(options)
+        
+        unless quiet? || @shell_test_notification
+          @shell_test_notification = true
+          puts
+          puts method_name 
+        end
+        
+        original_cmd = cmd
+        if cmd_pattern = options[:cmd_pattern]
+          cmd = cmd.sub(cmd_pattern, options[:cmd].to_s)
+        end
+        
+        start = Time.now
+        result = with_env(options[:env], options[:replace_env]) { sh(cmd) }
+        finish = Time.now
+        
+        elapsed = "%.3f" % [finish-start]
+        puts "  (#{elapsed}s) #{verbose? ? cmd : original_cmd}" unless quiet?
+        result
+      end
+      
       # Peforms a shell test.  Shell tests execute the command and yield the
       # $stdout result to the block for validation.  The command is executed
       # through sh, ie using IO.popen.
@@ -175,29 +198,9 @@ module Tap
       # variables being inherited by subprocesses.
       # 
       def sh_test(cmd, options={})
-        options = sh_test_options.merge(options)
-        
-        unless quiet? || @shell_test_notification
-          @shell_test_notification = true
-          puts
-          puts method_name 
-        end
-        
-        cmd, expected = cmd.lstrip.split(/\r?\n/, 2)
-        original_cmd = cmd
-        
-        if cmd_pattern = options[:cmd_pattern]
-          cmd = cmd.sub(cmd_pattern, options[:cmd].to_s)
-        end
-        
-        start = Time.now
-        result = with_env(options[:env], options[:replace_env]) do
-          sh(cmd)
-        end
-        finish = Time.now
-        
-        elapsed = "%.3f" % [finish-start]
-        puts "  (#{elapsed}s) #{verbose? ? cmd : original_cmd}" unless quiet?
+        cmd, expected = cmd.lstrip.split(/^/, 2)
+        cmd.strip!
+        result = capture_sh(cmd, options)
         
         assert_equal(expected, result, cmd) if expected
         yield(result) if block_given?
@@ -206,29 +209,7 @@ module Tap
       
       def sh_match(cmd, *regexps)
         options = regexps.last.kind_of?(Hash) ? regexps.pop : {}
-        options = sh_test_options.merge(options)
-        
-        unless quiet? || @shell_test_notification
-          @shell_test_notification = true
-          puts
-          puts method_name 
-        end
-        
-        cmd, expected = cmd.lstrip.split(/\r?\n/, 2)
-        original_cmd = cmd
-        
-        if cmd_pattern = options[:cmd_pattern]
-          cmd = cmd.sub(cmd_pattern, options[:cmd].to_s)
-        end
-        
-        start = Time.now
-        result = with_env(options[:env], options[:replace_env]) do
-          sh(cmd)
-        end
-        finish = Time.now
-        
-        elapsed = "%.3f" % [finish-start]
-        puts "  (#{elapsed}s) #{verbose? ? cmd : original_cmd}" unless quiet?
+        result = capture_sh(cmd, options)
 
         regexps.each do |regexp|
           assert_match regexp, result, cmd
