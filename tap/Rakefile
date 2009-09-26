@@ -91,7 +91,30 @@ end
 # Test tasks
 #
 
-desc 'Default: Run tests.'
+# Note: the test tasks have been broken up into sections representing
+# fairly autonomous parts, given of course that the prior requirements
+# all work.  The natural order is:
+#
+# * root
+# * signals
+# * env
+# * app
+# * task
+# * parser
+# * tap (runs all previous)
+# * doc (runs tests in test/doc)s
+# * cmd (runs tests in test/cmd)
+# * benchmark (runs test in test/benchmark)
+#
+# Run 'rake test' to run all tests except the benchmarks.  It should
+# be noted that the tests have depend on lazydoc and configurable,
+# so those load paths are added.  Additionally, tests after root may
+# depend on the files in tap-test.  This seems odd because of course
+# tap-test depends on tap, but the parts of tap-test that get used
+# only rely on root.
+#
+
+desc 'run tests'
 task :default => :test
 
 def test(tests)
@@ -110,7 +133,7 @@ def test_section(type)
   test Dir["test/tap/#{type}_test.rb", "test/tap/#{type}/**/*_test.rb"].uniq
 end
 
-desc 'Run tests.'
+desc 'run test:tap, test:doc, and test:cmd'
 task :test => %w{
   test:tap
   test:doc
@@ -118,11 +141,16 @@ task :test => %w{
 }
 
 namespace :test do
-  desc 'run support tests'
-  task(:support) { test_section :support }
-
   desc 'run root tests'
   task(:root) { test_section :root }
+  
+  desc 'run signals tests'
+  task(:signals) do
+    test Dir["test/tap/signals*_test.rb", "test/tap/signals/**/*_test.rb"].uniq
+  end
+  
+  desc 'run env tests'
+  task(:env) { test_section :env }
   
   desc 'run app tests'
   task(:app) { test_section :app }
@@ -137,27 +165,12 @@ namespace :test do
       'test/tap/tasks/*_test.rb'
     ].uniq
   end
-  
-  desc 'run signals tests'
-  task(:signals) do
-    test Dir["test/tap/signals*_test.rb", "test/tap/signals/**/*_test.rb"].uniq
-  end
-  
+
   desc 'run parser tests'
   task(:parser) { test_section :parser }
-  
-  desc 'run env tests'
-  task(:env) { test_section :env }
 
   desc 'run all tap tests'
   task(:tap) { test(Dir.glob('test/tap/**/*_test.rb')) }
-  
-  #
-  # test submodules
-  #
-  
-  desc 'run benchmark tests'
-  task(:benchmark) { test Dir["test/benchmark/**/*_benchmark.rb"] }
   
   desc 'run documentation tests'
   task(:doc) { test Dir["test/doc/**/*_doc.rb"] }
@@ -165,42 +178,6 @@ namespace :test do
   desc 'run cmd tests'
   task(:cmd) { test Dir["test/cmd/**/*_cmd.rb"] }
   
-  desc "Run specs."
-  task(:spec) do
-    libs = ['lib']
-    unless ENV['gems']
-      libs << '../lazydoc/lib'
-      libs << '../configurable/lib'
-    end
-  
-    libs.collect! {|lib| ['-I', lib] }
-    specs = Dir.glob('specs/**/*_spec.rb')
-  
-    cmd = ['ruby', "-w"] + libs.flatten + ["-e", "ARGV.each {|spec| load spec}"] + specs
-    sh(*cmd)
-  end
-
-  desc 'Run functional tests.'
-  task(:functional) do
-    libs = ['lib']
-    unless ENV['gems']
-      libs << '../lazydoc/lib'
-      libs << '../configurable/lib'
-    end
-    libs.collect! {|lib| ['-I', lib] }
-    
-    failures = []
-    Dir.glob('test/functional/*_test.rb').each do |path|
-      begin
-        cmd = ['ruby', "-w"] + libs.flatten + [path]
-        sh(*cmd)
-      rescue(Exception)
-        failures << path
-      end
-    end
-    
-    unless failures.empty?
-      puts "\nFailures (#{failures.length}):\n#{failures.join("\n")}"
-    end
-  end
+  desc 'run benchmark tests'
+  task(:benchmark) { test Dir["test/benchmark/**/*_benchmark.rb"] }
 end
