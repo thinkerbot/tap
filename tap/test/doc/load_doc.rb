@@ -1,10 +1,17 @@
-require File.join(File.dirname(__FILE__), '../doc_test_helper')
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap'
+require 'tap/test'
 
 class LoadDoc < Test::Unit::TestCase 
-  include Doctest
-  include MethodRoot
+  extend Tap::Test
+  
+  acts_as_file_test :cleanup_dirs => [:sample]
+  acts_as_shell_test :cmd_pattern => "% tap", :cmd => [
+    RUBY_EXE,
+    "-I'#{TAP_ROOT}/../configurable/lib'",
+    "-I'#{TAP_ROOT}/../lazydoc/lib'",
+    "'#{TAP_ROOT}/bin/tap'"
+  ].join(" ")
   
   def test_load_string
     sh_test %q{
@@ -14,7 +21,7 @@ string
   end
 
   def test_load_pipe
-    cmd = "echo goodnight moon | #{CMD} run -- load --: dump"
+    cmd = "echo goodnight moon | #{sh_test_options[:cmd]} run -- load --: dump"
     assert_equal "goodnight moon", sh(cmd).strip
   end
 

@@ -1,10 +1,12 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper') 
 require 'tap/tasks/load'
+require 'tap/test'
 
 class Tap::LoadTest < Test::Unit::TestCase
-  include Tap::Tasks
-  include MethodRoot
-  include AppInstance
+  extend Tap::Test
+  acts_as_tap_test
+  
+  Load = Tap::Tasks::Load
   
   attr_accessor :load
   

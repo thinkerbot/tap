@@ -1,9 +1,16 @@
-require File.join(File.dirname(__FILE__), '../doc_test_helper')
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap'
+require 'tap/test'
 
 class ConsoleCmd < Test::Unit::TestCase 
-  include Doctest
+  extend Tap::Test
+  
+  acts_as_file_test
+  acts_as_shell_test :cmd_pattern => "% tap", :cmd => [
+    RUBY_EXE,
+    "-I'#{TAP_ROOT}/../configurable/lib'",
+    "-I'#{TAP_ROOT}/../lazydoc/lib'",
+    "'#{TAP_ROOT}/bin/tap'"
+  ].join(" ")
   
   #
   # help
@@ -25,21 +32,18 @@ class ConsoleCmd < Test::Unit::TestCase
   #   => "state: 0 (READY) queue: 0"
   #   >>
   def test_console_doc
-    tempfile do |output, path|
-      output.close
-      
-      cmd = "% tap console > #{path}".sub(CMD_PATTERN, CMD)
-      IO.popen(cmd, 'w') do |io|
-        io.puts "app.env[:dump]"
-        io.puts "app.info"
-      end
-      
-      assert_equal %q{
+    path = method_root.prepare(:tmp, "output.txt") {}
+    cmd = "% tap console > #{path}".sub(sh_test_options[:cmd_pattern], sh_test_options[:cmd])
+    IO.popen(cmd, 'w') do |io|
+      io.puts "app.env[:dump]"
+      io.puts "app.info"
+    end
+    
+    assert_equal %q{
 app.env[:dump]
 Tap::Tasks::Dump
 app.info
 "state: 0 (READY) queue: 0"
-}, "\n" + File.read(output.path)
-    end
+}, "\n" + File.read(path)
   end
 end

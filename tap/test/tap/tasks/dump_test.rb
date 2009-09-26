@@ -1,11 +1,14 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper') 
 require 'tap/tasks/dump'
+require 'tap/test'
 require 'stringio'
 
 class DumpTest < Test::Unit::TestCase
-  include Tap::Tasks
-  include MethodRoot
-
+  extend Tap::Test
+  acts_as_tap_test :cleanup_dirs => [:root]
+  
+  Dump = Tap::Tasks::Dump
+  
   attr_reader :io, :dump
   
   def setup

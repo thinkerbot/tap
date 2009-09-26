@@ -1,8 +1,10 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap'
+require 'tap/test'
 
 class ClassReferenceDoc < Test::Unit::TestCase 
-  include MethodRoot
+  extend Tap::Test
+  acts_as_file_test
   
   #
   # Configurable test

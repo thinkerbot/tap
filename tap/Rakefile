@@ -122,6 +122,7 @@ def test(tests)
   unless ENV['gems']
     libs << '../lazydoc/lib'
     libs << '../configurable/lib'
+    libs << '../tap-test/lib'
   end
   
   libs.collect! {|lib| ['-I', lib] }
@@ -130,7 +131,7 @@ def test(tests)
 end
 
 def test_section(type)
-  test Dir["test/tap/#{type}_test.rb", "test/tap/#{type}/**/*_test.rb"].uniq
+  test Dir["test/tap/#{type}*_test.rb", "test/tap/#{type}/**/*_test.rb"].uniq
 end
 
 desc 'run test:tap, test:doc, and test:cmd'
@@ -145,9 +146,7 @@ namespace :test do
   task(:root) { test_section :root }
   
   desc 'run signals tests'
-  task(:signals) do
-    test Dir["test/tap/signals*_test.rb", "test/tap/signals/**/*_test.rb"].uniq
-  end
+  task(:signals) { test_section :signals }
   
   desc 'run env tests'
   task(:env) { test_section :env }
@@ -173,10 +172,17 @@ namespace :test do
   task(:tap) { test(Dir.glob('test/tap/**/*_test.rb')) }
   
   desc 'run documentation tests'
-  task(:doc) { test Dir["test/doc/**/*_doc.rb"] }
+  task(:doc) do
+    ENV['QUIET'] ||= 'true'
+    test Dir["test/doc/**/*_doc.rb"]
+  end
   
   desc 'run cmd tests'
-  task(:cmd) { test Dir["test/cmd/**/*_cmd.rb"] }
+  task(:cmd) do
+    ENV['QUIET'] ||= 'true'
+    ENV['TAP_GEMS'] = ''
+    test Dir["test/cmd/**/*_cmd.rb"]
+  end
   
   desc 'run benchmark tests'
   task(:benchmark) { test Dir["test/benchmark/**/*_benchmark.rb"] }

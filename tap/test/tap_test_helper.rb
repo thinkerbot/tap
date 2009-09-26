@@ -15,43 +15,13 @@ not been initialized. Use these commands and try again:
   raise
 end
 
-module MethodRoot
-  attr_reader :method_root
-  
-  def setup
-    super
-    @method_root = Tap::Root.new("#{__FILE__.chomp(".rb")}_#{method_name}")
-  end
-  
-  def teardown
-    # clear out the output folder if it exists, unless flagged otherwise
-    unless ENV["KEEP_OUTPUTS"]
-      FileUtils.rm_r(method_root.root) if File.exists?(method_root.root)
-    end
-    super
-  end
-  
-  if RUBY_VERSION > '1.9'
-    def method_name
-      name
-    end
-  end
-  
-end unless Object.const_defined?(:MethodRoot)
+unless Object.const_defined?(:TAP_ROOT)
+  TAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/..")
+end
 
-module AppInstance
-  attr_reader :app
-  
-  def setup
-    super
-    @app = Tap::App.instance = Tap::App.new(:debug => true, :quiet => true)
-  end
-  
-  def teardown
-    Tap::App.instance = nil
-    super
-  end
-end unless Object.const_defined?(:AppInstance)
+unless Object.const_defined?(:RUBY_EXE)
+  RUBY_EXE = "ruby"
+end
 
 module TestUtils
   module_function

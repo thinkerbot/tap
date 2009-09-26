@@ -1,10 +1,17 @@
-require File.join(File.dirname(__FILE__), '../doc_test_helper')
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap'
+require 'tap/test'
 
 class ReadmeDoc < Test::Unit::TestCase 
-  include Doctest
-  include MethodRoot
+  extend Tap::Test
+  
+  acts_as_file_test :cleanup_dirs => [:sample]
+  acts_as_shell_test :cmd_pattern => "% tap", :cmd => [
+    RUBY_EXE,
+    "-I'#{TAP_ROOT}/../configurable/lib'",
+    "-I'#{TAP_ROOT}/../lazydoc/lib'",
+    "'#{TAP_ROOT}/bin/tap'"
+  ].join(" ")
   
   def test_readme
     method_root.prepare(:sample, 'lib/goodnight.rb') do |io|

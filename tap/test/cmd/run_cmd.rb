@@ -1,10 +1,16 @@
-require File.join(File.dirname(__FILE__), '../doc_test_helper')
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
-require 'tap'
+require 'tap/test'
 
 class RunCmd < Test::Unit::TestCase 
-  include Doctest
-  include MethodRoot
+  extend Tap::Test
+  
+  acts_as_file_test :cleanup_dirs => [:root]
+  acts_as_shell_test :cmd_pattern => "% tap", :cmd => [
+    RUBY_EXE,
+    "-I'#{TAP_ROOT}/../configurable/lib'",
+    "-I'#{TAP_ROOT}/../lazydoc/lib'",
+    "'#{TAP_ROOT}/bin/tap'"
+  ].join(" ")
   
   def setup
     super
@@ -45,32 +51,33 @@ class RunCmd < Test::Unit::TestCase
   end
   
   def test_run_prints_manifest
-    expected = %Q{
+    sh_test %Q{
+% tap run -T
   dump        # the default dump task
   load        # the default load task
 }
-    assert_equal expected, "\n" + sh("#{CMD} run -T")
-    
+
     # now with a local task
     method_root.prepare(:lib, 'sample.rb') do |io|
       io << "# ::task a sample task"
     end
     
-    expected = %Q{
+    sh_test %Q{
+% tap run -T
 #{File.basename(method_root[:root])}:
   sample      # a sample task
 tap:
   dump        # the default dump task
   load        # the default load task
 }
-    assert_equal expected, "\n" + sh("#{CMD} run -T")
 
     # now with middleware
     method_root.prepare(:lib, 'middle.rb') do |io|
       io << "# ::middleware a sample middleware"
     end
     
-    expected = %Q{
+    sh_test %Q{
+% tap run -t
 === tasks ===
 #{File.basename(method_root[:root])}:
   sample      # a sample task
@@ -86,7 +93,6 @@ tap:
 tap:
   debugger    # the default debugger
 }
-    assert_equal expected, "\n" + sh("#{CMD} run -t")
   end
   
   #

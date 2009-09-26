@@ -198,6 +198,39 @@ module Tap
         result
       end
       
+      def sh_match(cmd, *regexps)
+        options = regexps.last.kind_of?(Hash) ? regexps.pop : {}
+        options = sh_test_options.merge(options)
+        
+        unless quiet? || @shell_test_notification
+          @shell_test_notification = true
+          puts
+          puts method_name 
+        end
+        
+        cmd, expected = cmd.lstrip.split(/\r?\n/, 2)
+        original_cmd = cmd
+        
+        if cmd_pattern = options[:cmd_pattern]
+          cmd = cmd.sub(cmd_pattern, options[:cmd].to_s)
+        end
+        
+        start = Time.now
+        result = with_env(options[:env], options[:replace_env]) do
+          sh(cmd)
+        end
+        finish = Time.now
+        
+        elapsed = "%.3f" % [finish-start]
+        puts "  (#{elapsed}s) #{verbose? ? cmd : original_cmd}" unless quiet?
+
+        regexps.each do |regexp|
+          assert_match regexp, result, cmd
+        end
+        yield(result) if block_given?
+        result
+      end
+      
       # Returns a hash of the default sh_test options.  See
       # ShellTest::ClassMethods#sh_test_options.
       def sh_test_options

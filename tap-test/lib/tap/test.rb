@@ -38,6 +38,11 @@ module Tap
       include Tap::Test::FileTest
       
       options[:root] ||= test_root_dir
+      
+      if options.has_key?(:cleanup_dirs)
+        self.cleanup_dirs = options.delete(:cleanup_dirs)
+      end
+      
       self.class_test_root = Tap::Root.new(options)
     end
     

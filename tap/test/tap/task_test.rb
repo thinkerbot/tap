@@ -1,5 +1,6 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/task'
+require 'tap/test'
 
 # used in documentation test
 class NoInput < Tap::Task
@@ -53,9 +54,10 @@ class TaskAppTest < Test::Unit::TestCase
 end
 
 class TaskTest < Test::Unit::TestCase
-  include Tap
-  include MethodRoot
-  include AppInstance
+  extend Tap::Test
+  acts_as_tap_test
+  
+  Task = Tap::Task
   
   attr_accessor :t
   

@@ -1,7 +1,16 @@
-require File.join(File.dirname(__FILE__), '../../doc_test_helper')
+require File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require 'tap/test'
 
 class CmdlineDoc < Test::Unit::TestCase
-  include Doctest
+  extend Tap::Test
+  
+  acts_as_file_test
+  acts_as_shell_test :cmd_pattern => "% tap", :cmd => [
+    RUBY_EXE,
+    "-I'#{TAP_ROOT}/../configurable/lib'",
+    "-I'#{TAP_ROOT}/../lazydoc/lib'",
+    "'#{TAP_ROOT}/bin/tap'"
+  ].join(" ")
   
   # === Read data from $stdin
   #   # [goodnight.txt]
@@ -11,13 +20,11 @@ class CmdlineDoc < Test::Unit::TestCase
   #   goodnight moon
   #
   def test_read_from_stdin
-    tempfile do |tmp, path|
-      tmp << "goodnight moon"
-      tmp.flush
-      
-      cmd = "% tap run -- load --: dump < #{path}".sub(CMD_PATTERN, CMD)
-      assert_equal "goodnight moon", sh(cmd).strip
-    end
+    path = method_root.prepare(:tmp, "goodnight.txt") {|io| io << "goodnight moon" }
+    sh_test %Q{
+% tap run -- load --: dump < #{path}
+goodnight moon
+}
   end
   
   # === Pipe data from $stdin
@@ -25,8 +32,10 @@ class CmdlineDoc < Test::Unit::TestCase
   #   goodnight moon
   #
   def test_pipe_from_stdin
-    cmd = "echo goodnight moon | #{CMD} run -- load --: dump"
-    assert_equal "goodnight moon", sh(cmd).strip
+    sh_test %Q{
+echo goodnight moon | #{sh_test_options[:cmd]} run -- load --: dump
+goodnight moon
+}
   end
   
   # === Load data from argument
@@ -34,8 +43,10 @@ class CmdlineDoc < Test::Unit::TestCase
   #   goodnight moon
   #
   def test_load_data_from_argument
-    cmd = "% tap run -- load 'goodnight moon' --: dump".sub(CMD_PATTERN, CMD)
-    assert_equal "goodnight moon", sh(cmd).strip
+    sh_test %Q{
+% tap run -- load 'goodnight moon' --: dump
+goodnight moon
+}
   end
   
   # === Dump data to $stdout
@@ -44,22 +55,22 @@ class CmdlineDoc < Test::Unit::TestCase
   #   goodnight moon
   #
   def test_dump_data_to_stdout
-    tempfile do |tmp, path|
-      tmp.close
-      
-      cmd = "% tap run -- load 'goodnight moon' --: dump > #{path}".sub(CMD_PATTERN, CMD)
-      assert_equal "", sh(cmd)
-      
-      cmd = "more #{path}"
-      assert_equal "goodnight moon", sh(cmd).strip
-    end
+    path = method_root.prepare(:tmp, "goodnight.txt") {}
+    
+    sh_test %Q{
+% tap run -- load 'goodnight moon' --: dump > #{path}
+}
+    sh_test %Q{
+more #{path}
+goodnight moon
+}
   end
   
   # === Pipe data via $stdout
   #   % tap run -- load 'goodnight moon' --: dump | more
   #   goodnight moon
   def test_pipe_data_via_stdout
-    cmd = "% tap run -- load 'goodnight moon' --: dump | more".sub(CMD_PATTERN, CMD)
+    cmd = "% tap run -- load 'goodnight moon' --: dump | more".sub(sh_test_options[:cmd_pattern], sh_test_options[:cmd])
     assert_equal "goodnight moon", sh(cmd).strip
   end
 end
