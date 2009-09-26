@@ -12,6 +12,10 @@ class PromptCmd < Test::Unit::TestCase
     "'#{TAP_ROOT}/bin/tap'"
   ].join(" ")
   
+  # note this crazy script for testing the prompt does not
+  # work in the general case, and will likely stop working
+  # if ever the prompt does completions and such.  See
+  # http://gist.github.com/194470 for some experiments.
   def prompt_test(script)
     inputs = []
     expected = ["starting prompt (enter for help):\n"]
@@ -28,7 +32,7 @@ class PromptCmd < Test::Unit::TestCase
       io.close_write
       io.read
     end
-    assert_equal expected.join, actual
+    assert_alike RegexpEscape.new(expected.join), actual
   end
   
   def test_basic_prompt
@@ -36,6 +40,21 @@ class PromptCmd < Test::Unit::TestCase
 --//info
 => state: 1 (RUN) queue: 0
 --//stop
+}
+  end
+  
+  def test_build_from_prompt
+    prompt_test %q{
+--// 0 load
+=> #<Tap::Tasks::Load:...:>
+--// 1 dump
+=> #<Tap::Tasks::Dump:...:>
+--// 2 join 0 1
+=> #<Tap::Join:...:>
+--/0/enq 'goodnight moon'
+=> #<Tap::Tasks::Load:...:>
+--//run
+goodnight moon
 }
   end
 end
