@@ -17,6 +17,7 @@ else
 end
 
 require 'tap/test/shell_test/class_methods'
+require 'tap/test/shell_test/regexp_escape'
 
 module Tap
   module Test
@@ -222,6 +223,51 @@ module Tap
       # ShellTest::ClassMethods#sh_test_options.
       def sh_test_options
         self.class.sh_test_options
+      end
+      
+      def assert_output_equal(a, b, msg=nil)
+        a = a[1..-1] if a[0] == ?\n
+        if a == b
+          assert true
+        else
+          flunk %Q{
+#{msg}
+==================== expected output ====================
+#{whitespace_escape(a)}
+======================== but was ========================
+#{whitespace_escape(b)}
+=========================================================
+}
+        end
+      end
+
+      def assert_alike(a, b, msg=nil)
+        if b =~ a
+          assert true
+        else
+          flunk %Q{
+#{msg}
+================= expected output like ==================
+#{whitespace_escape(a)}
+======================== but was ========================
+#{whitespace_escape(b)}
+=========================================================
+}
+        end
+      end
+      
+      private
+      
+      def whitespace_escape(str)
+        str.to_s.gsub(/\s/) do |match|
+          case match
+          when "\n" then "\\n\n"
+          when "\t" then "\\t"
+          when "\r" then "\\r"
+          when "\f" then "\\f"
+          else match
+          end
+        end
       end
     end
   end
