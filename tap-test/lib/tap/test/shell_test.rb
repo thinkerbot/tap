@@ -73,13 +73,19 @@ module Tap
       # Returns true if the ENV variable 'VERBOSE' is true.  When verbose,
       # ShellTest prints the expanded commands of sh_test to $stdout.
       def verbose?
-        ENV['VERBOSE'] == 'true'
+        verbose = ENV['VERBOSE']
+        verbose && verbose =~ /^true$/i ? true : false
       end
       
       # Returns true if the ENV variable 'QUIET' is true.  When quiet,
       # ShellTest does not print any extra information to $stdout.
+      #
+      # If 'VERBOSE' and 'QUIET' are both set, verbose wins.
       def quiet?
-        ENV['QUIET'] == 'true'
+        return false if verbose?
+        
+        quiet = ENV['QUIET']
+        quiet && quiet =~ /^true$/i ? true : false
       end
       
       # Sets the specified ENV variables for the duration of the block.
