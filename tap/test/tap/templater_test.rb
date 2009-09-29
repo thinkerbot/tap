@@ -1,8 +1,12 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/templater'
+require 'tap/test'
 
 class TemplaterTest < Test::Unit::TestCase
   Templater = Tap::Templater
+  
+  extend Tap::Test
+  acts_as_file_test
   
   def version_test(version)
     if RUBY_VERSION =~ version
@@ -39,6 +43,18 @@ module Nesting
   end
 end}   
     assert_equal(expected, t.build)
+  end
+  
+  #
+  # Templater.build_file test
+  #
+  
+  def test_build_file_reads_file_and_templates
+    path = method_root.prepare(:tmp, "template.erb") do |io|
+      io << %Q{key: <%= attr %>}
+    end
+    
+    assert_equal "key: value", Templater.build_file(path, {:attr => 'value'})
   end
   
   #

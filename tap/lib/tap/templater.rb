@@ -122,7 +122,12 @@ module Tap
       
       # Builds the erb template with the specified attributes.
       def build(template,  attributes={}, filename=nil)
-        new(template, attributes, filename).build
+        new(template).build(attributes, filename)
+      end
+      
+      # Builds the erb template file with the specified attributes.
+      def build_file(path, attributes={})
+        self.build(File.read(path), attributes, path)
       end
     end
     
