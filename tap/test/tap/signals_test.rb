@@ -49,14 +49,14 @@ class SignalsTest < Test::Unit::TestCase
   # signal options
   #
   
-  class SignalAsTest < SignalsClass
+  class SignalTest < SignalsClass
     signal :alt, :method_name => :echo
   end
   
   def test_signal_method_name_sets_method_name
-    assert !SignalAsTest.signals.has_key?('echo')
+    assert !SignalTest.signals.has_key?('echo')
     
-    obj = SignalAsTest.new
+    obj = SignalTest.new
     assert_equal [1,2,3, "echo"], obj.signal('alt').call([1,2,3])
   end
   
@@ -156,6 +156,50 @@ class SignalsTest < Test::Unit::TestCase
       'echo' => true, 
       'was_in_block' => true
     }, obj.signal(:echo_hash).call([1,2,3]))
+  end
+  
+  #
+  # signal_class options
+  #
+  
+  class SignalClassTest
+    include Signals
+    
+    signal_class :key do
+      def process(argv)
+        argv << "was in process"
+        argv
+      end
+    end
+  end
+  
+  def test_signal_class_creates_signal_subclass
+    assert SignalClassTest.signals.has_key?('key')
+    
+    obj = SignalClassTest.new
+    assert_equal [1,2,3, "was in process"], obj.signal('key').call([1,2,3])
+  end
+  
+  class SignalSubClassTest
+    include Signals
+    
+    class Sub < Signal
+      def process(argv)
+        argv << "was in process"
+        argv
+      end
+    end
+    
+    signal_class :key, Sub
+  end
+  
+  def test_signal_class_creates_subclass_of_specified_class
+    assert SignalSubClassTest.signals.has_key?('key')
+    
+    obj = SignalSubClassTest.new
+    sig = obj.signal('key')
+    assert_equal SignalSubClassTest::Sub, sig.class.superclass
+    assert_equal [1,2,3, "was in process"], sig.call([1,2,3])
   end
   
   #

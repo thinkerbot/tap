@@ -99,6 +99,23 @@ module Tap
         end
       end
       
+      def signal_class(sig, signal_class=Signal, opts={}, &block) # :yields: sig, argv
+        signal = Class.new(signal_class)
+        signal.class_eval(&block) if block_given?
+        signal_registry[sig.to_s] = signal
+        
+        desc = opts.has_key?(:desc) ? opts[:desc] : Lazydoc.register_caller(Lazydoc::Trailer)
+        signal.instance_variable_set(:@desc, desc)
+        
+        # set the new constant, if specified
+        const_name = opts.has_key?(:const_name) ? opts[:const_name] : sig.to_s.capitalize
+        unless const_name.to_s.empty?
+          const_set(const_name, signal)
+        end
+        
+        signal
+      end
+      
       # Removes a signal much like remove_method removes a method.  The signal
       # constant is likewise removed unless the :remove_const option is set to
       # to true.
