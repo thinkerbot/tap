@@ -1,4 +1,4 @@
-require 'tap/signals'
+require 'tap/app/doc'
 
 module Tap
   class App

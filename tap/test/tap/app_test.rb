@@ -3,7 +3,7 @@ require 'tap/app'
 require 'stringio'
 
 class AppTest < Test::Unit::TestCase
-  include Tap
+  App = Tap::App
   
   attr_reader :app, :runlist, :results
     

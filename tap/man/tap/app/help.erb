@@ -1,0 +1,23 @@
+The Tap prompt allows users to pass signals to an application and any objects
+belonging to the application. Interrupt a running app using ctl-c to open a
+prompt, and any control signal to close.
+
+usage:
+  --/obj/signal *args
+
+common signals:
+  --//                   # list signals for app
+  --//list               # list available objects
+  --//help               # brings up this help
+  --//tutorial           # brings up a brief tutorial
+
+control signals: (use to close prompt)
+  --//run                # resumes run
+  --//stop               # stops after the current node
+  --//terminate          # raises a terminate error
+  --//exit               # exits immediately
+  --//continue           # resumes run, opens a prompt on complete
+
+object signals:
+  --/obj/                # typically lists signals for obj
+  --/obj/signal --help   # typically show help for signal

@@ -150,10 +150,10 @@ module Tap
       :type => :hidden,
       :writer => false                               # The application environment
     
-    signal :run             # run the app
-    signal :stop            # stop the app
-    signal :terminate       # terminate the app
-    signal :info            # prints app status
+    signal nil, :class => Index     # list signals for app
+    signal_class :list, Doc         # list available objects
+    signal_class :help, Doc         # brings up this help
+    signal_class :tutorial, Doc     # brings up a tutorial
     
     signal :enque
     signal_hash :build, 
@@ -163,6 +163,17 @@ module Tap
       :method_name => :build, 
       :signature => ['class'], 
       :remainder => 'args'
+      
+    signal :run                     # run the app
+    signal :stop                    # stop the app
+    signal :terminate               # terminate the app
+    signal :info                    # prints app status
+    
+    signal_class :exit do           # exits immediately
+      def process(args)
+        exit(1)
+      end
+    end
     
     # Creates a new App with the given configuration.  
     def initialize(config={}, options={}, &block)

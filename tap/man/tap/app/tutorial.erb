@@ -1,0 +1,78 @@
+Welcome to the Tap prompt. The prompt allows users to pass signals to an
+application and any objects belonging to the application.
+
+Signals take the form: --/obj/signal *args
+
+The obj identifies what object receives the signal and args specifies what
+arguments to pass with the signal. An empty signal typically brings up an
+index of signals available to the object and an empty obj identifies the
+application:
+
+  --//
+ 
+    Tap::App:
+    /                   # list signals for app
+    /list               # list available objects
+    /help               # brings up this help
+    /tutorial           # brings up a brief tutorial
+    /config             # list the application configs
+    /build              # build an object
+    /remove             # remove an object
+    /info               # application info
+    /run                # resumes run
+    /stop               # stops after the current node
+    /terminate          # raises a terminate error
+    /exit               # exits immediately
+    /continue           # resumes run, opens a prompt on complete
+
+And if you need help on a particular signal, simply provide '--help' as an
+argument to the signal:
+
+  --//build --help
+ 
+    /build - builds an object
+    ...
+
+You can build objects using the build signal. The build signal takes a
+variable name and arguments like you'd give to 'tap run'. After an object is
+built it may be accessed by variable (use ~ to not assign an object to a
+variable).
+
+  --//build 0 load
+  --//build 1 dump
+  --//build ~ join 0 1
+  --//list
+    
+    0: Tap::Task::Load
+    1: Tap::Task::Join
+
+Ok, so now we have a couple objects. Objects can be signaled just like app; by
+convention objects follow the same conventions for showing help as app, but
+authors are free to design their objects as they wish.
+
+  --/0/
+ 
+    Tap::Load:
+    /enque              # enque data
+    /config             # list the task configs
+ 
+  --/0/enque --help
+ 
+Lets enque some data:
+
+  --/0/enque 'goodnight moon'
+  --/0/enque 'hello world'
+
+Notice nothing is happening at this point. When a prompt is open the
+application is paused. To resume running you signal 'run'. This will close the
+prompt and resume normal running; when the nodes have finished the application
+exits normally.
+
+Alternatively, you can use the 'continue' signal which does the same thing as
+run, but brings the prompt back up when the application is out of nodes.
+
+  --//continue
+  goodnight moon
+  hello world
+
+And when you're really done, signal 'stop' to exit normally.
