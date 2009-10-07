@@ -605,16 +605,43 @@ a (0)
     assert_equal [["resource"], ["resource", "alt"]], e.constants.collect {|const| const.types.keys }
   end
   
-  # def test_scan_uses_default_const_name_if_specified
-  #   path = method_root.prepare(:tmp, 'a') do |io|
-  #     io.puts "# ::resource"
-  #   end
-  #   
-  #   Lazydoc[path].default_const_name = "A"
-  #   e.scan(path)
-  #   assert_equal ["A"], e.manifest(:resource).collect {|const| const.const_name }
-  # end
-  # 
+  #
+  # scan test
+  #
+  
+  def test_scan_scans_the_specified_paths_to_discover_constants
+    path = method_root.prepare(:tmp, 'a') do |io|
+      io.puts "# A::resource"
+      io.puts "# B::resource"
+      io.puts "# B::alt"
+    end
+    
+    e.scan(:tmp, "*")
+    
+    assert_equal ["A", "B"], e.constants.collect {|const| const.const_name }
+    assert_equal [["resource"], ["resource", "alt"]], e.constants.collect {|const| const.types.keys }
+  end
+  
+  def test_scan_adds_new_constants_and_amends_existing_constants
+    path = method_root.prepare(:lib, 'a.rb') do |io|
+      io.puts "# A::resource"
+      io.puts "# C::resource"
+    end
+    
+    assert_equal ["A", "C"], e.constants.collect {|const| const.const_name }
+    assert_equal [["resource"], ["resource"]], e.constants.collect {|const| const.types.keys }
+    
+    path = method_root.prepare(:tmp, 'b') do |io|
+      io.puts "# B::resource"
+      io.puts "# C::alt"
+    end
+    
+    e.scan(:tmp, "*")
+    
+    assert_equal ["A", "B", "C"], e.constants.collect {|const| const.const_name }
+    assert_equal [["resource"], ["resource"], ["resource", "alt"]], e.constants.collect {|const| const.types.keys }
+  end
+  
   # def test_scan_raises_error_if_no_const_name_can_be_determined
   #   path = method_root.prepare(:tmp, 'a') do |io|
   #     io.puts "# ::resource"

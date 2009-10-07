@@ -83,6 +83,34 @@ module Tap
           end
           const
         end
+        
+        # Scans the directory and pattern for constants and adds them to the
+        # constants hash by name.
+        def scan(dir, pattern="**/*.rb", constants={})
+          if pattern.include?("..")
+            raise "patterns cannot include relative paths: #{pattern.inspect}"
+          end
+          
+          # note changing dir here makes require paths relative to load_path,
+          # hence they can be directly converted into a default_const_name
+          # rather than first performing Root.relative_path
+          Dir.chdir(dir) do
+            Dir.glob(pattern).each do |path| 
+              default_const_name = path.chomp(File.extname(path)).camelize
+
+              # scan for constants
+              Lazydoc::Document.scan(File.read(path)) do |const_name, type, summary|
+                const_name = default_const_name if const_name.empty?
+
+                constant = (constants[const_name] ||= Constant.new(const_name))
+                constant.register_as(type, summary)
+                constant.require_paths << path
+              end
+            end
+          end
+          
+          constants
+        end
       
         private
       

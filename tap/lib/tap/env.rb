@@ -652,30 +652,11 @@ module Tap
     # (for example as a task, join, etc).
     def constants
       @constants ||= manifest(:constants) do |env|
-        constants = Hash.new do |hash, const_name|
-          hash[const_name] = Constant.new(const_name)
-        end
+        constants = {}
 
         env.load_paths.each do |load_path|
           next unless File.directory?(load_path)
-
-          # note changing dir here makes require paths relative to load_path,
-          # hence they can be directly converted into a default_const_name
-          # rather than first performing Root.relative_path
-          Dir.chdir(load_path) do 
-            Dir.glob("**/*.rb").each do |path| 
-              default_const_name = path.chomp('.rb').camelize
-
-              # scan for constants
-              Lazydoc::Document.scan(File.read(path)) do |const_name, type, summary|
-                const_name = default_const_name if const_name.empty?
-
-                constant = constants[const_name]
-                constant.register_as(type, summary)
-                constant.require_paths << path
-              end
-            end
-          end
+          Constant.scan(load_path, "**/*.rb", constants)
         end
 
         constants.keys.sort!.collect! do |key| 
@@ -691,6 +672,20 @@ module Tap
         raise "unresolvable constant: #{key.inspect}"
       end
       constant.constantize
+    end
+    
+    # Scans the files matched under the directory and pattern for constants
+    # and adds them to the existing constants for self.
+    def scan(dir, pattern="**/*.rb")
+      new_entries = {}
+      entries = constants.entries(self)
+      entries.each {|const| new_entries[const.const_name] = const }
+      
+      Constant.scan(root[dir], pattern, new_entries)
+      
+      entries.replace(new_entries.keys)
+      entries.sort!.collect! {|key| new_entries[key] }
+      entries
     end
     
     # Registers a constant with self.  The constant is stored as a new
