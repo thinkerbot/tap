@@ -640,6 +640,15 @@ a (0)
     assert_equal({e => [const]}, e.constants.cache)
   end
   
+  def test_register_preserves_alphabetical_order_in_entries
+    a = Env::Constant.new("A")
+    z = Env::Constant.new("Z")
+    
+    e.constants.cache[e] = [a, z]
+    const = e.register(SampleConstant)
+    assert_equal({e => [a, const, z]}, e.constants.cache)
+  end
+  
   def test_register_returns_the_constant_already_registered_to_self
     existing = Env::Constant.new("EnvTest::SampleConstant")
     e.constants.cache[e] = [existing]

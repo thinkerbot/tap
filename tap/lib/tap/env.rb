@@ -705,6 +705,7 @@ module Tap
       unless constant = entries.find {|const| const.const_name == const_name}
         constant = Constant.new(const_name)
         entries << constant
+        entries.replace entries.sort_by {|const| const.const_name }
       end
       
       constant
