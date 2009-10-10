@@ -139,17 +139,18 @@ module Tap
     attr_reader :cache
     
     # The application logger
-    attr_reader :logger
+    attr_accessor :logger
     
     config :debug, false, :short => :d, &c.flag      # Flag debugging
     config :force, false, :short => :f, &c.flag      # Force execution at checkpoints
     config :quiet, false, :short => :q, &c.flag      # Suppress logging
-    config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
+    config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet
     
-    nest :env, Env, 
+    nest :env, Env,                                  # The application environment
       :type => :hidden,
-      :writer => false                               # The application environment
-    
+      :writer => false, 
+      :init => false
+      
     signal nil, :class => Index     # list signals for app
     signal_class :list, Doc         # list available objects
     signal_class :help, Doc         # brings up this help
@@ -183,13 +184,17 @@ module Tap
       @stack = options[:stack] || Stack.new(self)
       @queue = options[:queue] || Queue.new
       @cache = options[:cache] || {}
+      @logger = options[:logger] || DEFAULT_LOGGER
       @joins = []
       on_complete(&block)
       
+      self.env = config.delete(:env)
       initialize_config(config)
-      self.logger = options[:logger] || DEFAULT_LOGGER
     end
     
+    # Sets the application environment and validates that env can function as
+    # an environment.  Env can be set to nil building is impossible without
+    # it.
     def env=(env)
       Validation.validate_api(env, [:[]]) unless env.nil?
       @env = env
@@ -198,16 +203,6 @@ module Tap
     # True if debug or the global variable $DEBUG is true.
     def debug?
       debug || $DEBUG
-    end
-    
-    # Sets the current logger. The logger level is set to Logger::DEBUG if
-    # debug? is true.
-    def logger=(logger)
-      unless logger.nil?
-        logger.level = Logger::DEBUG if debug?
-      end
-      
-      @logger = logger
     end
     
     # Logs the action and message at the input level (default INFO).  The

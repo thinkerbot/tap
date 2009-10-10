@@ -117,28 +117,13 @@ class AppTest < Test::Unit::TestCase
     assert_equal [], app.joins
     assert_equal({}, app.cache)
     assert_equal App::State::READY, app.state
+    assert_equal nil, app.env
   end
   
   def test_initialization_with_block_sets_a_default_join
     b = lambda {}
     app = App.new(&b)
     assert_equal [b], app.joins
-  end
-  
-  #
-  # set logger tests
-  #
-  
-  def test_set_logger_sets_logger_level_to_debug_if_debug_is_true
-    logger = Logger.new($stdout)
-    logger.level = Logger::INFO
-    assert_equal Logger::INFO, logger.level
-    
-    app.debug = true
-    assert app.debug?
-    
-    app.logger = logger
-    assert_equal Logger::DEBUG, logger.level
   end
   
   #
