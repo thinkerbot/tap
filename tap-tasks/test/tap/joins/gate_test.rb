@@ -29,7 +29,7 @@ class GateDocumentationTest < Test::Unit::TestCase
 }
 
       sh_test %Q{
-% tap run -- load/yaml "[1, 2, 3]" --:i inspect -- inspect --. join gate 1 2 --limit 2
+% tap run -- load/yaml "[1, 2, 3]" --:i inspect -- inspect --. gate 1 2 --limit 2
 1
 2
 [1, 2]
