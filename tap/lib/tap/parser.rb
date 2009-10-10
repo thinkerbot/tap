@@ -83,6 +83,12 @@ module Tap
     #
     BREAK =  /\A--(?:\z|([\:\[\/\.@].*?)\z)/
   
+    # The node modifier.
+    NODE_BREAK = nil
+  
+    # The join modifier.
+    JOIN_BREAK = "."
+  
     # Matches a sequence break. After the match:
     #
     #   $1:: The modifier string, or nil
@@ -110,6 +116,13 @@ module Tap
     #
     JOIN_MODIFIER = /\A([A-z]*)(?:\.(.*))?\z/
   
+    # Matches an enque modifier. After the match:
+    #
+    #   $1:: The modifier string, or nil
+    #        (ex: '@var' => 'var')
+    #
+    ENQUE = /\A@(.+)?\z/
+    
     # Matches a signal break. After the match:
     #
     #   $1:: The modifier string, or nil
@@ -137,6 +150,7 @@ module Tap
         argv.unshift("--") 
       end
       
+      @current_type = nil
       @current_index = -1
       @current = nil
       escape = false
@@ -159,6 +173,7 @@ module Tap
         case arg
         when BREAK
           begin
+            @current_type = nil
             @current_index += 1
             @current = parse_break($1)
           rescue
@@ -179,6 +194,7 @@ module Tap
         current << arg
       end
       
+      @current_type = nil
       @current_index = nil
       @current = nil
       
@@ -245,24 +261,35 @@ module Tap
       argv
     end
     
-    # returns the current argv or a task argv for the current index
+    # returns the current argv or a new spec argv for the current type/index
     def current # :nodoc:
-      @current ||= spec(:task, @current_index.to_s)
+      @current ||= spec(@current_type, @current_index.to_s)
     end
   
     # determines the type of break and modifies self appropriately
     def parse_break(one) # :nodoc:
       case one
-      when nil
+      when NODE_BREAK
+        set_type(:task)
+      when JOIN_BREAK
+        set_type(:join)
       when SEQUENCE
         parse_sequence($1)
       when JOIN
         parse_join($1, $2, $3)
+      when ENQUE
+        parse_enque($1)
       when SIGNAL
         parse_signal($1)
       else
         raise "invalid modifier"
       end
+    end
+    
+    # sets the type of the next spec
+    def set_type(type) # :nodoc:
+      @current_type = type
+      nil
     end
     
     # parses the match of a SEQUENCE regexp
@@ -271,6 +298,7 @@ module Tap
         raise "no prior entry"
       end
       
+      @current_type = :task
       @current = nil
       argv = current
       parse_join_spec(one, "#{@current_index - 1}", @current_index.to_s)
@@ -302,6 +330,11 @@ module Tap
       
       specs << argv
       argv
+    end
+    
+    # parses the match of an ENQUE regexp
+    def parse_enque(one) # :nodoc:
+      spec(:signal, one, "enq")
     end
     
     # parses the match of a SIGNAL regexp

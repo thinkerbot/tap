@@ -22,6 +22,10 @@ class ParserTest < Test::Unit::TestCase
     assert "--" =~ r
     assert_equal nil, $1
     
+    # join break
+    assert "--." =~ r
+    assert_equal ".", $1
+    
     # sequence join
     assert "--:" =~ r
     assert_equal ":", $1
@@ -35,6 +39,10 @@ class ParserTest < Test::Unit::TestCase
         
     assert "--[1,2][3,4]is.join" =~ r
     assert_equal "[1,2][3,4]is.join", $1
+    
+    # enque
+    assert "--@var" =~ r
+    assert_equal "@var", $1
     
     # signal
     assert "--/var" =~ r
@@ -255,6 +263,18 @@ class ParserTest < Test::Unit::TestCase
   end
   
   #
+  # join_break test
+  # 
+  
+  def test_parser_parses_join_breaks
+    parser.parse "--. join 1 2 --. join 1 2,3"
+    assert_equal [
+      [:join, "0", "join", "1", "2"],
+      [:join, "1", "join", "1", "2,3"]
+    ], parser.specs
+  end
+  
+  #
   # sequence test
   #
   
@@ -303,6 +323,18 @@ class ParserTest < Test::Unit::TestCase
     parser.parse  "--[][]is.class"
     assert_equal [
       [:join, nil, "class", "", "", "-i", "-s"]
+    ], parser.specs
+  end
+  
+  #
+  # enque test
+  # 
+  
+  def test_parser_parses_enques
+    parser.parse "--@a b c --@x y z"
+    assert_equal [
+      [:signal, "a", "enq", "b", "c"],
+      [:signal, "x", "enq", "y", "z"]
     ], parser.specs
   end
   

@@ -191,6 +191,10 @@ goodnight moon
 % tap run -e -- load --: dump --/0/enq 'goodnight moon'
 goodnight moon
 }
+    sh_test %Q{
+% tap run -e -- load -- dump --. join 0 1 --@0 'goodnight moon'
+goodnight moon
+}
   end
   
   SAMPLE_SCHEMA = [
