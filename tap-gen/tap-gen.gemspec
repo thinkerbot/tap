@@ -27,7 +27,6 @@ Gem::Specification.new do |s|
     lib/tap/generator/arguments.rb
     lib/tap/generator/base.rb
     lib/tap/generator/destroy.rb
-    lib/tap/generator/exe.rb
     lib/tap/generator/generate.rb
     lib/tap/generator/generators/command.rb
     lib/tap/generator/generators/config.rb

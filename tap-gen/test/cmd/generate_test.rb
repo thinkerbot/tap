@@ -23,7 +23,6 @@ class GenerateCmdTest < Test::Unit::TestCase
   def test_generate_prints_help
     sh_test "% tap generate --help" do |result|
       assert result =~ /usage: tap generate/
-      assert result =~ /generators:/
       assert result =~ /root\s+# /
     end
   end
@@ -31,7 +30,6 @@ class GenerateCmdTest < Test::Unit::TestCase
   def test_generate_prints_help_for_no_generator_specified
     sh_test "% tap generate" do |result|
       assert result =~ /usage: tap generate/
-      assert result =~ /generators:/
       assert result =~ /root\s+# /
     end
   end

@@ -1,6 +1,8 @@
 require 'tap'
 require 'tap/generator/manifest'
 require 'tap/generator/arguments'
+require 'tap/generator/generate'
+require 'tap/generator/destroy'
 
 module Tap
   module Generator
@@ -77,6 +79,18 @@ module Tap
       config :pretend, false, &c.flag         # Run but rollback any changes.
       config :force, false, &c.flag           # Overwrite files that already exist.
       config :skip, false, &c.flag            # Skip files that already exist.
+      
+      signal_class :generate do               # Signal this generator to generate
+        def process(args)
+          obj.extend(Generator::Generate)
+        end
+      end
+      
+      signal_class :destroy do                # Signal this generator to destroy
+        def process(args)
+          obj.extend(Generator::Destroy)
+        end
+      end
       
       # The generator-specific templates directory.  By default:
       # 'templates/path/to/name' for 'lib/path/to/name.rb'

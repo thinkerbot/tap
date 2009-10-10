@@ -6,16 +6,22 @@
 #   % tap generate root --help
 #
 
-require 'tap/generator/exe'
-require 'tap/generator/destroy'
+require 'tap/generator/base'
 
-env = Tap::Env.instance
-env.extend Tap::Generator::Exe
+app = Tap::App.instance
 
-env.run(Tap::Generator::Destroy, ARGV) do
+if ARGV.empty? || ARGV == ['--help']
+  constants = app.env.constants
+  generators = constants.summarize do |constant|
+    constant.types['generator']
+  end
+  
   puts Lazydoc.usage(__FILE__)
   puts
-  puts "generators:"
-  puts env.manifest('generator').summarize
+  puts generators
   exit(1)
 end
+
+generator, args = app.build('class' => ARGV.shift, 'args' => ARGV)
+generator.signal(:destroy).call([])
+generator.call(*args)
