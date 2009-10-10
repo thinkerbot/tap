@@ -16,15 +16,15 @@ module Tap::Generator::Generators
   #
   class Config < Tap::Generator::Base
     
-    dump_delegates = lambda do |leader, delegate, block|
-      nested_delegates = delegate.default(false).delegates
-      indented_dump = Configurable::Utils.dump(nested_delegates, &block).gsub(/^/, "  ")
+    dump_nest_configs = lambda do |leader, nest_config, block|
+      configurations = nest_config.nest_class.configurations
+      indented_dump = Configurable::Utils.dump(configurations, &block).gsub(/^/, "  ")
       "#{leader}: \n#{indented_dump}"
     end
     
-    doc_format = lambda do |key, delegate|
+    doc_format = lambda do |key, config|
       # get the description
-      desc = delegate.attributes[:desc]
+      desc = config.attributes[:desc]
       doc = desc.to_s
       doc = desc.comment if doc.empty?
     
@@ -32,11 +32,11 @@ module Tap::Generator::Generators
       lines = Lazydoc::Utils.wrap(doc, 50).collect {|line| "# #{line}"}
       lines << "" unless lines.empty?
       
-      if delegate.is_nest?
+      if config.kind_of?(Configurable::NestConfig)
         leader = "#{lines.join("\n")}#{key}"
-        DUMP_DELEGATES[leader, delegate, DOC_FORMAT]
+        DUMP_NEST_CONFIGS[leader, config, DOC_FORMAT]
       else
-        default = delegate.default
+        default = config.default
         
         # setup formatting
         leader = default == nil ? '# ' : ''
@@ -45,11 +45,11 @@ module Tap::Generator::Generators
       end
     end
     
-    nodoc_format = lambda do |key, delegate|
-      if delegate.is_nest?
-        DUMP_DELEGATES[key, delegate, NODOC_FORMAT]
+    nodoc_format = lambda do |key, config|
+      if config.kind_of?(Configurable::NestConfig)
+        DUMP_NEST_CONFIGS[key, config, NODOC_FORMAT]
       else
-        default = delegate.default
+        default = config.default
       
         # setup formatting
         leader = default == nil ? '# ' : ''
@@ -58,8 +58,8 @@ module Tap::Generator::Generators
       end
     end
     
-    # Dumps a nested configuration.
-    DUMP_DELEGATES = dump_delegates
+    # Dumps nested configurations.
+    DUMP_NEST_CONFIGS = dump_nest_configs
     
     # Dumps configurations as YAML with documentation,
     # used when the doc config is true.

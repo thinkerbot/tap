@@ -69,11 +69,9 @@ module Tap::Generator::Generators
       
       m.file(r['History']) if history
       m.file(r['tap.yml']) do |file|
-        Configurable::Utils.dump(Tap::Env.configurations, file) do |key, delegate|
-          default = delegate.default(false)
-          
+        Configurable::Utils.dump(Tap::Env.configurations, file) do |key, config|
           # get the description
-          desc = delegate.attributes[:desc]
+          desc = config.attributes[:desc]
           doc = desc.to_s
           doc = desc.comment if doc.empty?
           
@@ -81,10 +79,8 @@ module Tap::Generator::Generators
           lines = Lazydoc::Utils.wrap(doc, 78).collect {|line| "# #{line}"}
           lines << "" unless lines.empty?
           
-          # note: this causes order to be lost...
-          default = default.to_hash if delegate.is_nest?
-
           # setup formatting
+          default = config.default
           leader = key == 'root' || default == nil ? '# ' : ''
           config = YAML.dump({key => default})[5..-1].strip.gsub(/\n+/, "\n#{leader}")
           "#{lines.join("\n")}#{leader}#{config}\n\n"
