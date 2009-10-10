@@ -5,6 +5,7 @@ require 'stringio'
 
 class ExamplesTest < Test::Unit::TestCase
   extend Rap::Declarations
+  context.app = Tap::App.new(:env => Tap::Env.new)
   
   attr_reader :trace
   

@@ -5,9 +5,9 @@ class RapTutorialTest < Test::Unit::TestCase
   include Rap::Declarations
   
   def setup
-    @declaration_base = "RapTutorialTest"
-    @env = Tap::Env.new(:load_paths => [], :command_paths => [], :generator_paths => [])
-    @app = Rap::Declarations.app = Tap::App.new
+    env = Tap::Env.new
+    app = Tap::App.new(:env => env)
+    Context.instance.app = app
     
     ('A'..'Z').each do |letter|    
       Object.send(:remove_const, letter) if Object.const_defined?(letter)
@@ -30,7 +30,7 @@ class RapTutorialTest < Test::Unit::TestCase
     assert_equal 'abc!', str
 
     assert_equal C, c.class
-    assert c == C.instance(@app)
+    assert c == instance(C)
     assert_equal Rap::Task, C.superclass
   end
 end

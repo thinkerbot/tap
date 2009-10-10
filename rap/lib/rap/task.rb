@@ -110,7 +110,6 @@ module Rap
         
         instance
       end
-
       
       # Looks up or creates the Rap::Task subclass specified by const_name
       # and adds the configs and dependencies.
@@ -198,7 +197,8 @@ module Rap
       end
     end
     
-    instance_variable_set(:@dependencies, [])
+    # This sets the class-level dependencies array.
+    @dependencies = []
     
     # An array of node dependencies
     attr_reader :dependencies
@@ -297,7 +297,6 @@ module Rap
       end
       self
     end
-    
   end
   
   # Raised for circular dependencies during Rap::Task.resolve!

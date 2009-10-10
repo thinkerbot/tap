@@ -104,7 +104,7 @@ task :test => %w{
 }
 
 namespace :test do
-  desc 'run app tests'
+  desc 'run rap tests'
   task(:rap) { test Dir["test/rap/**/*_test.rb"] }
   
   desc 'run doc tests'

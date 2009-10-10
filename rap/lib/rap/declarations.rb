@@ -1,4 +1,4 @@
-require 'rap/task'
+require 'rap/declarations/context'
 
 module Rap
   
@@ -50,31 +50,15 @@ module Rap
   # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for more
   # information.
   module Declarations
-    # The environment in which declared task classes are registered.
-    # By default Tap::Env.instance.
-    def Declarations.env() @@env ||= Tap::Env.instance; end
     
-    # Sets the declaration environment.
-    def Declarations.env=(env) @@env=env; end
+    # Returns the context app.
+    def app
+      context.app
+    end
     
-    # The declaration App (default Tap::App.instance)
-    def Declarations.app() @@app ||= Tap::App.instance; end
-    
-    # Sets the declaration App.
-    def Declarations.app=(app) @@app=app; end
-    
-    # The base constant for all task declarations, prepended to the task name.
-    def Declarations.current_namespace() @@current_namespace; end
-    @@current_namespace = ''
-    
-    # Tracks the current description, which will be used to
-    # document the next task declaration.
-    def Declarations.current_desc() @@current_desc; end
-    @@current_desc = nil
-    
-    # Returns the instance of the task class in app.
-    def Declarations.instance(tasc)
-      tasc.instance(Declarations.app)
+    # Returns the instance for the class, registered to app.
+    def instance(klass)
+      klass.instance(app)
     end
     
     # Declares a task with a rake-like syntax.  Task generates a subclass of
@@ -86,42 +70,39 @@ module Rap
       end
       
       # generate the task class
-      const_name = File.join(@@current_namespace, name.to_s).camelize
+      const_name = File.join(context.namespace, name.to_s).camelize
       tasc = declaration_class.subclass(const_name, configs, dependencies)
+      register tasc
       
       # register documentation        
       desc = Lazydoc.register_caller(Description)
-      desc.desc = @@current_desc
-      @@current_desc = nil
+      desc.desc = context.desc
+      context.desc = nil
       
       tasc.arg_names = arg_names
       tasc.desc = desc
-      tasc.source_file = desc.document.source_file
       
       # add the action
       tasc.actions << action if action
       
-      # register
-      register tasc
-      
       # return the instance
-      instance = Declarations.instance(tasc)
-      instance.config.bind(instance, true)
+      instance = tasc.instance(app)
+      instance.config.import(configs)
       instance
     end
     
     # Nests tasks within the named module for the duration of the block.
     # Namespaces may be nested.
     def namespace(name)
-      previous_namespace = @@current_namespace
-      @@current_namespace = File.join(previous_namespace, name.to_s.underscore)
+      previous_namespace = context.namespace
+      context.namespace = File.join(previous_namespace, name.to_s.underscore)
       yield
-      @@current_namespace = previous_namespace
+      context.namespace = previous_namespace
     end
     
     # Sets the description for use by the next task declaration.
     def desc(str)
-      @@current_desc = str
+      context.desc = str
     end
     
     private
@@ -195,6 +176,11 @@ module Rap
       name.to_s.tr(":", "/")
     end
     
+    # The declarations context.
+    def context
+      @context ||= Context.instance
+    end
+    
     # The class of task declared by task, by default Rap::Task. 
     # Used as a hook to set the declaring class in including modules 
     # (such as Rap::Task itself).
@@ -202,22 +188,10 @@ module Rap
       Rap::Task
     end
     
-    # Registers a task class with the Declarations.env, if necessary.
+    # Registers a task class with the Declarations.app.env, if necessary.
     # Returns task_class.
     def register(tasc)
-      tasks = Declarations.env.manifest(:task)
-      
-      const_name = tasc.to_s
-      constant = tasks.find do |const| 
-        const.const_name == const_name
-      end
-      
-      unless constant
-        constant = Tap::Env::Constant.new(const_name)
-        tasks.entries << constant
-      end
-      
-      constant.comment = tasc.desc(false)
+      app.env.register(tasc)
       tasc
     end
   end
@@ -226,6 +200,7 @@ module Rap
     class << self
       # :stopdoc:
       alias original_desc desc
+      alias original_instance instance
       # :startdoc:
       
       include Declarations
@@ -234,8 +209,11 @@ module Rap
       undef_method :desc
       alias desc original_desc
       
+      undef_method :instance
+      alias instance original_instance
+      
       # hide remaining Declarations methods (including Utils methods)
-      private :namespace
+      private :namespace, :app
       # :startdoc:
       
       private

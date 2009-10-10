@@ -10,8 +10,9 @@ class DeclarationsTest < Test::Unit::TestCase
   include Rap::Declarations
   
   def setup
-    Rap::Declarations.env = Tap::Env.new
-    Rap::Declarations.app = Tap::App.new
+    env = Tap::Env.new
+    app = Tap::App.new(:env => env)
+    Context.instance.app = app
   end
   
   def teardown
@@ -32,11 +33,11 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_documentation
-    assert_equal Rap.task(:sample), Sample.instance(Rap::Declarations.app)
+    assert_equal Rap.task(:sample), Sample.instance(app)
     
     was_in_block = false
     Rap.namespace(:nested) do
-      assert_equal Rap.task(:sample), Nested::Sample.instance(Rap::Declarations.app)
+      assert_equal Rap.task(:sample), Nested::Sample.instance(app)
       was_in_block = true
     end
     assert was_in_block
@@ -84,9 +85,19 @@ class DeclarationsTest < Test::Unit::TestCase
   def test_declaration_API_is_hidden_on_Task
     assert Rap::Task.respond_to?(:task)
     assert !Rap::Task.respond_to?(:namespace)
-    assert Rap::Task.respond_to?(:desc)
-    assert Rap::Task.desc.kind_of?(Lazydoc::Comment)
     assert !Rap::Task.respond_to?(:register)
+    assert !Rap::Task.respond_to?(:app)
+    assert Rap::Task.respond_to?(:instance)
+    assert Rap::Task.respond_to?(:desc)
+    
+    # check instance functionality is as originally declared
+    assert context.app.cache.empty?
+    assert_equal Rap::Task.instance(context.app), context.app.cache[Rap::Task]
+    
+    # check desc functionality is as originally declared
+    obj = Object.new
+    Lazydoc::Document['Rap::Task']['task'] = obj
+    assert_equal obj, Rap::Task.desc
   end
   
   #
@@ -182,7 +193,7 @@ class DeclarationsTest < Test::Unit::TestCase
     
     instance = task(:task0)
     assert_equal Task0, instance.class
-    assert_equal Rap::Declarations.instance(Task0), instance
+    assert_equal self.instance(Task0), instance
     assert_equal Rap::Task, Task0.superclass
   end
   
@@ -290,7 +301,7 @@ class DeclarationsTest < Test::Unit::TestCase
   
   def test_task_returns_instance_of_subclass
     result = task(:task0)
-    assert_equal Rap::Declarations.instance(Task0), result 
+    assert_equal instance(Task0), result 
   end
   
   def test_task_chains_block_to_subclass_actions
@@ -431,8 +442,8 @@ class DeclarationsTest < Test::Unit::TestCase
       task(:outer2) { arr << 'inner3' }
     end
     
-    Rap::Declarations.instance(::Nest::Inner1).execute
-    Rap::Declarations.instance(::Nest::Inner2).execute
+    instance(::Nest::Inner1).execute
+    instance(::Nest::Inner2).execute
     
     # this is the rake output
     #assert_equal ["outer1", "inner1", "inner3", "inner2"], arr

@@ -5,14 +5,18 @@ $:.unshift "#{File.dirname(__FILE__)}/../lib"
 require 'rap'
 require 'tap/parser'
 
-# setup the environment
+#
+# setup the application
+#
+
 begin
-  
-  env = Tap::Env.instance
+  app = Tap::App.setup
+  env = app.env
   unless env.any? {|e| e.root.root == Rap::RAP_HOME }
-    env.push Tap::Env.new(Rap::RAP_HOME, env.context) 
+    env.deactivate
+    env.push Tap::Env.new(Rap::RAP_HOME, env.context)
+    env.activate
   end
-  env.activate
   
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
@@ -25,53 +29,46 @@ end
 # run rap
 #
 
-Dir.glob('[TtRr]apfile{,.rb}').each do |rapfile|
-  next unless File.file?(rapfile)
-  env.scan(rapfile, "task|join|middleware")
+env.root.glob(:root, '[TtRr]apfile{,.rb}').each do |rapfile|
+  env.scan(:root, File.basename(rapfile))
   load rapfile
 end
 
 case ARGV[0]
 when '--help', nil, '-T'
-  
-  # same as normal summarize, but pass over tasks that have no comment
-  summary_template = %Q{<% entries.delete_if {|key, const| const.comment.kind_of?(Rap::Description) && const.comment.resolve.desc == nil } %>
-<% if !entries.empty? && count > 1 %>
-<%= env_key %>:
-<% end %>
-<% entries.each do |key, const| %>
-  <%= key.ljust(width) %> # <%= const.comment %>
-<% end %>
-}
-  
+  constants = app.env.constants
+  tasks = constants.summarize do |constant|
+    constant.types['task']
+  end
+
   puts Lazydoc.usage(__FILE__)
   puts
   puts "===  tap tasks ==="
-  puts env.manifest(:task).summarize(summary_template)
-  
+  puts tasks
   if Rap::Rake.has_rakefile?
     puts
     puts "=== rake tasks ==="
     Rap::Rake.new.execute('-T')
   end
-  
+
   puts
   puts "version #{Rap::VERSION} -- #{Rap::WEBSITE}"
+  
 else
   begin
     parser = Tap::Parser.parse!(ARGV)
     parser.specs.each do |spec|
-      var, type, klass = spec
-      next unless type == 'task'
-      
-      if env[type][klass] == nil && Rap::Rake.has_rakefile?
+      type, var, klass = spec
+      next unless type == :task
+
+      if env[klass] == nil && Rap::Rake.has_rakefile?
         warn "warning: implict rake for #{spec.inspect}"
         spec.insert(2, 'rap:rake')
       end
     end
+    parser.build(app, true)
     
-    app = Tap::App.instance
-    parser.build(app)
+    parser = nil
     app.run
   rescue
     puts $!.message
