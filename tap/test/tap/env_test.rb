@@ -594,7 +594,7 @@ a (0)
   # constants test
   #
   
-  def test_constants_scans_load_paths_for_resources
+  def test_constants_scans_const_paths_for_resources
     path = method_root.prepare(:lib, 'a.rb') do |io|
       io.puts "# A::resource"
       io.puts "# B::resource"
@@ -811,14 +811,14 @@ class EnvActivateTest < Test::Unit::TestCase
     assert e.envs.frozen?
   end
   
-  def test_activate_freezes_load_paths
-    assert !e.load_paths.frozen?
+  def test_activate_freezes_const_paths
+    assert !e.const_paths.frozen?
     e.activate
-    assert e.load_paths.frozen?
+    assert e.const_paths.frozen?
   end
   
-  def test_activate_unshifts_load_paths_to_LOAD_PATH
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+  def test_activate_unshifts_const_paths_to_LOAD_PATH
+    e.const_paths = ["/path/to/lib", "/path/to/another/lib"]
     $LOAD_PATH.clear
   
     e.activate
@@ -826,8 +826,8 @@ class EnvActivateTest < Test::Unit::TestCase
     assert_equal [e.root["/path/to/lib"], e.root["/path/to/another/lib"]], $LOAD_PATH
   end
   
-  def test_activate_prioritizes_load_paths_in_LOAD_PATH
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+  def test_activate_prioritizes_const_paths_in_LOAD_PATH
+    e.const_paths = ["/path/to/lib", "/path/to/another/lib"]
     $LOAD_PATH.clear
     $LOAD_PATH.concat ["post", e.root["/path/to/another/lib"], e.root["/path/to/lib"]]
     
@@ -836,11 +836,11 @@ class EnvActivateTest < Test::Unit::TestCase
     assert_equal [e.root["/path/to/lib"], e.root["/path/to/another/lib"], "post"], $LOAD_PATH
   end
   
-  def test_activate_does_not_add_load_paths_unless_specified
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+  def test_activate_does_not_add_const_paths_unless_specified
+    e.const_paths = ["/path/to/lib", "/path/to/another/lib"]
     $LOAD_PATH.clear
     
-    e.set_load_paths = false
+    e.set_const_paths = false
     e.activate
     
     assert_equal [], $LOAD_PATH
@@ -868,16 +868,16 @@ class EnvActivateTest < Test::Unit::TestCase
     assert !e.envs.frozen?
   end
   
-  def test_deactivate_unfreezes_load_paths
+  def test_deactivate_unfreezes_const_paths
     e.activate
-    assert e.load_paths.frozen?
+    assert e.const_paths.frozen?
     
     e.deactivate
-    assert !e.load_paths.frozen?
+    assert !e.const_paths.frozen?
   end
   
-  def test_deactivate_removes_load_paths_from_LOAD_PATH
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+  def test_deactivate_removes_const_paths_from_LOAD_PATH
+    e.const_paths = ["/path/to/lib", "/path/to/another/lib"]
     e.activate
     
     $LOAD_PATH.clear
@@ -890,8 +890,8 @@ class EnvActivateTest < Test::Unit::TestCase
     assert_equal ["pre", "post"], $LOAD_PATH
   end
   
-  def test_deactivate_does_not_remove_load_paths_unless_deactivated
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
+  def test_deactivate_does_not_remove_const_paths_unless_deactivated
+    e.const_paths = ["/path/to/lib", "/path/to/another/lib"]
     $LOAD_PATH.clear
     $LOAD_PATH.concat ["/path/to/lib", "/path/to/another/lib"]
     
@@ -900,9 +900,9 @@ class EnvActivateTest < Test::Unit::TestCase
     assert_equal ["/path/to/lib", "/path/to/another/lib"], $LOAD_PATH
   end
   
-  def test_deactivate_does_not_remove_load_paths_unless_specified
-    e.load_paths = ["/path/to/lib", "/path/to/another/lib"]
-    e.set_load_paths = false
+  def test_deactivate_does_not_remove_const_paths_unless_specified
+    e.const_paths = ["/path/to/lib", "/path/to/another/lib"]
+    e.set_const_paths = false
     e.activate
     
     $LOAD_PATH.clear
@@ -938,18 +938,18 @@ class EnvActivateTest < Test::Unit::TestCase
   
   def test_recursive_activate_and_dectivate
     e1 = Env.new
-    e1.load_paths = ["/path/to/e1"]
+    e1.const_paths = ["/path/to/e1"]
     e.push e1
     
     e2 = Env.new
-    e2.load_paths = ["/path/to/e2"]
+    e2.const_paths = ["/path/to/e2"]
     e1.push e2
     
     e3 = Env.new
-    e3.load_paths = ["/path/to/e3"]
+    e3.const_paths = ["/path/to/e3"]
     e.push e3
     
-    e.load_paths = ["/path/to/e"]
+    e.const_paths = ["/path/to/e"]
     $LOAD_PATH.clear
     e.activate
     
@@ -969,15 +969,15 @@ class EnvActivateTest < Test::Unit::TestCase
   
   def test_recursive_activate_and_dectivate_does_not_infinitely_loop
     e1 = Env.new
-    e1.load_paths = ["/path/to/e1"]
+    e1.const_paths = ["/path/to/e1"]
     e.push e1
     
     e2 = Env.new
-    e2.load_paths = ["/path/to/e2"]
+    e2.const_paths = ["/path/to/e2"]
     e1.push e2
     e2.push e
     
-    e.load_paths = ["/path/to/e"]
+    e.const_paths = ["/path/to/e"]
     $LOAD_PATH.clear
     e.activate
     
@@ -1015,15 +1015,15 @@ class EnvActivateTest < Test::Unit::TestCase
     assert_equal "envs cannot be modified once active", err.message
   end
   
-  def test_load_paths_cannot_be_set_once_active
+  def test_const_paths_cannot_be_set_once_active
     e.activate
-    err = assert_raises(RuntimeError) { e.load_paths = [] }
-    assert_equal "load_paths cannot be modified once active", err.message
+    err = assert_raises(RuntimeError) { e.const_paths = [] }
+    assert_equal "const_paths cannot be modified once active", err.message
   end
   
-  def test_set_load_paths_cannot_be_set_once_active
+  def test_set_const_paths_cannot_be_set_once_active
     e.activate
-    err = assert_raises(RuntimeError) { e.set_load_paths = false }
-    assert_equal "set_load_paths cannot be modified once active", err.message
+    err = assert_raises(RuntimeError) { e.set_const_paths = false }
+    assert_equal "set_const_paths cannot be modified once active", err.message
   end
 end

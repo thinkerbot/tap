@@ -108,7 +108,7 @@ module Tap
   #   manifest.seek("two:b")      # => "/two/b.rb"
   #
   # Env caches a manifest of constants identified by {constant attributes}[http://tap.rubyforge.org/lazydoc]
-  # in .rb files located under the Env.load_paths.  These constants are used
+  # in files specified by under the Env.const_paths.  These constants are used
   # when interpreting signals from the command line.  Constants may be manually
   # registered to the constants manifest and classified by type like this:
   #
@@ -227,8 +227,8 @@ module Tap
       #
       #   root: the gem path
       #   gems: all gem dependencies with a config_file
-      #   load_paths: the gem require paths
-      #   set_load_paths: false (because RubyGems sets them for you)
+      #   const_paths: the gem require paths
+      #   set_const_paths: false (because RubyGems sets them for you)
       #
       # Configurations specified in the gem config_file override these
       # defaults.
@@ -261,8 +261,8 @@ module Tap
         config = {
           'root' => path,
           'gems' => dependencies,
-          'load_paths' => spec.require_paths,
-          'set_load_paths' => false
+          'const_paths' => spec.require_paths,
+          'set_const_paths' => false
         }
         
         # override the default configs with whatever configs
@@ -357,17 +357,17 @@ module Tap
       reset_envs
     end
     
-    # Designates paths added to $LOAD_PATH on activation (see set_load_paths).
-    # These paths are also the default directories searched for resources.
-    config_attr :load_paths, [:lib] do |input|
-      raise "load_paths cannot be modified once active" if active?
-      @load_paths = resolve_paths(input)
+    # Designates directories searched for constants.  The const_paths are
+    # added to $LOAD_PATH on activation if set_const_paths is specified.
+    config_attr :const_paths, [:lib] do |input|
+      raise "const_paths cannot be modified once active" if active?
+      @const_paths = resolve_paths(input)
     end
     
-    # If set to true load_paths are added to $LOAD_PATH on activation.
-    config_attr :set_load_paths, true do |input|
-      raise "set_load_paths cannot be modified once active" if active?
-      @set_load_paths = Configurable::Validation.boolean[input]
+    # If set to true const_paths are added to $LOAD_PATH on activation.
+    config_attr :set_const_paths, true do |input|
+      raise "set_const_paths cannot be modified once active" if active?
+      @set_const_paths = Configurable::Validation.boolean[input]
     end
     
     # Initializes a new Env linked to the specified directory.  Configurations
@@ -488,9 +488,9 @@ module Tap
     # Activates self by doing the following, in order:
     #
     # * activate nested environments
-    # * unshift load_paths to $LOAD_PATH (if set_load_paths is true)
+    # * unshift const_paths to $LOAD_PATH (if set_const_paths is true)
     #
-    # Once active, the current envs and load_paths are frozen and cannot be
+    # Once active, the current envs and const_paths are frozen and cannot be
     # modified until deactivated. Returns true if activate succeeded, or
     # false if self is already active.
     def activate
@@ -498,18 +498,18 @@ module Tap
       
       @active = true
       
-      # freeze envs and load paths
+      # freeze envs and const paths
       @envs.freeze
-      @load_paths.freeze
+      @const_paths.freeze
       
       # activate nested envs
       envs.reverse_each do |env|
         env.activate
       end
       
-      # add load paths
-      if set_load_paths
-        load_paths.reverse_each do |path|
+      # add const paths
+      if set_const_paths
+        const_paths.reverse_each do |path|
           $LOAD_PATH.unshift(path)
         end
       
@@ -522,9 +522,9 @@ module Tap
     # Deactivates self by doing the following in order:
     #
     # * deactivates nested environments
-    # * removes load_paths from $LOAD_PATH (if set_load_paths is true)
+    # * removes const_paths from $LOAD_PATH (if set_const_paths is true)
     #
-    # Once deactivated, envs and load_paths are unfrozen and may be modified.
+    # Once deactivated, envs and const_paths are unfrozen and may be modified.
     # Returns true if deactivate succeeded, or false if self is not active.
     #
     # ==== Note
@@ -544,14 +544,14 @@ module Tap
         env.deactivate
       end
       
-      # remove load paths
-      load_paths.each do |path|
+      # remove const paths
+      const_paths.each do |path|
         $LOAD_PATH.delete(path)
-      end if set_load_paths
+      end if set_const_paths
       
-      # unfreeze envs and load paths
+      # unfreeze envs and const paths
       @envs = @envs.dup
-      @load_paths = @load_paths.dup
+      @const_paths = @const_paths.dup
       
       true
     end
@@ -647,14 +647,14 @@ module Tap
     end
     
     # Returns a manifest of Constants located in .rb files under each of the
-    # load_paths. Constants are identified using Lazydoc constant attributes;
+    # const_paths. Constants are identified using Lazydoc constant attributes;
     # all attributes are registered to the constants for classification
     # (for example as a task, join, etc).
     def constants
       @constants ||= manifest(:constants) do |env|
         constants = {}
 
-        env.load_paths.each do |load_path|
+        env.const_paths.each do |load_path|
           next unless File.directory?(load_path)
           Constant.scan(load_path, "**/*.rb", constants)
         end
