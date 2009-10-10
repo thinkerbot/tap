@@ -224,7 +224,7 @@ module Tap
           
           if auto_enque
             case type
-            when :task
+            when :node
               app.queue.concat([array])
               jobs[obj] = array
             when :join
@@ -270,7 +270,7 @@ module Tap
     def parse_break(one) # :nodoc:
       case one
       when NODE_BREAK
-        set_type(:task)
+        set_type(:node)
       when JOIN_BREAK
         set_type(:join)
       when SEQUENCE
@@ -298,7 +298,7 @@ module Tap
         raise "no prior entry"
       end
       
-      @current_type = :task
+      @current_type = :node
       @current = nil
       argv = current
       parse_join_spec(one, "#{@current_index - 1}", @current_index.to_s)

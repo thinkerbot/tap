@@ -174,30 +174,30 @@ class ParserTest < Test::Unit::TestCase
   def test_parse_parses_specs_along_option_break
     parser.parse %w{-- a b c -- x y z}
     assert_equal [
-      [:task, "0", "a", "b", "c"],
-      [:task, "1", "x", "y", "z"]
+      [:node, "0", "a", "b", "c"],
+      [:node, "1", "x", "y", "z"]
     ], parser.specs
   end
   
   def test_parse_unshifts_option_break_if_argv_does_not_start_with_a_break
     parser.parse %w{a b c}
     assert_equal [
-      [:task, "0", "a", "b", "c"],
+      [:node, "0", "a", "b", "c"],
     ], parser.specs
   end
   
   def test_parse_allows_options_in_specs
     parser.parse %w{-- a -b --c}
     assert_equal [
-      [:task, "0", "a", "-b", "--c"],
+      [:node, "0", "a", "-b", "--c"],
     ], parser.specs
   end
   
   def test_parse_incrementes_index_but_does_not_add_specs_for_empty_breaks
     parser.parse %w{-- a -- -- -- b --}
     assert_equal [
-      [:task, "0", "a"],
-      [:task, "3", "b"]
+      [:node, "0", "a"],
+      [:node, "3", "b"]
     ], parser.specs
   end
   
@@ -210,15 +210,15 @@ class ParserTest < Test::Unit::TestCase
   def test_parse_does_not_parse_escaped_args
     parser.parse %w{-- a -. -- --: -z- .- b -- c}
     assert_equal [
-      [:task, "0", "a", "--", "--:", "-z-", "b"],
-      [:task, "1", "c"]
+      [:node, "0", "a", "--", "--:", "-z-", "b"],
+      [:node, "1", "c"]
     ], parser.specs
   end
   
   def test_parse_stops_at_end_flag
     parser.parse %w{-- a --- -- b}
     assert_equal [
-      [:task, "0", "a"]
+      [:node, "0", "a"]
     ], parser.specs
   end
   
@@ -230,8 +230,8 @@ class ParserTest < Test::Unit::TestCase
   def test_parse_splits_string_to_argv
     assert_equal ['c'], parser.parse("a -- b --- c")
     assert_equal [
-      [:task, "0", "a"],
-      [:task, "1", "b"]
+      [:node, "0", "a"],
+      [:node, "1", "b"]
     ], parser.specs
   end
   
@@ -239,8 +239,8 @@ class ParserTest < Test::Unit::TestCase
     parser.parse %w{-- a b c}
     parser.parse %w{-- x y z}
     assert_equal [
-      [:task, "0", "a", "b", "c"],
-      [:task, "0", "x", "y", "z"]
+      [:node, "0", "a", "b", "c"],
+      [:node, "0", "x", "y", "z"]
     ], parser.specs
   end
   
@@ -281,10 +281,10 @@ class ParserTest < Test::Unit::TestCase
   def test_sequence_breaks_assign_sequence_joins
     parser.parse "-- a --: b --: c"
     assert_equal [
-      [:task, "0", "a"],
-      [:task, "1", "b"],
+      [:node, "0", "a"],
+      [:node, "1", "b"],
       [:join, nil, "tap:join", "0", "1"],
-      [:task, "2", "c"],
+      [:node, "2", "c"],
       [:join, nil, "tap:join", "1", "2"]
     ], parser.specs
   end
@@ -292,8 +292,8 @@ class ParserTest < Test::Unit::TestCase
   def test_sequence_with_modifier
     parser.parse  "-- a --:is.class b"
     assert_equal [
-      [:task, "0", "a"],
-      [:task, "1", "b"],
+      [:node, "0", "a"],
+      [:node, "1", "b"],
       [:join, nil, "class", "0", "1", "-i", "-s"],
     ], parser.specs
   end
