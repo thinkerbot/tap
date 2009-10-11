@@ -10,7 +10,8 @@ class ShellTestSample < Test::Unit::TestCase
   }
   
   def test_echo
-    assert_equal "goodnight moon", sh("echo goodnight moon").strip
+    stdout, stderr = sh("echo goodnight moon")
+    assert_equal "goodnight moon", stdout.strip
   end
 
   def test_inspect_argv

@@ -11,7 +11,7 @@ class RapTest < Test::Unit::TestCase
   acts_as_file_test
   acts_as_shell_test(
     :cmd_pattern => "% rap",
-    :cmd => (["ruby"] + load_paths + ["'#{rap_root}/bin/rap'"]).join(" "),
+    :cmd => (["2>&1 ruby"] + load_paths + ["'#{rap_root}/bin/rap'"]).join(" "),
     :env => {'TAP_GEMS' => ''}
   )
 
@@ -205,28 +205,34 @@ end
     method_root.chdir(:tmp) do
       sh_test %Q{
 % rap a
+warning: implict rake for [:node, "0", "a"]
 (in #{File.dirname(rakefile)})
 A
 }
       sh_test %Q{
 % rap a --silent
+warning: implict rake for [:node, "0", "a", "--silent"]
 A
 }
       sh_test %Q{
 % rap b --silent
+warning: implict rake for [:node, "0", "b", "--silent"]
 A
 B
 }      
       sh_test %Q{
 % rap c[arg] --silent
+warning: implict rake for [:node, "0", "c[arg]", "--silent"]
 ARG
 }
       sh_test %Q{
 % rap ns:a --silent
+warning: implict rake for [:node, "0", "ns:a", "--silent"]
 nsA
 }
       sh_test %Q{
 % rap ns:c[arg] ns:b ns:a b --silent
+warning: implict rake for [:node, "0", "ns:c[arg]", "ns:b", "ns:a", "b", "--silent"]
 nsARG
 nsA
 nsB

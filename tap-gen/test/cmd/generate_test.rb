@@ -15,7 +15,7 @@ class GenerateCmdTest < Test::Unit::TestCase
   
   acts_as_shell_test(
     :cmd_pattern => '% tap',
-    :cmd => (["ruby"] + load_paths + ["'#{tap_root}/../tap/bin/tap'"]).join(" "), 
+    :cmd => (["2>&1 ruby"] + load_paths + ["'#{tap_root}/../tap/bin/tap'"]).join(" "), 
     :env => {'TAP_GEMS' => ''}
   )
 

@@ -1,21 +1,3 @@
-if RUBY_PLATFORM =~ /mswin32/
-  begin
-    require 'rubygems'
-    require 'win32/open3'
-  rescue(LoadError)
-    puts %q{
-Tap:Test::ShellTest requires the win32-open3 gem on Windows.
-Use this command and try again:
-
-  % gem install win32-open3
-
-}
-    raise
-  end
-else
-  require 'open3'
-end
-
 require 'tap/test/shell_test/class_methods'
 require 'tap/test/shell_test/regexp_escape'
 
@@ -68,7 +50,7 @@ module Tap
       # setup in an including module.
       def setup
         super
-        @shell_test_notification = false
+        @notify_method_name = true
       end
       
       # Returns true if the ENV variable 'VERBOSE' is true.  When verbose,
@@ -122,18 +104,9 @@ module Tap
       #
       #   % gem install win32-open3 
       # 
-      def sh(cmd)
-        Open3.popen3(cmd) do |i,o,e|
-          yield(i,o,e) if block_given?
-          return o.read + e.read
-        end
-      end
-      
-      def capture_sh(cmd, options={})
-        options = sh_test_options.merge(options)
-        
-        unless quiet? || @shell_test_notification
-          @shell_test_notification = true
+      def sh(cmd, options={})
+        if @notify_method_name && !quiet?
+          @notify_method_name = false
           puts
           puts method_name 
         end
@@ -144,9 +117,14 @@ module Tap
         end
         
         start = Time.now
-        result = with_env(options[:env], options[:replace_env]) { sh(cmd) }
-        finish = Time.now
+        result = with_env(options[:env], options[:replace_env]) do
+          IO.popen(cmd) do |io|
+            yield(io) if block_given?
+            io.read
+          end
+        end
         
+        finish = Time.now
         elapsed = "%.3f" % [finish-start]
         puts "  (#{elapsed}s) #{verbose? ? cmd : original_cmd}" unless quiet?
         result
@@ -199,9 +177,11 @@ module Tap
       # variables being inherited by subprocesses.
       # 
       def sh_test(cmd, options={})
+        options = sh_test_options.merge(options)
+        
         cmd, expected = cmd.lstrip.split(/^/, 2)
         cmd.strip!
-        result = capture_sh(cmd, options)
+        result = sh(cmd, options)
         
         assert_equal(expected, result, cmd) if expected
         yield(result) if block_given?
@@ -209,8 +189,10 @@ module Tap
       end
       
       def sh_match(cmd, *regexps)
+        
         options = regexps.last.kind_of?(Hash) ? regexps.pop : {}
-        result = capture_sh(cmd, options)
+        options = sh_test_options.merge(options)
+        result = sh(cmd, options)
 
         regexps.each do |regexp|
           assert_match regexp, result, cmd
