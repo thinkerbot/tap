@@ -223,8 +223,10 @@ module Tap
       # in order and tries again.
       #
       # Raises a NameError if the constant cannot be found.
-      def constantize
+      def constantize(autorequire=true)
         Constant.constantize(const_name) do
+          break unless autorequire
+          
           require_paths.each do |require_path|
             require require_path
           end

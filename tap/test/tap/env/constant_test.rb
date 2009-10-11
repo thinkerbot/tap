@@ -284,6 +284,20 @@ class ConstantTest < Test::Unit::TestCase
     assert $".include?(require_path)
   end
   
+  def test_constantize_does_not_autorequire_path_unless_specified
+    require_path = File.expand_path("#{File.dirname(__FILE__)}/constant/require_path.rb")
+    
+    assert !Object.const_defined?(:UnknownConstant)
+    assert File.exists?(require_path)
+    assert !$".include?(require_path)
+    
+    assert_equal nil, Constant.new('UnknownConstant', require_path).constantize(false)
+    
+    assert !Object.const_defined?(:UnknownConstant)
+    assert File.exists?(require_path)
+    assert !$".include?(require_path)
+  end
+  
   def test_constantize_raises_error_if_the_constant_cannot_be_found
     empty_file = "#{File.dirname(__FILE__)}/constant/empty_file.rb"
     assert !Object.const_defined?(:TotallyUnknownConstant)
