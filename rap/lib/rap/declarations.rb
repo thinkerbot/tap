@@ -23,7 +23,7 @@ module Rap
   # Normally all declared tasks are subclasses of Rap::Task, but
   # subclasses of Rap::Task can declare tasks as well.
   #
-  #   class Alt < Rap::Task
+  #   class Subclass < Rap::Task
   #   end
   #
   #   include Rap::Declarations
@@ -35,11 +35,11 @@ module Rap
   #   o.class.desc.to_s                  # => "task one, a subclass of Rap::Task"
   #
   #   namespace(:nest) do
-  #     desc "task two, a nested subclass of Alt"
-  #     t = Alt.task(:two)
+  #     desc "task two, a nested subclass of Subclass"
+  #     t = Subclass.task(:two)
   #     t.class                          # => Nest::Two
-  #     t.class.superclass               # => Alt
-  #     t.class.desc.to_s                # => "task two, a nested subclass of Alt"
+  #     t.class.superclass               # => Subclass
+  #     t.class.desc.to_s                # => "task two, a nested subclass of Subclass"
   #   end
   #
   # This feature is only available to subclasses of Rap::Task and can
