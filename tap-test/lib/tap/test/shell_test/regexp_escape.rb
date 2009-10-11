@@ -71,6 +71,8 @@ module Tap
           end
         end
       
+        # Generates a new RegexpEscape by escaping the str, using the same
+        # options as Regexp.
         def initialize(str, *options)
           super(RegexpEscape.escape(str), *options)
           @original_str = str

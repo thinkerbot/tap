@@ -9,7 +9,10 @@ module Tap
         
         # Returns a hash of the default sh_test options.
         def sh_test_options
-          @sh_test_options ||= {}
+          @sh_test_options ||= {
+            :cmd_pattern => '% ',
+            :cmd => '2>&1 '
+          }
         end
 
         private

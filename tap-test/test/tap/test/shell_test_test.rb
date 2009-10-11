@@ -10,8 +10,7 @@ class ShellTestSample < Test::Unit::TestCase
   }
   
   def test_echo
-    stdout, stderr = sh("echo goodnight moon")
-    assert_equal "goodnight moon", stdout.strip
+    assert_equal "goodnight moon", sh("echo goodnight moon").strip
   end
 
   def test_inspect_argv
@@ -168,6 +167,19 @@ value
 }, :env => {'SAMPLE' => 'value'}
   end
   
+  def test_sh_test_replaces_percent_and_redirects_output_by_default 
+    sh_test %Q{
+ruby -e "STDERR.puts 'on stderr'; STDOUT.puts 'on stdout'"
+on stdout
+}
+
+    sh_test %Q{
+% ruby -e "STDERR.puts 'on stderr'; STDOUT.puts 'on stdout'"
+on stderr
+on stdout
+}
+  end
+    
   def test_sh_test_correctly_matches_no_output
     sh_test %Q{
 ruby -e ""
