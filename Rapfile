@@ -1,5 +1,5 @@
 
-# ::desc gem, install tap modules
+# :: gem, install tap modules
 Rap.task :install, :name do |task, args|
   dir = File.join(__FILE__.chomp("Rapfile"), args.name)
   Dir.chdir(dir) do
@@ -8,7 +8,7 @@ Rap.task :install, :name do |task, args|
   end
 end
 
-# ::desc gem, uninstall, install tap modules
+# :: gem, uninstall, install tap modules
 Rap.task :reinstall, :name do |task, args|
   dir = File.join(__FILE__.chomp("Rapfile"), args.name)
   Dir.chdir(dir) do
@@ -18,7 +18,7 @@ Rap.task :reinstall, :name do |task, args|
   Install.instance.execute(args.name)
 end
 
-# ::desc generate rdoc
+# :: generate rdoc
 Rap.task :rdoc, :redoc => false do |task, args|
   FileUtils.rm_r("rdoc") if File.directory?("rdoc")
   

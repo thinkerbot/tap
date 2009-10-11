@@ -53,11 +53,11 @@ task :sample
 include Rap::Declarations
   
 namespace :rap_test do
-  # ::desc task summary
+  # :: task summary
   # long description
   task :task_with_doc
   
-  # ::desc
+  # ::
   task :task_with_empty_desc
   
   task :task_without_doc

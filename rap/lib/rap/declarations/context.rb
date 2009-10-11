@@ -20,6 +20,7 @@ module Rap
       attr_accessor :desc
       
       def initialize(app=Tap::App.instance)
+        app.env ||= Tap::Env.new
         @app = app
         @namespace = ""
         @desc = nil

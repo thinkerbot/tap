@@ -6,7 +6,7 @@ module Rap
   #
   # Description instances can be assigned a description, or they may parse
   # one directly from the comment.  Comment lines with the constant attribute
-  # '::desc' will have the value set as desc.
+  # '::' will have the value set as desc.
   # :startdoc:::+
   class Description < Lazydoc::Comment
     
@@ -15,7 +15,7 @@ module Rap
     
     # Parses in-comment descriptions from prepended lines, if present.
     def prepend(line)
-      if line =~ /::desc(?:\s+(.*?))?\s*$/
+      if line =~ /\s::\s+(.*?)\s*$/
         self.desc = $1.to_s
         false
       else

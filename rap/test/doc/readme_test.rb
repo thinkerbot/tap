@@ -18,7 +18,7 @@ class ReadmeTest < Test::Unit::TestCase
   def test_readme
     method_root.prepare(:tmp, 'Rapfile') do |file|
       file << %q{
-# ::desc your basic goodnight moon task
+# :: your basic goodnight moon task
 # Says goodnight with a configurable message.
 Rap.task(:goodnight, :obj, :message => 'goodnight') do |task, args|
   puts "#{task.message} #{args.obj}\n"

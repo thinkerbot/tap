@@ -74,7 +74,7 @@ module Rap
       tasc = declaration_class.subclass(const_name, configs, dependencies)
       register tasc
       
-      # register documentation        
+      # register documentation
       desc = Lazydoc.register_caller(Description)
       desc.desc = context.desc
       context.desc = nil

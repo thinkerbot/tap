@@ -39,7 +39,7 @@ class Subclass < Rap::Task
   def helper(); "help"; end
 end
 
-# ::desc a help task
+# :: a help task
 Subclass.task(:help) {|task, args| puts "got #{task.helper}"}
 }
     end

@@ -18,7 +18,7 @@ Rapfile with a simple task declaration:
 
   [Rapfile]
     
-  # ::desc your basic goodnight moon task
+  # :: your basic goodnight moon task
   # Says goodnight with a configurable message.
   Rap.task(:goodnight, :obj, :message => 'goodnight') do |task, args|
     puts "#{task.message} #{args.obj}\n"
@@ -96,7 +96,7 @@ maps to a class definition:
 
   [Rapfile]
   
-  # ::desc your basic goodnight moon task
+  # :: your basic goodnight moon task
   # Says goodnight with a configurable message.
   Rap.task(:goodnight, :obj, :message => 'goodnight') do
     puts "#{task.message} #{args.obj}\n"

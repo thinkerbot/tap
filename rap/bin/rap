@@ -38,7 +38,14 @@ case ARGV[0]
 when '--help', nil, '-T'
   constants = app.env.constants
   tasks = constants.summarize do |constant|
-    constant.types['task']
+    constant.types['task'] or begin
+      if const = constant.constantize(false)
+        desc = const.desc.to_s
+
+      else
+        nil
+      end
+    end
   end
 
   puts Lazydoc.usage(__FILE__)
@@ -59,9 +66,9 @@ else
     parser = Tap::Parser.parse!(ARGV)
     parser.specs.each do |spec|
       type, var, klass = spec
-      next unless type == :task
-
-      if env[klass] == nil && Rap::Rake.has_rakefile?
+      next unless type == :node
+      
+      if env.constants.seek(klass).nil? && Rap::Rake.has_rakefile?
         warn "warning: implict rake for #{spec.inspect}"
         spec.insert(2, 'rap:rake')
       end

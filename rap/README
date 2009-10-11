@@ -24,7 +24,7 @@ Usage is much like {Rake}[http://rake.rubyforge.org/]:
 
   [Rapfile]
   
-  # ::desc your basic goodnight moon task
+  # :: your basic goodnight moon task
   # Says goodnight with a configurable message.
   Rap.task(:goodnight, :obj, :message => 'goodnight') do |task, args|
     puts "#{task.message} #{args.obj}\n"

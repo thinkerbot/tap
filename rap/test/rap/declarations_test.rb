@@ -311,7 +311,7 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_task_registers_documentation
-    # ::desc summary
+    # :: summary
     # a multiline
     # comment
     task(:task0)
@@ -331,11 +331,11 @@ class DeclarationsTest < Test::Unit::TestCase
   end
   
   def test_multiple_calls_to_task_reassigns_documentation
-    # ::desc summary
+    # :: summary
     # comment
     task(:task0)
   
-    # ::desc new summary
+    # :: new summary
     # new comment
     task(:task0)
   

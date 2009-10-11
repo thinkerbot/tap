@@ -3,7 +3,7 @@ require 'tap/declarations'
 module <%= project_name.camelize %>
   extend Rap::Declarations
   
-  # ::desc your basic goodnight moon task
+  # :: your basic goodnight moon task
   # Says goodnight with a configurable message.
   task(:goodnight, :obj, :message => 'goodnight') do |task, args|
     puts "#{task.message} #{args.obj}"

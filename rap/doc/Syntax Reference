@@ -27,7 +27,7 @@ Simple documentation:
   
 Extended documentation:
   
-  # ::desc description
+  # :: description
   # Extended documentation may span multiple lines, and 
   # supports
   #
