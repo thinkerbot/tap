@@ -123,13 +123,13 @@ module Tap
       #   % gem install win32-open3 
       # 
       def sh(cmd)
-        Open3.popen3(cmd) do |i,o,s|
-          yield(i,o,s) if block_given?
-          return o.read
+        Open3.popen3(cmd) do |i,o,e|
+          yield(i,o,e) if block_given?
+          return o.read + e.read
         end
       end
       
-      def capture_sh(cmd, options)
+      def capture_sh(cmd, options={})
         options = sh_test_options.merge(options)
         
         unless quiet? || @shell_test_notification
