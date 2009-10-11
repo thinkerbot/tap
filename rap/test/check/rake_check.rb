@@ -7,6 +7,7 @@ require 'rake'
 
 Dir.chdir __FILE__.chomp('.rb')
 
+Rake.application.options.silent = true
 class RakeCheck < Test::Unit::TestCase
 
   def setup

@@ -98,6 +98,7 @@ end
 
 desc 'Run tests.'
 task :test => %w{
+  test:check
   test:rap
   test:doc
   test:cmd
