@@ -15,7 +15,7 @@ module Rap
     
     # Parses in-comment descriptions from prepended lines, if present.
     def prepend(line)
-      if line =~ /\s::\s+(.*?)\s*$/
+      if line =~ /\s::(?:\s+(.*?)\s*)?$/
         self.desc = $1.to_s
         false
       else

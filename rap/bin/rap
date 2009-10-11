@@ -39,12 +39,8 @@ when '--help', nil, '-T'
   constants = app.env.constants
   tasks = constants.summarize do |constant|
     constant.types['task'] or begin
-      if const = constant.constantize(false)
-        desc = const.desc.to_s
-
-      else
-        nil
-      end
+      const = constant.constantize(false)
+      const && const.desc.kind_of?(Rap::Description) ? const.desc.desc : nil
     end
   end
 
