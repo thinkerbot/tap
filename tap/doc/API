@@ -1,59 +1,58 @@
 = Application Programming Interface
 
-(Note these are all currently provisional.)
-
-== Object Interfaces
-
 Applications require the following methods for nodes, joins, and middleware.
 Tap provides modules or base classes that implement these APIs and may be used
 as the foundation for subclasses.
 
-Note that the optional methods (joins, inputs, outputs, and nodes) are used to
-traverse a workflow. If they are not implemented, the object can still fulfill
-it's role, but operations like converting a workflow to specs may only
-partially work.
-
-==== Node
+=== {Node}[link:classes/Tap/App/Node.html] ({Task}[link:classes/Tap/Task.html])
 
   call(*inputs)    # any return is allowed
   joins()          # returns an array of joins, or nil (optional)
 
-The signature for call can be modified as necessary.  Joins is optional, but must adhere to the API if provided.  See Tap::App#dispatch for details regarding the difference between an empty array of joins vs nil joins.
+The signature for call can be modified as necessary; any restrictions on the
+signature simply define the arguments that must be passed to the node from the
+command line or via a join.
 
-==== Join
+The joins will be called when the node completes. If joins returns an empty
+array then the default application joins are called instead. If joins is not
+defined or returns nil then the default joins will not be called.
+
+=== {Join}[link:classes/Tap/Join.html]
 
   call(result)     # any return is allowed
-  inputs()         # returns an array of input nodes (optional)
-  outputs()        # returns an array of output nodes (optional)
 
-==== Middleware
+The call method receives the result of input nodes as they complete and is
+responsible for enquing or executing output nodes.
+
+=== {Middleware}[link:classes/Tap/Middleware.html]
 
   Middleware.new(stack, *args)   # returns an instance of middleware
   call(node, inputs=[])          # any return is allowed
   stack()                        # returns the original stack
-  nodes()                        # returns an array of nodes (optional)
 
 The middleware API is essentially the same as for {Rack}[http://rack.rubyforge.org/].
 
-== Resource Interface
+== Application Interface
 
-Tap defines a minimal API allowing specific objects to be created and modified
-from the command line and other user interfaces. The resource API is distinct
-from the object APIs detailed above. However, it is common to implement the
-resource API in conjunction with one or more of the object APIs to make, for
-instance, a class of joins available on the command line.
+In addition to the APIs for individual workflow objects, Tap defines an
+application API allowing objects to be created and modified by Tap::App
+instances from user interfaces such as the command line. The application API
+is distinct from the object APIs, although it is typical to implement the application API in on top of an object API.
 
-This is a stub outlining the resource API:
+Tap::App::Api implements the application interface in a general way and is the
+baseclass for Tap::Task, Tap::Join, and Tap::Middleware. The basic idea behind
+the application interface is to allow instantiation of a class from an array
+(as from the command line) or a hash (as from HTTP request parameters), and
+then to allow the the instance to serialize back into a
+{JSON}[http://json.org/] hash. The hash is referred to as a specification.
+
+This is a stub outlining the application interface:
 
   class Stub
     class << self
       
       # Parse takes an argument vector (an array, usually from the command
       # line) and returns an instance of self.
-      #
-      # Typically parse uses a ConfigParser to generate an argument hash
-      # which then gets passed to build, but there is no requirement that
-      # is the case.
       def parse(argv=ARGV, app=Tap::App.instance)
       end
       
@@ -71,26 +70,77 @@ This is a stub outlining the resource API:
     # Users can determine for themselves what constitutes likeness.
     def to_spec
     end
+    
+    # Takes no inputs and returns an nested array of workflow objects that
+    # are associated with self (ex input/output nodes for a join).  The
+    # array should be structured like [refs, brefs], where refs are
+    # references to objects that must be built BEFORE self and brefs are
+    # back-references to objects that must be built AFTER self.
+    #
+    # For example, nodes must be built before joins.  As such, nodes return
+    # brefs for each of the joins and joins return refs to their input and
+    # output nodes:
+    #
+    #   node.associations       # => [nil, join]
+    #   join.associations       # => [inputs + outputs, nil]
+    #
+    # Nil is a valid return for associations, indicating no associations.
+    def associations
+    end
+    
+    # (optional)
+    
+    # Takes a signal name and returns an object that responds to call.
+    # Signals are a generalized way to trigger some action on an object.
+    # See Tap::Signals for more details.
+    def signal(sig)
+    end
   end
 
-In list form:
+=== Spec References
 
-* this API must be implemented on a class
-* the class must implement build/parse to input a hash/array and a Tap::App
-* the default Tap::App must be Tap::App.instance
-* build and parse must return an object responding to to_spec
-* to_spec must return a hash that, when built, returns an object like itself
-* the hash returned by to_spec must be serializable as JSON
+Resource specifications often require references to other resources, as when a
+join refers to input and output nodes. To satisfy the requirement that these
+references are serializable as JSON, specify the references as string
+variables and resolve them internally to other objects. Apps are constructed
+to do this easily via the +obj+ and +var+ methods:
 
-Tap::App::Api implements the resource API and is intended for use as the
-foundation of user-defined classes. Naturally users can implement this API on
-their own. Classes that adhere to the resource API are referred to as
-application resources.
+  class Sample
+    class << self
+      def build(spec={}, app=Tap::App.instance)
+        object = app.obj(spec['key'])    # lookup an object from the spec
+        new(object)
+      end
+    end
 
-==== Resource Identifiers
+    def initialize(object)
+      @object = object
+    end
 
-Tap discovers and classifies resources using resource identifiers (ie constant
-attributes, see Lazydoc). This identifies 'Sample' as an 'example' resource.
+    def to_spec
+      {'key' => app.var(@object)}        # store a variable into the spec
+    end
+
+    def associations
+      [[@object], nil]
+    end
+  end
+
+The associations array allow apps to order resources into the correct build
+order when using this strategy. In this case the reference must be built
+before the instance, and hence the associations array returns a reference
+(rather than a back-reference) to @object.
+
+=== Resource Identifiers
+
+Tap discovers application resources using resource identifiers (ie constant
+attributes, see {Lazydoc}[http://tap.rubyforge.org/lazydoc]). Resources
+identified in this way can be automatically loaded by the Tap::Env, and as a
+result, specified directly from the command line. If no identifiers are
+specified for a resource, the user is responsible for manually loading the
+resource.
+
+As an example, this identifies the Sample constant as an 'example' resource.
 
   [lib/file.rb]
   
@@ -100,12 +150,9 @@ attributes, see Lazydoc). This identifies 'Sample' as an 'example' resource.
 
 A resource can be identified by zero or more identifiers. Typically all
 identifiers will be put in the same file as the class, but this does not have
-to be the case.
-
-The file where an identifier is specified is meaningful. Applications
-automatically require all files that identify a resource when building a
-workflow. The order in which the files are required is indeterminate and it
-is up to the user to ensure consistency. For example:
+to be the case; applications automatically require all files that identify a
+resource. The order in which the files are required is indeterminate and it is
+up to the user to ensure consistency. For example:
 
   [a.rb]
   # Sample::a
@@ -119,48 +166,15 @@ is up to the user to ensure consistency. For example:
   class Sample
   end
 
-In the example the require ensures a.rb is always required before b.rb. Note
+Here the require statement ensures a.rb is always required before b.rb. Note
 that consistency is automatic when all identifiers are in the same file (and
-thus only one file is required). If no identifiers are specified for a
-resource, the user is responsible for requiring the necessary files.
+thus only one file is required).
 
-The constant name will be inferred from the path for the file containing the
-resource identifier if no constant name is specified. As a result, this is the
-most compact form for defining a resource:
+The constant name will be inferred from file path if no constant name is
+specified. This is the most compact form for identifying a resource:
 
   [lib/sample.rb]
   
   # ::example summary
   class Sample
   end
-  
-==== References
-
-Frequently the specification for a resource requires references to other
-resources. For instance a join refers to input and output tasks. This appears
-problematic because the resource API makes direct references within a spec
-impossible (a task cannot be serialized as JSON).
-
-The solution is to specify the references as variables, and then to resolve
-those to objects using app. For example:
-
-  class Sample
-    class << self
-      def build(spec={}, app=Tap::App.instance)
-        task = app.obj(spec['task'])
-        new(task)
-      end
-    end
-    
-    def initialize(task)
-      @task = task
-    end
-    
-    def to_spec
-      {'task' => app.var(@task)}
-    end
-  end
-
-Notice that to_spec returns the task to a variable. Naturally objects must be
-built and stored into app before they can be referenced.
-

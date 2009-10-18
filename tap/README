@@ -65,11 +65,12 @@ And generates documentation.
 
   options:
           --help                       Print this help
-          --enque                      Enques self with args
+          --enque                      Manually enques self
           --config FILE                Specifies a config file
 
 Tasks are immediately available for use in workflows, and may be configured as
-if they were individual executables.
+if they were individual executables. This workflow joins the goodnight task to
+a dump task, which prints the message to stdout.
 
   % tap run -- goodnight moon --: dump
   goodnight moon
@@ -105,7 +106,7 @@ A merge (note that dump receives the inputs in serial).
   goodnight
   moon
 
-A synchronized merge (the printout is ['goodnight', 'moon'].to_s).
+A synchronized merge (the printout is <tt>['goodnight', 'moon'].to_s</tt>).
 
   % tap run -- load goodnight -- load moon -- dump --[0,1][2].sync
   goodnightmoon

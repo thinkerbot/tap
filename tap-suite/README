@@ -8,9 +8,8 @@ workflows.
 == Description
 
 {Tap}[http://tap.rubyforge.org] is a configurable, distributable workflow
-framework. Several related modules apply Tap in particularly useful ways. The
-Tap-Suite is simply a collection of those gems, facilitating installation and
-update.
+framework. Tap-Suite is a collection of gems facilitating development with
+Tap.
 
 Currently these modules are included:
 

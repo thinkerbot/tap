@@ -6,8 +6,9 @@ supercharged rake.  Using the rap executable, you can declare tasks using a
 syntax almost identical to rake, but with added support for configurations and
 documentation.
 
-Note: this tutorial spans several modules in the {Tap-Suite}[http://tap.rubyforge.org/tap-suite].
-Be sure to install the full suite beforehand.
+This tutorial spans several modules in the
+{Tap-Suite}[http://tap.rubyforge.org/tap-suite]. Be sure to install the full
+suite beforehand.
 
   % gem install tap-suite
 
@@ -44,7 +45,7 @@ Now from the command line:
 
   options:
       -h, --help                       Print this help
-          --enque                      Enques self with args
+          --enque                      Manually enques self
           --config FILE                Specifies a config file
   
 The declaration syntax is obviously similar to rake; configurations are new
@@ -72,22 +73,46 @@ And now from the command line:
   % rap goodnight moon
   goodnight moon
   
-  % rap goodnight world -- say hello
+  % rap say hello -- goodnight world
   hello world
 
 Unlike rake, rap inputs are written out individually and tasks are delimited
-by a double-dash. Aside from that, you can see rap is basically a supercharged
-rake. Furthermore, rap runs rake. Directly substitute rap for rake on the
-command line and your tasks should run as normal (see the Rap {Syntax
+by option breaks (a double-dash).  Similar tasks could be run in rake like this:
+
+  [Rakefile]
+  require 'rake'
+  
+  task(:Say, :message) do |task, args|
+    print(args.message || 'goodnight')
+  end
+
+  task(:Goodnight, :obj, :needs => :Say) do |task, args|
+    print " #{args.obj}\n"
+  end
+  
+  % rake Say[hello] Goodnight[world]
+  hello world
+
+Aside from the syntax difference, you can see rap is basically rake with
+configurations and extended documentation. Furthermore, rap runs rake.
+Directly substitute rap for rake on the command line and your tasks should run
+as normal (see the Rap {Syntax
 Reference}[http://tap.rubyforge.org/rap/files/doc/Syntax%20Reference.html] for
 more details).
 
-However, supercharging rake isn't the point of Tap.  Declarations bridge the
-gap between rake and tap, but tap itself is a more general framework.  To get
-at other features like imperative workflows, testing, and distribution, we
-have to go beyond rap and take a look at what declarations do.
+  % rap Say[hello] Goodnight[world]
+  hello world
 
-Spoiler: declarations make subclasses of Tap::Task. 
+  % rap Say[hello] Goodnight[world] -- goodnight moon
+  hello world
+  goodnight moon
+
+Replacing rake isn't the point of tap, however. Rap bridges rake and tap, but
+tap itself is a more general framework. To get at other features like
+imperative workflows, testing, and distribution, we have to go beyond rap and
+take a look at what task declarations do.
+
+Declarations make subclasses of Tap::Task. 
 
 == Beyond Rap
 
@@ -114,10 +139,10 @@ Here is a corresponding class:
     end
   end
 
-The name corresponds to the class, configurations (and dependencies, although
-they aren't show) are written out individually, and the block corresponds to
-process. There are a few differences, especially relating to process, but for
-the moment lets gloss over them and see how Goodnight works.
+The name corresponds to the class, configurations are written out
+individually, and the block corresponds to process. There are a few
+differences, especially relating to process, but for the moment lets gloss
+over them and see how Goodnight works.
 
   goodnight = Goodnight.new
   goodnight.message                        # => 'goodnight'
@@ -127,12 +152,12 @@ the moment lets gloss over them and see how Goodnight works.
   hello.message                            # => 'hello'
   hello.process('world')                   # => 'hello world'
 
-Totally straightforward. Goodnight stores the default configurations, each
-instance has accessors to the configurations, and the defaults may be
-overridden during initialization, or later. 
+Goodnight initializes configurations, each instance has accessors to the
+configurations, and the defaults may be overridden during initialization, or
+later.
 
 Class definitions allow validation/transformation blocks to be specified for
-configurations. These blocks process inputs (ex the string inputs from the
+configurations. Such blocks process inputs (ex the string inputs from the
 command line), literally defining the writer for a configuration accessor. A
 set of standard blocks are available through +c+, an alias for the
 {Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]
@@ -190,7 +215,7 @@ Now from the command line:
 
   options:
       -h, --help                       Print this help
-          --enque                      Enques self with args
+          --enque                      Manually enques self
           --config FILE                Specifies a config file
 
 Take a quick look at the documentation. Class definitions map documentation
@@ -198,7 +223,7 @@ and, in some cases, metadata to the command line; the configurations now have
 comments and reverse is a switch. Rich mapping like this allows tasks to act
 as an script interface, not unlike
 {OptionParser}[http://www.ruby-doc.org/stdlib/libdoc/optparse/rdoc/classes/OptionParser.html]
-(check out the {Configurable}[http://tap.rubyforge.org/configurable/] gem and
+(see the {Configurable}[http://tap.rubyforge.org/configurable/] gem and
 specifically
 {ConfigParser}[http://tap.rubyforge.org/configurable/classes/ConfigParser.html]
 for more details).

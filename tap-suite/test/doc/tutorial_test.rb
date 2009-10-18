@@ -50,7 +50,7 @@ configurations:
 
 options:
         --help                       Print this help
-        --enque                      Enques self with args
+        --enque                      Manually enques self
         --config FILE                Specifies a config file
 }
     end
@@ -80,8 +80,43 @@ end}
 goodnight moon
 }
       sh_test %q{
-% rap goodnight world -- say hello
+% rap say hello -- goodnight world
 hello world
+}
+    end
+    
+    method_root.prepare(:tmp, 'Rakefile') do |file|
+      file << %q{
+require 'rake'
+
+task(:Say, :message) do |task, args|
+  print(args.message || 'goodnight')
+end
+
+task(:Goodnight, :obj, :needs => :Say) do |task, args|
+  print " #{args.obj}\n"
+end
+}
+    end
+
+    method_root.chdir(:tmp) do
+      sh_test %Q{
+rake Say[hello] Goodnight[world]
+(in #{method_root[:tmp]})
+hello world
+}
+      sh_test %Q{
+% rap Say[hello] Goodnight[world] 2>&1
+warning: implict rake for [:node, "0", "Say[hello]", "Goodnight[world]"]
+(in #{method_root[:tmp]})
+hello world
+}
+      sh_test %Q{
+% rap Say[hello] Goodnight[world] -- goodnight moon 2>&1
+warning: implict rake for [:node, "0", "Say[hello]", "Goodnight[world]"]
+(in #{method_root[:tmp]})
+hello world
+goodnight moon
 }
     end
   end
@@ -152,7 +187,7 @@ configurations:
 
 options:
         --help                       Print this help
-        --enque                      Enques self with args
+        --enque                      Manually enques self
         --config FILE                Specifies a config file
 }
     end

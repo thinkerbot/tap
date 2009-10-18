@@ -146,7 +146,7 @@ module Tap
           exit
         end
         
-        opts.on('--enque', 'Enques self with args') do
+        opts.on('--enque', 'Manually enques self') do
           opts['enque'] = true
         end
         

@@ -318,7 +318,7 @@ module Tap
       sig ||= (var.nil? && !args.empty? ? 'build' : nil)
       
       object = obj(var)
-      if object.kind_of?(Signals)
+      if object.respond_to?(:signal)
         object.signal(sig).call(args)
       else
         hint = signal?(var) ? " (did you mean '--//#{var}'?)" : nil

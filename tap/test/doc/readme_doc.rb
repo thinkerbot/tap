@@ -53,7 +53,7 @@ configurations:
 
 options:
         --help                       Print this help
-        --enque                      Enques self with args
+        --enque                      Manually enques self
         --config FILE                Specifies a config file
 }
       
