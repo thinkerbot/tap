@@ -1,13 +1,20 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/app'
 require 'stringio'
+require 'tap/test'
 
 class AppTest < Test::Unit::TestCase
+  extend Tap::Test
+  acts_as_file_test
+  acts_as_subset_test
+  
   App = Tap::App
   
   attr_reader :app, :runlist, :results
     
   def setup
+    super
+    
     @results = []
     @app = Tap::App.new(:debug => true) do |result|
       @results << result
@@ -42,12 +49,134 @@ class AppTest < Test::Unit::TestCase
     end
 
     def call(node, inputs=[])
-      audit << node
+      audit << [node, inputs]
       stack.call(node, inputs)
     end
   end
   
   def test_app_documentation
+    # implement a command line workflow in ruby
+    # % cat [file] | sort
+  
+    app = Tap::App.new
+    cat  = app.node {|file| File.read(file) }
+    sort = app.node {|str| str.split("\n").sort }
+    cat.on_complete {|res| app.enq(sort, res) }
+  
+    results = []
+    app.on_complete {|result| results << result }
+  
+    example = method_root.prepare(:tmp, "example.txt") do |io|
+      io.puts "a"
+      io.puts "c"
+      io.puts "b"
+    end
+  
+    app.enq(cat, example)
+    app.run
+    assert_equal [["a", "b", "c"]], results
+  
+    rsort = app.node {|str| str.split("\n").sort.reverse }
+    cat.on_complete  {|res| app.enq(rsort, res) }
+  
+    results.clear
+    app.enq(cat, example)
+    app.run
+    assert_equal [["a", "b", "c"], ["c", "b", "a"]], results
+    
+    ##
+    
+    auditor = app.use AuditMiddleware
+  
+    app.enq(cat, example)
+    app.run
+  
+    expected = [
+    [cat, [example]],
+    [sort, ["a\nc\nb\n"]],
+    [rsort, ["a\nc\nb\n"]]
+    ]
+    assert_equal expected, auditor.audit
+  
+    ##
+    extended_test do
+      runlist = []
+      node = app.node { runlist << "node" }
+      app.enq(node)
+  
+      assert_equal [], runlist
+      assert_equal [[node, []]], app.queue.to_a
+      assert_equal App::State::READY, app.state
+  
+      app.run
+      assert_equal ["node"], runlist
+      assert_equal [], app.queue.to_a
+  
+      sleeper = app.node { sleep 1; runlist << "sleeper" }
+      app.enq(node)
+      app.enq(sleeper)
+      app.enq(node)
+  
+      runlist.clear
+      assert_equal [[node, []], [sleeper, []], [node, []]], app.queue.to_a
+  
+      a = Thread.new { app.run }
+      Thread.new do 
+        Thread.pass while runlist.empty?
+        app.stop
+        a.join
+      end.join
+    
+      assert_equal ["node", "sleeper"], runlist
+      assert_equal [[node, []]], app.queue.to_a
+    
+      app.run
+      assert_equal ["node", "sleeper", "node"], runlist
+      assert_equal [], app.queue.to_a
+
+      terminator = app.node do
+        sleep 1
+        app.check_terminate
+        runlist << "terminator"
+      end
+      app.enq(node)
+      app.enq(terminator)
+      app.enq(node)
+  
+      runlist.clear
+      assert_equal [[node, []], [terminator, []], [node, []]], app.queue.to_a
+  
+      a = Thread.new { app.run }
+      Thread.new do 
+        Thread.pass while runlist.empty?
+        app.terminate
+        a.join
+      end.join
+  
+      assert_equal ["node"], runlist
+      assert_equal [[terminator, []], [node, []]], app.queue.to_a
+  
+      app.run
+      assert_equal ["node", "terminator", "node"], runlist
+      assert_equal [], app.queue.to_a
+    end
+  end
+  
+  class OldAuditMiddleware
+    attr_reader :stack, :audit
+
+    def initialize(stack)
+      @stack = stack
+      @audit = []
+    end
+
+    def call(node, inputs=[])
+      audit << node
+      stack.call(node, inputs)
+    end
+  end
+  
+  def test_old_app_documentation
     app = Tap::App.new
     n = app.node {|*inputs| inputs }
     app.enq(n, 'a', 'b', 'c')
@@ -77,7 +206,7 @@ class AppTest < Test::Unit::TestCase
   
     ###
   
-    auditor = app.use AuditMiddleware
+    auditor = app.use OldAuditMiddleware
   
     app.enq(n0)
     app.enq(n2, "x")

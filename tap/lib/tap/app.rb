@@ -10,57 +10,66 @@ module Tap
   
   # App coordinates the setup and execution of workflows.
   #
-  # === Workflows
+  # == Workflows
   #
-  # Workflows are composed of nodes and joins such as instances of Tap::Task
-  # and Tap::Join.  The actual workflow exists between nodes; each node can
-  # specify a join to receive it's output and enque or execute other nodes.
-  # When a node does not have a join, apps allow the specification of a
-  # default join to, for instance, aggregate results.
+  # Workflows are composed of nodes and joins. Each node specifies zero or
+  # more joins to receive it's output while joins are used to enque or execute
+  # other nodes.  As an analogy, nodes can be thought of as command line
+  # executables, joins as redirection operators (ex pipe '|'), and app as a
+  # shell coordinating execution.
   #
-  # Any object satisfying the correct API[link:files/doc/API.html] can be used
-  # as a node or join.  Apps have helpers to make nodes out of blocks.
+  # Apps provide a dsl to build workflows out of blocks.  This dsl is often
+  # the quickest way to sketch out a bit of functionality.  For example:
+  #
+  #   # % cat [file] | sort
   #
   #   app = Tap::App.new
-  #   n = app.node {|*inputs| inputs }
-  #   app.enq(n, 'a', 'b', 'c')
-  #   app.enq(n, 1)
-  #   app.enq(n, 2)
-  #   app.enq(n, 3)
+  #   cat  = app.node {|file| File.read(file) }
+  #   sort = app.node {|str| str.split("\n").sort }
+  #   cat.on_complete {|res| app.enq(sort, res) }
   #
+  # At this point there is nothing to receive the sort output, so running this
+  # workflow will not produce any output.  Shells are setup to print dangling
+  # outputs to the terminal; similarly apps define default joins to handle the
+  # output of unjoined nodes.
+  #                       
   #   results = []
   #   app.on_complete {|result| results << result }
   #
+  #   File.open("example.txt", "w") do |io|
+  #     io.puts "a"
+  #     io.puts "c"
+  #     io.puts "b"
+  #   end
+  #
+  #   app.enq(cat, "example.txt")
   #   app.run
-  #   results                        # => [['a', 'b', 'c'], [1], [2], [3]]
+  #   results          # => [["a", "b", "c"]]
   #
-  # To construct a workflow, set joins for individual nodes.  Here is a simple
-  # sequence:
+  # The app could have been defined to print the results, but here everything
+  # is being kept in-code for illustration.  Note that objects are being
+  # passed between the nodes; the file contents (a string) are passed from cat
+  # to sort, then sort passes its result (an array) to the on_complete block.
   #
-  #   n0 = app.node { "a" }
-  #   n1 = app.node {|input| "#{input}.b" }
-  #   n2 = app.node {|input| "#{input}.c"}
+  # Multiple joins and arbitrarily complex joins may defined for a node.  Lets
+  # add another join to reverse-sort the output of cat:
   #
-  #   n0.on_complete {|result| app.execute(n1, result) }
-  #   n1.on_complete {|result| app.execute(n2, result) }
-  #   app.enq(n0)
+  #   rsort = app.node {|str| str.split("\n").sort.reverse }
+  #   cat.on_complete  {|res| app.enq(rsort, res) }
   #
   #   results.clear
+  #   app.enq(cat, "example.txt")
   #   app.run
-  #   results                        # => ["a.b.c"]
-  #
-  # Tasks have helpers to simplify the manual constructon of workflows, but
-  # even with these methods large workflows are cumbersome to build.  More
-  # typically, a Tap::Schema is used in such cases.
+  #   results          # => [["a", "b", "c"], ["c", "b", "a"]]
+  #                      
+  # Now the output of cat is directed at both sort and rsort, resulting in
+  # both a forward and reversed array.
   #
   # === Middleware
   #
-  # Apps allow middleware to wrap the execution of each node.  This can be
-  # particularly useful to track the progress of a workflow.  Middleware is
-  # initialized with the application stack and uses the call method to
-  # wrap the execution of the stack.
-  #
-  # Using middleware, an auditor looks like this:
+  # Apps allow middleware to wrap the execution of each node.  Middleware is
+  # useful to track the progress of a workflow. A simple auditor looks like
+  # this:
   #
   #   class AuditMiddleware
   #     attr_reader :stack, :audit
@@ -71,29 +80,112 @@ module Tap
   #     end
   #
   #     def call(node, inputs=[])
-  #       audit << node
+  #       audit << [node, inputs]
   #       stack.call(node, inputs)
   #     end
   #   end
   #
   #   auditor = app.use AuditMiddleware
   #
-  #   app.enq(n0)
-  #   app.enq(n2, "x")
-  #   app.enq(n1, "y")
-  #
-  #   results.clear
+  #   app.enq(cat, "example.txt")
   #   app.run
-  #   results                        # => ["a.b.c", "x.c", "y.b.c"]
+  #
   #   auditor.audit                  
   #   # => [
-  #   # n0, n1, n2, 
-  #   # n2,
-  #   # n1, n2
+  #   # [cat, ["example.txt"]],
+  #   # [sort, ["a\nc\nb\n"]],
+  #   # [rsort, ["a\nc\nb\n"]]
   #   # ]
-  # 
+  #                     
   # Middleware can be nested with multiple calls to use.
   #
+  # === Ready, Run, Stop, Terminate
+  #
+  # Apps have four states.  When ready, an app does not execute nodes.  New
+  # nodes push onto the queue and wait until an app is run.
+  #
+  #   runlist = []
+  #   node = app.node { runlist << "node" }
+  #   app.enq(node)
+  #
+  #   runlist          # => []
+  #   app.queue.to_a   # => [[node, []]]
+  #   app.state        # => App::State::READY
+  #
+  # Apps run by shifting (node, input) pairs off the queue.  An app will
+  # continue running until the queue is empty, which can be a while if joins
+  # actively push new nodes onto the queue.
+  #
+  #   app.run
+  #   runlist          # => ["node"]
+  #   app.queue.to_a   # => []
+  #
+  # Stopping an app prevents new nodes from being shifted off the queue; the
+  # currently executing node runs to completion and then the app stops.
+  #
+  #   sleeper = app.node { sleep 1; runlist << "sleeper" }
+  #   app.enq(node)
+  #   app.enq(sleeper)
+  #   app.enq(node)
+  #
+  #   runlist.clear
+  #   app.queue.to_a   # => [[node, []], [sleeper, []], [node, []]]
+  #
+  #   a = Thread.new { app.run }
+  #   Thread.new do 
+  #     Thread.pass while runlist.empty?
+  #     app.stop
+  #     a.join
+  #   end.join
+  #
+  #   runlist          # => ["node", "sleeper"]
+  #   app.queue.to_a   # => [[node, []]]
+  #
+  # The app can be re-started to complete a run.
+  #
+  #   app.run
+  #   runlist          # => ["node", "sleeper", "node"]
+  #   app.queue.to_a   # => []
+  #
+  # Termination is the same as stopping from the perspective of the app; the
+  # current node runs to completion and then the app stops.  The difference is
+  # from the perspective of the node; long-running nodes can set breakpoints
+  # to check for termination and, in that case, raise a TerminateError (see
+  # the check_terminate method).
+  #
+  # A TerminateError is treated as a normal exit; apps rescue them and
+  # re-queue the executing node.
+  #
+  #   terminator = app.node do
+  #     sleep 1
+  #     app.check_terminate
+  #     runlist << "terminator"
+  #   end
+  #   app.enq(node)
+  #   app.enq(terminator)
+  #   app.enq(node)
+  #
+  #   runlist.clear
+  #   app.queue.to_a   # => [[node, []], [terminator, []], [node, []]]
+  #
+  #   a = Thread.new { app.run }
+  #   Thread.new do 
+  #     Thread.pass while runlist.empty?
+  #     app.terminate
+  #     a.join
+  #   end.join
+  #
+  #   runlist          # => ["node"]
+  #   app.queue.to_a   # => [[terminator, []], [node, []]]
+  #
+  # As with stop, the app can be restarted to complete a run:
+  #
+  #   app.run
+  #   runlist          # => ["node", "terminator", "node"]
+  #   app.queue.to_a   # => []
+  #
+  # Nodes that never raise a TerminateError will run to completion even when
+  # an app is set to terminate.
   class App
     class << self
       # Sets the current app instance
