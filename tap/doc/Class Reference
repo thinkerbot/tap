@@ -3,6 +3,8 @@
 This is a ground-up overview of the main classes and modules used by Tap,
 specifically Tasks, Apps, and Envs.
 
+<em>Note this document is a bit old. The discussion is correct but needs to be updated, and expanded to include Joins, Middleware, and Signals.</em>
+
 == Tasks
 
 ==== Tap::App::Node
@@ -212,9 +214,7 @@ http://tap.rubyforge.org/images/App.png
 
 Instances of Tap::App coordinate the execution of nodes.
 
-Task initialization requires an App, which is by default Tap::App.instance.  
-Tasks use their app for logging, dependency-resolution, checks, and to enque 
-themselves.
+Task initialization requires an App, which is by default Tap::App.instance.
 
   results = []
   app = Tap::App.new {|result| results << result }

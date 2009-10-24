@@ -15,14 +15,14 @@ command line or via a join.
 
 The joins will be called when the node completes. If joins returns an empty
 array then the default application joins are called instead. If joins is not
-defined or returns nil then the default joins will not be called.
+defined or returns nil then no joins will be called.
 
 === {Join}[link:classes/Tap/Join.html]
 
   call(result)     # any return is allowed
 
-The call method receives the result of input nodes as they complete and is
-responsible for enquing or executing output nodes.
+The call method receives the result of input nodes as they complete. The
+result of call is not used; call must internally performing the join actions.
 
 === {Middleware}[link:classes/Tap/Middleware.html]
 
@@ -30,21 +30,25 @@ responsible for enquing or executing output nodes.
   call(node, inputs=[])          # any return is allowed
   stack()                        # returns the original stack
 
-The middleware API is essentially the same as for {Rack}[http://rack.rubyforge.org/].
+The middleware API is essentially the same as for
+{Rack}[http://rack.rubyforge.org/]. Nodes enter middleware during execution;
+the middleware is responsible for processing the node, or passing it into the
+stack using the same call API.
 
 == Application Interface
 
 In addition to the APIs for individual workflow objects, Tap defines an
-application API allowing objects to be created and modified by Tap::App
-instances from user interfaces such as the command line. The application API
-is distinct from the object APIs, although it is typical to implement the application API in on top of an object API.
+application API allowing objects to be created and modified from user
+interfaces such as the command line. The application API is distinct from the
+object APIs, although it is typical to implement the application API in on top
+of an object API.
 
 Tap::App::Api implements the application interface in a general way and is the
 baseclass for Tap::Task, Tap::Join, and Tap::Middleware. The basic idea behind
 the application interface is to allow instantiation of a class from an array
-(as from the command line) or a hash (as from HTTP request parameters), and
-then to allow the the instance to serialize back into a
-{JSON}[http://json.org/] hash. The hash is referred to as a specification.
+(as from the command line) or a hash (as from HTTP request parameters). The
+interface also allows instances to serialize as a {JSON}[http://json.org/]
+hash. The hash is referred to as a specification.
 
 This is a stub outlining the application interface:
 
@@ -67,12 +71,12 @@ This is a stub outlining the application interface:
     #
     #   obj.class.build(obj.to_spec)      # => returns an object like obj
     #
-    # Users can determine for themselves what constitutes likeness.
+    # Users can determine for themselves what constitutes 'likeness'.
     def to_spec
     end
     
-    # Takes no inputs and returns an nested array of workflow objects that
-    # are associated with self (ex input/output nodes for a join).  The
+    # Takes no inputs and returns a nested array of workflow objects 
+    # associated with self (ex input/output nodes for a join).  The
     # array should be structured like [refs, brefs], where refs are
     # references to objects that must be built BEFORE self and brefs are
     # back-references to objects that must be built AFTER self.
@@ -126,10 +130,10 @@ to do this easily via the +obj+ and +var+ methods:
     end
   end
 
-The associations array allow apps to order resources into the correct build
-order when using this strategy. In this case the reference must be built
-before the instance, and hence the associations array returns a reference
-(rather than a back-reference) to @object.
+The associations array allows apps to determine the correct build order for
+references. In the example the @object reference must be built before the
+Sample instance, hence the associations array returns a ref (rather than a
+bref) to @object.
 
 === Resource Identifiers
 
@@ -137,7 +141,7 @@ Tap discovers application resources using resource identifiers (ie constant
 attributes, see {Lazydoc}[http://tap.rubyforge.org/lazydoc]). Resources
 identified in this way can be automatically loaded by the Tap::Env, and as a
 result, specified directly from the command line. If no identifiers are
-specified for a resource, the user is responsible for manually loading the
+specified for a resource, the user is responsible for manually requiring the
 resource.
 
 As an example, this identifies the Sample constant as an 'example' resource.
@@ -178,3 +182,6 @@ specified. This is the most compact form for identifying a resource:
   # ::example summary
   class Sample
   end
+
+In this case no constant name is specified, so 'Sample' is inferred from
+'sample.rb'. Constant names are determined from the path using camelization.
