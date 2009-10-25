@@ -212,6 +212,7 @@ module Tap
       end
       
       jobs = {}
+      queue = app.queue
       deque = []
       results = specs.collect do |spec|
         type, var, sig, *args = spec
@@ -225,7 +226,7 @@ module Tap
           if auto_enque
             case type
             when :node
-              app.queue.concat([array])
+              queue.enq(obj, args)
               jobs[obj] = array
             when :join
               deque.concat(obj.outputs)
@@ -240,15 +241,23 @@ module Tap
         end
       end
       
-      if auto_enque
-        queue = app.queue.queue
+      # The queue API does not require a delete method, so picking out the
+      # deque jobs requires the whole queue be cleared, then re-enqued.
+      # Safety (and speed) is improved with synchronization.
+      queue.synchronize do
+        current = queue.clear
+        
         deque.uniq.each do |obj|
-          obj, args = queue.delete(jobs[obj])
+          obj, args = current.delete(jobs[obj])
           unless args.empty?
             warn "ignoring args: #{args.inspect}"
           end
         end
-      end
+        
+        current.each do |array|
+          queue.enq(*array)
+        end
+      end if auto_enque
       
       specs.clear
       results

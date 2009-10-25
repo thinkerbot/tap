@@ -2,6 +2,8 @@ require 'tap/env/minimap'
 
 module Tap
   class Env
+    
+    # Manifests provide concise access to resources within a nested Env.
     class Manifest
       class << self
         
@@ -81,8 +83,8 @@ module Tap
       # be specified by using a compound key like 'env_key:key'.
       #
       # If a block is provided, each matching entry is yielded until the
-      # block returns true.  Set env_also to true to return the env where
-      # the entry was found in an array like [env, entry].
+      # block returns true.  Set env_also to true to return an array like
+      # [env, entry], where env is the env where the entry was found.
       #
       # Returns nil if no matching entry is found.  
       def seek(key, env_also=false)

@@ -241,7 +241,7 @@ class AppTest < Test::Unit::TestCase
     app = App.new
 
     assert_equal(App::Queue, app.queue.class)
-    assert app.queue.empty?
+    assert_equal 0, app.queue.size
     assert_equal(App::Stack, app.stack.class)
     assert_equal [], app.joins
     assert_equal({}, app.cache)
@@ -342,7 +342,7 @@ class AppTest < Test::Unit::TestCase
   
   def test_enq
     t = intern {}
-    assert app.queue.empty?
+    assert_equal 0, app.queue.size
     app.enq(t)
     assert_equal [[t, []]], app.queue.to_a
   end
@@ -357,7 +357,7 @@ class AppTest < Test::Unit::TestCase
   #
   
   def test_bq
-    assert app.queue.empty?
+    assert_equal 0, app.queue.size
     t = app.bq(1,2,3) {|*args| args}
     t1 = app.bq { "result" }
     
