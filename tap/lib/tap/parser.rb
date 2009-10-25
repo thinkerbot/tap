@@ -241,7 +241,7 @@ module Tap
         end
       end
       
-      # The queue API does not require a delete method, so picking out the
+      # The queue API does not provide a delete method, so picking out the
       # deque jobs requires the whole queue be cleared, then re-enqued.
       # Safety (and speed) is improved with synchronization.
       queue.synchronize do
