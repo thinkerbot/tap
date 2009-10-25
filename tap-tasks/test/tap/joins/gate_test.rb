@@ -1,6 +1,6 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/joins/gate'
-require 'tap/app/tracer'
+require 'tap/middlewares/tracer'
 
 class GateDocumentationTest < Test::Unit::TestCase 
   acts_as_shell_test(SH_TEST_OPTIONS)
@@ -46,7 +46,7 @@ class GateTest < Test::Unit::TestCase
   
   def setup
     @app = Tap::App.new
-    tracer = app.use(Tap::App::Tracer)
+    tracer = app.use(Tap::Middlewares::Tracer)
     
     @results = tracer.results
     @runlist = tracer.runlist

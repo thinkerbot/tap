@@ -1,6 +1,8 @@
+require 'tap/middleware'
+
 module Tap
-  class App
-    class Tracer # :nodoc:
+  module Middlewares
+    class Tracer < Middleware
       attr_reader :stack
       attr_reader :results
       attr_reader :runlist
