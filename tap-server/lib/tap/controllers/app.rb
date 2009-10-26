@@ -14,7 +14,7 @@ module Tap
   
       # GET /projects/*args
       def show(var, sig=nil)
-        obj = app.obj(var)
+        obj = app.get(var)
         obj = obj.signal(sig) if sig
         
         module_render 'index.erb', obj, :locals => {:var => var, :sig => sig}, :layout => true
@@ -26,7 +26,7 @@ module Tap
         args = params['args'] || params
         sig ||= args.empty? ? nil : 'build'
         
-        signal = app.obj(var).signal(sig)
+        signal = app.get(var).signal(sig)
         
         # The app is likely running on a separate thread so immediately calling
         # the signal (the default) is not thread-safe.  Alternate modes are

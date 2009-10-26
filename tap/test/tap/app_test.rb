@@ -54,6 +54,41 @@ class AppTest < Test::Unit::TestCase
     end
   end
   
+  class Resource
+    class << self
+      def parse!(argv=ARGV, app=Tap::App.instance)
+        build({'argv' => argv}, app)
+      end
+
+      def build(spec={}, app=Tap::App.instance)
+        new(spec['argv'], app)
+      end
+    end
+
+    attr_reader :argv, :app
+    def initialize(argv, app)
+      @argv = argv
+      @app = app
+    end
+
+    def associations
+      nil
+    end
+
+    def to_spec
+      {'argv' => @argv}
+    end
+  end
+  
+  class Resource
+    include Tap::Signals
+    signal :length
+
+    def length(extra=0)
+      @argv.length + extra
+    end
+  end
+  
   def test_app_documentation
     # implement a command line workflow in ruby
     # % cat [file] | sort
@@ -160,6 +195,61 @@ class AppTest < Test::Unit::TestCase
       assert_equal ["node", "terminator", "node"], runlist
       assert_equal [], app.queue.to_a
     end
+    
+    app = App.new
+    app.set('a', :A)
+    assert_equal :A, app.get('a')
+    assert_equal({'a' => :A}, app.objects)
+  
+    a = Resource.parse!([1, 2, 3], app)
+    assert_equal [1, 2, 3], a.argv
+  
+    b = Resource.build(a.to_spec, app)
+    assert_equal [1, 2, 3], b.argv
+  
+    app.build('var' => 'a', 'class' => 'AppTest::Resource', 'spec' => [1, 2, 3])
+    a = app.get('a')
+    assert_equal Resource, a.class
+    assert_equal [1, 2, 3], a.argv
+  
+    app.build('var' => 'b', 'class' => 'AppTest::Resource', 'spec' => {'argv' => [4, 5, 6]})
+    app.build('var' => 'c', 'class' => 'AppTest::Resource', 'argv' => [7, 8, 9])
+    
+    expected = [
+    {'var' => 'a', 'class' => 'AppTest::Resource', 'argv' => [1, 2, 3]},
+    {'var' => 'b', 'class' => 'AppTest::Resource', 'argv' => [4, 5, 6]},
+    {'var' => 'c', 'class' => 'AppTest::Resource', 'argv' => [7, 8, 9]}
+    ]
+    assert_equal expected, app.to_schema
+    
+    ###
+  
+    app = App.new
+    app.call(
+      'obj' => '', 
+      'sig' => 'build', 
+      'args' => {
+        'var' => 'a',
+        'class' => 'AppTest::Resource',
+        'spec' => {'argv' => [1, 2, 3]}
+       }
+    )
+    a = app.get('a')
+    assert_equal Resource, a.class
+    assert_equal [1, 2, 3], a.argv
+  
+    app.call('var' => 'b', 'class' => 'AppTest::Resource', 'argv' => [4, 5])
+    b = app.get('b')
+    assert_equal Resource, b.class
+    assert_equal [4, 5], b.argv
+  
+    assert_equal 3, a.length
+    assert_equal 2, b.length
+    assert_equal 3, b.length(1)
+  
+    assert_equal 3, app.call('obj' => 'a', 'sig' => 'length', 'args' => [])
+    assert_equal 2, app.call('obj' => 'b', 'sig' => 'length', 'args' => [])
+    assert_equal 3, app.call('obj' => 'b', 'sig' => 'length', 'args' => [1])
   end
   
   class OldAuditMiddleware
@@ -244,7 +334,7 @@ class AppTest < Test::Unit::TestCase
     assert_equal 0, app.queue.size
     assert_equal(App::Stack, app.stack.class)
     assert_equal [], app.joins
-    assert_equal({}, app.cache)
+    assert_equal({}, app.objects)
     assert_equal App::State::READY, app.state
     assert_equal nil, app.env
   end
@@ -395,20 +485,20 @@ class AppTest < Test::Unit::TestCase
   # set test
   #
   
-  def test_set_sets_obj_into_cache_by_var
-    assert app.cache.empty?
+  def test_set_sets_obj_into_objects_by_var
+    assert app.objects.empty?
     
     obj = Object.new
     app.set('var', obj)
-    assert_equal obj, app.cache['var']
+    assert_equal obj, app.objects['var']
   end
   
   def test_set_converts_var_to_string
-    assert app.cache.empty?
+    assert app.objects.empty?
     
     obj = Object.new
     app.set(:var, obj)
-    assert_equal obj, app.cache['var']
+    assert_equal obj, app.objects['var']
   end
   
   def test_set_returns_obj
@@ -417,53 +507,53 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_set_does_not_set_obj_if_var_is_empty
-    assert app.cache.empty?
+    assert app.objects.empty?
     app.set('', Object.new)
     app.set(nil, Object.new)
-    assert app.cache.empty?
+    assert app.objects.empty?
   end
   
   #
-  # obj test
+  # get test
   #
   
-  def test_obj_returns_object_in_cache_keyed_by_var
+  def test_get_returns_object_in_objects_keyed_by_var
     obj = Object.new
-    app.cache['var'] = obj 
-    assert_equal obj, app.obj('var')
+    app.objects['var'] = obj 
+    assert_equal obj, app.get('var')
   end
   
-  def test_obj_converts_var_to_string
+  def test_get_converts_var_to_string
     obj = Object.new
-    app.cache['var'] = obj
-    assert_equal obj, app.obj(:var)
+    app.objects['var'] = obj
+    assert_equal obj, app.get(:var)
   end
   
-  def test_obj_returns_self_for_empty_var
-    assert app.cache.empty?
-    assert_equal app, app.obj('')
-    assert_equal app, app.obj(nil)
+  def test_get_returns_self_for_empty_var
+    assert app.objects.empty?
+    assert_equal app, app.get('')
+    assert_equal app, app.get(nil)
   end
   
   #
   # var test
   #
   
-  def test_var_returns_key_for_obj_in_cache
+  def test_var_returns_key_for_obj_in_objects
     obj = Object.new
-    app.cache['var'] = obj
+    app.objects['var'] = obj
     assert_equal 'var', app.var(obj)
   end
   
   def test_var_auto_assigns_a_variable_when_specified
-    assert app.cache.empty?
+    assert app.objects.empty?
     
     obj = Object.new
     assert_equal nil, app.var(obj)
     
     var = app.var(obj, true)
     assert !var.nil?
-    assert_equal obj, app.cache[var]
+    assert_equal obj, app.objects[var]
   end
   
   #
@@ -489,16 +579,16 @@ class AppTest < Test::Unit::TestCase
     assert_equal "unresolvable constant: \"klass\"", err.message
   end
   
-  def test_build_builds_class_using_args_if_specified
+  def test_build_builds_class_using_spec_if_specified
     app.env = {'klass' => BuildClass}
     
     obj, args = app.build(
       'class' => 'klass',
-      'args' => {'config' => {'key' => 'alt'}})
+      'spec' => {'config' => {'key' => 'alt'}})
     assert_equal 'alt', obj.key
   end
   
-  def test_build_uses_spec_as_args_if_args_is_not_specified
+  def test_build_uses_spec_as_spec_if_spec_is_not_specified
     app.env = {'klass' => BuildClass}
     
     obj, args = app.build(
@@ -507,12 +597,12 @@ class AppTest < Test::Unit::TestCase
     assert_equal 'alt', obj.key
   end
   
-  def test_build_parses_non_hash_args
+  def test_build_parses_non_hash_spec
     app.env = {'klass' => BuildClass}
     
     obj, args = app.build(
       'class' => 'klass',
-      'args' => "--key alt")
+      'spec' => "--key alt")
     assert_equal 'alt', obj.key
   end
   
@@ -521,18 +611,18 @@ class AppTest < Test::Unit::TestCase
     
     obj, args = app.build(
       'class' => 'klass',
-      'args' => "a --key alt b c")
+      'spec' => "a --key alt b c")
     assert_equal ["a", "b", "c"], args
   end
   
-  def test_build_stores_obj_by_set_if_specified
+  def test_build_stores_obj_by_var_if_specified
     app.env = {'klass' => BuildClass}
     
     obj, args = app.build('class' => 'klass')
-    assert_equal({}, app.cache)
+    assert_equal({}, app.objects)
     
-    obj, args = app.build('set' => 'variable', 'class' => 'klass')
-    assert_equal({'variable' => obj}, app.cache)
+    obj, args = app.build('var' => 'variable', 'class' => 'klass')
+    assert_equal({'variable' => obj}, app.objects)
   end
 
   #

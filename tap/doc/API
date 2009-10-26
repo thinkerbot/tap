@@ -113,7 +113,7 @@ to do this easily via the +obj+ and +var+ methods:
   class Sample
     class << self
       def build(spec={}, app=Tap::App.instance)
-        object = app.obj(spec['key'])    # lookup an object from the spec
+        object = app.get(spec['key'])    # lookup an object from the spec
         new(object)
       end
     end

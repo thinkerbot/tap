@@ -218,9 +218,9 @@ module Tap
         type, var, sig, *args = spec
         
         if type == :signal
-          app.call('var' => var, 'sig' => sig, 'args' => args)
+          app.call('obj' => var, 'sig' => sig, 'args' => args)
         else
-          array = app.build('set' => var, 'class' => sig, 'args' => args)
+          array = app.build('var' => var, 'class' => sig, 'spec' => args)
           obj, args = array
           
           if auto_enque

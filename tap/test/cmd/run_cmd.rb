@@ -198,8 +198,8 @@ goodnight moon
   end
   
   SAMPLE_SCHEMA = [
-    {'set' => '0', 'class' => 'tap:load', "config"=>{"use_close"=>false, "file"=>false}},
-    {'set' => '1', 'class' => 'tap:dump', "config"=>{"overwrite"=>false}},
+    {'var' => '0', 'class' => 'tap:load', "config"=>{"use_close"=>false, "file"=>false}},
+    {'var' => '1', 'class' => 'tap:dump', "config"=>{"overwrite"=>false}},
     {'class' => 'tap:join', 'inputs' => ['0'], 'outputs' => ['1'], "config"=>{"splat"=>false, "enq"=>false, "iterate"=>false}},
     {'sig' => 'enque', 'args' => ['0', 'goodnight moon']}
   ]

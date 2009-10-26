@@ -47,11 +47,11 @@ module Tap
       
       def build(spec={}, app=Tap::App.instance)
         inputs = resolve(spec['inputs']) do |var|
-          app.obj(var) or raise "missing join input: #{var}"
+          app.get(var) or raise "missing join input: #{var}"
         end
         
         outputs = resolve(spec['outputs']) do |var|
-          app.obj(var) or raise "missing join output: #{var}"
+          app.get(var) or raise "missing join output: #{var}"
         end
         
         new(spec['config'] || {}, app).join(inputs, outputs)
@@ -115,11 +115,11 @@ module Tap
       app = sig.obj.app
       
       inputs = resolve(inputs) do |var|
-        app.obj(var) or raise "missing join input: #{var}"
+        app.get(var) or raise "missing join input: #{var}"
       end
       
       outputs = resolve(outputs) do |var|
-        app.obj(var) or raise "missing join output: #{var}"
+        app.get(var) or raise "missing join output: #{var}"
       end
       
       [inputs, outputs]

@@ -32,7 +32,7 @@ module Tap
   # workflow will not produce any output.  Shells are setup to print dangling
   # outputs to the terminal; similarly apps define default joins to handle the
   # output of unjoined nodes.
-  #                       
+  #                            
   #   results = []
   #   app.on_complete {|result| results << result }
   #
@@ -61,7 +61,7 @@ module Tap
   #   app.enq(cat, "example.txt")
   #   app.run
   #   results          # => [["a", "b", "c"], ["c", "b", "a"]]
-  #                      
+  #                           
   # Now the output of cat is directed at both sort and rsort, resulting in
   # both a forward and reversed array.
   #
@@ -96,7 +96,7 @@ module Tap
   #   # [sort, ["a\nc\nb\n"]],
   #   # [rsort, ["a\nc\nb\n"]]
   #   # ]
-  #                     
+  #                          
   # Middleware can be nested with multiple calls to use.
   #
   # === Ready, Run, Stop, Terminate
@@ -186,6 +186,172 @@ module Tap
   #
   # Nodes that never raise a TerminateError will run to completion even when
   # an app is set to terminate.
+  #
+  # === Application Objects
+  #
+  # Apps can build and store objects that need to be persisted for one reason
+  # or another.  Application objects allow workflows to be built incrementally
+  # from a schema and, once built, to be serialized back into a schema.
+  #
+  # Use the set and get methods to manually store and retreive application
+  # objects:
+  #
+  #   app = App.new
+  #   app.set('a', :A)
+  #   app.get('a')       # => :A
+  #   app.objects        # => {'a' => :A}
+  #
+  # The build method constructs and stores objects that implement the
+  # application interface (see the API[link:files/doc/API.html] document). As
+  # a minimal example, consider this class:
+  #
+  #   class Resource
+  #     class << self
+  #       def parse!(argv=ARGV, app=Tap::App.instance)
+  #         build({'argv' => argv}, app)
+  #       end
+  #
+  #       def build(spec={}, app=Tap::App.instance)
+  #         new(spec['argv'], app)
+  #       end
+  #     end
+  #
+  #     attr_reader :argv, :app
+  #     def initialize(argv, app)
+  #       @argv = argv
+  #       @app = app
+  #     end
+  #
+  #     def associations
+  #       nil
+  #     end
+  #
+  #     def to_spec
+  #       {'argv' => @argv}
+  #     end
+  #   end
+  #
+  # Resource instances can be built from an array or a hash using the Resource
+  # parse! and build methods, respectively.  Individual resources can be
+  # serialized to a specification hash and rebuilt.
+  #
+  #   a = Resource.parse!([1, 2, 3], app)
+  #   a.argv           # => [1, 2, 3]
+  #
+  #   b = Resource.build(a.to_spec, app)
+  #   b.argv           # => [1, 2, 3]
+  #
+  # At the application level, these qualities allow resources to be built and
+  # serialized through the build and to_schema methods.  Build takes a hash
+  # defining these fields:
+  #
+  #   var     # a variable to identify the object
+  #   class   # the class name or identifier, as a string
+  #   spec    # the parse! array or the build hash
+  #
+  # Building a resource looks like this:
+  #
+  #   app.build('var' => 'a', 'class' => 'Resource', 'spec' => [1, 2, 3])
+  #   a = app.get('a')
+  #   a.class               # => Resource
+  #   a.argv                # => [1, 2, 3]
+  #
+  # Note that when spec is a hash and does not require any of the same keys,
+  # it can be merged with the build hash.  These both build a resource:
+  #
+  #   app.build('var' => 'b', 'class' => 'Resource', 'spec' => {'argv' => [4, 5, 6]})
+  #   app.build('var' => 'c', 'class' => 'Resource', 'argv' => [7, 8, 9])
+  #
+  # Serializing the application objects looks like this:
+  #
+  #   app.to_schema
+  #   # => [
+  #   # {'var' => 'a', 'class' => 'Resource', 'argv' => [1, 2, 3]},
+  #   # {'var' => 'b', 'class' => 'Resource', 'argv' => [4, 5, 6]},
+  #   # {'var' => 'c', 'class' => 'Resource', 'argv' => [7, 8, 9]}
+  #   # ]
+  #
+  # Schema are arrays of build hashes; rebuilding each hash in order will
+  # regenerate the objects, and hence the workflow described by the objects.
+  # Although it is not apparent in this example, objects will be correctly
+  # ordered in the schema to ensure they can be rebuilt (again, see the
+  # API[link:files/doc/API.html] for more details).
+  #          
+  # === Signals
+  #
+  # Apps use signals to create and control application objects from a user
+  # interface. Signals are designed to map easily to the command line, urls,
+  # and to serialization formats like YAML/JSON, while remaining concise in
+  # code.
+  #
+  # Signals are hashes that define these fields:
+  #
+  #   obj      # a variable identifying an application object
+  #   sig      # the signal name
+  #   args     # arguments to the signal
+  #
+  # The call method receives signals and essentially does the following:
+  #
+  #   obj = app.get(var)           # lookup an application object by var
+  #   signal = obj.signal(sig)     # lookup a signal by sig
+  #   signal.call(args)            # call the signal with args
+  #
+  # The app itself can be signaled by using an empty string as var. As a
+  # result, signals can be used to build objects:
+  #
+  #   app = App.new
+  #   app.call(
+  #     'obj' => '', 
+  #     'sig' => 'build', 
+  #     'args' => {
+  #       'var' => 'a',
+  #       'class' => 'Resource',
+  #       'spec' => {'argv' => [1, 2, 3]}
+  #     }
+  #   )
+  #   a = app.get('a')
+  #   a.class                    # => Resource
+  #   a.argv                     # => [1, 2, 3]
+  #
+  # Note that vars are converted to strings during object lookup, and for
+  # apps, the default signal is 'build'.  As with build, the args hash can be
+  # merged into the signal hash (if there are no conflicting keys), so that
+  # many resources can be built with very compact signal hashes:
+  #
+  #   app.call('var' => 'b', 'class' => 'Resource', 'argv' => [4, 5])
+  #   b = app.get('b')
+  #   b.class                    # => Resource
+  #   b.argv                     # => [4, 5]
+  #
+  # This is ONLY possible for resources whose specs do not use any of the six
+  # signal or build keys (obj, sig, args, var, class, spec).
+  #
+  # The Tap::Signals module provides a dsl for exposing methods as signals. In
+  # the simplest case you simply declare the signal; the signal args will be
+  # splat-ed down as the method inputs.
+  #
+  #   class Resource
+  #     include Tap::Signals
+  #     signal :length
+  #
+  #     def length(extra=0)
+  #       @argv.length + extra
+  #     end
+  #   end
+  #
+  #   a.length                 # => 3
+  #   b.length                 # => 2
+  #   b.length(1)              # => 3
+  #
+  #   app.call('obj' => 'a', 'sig' => 'length', 'args' => [])   # => 3
+  #   app.call('obj' => 'b', 'sig' => 'length', 'args' => [])   # => 2
+  #   app.call('obj' => 'b', 'sig' => 'length', 'args' => [1])  # => 3
+  #
+  # Signals are obviously a roundabout way of executing methods and should
+  # typically not be used in code.  However, signals provide a good way of
+  # exposing an API to end-users.  Call is the primary method through which
+  # user interfaces communicate with apps and application objects.
+  #
   class App
     class << self
       # Sets the current app instance
@@ -228,7 +394,7 @@ module Tap
     attr_reader :queue
     
     # A cache of application objects
-    attr_reader :cache
+    attr_reader :objects
     
     # The application logger
     attr_accessor :logger
@@ -250,12 +416,12 @@ module Tap
     
     signal :enque
     signal_hash :build, 
-      :signature => ['set', 'class'], 
-      :remainder => 'args'
+      :signature => ['var', 'class'], 
+      :remainder => 'spec'
     signal_hash :use, 
       :method_name => :build, 
       :signature => ['class'], 
-      :remainder => 'args'
+      :remainder => 'spec'
       
     signal :run                     # run the app
     signal :stop                    # stop the app
@@ -275,7 +441,7 @@ module Tap
       @state = State::READY
       @stack = options[:stack] || Stack.new(self)
       @queue = options[:queue] || Queue.new
-      @cache = options[:cache] || {}
+      @objects = options[:objects] || {}
       @logger = options[:logger] || DEFAULT_LOGGER
       @joins = []
       on_complete(&block)
@@ -355,32 +521,32 @@ module Tap
     def set(var, obj)
       var = var.to_s
       var = '' if var == 'app'
-      cache[var] = obj unless var.empty?
+      objects[var] = obj unless var.empty?
       obj
     end
     
     # Returns the object set to var, or self for empty var.  Non-string
     # variables are converted to strings.
-    def obj(var)
+    def get(var)
       var = var.to_s
       var = '' if var == 'app'
-      var.empty? ? self : cache[var]
+      var.empty? ? self : objects[var]
     end
     
     # Returns the variable for the object.  If the object is not assigned to a
     # variable and auto_assign is true, then the object is set to an unused
     # variable and the new variable is returned.
     def var(obj, auto_assign=false)
-      cache.each_pair do |var, object|
+      objects.each_pair do |var, object|
         return var if obj == object
       end
       return nil unless auto_assign
       
-      index = cache.length
+      index = objects.length
       loop do 
         var = index.to_s
         
-        if cache.has_key?(var)
+        if objects.has_key?(var)
           index += 1
         else
           set(var, obj)
@@ -397,31 +563,31 @@ module Tap
         var, sig = args.shift.to_s.split("/")
         
         spec = {
-          'var' => var,
+          'obj' => var,
           'sig' => sig,
           'args' => args
         }
       end
       
-      var = spec['var']
+      obj = spec['obj']
       sig = spec['sig']
       args = spec['args'] || spec
       
-      sig ||= (var.nil? && !args.empty? ? 'build' : nil)
+      sig ||= (obj.nil? && !args.empty? ? 'build' : nil)
       
-      object = obj(var)
+      object = get(obj)
       if object.respond_to?(:signal)
         object.signal(sig).call(args)
       else
-        hint = signal?(var) ? " (did you mean '--//#{var}'?)" : nil
-        raise "unknown object: #{var}#{hint}"
+        hint = signal?(obj) ? " (did you mean '--//#{obj}'?)" : nil
+        raise "unknown object: #{obj}#{hint}"
       end
     end
     
     def build(spec)
-      var = spec['set']
-      args = spec['args'] || spec
+      var = spec['var']
       klass = spec['class'].to_s.strip
+      args = spec['spec'] || spec
       
       # these checks exist because the server interface 
       # isn't smart enough to do them yet
@@ -439,7 +605,7 @@ module Tap
     end
     
     def enque(var, *args)
-      node = obj(var)
+      node = get(var)
       queue.enq(node, args)
       node
     end
@@ -459,7 +625,7 @@ module Tap
       middleware
     end
     
-    # Clears the cache, the queue, and resets the stack so that no middleware
+    # Clears objects, the queue, and resets the stack so that no middleware
     # is used.  Reset raises an error unless state == State::READY.
     def reset
       synchronize do
@@ -468,7 +634,7 @@ module Tap
         end
         
         @stack = Stack.new(self)
-        cache.clear
+        objects.clear
         queue.clear
       end
     end
@@ -631,7 +797,7 @@ module Tap
     end
     
     def to_schema
-      objects = cache.values
+      objects = self.objects.keys.sort.collect {|key| self.objects[key] }
       
       signals = queue.to_a.collect do |(node, args)|
         objects << node
@@ -654,7 +820,7 @@ module Tap
     
     private
     
-    BUILD_KEYS = %w{set type class spec}
+    BUILD_KEYS = %w{set class spec}
     
     # Traces each object backwards and forwards for node, joins, etc. and
     # adds each to specs as needed.  The trace determines and returns the
@@ -680,9 +846,14 @@ module Tap
         return order
       end
       
+      unless obj.respond_to?(:to_spec) && obj.respond_to?(:associations)
+        warn "cannot serialize: #{obj} (does not satisfy API)"
+        return order
+      end
+      
       spec = {}
       if var = self.var(obj)
-        spec['set'] = var
+        spec['var'] = var
       end
       
       klass = obj.class
