@@ -113,7 +113,8 @@ class AppTest < Test::Unit::TestCase
   
     rsort = app.node {|str| str.split("\n").sort.reverse }
     cat.on_complete  {|res| app.enq(rsort, res) }
-  
+    assert_equal 2, cat.joins.length
+    
     results.clear
     app.enq(cat, example)
     app.run

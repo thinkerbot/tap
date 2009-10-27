@@ -29,10 +29,10 @@ module Tap
   #   cat.on_complete {|res| app.enq(sort, res) }
   #
   # At this point there is nothing to receive the sort output, so running this
-  # workflow will not produce any output.  Shells are setup to print dangling
-  # outputs to the terminal; similarly apps define default joins to handle the
-  # output of unjoined nodes.
-  #                            
+  # workflow will not produce any output.  Whereas shells are setup to print
+  # dangling outputs to the terminal, apps may define default joins to handle
+  # the output of unjoined nodes.
+  #         
   #   results = []
   #   app.on_complete {|result| results << result }
   #
@@ -46,30 +46,32 @@ module Tap
   #   app.run
   #   results          # => [["a", "b", "c"]]
   #
-  # The app could have been defined to print the results, but here everything
-  # is being kept in-code for illustration.  Note that objects are being
-  # passed between the nodes; the file contents (a string) are passed from cat
-  # to sort, then sort passes its result (an array) to the on_complete block.
+  # Instead of printing the results this example aggregates the results into
+  # an array.  Note that objects are being passed between the nodes; the file
+  # contents (a string) are passed from cat to sort, then sort passes its
+  # result (an array) to the on_complete block.  Unlike the command line,
+  # objects do not need to be serialized and deserialized to a stream.
   #
-  # Multiple joins and arbitrarily complex joins may defined for a node.  Lets
-  # add another join to reverse-sort the output of cat:
+  # Moreover, multiple joins and arbitrarily complex joins may defined for a
+  # node.  Lets add another join to reverse-sort the output of cat:
   #
   #   rsort = app.node {|str| str.split("\n").sort.reverse }
   #   cat.on_complete  {|res| app.enq(rsort, res) }
+  #   cat.joins.length # => 2
   #
   #   results.clear
   #   app.enq(cat, "example.txt")
   #   app.run
   #   results          # => [["a", "b", "c"], ["c", "b", "a"]]
-  #                           
+  #                                           
   # Now the output of cat is directed at both sort and rsort, resulting in
   # both a forward and reversed array.
   #
   # === Middleware
   #
   # Apps allow middleware to wrap the execution of each node.  Middleware is
-  # useful to track the progress of a workflow. A simple auditor looks like
-  # this:
+  # useful to track the progress of a workflow, and may be used to pre- and
+  # post-process objects passed among nodes. A simple auditor looks like this:
   #
   #   class AuditMiddleware
   #     attr_reader :stack, :audit
@@ -96,9 +98,9 @@ module Tap
   #   # [sort, ["a\nc\nb\n"]],
   #   # [rsort, ["a\nc\nb\n"]]
   #   # ]
-  #                          
+  #                                       
   # Middleware can be nested with multiple calls to use.
-  #
+  #          
   # === Ready, Run, Stop, Terminate
   #
   # Apps have four states.  When ready, an app does not execute nodes.  New
@@ -112,9 +114,9 @@ module Tap
   #   app.queue.to_a   # => [[node, []]]
   #   app.state        # => App::State::READY
   #
-  # Apps run by shifting (node, input) pairs off the queue.  An app will
-  # continue running until the queue is empty, which can be a while if joins
-  # actively push new nodes onto the queue.
+  # Apps run by shifting jobs ([node, input] pairs) off the queue.  An app
+  # will continue running until the queue is empty, which can be a while if
+  # joins actively push new nodes onto the queue.
   #
   #   app.run
   #   runlist          # => ["node"]
@@ -141,7 +143,7 @@ module Tap
   #   runlist          # => ["node", "sleeper"]
   #   app.queue.to_a   # => [[node, []]]
   #
-  # The app can be re-started to complete a run.
+  # The app can be re-started to complete the run.
   #
   #   app.run
   #   runlist          # => ["node", "sleeper", "node"]
@@ -150,8 +152,8 @@ module Tap
   # Termination is the same as stopping from the perspective of the app; the
   # current node runs to completion and then the app stops.  The difference is
   # from the perspective of the node; long-running nodes can set breakpoints
-  # to check for termination and, in that case, raise a TerminateError (see
-  # the check_terminate method).
+  # to check for termination and, in that case, raise a TerminateError.
+  # Normally nodes do this by calling the check_terminate method.
   #
   # A TerminateError is treated as a normal exit; apps rescue them and
   # re-queue the executing node.
@@ -189,8 +191,8 @@ module Tap
   #
   # === Application Objects
   #
-  # Apps can build and store objects that need to be persisted for one reason
-  # or another.  Application objects allow workflows to be built incrementally
+  # Apps can build and store objects that need persistence for one reason or
+  # another.  Application objects allow workflows to be built incrementally
   # from a schema and, once built, to be serialized back into a schema.
   #
   # Use the set and get methods to manually store and retreive application
@@ -232,8 +234,9 @@ module Tap
   #   end
   #
   # Resource instances can be built from an array or a hash using the Resource
-  # parse! and build methods, respectively.  Individual resources can be
-  # serialized to a specification hash and rebuilt.
+  # parse! and build methods, respectively.  The associations and to_spec
+  # methods make it so that individual resources can be serialized to a
+  # specification hash and rebuilt.
   #
   #   a = Resource.parse!([1, 2, 3], app)
   #   a.argv           # => [1, 2, 3]
@@ -256,7 +259,7 @@ module Tap
   #   a.class               # => Resource
   #   a.argv                # => [1, 2, 3]
   #
-  # Note that when spec is a hash and does not require any of the same keys,
+  # Note that when spec is a hash, and does not require any of the same keys,
   # it can be merged with the build hash.  These both build a resource:
   #
   #   app.build('var' => 'b', 'class' => 'Resource', 'spec' => {'argv' => [4, 5, 6]})
@@ -271,12 +274,12 @@ module Tap
   #   # {'var' => 'c', 'class' => 'Resource', 'argv' => [7, 8, 9]}
   #   # ]
   #
-  # Schema are arrays of build hashes; rebuilding each hash in order will
+  # Schema are arrays of build hashes; rebuilding each in order will
   # regenerate the objects, and hence the workflow described by the objects.
   # Although it is not apparent in this example, objects will be correctly
-  # ordered in the schema to ensure they can be rebuilt (again, see the
+  # ordered in the schema to ensure they can be rebuilt (see the
   # API[link:files/doc/API.html] for more details).
-  #          
+  #                      
   # === Signals
   #
   # Apps use signals to create and control application objects from a user
@@ -313,10 +316,11 @@ module Tap
   #   a.class                    # => Resource
   #   a.argv                     # => [1, 2, 3]
   #
-  # Note that vars are converted to strings during object lookup, and for
-  # apps, the default signal is 'build'.  As with build, the args hash can be
-  # merged into the signal hash (if there are no conflicting keys), so that
-  # many resources can be built with very compact signal hashes:
+  # Note that vars are converted to strings during object lookup and, for
+  # apps, the default signal is 'build'.  Furthermore the args hash can be
+  # merged into the signal hash (if there are no conflicting keys) in the same
+  # way a spec can be merged into a build hash.  As a result many resources
+  # can be built with very compact signal hashes:
   #
   #   app.call('var' => 'b', 'class' => 'Resource', 'argv' => [4, 5])
   #   b = app.get('b')
@@ -347,10 +351,10 @@ module Tap
   #   app.call('obj' => 'b', 'sig' => 'length', 'args' => [])   # => 2
   #   app.call('obj' => 'b', 'sig' => 'length', 'args' => [1])  # => 3
   #
-  # Signals are obviously a roundabout way of executing methods and should
-  # typically not be used in code.  However, signals provide a good way of
-  # exposing an API to end-users.  Call is the primary method through which
-  # user interfaces communicate with apps and application objects.
+  # Signals are a roundabout way of executing methods and should typically not
+  # be used in code.  However, signals provide a good way of exposing an API
+  # to end-users.  call is the primary method through which user interfaces
+  # communicate with apps and application objects.
   #
   class App
     class << self
