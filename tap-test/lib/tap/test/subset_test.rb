@@ -173,7 +173,7 @@ module Tap
       #
       def subset_test(type, skip=type[0..0].downcase)
         type = type.upcase
-        if run_subset?(type) || ENV[type]
+        if run_subset?(type) || ENV["#{type}_TEST"]
           if match_regexp?("#{type}_TEST", name.to_s)
             yield
           else

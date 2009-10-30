@@ -20,6 +20,63 @@ class SubsetTestTest < Test::Unit::TestCase
   end
   
   #
+  # subset_test test
+  #
+  
+  def test_subset_test_normally_does_not_run
+    was_in_block = false
+    subset_test('type') do 
+      was_in_block = true
+    end
+    
+    assert_equal false, was_in_block
+  end
+  
+  def test_subset_test_runs_if_ENV_TYPE_is_true
+    ENV['TYPE'] = "true"
+    
+    was_in_block = false
+    subset_test('type') do 
+      was_in_block = true
+    end
+    
+    assert_equal true, was_in_block
+  end
+  
+  def test_subset_test_runs_if_ENV_ALL_is_true
+    ENV['ALL'] = "true"
+    
+    was_in_block = false
+    subset_test('type') do 
+      was_in_block = true
+    end
+    
+    assert_equal true, was_in_block
+  end
+  
+  def test_subset_test_runs_if_ENV_TYPE_TEST_matches_current_test
+    ENV['TYPE_TEST'] = "ENV_TYPE_TEST_matches"
+    
+    was_in_block = false
+    subset_test('type') do 
+      was_in_block = true
+    end
+    
+    assert_equal true, was_in_block
+  end
+  
+  def test_subset_test_does_not_run_if_ENV_TYPE_TEST_does_not_match_current_test
+    
+    ENV['TYPE_TEST'] = "run_subset_true_if_ENV_type_test_matches_current"
+    was_in_block = false
+    subset_test('type') do 
+      was_in_block = true
+    end
+    
+    assert_equal false, was_in_block
+  end
+  
+  #
   # extended_test test
   #
   

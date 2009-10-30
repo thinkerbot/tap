@@ -370,6 +370,9 @@ module Tap
         @instance ||= (auto_initialize ? new : nil)
       end
       
+      # Sets up and returns App.instance with an Env setup to the specified
+      # directory.  This method is used to initialize the app and env as seen
+      # by the tap executable.
       def setup(dir=Dir.pwd)
         env = Env.setup(dir)
         @instance = new(:env => env)
