@@ -41,7 +41,7 @@ module Rap
 
       # Returns or initializes the instance of self cached with app.
       def instance(app=Tap::App.instance, auto_initialize=true)
-        app.cache[self] ||= (auto_initialize ? new({}, app) : nil)
+        app.objects[self] ||= (auto_initialize ? new({}, app) : nil)
       end
 
       def inherited(child) # :nodoc:

@@ -79,8 +79,8 @@ class DeclarationsTest < Test::Unit::TestCase
     assert Rap::Task.respond_to?(:desc)
     
     # check instance functionality is as originally declared
-    assert context.app.cache.empty?
-    assert_equal Rap::Task.instance(context.app), context.app.cache[Rap::Task]
+    assert context.app.objects.empty?
+    assert_equal Rap::Task.instance(context.app), context.app.objects[Rap::Task]
     
     # check desc functionality is as originally declared
     obj = Object.new
