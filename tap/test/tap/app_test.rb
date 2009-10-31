@@ -226,6 +226,7 @@ class AppTest < Test::Unit::TestCase
     ###
   
     app = App.new
+    app.set('', app)
     app.call(
       'obj' => '', 
       'sig' => 'build', 
@@ -514,14 +515,6 @@ class AppTest < Test::Unit::TestCase
     assert_equal obj, app.set('var', obj)
   end
   
-  def test_set_raises_an_error_for_empty_vars
-    err = assert_raises(RuntimeError) { app.set('', Object.new) }
-    assert_equal "var cannot be empty", err.message
-    
-    err = assert_raises(RuntimeError) { app.set(nil, Object.new) }
-    assert_equal "var cannot be empty", err.message
-  end
-  
   #
   # get test
   #
@@ -536,12 +529,6 @@ class AppTest < Test::Unit::TestCase
     obj = Object.new
     app.objects['var'] = obj
     assert_equal obj, app.get(:var)
-  end
-  
-  def test_get_returns_self_for_empty_var
-    assert app.objects.empty?
-    assert_equal app, app.get('')
-    assert_equal app, app.get(nil)
   end
   
   #

@@ -32,7 +32,7 @@ module Tap
   # workflow will not produce any output.  Whereas shells are setup to print
   # dangling outputs to the terminal, apps may define default joins to handle
   # the output of unjoined nodes.
-  #         
+  #             
   #   results = []
   #   app.on_complete {|result| results << result }
   #
@@ -63,7 +63,7 @@ module Tap
   #   app.enq(cat, "example.txt")
   #   app.run
   #   results          # => [["a", "b", "c"], ["c", "b", "a"]]
-  #                                           
+  #                                               
   # Now the output of cat is directed at both sort and rsort, resulting in
   # both a forward and reversed array.
   #
@@ -98,9 +98,9 @@ module Tap
   #   # [sort, ["a\nc\nb\n"]],
   #   # [rsort, ["a\nc\nb\n"]]
   #   # ]
-  #                                       
+  #                                           
   # Middleware can be nested with multiple calls to use.
-  #          
+  #              
   # === Ready, Run, Stop, Terminate
   #
   # Apps have four states.  When ready, an app does not execute nodes.  New
@@ -279,7 +279,7 @@ module Tap
   # Although it is not apparent in this example, objects will be correctly
   # ordered in the schema to ensure they can be rebuilt (see the
   # API[link:files/doc/API.html] for more details).
-  #                      
+  #                          
   # === Signals
   #
   # Apps use signals to create and control application objects from a user
@@ -299,10 +299,11 @@ module Tap
   #   signal = obj.signal(sig)     # lookup a signal by sig
   #   signal.call(args)            # call the signal with args
   #
-  # The app itself can be signaled by using an empty string as var. As a
+  # An app can itself be signaled when set as an application object. As a
   # result, signals can be used to build objects:
   #
   #   app = App.new
+  #   app.set('', app)
   #   app.call(
   #     'obj' => '', 
   #     'sig' => 'build', 
@@ -316,11 +317,11 @@ module Tap
   #   a.class                    # => Resource
   #   a.argv                     # => [1, 2, 3]
   #
-  # Note that vars are converted to strings during object lookup and, for
-  # apps, the default signal is 'build'.  Furthermore the args hash can be
-  # merged into the signal hash (if there are no conflicting keys) in the same
-  # way a spec can be merged into a build hash.  As a result many resources
-  # can be built with very compact signal hashes:
+  # By convention an empty string is used to identify an app and apps are
+  # constructed so that, at least when args are specified, the default signal
+  # is 'build'.  Furthermore the args hash can be merged into the signal hash
+  # in the same way a spec can be merged into a build hash.  As a result many
+  # resources can be built with very compact signals:
   #
   #   app.call('var' => 'b', 'class' => 'Resource', 'argv' => [4, 5])
   #   b = app.get('b')
@@ -328,7 +329,8 @@ module Tap
   #   b.argv                     # => [4, 5]
   #
   # This is ONLY possible for resources whose specs do not use any of the six
-  # signal or build keys (obj, sig, args, var, class, spec).
+  # signal or build keys (obj, sig, args, var, class, spec), and requires the
+  # app is set to an empty string in objects.
   #
   # The Tap::Signals module provides a dsl for exposing methods as signals. In
   # the simplest case you simply declare the signal; the signal args will be
@@ -374,7 +376,11 @@ module Tap
       # by the tap executable.
       def setup(dir=Dir.pwd)
         env = Env.setup(dir)
-        @instance = new(:env => env)
+        app = new(:env => env)
+        
+        app.set(nil, app)
+        app.set('app', app)
+        @instance = app
       end
     end
     
@@ -421,7 +427,23 @@ module Tap
       :writer => false, 
       :init => false
       
-    signal nil, :class => Index     # list signals for app
+    # The index signal ('') is constructed to list signals if no arguments are
+    # given, and invoke a build otherwise:
+    #
+    #   --//         # => list signals (like a normal index)
+    #   --// a b c   # => build
+    #
+    # Of course build can be manually specified if desired:
+    #
+    #   --//build a b c
+    #
+    signal_class nil, Index do      # list signals for app
+      def call(args)
+        # note Build is defined by the build signal below
+        args.empty? ? super : Build.new(obj).call(args)
+      end
+    end
+    
     signal_class :list, Doc         # list available objects
     signal_class :help, Doc         # brings up this help
     signal_class :tutorial, Doc     # brings up a tutorial
@@ -446,16 +468,15 @@ module Tap
       end
     end
     
-    # Creates a new App with the given configuration.  Options can be used
-    # to specify utilities that are normally initialized for every new app
-    # (options should be specified using symbol keys):
+    # Creates a new App with the given configuration.  Options can be used to
+    # specify objects that are normally initialized for every new app:
     #
-    #   stack    the application stack
-    #   queue    the application queue
-    #   objects  application objects; a hash of (var, object) pairs
-    #   logger   the application logger
+    #   :stack      the application stack; an App::Stack
+    #   :queue      the application queue; an App::Queue
+    #   :objects    application objects; a hash of (var, object) pairs
+    #   :logger     the application logger
     #
-    # A block may also be provided; it will be set as an on_complete block.
+    # A block may also be provided; it will be set as a default join.
     def initialize(config={}, options={}, &block)
       super() # monitor
       
@@ -473,8 +494,7 @@ module Tap
     
     # Sets the application environment and validates that env provides an AGET
     # ([]) method.  AGET is used to lookup constants during build; it receives
-    # the 'class' parameter when it is a string, and should return a
-    # corresponding class.
+    # the 'class' parameter and should return a corresponding class.
     #
     # Env can be set to nil and is set to nil by default, but building is
     # constrained without it.
@@ -543,17 +563,11 @@ module Tap
       end
     end
     
-    # Sets the object to the specified variable and returns obj.  Provide nil
-    # as obj to un-set a variable (in which case the existing object is
+    # Sets the object to the specified variable and returns obj.  Provide a
+    # nil obj to un-set a variable (in which case the existing object is
     # returned).  Non-string variables are converted to strings.
-    #
-    # An empty string is not allowed by set and will raise an error because
-    # the empty variable is reserved to refer to self.
     def set(var, obj)
       var = var.to_s
-      if var.empty?
-        raise "var cannot be empty"
-      end
       
       if obj
         objects[var] = obj
@@ -562,11 +576,10 @@ module Tap
       end
     end
     
-    # Returns the object set to var, or self for empty var.  Non-string
-    # variables are converted to strings.
+    # Returns the object set to var.  Non-string variables are converted to
+    # strings.
     def get(var)
-      var = var.to_s
-      var.empty? ? self : objects[var]
+      objects[var.to_s]
     end
     
     # Returns the variable for the object.  If the object is not assigned to a
@@ -609,14 +622,11 @@ module Tap
       sig = spec['sig']
       args = spec['args'] || spec
       
-      sig ||= (obj.nil? && !args.empty? ? 'build' : nil)
-      
       object = get(obj)
       if object.respond_to?(:signal)
         object.signal(sig).call(args)
       else
-        hint = signal?(obj) ? " (did you mean '--//#{obj}'?)" : nil
-        raise "unknown object: #{obj}#{hint}"
+        raise "unknown object: #{obj}"
       end
     end
     
@@ -633,7 +643,7 @@ module Tap
       
       method = args.kind_of?(Hash) ? :build : :parse!
       obj, args = klass.send(method, args, self)
-      set(var, obj) unless var.to_s.empty?
+      set(var, obj) if var
       
       [obj, args]
     end
@@ -845,7 +855,9 @@ module Tap
       
       specs = {}
       master_order = []
-      objects.uniq.collect do |obj|
+      objects.uniq.each do |obj|
+        next if obj == self
+        
         order = trace(obj, specs)
         master_order.concat(order)
       end
