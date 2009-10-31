@@ -502,16 +502,24 @@ class AppTest < Test::Unit::TestCase
     assert_equal obj, app.objects['var']
   end
   
+  def test_set_deletes_var_on_nil_obj
+    obj = Object.new
+    app.objects['var'] = obj
+    assert_equal obj, app.set('var', nil)
+    assert_equal false, app.objects.has_key?('var')
+  end
+  
   def test_set_returns_obj
     obj = Object.new
     assert_equal obj, app.set('var', obj)
   end
   
-  def test_set_does_not_set_obj_if_var_is_empty
-    assert app.objects.empty?
-    app.set('', Object.new)
-    app.set(nil, Object.new)
-    assert app.objects.empty?
+  def test_set_raises_an_error_for_empty_vars
+    err = assert_raises(RuntimeError) { app.set('', Object.new) }
+    assert_equal "var cannot be empty", err.message
+    
+    err = assert_raises(RuntimeError) { app.set(nil, Object.new) }
+    assert_equal "var cannot be empty", err.message
   end
   
   #
@@ -637,8 +645,51 @@ class AppTest < Test::Unit::TestCase
     assert_equal [b,a], app.middleware
   end
   
+  class StackMiddleware < App::Stack
+    def stack; app; end
+  end
+  
+  def test_middleware_allows_subclasses_of_stack_as_middleware
+    a = app.use(Middleware)
+    b = app.use(StackMiddleware)
+    
+    assert_equal [b,a], app.middleware
+  end
+  
   def test_middleware_returns_an_empty_array_if_no_middleware_is_in_use
     assert_equal [], app.middleware
+  end
+  
+  #
+  # reset test
+  #
+  
+  def test_reset_clears_objects_queue_and_middleware
+    app.objects['key'] = Object.new
+    app.queue.enq(:node, :input)
+    app.use(Middleware)
+    
+    assert_equal 1, app.objects.size
+    assert_equal 1, app.queue.size
+    assert_equal 1, app.middleware.size
+    
+    app.reset
+    
+    assert_equal 0, app.objects.size
+    assert_equal 0, app.queue.size
+    assert_equal 0, app.middleware.size
+  end
+  
+  def test_reset_preserves_original_stack
+    app = App.new
+    stack = app.stack
+     
+    middleware = app.use(Middleware)
+    assert_equal middleware, app.stack
+    assert stack != middleware
+    
+    app.reset
+    assert_equal stack, app.stack
   end
   
   #
@@ -884,11 +935,28 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
+  # check_terminate tests
+  #
+  
+  def test_check_terminate_yields_to_block_before_raising_terminiate_error
+    was_in_block = false
+    app.bq intern do
+      app.terminate
+      app.check_terminate { was_in_block = true }
+      flunk "should have been terminated"
+    end
+    
+    assert_equal false, was_in_block
+    app.run
+    assert_equal true, was_in_block
+  end
+  
+  #
   # info tests
   #
   
-  def test_info_provides_information_string
-    assert_equal 'state: 0 (READY) queue: 0', app.info
+  def test_info_documentation
+    assert_equal 'state: 0 (READY) queue: 0', App.new.info
   end
   
   #
