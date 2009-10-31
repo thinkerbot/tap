@@ -295,8 +295,8 @@ module Tap
   #
   # The call method receives signals and essentially does the following:
   #
-  #   obj = app.get(var)           # lookup an application object by var
-  #   signal = obj.signal(sig)     # lookup a signal by sig
+  #   object = app.get(obj)        # lookup an application object by obj
+  #   signal = object.signal(sig)  # lookup a signal by sig
   #   signal.call(args)            # call the signal with args
   #
   # An app can itself be signaled when set as an application object. As a
@@ -438,7 +438,7 @@ module Tap
     #   --//build a b c
     #
     signal_class nil, Index do      # list signals for app
-      def call(args)
+      def call(args) # :nodoc:
         # note Build is defined by the build signal below
         args.empty? ? super : Build.new(obj).call(args)
       end
@@ -463,7 +463,7 @@ module Tap
     signal :info                    # prints app status
     
     signal_class :exit do           # exit immediately
-      def process(args)
+      def process(args) # :nodoc:
         exit(1)
       end
     end
@@ -563,8 +563,8 @@ module Tap
       end
     end
     
-    # Sets the object to the specified variable and returns obj.  Provide a
-    # nil obj to un-set a variable (in which case the existing object is
+    # Sets the object to the specified variable and returns obj.  Provide nil
+    # as obj to un-set a variable (in which case the existing object is
     # returned).  Non-string variables are converted to strings.
     def set(var, obj)
       var = var.to_s
@@ -604,32 +604,72 @@ module Tap
       end
     end
     
-    def call(spec)
-      return self unless spec
+    # Sends a signal to an application object.  The input should be a hash
+    # defining these fields:
+    #
+    #   obj      # a variable identifying an application object
+    #   sig      # the signal name
+    #   args     # arguments to the signal (typically a Hash)
+    #
+    # Call does the following:
+    #
+    #   object = app.get(obj)        # lookup an application object by obj
+    #   signal = object.signal(sig)  # lookup a signal by sig
+    #   signal.call(args)            # call the signal with args
+    #
+    # Call returns the result of the signal call.
+    #
+    # ==== Alternate Inputs
+    #
+    # If the input is an array, it will be processed into a hash by splitting
+    # the first argument like 'obj/sig' and then using all remaining arguments
+    # as args.  String inputs are converted into an array using Shellwords.
+    def call(args)
+      return self unless args
       
-      if spec.kind_of?(String)
-        args = Shellwords.shellwords(spec)
+      if args.kind_of?(String)
+        args = Shellwords.shellwords(args)
+      end
+      
+      if args.kind_of?(Array)
         var, sig = args.shift.to_s.split("/")
-        
-        spec = {
-          'obj' => var,
-          'sig' => sig,
-          'args' => args
-        }
+        args = {'obj' => var, 'sig' => sig, 'args' => args}
       end
       
-      obj = spec['obj']
-      sig = spec['sig']
-      args = spec['args'] || spec
+      obj = args['obj']
+      sig = args['sig']
+      args = args['args'] || args
       
-      object = get(obj)
-      if object.respond_to?(:signal)
-        object.signal(sig).call(args)
-      else
-        raise "unknown object: #{obj}"
+      unless object = get(obj)
+        raise "unknown object: #{obj.inspect}"
       end
+      
+      unless object.respond_to?(:signal)
+        raise "cannot signal: #{object.inspect}"
+      end
+      
+      object.signal(sig).call(args)
     end
     
+    # Builds and sets an application object.  The build spec is a hash
+    # defining these fields:
+    #
+    #   var     # a variable to identify the object
+    #   class   # the class name or identifier, as a string
+    #   spec    # an array or hash for initialization
+    #
+    # Build resolves the class string to a constant using env[class], if env
+    # is specified, or by directly translating the string into a constant name
+    # if env is nil.  The class is then initialized using the spec using one
+    # of these methods (in both cases self is the current app):
+    #
+    #   klass.parse!(spec, self)    # spec is an Array
+    #   klass.build(spec, self)     # spec is a Hash
+    #
+    # The parse! or build method should return the instance and an array of
+    # any leftover arguments.  The instance is set to var in objects, if
+    # specifed, and then build returns the instance and leftover arguments in
+    # an array like [instance, args].
     def build(spec)
       var = spec['var']
       klass = spec['class'].to_s.strip
@@ -648,8 +688,13 @@ module Tap
       [obj, args]
     end
     
+    # Enques the application object specified by var with args.  Raises
+    # an error if no such application object exists.
     def enque(var, *args)
-      node = get(var)
+      unless node = get(var)
+        raise "unknown object: #{var.inspect}"
+      end
+      
       queue.enq(node, args)
       node
     end

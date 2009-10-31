@@ -553,6 +553,65 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
+  # call test
+  #
+  
+  class AppObject < App::Api
+    signal :echo
+    
+    def echo(*args)
+      args << "echo"
+      args
+    end
+  end
+
+  def test_call_signals_object_with_args
+    obj = AppObject.new
+    app.set('var', obj)
+    
+    assert_equal ["echo"], app.call(
+      "obj" => "var", 
+      "sig" => "echo", 
+      "args" => []
+    )
+    
+    assert_equal ["a", "b", "c", "echo"], app.call(
+      "obj" => "var", 
+      "sig" => "echo", 
+      "args" => ["a", "b", "c"]
+    )
+  end
+  
+  def test_call_pre_processes_strings_into_args_hash
+    obj = AppObject.new
+    app.set('var', obj)
+    
+    assert_equal ["echo"], app.call("var/echo")
+    assert_equal ["a", "b", "c", "echo"], app.call("var/echo a b c")
+  end
+  
+  def test_call_pre_processes_arrays_into_args_hash
+    obj = AppObject.new
+    app.set('var', obj)
+    
+    assert_equal ["echo"], app.call(["var/echo"])
+    assert_equal ["a", "b", "c", "echo"], app.call(["var/echo", "a", "b", "c"])
+  end
+  
+  def test_call_raises_error_for_unknown_object
+    err = assert_raises(RuntimeError) { app.call('obj' => 'missing') }
+    assert_equal "unknown object: \"missing\"", err.message
+  end
+  
+  def test_call_raises_error_for_object_that_does_not_receive_signals
+    obj = Object.new
+    app.set('var', obj)
+    
+    err = assert_raises(RuntimeError) { app.call('obj' => 'var') }
+    assert_equal "cannot signal: #{obj.inspect}", err.message
+  end
+  
+  #
   # build test
   #
   
@@ -620,7 +679,25 @@ class AppTest < Test::Unit::TestCase
     obj, args = app.build('var' => 'variable', 'class' => 'klass')
     assert_equal({'variable' => obj}, app.objects)
   end
-
+  
+  #
+  # enque test
+  #
+  
+  def test_enque_enques_the_specified_object_with_args
+    obj = Object.new
+    app.set('var', obj)
+    
+    assert_equal [], app.queue.to_a
+    app.enque('var', 1,2,3)
+    assert_equal [[obj, [1,2,3]]], app.queue.to_a
+  end
+  
+  def test_enque_raises_error_when_specified_obj_does_not_exist
+    err = assert_raises(RuntimeError) { app.enque('missing', 1,2,3) }
+    assert_equal "unknown object: \"missing\"", err.message
+  end
+  
   #
   # middleware test
   #
