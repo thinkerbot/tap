@@ -7,6 +7,7 @@ class LoadDoc < Test::Unit::TestCase
   
   acts_as_file_test :cleanup_dirs => [:sample]
   acts_as_shell_test :cmd_pattern => "% tap", :cmd => [
+    "TAP_GEMS=",
     RUBY_EXE,
     "-I'#{TAP_ROOT}/../configurable/lib'",
     "-I'#{TAP_ROOT}/../lazydoc/lib'",
