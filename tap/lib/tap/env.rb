@@ -419,6 +419,9 @@ module Tap
       # only load configurations if configs were not provided
       config ||= Env.load_config(@context.config_file(@root.root))
       initialize_config(config)
+      
+      # set the invert flag
+      @invert = false
     end
     
     # Sets envs removing duplicates and instances of self.  Setting envs
@@ -665,13 +668,39 @@ module Tap
       end
     end
     
-    # Seeks and constantizes the specified constant.  Raises an error if the
-    # key does not map to a constant.
-    def [](key)
-      unless constant = constants.seek(key)
-        raise "unresolvable constant: #{key.inspect}"
+    # Seeks a constant for the key, constantizing if necessary.  If invert is
+    # true, this method seeks and returns a key for the input constant.  In
+    # both cases AGET returns nil if no key-constant pair can be found.
+    def [](key, invert=invert?)
+      if invert
+        const_name = key.to_s
+        constants.unseek(true) do |const|
+          const_name == const.const_name
+        end
+      else
+        if constant = constants.seek(key)
+          constant.constantize
+        else
+          nil
+        end
       end
-      constant.constantize
+    end
+    
+    # Indicates AGET looks up constants from keys (false), or keys from
+    # constants (true).
+    def invert?
+      @invert
+    end
+    
+    # Inverts the AGET lookup for self.
+    def invert!
+      @invert = !@invert
+      self
+    end
+    
+    # Returns a duplicate of self with inverted AGET lookup.
+    def invert
+      dup.invert!
     end
     
     # Scans the files matched under the directory and pattern for constants

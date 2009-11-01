@@ -187,6 +187,7 @@ class EnvTest < Test::Unit::TestCase
     assert_equal Dir.pwd, e.root.root
     assert_equal [], e.envs
     assert !e.active?
+    assert !e.invert?
   end
   
   def test_initialize_from_path
@@ -603,6 +604,59 @@ a (0)
     
     assert_equal ["A", "B"], e.constants.collect {|const| const.const_name }
     assert_equal [["resource"], ["resource", "alt"]], e.constants.collect {|const| const.types.keys }
+  end
+  
+  #
+  # AGET test
+  #
+  
+  class Alpha
+  end
+  
+  class Beta
+  end
+  
+  def test_AGET_seeks_constant_for_key
+    e.register(Alpha)
+    e.register(Beta)
+    
+    assert_equal Alpha, e['alpha']
+    assert_equal Beta, e['beta']
+    assert_equal Beta, e['env_test/beta']
+    assert_equal Beta, e['test_AGET_seeks_constant_for_key:env_test/beta']
+    assert_equal nil, e['gamma']
+  end
+  
+  def test_inverted_AGET_seeks_key_for_constant
+    e.register(Alpha)
+    e.register(Beta)
+    
+    assert_equal 'test_inverted_AGET_seeks_key_for_constant:alpha', e[Alpha, true]
+    assert_equal 'test_inverted_AGET_seeks_key_for_constant:beta', e[Beta, true]
+  end
+  
+  #
+  # invert? invert! invert test
+  #
+  
+  def test_invert_bang_flips_invert_question
+    assert_equal false, e.invert?
+    e.invert!
+    assert_equal true, e.invert?
+    e.invert!
+    assert_equal false, e.invert?
+  end
+  
+  def test_invert_bang_returns_self
+    assert_equal e, e.invert!
+  end
+  
+  def test_invert_returns_inverted_env
+    assert_equal false, e.invert?
+    i = e.invert
+    
+    assert_equal false, e.invert?
+    assert_equal true, i.invert?
   end
   
   #
