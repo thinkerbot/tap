@@ -495,14 +495,6 @@ class AppTest < Test::Unit::TestCase
     assert_equal obj, app.objects['var']
   end
   
-  def test_set_converts_var_to_string
-    assert app.objects.empty?
-    
-    obj = Object.new
-    app.set(:var, obj)
-    assert_equal obj, app.objects['var']
-  end
-  
   def test_set_deletes_var_on_nil_obj
     obj = Object.new
     app.objects['var'] = obj
@@ -525,12 +517,6 @@ class AppTest < Test::Unit::TestCase
     assert_equal obj, app.get('var')
   end
   
-  def test_get_converts_var_to_string
-    obj = Object.new
-    app.objects['var'] = obj
-    assert_equal obj, app.get(:var)
-  end
-  
   #
   # var test
   #
@@ -545,7 +531,7 @@ class AppTest < Test::Unit::TestCase
     assert app.objects.empty?
     
     obj = Object.new
-    assert_equal nil, app.var(obj)
+    assert_equal nil, app.var(obj, false)
     
     var = app.var(obj, true)
     assert !var.nil?
@@ -555,7 +541,7 @@ class AppTest < Test::Unit::TestCase
   #
   # call test
   #
-  
+
   class AppObject < App::Api
     signal :echo
     
@@ -1054,9 +1040,225 @@ class AppTest < Test::Unit::TestCase
   # to_schema test
   #
   
-  def test_to_schema_documentation_ish
-    a, b = App.new, App.new
-    a.to_schema.each {|spec| b.call(spec) }
+  class SchemaObj < App::Api
+    config :key, 'value'
+    
+    attr_accessor :associations
+    
+    def initialize(config={}, app=Tap::App.instance, refs=nil, brefs=nil)
+      super(config, app)
+      @associations = [refs, brefs]
+    end
+    
+    def to_spec
+      refs, brefs = associations
+      spec = super
+      spec['refs'] = refs.collect {|ref| app.var(ref) } if refs
+      spec['brefs'] = brefs.collect {|ref| app.var(ref) } if brefs
+      spec
+    end
+  end
+  
+  class SchemaMiddleware < App::Api
+    class << self
+      def build(spec={}, app=Tap::App.instance)
+        app.use(self, spec['config'] || {})
+      end
+    end
+    
+    attr_reader :stack
+    
+    def initialize(stack, config={})
+      @stack = stack
+      initialize_config(config)
+    end
+    
+    def call(node, inputs=[])
+      inputs << "middleware"
+      stack.call(node, inputs)
+    end
+  end
+  
+  def test_to_schema_serializes_application_objects=
+    app.set('var', SchemaObj.new)
+    
+    assert_equal [
+      { 'var' => 'var', 
+        'class' => 'AppTest::SchemaObj', 
+        'config' => {'key' => 'value'}
+      }
+    ], app.to_schema
+  end
+  
+  def test_to_schema_serializes_queue
+    obj = SchemaObj.new
+    app.set('var', obj)
+    app.enq(obj, 1, 2, 3)
+    
+    assert_equal [
+      { 'var' => 'var', 
+        'class' => 'AppTest::SchemaObj', 
+        'config' => {'key' => 'value'}
+      },
+      { 'sig' => 'enque', 
+        'args' => ['var', 1,2,3]
+      }
+    ], app.to_schema
+  end
+  
+  def test_to_schema_adds_sets_objects_if_necessary
+    app.enq(SchemaObj.new, 1, 2, 3)
+    
+    assert_equal [
+      { 'var' => 0, 
+        'class' => 'AppTest::SchemaObj', 
+        'config' => {'key' => 'value'}
+      },
+      { 'sig' => 'enque', 
+        'args' => [0, 1,2,3]
+      }
+    ], app.to_schema
+  end
+  
+  def test_to_schema_orders_objects_by_var
+    letters = ('a'..'z').to_a
+    letters.each do |letter|
+      app.set(letter, SchemaObj.new)
+    end
+    
+    order = app.to_schema.collect {|hash| hash['var'] }
+    assert_equal letters, order 
+  end
+  
+  def test_to_schema_orders_objects_by_associations
+    a = SchemaObj.new({:key => 'a'}, app)
+    b = SchemaObj.new({:key => 'b'}, app, [a])
+    c = SchemaObj.new({:key => 'c'}, app)
+    d = SchemaObj.new({:key => 'd'}, app, [b], [c])
+    
+    app.set('d', d)
+    
+    assert_equal [
+      { 'var' => 3, 
+        'class' => 'AppTest::SchemaObj', 
+        'config' => {'key' => 'a'}
+      },
+      { 'var' => 1, 
+        'class' => 'AppTest::SchemaObj', 
+        'config' => {'key' => 'b'},
+        'refs' => [3]
+      },
+      { 'var' => 'd', 
+        'class' => 'AppTest::SchemaObj', 
+        'config' => {'key' => 'd'},
+        'refs' => [1],
+        'brefs' => [2]
+      },
+      { 'var' => 2, 
+        'class' => 'AppTest::SchemaObj', 
+        'config' => {'key' => 'c'}
+      }
+    ], app.to_schema
+  end
+  
+  def test_to_schema_serializes_apps
+    app_a = App.new :verbose => true
+    a = SchemaObj.new({}, app_a)
+    app_a.set('a', a)
+    
+    app_b = App.new :quiet => true
+    app_b.set('a', app_a)
+    app_b.set('b', app_b)
+    
+    expected = [
+      { 'var' => 'b',
+        'class' => 'Tap::App',
+        'config' => {
+          "quiet"=>true,
+          "env"=>nil,
+          "force"=>false,
+          "verbose"=>false,
+          "debug"=>false
+        },
+        'self' => true
+      },
+      { 'var' => 'a', 
+        'class' => 'Tap::App',
+        'config' => {
+          "quiet"=>false,
+          "env"=>nil,
+          "force"=>false,
+          "verbose"=>true,
+          "debug"=>false
+        },
+        'schema' => [
+          { 'var' => 'a', 
+            'class' => 'AppTest::SchemaObj', 
+            'config' => {'key' => 'value'}
+          }]
+      }
+    ]
+    
+    assert_equal expected, app_b.to_schema(false)
+  end
+  
+  #
+  # to_spec test
+  #
+  
+  def test_to_spec_converts_apps_to_spec
+    app_a = App.new :verbose => true
+    a = SchemaObj.new({}, app_a)
+    app_a.set('a', a)
+    
+    app_b = App.new :quiet => true
+    app_b.set('a', app_a)
+    app_b.set('b', app_b)
+    
+    expected = {
+      'config' => {
+        "quiet"=>true,
+        "env"=>nil,
+        "force"=>false,
+        "verbose"=>false,
+        "debug"=>false
+      },
+      'schema' => [
+        {"self"=>true, "class"=>"Tap::App", "var"=>"b"},
+        { 'var' => 'a', 
+          'class' => 'Tap::App',
+          'config' => {
+            "quiet"=>false,
+            "env"=>nil,
+            "force"=>false,
+            "verbose"=>true,
+            "debug"=>false
+          },
+          'schema' => [
+            { 'var' => 'a', 
+              'class' => 'AppTest::SchemaObj', 
+              'config' => {'key' => 'value'}
+            }]}]
+    }
+    
+    assert_equal expected, app_b.to_spec
+  end
+  
+  def test_to_spec_build_rebuilds_app
+    obj = SchemaObj.new :key => 'obj'
+    app.use SchemaMiddleware
+    app.enq(obj, 1,2,3)
+    app.set('var', app)
+    
+    alt = App.build(app.to_spec)
+    
+    assert_equal [SchemaMiddleware], app.middleware.collect {|m| m.class }
+    assert_equal 1, app.queue.size
+    
+    obj, args = app.queue.deq
+    assert_equal 'obj', obj.config[:key]
+    assert_equal [1,2,3], args
+    assert_equal({'var' => alt}, alt.objects)
   end
   
   #

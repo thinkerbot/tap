@@ -378,9 +378,27 @@ module Tap
         env = Env.setup(dir)
         app = new(:env => env)
         
-        app.set(nil, app)
+        app.set('', app)
         app.set('app', app)
         @instance = app
+      end
+      
+      def build(spec={}, app=instance)
+        config = spec['config'] || {}
+        schema = spec['schema'] || []
+        
+        app = if spec['self']
+          app.reconfigure(config)
+        else
+          new(config)
+        end
+        
+        schema.each do |args|
+          app.call(args)
+        end
+        
+        app.gc
+        app
       end
     end
     
@@ -488,7 +506,7 @@ module Tap
       @joins = []
       on_complete(&block)
       
-      self.env = config.delete(:env)
+      self.env = config.delete(:env) || config.delete('env')
       initialize_config(config)
     end
     
@@ -569,7 +587,7 @@ module Tap
     # as obj to un-set a variable (in which case the existing object is
     # returned).  Non-string variables are converted to strings.
     def set(var, obj)
-      var = var.to_s
+      raise "no var specified" if var.nil?
       
       if obj
         objects[var] = obj
@@ -581,29 +599,38 @@ module Tap
     # Returns the object set to var.  Non-string variables are converted to
     # strings.
     def get(var)
-      objects[var.to_s]
+      var.nil? ? self : objects[var]
     end
     
     # Returns the variable for the object.  If the object is not assigned to a
     # variable and auto_assign is true, then the object is set to an unused
     # variable and the new variable is returned.
-    def var(obj, auto_assign=false)
+    def var(obj, auto_assign=true)
       objects.each_pair do |var, object|
         return var if obj == object
       end
+      
       return nil unless auto_assign
       
-      index = objects.length
+      var = objects.length
       loop do 
-        var = index.to_s
-        
         if objects.has_key?(var)
-          index += 1
+          var += 1
         else
           set(var, obj)
           return var
         end
       end
+    end
+    
+    def gc(all=false)
+      if all
+        objects.clear
+      else
+        objects.delete_if {|var, obj| var.kind_of?(Integer) }
+      end
+      
+      self
     end
     
     # Sends a signal to an application object.  The input should be a hash
@@ -903,42 +930,107 @@ module Tap
     # Application objects that do not satisfy the application object API are
     # quietly ignored; enable debugging to be warned of their existance.
     #
-    def to_schema
-      objects = self.objects.keys.sort!.collect! {|key| self.objects[key] }
+    def to_schema(bare=true)
+      # setup variables
+      specs = {}
+      order = []
       
+      # collect enque signals to setup queue
       signals = queue.to_a.collect do |(node, args)|
-        objects << node
         {'sig' => 'enque', 'args' => [var(node)] + args}
       end
       
-      objects.concat middleware
-      objects.uniq!
-      
-      app = objects.delete(self)
-      
-      specs = {}
-      schema = []
-      invert_env = env ? env.invert : nil
-      objects.each do |obj|
-        schema.concat(trace(obj, specs, invert_env))
+      # collect and trace application objects
+      objects.keys.sort_by do |var|
+        var.to_s
+      end.each do |var|
+        obj = objects[var]
+        order.concat trace(obj, specs)
       end
       
-      schema.uniq!
-      schema.collect! {|obj| specs[obj]}
-      schema.concat(signals)
-      schema
+      middleware.each do |obj|
+        order.concat trace(obj, specs)
+      end
+      
+      if bare
+        order.delete(self)
+        specs.delete(self)
+      else
+        order.unshift(self)
+        trace(self, specs)
+      end
+      order.uniq!
+      
+      # assemble specs
+      variables = {}
+      objects.each_pair do |var, obj|
+        (variables[obj] ||= []) << var
+      end
+      
+      invert_env = env ? env.invert : nil
+      specs.keys.each do |obj|
+        spec = {}
+        
+        # assign variables
+        if vars = variables[obj]
+          if vars.length == 1
+            spec['var'] = vars[0]
+          else
+            spec['var'] = vars
+          end
+        end
+
+        # assign the class
+        klass = obj.class
+        klass = invert_env[klass] if invert_env
+        spec['class'] = klass.to_s
+
+        # merge obj_spec if possible
+        obj_spec = specs[obj]
+        if BUILD_KEYS.find {|key| obj_spec.has_key?(key) }
+          spec['spec'] = obj_spec
+        else
+          spec.merge!(obj_spec)
+        end
+        
+        specs[obj] = spec
+      end
+      
+      order.collect! {|obj| specs[obj] }.concat(signals)
+    end
+    
+    def associations
+    end
+    
+    def to_spec
+      schema = to_schema(false)
+      spec = schema.shift
+      
+      spec.delete('self')
+      var = spec.delete('var')
+      klass = spec.delete('class')
+      spec = spec.delete('spec') || spec
+      
+      schema.unshift('var' => var, 'class' => klass, 'self' => true) if var
+      spec['schema'] = schema
+      
+      spec
+    end
+    
+    def inspect
+      "#<#{self.class}:#{object_id} #{info}>"
     end
     
     private
     
-    # Traces each object backwards and forwards for node, joins, etc. and
-    # adds each to specs as needed.  The trace determines and returns the
-    # order in which these specs must be initialized to make sense.  
-    # Circular traces are detected.
+    # Traces each object backwards and forwards for node, joins, etc. and adds
+    # each to specs as needed.  The trace determines and returns the order in
+    # which these specs must be initialized to make sense.  Circular traces
+    # are detected.
     #
-    # Note that order is not provided for the first call; order problems
-    # are trace-specific.  For example (a -> b means 'a' references or
-    # requires 'b' so read backwards for order):
+    # Note that order should not be provided for the first call; order must be
+    # trace-specific.  For example (a -> b means 'a' references or requires
+    # 'b' so read backwards for order):
     #
     #   # Circular trace [a,c,b,a]
     #   a -> b -> c -> a
@@ -946,8 +1038,8 @@ module Tap
     #   # Not a problem [[b,a], [b,c]] => [b,a,c]
     #   a -> b
     #   c -> b
-    # 
-    def trace(obj, specs, invert_env, order=[]) # :nodoc:
+    #   
+    def trace(obj, specs, order=[]) # :nodoc:
       if specs.has_key?(obj)
         return order
       end
@@ -958,42 +1050,22 @@ module Tap
         return order
       end
       
-      specs[obj] = spec = {}
-      
-      # assign all variables
-      vars = []
-      objects.each_pair do |var, object|
-        vars << var if obj == object
-      end
-      
-      case vars.length
-      when 0
-      when 1 then spec['var'] = vars[0]
-      else spec['var'] = vars
-      end
-      
-      # assign the class
-      klass = obj.class
-      klass = invert_env[klass] if invert_env
-      spec['class'] = klass.to_s
-      
-      # convert the object to a spec and merge if possible
-      obj_spec = obj.to_spec
-      if BUILD_KEYS.find {|key| obj_spec.has_key?(key) }
-        spec['spec'] = obj_spec
-      else
-        spec.merge!(obj_spec)
-      end
+      specs[obj] = obj == self ? self_spec : obj.to_spec
       
       # trace references; refs must exist before obj and
       # obj must exist before brefs (back-references)
       refs, brefs = obj.associations
       
-      refs.each {|ref| trace(ref, specs, invert_env, order) } if refs
+      refs.each {|ref| trace(ref, specs, order) } if refs
       order << obj
-      brefs.each {|bref| trace(bref, specs, invert_env, order) } if brefs
+      brefs.each {|bref| trace(bref, specs, order) } if brefs
       
       order
+    end
+    
+    def self_spec # :nodoc:
+      config = self.config.to_hash {|hash, key, value| hash[key.to_s] = value }
+      {'config' => config, 'self' => true}
     end
     
     # TerminateErrors are raised to kill executing nodes when terminate is 
