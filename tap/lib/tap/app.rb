@@ -456,7 +456,7 @@ module Tap
       :method_name => :build, 
       :signature => ['class'], 
       :remainder => 'spec'
-      
+    
     signal :run                     # run the app
     signal :stop                    # stop the app
     signal :terminate               # terminate the app
@@ -493,13 +493,15 @@ module Tap
     end
     
     # Sets the application environment and validates that env provides an AGET
-    # ([]) method.  AGET is used to lookup constants during build; it receives
-    # the 'class' parameter and should return a corresponding class.
+    # ([]) and invert method.  AGET is used to lookup constants during build;
+    # it receives the 'class' parameter and should return a corresponding
+    # class.  Invert should return an object that reverses the AGET lookup.
+    # Tap::Env and a regular Hash both satisfy this api.
     #
     # Env can be set to nil and is set to nil by default, but building is
     # constrained without it.
     def env=(env)
-      Validation.validate_api(env, [:[]]) unless env.nil?
+      Validation.validate_api(env, [:[], :invert]) unless env.nil?
       @env = env
     end
     
@@ -671,7 +673,7 @@ module Tap
     # specifed, and then build returns the instance and leftover arguments in
     # an array like [instance, args].
     def build(spec)
-      var = spec['var']
+      vars = spec['var'] || []
       klass = spec['class'].to_s.strip
       args = spec['spec'] || spec
       
@@ -683,7 +685,9 @@ module Tap
       
       method = args.kind_of?(Hash) ? :build : :parse!
       obj, args = klass.send(method, args, self)
-      set(var, obj) if var
+      
+      vars = [vars] unless vars.kind_of?(Array)
+      vars.each {|var| set(var, obj) }
       
       [obj, args]
     end
@@ -888,8 +892,19 @@ module Tap
       target
     end
     
+    # Converts the self to a schema that can be used to build a new app with
+    # equivalent application objects, queue, and middleware.  Schema are a
+    # collection of signal hashes such that this will rebuild the state of a
+    # on b:
+    #
+    #   a, b = App.new, App.new
+    #   a.to_schema.each {|spec| b.call(spec) }
+    #
+    # Application objects that do not satisfy the application object API are
+    # quietly ignored; enable debugging to be warned of their existance.
+    #
     def to_schema
-      objects = self.objects.keys.sort.collect {|key| self.objects[key] }
+      objects = self.objects.keys.sort!.collect! {|key| self.objects[key] }
       
       signals = queue.to_a.collect do |(node, args)|
         objects << node
@@ -897,19 +912,21 @@ module Tap
       end
       
       objects.concat middleware
+      objects.uniq!
+      
+      app = objects.delete(self)
       
       specs = {}
-      master_order = []
-      objects.uniq.each do |obj|
-        next if obj == self
-        
-        order = trace(obj, specs)
-        master_order.concat(order)
+      schema = []
+      invert_env = env ? env.invert : nil
+      objects.each do |obj|
+        schema.concat(trace(obj, specs, invert_env))
       end
       
-      master_order.uniq.collect do |obj|
-        specs[obj]
-      end + signals
+      schema.uniq!
+      schema.collect! {|obj| specs[obj]}
+      schema.concat(signals)
+      schema
     end
     
     private
@@ -930,33 +947,37 @@ module Tap
     #   a -> b
     #   c -> b
     # 
-    # As in the example, a consistent master order may be compiled with
-    # flatten.uniq.
-    #
-    def trace(obj, specs, order=[]) # :nodoc:
+    def trace(obj, specs, invert_env, order=[]) # :nodoc:
       if specs.has_key?(obj)
         return order
       end
       
+      # check the object satisfies the api
       unless obj.respond_to?(:to_spec) && obj.respond_to?(:associations)
-        warn "cannot serialize: #{obj} (does not satisfy API)"
+        warn "cannot serialize: #{obj}"
         return order
       end
       
-      spec = {}
-      if var = self.var(obj)
-        spec['var'] = var
+      specs[obj] = spec = {}
+      
+      # assign all variables
+      vars = []
+      objects.each_pair do |var, object|
+        vars << var if obj == object
       end
       
-      klass = obj.class
-      if env
-        const_name = klass.to_s
-        klass = env.constants.unseek(true) do |const|
-          const_name == const.const_name
-        end
+      case vars.length
+      when 0
+      when 1 then spec['var'] = vars[0]
+      else spec['var'] = vars
       end
+      
+      # assign the class
+      klass = obj.class
+      klass = invert_env[klass] if invert_env
       spec['class'] = klass.to_s
       
+      # convert the object to a spec and merge if possible
       obj_spec = obj.to_spec
       if BUILD_KEYS.find {|key| obj_spec.has_key?(key) }
         spec['spec'] = obj_spec
@@ -964,23 +985,13 @@ module Tap
         spec.merge!(obj_spec)
       end
       
-      specs[obj] = spec
-      
+      # trace references; refs must exist before obj and
+      # obj must exist before brefs (back-references)
       refs, brefs = obj.associations
       
-      # references to other objects
-      # (these must exist prior to obj)
-      refs.each do |ref|
-        trace(ref, specs, order)
-      end if refs
-      
+      refs.each {|ref| trace(ref, specs, invert_env, order) } if refs
       order << obj
-      
-      # back-references to objects that refer to obj
-      # (ie obj must exist before the bref)
-      brefs.each do |bref|
-        trace(bref, specs, order)
-      end if brefs
+      brefs.each {|bref| trace(bref, specs, invert_env, order) } if brefs
       
       order
     end

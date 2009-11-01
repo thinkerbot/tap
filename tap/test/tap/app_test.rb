@@ -680,6 +680,16 @@ class AppTest < Test::Unit::TestCase
     assert_equal({'variable' => obj}, app.objects)
   end
   
+  def test_build_stores_obj_by_multiple_var_if_specified
+    app.env = {'klass' => BuildClass}
+    
+    obj, args = app.build('class' => 'klass')
+    assert_equal({}, app.objects)
+    
+    obj, args = app.build('var' => ['a', 'b'], 'class' => 'klass')
+    assert_equal({'a' => obj, 'b' => obj}, app.objects)
+  end
+  
   #
   # enque test
   #
@@ -1038,6 +1048,15 @@ class AppTest < Test::Unit::TestCase
   
   def test_on_complete_returns_self
     assert_equal app, app.on_complete
+  end
+  
+  #
+  # to_schema test
+  #
+  
+  def test_to_schema_documentation_ish
+    a, b = App.new, App.new
+    a.to_schema.each {|spec| b.call(spec) }
   end
   
   #
