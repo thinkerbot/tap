@@ -1202,6 +1202,36 @@ class AppTest < Test::Unit::TestCase
     assert_equal expected, app_b.to_schema(false)
   end
   
+  class NestSchemaByVar
+    def to_spec
+      {'var' => 'this'}
+    end
+  end
+  
+  class NestSchemaByObj
+    def to_spec
+      {'obj' => 'this'}
+    end
+  end
+  
+  def test_to_schema_nests_build_hashes_if_necessary
+    app.set('by_var', NestSchemaByVar.new)
+    app.set('by_obj', NestSchemaByObj.new)
+    
+    assert_equal [
+      { 
+        'var' => 'by_obj', 
+        'class' => 'AppTest::NestSchemaByObj',
+        'spec' => {'obj' => 'this'}
+      },
+      { 
+        'var' => 'by_var', 
+        'class' => 'AppTest::NestSchemaByVar',
+        'spec' => {'var' => 'this'}
+      }
+    ], app.to_schema
+  end
+  
   #
   # to_spec test
   #

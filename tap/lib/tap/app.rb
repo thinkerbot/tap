@@ -413,6 +413,9 @@ module Tap
     # The reserved build keys
     BUILD_KEYS = %w{var class spec}
     
+    # Reserved call and build keys as a single array
+    RESERVED_KEYS = CALL_KEYS + BUILD_KEYS
+    
     # The default App logger writes to $stderr at level INFO.
     DEFAULT_LOGGER = Logger.new($stderr)
     DEFAULT_LOGGER.level = Logger::INFO
@@ -987,10 +990,10 @@ module Tap
 
         # merge obj_spec if possible
         obj_spec = specs[obj]
-        if BUILD_KEYS.find {|key| obj_spec.has_key?(key) }
-          spec['spec'] = obj_spec
-        else
+        if (obj_spec.keys & RESERVED_KEYS).empty?
           spec.merge!(obj_spec)
+        else
+          spec['spec'] = obj_spec
         end
         
         specs[obj] = spec
