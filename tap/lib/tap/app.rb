@@ -416,7 +416,7 @@ module Tap
     # Reserved call and build keys as a single array
     RESERVED_KEYS = CALL_KEYS + BUILD_KEYS
     
-    # The default App logger writes to $stderr at level INFO.
+    # The default App logger (writes to $stderr at level INFO)
     DEFAULT_LOGGER = Logger.new($stderr)
     DEFAULT_LOGGER.level = Logger::INFO
     DEFAULT_LOGGER.formatter = lambda do |severity, time, progname, msg|
@@ -588,7 +588,9 @@ module Tap
     
     # Sets the object to the specified variable and returns obj.  Provide nil
     # as obj to un-set a variable (in which case the existing object is
-    # returned).  Non-string variables are converted to strings.
+    # returned).
+    #
+    # Nil is reserved as a variable name and cannot be used by set.
     def set(var, obj)
       raise "no var specified" if var.nil?
       
@@ -599,8 +601,7 @@ module Tap
       end
     end
     
-    # Returns the object set to var.  Non-string variables are converted to
-    # strings.
+    # Returns the object set to var, or self if var is nil.
     def get(var)
       var.nil? ? self : objects[var]
     end
@@ -608,6 +609,8 @@ module Tap
     # Returns the variable for the object.  If the object is not assigned to a
     # variable and auto_assign is true, then the object is set to an unused
     # variable and the new variable is returned.
+    #
+    # The new variable will be an integer and will be removed upon gc.
     def var(obj, auto_assign=true)
       objects.each_pair do |var, object|
         return var if obj == object
@@ -626,6 +629,8 @@ module Tap
       end
     end
     
+    # Removes objects keyed by integers.  If all is specified, gc will clear
+    # all objects.
     def gc(all=false)
       if all
         objects.clear
@@ -639,7 +644,7 @@ module Tap
     # Sends a signal to an application object.  The input should be a hash
     # defining these fields:
     #
-    #   obj      # a variable identifying an application object
+    #   obj      # a variable identifying an object, or nil for self
     #   sig      # the signal name
     #   args     # arguments to the signal (typically a Hash)
     #
@@ -653,9 +658,12 @@ module Tap
     #
     # ==== Alternate Inputs
     #
-    # If the input is an array, it will be processed into a hash by splitting
-    # the first argument like 'obj/sig' and then using all remaining arguments
-    # as args.  String inputs are converted into an array using Shellwords.
+    # If the input is an array, it will be processed into a hash by processing
+    # the first argument into an obj/sig and all remaining arguments as args.
+    # The basename of the first argument is the sig and all that precedes it
+    # is the obj.
+    #
+    # String inputs are converted into an array using Shellwords.
     def call(args)
       return self unless args
       
@@ -664,8 +672,9 @@ module Tap
       end
       
       if args.kind_of?(Array)
-        var, sig = args.shift.to_s.split("/")
-        args = {'obj' => var, 'sig' => sig, 'args' => args}
+        obj, sig = nil, args.shift.to_s
+        obj, sig = $1, $2 if sig =~ /\A(.*)\/(.*)\z/
+        args = {'obj' => obj, 'sig' => sig, 'args' => args}
       end
       
       obj = args['obj']

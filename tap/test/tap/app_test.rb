@@ -584,6 +584,29 @@ class AppTest < Test::Unit::TestCase
     assert_equal ["a", "b", "c", "echo"], app.call(["var/echo", "a", "b", "c"])
   end
   
+  def test_call_interprets_obj_as_all_preceding_first_slash
+    obj = AppObject.new
+    app.set('a', obj)
+    app.set('a/b', obj)
+    
+    assert_equal app.info, app.call("info")
+    
+    err = assert_raises(RuntimeError) { app.call("a") }
+    assert_equal "unknown signal: a (Tap::App)", err.message
+    
+    assert_equal ["echo"], app.call("a/echo")
+    assert_equal ["b", "c", "d", "echo"], app.call("a/echo b c d")
+    
+    assert_equal ["echo"], app.call("a/b/echo")
+    assert_equal ["c", "d", "e", "echo"], app.call("a/b/echo c d e")
+    
+    err = assert_raises(RuntimeError) { app.call("a/b/c/echo") }
+    assert_equal "unknown object: \"a/b/c\"", err.message
+    
+    err = assert_raises(RuntimeError) { app.call("/info") }
+    assert_equal "unknown object: \"\"", err.message
+  end
+  
   def test_call_raises_error_for_unknown_object
     err = assert_raises(RuntimeError) { app.call('obj' => 'missing') }
     assert_equal "unknown object: \"missing\"", err.message
