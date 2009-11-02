@@ -999,9 +999,6 @@ module Tap
       order.collect! {|obj| specs[obj] }.concat(signals)
     end
     
-    def associations
-    end
-    
     def to_spec
       schema = to_schema(false)
       spec = schema.shift
@@ -1044,26 +1041,29 @@ module Tap
         return order
       end
       
-      # check the object satisfies the api
-      unless obj.respond_to?(:to_spec) && obj.respond_to?(:associations)
+      # check the object can be serialized
+      unless obj.respond_to?(:to_spec)
         warn "cannot serialize: #{obj}"
         return order
       end
-      
-      specs[obj] = obj == self ? self_spec : obj.to_spec
+      specs[obj] = obj == self ? self_to_spec : obj.to_spec
       
       # trace references; refs must exist before obj and
       # obj must exist before brefs (back-references)
-      refs, brefs = obj.associations
+      if obj.respond_to?(:associations)
+        refs, brefs = obj.associations
       
-      refs.each {|ref| trace(ref, specs, order) } if refs
-      order << obj
-      brefs.each {|bref| trace(bref, specs, order) } if brefs
+        refs.each {|ref| trace(ref, specs, order) } if refs
+        order << obj
+        brefs.each {|bref| trace(bref, specs, order) } if brefs
+      else
+        order << obj
+      end
       
       order
     end
     
-    def self_spec # :nodoc:
+    def self_to_spec # :nodoc:
       config = self.config.to_hash {|hash, key, value| hash[key.to_s] = value }
       {'config' => config, 'self' => true}
     end

@@ -76,6 +76,8 @@ This is a stub outlining the application interface:
     def to_spec
     end
     
+    # (optional)
+    
     # Takes no inputs and returns a nested array of workflow objects 
     # associated with self (ex input/output nodes for a join).  The
     # array should be structured like [refs, brefs], where refs are
@@ -92,8 +94,6 @@ This is a stub outlining the application interface:
     # Nil is a valid return for associations, indicating no associations.
     def associations
     end
-    
-    # (optional)
     
     # Takes a signal name and returns an object that responds to call.
     # Signals are a generalized way to trigger some action on an object.
