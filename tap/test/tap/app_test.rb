@@ -325,6 +325,50 @@ class AppTest < Test::Unit::TestCase
     assert_nil App::State.state_str(12)
   end
   
+  #
+  # build test
+  #
+  
+  def test_build_initializes_new_app
+    instance = App.build
+    assert_equal false, instance.equal?(app)
+    assert_equal App, instance.class
+    assert_equal({}, instance.objects)
+  end
+  
+  def test_build_builds_on_app_if_self_is_true
+    assert_equal false, app.verbose
+    
+    instance = App.build({'config' => {'verbose' => true}, 'self' => true}, app)
+    assert_equal true, instance.equal?(app)
+    
+    assert_equal true, app.verbose
+  end
+  
+  def test_build_sets_config_and_builds_schema
+    instance = App.build(
+      'config' => {'verbose' => true},
+      'schema' => [{'var' => 'app', 'class' => 'Tap::App', 'self' => 'true'}]
+    )
+    assert_equal false, instance.equal?(app)
+    assert_equal true, instance.verbose
+    assert_equal({'app' => instance}, instance.objects)
+  end
+  
+  def test_build_collects_garbage
+    instance = App.build(
+      'config' => {'verbose' => true},
+      'schema' => [
+        {'var' => 'a', 'class' => 'Tap::App', 'self' => 'true'},
+        {'var' => 'b', 'class' => 'Tap::App', 'self' => 'true'},
+        {'var' => 1, 'class' => 'Tap::App', 'self' => 'true'},
+        {'var' => 2, 'class' => 'Tap::App', 'self' => 'true'}
+      ]
+    )
+    
+    assert_equal({'a' => instance, 'b' => instance}, instance.objects)
+  end
+  
   # 
   # initialization tests
   #
