@@ -160,20 +160,16 @@ module Tap
       
       # Same as parse, but removes arguments destructively.
       def parse!(argv=ARGV, app=Tap::App.instance) # :yields: opts
-        opts = parser
+        parser = self.parser
         
         # (note defaults are not added so they will not
         # conflict with string keys from a config file)
-        argv = opts.parse!(argv, :add_defaults => false)
-        enque = opts.config.delete('enque')
-        instance = build({'config' => opts.nested_config}, app)
+        argv = parser.parse!(argv, :add_defaults => false)
+        enque = parser.config.delete('enque')
+        instance = build({'config' => parser.nested_config}, app)
         
-        if enque
-          instance.enq(*argv)
-          argv = nil
-        end
-        
-        [instance, argv]
+        instance.enq(*argv) if enque
+        instance
       end
       
       # Recursively loads path into a nested configuration file.

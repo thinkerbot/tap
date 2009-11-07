@@ -20,7 +20,6 @@ class JoinTest < Test::Unit::TestCase
   #
   
   def test_parse_initializes_with_config_specified_by_modifier
-
     join, args = Join.parse([])
     assert_equal false, join.iterate
     

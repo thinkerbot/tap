@@ -179,10 +179,7 @@ goodnight moon
 % tap run -- load 'goodnight moon' -- dump --[0][1]
 goodnight moon
 }
-    sh_test %Q{
-% tap run -- load --enque 'goodnight moon' --: dump
-goodnight moon
-}
+
     sh_test %Q{
 % tap run -e -- load --enque 'goodnight moon' --: dump
 goodnight moon
@@ -249,22 +246,32 @@ c
   def test_require_enque_prevents_auto_enque
     sh_test %Q{
 % tap run --require-enque -- load a -- load b --enque -- dump --[0,1][2] --/0/enq c 2>&1
-ignoring args: ["a"]
 b
 c
 }
   end
   
-  def test_run_notifies_unused_args
+  def test_run_notifies_unused_args_in_debug_mode
     sh_test %Q{
-% tap run -- load a --[0][0] 2>&1
+% tap run -- load a --[0][0] -- load b 2>&1
+}
+
+    sh_test %Q{
+% tap run -d -- load a --[0][0] -- load b 2>&1
 ignoring args: ["a"]
+}
+
+    sh_test %Q{
+% tap run -e -d -- load a --[0][0] -- load b 2>&1
+ignoring args: ["a"]
+ignoring args: ["b"]
 }
   end
   
-  def test_auto_enque_does_not_conflict_with_manual_enque
+  def test_auto_enque_doubles_up_manual_enque
     sh_test %Q{
 % tap run -- load a --enque --: dump
+a
 a
 }
   end

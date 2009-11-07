@@ -5,6 +5,7 @@ require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
 require 'tap/env'
+require 'shellwords'
 
 module Tap
   
@@ -383,14 +384,14 @@ module Tap
         @instance = app
       end
       
-      def build(spec={}, app=instance)
+      def build(spec={}, app=nil)
         config = spec['config'] || {}
         schema = spec['schema'] || []
         
-        app = if spec['self']
+        if spec['self']
           app.reconfigure(config)
         else
-          new(config)
+          app = new(config)
         end
         
         schema.each do |args|
@@ -606,6 +607,11 @@ module Tap
       var.nil? ? self : objects[var]
     end
     
+    # Same as get, but raises an error if no object is set to the variable.
+    def obj(var)
+      get(var) or raise "no object set to: #{var.inspect}"
+    end
+    
     # Returns the variable for the object.  If the object is not assigned to a
     # variable and auto_assign is true, then the object is set to an unused
     # variable and the new variable is returned.
@@ -722,13 +728,23 @@ module Tap
         raise "unresolvable constant: #{spec['class'].inspect}"
       end
       
-      method = args.kind_of?(Hash) ? :build : :parse!
-      obj, args = klass.send(method, args, self)
+      method = case
+      when args.kind_of?(Hash)
+        :build
+      when klass.respond_to?(:parse!)
+        :parse!
+      when klass.respond_to?(:parse)
+        :parse
+      else
+        raise "cannot build: #{klass}"
+      end
+      
+      obj = klass.send(method, args, self)
       
       vars = [vars] unless vars.kind_of?(Array)
       vars.each {|var| set(var, obj) }
       
-      [obj, args]
+      obj
     end
     
     # Enques the application object specified by var with args.  Raises

@@ -668,9 +668,33 @@ class AppTest < Test::Unit::TestCase
   # build test
   #
   
-  class BuildClass < Tap::App::Api
-    def self.minikey; "klass"; end
+  class BuildClass < App::Api
+    class << self
+      def build(spec, app)
+        obj = super
+        obj.build_method ||= :build
+        obj
+      end
+      
+      def parse(argv, app)
+        obj, args = super
+        obj.build_method ||= :parse
+        [obj, args]
+      end
+      
+      def parse!(argv, app)
+        obj, args = super
+        obj.build_method ||= :parse!
+        [obj, args]
+      end
+      
+      def minikey
+        "klass"
+      end
+    end
+    
     config :key, 'value'
+    attr_accessor :build_method
   end
   
   def test_build_instantiates_class_as_resolved_by_env
@@ -679,6 +703,14 @@ class AppTest < Test::Unit::TestCase
     obj, args = app.build('class' => 'klass')
     assert_equal BuildClass, obj.class
     assert_equal 'value', obj.key
+    assert_equal app, obj.app
+  end
+  
+  def test_build_uses_build_method
+    app.env = {'klass' => BuildClass}
+    
+    obj, args = app.build('class' => 'klass')
+    assert_equal :build, obj.build_method
   end
   
   def test_build_raises_error_for_unresolvable_class
@@ -712,15 +744,6 @@ class AppTest < Test::Unit::TestCase
       'class' => 'klass',
       'spec' => "--key alt")
     assert_equal 'alt', obj.key
-  end
-  
-  def test_build_returns_remaining_args
-    app.env = {'klass' => BuildClass}
-    
-    obj, args = app.build(
-      'class' => 'klass',
-      'spec' => "a --key alt b c")
-    assert_equal ["a", "b", "c"], args
   end
   
   def test_build_stores_obj_by_var_if_specified

@@ -39,28 +39,20 @@ stack using the same call API.
 
 In addition to the APIs for individual workflow objects, Tap defines an
 application API allowing objects to be created and modified from user
-interfaces such as the command line. The application API is distinct from the
-object APIs, although it is typical to implement the application API in on top
-of an object API.
+interfaces such as a web application or the command line. The application API
+is distinct from the object APIs, although it is typical to implement the
+application API in on top of an object API.
 
 Tap::App::Api implements the application interface in a general way and is the
 baseclass for Tap::Task, Tap::Join, and Tap::Middleware. The basic idea behind
-the application interface is to allow instantiation of a class from an array
-(as from the command line) or a hash (as from HTTP request parameters). The
-interface also allows instances to serialize as a {JSON}[http://json.org/]
-hash. The hash is referred to as a specification.
+the application interface is to allow instantiation of a class from a hash and
+conversion of an instance into a hash. The hash is referred to as a
+specification and must be serializable as {JSON}[http://json.org/].
 
 This is a stub outlining the application interface:
 
   class Stub
     class << self
-      
-      # Parse takes an argument vector (an array, usually from the command
-      # line) and returns an instance of self.  parse! is allowed to
-      # destructively remove arguments from argv.
-      def parse!(argv=ARGV, app=Tap::App.instance)
-      end
-      
       # Build takes a specification hash and returns an instance of self.
       # The spec must be serializable as JSON.
       def build(spec={}, app=Tap::App.instance)
@@ -75,45 +67,66 @@ This is a stub outlining the application interface:
     # Users can determine for themselves what constitutes 'likeness'.
     def to_spec
     end
+  end
+
+The application API reserves several additional methods that do not need to be
+implemented but add functionality for specific, common use cases. If they are
+present they must adhere to these specifications.
+
+  # Optional methods #
+  class Stub
+    class << self
+      # Parse takes an argument vector (an array, usually from the command
+      # line) and returns an instance of self.  Parse cannot modify argv.
+      def parse(argv=ARGV, app=Tap::App.instance)
+      end
+      
+      # Same as parse, but able to modify argv.
+      def parse!(argv=ARGV, app=Tap::App.instance)
+      end
+    end
     
-    # (optional)
+    # Takes a signal name and returns an object that responds to call; calling
+    # call on the object invokes the signal actions.
+    def signal(sig)
+    end
     
-    # Takes no inputs and returns a nested array of workflow objects 
-    # associated with self (ex input/output nodes for a join).  The
-    # array should be structured like [refs, brefs], where refs are
-    # references to objects that must be built BEFORE self and brefs are
-    # back-references to objects that must be built AFTER self.
+    # Returns a nested array of workflow objects associated with self (ex 
+    # input/output nodes for a join).  The array should be structured like
+    # [refs, brefs], where refs are references to objects that must be built
+    # BEFORE self and brefs are back-references to objects that must be built
+    # AFTER self.
     #
     # For example, nodes must be built before joins.  As such, nodes return
-    # brefs for each of the joins and joins return refs to their input and
-    # output nodes:
+    # brefs for each of the joins. Similarly, joins return refs to their input 
+    # and output nodes:
     #
     #   node.associations       # => [nil, join]
     #   join.associations       # => [inputs + outputs, nil]
     #
-    # Nil is a valid return for associations, indicating no associations.
+    # Nil is also a valid return for associations, indicating no associations.
     def associations
-    end
-    
-    # Takes a signal name and returns an object that responds to call.
-    # Signals are a generalized way to trigger some action on an object.
-    # See Tap::Signals for more details.
-    def signal(sig)
     end
   end
 
+The parse methods are used for building objects from interfaces that provide
+an array of inputs (ex the command line) rather a hash; without them objects
+are effectively excluded from use within these interfaces. Signals are used to
+interact with objects from a user interface. Objects without a signal method
+cannot receive signals. The associations method is used to order complex
+builds and is described below.
+
 === Spec References
 
-Resource specifications often require references to other resources, as when a
-join refers to input and output nodes. To satisfy the requirement that these
-references are serializable as JSON, specify the references as string
-variables and resolve them internally to other objects. Apps are constructed
-to do this easily via the +obj+ and +var+ methods:
+Specifications often require references to other resources, as when a join
+refers to input and output nodes. These references are normally specified as
+variables to ensure the specification is serializable as JSON. Apps are
+constructed to do this easily via the +obj+ and +var+ methods:
 
   class Sample
     class << self
       def build(spec={}, app=Tap::App.instance)
-        object = app.get(spec['key'])    # lookup an object from the spec
+        object = app.obj(spec['key'])    # lookup an object from the spec
         new(object)
       end
     end
@@ -131,10 +144,16 @@ to do this easily via the +obj+ and +var+ methods:
     end
   end
 
-The associations array allows apps to determine the correct build order for
-references. In the example the @object reference must be built before the
-Sample instance, hence the associations array returns a ref (rather than a
-bref) to @object.
+Using this technique the spec always will have a serializable variable
+representing the object and the app will be able to properly schematize and
+rebuild the Sample instance and all its references. Apps use the associations
+array to determine the correct build order for references. In the example the
+@object reference must be built before the Sample instance, hence the
+associations array returns a ref (rather than a bref) to @object.
+
+Note that only application objects may be stored this way; non-application
+objects must be serialized and deserialized by the build/to_spec methods
+internally.
 
 === Resource Identifiers
 

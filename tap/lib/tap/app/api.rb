@@ -104,8 +104,9 @@ module Tap
         # Same as parse, but removes arguments destructively.
         def parse!(argv=ARGV, app=Tap::App.instance)
           parser = self.parser
-          args = parser.parse!(argv, :add_defaults => false)
-          [build({'config' => parser.nested_config}, app), args]
+          parser.parse!(argv, :add_defaults => false)
+          
+          build({'config' => parser.nested_config}, app)
         end
       
         # Returns an instance of self.  By default build calls new with the

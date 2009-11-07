@@ -220,24 +220,21 @@ module Tap
         if type == :signal
           app.call('obj' => var, 'sig' => sig, 'args' => args)
         else
-          array = app.build('var' => var, 'class' => sig, 'spec' => args)
-          obj, args = array
+          obj = app.build('var' => var, 'class' => sig, 'spec' => args)
           
           if auto_enque
             case type
             when :node
               queue.enq(obj, args)
-              jobs[obj] = array
+              jobs[obj] = [obj, args]
             when :join
               deque.concat(obj.outputs)
             end if args
           else
-            if args && !args.empty?
-              warn "ignoring args: #{args.inspect}"
-            end
+            warn_ignored_args(args) if app.debug?
           end
           
-          array
+          obj
         end
       end
       
@@ -249,9 +246,7 @@ module Tap
         
         deque.uniq.each do |obj|
           obj, args = current.delete(jobs[obj])
-          unless args.empty?
-            warn "ignoring args: #{args.inspect}"
-          end
+          warn_ignored_args(args) if app.debug?
         end
         
         current.each do |array|
@@ -350,6 +345,13 @@ module Tap
     def parse_signal(one) # :nodoc:
       var, sig = one.to_s.split("/")
       spec(:signal, var, sig)
+    end
+    
+    # warns of ignored args
+    def warn_ignored_args(args) # :nodoc:
+      if args && !args.empty?
+        warn "ignoring args: #{args.inspect}"
+      end
     end
   end
 end
