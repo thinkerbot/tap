@@ -100,7 +100,10 @@ prompt = lambda do
   loop do
     begin
       line = Readline.readline('--/', true)
-      result = app.call(line)
+      args = Shellwords.shellwords(line)
+      "/#{args.shift}" =~ Tap::Parser::SIGNAL
+      
+      result = app.call('obj' => $1, 'sig' => $2, 'args' => args)
       if result == app
         break
       else

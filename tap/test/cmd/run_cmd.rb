@@ -124,7 +124,7 @@ unresolvable constant: "unknown"
 }
 
     sh_test %Q{
-% tap run --//build 0 unknown
+% tap run --/build 0 unknown
 unresolvable constant: "unknown"
 }
 
@@ -278,41 +278,24 @@ a
   
   def test_run_using_signals
     sh_test %Q{
-% tap run --//build 0 load --//build 1 dump --//build 2 join 0 1 --//enque 0 'goodnight moon'
+% tap run --/build 0 load --/build 1 dump --/build 2 join 0 1 --/enque 0 'goodnight moon'
 goodnight moon
 }
     sh_test %Q{
-% tap run --// 0 load --// 1 dump --// 2 join 0 1 --/0/enq 'goodnight moon'
-goodnight moon
-}
-
-    sh_test %Q{
-% tap run -e -- load --enque 'goodnight moon' -- dump --//build 2 join --/2/join 0 1 
-goodnight moon
-}
-
-    sh_test %Q{
-% tap run --//enque app "/build 0 dump --enque 'goodnight moon'"
+% tap run -e -- load --enque 'goodnight moon' -- dump --/build 2 join --/2/join 0 1 
 goodnight moon
 }
   end
   
-  def test_run_allows_the_use_of_app_as_a_node
-    method_root.prepare(:lib, 'null.rb') do |io|
-      io << %q{
-        require 'tap/task'
-
-        # ::task
-        class Null < Tap::Task
-          def joins
-          end
-        end
-      }
-    end
-
+  def test_signals_correctly_handle_args
     sh_test %Q{
-% tap run -- dump --: null --[app][0] --//enque app /info
-state: 1 (RUN) queue: 0
+% tap run -- dump a b c
+wrong number of arguments (3 for 1)
+}
+    
+    sh_test %Q{
+% tap run --/build 0 dump --/enque 0 a b c
+wrong number of arguments (3 for 1)
 }
   end
   
@@ -336,7 +319,7 @@ state: 1 (RUN) queue: 0
     end
     
     sh_test %Q{
-% tap run -- load 'goodnight moon' --: dump --//use middleware
+% tap run -- load 'goodnight moon' --: dump --/use middleware
 Tap::Tasks::Load
 Tap::Tasks::Dump
 goodnight moon

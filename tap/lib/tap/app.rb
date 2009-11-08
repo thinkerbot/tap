@@ -377,11 +377,7 @@ module Tap
       # by the tap executable.
       def setup(dir=Dir.pwd)
         env = Env.setup(dir)
-        app = new(:env => env)
-        
-        app.set('', app)
-        app.set('app', app)
-        @instance = app
+        @instance = new(:env => env)
       end
       
       def build(spec={}, app=nil)
@@ -662,27 +658,7 @@ module Tap
     #
     # Call returns the result of the signal call.
     #
-    # ==== Alternate Inputs
-    #
-    # If the input is an array, it will be processed into a hash by processing
-    # the first argument into an obj/sig and all remaining arguments as args.
-    # The basename of the first argument is the sig and all that precedes it
-    # is the obj.
-    #
-    # String inputs are converted into an array using Shellwords.
     def call(args)
-      return self unless args
-      
-      if args.kind_of?(String)
-        args = Shellwords.shellwords(args)
-      end
-      
-      if args.kind_of?(Array)
-        obj, sig = nil, args.shift.to_s
-        obj, sig = $1, $2 if sig =~ /\A(.*)\/(.*)\z/
-        args = {'obj' => obj, 'sig' => sig, 'args' => args}
-      end
-      
       obj = args['obj']
       sig = args['sig']
       args = args['args'] || args
@@ -775,7 +751,7 @@ module Tap
     end
     
     # Clears objects, the queue, and resets the stack so that no middleware
-    # is used.  Reset raises an error unless state == State::READY.
+    # is used.  Reset raises an error unless state is READY.
     def reset
       synchronize do
         unless state == State::READY

@@ -125,10 +125,12 @@ module Tap
     
     # Matches a signal break. After the match:
     #
-    #   $1:: The modifier string, or nil
-    #        (ex: '/var' => 'var')
+    #   $1:: The object string, or nil
+    #        (ex: 'obj/sig' => 'obj')
+    #   $2:: The signal string
+    #        (ex: 'obj/sig' => 'sig')
     #
-    SIGNAL = /\A\/(.+)?\z/
+    SIGNAL = /\A\/(?:(.*)\/)?(.*)\z/
     
     attr_reader :specs
     
@@ -284,7 +286,7 @@ module Tap
       when ENQUE
         parse_enque($1)
       when SIGNAL
-        parse_signal($1)
+        parse_signal($1, $2)
       else
         raise "invalid modifier"
       end
@@ -342,9 +344,8 @@ module Tap
     end
     
     # parses the match of a SIGNAL regexp
-    def parse_signal(one) # :nodoc:
-      var, sig = one.to_s.split("/")
-      spec(:signal, var, sig)
+    def parse_signal(one, two) # :nodoc:
+      spec(:signal, one, two)
     end
     
     # warns of ignored args

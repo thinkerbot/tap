@@ -37,23 +37,23 @@ class PromptCmd < Test::Unit::TestCase
   
   def test_basic_prompt
     prompt_test %q{
---//info
+--/info
 => state: 1 (RUN) queue: 0
---//stop
+--/stop
 }
   end
-  
+
   def test_build_from_prompt
     prompt_test %q{
---// 0 load
+--/build 0 load
 => #<Tap::Tasks::Load:...:>
---// 1 dump
+--/build 1 dump
 => #<Tap::Tasks::Dump:...:>
---// 2 join 0 1
+--/build 2 join 0 1
 => #<Tap::Join:...:>
 --/0/enq 'goodnight moon'
 => #<Tap::Tasks::Load:...:>
---//run
+--/run
 goodnight moon
 }
   end

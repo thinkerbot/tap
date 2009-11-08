@@ -157,11 +157,25 @@ class ParserTest < Test::Unit::TestCase
   def test_SIGNAL_regexp
     r = Parser::SIGNAL
     
-    assert "/var" =~ r
-    assert_equal "var", $1
+    assert "/nest/obj/sig" =~ r
+    assert_equal "nest/obj", $1
+    assert_equal "sig", $2
+    
+    assert "/obj/sig" =~ r
+    assert_equal "obj", $1
+    assert_equal "sig", $2
+    
+    assert "//sig" =~ r
+    assert_equal "", $1
+    assert_equal "sig", $2
+    
+    assert "/sig" =~ r
+    assert_equal nil, $1
+    assert_equal "sig", $2
     
     assert "/" =~ r
     assert_equal nil, $1
+    assert_equal "", $2
     
     # non-matching
     assert "str" !~ r
@@ -346,13 +360,17 @@ class ParserTest < Test::Unit::TestCase
     parser.parse  "--/variable/signal a b c"
     parser.parse  "--/variable/ a b c"
     parser.parse  "--//signal a b c"
+    parser.parse  "--/signal a b c"
     parser.parse  "--// a b c"
+    parser.parse  "--/ a b c"
     
     assert_equal [
       [:signal, "variable", "signal", "a", "b", "c"],
-      [:signal, "variable", nil, "a", "b", "c"],
+      [:signal, "variable", "", "a", "b", "c"],
       [:signal, "", "signal", "a", "b", "c"],
-      [:signal, nil, nil, "a", "b", "c"],
+      [:signal, nil, "signal", "a", "b", "c"],
+      [:signal, "", "", "a", "b", "c"],
+      [:signal, nil, "", "a", "b", "c"]
     ], parser.specs
   end
 end
