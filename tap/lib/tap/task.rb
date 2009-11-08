@@ -159,7 +159,7 @@ module Tap
       end
       
       # Same as parse, but removes arguments destructively.
-      def parse!(argv=ARGV, app=Tap::App.instance) # :yields: opts
+      def parse!(argv=ARGV, app=Tap::App.instance)
         parser = self.parser
         
         # (note defaults are not added so they will not

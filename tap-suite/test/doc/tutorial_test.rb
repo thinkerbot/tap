@@ -211,8 +211,8 @@ class Goodnight < Tap::Task
   end
 end
 
-instance, args = Goodnight.parse!(ARGV)
-instance.execute(args)
+instance = Goodnight.parse!(ARGV)
+instance.execute(ARGV)
 }
     end
     

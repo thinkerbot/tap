@@ -18,14 +18,14 @@ module Rap
   class Rake < Tap::Task
     class << self
       
-      def parse!(argv, app=Tap::App.instance) # => instance, argv
+      def parse!(argv, app=Tap::App.instance)
         if argv.include?('--help')
           puts help
           exit
         end
         argv.collect! {|arg| arg == '--rake-help' ? '--help' : arg}
         
-        [new({}, app), argv]
+        new({}, app)
       end
       
       # Returns true if Rake detects a rakefile.

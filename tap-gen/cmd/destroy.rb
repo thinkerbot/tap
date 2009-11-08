@@ -22,6 +22,6 @@ if ARGV.empty? || ARGV == ['--help']
   exit(1)
 end
 
-generator, args = app.build('class' => ARGV.shift, 'spec' => ARGV)
+generator = app.build('class' => ARGV.shift, 'spec' => ARGV)
 generator.signal(:set).call([Tap::Generator::Destroy])
-generator.call(*args)
+generator.call(*ARGV)

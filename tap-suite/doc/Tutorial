@@ -247,8 +247,8 @@ This is a stand-alone goodnight script:
     end
   end
 
-  instance, args = Goodnight.parse!(ARGV)
-  instance.execute(args)
+  instance = Goodnight.parse!(ARGV)
+  instance.execute(ARGV)
   
 Now, from the command line:
 

@@ -86,13 +86,18 @@ module Rap
       #   B world
       #
       def parse!(argv=ARGV, app=Tap::App.instance)
-        instance, args = super
+        parser = self.parser
         
-        # store args on instance and clear so that instance
-        # will not be enqued with any inputs
-        instance.args = args
+        argv = parser.parse!(argv, :add_defaults => false)
+        enque = parser.config.delete('enque')
+        instance = build({'config' => parser.nested_config, 'args' => argv.dup}, app)
         
-        [instance, []]
+        # enque with no inputs to satisfy call, and
+        # clear argv so auto-enque will do the same
+        instance.enq if enque
+        argv.clear
+        
+        instance
       end
       
       # Instantiates the instance of self for app and reconfigures it as
