@@ -40,7 +40,7 @@ when '--help', nil, '-T'
   tasks = constants.summarize do |constant|
     constant.types['task'] or begin
       const = constant.constantize(false)
-      const && const.desc.kind_of?(Rap::Description) ? const.desc.desc : nil
+      const && const.respond_to?(:desc) && const.desc.kind_of?(Rap::Description) ? const.desc.desc : nil
     end
   end
 
