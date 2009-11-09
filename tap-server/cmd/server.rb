@@ -29,12 +29,8 @@ end
 # conflict with string keys from a config file)
 args = opts.parse!(ARGV, :clear_config => false, :add_defaults => false)
 
-if args.empty?
-  args << 'app'
-end
-
 server = Tap::Server.new(opts.nested_config)
-server.bind(app.env[args.shift])
+server.bind(args.shift || 'tap-server:server')
 
 unless args.empty?
   warn "ignoring args: #{args.inspect}"

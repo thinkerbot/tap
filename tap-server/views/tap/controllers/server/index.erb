@@ -3,40 +3,17 @@
 </div>
 
 <div id="content_main">
-<ol id="envs" class="manifest">
-<% env_keys = server.env.minihash(true) %>
-<% server.env.each do |env| %>
-<%   root = env.root %>
-<%   env_key = env_keys[env] %>
-<%   controllers = env.manifest(:controller) %>
-<%   tasks = env.manifest(:task) %>
-<%   next if controllers.empty? && tasks.empty? %>
+<ol id="envs" class="manifest"><% manifests.each do |(env_key, types)| %>
+<li>
+  <h2><%= env_key %></h2>
+  <ul><% types.each do |(type, minimap)| %>
   <li>
-    <h2><%= env_key %></h2>
-    <ul>
-<%   unless controllers.empty? %>
-    <li>
-      <h3>controllers</h3>
-      <ul>
-<%     controllers.minimap.each do |(key, const)| %>
-      <li><a href="<%= escape(key) %>"><%= key %></a> (<a href="<%= help_uri('controller', key) %>">?</a>)</li>
-<%     end %>
-      </ul>
-    </li>
-<%   end %>
-
-<%   unless tasks.empty? %>
-    <li>
-      <h3>tasks</h3>
-      <ul>
-<%     tasks.minimap.each do |(key, const)| %>
-      <li><%= key %> (<a href="<%= help_uri('task', key) %>">?</a>)</li>
-<%     end %>
-      </ul>
-    </li>
-<%   end %>
+    <h3><%= type %></h3>
+    <ul><% minimap.each do |key, entry| %>
+    <li><%= key %> (<a href="help/<%= key %>">?</a>)</li><% end %>
     </ul>
-  </li>
-<% end %>
+  </li><% end %>
+  </ul>
+</li><% end %>
 </ol>
 </div>

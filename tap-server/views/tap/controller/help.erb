@@ -2,8 +2,10 @@
 
 <ul>
 <li class="source_file">
-  <h2>Source File</h2>
-  <p><%= obj.source_file %><p>
+  <h2>Registered As</h2>
+  <ul><% Lazydoc::Document[obj.to_s].each_pair do |type, comment| %>
+  <li><%= type %> (<%= comment.document.source_file %>)</li><% end %>
+  </ul>
 </li>
 <li>
   <h2>Summary</h2>

@@ -13,7 +13,7 @@ module Tap
       :long => :server, 
       &c.list 
   
-    config :host, '127.0.0.1', &c.string              # the server host
+    config :host, '127.0.0.1', &c.string            # the server host
     config :port, 8080, &c.integer_or_nil           # the server port
     
     # Server implements a secret for HTTP administration of the server (ex
@@ -27,6 +27,7 @@ module Tap
     nest :data, Data, :type => :hidden
     
     attr_reader :app
+    attr_reader :controller
     
     def initialize(config={}, app=Tap::App.instance, &block)
       @handler = nil
@@ -41,6 +42,17 @@ module Tap
     end
     
     def bind(controller)
+      if controller.kind_of?(String)
+        unless const = app.env[controller]
+          raise "unknown controller: #{controller.inspect}"
+        end
+        return bind(const)
+      end
+      
+      unless controller.respond_to?(:call)
+        raise "invalid controller: #{controller.inspect}"
+      end
+      
       @controller = controller
       self
     end
@@ -56,11 +68,6 @@ module Tap
     def call(rack_env)
       # handle the request
       rack_env['tap.server'] = self
-      
-      unless controller = route(rack_env)
-        raise ServerError.new("404 Error: could not route to controller", 404)
-      end
-      
       controller.call(rack_env)
     rescue ServerError
       $!.response
@@ -96,25 +103,6 @@ module Tap
     end
     
     protected
-    
-    def route(rack_env) # :nodoc:
-      # route to a controller
-      blank, path, path_info = rack_env['PATH_INFO'].split("/", 3)
-      constant = env ? env.constants.seek(unescape(path)) : nil
-      
-      if constant
-        # adjust rack_env if route routes to a controller
-        rack_env['SCRIPT_NAME'] = ["#{rack_env['SCRIPT_NAME'].chomp('/')}/#{path}"]
-        rack_env['PATH_INFO'] = ["/#{path_info}"]
-        rack_env['tap.controller_path'] = path
-        
-        constant.unload if development
-        constant.constantize
-      else
-        # use default controller
-        @controller
-      end
-    end
     
     # Looks up and returns the first available Rack::Handler as listed in the
     # servers configuration. (Note rack_handler returns a handler class, not

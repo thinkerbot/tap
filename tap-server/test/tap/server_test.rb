@@ -60,49 +60,4 @@ class ServerTest < Test::Unit::TestCase
     assert_equal({'Content-Type' => 'text/plain'}, res.headers)
     assert_equal "msg", res.body
   end
-  
-  #
-  # routed calls
-  #
-  
-  class RegisteredController
-    def self.call(env)
-      headers = {'script_name' => env['SCRIPT_NAME'], 'path_info' => env['PATH_INFO']}
-      [200, headers, ['result']]
-    end
-  end
-  
-  def test_call_routes_to_registered_controller
-    server.env.register(RegisteredController)
-    assert_equal "result", request.get('/registered_controller').body
-  end
-  
-  def test_call_adjusts_env_to_reflect_reroute
-    server.env.register(RegisteredController)
-    
-    headers = request.get("/registered_controller").headers
-    assert_equal ["/registered_controller"], headers['script_name']
-    assert_equal ["/"], headers['path_info']
-    
-    headers = request.get("/registered_controller/path").headers
-    assert_equal ["/registered_controller"], headers['script_name']
-    assert_equal ["/path"], headers['path_info']
-  end
-  
-  def test_call_correctly_routes_path_info_with_escapes
-    server.env.register(RegisteredController)
-    
-    headers = request.get("/%72egistered_controller/a%2Bb/c%20d")
-    assert_equal ["/%72egistered_controller"], headers['script_name']
-    assert_equal ["/a%2Bb/c%20d"], headers['path_info']
-  end
-  
-  def test_call_returns_404_when_no_controller_can_be_found
-    server = Server.new
-    request = Rack::MockRequest.new(server)
-    
-    res = request.get('/unknown')
-    assert_equal 404, res.status
-    assert_equal "404 Error: could not route to controller", res.body
-  end
 end

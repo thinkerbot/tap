@@ -16,7 +16,24 @@ module Tap
       include Utils
       
       def index
-        render('index.erb', :layout => true)
+        env = server.env
+        env_keys = env.minihash(true) 
+        constants = env.constants
+        manifests = env.collect do |current|
+          types = {}
+          constants.entries(current).minimap.each do |key, const|
+            const.types.keys.each do |type|
+              (types[type] ||= []) << [key, const]
+            end
+          end
+          
+          types = types.to_a.sort_by {|type, minimap| type }
+          types.empty? ? nil : [env_keys[current], types]
+        end 
+        
+        render 'index.erb', :locals => {
+          :manifests => manifests.compact
+        }, :layout => true
       end
       
       # Returns pong
@@ -55,11 +72,12 @@ module Tap
         end
       end
       
-      def help(type=nil, *key)
-        if constant = server.env[type][key.join('/')]
-          module_render 'help.erb', constant
+      def help(*key)
+        if constant = server.env[key.join('/')]
+          path = module_path('help.erb', constant)
+          render :file => path, :locals => {:obj => constant}
         else
-          "unknown #{type}: #{key.join('/')}"
+          "unknown constant: #{key.join('/')}"
         end
       end
       
@@ -68,11 +86,31 @@ module Tap
       
       def call(rack_env)
         server = rack_env['tap.server']
-        path = server.env.path(:public, rack_env['PATH_INFO']) {|file| File.file?(file) }
-        if path
-          static_file(path)
+        env = server ? server.env : nil
+        path_info = rack_env['PATH_INFO']
+        
+        # serve static files
+        path = env.path(:public, path_info) {|file| File.file?(file) }
+        return static_file(path) if path
+        
+        # route to a controller
+        blank, path, path_info = path_info.split("/", 3)
+        constant = env ? env.constants.seek(unescape(path)) : nil
+
+        if constant
+          # adjust rack_env if route routes to a controller
+          rack_env['SCRIPT_NAME'] = "#{rack_env['SCRIPT_NAME'].chomp('/')}/#{path}"
+          rack_env['PATH_INFO'] = "/#{path_info}"
+          rack_env['tap.controller_path'] = path
+
+          constant.unload if server.development
+          controller = constant.constantize
+          controller == Server ? super : controller.call(rack_env)
         else
-          super
+          response = Rack::Response.new
+          response.status = 302
+          response['Location'] = ["/server#{rack_env['PATH_INFO']}".chomp("/")]
+          response.finish
         end
       end
       
@@ -88,15 +126,20 @@ module Tap
       end
       
       # Returns a help uri for the specified resource, currently only sketched out.
-      def help_uri(type, key)
-        uri("help/#{type}/#{key}")
+      def help_uri(key)
+        uri("help/#{key}")
       end
       
-      # Stops the server.
-      def stop!
-        server.stop!
+      def template
+        %Q{<% if !minimap.empty? && count > 1 %>
+  <h2><%= env_key %></h2>
+  <li>
+    <ul><% minimap.each do |key, entry| %>
+    <li><%= key %> (<a href="help/<%= key %>">?</a>)</li><% end %>
+    </ul>
+  </li>
+<% end %>}
       end
-      
     end
   end
 end
