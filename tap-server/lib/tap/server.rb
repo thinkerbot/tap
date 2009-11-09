@@ -1,12 +1,20 @@
+require 'rack'
 require 'tap'
 require 'tap/server/data'
-require 'tap/server/runner'
 require 'tap/server/server_error'
 
 module Tap
   # ::configurable
   class Server
-    include Runner
+    include Rack::Utils
+    include Configurable
+
+    config :servers, %w[thin mongrel webrick],      # the server handlers
+      :long => :server, 
+      &c.list 
+  
+    config :host, '127.0.0.1', &c.string              # the server host
+    config :port, 8080, &c.integer_or_nil           # the server port
     
     # Server implements a secret for HTTP administration of the server (ex
     # remote shutdown). Under many circumstances this functionality is
@@ -16,24 +24,25 @@ module Tap
     
     config :development, false, &c.flag
     
-    config :router, true, &c.switch
-    
-    nest :app, Tap::App, :type => :hidden
-    
     nest :data, Data, :type => :hidden
     
-    attr_accessor :controller
+    attr_reader :app
     
-    attr_accessor :thread
-    
-    def initialize(controller=nil, config={})
-      @controller = controller
-      @thread = nil
-      super(config)
+    def initialize(config={}, app=Tap::App.instance, &block)
+      @handler = nil
+      @controller = block
+      
+      @app = app
+      initialize_config(config)
     end
     
     def env
       app.env
+    end
+    
+    def bind(controller)
+      @controller = controller
+      self
     end
     
     # Returns true if input is equal to the secret, if a secret is set. Used
@@ -43,27 +52,6 @@ module Tap
       secret != nil && input == secret
     end
     
-    def route(rack_env)
-      return controller unless router
-      
-      # route to a controller
-      blank, path, path_info = rack_env['PATH_INFO'].split("/", 3)
-      controller = lookup_controller(unescape(path))
-      
-      if controller
-        # adjust rack_env if route routes to a controller
-        rack_env['SCRIPT_NAME'] = ["#{rack_env['SCRIPT_NAME'].chomp('/')}/#{path}"]
-        rack_env['PATH_INFO'] = ["/#{path_info}"]
-      else
-        # use default controller
-        controller = self.controller
-        path = nil
-      end
-      
-      rack_env['tap.controller_path'] = path
-      controller
-    end
-
     # The {Rack}[http://rack.rubyforge.org/doc/] interface method.
     def call(rack_env)
       # handle the request
@@ -80,27 +68,66 @@ module Tap
       ServerError.response($!)
     end
     
-    def run!
-      super(self)
+    # Runs self as configured, on the specified server, host, and port.  Use an
+    # INT signal to interrupt.
+    def run!(handler=rack_handler)
+      return self if @handler
+    
+      handler.run(self, :Host => host, :Port => port) do |handler|
+        @handler = handler
+        trap(:INT) { stop! }
+        yield if block_given?
+      end
+    
+      self
+    end
+
+    # Stops the server if running (ie a handler is set).
+    def stop!
+      if @handler
+        # Use thins' hard #stop! if available, otherwise just #stop
+        @handler.respond_to?(:stop!) ? @handler.stop! : @handler.stop
+        @handler = nil
+      
+        yield if block_given?
+      end
+    
+      self
     end
     
     protected
     
-    def lookup_controller(key) # :nodoc:
-      if development
-        # unload the controller in development mode so that
-        # controllers will be reloaded each request
-          
-        env.reset
-        if const = env.seek(:controller, key)
-          const.unload
-          const.constantize
-        else
-          nil
-        end
+    def route(rack_env) # :nodoc:
+      # route to a controller
+      blank, path, path_info = rack_env['PATH_INFO'].split("/", 3)
+      constant = env ? env.constants.seek(unescape(path)) : nil
+      
+      if constant
+        # adjust rack_env if route routes to a controller
+        rack_env['SCRIPT_NAME'] = ["#{rack_env['SCRIPT_NAME'].chomp('/')}/#{path}"]
+        rack_env['PATH_INFO'] = ["/#{path_info}"]
+        rack_env['tap.controller_path'] = path
+        
+        constant.unload if development
+        constant.constantize
       else
-        env[:controller][key]
+        # use default controller
+        @controller
       end
+    end
+    
+    # Looks up and returns the first available Rack::Handler as listed in the
+    # servers configuration. (Note rack_handler returns a handler class, not
+    # an instance).  Adapted from Sinatra.detect_rack_handler
+    def rack_handler # :nodoc:
+      servers.each do |server_name|
+        begin
+          return Rack::Handler.get(server_name)
+        rescue LoadError
+        rescue NameError
+        end
+      end
+      raise "Server handler (#{servers.join(',')}) not found."
     end
   end
 end

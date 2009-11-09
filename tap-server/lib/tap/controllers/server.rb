@@ -67,7 +67,8 @@ module Tap
       set :define_action, false
       
       def call(rack_env)
-        path = rack_env['tap.server'].env.path(:public, rack_env['PATH_INFO']) {|file| File.file?(file) }
+        server = rack_env['tap.server']
+        path = server.env.path(:public, rack_env['PATH_INFO']) {|file| File.file?(file) }
         if path
           static_file(path)
         else

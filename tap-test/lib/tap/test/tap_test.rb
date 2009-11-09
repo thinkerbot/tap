@@ -12,10 +12,17 @@ module Tap
       
       def setup
         super
-        env = Tap::Env.new(:gems => :none)
-        Tap::App.instance = @app ||= Tap::App.new(:debug => true, :quiet => true, :env => env)
+        Tap::App.instance = @app = Tap::App.new(app_config)
       end
-
+      
+      def env_config
+        {:gems => :none, :root => @method_root || Dir.pwd}
+      end
+      
+      def app_config
+        {:debug => true, :quiet => true, :env => Tap::Env.new(env_config)}
+      end
+      
       def teardown
         Tap::App.instance = nil
         super

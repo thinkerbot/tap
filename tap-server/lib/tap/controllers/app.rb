@@ -13,20 +13,20 @@ module Tap
       end
   
       # GET /projects/*args
-      def show(var, sig=nil)
-        obj = app.get(var)
+      def show(obj, sig=nil)
+        obj = app.get(obj)
         obj = obj.signal(sig) if sig
         
-        module_render 'index.erb', obj, :locals => {:var => var, :sig => sig}, :layout => true
+        module_render 'index.erb', obj, :locals => {:obj => obj, :sig => sig}, :layout => true
       end
       
       # POST /projects/*args
-      def create(var, sig)
+      def create(obj, sig)
         params = request.params
         args = params['args'] || params
         sig ||= args.empty? ? nil : 'build'
         
-        signal = app.get(var).signal(sig)
+        signal = app.get(obj).signal(sig)
         
         # The app is likely running on a separate thread so immediately calling
         # the signal (the default) is not thread-safe.  Alternate modes are
@@ -43,7 +43,7 @@ module Tap
           signal.call(args)
         end
         
-        redirect uri(var)
+        redirect uri(obj)
       end
       
       #     # PUT /projects/*args
@@ -55,8 +55,8 @@ module Tap
       #     def destroy(*args)...
       #
       
-      def uri(var, sig=nil)
-        super("#{var}/#{sig}")
+      def uri(obj, sig=nil)
+        super("#{obj}/#{sig}")
       end
       
       protected

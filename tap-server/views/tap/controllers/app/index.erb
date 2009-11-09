@@ -10,7 +10,7 @@
 
 <h3>Build:</h3>
 <% env = app.env %>
-<% objects = app.cache %>
+<% objects = app.objects %>
 <form action="<%= uri nil, :build %>" method="post">
 <input type="text" name="set" value="<%= objects.length %>">Variable</input><br/>
 <input type="text" name="type">Type</input><br/>

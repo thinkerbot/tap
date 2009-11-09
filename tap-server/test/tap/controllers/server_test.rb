@@ -2,19 +2,20 @@ require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/controllers/server'
 
 class Tap::Controllers::ServerTest < Test::Unit::TestCase
-  
-  acts_as_tap_test
-  acts_as_subset_test
-  cleanup_dirs << :views << :public
+  acts_as_tap_test :cleanup_dirs => [:tmp, :views, :public]
   
   attr_reader :server, :request
   
   def setup
     super
-    
-    env.reconfigure(:root => method_root, :env_paths => TEST_ROOT)
-    @server = Tap::Server.new Tap::Controllers::Server, :app => app
-    @request = Rack::MockRequest.new(server)
+    @server = Tap::Server.new.bind(Tap::Controllers::Server)
+    @request = Rack::MockRequest.new(@server)
+  end
+  
+  def env_config
+    config = super
+    config[:env_paths] = TEST_ROOT
+    config
   end
   
   #
@@ -50,7 +51,7 @@ class Tap::Controllers::ServerTest < Test::Unit::TestCase
     
     nested_env = Tap::Env.new(method_root[:tmp])
     nested_env.root.prepare(:public, "page.html") {|file| file << "<html></html>" }
-    env.push nested_env
+    server.env.push nested_env
     
     assert_equal "<html></html>", request.get("/page.html").body
   end

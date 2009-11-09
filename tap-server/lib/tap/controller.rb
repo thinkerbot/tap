@@ -28,7 +28,7 @@ module Tap
         
         set_variables.each do |variable|
           value = get(variable)
-          value = value.dup if Configurable::Delegate.duplicable_value?(value)
+          value = value.dup if Configurable::Config.duplicable_value?(value)
           child.set(variable, value)
         end
         

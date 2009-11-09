@@ -3,18 +3,20 @@ require 'tap/controllers/data'
 
 class Tap::Controllers::DataTest < Test::Unit::TestCase
   Data = Tap::Controllers::Data
+  acts_as_tap_test :cleanup_dirs => [:views, :public]
   
-  acts_as_tap_test
-  acts_as_subset_test
-  cleanup_dirs << :views << :public
-  
-  attr_reader :env, :server, :request
+  attr_reader :server, :request
   
   def setup
     super
-    @env = Tap::Env.new(:root => method_root, :env_paths => TEST_ROOT)
-    @server = Tap::Server.new Data, :env => env, :router => false
-    @request = Rack::MockRequest.new(server)
+    @server = Tap::Server.new.bind(Tap::Controllers::Data)
+    @request = Rack::MockRequest.new(@server)
+  end
+  
+  def env_config
+    config = super
+    config[:env_paths] = TEST_ROOT
+    config
   end
   
   #
@@ -25,7 +27,7 @@ class Tap::Controllers::DataTest < Test::Unit::TestCase
     controller = Class.new(Data)
     controller.get(:reserved_ids) << "reserved"
     
-    server.controller = controller
+    server.bind controller
     res = request.post("/reserved")
     
     assert_equal 500, res.status
@@ -40,7 +42,7 @@ class Tap::Controllers::DataTest < Test::Unit::TestCase
     controller = Class.new(Data)
     controller.get(:reserved_ids) << "reserved"
     
-    server.controller = controller
+    server.bind controller
     res = request.post("/1?_method=rename&new_id=reserved")
     
     assert_equal 500, res.status
@@ -61,7 +63,7 @@ class Tap::Controllers::DataTest < Test::Unit::TestCase
     controller = Class.new(Data)
     controller.get(:reserved_ids) << "reserved"
     
-    server.controller = controller
+    server.bind controller
     res = request.post("/1?_method=duplicate&new_id=reserved")
     
     assert_equal 500, res.status

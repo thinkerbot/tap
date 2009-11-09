@@ -95,7 +95,10 @@ class RestRoutesTest < Test::Unit::TestCase
   end
   
   def test_a_sample_data_controller
-    server = Tap::Server.new DataController, :data => Tap::Server::Data.new(method_root)
+    server = Tap::Server.new(:data => Tap::Server::Data.new(method_root)) do |env|
+      DataController.call(env)
+    end
+    
     request = Rack::MockRequest.new server
     
     assert_equal "", request.get("/").body

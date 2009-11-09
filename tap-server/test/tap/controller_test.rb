@@ -10,8 +10,7 @@ class ControllerTest < Test::Unit::TestCase
   
   def setup
     super
-    env.root = method_root
-    @server = Tap::Server.new nil, :app => app
+    @server = Tap::Server.new
     @controller = Tap::Controller.new
     @controller.server = @server
   end
@@ -212,13 +211,13 @@ class ControllerTest < Test::Unit::TestCase
     def simple
       "simple body"
     end
-
+  
     def standard
       response["Content-Type"] = "text/plain"
       response.body << "standard body"
       response.finish
     end
-
+  
     def custom
       [200, {"Content-Type" => "text/plain"}, ["custom body"]]
     end
@@ -252,14 +251,14 @@ class ControllerTest < Test::Unit::TestCase
     request = Rack::MockRequest.new CallIndexController
     assert_equal "result", request.get("/").body
   end
-
+  
   #
   # render test
   #
   
   class RenderController < Tap::Controller
   end
-
+  
   def test_render_renders_class_path_for_path
     method_root.prepare(:views, 'tap/controller/sample.erb') {|file| file << "<%= 'cont' %>roller" }
     path = method_root.prepare(:views, 'controller_test/render_controller/sample.erb') {|file| file << "render <%= 'cont' %>roller" }

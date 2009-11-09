@@ -102,12 +102,3 @@ Rake::TestTask.new(:test) do |t|
   t.verbose = true
   t.warning = true
 end
-
-namespace :test do
-  task :functional do |t|
-    files = Dir.glob( File.join('test', 'functional/**/*_test.rb') )
-    files.each do |file|
-      sh("ruby -rubygems #{file}")
-    end
-  end
-end

@@ -2,20 +2,23 @@ require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/controllers/app'
 
 class Tap::Controllers::AppTest < Test::Unit::TestCase
-  acts_as_tap_test
-  acts_as_subset_test
-  cleanup_dirs << :views << :public
+  acts_as_tap_test :cleanup_dirs => [:views, :public]
   
-  attr_reader :env, :server, :request
+  attr_reader :server, :request
   
   def setup
     super
-    @env = Tap::Env.new(:root => method_root, :env_paths => TEST_ROOT)
-    @server = Tap::Server.new Tap::Controllers::App, :env => env, :app => app
-    @request = Rack::MockRequest.new(server)
-
+    @server = Tap::Server.new.bind(Tap::Controllers::Data)
+    @request = Rack::MockRequest.new(@server)
+    
     @timeout = Time.now + 3
     @timeout_error = false
+  end
+  
+  def env_config
+    config = super
+    config[:env_paths] = TEST_ROOT
+    config
   end
   
   def teardown
