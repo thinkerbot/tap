@@ -24,8 +24,8 @@ template = %Q{<% unless manifests.empty? %>
 <%= (env_key + ':').ljust(width) %> (<%= env.root.root %>)
 <% manifests.each do |type, entries| %>
   <%= type %>
-<%   entries.each do |key, value| %>
-    <%= key.ljust(width-4) %> (<%= value %>)
+<%   entries.each do |key, paths| %>
+    <%= key.ljust(width) %> (<%= paths.join(', ') %>)
 <%   end %>
 <% end %>
 <% end %>
@@ -43,6 +43,7 @@ else
 end
 
 # build the summary
+constants = env.constants
 summary = env.inspect(template, :width => 10) do |templater, globals|
   current = templater.env
   manifests = []
@@ -56,26 +57,20 @@ summary = env.inspect(template, :width => 10) do |templater, globals|
   width = env_key.length if width < env_key.length
   
   # build up the entries for each type of resource
-  current.registry(true).to_a.sort_by do |(type, entries)|
-    type.to_s
-  end.each do |type, entries|
-    next if entries.empty?
+  types = {}
+  constants.entries(current).minimap.each do |key, const|
+    paths = const.require_paths.collect do |path|
+      current.root.relative_path(:root, path) || path
+    end.uniq
     
-    entries.extend(Tap::Env::Minimap)
-    entries = entries.minimap.collect do |key, entry|
-      path = if entry.kind_of?(Tap::Env::Constant)
-        entry.require_path
-      else
-        entry
-      end
-  
-      width = key.length if width < key.length
-      [key, current.root.relative_path(:root, path) || path]
+    width = key.length if width < key.length
+    
+    const.types.keys.each do |type|
+      (types[type] ||= []) << [key, paths]
     end
-    
-    manifests << [type, entries]
   end
   
+  manifests.concat types.to_a.sort_by {|type, minimap| type }
   globals[:width] = width
 end
 puts summary
