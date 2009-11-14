@@ -227,7 +227,7 @@ module Tap
           var, sig, *args = spec
           app.call('obj' => var, 'sig' => sig, 'args' => args)
         else
-          obj, args = app.parse!(spec)
+          obj, args = app.call('sig' => :build, 'args' => spec)
           
           if auto_enque
             case type

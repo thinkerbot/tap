@@ -631,10 +631,6 @@ class AppTest < Test::Unit::TestCase
     assert_equal "cannot signal: #{obj.inspect}", err.message
   end
   
-  #
-  # build test
-  #
-  
   class BuildClass < App::Api
     class << self
       def build(spec, app)
@@ -667,29 +663,29 @@ class AppTest < Test::Unit::TestCase
   def test_build_instantiates_class_as_resolved_by_env
     app.env = {'klass' => BuildClass}
     
-    obj, args = app.build('class' => 'klass')
+    obj, args = app.call('class' => 'klass')
     assert_equal BuildClass, obj.class
     assert_equal 'value', obj.key
     assert_equal app, obj.app
   end
   
-  def test_build_uses_build_method
+  def test_call_builds_hash_args_by_default
     app.env = {'klass' => BuildClass}
     
-    obj, args = app.build('class' => 'klass')
+    obj, args = app.call('class' => 'klass')
     assert_equal :build, obj.build_method
   end
   
   def test_build_raises_error_for_unresolvable_class
     app.env = {}
-    err = assert_raises(RuntimeError) { app.build('class' => 'klass') }
+    err = assert_raises(RuntimeError) { app.call('class' => 'klass') }
     assert_equal "unresolvable constant: \"klass\"", err.message
   end
   
-  def test_build_builds_class_using_spec_if_specified
+  def test_build_uses_spec_if_specified
     app.env = {'klass' => BuildClass}
     
-    obj, args = app.build(
+    obj, args = app.call(
       'class' => 'klass',
       'spec' => {'config' => {'key' => 'alt'}})
     assert_equal 'alt', obj.key
@@ -698,7 +694,7 @@ class AppTest < Test::Unit::TestCase
   def test_build_uses_spec_as_spec_if_spec_is_not_specified
     app.env = {'klass' => BuildClass}
     
-    obj, args = app.build(
+    obj, args = app.call(
       'class' => 'klass',
       'config' => {'key' => 'alt'})
     assert_equal 'alt', obj.key
@@ -707,20 +703,20 @@ class AppTest < Test::Unit::TestCase
   def test_build_stores_obj_by_var_if_specified
     app.env = {'klass' => BuildClass}
     
-    obj, args = app.build('class' => 'klass')
+    obj, args = app.call('class' => 'klass')
     assert_equal({}, app.objects)
     
-    obj, args = app.build('var' => 'variable', 'class' => 'klass')
+    obj, args = app.call('var' => 'variable', 'class' => 'klass')
     assert_equal({'variable' => obj}, app.objects)
   end
   
   def test_build_stores_obj_by_multiple_var_if_specified
     app.env = {'klass' => BuildClass}
     
-    obj, args = app.build('class' => 'klass')
+    obj, args = app.call('class' => 'klass')
     assert_equal({}, app.objects)
     
-    obj, args = app.build('var' => ['a', 'b'], 'class' => 'klass')
+    obj, args = app.call('var' => ['a', 'b'], 'class' => 'klass')
     assert_equal({'a' => obj, 'b' => obj}, app.objects)
   end
   

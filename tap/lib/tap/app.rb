@@ -5,6 +5,7 @@ require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
 require 'tap/env'
+require 'tap/builder'
 require 'tap/parser'
 
 module Tap
@@ -470,30 +471,14 @@ module Tap
     signal_class :tutorial, Doc     # brings up a tutorial
     
     signal :enque                   # enques an object
-    signal_class :build do          # builds an object
+    signal_class :build, Builder    # builds an object
+    signal_class :parse, Parser     # 
+    signal_class :use, Builder do   # enables middleware
       def call(argh)
-        case argh
-        when Hash
-          obj.build(argh)
-        when Array
-          obj.parse!(argh)
-        end
+        argh.unshift(nil) if argh.kind_of?(Array)
+        super(argh)
       end
     end
-    
-    signal_class :use do             # enables middleware
-      def call(argh)
-        case argh
-        when Hash
-          obj.build(argh)
-        when Array
-          argh.unshift(nil)
-          obj.parse!(argh)
-        end
-      end
-    end
-    
-    signal_class :parse, Parser
     
     signal :run                     # run the app
     signal :stop                    # stop the app
@@ -694,57 +679,11 @@ module Tap
       object.signal(sig).call(args)
     end
     
-    # Builds and sets an application object.  The build spec is a hash
-    # defining these fields:
-    #
-    #   var     # a variable to identify the object
-    #   class   # the class name or identifier, as a string
-    #   spec    # an array or hash for initialization
-    #
-    # Build resolves the class string to a constant using env[class], if env
-    # is specified, or by directly translating the string into a constant name
-    # if env is nil.  The class is then initialized using the spec using one
-    # of these methods (in both cases self is the current app):
-    #
-    #   klass.parse!(spec, self)    # spec is an Array
-    #   klass.build(spec, self)     # spec is a Hash
-    #
-    # The parse! or build method should return the instance and an array of
-    # any leftover arguments.  The instance is set to var in objects, if
-    # specifed, and then build returns the instance and leftover arguments in
-    # an array like [instance, args].
-    def build(spec)
-      vars = spec['var'] || []
-      clas = spec['class']
-      spec = spec['spec'] || spec
-      
-      raise "no class specified" if clas.nil? || clas.empty?
-      obj = resolve(clas).build(spec, self)
-      
-      vars = [vars] unless vars.kind_of?(Array)
-      vars.each {|var| set(var, obj) }
-      
-      obj
-    end
-    
     def resolve(const_str)
+      raise "no class specified" if const_str.nil? || const_str.empty?
+      
       constant = env ? env[const_str] : Env::Constant.constantize(const_str)
       constant or raise "unresolvable constant: #{const_str.inspect}"
-    end
-    
-    def parse(argv)
-      parse!(argv.dup)
-    end
-    
-    def parse!(argv)
-      var, clas, *args = argv
-      
-      raise "no class specified" if clas.nil? || clas.empty?
-      obj = resolve(clas).parse!(args, self) # obj, args =
-      
-      set(var, obj) if var
-      
-      [obj, args]
     end
     
     # Enques the application object specified by var with args.  Raises
