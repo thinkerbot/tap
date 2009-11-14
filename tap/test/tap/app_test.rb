@@ -36,6 +36,12 @@ class AppTest < Test::Unit::TestCase
     end
   end
   
+  def default_config
+    App.new.config.to_hash do |hash, key, value|
+      hash[key.to_s] = value
+    end
+  end
+  
   #
   # documentation test
   #
@@ -698,15 +704,6 @@ class AppTest < Test::Unit::TestCase
     assert_equal 'alt', obj.key
   end
   
-  def test_build_parses_non_hash_spec
-    app.env = {'klass' => BuildClass}
-    
-    obj, args = app.build(
-      'class' => 'klass',
-      'spec' => "--key alt")
-    assert_equal 'alt', obj.key
-  end
-  
   def test_build_stores_obj_by_var_if_specified
     app.env = {'klass' => BuildClass}
     
@@ -1224,24 +1221,12 @@ class AppTest < Test::Unit::TestCase
     expected = [
       { 'var' => 'b',
         'class' => 'Tap::App',
-        'config' => {
-          "quiet"=>true,
-          "env"=>nil,
-          "force"=>false,
-          "verbose"=>false,
-          "debug"=>false
-        },
+        'config' => default_config.merge('quiet' => true),
         'self' => true
       },
       { 'var' => 'a', 
         'class' => 'Tap::App',
-        'config' => {
-          "quiet"=>false,
-          "env"=>nil,
-          "force"=>false,
-          "verbose"=>true,
-          "debug"=>false
-        },
+        'config' => default_config.merge('verbose' => true),
         'schema' => [
           { 'var' => 'a', 
             'class' => 'AppTest::SchemaObj', 
@@ -1297,24 +1282,12 @@ class AppTest < Test::Unit::TestCase
     app_b.set('b', app_b)
     
     expected = {
-      'config' => {
-        "quiet"=>true,
-        "env"=>nil,
-        "force"=>false,
-        "verbose"=>false,
-        "debug"=>false
-      },
+      'config' => default_config.merge('quiet' => true),
       'schema' => [
         {"self"=>true, "class"=>"Tap::App", "var"=>"b"},
         { 'var' => 'a', 
           'class' => 'Tap::App',
-          'config' => {
-            "quiet"=>false,
-            "env"=>nil,
-            "force"=>false,
-            "verbose"=>true,
-            "debug"=>false
-          },
+          'config' => default_config.merge('verbose' => true),
           'schema' => [
             { 'var' => 'a', 
               'class' => 'AppTest::SchemaObj', 

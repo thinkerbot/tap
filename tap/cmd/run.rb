@@ -10,7 +10,7 @@ require 'tap/parser'
 
 app = Tap::App.instance
 
-opts = {:auto_enque => true}
+opts = {}
 parser = ConfigParser.bind(app.config) do |psr|
   psr.separator ""
   psr.separator "configurations:"
@@ -81,7 +81,7 @@ parser = ConfigParser.bind(app.config) do |psr|
   end
   
   psr.on('-e', '--require-enque', 'Require manual enque for tasks') do
-    opts[:auto_enque] = false
+    app.config[:auto_enque] = false
   end
 end
 
@@ -159,7 +159,7 @@ begin
     end
 
     break if ARGV.empty?
-    Tap::Parser.parse!(ARGV).build(app, opts[:auto_enque])
+    app.call('sig' => :parse, 'args' => ARGV)
   end
   
   if opts[:preview]

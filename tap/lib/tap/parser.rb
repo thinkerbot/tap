@@ -132,10 +132,11 @@ module Tap
     #
     SIGNAL = /\A\/(?:(.*)\/)?(.*)\z/
     
-    attr_reader :specs
+    attr_reader :specs, :app
     
-    def initialize(specs=[])
-      @specs = specs
+    def initialize(app=nil)
+      @app = app
+      @specs = []
     end
     
     def parse(argv)
@@ -200,29 +201,33 @@ module Tap
       @current_index = nil
       @current = nil
       
-      argv
-    end
-    
-    def build(app, auto_enque=true)
-      unless app.state == App::State::READY
-        raise "cannot build unless app is ready"
-      end
-      
       # remove spec fragments
       specs.delete_if do |spec|
         spec.length < 3
       end
       
+      argv
+    end
+    
+    def call(argv)
+      parse!(argv)
+      
+      unless app.state == App::State::READY
+        raise "cannot build unless app is ready"
+      end
+      auto_enque = app.auto_enque
+      
       jobs = {}
       queue = app.queue
       deque = []
       results = specs.collect do |spec|
-        type, var, sig, *args = spec
+        type = spec.shift
         
         if type == :signal
+          var, sig, *args = spec
           app.call('obj' => var, 'sig' => sig, 'args' => args)
         else
-          obj = app.build('var' => var, 'class' => sig, 'spec' => args)
+          obj, args = app.parse!(spec)
           
           if auto_enque
             case type

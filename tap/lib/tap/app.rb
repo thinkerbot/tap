@@ -5,7 +5,7 @@ require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
 require 'tap/env'
-require 'shellwords'
+require 'tap/parser'
 
 module Tap
   
@@ -440,6 +440,9 @@ module Tap
     config :quiet, false, :short => :q, &c.flag      # Suppress logging
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
     
+    config :auto_enque, true, &c.flag
+    config :bang, true, &c.flag
+    
     nest :env, Env,                                  # The application environment
       :type => :hidden,
       :writer => false, 
@@ -467,13 +470,30 @@ module Tap
     signal_class :tutorial, Doc     # brings up a tutorial
     
     signal :enque                   # enques an object
-    signal_hash :build,             # builds an object
-      :signature => ['var', 'class'], 
-      :remainder => 'spec'
-    signal_hash :use,               # enables middleware
-      :method_name => :build, 
-      :signature => ['class'], 
-      :remainder => 'spec'
+    signal_class :build do          # builds an object
+      def call(argh)
+        case argh
+        when Hash
+          obj.build(argh)
+        when Array
+          obj.parse!(argh)
+        end
+      end
+    end
+    
+    signal_class :use do             # enables middleware
+      def call(argh)
+        case argh
+        when Hash
+          obj.build(argh)
+        when Array
+          argh.unshift(nil)
+          obj.parse!(argh)
+        end
+      end
+    end
+    
+    signal_class :parse, Parser
     
     signal :run                     # run the app
     signal :stop                    # stop the app
@@ -695,32 +715,36 @@ module Tap
     # an array like [instance, args].
     def build(spec)
       vars = spec['var'] || []
-      klass = spec['class'].to_s.strip
-      args = spec['spec'] || spec
+      clas = spec['class']
+      spec = spec['spec'] || spec
       
-      raise "no class specified" if klass.empty?
-      
-      unless klass = env ? env[klass] : Env::Constant.constantize(klass)
-        raise "unresolvable constant: #{spec['class'].inspect}"
-      end
-      
-      method = case
-      when args.kind_of?(Hash)
-        :build
-      when klass.respond_to?(:parse!)
-        :parse!
-      when klass.respond_to?(:parse)
-        :parse
-      else
-        raise "cannot build: #{klass}"
-      end
-      
-      obj = klass.send(method, args, self)
+      raise "no class specified" if clas.nil? || clas.empty?
+      obj = resolve(clas).build(spec, self)
       
       vars = [vars] unless vars.kind_of?(Array)
       vars.each {|var| set(var, obj) }
       
       obj
+    end
+    
+    def resolve(const_str)
+      constant = env ? env[const_str] : Env::Constant.constantize(const_str)
+      constant or raise "unresolvable constant: #{const_str.inspect}"
+    end
+    
+    def parse(argv)
+      parse!(argv.dup)
+    end
+    
+    def parse!(argv)
+      var, clas, *args = argv
+      
+      raise "no class specified" if clas.nil? || clas.empty?
+      obj = resolve(clas).parse!(args, self) # obj, args =
+      
+      set(var, obj) if var
+      
+      [obj, args]
     end
     
     # Enques the application object specified by var with args.  Raises
@@ -1021,9 +1045,9 @@ module Tap
     def inspect
       "#<#{self.class}:#{object_id} #{info}>"
     end
-    
+
     private
-    
+
     # Traces each object backwards and forwards for node, joins, etc. and adds
     # each to specs as needed.  The trace determines and returns the order in
     # which these specs must be initialized to make sense.  Circular traces
