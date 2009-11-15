@@ -8,13 +8,13 @@ module Tap
   # commonly produce a parameters hash.
   #
   module Signals
-    def signal(sig)
+    def signal(sig, &block)
       sig = sig.to_s
       unless signal = self.class.signals[sig]
         raise "unknown signal: #{sig} (#{self.class})"
       end
       
-      signal.new(self)
+      signal.new(self, &block)
     end
     
     def signal?(sig)

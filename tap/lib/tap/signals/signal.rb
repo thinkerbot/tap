@@ -24,7 +24,7 @@ module Tap
           if method_name
             signal.send(:define_method, :call) do |args|
               args = process(args)
-              obj.send(method_name, *args)
+              obj.send(method_name, *args, &self.block)
             end
           end
           
@@ -40,8 +40,11 @@ module Tap
       # The object receiving signals through self.
       attr_reader :obj
       
-      def initialize(obj)
+      attr_reader :block
+      
+      def initialize(obj, &block)
         @obj = obj
+        @block = block
       end
       
       # Calls process with the input args and returns the result.  This method

@@ -132,11 +132,10 @@ module Tap
     #
     SIGNAL = /\A\/(?:(.*)\/)?(.*)\z/
     
-    attr_reader :specs, :app
+    attr_reader :specs
     
-    def initialize(app=nil)
-      @app = app
-      @specs = []
+    def initialize(specs=[])
+      @specs = specs
     end
     
     def parse(argv)
@@ -201,70 +200,14 @@ module Tap
       @current_index = nil
       @current = nil
       
-      # remove spec fragments
-      specs.delete_if do |spec|
-        spec.length < 3
-      end
+      # # remove spec fragments
+      # specs.delete_if do |spec|
+      #   spec.length < 3
+      # end
       
       argv
     end
     
-    def call(argv)
-      parse!(argv)
-      
-      unless app.state == App::State::READY
-        raise "cannot build unless app is ready"
-      end
-      auto_enque = app.auto_enque
-      
-      jobs = {}
-      queue = app.queue
-      deque = []
-      results = specs.collect do |spec|
-        type = spec.shift
-        
-        if type == :signal
-          var, sig, *args = spec
-          app.call('obj' => var, 'sig' => sig, 'args' => args)
-        else
-          obj, args = app.call('sig' => :build, 'args' => spec)
-          
-          if auto_enque
-            case type
-            when :node
-              queue.enq(obj, args)
-              jobs[obj] = [obj, args]
-            when :join
-              deque.concat(obj.outputs)
-            end if args
-          else
-            warn_ignored_args(args) if app.debug?
-          end
-          
-          obj
-        end
-      end
-      
-      # The queue API does not provide a delete method, so picking out the
-      # deque jobs requires the whole queue be cleared, then re-enqued.
-      # Safety (and speed) is improved with synchronization.
-      queue.synchronize do
-        current = queue.clear
-        
-        deque.uniq.each do |obj|
-          obj, args = current.delete(jobs[obj])
-          warn_ignored_args(args) if app.debug?
-        end
-        
-        current.each do |array|
-          queue.enq(*array)
-        end
-      end if auto_enque
-      
-      specs.clear
-      results
-    end
-  
     private
     
     def spec(*argv) # :nodoc:
@@ -274,7 +217,7 @@ module Tap
     
     # returns the current argv or a new spec argv for the current type/index
     def current # :nodoc:
-      @current ||= spec(@current_type, @current_index.to_s)
+      @current ||= spec(@current_type, nil, 'set', @current_index.to_s)
     end
   
     # determines the type of break and modifies self appropriately
@@ -323,7 +266,7 @@ module Tap
     
     # parses a join modifier string into an argv.
     def parse_join_spec(modifier, inputs, outputs) # :nodoc:
-      argv = [:join, nil]
+      argv = [:join, nil, 'ini']
       
       case 
       when modifier.nil?
@@ -345,19 +288,12 @@ module Tap
     
     # parses the match of an ENQUE regexp
     def parse_enque(one) # :nodoc:
-      spec(:signal, one, "enq")
+      spec(:signal, nil, 'enque', one)
     end
     
     # parses the match of a SIGNAL regexp
     def parse_signal(one, two) # :nodoc:
       spec(:signal, one, two)
-    end
-    
-    # warns of ignored args
-    def warn_ignored_args(args) # :nodoc:
-      if args && !args.empty?
-        warn "ignoring args: #{args.inspect}"
-      end
     end
   end
 end

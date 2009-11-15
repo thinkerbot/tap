@@ -5,7 +5,6 @@ require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
 require 'tap/env'
-require 'tap/builder'
 require 'tap/parser'
 
 module Tap
@@ -461,8 +460,7 @@ module Tap
     #
     signal_class nil, Index do      # list signals for app
       def call(args) # :nodoc:
-        # note Build is defined by the build signal below
-        args.empty? ? super : Build.new(obj).call(args)
+        args.empty? ? super : Set.new(obj).call(args)
       end
     end
     
@@ -471,14 +469,40 @@ module Tap
     signal_class :tutorial, Doc     # brings up a tutorial
     
     signal :enque                   # enques an object
-    signal_class :build, Builder    # builds an object
-    signal_class :parse, Parser     # 
-    signal_class :use, Builder do   # enables middleware
-      def call(argh)
-        argh.unshift(nil) if argh.kind_of?(Array)
-        super(argh)
+    
+    signal_hash :ini,               # initializes an object
+      :signature => ['class'],
+      :remainder => 'spec'
+    
+    signal_class :set do            # set or unset objects
+      def call(argh) # :nodoc:
+        if argh.kind_of?(Array)
+          var, clas, *spec = argh
+          argh = {'var' => var, 'class' => clas, 'spec' => spec}
+        end
+        
+        var = argh['var']
+        object = argh['class'] ? obj.ini(argh, &block) : nil
+        
+        if var
+          if var.respond_to?(:each)
+            var.each {|v| obj.set(v, object) }
+          else
+            obj.set(var, object)
+          end
+        end
+        
+        object
       end
     end
+    
+    signal_class :parse do          #
+      def call(argv) # :nodoc:
+        obj.parse(argv)
+      end
+    end
+    
+    signal_class :use, Ini          # enables middleware
     
     signal :run                     # run the app
     signal :stop                    # stop the app
@@ -663,7 +687,7 @@ module Tap
     #
     # Call returns the result of the signal call.
     #
-    def call(args)
+    def call(args, &block)
       obj = args['obj']
       sig = args['sig']
       args = args['args'] || args
@@ -676,14 +700,82 @@ module Tap
         raise "cannot signal: #{object.inspect}"
       end
       
-      object.signal(sig).call(args)
+      object.signal(sig, &block).call(args)
     end
     
     def resolve(const_str)
-      raise "no class specified" if const_str.nil? || const_str.empty?
-      
       constant = env ? env[const_str] : Env::Constant.constantize(const_str)
       constant or raise "unresolvable constant: #{const_str.inspect}"
+    end
+    
+    def ini(spec)
+      clas = spec['class']
+      spec = spec['spec'] || spec
+      
+      if clas.nil? || clas.empty?
+        raise "no class specified"
+      end
+      clas = resolve(clas)
+      
+      if spec.kind_of?(Array)
+        parse = bang ? :parse! : :parse
+        obj, args = clas.send(parse, spec, self)
+        
+        if block_given?
+          yield(obj, args)
+        else
+          warn_ignored_args(args)
+        end
+        
+        obj
+        
+      else
+        clas.build(spec, self)
+      end
+    end
+    
+    def parse(argv)
+      parser = Parser.new
+      parser.parse!(argv)
+      
+      # The queue API does not provide a delete method, so picking out the
+      # deque jobs requires the whole queue be cleared, then re-enqued.
+      # Safety (and speed) is improved with synchronization.
+      queue.synchronize do
+        previous = queue.clear
+        
+        block = nil
+        deque = []
+        parser.specs.each do |spec|
+          type, obj, sig, *args = spec
+          block = lambda do |obj, args|
+            case type
+            when :node
+              queue.enq(obj, args)
+            when :join
+              deque.concat obj.outputs
+            end 
+          end if auto_enque
+          
+          call('obj' => obj, 'sig' => sig, 'args' => args, &block) 
+        end
+        
+        current = queue.clear
+        previous.each do |(obj, args)|
+          queue.enq(obj, args)
+        end
+        
+        deque.uniq!
+        current.each do |(obj, args)|
+          if deque.delete(obj)
+            warn_ignored_args(args)
+          else
+            queue.enq(obj, args)
+          end
+        end
+      end
+
+      argv
     end
     
     # Enques the application object specified by var with args.  Raises
@@ -987,6 +1079,13 @@ module Tap
 
     private
 
+    # warns of ignored args
+    def warn_ignored_args(args) # :nodoc:
+      if args && debug? && !args.empty?
+        warn "ignoring args: #{args.inspect}"
+      end
+    end
+    
     # Traces each object backwards and forwards for node, joins, etc. and adds
     # each to specs as needed.  The trace determines and returns the order in
     # which these specs must be initialized to make sense.  Circular traces

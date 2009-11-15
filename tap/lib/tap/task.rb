@@ -169,7 +169,7 @@ module Tap
         instance = build({'config' => parser.nested_config}, app)
         
         instance.enq(*argv) if enque
-        instance
+        [instance, argv]
       end
       
       # Recursively loads path into a nested configuration file.

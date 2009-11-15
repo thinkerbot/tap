@@ -45,11 +45,11 @@ class PromptCmd < Test::Unit::TestCase
 
   def test_build_from_prompt
     prompt_test %q{
---/build 0 load
+--/set 0 load
 => #<Tap::Tasks::Load:...:>
---/build 1 dump
+--/set 1 dump
 => #<Tap::Tasks::Dump:...:>
---/build 2 join 0 1
+--/ini join 0 1
 => #<Tap::Join:...:>
 --/0/enq 'goodnight moon'
 => #<Tap::Tasks::Load:...:>

@@ -176,8 +176,8 @@ module Tap
       private
 
       def inherited(base) # :nodoc:
-       ClassMethods.initialize(base)
-       super
+        ClassMethods.initialize(base)
+        super
       end
       
       def define_signal(sig, opts, &block) # :nodoc:

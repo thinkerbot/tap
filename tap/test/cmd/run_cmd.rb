@@ -124,7 +124,7 @@ unresolvable constant: "unknown"
 }
 
     sh_test %Q{
-% tap run --/build 0 unknown
+% tap run --/set 0 unknown
 unresolvable constant: "unknown"
 }
 
@@ -278,11 +278,11 @@ a
   
   def test_run_using_signals
     sh_test %Q{
-% tap run --/build 0 load --/build 1 dump --/build 2 join 0 1 --/enque 0 'goodnight moon'
+% tap run -e --/set 0 load --/set 1 dump --/ini join 0 1 --/enque 0 'goodnight moon'
 goodnight moon
 }
     sh_test %Q{
-% tap run -e -- load --enque 'goodnight moon' -- dump --/build 2 join --/2/join 0 1 
+% tap run -e -- load --enque 'goodnight moon' --/set 1 dump --/set 2 join --/2/join 0 1 
 goodnight moon
 }
   end
@@ -294,7 +294,7 @@ wrong number of arguments (3 for 1)
 }
     
     sh_test %Q{
-% tap run --/build 0 dump --/enque 0 a b c
+% tap run -e --/set 0 dump --/enque 0 a b c
 wrong number of arguments (3 for 1)
 }
   end
