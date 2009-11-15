@@ -742,31 +742,29 @@ module Tap
       # deque jobs requires the whole queue be cleared, then re-enqued.
       # Safety (and speed) is improved with synchronization.
       queue.synchronize do
-        previous = queue.clear
-        
-        block = nil
         deque = []
         parser.specs.each do |spec|
           type, obj, sig, *args = spec
-          block = lambda do |obj, args|
+          
+          call('obj' => obj, 'sig' => sig, 'args' => args) do |obj, args|
             case type
             when :node
               queue.enq(obj, args)
+              args = nil
             when :join
+              unless obj.respond_to?(:outputs)
+                # warning
+              end
+              
               deque.concat obj.outputs
-            end 
-          end if auto_enque
-          
-          call('obj' => obj, 'sig' => sig, 'args' => args, &block) 
-        end
-        
-        current = queue.clear
-        previous.each do |(obj, args)|
-          queue.enq(obj, args)
+            end if auto_enque
+            
+            warn_ignored_args(args)
+          end
         end
         
         deque.uniq!
-        current.each do |(obj, args)|
+        queue.clear.each do |(obj, args)|
           if deque.delete(obj)
             warn_ignored_args(args)
           else
