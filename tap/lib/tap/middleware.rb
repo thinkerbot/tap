@@ -4,7 +4,7 @@ module Tap
   class Middleware < App::Api
     class << self
       def build(spec={}, app=Tap::App.instance)
-        app.use(self, spec['config'] || {})
+        new(app.stack, spec['config'] || {})
       end
     end
     

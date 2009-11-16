@@ -1106,7 +1106,7 @@ class AppTest < Test::Unit::TestCase
   class SchemaMiddleware < App::Api
     class << self
       def build(spec={}, app=Tap::App.instance)
-        app.use(self, spec['config'] || {})
+        new(app.stack, spec['config'] || {})
       end
     end
     
@@ -1302,10 +1302,10 @@ class AppTest < Test::Unit::TestCase
     
     alt = App.build(app.to_spec)
     
-    assert_equal [SchemaMiddleware], app.middleware.collect {|m| m.class }
-    assert_equal 1, app.queue.size
+    assert_equal [SchemaMiddleware], alt.middleware.collect {|m| m.class }
+    assert_equal 1, alt.queue.size
     
-    obj, args = app.queue.deq
+    obj, args = alt.queue.deq
     assert_equal 'obj', obj.config[:key]
     assert_equal [1,2,3], args
     assert_equal({'var' => alt}, alt.objects)

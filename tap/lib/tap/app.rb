@@ -467,7 +467,11 @@ module Tap
     signal_class :help, Doc         # brings up this help
     signal_class :tutorial, Doc     # brings up a tutorial
     
-    signal :enque                   # enques an object
+    signal_class :parse do          # parse a workflow
+      def call(argv) # :nodoc:
+        obj.parse(argv)
+      end
+    end
     
     signal_hash :init,              # initializes an object
       :signature => ['class'],
@@ -478,13 +482,13 @@ module Tap
       :remainder => 'spec',
       :method_name => :init
     
-    signal_class :parse do          #
-      def call(argv) # :nodoc:
-        obj.parse(argv)
+    signal_class :use, Init do      # enables middleware
+      def call(spec) # :nodoc
+        obj.stack = super
       end
     end
     
-    signal_class :use, Init          # enables middleware
+    signal :enque                   # enques an object
     
     signal :run                     # run the app
     signal :stop                    # stop the app
@@ -532,6 +536,13 @@ module Tap
     def env=(env)
       Validation.validate_api(env, [:[], :invert]) unless env.nil?
       @env = env
+    end
+    
+    # Sets the application stack.
+    def stack=(stack)
+      synchronize do
+        @stack = stack
+      end
     end
     
     # True if the debug config or the global variable $DEBUG is true.
@@ -792,9 +803,19 @@ module Tap
       # collect middleware by walking up the stack
       synchronize do
         current = stack
+        visited = [current]
+        
         while current.respond_to?(:stack)
           middleware << current
           current = current.stack
+          
+          circular_stack = visited.include?(current)
+          visited << current
+          
+          if circular_stack
+            visited.collect! {|middleware| middleware.class.to_s }.join(', ')
+            raise "circular stack detected:\n[#{visited}]"
+          end
         end
       end
       
@@ -1049,6 +1070,11 @@ module Tap
         end
         
         specs[obj] = spec
+      end
+      
+      middleware.each do |obj|
+        spec = specs[obj]
+        spec['sig'] = 'use'
       end
       
       order.collect! {|obj| specs[obj] }.concat(signals)
