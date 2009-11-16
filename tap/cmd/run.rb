@@ -159,7 +159,7 @@ begin
     end
 
     break if ARGV.empty?
-    app.parse(ARGV)
+    ARGV.replace app.call('sig' => 'parse', 'args' => ARGV)
   end
   
   if opts[:preview]

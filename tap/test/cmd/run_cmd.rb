@@ -299,6 +299,20 @@ wrong number of arguments (3 for 1)
 }
   end
   
+  def test_parse_parses_workflow
+    sh_test %Q{
+% tap run --/parse -. load 'goodnight moon' --: dump .-
+goodnight moon
+}
+  end
+  
+  def test_run_doesnt_hang_on_no_bang
+    sh_test %Q{
+% tap run --no-bang -- load 'goodnight moon' --: dump
+goodnight moon
+}
+  end
+    
   #
   # middleware
   #

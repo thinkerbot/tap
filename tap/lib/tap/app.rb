@@ -438,9 +438,8 @@ module Tap
     config :force, false, :short => :f, &c.flag      # Force execution at checkpoints
     config :quiet, false, :short => :q, &c.flag      # Suppress logging
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
-    
-    config :auto_enque, true, &c.flag
-    config :bang, true, &c.flag
+    config :auto_enque, true, &c.switch              # Auto-enque parsed args
+    config :bang, true, &c.switch                    # Use parse! when possible
     
     nest :env, Env,                                  # The application environment
       :type => :hidden,
@@ -469,7 +468,8 @@ module Tap
     
     signal_class :parse do          # parse a workflow
       def call(argv) # :nodoc:
-        obj.parse(argv)
+        parse = obj.bang ? :parse! : :parse
+        obj.send(parse, argv)
       end
     end
     
@@ -744,8 +744,12 @@ module Tap
     end
     
     def parse(argv)
+      parse!(argv.dup)
+    end
+    
+    def parse!(argv)
       parser = Parser.new
-      parser.parse!(argv)
+      argv = parser.parse!(argv)
       
       # The queue API does not provide a delete method, so picking out the
       # deque jobs requires the whole queue be cleared, then re-enqued.
