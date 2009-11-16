@@ -214,13 +214,13 @@ class AppTest < Test::Unit::TestCase
     b = Resource.build(a.to_spec, app)
     assert_equal [1, 2, 3], b.argv
   
-    app.build('var' => 'a', 'class' => 'AppTest::Resource', 'spec' => [1, 2, 3])
+    app.init('var' => 'a', 'class' => 'AppTest::Resource', 'spec' => [1, 2, 3])
     a = app.get('a')
     assert_equal Resource, a.class
     assert_equal [1, 2, 3], a.argv
   
-    app.build('var' => 'b', 'class' => 'AppTest::Resource', 'spec' => {'argv' => [4, 5, 6]})
-    app.build('var' => 'c', 'class' => 'AppTest::Resource', 'argv' => [7, 8, 9])
+    app.init('var' => 'b', 'class' => 'AppTest::Resource', 'spec' => {'argv' => [4, 5, 6]})
+    app.init('var' => 'c', 'class' => 'AppTest::Resource', 'argv' => [7, 8, 9])
     
     expected = [
     {'var' => 'a', 'class' => 'AppTest::Resource', 'argv' => [1, 2, 3]},
@@ -235,7 +235,7 @@ class AppTest < Test::Unit::TestCase
     app.set('', app)
     app.call(
       'obj' => '', 
-      'sig' => 'build', 
+      'sig' => 'init', 
       'args' => {
         'var' => 'a',
         'class' => 'AppTest::Resource',

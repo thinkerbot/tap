@@ -33,7 +33,7 @@ module Tap
   # workflow will not produce any output.  Whereas shells are setup to print
   # dangling outputs to the terminal, apps may define default joins to handle
   # the output of unjoined nodes.
-  #             
+  #                             
   #   results = []
   #   app.on_complete {|result| results << result }
   #
@@ -64,7 +64,7 @@ module Tap
   #   app.enq(cat, "example.txt")
   #   app.run
   #   results          # => [["a", "b", "c"], ["c", "b", "a"]]
-  #                                               
+  #                                                               
   # Now the output of cat is directed at both sort and rsort, resulting in
   # both a forward and reversed array.
   #
@@ -99,9 +99,9 @@ module Tap
   #   # [sort, ["a\nc\nb\n"]],
   #   # [rsort, ["a\nc\nb\n"]]
   #   # ]
-  #                                           
+  #                                                           
   # Middleware can be nested with multiple calls to use.
-  #              
+  #                              
   # === Ready, Run, Stop, Terminate
   #
   # Apps have four states.  When ready, an app does not execute nodes.  New
@@ -192,22 +192,21 @@ module Tap
   #
   # === Application Objects
   #
-  # Apps can build and store objects that need persistence for one reason or
-  # another.  Application objects allow workflows to be built incrementally
-  # from a schema and, once built, to be serialized back into a schema.
+  # Apps can store and reference objects that need persistence for one reason
+  # or another. As an example, stored objects allow workflows to be built
+  # incrementally from a schema.
   #
-  # Use the set and get methods to manually store and retreive application
-  # objects:
+  # Use the set and get methods to store and retreive application objects:
   #
   #   app = App.new
   #   app.set('a', :A)
   #   app.get('a')       # => :A
   #   app.objects        # => {'a' => :A}
   #
-  # The build method constructs and stores objects that implement the
-  # application interface (see the API[link:files/doc/API.html] document). As
-  # a minimal example, consider this class:
-  #
+  # In general this technique is only used to persist objects that implement
+  # the application object API (see the API[link:files/doc/API.html]
+  # document). As a minimal example, consider this class:
+  #      
   #   class Resource
   #     class << self
   #       def parse!(argv=ARGV, app=Tap::App.instance)
@@ -234,10 +233,10 @@ module Tap
   #     end
   #   end
   #
-  # Resource instances can be built from an array or a hash using the Resource
-  # parse! and build methods, respectively.  The associations and to_spec
-  # methods make it so that individual resources can be serialized to a
-  # specification hash and rebuilt.
+  # Instances of this class can be initialized from an array using parse, or a
+  # hash using build.  The associations and to_spec methods are designed to
+  # let individual resources be serialized to a specification hash and
+  # rebuilt.
   #
   #   a = Resource.parse!([1, 2, 3], app)
   #   a.argv           # => [1, 2, 3]
@@ -245,26 +244,26 @@ module Tap
   #   b = Resource.build(a.to_spec, app)
   #   b.argv           # => [1, 2, 3]
   #
-  # At the application level, these qualities allow resources to be built and
-  # serialized through the build and to_schema methods.  Build takes a hash
+  # At the application level, these qualities allow resources to be created
+  # and serialized through the init and to_schema methods.  Init takes a hash
   # defining these fields:
   #
   #   var     # a variable to identify the object
   #   class   # the class name or identifier, as a string
   #   spec    # the parse! array or the build hash
   #
-  # Building a resource looks like this:
+  # Initializing a resource looks like this:
   #
-  #   app.build('var' => 'a', 'class' => 'Resource', 'spec' => [1, 2, 3])
+  #   app.init('var' => 'a', 'class' => 'Resource', 'spec' => [1, 2, 3])
   #   a = app.get('a')
   #   a.class               # => Resource
   #   a.argv                # => [1, 2, 3]
   #
   # Note that when spec is a hash, and does not require any of the same keys,
-  # it can be merged with the build hash.  These both build a resource:
+  # it can be merged with the init hash.  These both initialize a resource:
   #
-  #   app.build('var' => 'b', 'class' => 'Resource', 'spec' => {'argv' => [4, 5, 6]})
-  #   app.build('var' => 'c', 'class' => 'Resource', 'argv' => [7, 8, 9])
+  #   app.init('var' => 'b', 'class' => 'Resource', 'spec' => {'argv' => [4, 5, 6]})
+  #   app.init('var' => 'c', 'class' => 'Resource', 'argv' => [7, 8, 9])
   #
   # Serializing the application objects looks like this:
   #
@@ -275,12 +274,12 @@ module Tap
   #   # {'var' => 'c', 'class' => 'Resource', 'argv' => [7, 8, 9]}
   #   # ]
   #
-  # Schema are arrays of build hashes; rebuilding each in order will
+  # Schema are arrays of init hashes; initializing each in order will
   # regenerate the objects, and hence the workflow described by the objects.
   # Although it is not apparent in this example, objects will be correctly
-  # ordered in the schema to ensure they can be rebuilt (see the
+  # ordered in the schema to ensure they can be recreated (see the
   # API[link:files/doc/API.html] for more details).
-  #                          
+  #
   # === Signals
   #
   # Apps use signals to create and control application objects from a user
@@ -301,13 +300,13 @@ module Tap
   #   signal.call(args)            # call the signal with args
   #
   # An app can itself be signaled when set as an application object. As a
-  # result, signals can be used to build objects:
+  # result, signals can be used to initialize objects:
   #
   #   app = App.new
   #   app.set('', app)
   #   app.call(
   #     'obj' => '', 
-  #     'sig' => 'build', 
+  #     'sig' => 'init', 
   #     'args' => {
   #       'var' => 'a',
   #       'class' => 'Resource',
@@ -320,9 +319,9 @@ module Tap
   #
   # By convention an empty string is used to identify an app and apps are
   # constructed so that, at least when args are specified, the default signal
-  # is 'build'.  Furthermore the args hash can be merged into the signal hash
-  # in the same way a spec can be merged into a build hash.  As a result many
-  # resources can be built with very compact signals:
+  # is 'init'.  Furthermore the args hash can be merged into the signal hash
+  # in the same way a spec can be merged into a init hash.  As a result many
+  # resources can be initialized with very compact signals:
   #
   #   app.call('var' => 'b', 'class' => 'Resource', 'argv' => [4, 5])
   #   b = app.get('b')
@@ -330,7 +329,7 @@ module Tap
   #   b.argv                     # => [4, 5]
   #
   # This is ONLY possible for resources whose specs do not use any of the six
-  # signal or build keys (obj, sig, args, var, class, spec), and requires the
+  # signal or init keys (obj, sig, args, var, class, spec), and requires the
   # app is set to an empty string in objects.
   #
   # The Tap::Signals module provides a dsl for exposing methods as signals. In
@@ -407,11 +406,11 @@ module Tap
     # The reserved call keys
     CALL_KEYS = %w{obj sig args}
     
-    # The reserved build keys
-    BUILD_KEYS = %w{var class spec}
+    # The reserved init keys
+    INIT_KEYS = %w{var class spec}
     
-    # Reserved call and build keys as a single array
-    RESERVED_KEYS = CALL_KEYS + BUILD_KEYS
+    # Reserved call and init keys as a single array
+    RESERVED_KEYS = CALL_KEYS + INIT_KEYS
     
     # The default App logger (writes to $stderr at level INFO)
     DEFAULT_LOGGER = Logger.new($stderr)
@@ -449,14 +448,14 @@ module Tap
       :init => false
       
     # The index signal ('') is constructed to list signals if no arguments are
-    # given, and invoke a build otherwise:
+    # given, and invoke a set otherwise:
     #
-    #   --//         # => list signals (like a normal index)
-    #   --// a b c   # => build
+    #   --/         # => list signals (like a normal index)
+    #   --/ a b c   # => set
     #
-    # Of course build can be manually specified if desired:
+    # Of course set can be manually specified if desired:
     #
-    #   --//build a b c
+    #   --/set a b c
     #
     signal_class nil, Index do      # list signals for app
       def call(args) # :nodoc:
@@ -470,31 +469,14 @@ module Tap
     
     signal :enque                   # enques an object
     
-    signal_hash :ini,               # initializes an object
+    signal_hash :init,              # initializes an object
       :signature => ['class'],
       :remainder => 'spec'
     
-    signal_class :set do            # set or unset objects
-      def call(argh) # :nodoc:
-        if argh.kind_of?(Array)
-          var, clas, *spec = argh
-          argh = {'var' => var, 'class' => clas, 'spec' => spec}
-        end
-        
-        var = argh['var']
-        object = argh['class'] ? obj.ini(argh, &block) : nil
-        
-        if var
-          if var.respond_to?(:each)
-            var.each {|v| obj.set(v, object) }
-          else
-            obj.set(var, object)
-          end
-        end
-        
-        object
-      end
-    end
+    signal_hash :set,               # set or unset objects
+      :signature => ['var', 'class'],
+      :remainder => 'spec',
+      :method_name => :init
     
     signal_class :parse do          #
       def call(argv) # :nodoc:
@@ -502,7 +484,7 @@ module Tap
       end
     end
     
-    signal_class :use, Ini          # enables middleware
+    signal_class :use, Init          # enables middleware
     
     signal :run                     # run the app
     signal :stop                    # stop the app
@@ -540,13 +522,13 @@ module Tap
     end
     
     # Sets the application environment and validates that env provides an AGET
-    # ([]) and invert method.  AGET is used to lookup constants during build;
+    # ([]) and invert method.  AGET is used to lookup constants during init;
     # it receives the 'class' parameter and should return a corresponding
     # class.  Invert should return an object that reverses the AGET lookup.
     # Tap::Env and a regular Hash both satisfy this api.
     #
-    # Env can be set to nil and is set to nil by default, but building is
-    # constrained without it.
+    # Env can be set to nil and is set to nil by default, but initialization
+    # is constrained without it.
     def env=(env)
       Validation.validate_api(env, [:[], :invert]) unless env.nil?
       @env = env
@@ -708,30 +690,46 @@ module Tap
       constant or raise "unresolvable constant: #{const_str.inspect}"
     end
     
-    def ini(spec)
+    def init(spec)
+      var = spec['var']
       clas = spec['class']
       spec = spec['spec'] || spec
+      obj = nil
       
-      if clas.nil? || clas.empty?
-        raise "no class specified"
-      end
-      clas = resolve(clas)
-      
-      if spec.kind_of?(Array)
-        parse = bang ? :parse! : :parse
-        obj, args = clas.send(parse, spec, self)
-        
-        if block_given?
-          yield(obj, args)
-        else
-          warn_ignored_args(args)
+      if clas.nil?
+        unless spec.empty?
+          raise "no class specified"
         end
-        
-        obj
-        
       else
-        clas.build(spec, self)
+        clas = resolve(clas)
+        
+        case spec
+        when Array
+          parse = bang ? :parse! : :parse
+          obj, args = clas.send(parse, spec, self)
+      
+          if block_given?
+            yield(obj, args)
+          else
+            warn_ignored_args(args)
+          end
+        
+        when Hash
+          obj = clas.build(spec, self)
+        else
+          raise "invalid spec: #{spec.inspect}"
+        end
       end
+      
+      unless var.nil?
+        if var.respond_to?(:each)
+          var.each {|v| set(v, obj) }
+        else
+          set(var, obj)
+        end
+      end
+      
+      obj
     end
     
     def parse(argv)

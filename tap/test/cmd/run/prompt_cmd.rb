@@ -49,7 +49,7 @@ class PromptCmd < Test::Unit::TestCase
 => #<Tap::Tasks::Load:...:>
 --/set 1 dump
 => #<Tap::Tasks::Dump:...:>
---/ini join 0 1
+--/init join 0 1
 => #<Tap::Join:...:>
 --/0/enq 'goodnight moon'
 => #<Tap::Tasks::Load:...:>

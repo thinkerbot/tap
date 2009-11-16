@@ -200,11 +200,6 @@ module Tap
       @current_index = nil
       @current = nil
       
-      # # remove spec fragments
-      # specs.delete_if do |spec|
-      #   spec.length < 3
-      # end
-      
       argv
     end
     
@@ -266,7 +261,7 @@ module Tap
     
     # parses a join modifier string into an argv.
     def parse_join_spec(modifier, inputs, outputs) # :nodoc:
-      argv = [:join, nil, 'ini']
+      argv = [:join, nil, 'init']
       
       case 
       when modifier.nil?

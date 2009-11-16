@@ -278,7 +278,7 @@ a
   
   def test_run_using_signals
     sh_test %Q{
-% tap run -e --/set 0 load --/set 1 dump --/ini join 0 1 --/enque 0 'goodnight moon'
+% tap run -e --/set 0 load --/set 1 dump --/init join 0 1 --/enque 0 'goodnight moon'
 goodnight moon
 }
     sh_test %Q{
