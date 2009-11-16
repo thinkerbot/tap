@@ -35,12 +35,13 @@ module Tap
       def parse!(argv=ARGV, app=Tap::App.instance)
         parser = self.parser
         argv = parser.parse!(argv, :add_defaults => false)
-        
-        build({
+        instance = build({
           'config' => parser.nested_config,
           'inputs' => argv.shift,
           'outputs' => argv.shift
         }, app)
+        
+        [instance, argv]
       end
       
       def build(spec={}, app=Tap::App.instance)

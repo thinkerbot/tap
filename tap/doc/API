@@ -77,7 +77,9 @@ present they must adhere to these specifications.
   class Stub
     class << self
       # Parse takes an argument vector (an array, usually from the command
-      # line) and returns an instance of self.  Parse cannot modify argv.
+      # line) and returns an instance of self and any remaining arguments
+      # in an array like [instance, args].  The remaining arguments may be
+      # nil.  Parse cannot modify argv.
       def parse(argv=ARGV, app=Tap::App.instance)
       end
       
