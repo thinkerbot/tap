@@ -116,6 +116,12 @@ module Tap
         
         nest(nesting, indent, line_sep) { yield }
       end
+      
+      def indent(indent, str)
+        lines = str.kind_of?(Array) ? str : str.split("\n")
+        lines.collect! {|line| "#{indent}#{line}" }
+        lines.join("\n")
+      end
     end
     
     class << self

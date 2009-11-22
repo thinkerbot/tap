@@ -358,6 +358,7 @@ module Tap
   # to end-users.  call is the primary method through which user interfaces
   # communicate with apps and application objects.
   #
+  # ::app
   class App
     class << self
       # Sets the current app instance
@@ -445,26 +446,28 @@ module Tap
       :type => :hidden,
       :writer => false, 
       :init => false
+    
+    signal_hash :init,              # initializes an object
+      :signature => ['class'],
+      :remainder => 'spec'
       
-    # The index signal ('') is constructed to list signals if no arguments are
-    # given, and invoke a set otherwise:
-    #
-    #   --/         # => list signals (like a normal index)
-    #   --/ a b c   # => set
-    #
-    # Of course set can be manually specified if desired:
-    #
-    #   --/set a b c
-    #
-    signal_class nil, Index do      # list signals for app
-      def call(args) # :nodoc:
-        args.empty? ? super : Set.new(obj).call(args)
+    signal_hash :set,               # set or unset objects
+      :signature => ['var', 'class'],
+      :remainder => 'spec',
+      :method_name => :init
+    
+    signal_class nil, Set
+    
+    signal_class :list do           # list available objects
+      def call(args)
+        lines = obj.objects.collect do |(key, obj)|
+          "#{key}: #{obj.class}"
+        end
+        lines.empty? ? "No objects yet..." : lines.sort.join("\n")
       end
     end
     
-    signal_class :list, Doc         # list available objects
-    signal_class :help, Doc         # brings up this help
-    signal_class :tutorial, Doc     # brings up a tutorial
+    signal :enque                   # enques an object
     
     signal_class :parse do          # parse a workflow
       def call(argv) # :nodoc:
@@ -473,22 +476,15 @@ module Tap
       end
     end
     
-    signal_hash :init,              # initializes an object
-      :signature => ['class'],
-      :remainder => 'spec'
-    
-    signal_hash :set,               # set or unset objects
-      :signature => ['var', 'class'],
-      :remainder => 'spec',
-      :method_name => :init
-    
-    signal_class :use, Init do      # enables middleware
+    signal_class :use do            # enables middleware
       def call(spec) # :nodoc
-        obj.stack = super
+        if spec.kind_of?(Array)
+          spec = {'class' => spec.shift, 'spec' => spec}
+        end
+
+        obj.stack = obj.init(spec)
       end
     end
-    
-    signal :enque                   # enques an object
     
     signal :run                     # run the app
     signal :stop                    # stop the app
@@ -500,6 +496,59 @@ module Tap
         exit(1)
       end
     end
+    
+    signal_class :man do            # manual pages
+      def call(args);  # :nodoc:
+        unless env.kind_of?(Tap::Env)
+          raise "man pages are unavailable without an env"
+        end
+        
+        const, page = args
+        if const
+          klass = obj.resolve(const)
+          page ? render(klass, page) : pages(klass)
+        else
+          "constants:\n#{env.constants.summarize}"
+        end
+      end
+      
+      def env
+        @env ||= obj.env
+      end
+      
+      def pages(klass)
+        superclasses = klass.ancestors - klass.included_modules
+        pages = []
+        env.module_path(:man, superclasses) do |dir|
+          next unless File.directory?(dir)
+          
+          Dir.chdir(dir) do
+            Dir.glob("*.erb").each do |pages|
+              pages << "  #{page.chomp(".erb")}"
+            end
+          end
+        end
+        
+        if pages.empty?
+          "no pages available (#{klass})"
+        else
+          "pages: (#{klass})\n#{pages.join("\n")}"
+        end
+      end
+      
+      def render(klass, page)
+        superclasses = klass.ancestors - klass.included_modules
+        path = env.module_path(:man, superclasses, "#{page}.erb") {|file| File.exists?(file) }
+        
+        unless path
+          raise "no such page: #{page.inspect} (#{klass.to_s})"
+        end
+        
+        Templater.build_file(path)
+      end
+    end
+    
+    signal_class :help, Help        # help for signals
     
     # Creates a new App with the given configuration.  Options can be used to
     # specify objects that are normally initialized for every new app:
@@ -685,6 +734,10 @@ module Tap
       sig = args['sig']
       args = args['args'] || args
       
+      route(obj, sig, &block).call(args)
+    end
+    
+    def route(obj, sig, &block)
       unless object = get(obj)
         raise "unknown object: #{obj.inspect}"
       end
@@ -693,7 +746,7 @@ module Tap
         raise "cannot signal: #{object.inspect}"
       end
       
-      object.signal(sig, &block).call(args)
+      object.signal(sig, &block)
     end
     
     def resolve(const_str)

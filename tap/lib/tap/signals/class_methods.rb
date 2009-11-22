@@ -116,6 +116,10 @@ module Tap
         signal
       end
       
+      def signal_alias(key, signal)
+        signal_registry[sig.to_s] = signal
+      end
+      
       # Removes a signal much like remove_method removes a method.  The signal
       # constant is likewise removed unless the :remove_const option is set to
       # to true.

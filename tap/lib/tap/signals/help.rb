@@ -1,10 +1,13 @@
-require 'tap/app/doc'
+require 'tap/signals'
 
 module Tap
-  class App
-    class Index < Signals::Signal
-      
+  module Signals
+    class Help < Signal
       def call(args)
+        args.empty? ? list : process(*args)
+      end
+      
+      def list
         signals = obj.class.signals
         width = signals.keys.inject(0) do |max, key|
           max > key.length ? max : key.length
@@ -19,7 +22,18 @@ module Tap
           lines << "  /#{key.ljust(width)}#{desc}"
         end
         
-        "#{self.class.desc}\n#{lines.join("\n")}"
+        "signals: (#{obj.class})\n#{lines.join("\n")}"
+      end
+      
+      def process(sig)
+        clas = obj.signal(sig).class
+        
+        if clas.respond_to?(:desc)
+          desc = clas.desc
+          "#{clas} -- #{desc.to_s}\n#{desc.wrap}"
+        else
+          "#{clas} -- no help available"
+        end
       end
     end
   end

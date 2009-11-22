@@ -99,7 +99,9 @@ prompt = lambda do
   puts "starting prompt (enter for help):"
   loop do
     begin
-      line = Readline.readline('--/', true)
+      line = Readline.readline('--/', true).strip
+      next if line.empty?
+      
       args = Shellwords.shellwords(line)
       "/#{args.shift}" =~ Tap::Parser::SIGNAL
       
