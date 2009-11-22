@@ -51,10 +51,19 @@ module Tap
   #
   class Parser
     class << self
+      def parse(argv=ARGV)
+        parse!(argv.dup)
+      end
+      
       def parse!(argv=ARGV)
-        parser = new
-        parser.parse!(argv)
-        parser
+        argv = Shellwords.shellwords(argv) if argv.kind_of?(String)
+        sig, obj = argv.shift, nil
+        
+        if sig =~ OBJECT
+          obj, sig = $1, $2
+        end
+        
+        [obj, sig, argv]
       end
     end
     
@@ -131,6 +140,17 @@ module Tap
     #        (ex: 'obj/sig' => 'sig')
     #
     SIGNAL = /\A\/(?:(.*)\/)?(.*)\z/
+    
+    # Splits a signal into an object string and a signal string.  If OBJECT
+    # doesn't match, then the string can be considered a signal, and the
+    # object is nil. After a match:
+    #
+    #   $1:: The object string
+    #        (ex: 'obj/sig' => 'obj')
+    #   $2:: The signal string
+    #        (ex: 'obj/sig' => 'sig')
+    #
+    OBJECT = /\A(.*)\/(.*)\z/
     
     attr_reader :specs
     

@@ -182,6 +182,33 @@ class ParserTest < Test::Unit::TestCase
   end
   
   #
+  # OBJECT test
+  #
+  
+  def test_OBJECT_regexp
+    r = Parser::OBJECT
+    
+    assert "nest/obj/sig" =~ r
+    assert_equal "nest/obj", $1
+    assert_equal "sig", $2
+    
+    assert "obj/sig" =~ r
+    assert_equal "obj", $1
+    assert_equal "sig", $2
+    
+    assert "/sig" =~ r
+    assert_equal "", $1
+    assert_equal "sig", $2
+    
+    assert "/" =~ r
+    assert_equal "", $1
+    assert_equal "", $2
+    
+    # non-matching
+    assert "str" !~ r
+  end
+  
+  #
   # parse test
   #
   
