@@ -281,7 +281,7 @@ module Tap
     
     # parses a join modifier string into an argv.
     def parse_join_spec(modifier, inputs, outputs) # :nodoc:
-      argv = [:join, nil, 'init']
+      argv = [:join, nil, 'set', nil]
       
       case 
       when modifier.nil?

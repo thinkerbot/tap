@@ -33,7 +33,7 @@ module Tap
   # workflow will not produce any output.  Whereas shells are setup to print
   # dangling outputs to the terminal, apps may define default joins to handle
   # the output of unjoined nodes.
-  #                             
+  #                              
   #   results = []
   #   app.on_complete {|result| results << result }
   #
@@ -64,7 +64,7 @@ module Tap
   #   app.enq(cat, "example.txt")
   #   app.run
   #   results          # => [["a", "b", "c"], ["c", "b", "a"]]
-  #                                                               
+  #                                                                
   # Now the output of cat is directed at both sort and rsort, resulting in
   # both a forward and reversed array.
   #
@@ -99,9 +99,9 @@ module Tap
   #   # [sort, ["a\nc\nb\n"]],
   #   # [rsort, ["a\nc\nb\n"]]
   #   # ]
-  #                                                           
+  #                                                            
   # Middleware can be nested with multiple calls to use.
-  #                              
+  #                               
   # === Ready, Run, Stop, Terminate
   #
   # Apps have four states.  When ready, an app does not execute nodes.  New
@@ -193,8 +193,8 @@ module Tap
   # === Application Objects
   #
   # Apps can store and reference objects that need persistence for one reason
-  # or another. As an example, stored objects allow workflows to be built
-  # incrementally from a schema.
+  # or another. As an example, stored objects allow workflows to be built from
+  # and serialized to signal hashes.
   #
   # Use the set and get methods to store and retreive application objects:
   #
@@ -206,7 +206,7 @@ module Tap
   # In general this technique is only used to persist objects that implement
   # the application object API (see the API[link:files/doc/API.html]
   # document). As a minimal example, consider this class:
-  #      
+  #       
   #   class Resource
   #     class << self
   #       def parse!(argv=ARGV, app=Tap::App.instance)
@@ -245,7 +245,7 @@ module Tap
   #   b.argv           # => [1, 2, 3]
   #
   # At the application level, these qualities allow resources to be created
-  # and serialized through the init and to_schema methods.  Init takes a hash
+  # and serialized through the init and serialize methods.  Init takes a hash
   # defining these fields:
   #
   #   var     # a variable to identify the object
@@ -267,17 +267,17 @@ module Tap
   #
   # Serializing the application objects looks like this:
   #
-  #   app.to_schema
+  #   app.serialize
   #   # => [
-  #   # {'var' => 'a', 'class' => 'Resource', 'argv' => [1, 2, 3]},
-  #   # {'var' => 'b', 'class' => 'Resource', 'argv' => [4, 5, 6]},
-  #   # {'var' => 'c', 'class' => 'Resource', 'argv' => [7, 8, 9]}
+  #   # {'sig' => 'set', 'var' => 'a', 'class' => 'Resource', 'argv' => [1, 2, 3]},
+  #   # {'sig' => 'set', 'var' => 'b', 'class' => 'Resource', 'argv' => [4, 5, 6]},
+  #   # {'sig' => 'set', 'var' => 'c', 'class' => 'Resource', 'argv' => [7, 8, 9]}
   #   # ]
   #
-  # Schema are arrays of init hashes; initializing each in order will
-  # regenerate the objects, and hence the workflow described by the objects.
-  # Although it is not apparent in this example, objects will be correctly
-  # ordered in the schema to ensure they can be recreated (see the
+  # Serialize converts apps into an array of signals; calling each in order
+  # will regenerate the objects, and hence the workflow described by the
+  # objects. Although it is not apparent in this example, objects will be
+  # correctly ordered in the array to ensure they can be recreated (see the
   # API[link:files/doc/API.html] for more details).
   #
   # === Signals
@@ -306,7 +306,7 @@ module Tap
   #   app.set('', app)
   #   app.call(
   #     'obj' => '', 
-  #     'sig' => 'init', 
+  #     'sig' => 'set', 
   #     'args' => {
   #       'var' => 'a',
   #       'class' => 'Resource',
@@ -319,8 +319,8 @@ module Tap
   #
   # By convention an empty string is used to identify an app and apps are
   # constructed so that, at least when args are specified, the default signal
-  # is 'init'.  Furthermore the args hash can be merged into the signal hash
-  # in the same way a spec can be merged into a init hash.  As a result many
+  # is 'set'.  Furthermore the args hash can be merged into the signal hash in
+  # the same way a spec can be merged into a init hash.  As a result many
   # resources can be initialized with very compact signals:
   #
   #   app.call('var' => 'b', 'class' => 'Resource', 'argv' => [4, 5])
@@ -382,7 +382,7 @@ module Tap
       
       def build(spec={}, app=nil)
         config = spec['config'] || {}
-        schema = spec['schema'] || []
+        signals = spec['signals'] || []
         
         if spec['self']
           app.reconfigure(config)
@@ -390,7 +390,7 @@ module Tap
           app = new(config)
         end
         
-        schema.each do |args|
+        signals.each do |args|
           app.call(args)
         end
         
@@ -447,19 +447,20 @@ module Tap
       :writer => false, 
       :init => false
     
-    signal_hash :init,              # initializes an object
-      :signature => ['class'],
-      :remainder => 'spec'
-      
     signal_hash :set,               # set or unset objects
       :signature => ['var', 'class'],
       :remainder => 'spec',
       :method_name => :init
     
-    signal_class nil, Set
+    signal_class :get do            # get objects
+      def call(args) # :nodoc:
+        object = obj.obj(args.shift)
+        object.inspect
+      end
+    end
     
     signal_class :list do           # list available objects
-      def call(args)
+      def call(args) # :nodoc:
         lines = obj.objects.collect do |(key, obj)|
           "#{key}: #{obj.class}"
         end
@@ -497,10 +498,10 @@ module Tap
       end
     end
     
-    signal_class :man do            # manual pages
+    signal_class :doc do            # manual pages
       def call(args);  # :nodoc:
         unless env.kind_of?(Tap::Env)
-          raise "man pages are unavailable without an env"
+          raise "doc pages are unavailable without an env"
         end
         
         const, page = args
@@ -512,14 +513,14 @@ module Tap
         end
       end
       
-      def env
+      def env # :nodoc:
         @env ||= obj.env
       end
       
-      def pages(klass)
+      def pages(klass) # :nodoc:
         superclasses = klass.ancestors - klass.included_modules
         pages = []
-        env.module_path(:man, superclasses) do |dir|
+        env.module_path(:doc, superclasses) do |dir|
           next unless File.directory?(dir)
           
           Dir.chdir(dir) do
@@ -536,9 +537,9 @@ module Tap
         end
       end
       
-      def render(klass, page)
+      def render(klass, page) # :nodoc:
         superclasses = klass.ancestors - klass.included_modules
-        path = env.module_path(:man, superclasses, "#{page}.erb") {|file| File.exists?(file) }
+        path = env.module_path(:doc, superclasses, "#{page}.erb") {|file| File.exists?(file) }
         
         unless path
           raise "no such page: #{page.inspect} (#{klass.to_s})"
@@ -548,7 +549,40 @@ module Tap
       end
     end
     
-    signal_class :help, Help        # help for signals
+    signal_class :help do        # help for signals
+      def call(args) # :nodoc:
+        args.empty? ? list : process(*args)
+      end
+      
+      def list # :nodoc:
+        signals = obj.class.signals
+        width = signals.keys.inject(0) do |max, key|
+          max > key.length ? max : key.length
+        end
+        
+        lines = []
+        signals.each_pair do |key, signal|
+          next if key.empty?
+          
+          desc = signal.desc.to_s
+          desc = " # #{desc}" unless desc.empty?
+          lines << "  /#{key.ljust(width)}#{desc}"
+        end
+        
+        "signals: (#{obj.class})\n#{lines.join("\n")}"
+      end
+      
+      def process(sig) # :nodoc:
+        clas = obj.signal(sig).class
+        
+        if clas.respond_to?(:desc)
+          desc = clas.desc
+          "#{clas} -- #{desc.to_s}\n#{desc.wrap}"
+        else
+          "#{clas} -- no help available"
+        end
+      end
+    end
     
     # Creates a new App with the given configuration.  Options can be used to
     # specify objects that are normally initialized for every new app:
@@ -1063,7 +1097,7 @@ module Tap
     # Application objects that do not satisfy the application object API are
     # quietly ignored; enable debugging to be warned of their existance.
     #
-    def to_schema(bare=true)
+    def serialize(bare=true)
       # setup variables
       specs = {}
       order = []
@@ -1102,7 +1136,7 @@ module Tap
       
       invert_env = env ? env.invert : nil
       specs.keys.each do |obj|
-        spec = {}
+        spec = {'sig' => 'set'}
         
         # assign variables
         if vars = variables[obj]
@@ -1138,16 +1172,23 @@ module Tap
     end
     
     def to_spec
-      schema = to_schema(false)
-      spec = schema.shift
+      signals = serialize(false)
+      spec = signals.shift
       
       spec.delete('self')
+      spec.delete('sig')
+      
       var = spec.delete('var')
       klass = spec.delete('class')
       spec = spec.delete('spec') || spec
       
-      schema.unshift('var' => var, 'class' => klass, 'self' => true) if var
-      spec['schema'] = schema
+      signals.unshift(
+        'sig' => 'set',
+        'var' => var, 
+        'class' => klass, 
+        'self' => true
+      ) if var
+      spec['signals'] = signals
       
       spec
     end

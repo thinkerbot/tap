@@ -1,5 +1,5 @@
 require 'configurable'
-require 'tap/signals/help'
+require 'tap/signals'
 
 module Tap
   class App
@@ -134,9 +134,6 @@ module Tap
       
       # The App receiving self during enq
       attr_reader :app
-      
-      # The default help signal
-      signal_class :help, Help
       
       def initialize(config={}, app=Tap::App.instance)
         @app = app

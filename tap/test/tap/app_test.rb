@@ -223,11 +223,11 @@ class AppTest < Test::Unit::TestCase
     app.init('var' => 'c', 'class' => 'AppTest::Resource', 'argv' => [7, 8, 9])
     
     expected = [
-    {'var' => 'a', 'class' => 'AppTest::Resource', 'argv' => [1, 2, 3]},
-    {'var' => 'b', 'class' => 'AppTest::Resource', 'argv' => [4, 5, 6]},
-    {'var' => 'c', 'class' => 'AppTest::Resource', 'argv' => [7, 8, 9]}
+    {'sig' => 'set', 'var' => 'a', 'class' => 'AppTest::Resource', 'argv' => [1, 2, 3]},
+    {'sig' => 'set', 'var' => 'b', 'class' => 'AppTest::Resource', 'argv' => [4, 5, 6]},
+    {'sig' => 'set', 'var' => 'c', 'class' => 'AppTest::Resource', 'argv' => [7, 8, 9]}
     ]
-    assert_equal expected, app.to_schema
+    assert_equal expected, app.serialize
     
     ###
   
@@ -235,7 +235,7 @@ class AppTest < Test::Unit::TestCase
     app.set('', app)
     app.call(
       'obj' => '', 
-      'sig' => 'init', 
+      'sig' => 'set', 
       'args' => {
         'var' => 'a',
         'class' => 'AppTest::Resource',
@@ -246,7 +246,7 @@ class AppTest < Test::Unit::TestCase
     assert_equal Resource, a.class
     assert_equal [1, 2, 3], a.argv
   
-    app.call('var' => 'b', 'class' => 'AppTest::Resource', 'argv' => [4, 5])
+    app.call('sig' => 'set', 'var' => 'b', 'class' => 'AppTest::Resource', 'argv' => [4, 5])
     b = app.get('b')
     assert_equal Resource, b.class
     assert_equal [4, 5], b.argv
@@ -351,10 +351,10 @@ class AppTest < Test::Unit::TestCase
     assert_equal true, app.verbose
   end
   
-  def test_build_sets_config_and_builds_schema
+  def test_build_sets_config_and_builds_signals
     instance = App.build(
       'config' => {'verbose' => true},
-      'schema' => [{'var' => 'app', 'class' => 'Tap::App', 'self' => 'true'}]
+      'signals' => [{'sig' => 'set', 'var' => 'app', 'class' => 'Tap::App', 'self' => 'true'}]
     )
     assert_equal false, instance.equal?(app)
     assert_equal true, instance.verbose
@@ -364,11 +364,11 @@ class AppTest < Test::Unit::TestCase
   def test_build_collects_garbage
     instance = App.build(
       'config' => {'verbose' => true},
-      'schema' => [
-        {'var' => 'a', 'class' => 'Tap::App', 'self' => 'true'},
-        {'var' => 'b', 'class' => 'Tap::App', 'self' => 'true'},
-        {'var' => 1, 'class' => 'Tap::App', 'self' => 'true'},
-        {'var' => 2, 'class' => 'Tap::App', 'self' => 'true'}
+      'signals' => [
+        {'sig' => 'set', 'var' => 'a', 'class' => 'Tap::App', 'self' => 'true'},
+        {'sig' => 'set', 'var' => 'b', 'class' => 'Tap::App', 'self' => 'true'},
+        {'sig' => 'set', 'var' => 1, 'class' => 'Tap::App', 'self' => 'true'},
+        {'sig' => 'set', 'var' => 2, 'class' => 'Tap::App', 'self' => 'true'}
       ]
     )
     
@@ -631,7 +631,7 @@ class AppTest < Test::Unit::TestCase
     assert_equal "cannot signal: #{obj.inspect}", err.message
   end
   
-  class BuildClass < App::Api
+  class SetClass < App::Api
     class << self
       def build(spec, app)
         obj = super
@@ -660,63 +660,65 @@ class AppTest < Test::Unit::TestCase
     attr_accessor :build_method
   end
   
-  def test_build_instantiates_class_as_resolved_by_env
-    app.env = {'klass' => BuildClass}
+  def test_set_instantiates_class_as_resolved_by_env
+    app.env = {'klass' => SetClass}
     
-    obj, args = app.call('class' => 'klass')
-    assert_equal BuildClass, obj.class
+    obj, args = app.call('sig' => 'set', 'class' => 'klass')
+    assert_equal SetClass, obj.class
     assert_equal 'value', obj.key
     assert_equal app, obj.app
   end
   
-  def test_call_builds_hash_args_by_default
-    app.env = {'klass' => BuildClass}
-    
-    obj, args = app.call('class' => 'klass')
-    assert_equal :build, obj.build_method
-  end
-  
-  def test_build_raises_error_for_unresolvable_class
+  def test_set_raises_error_for_unresolvable_class
     app.env = {}
-    err = assert_raises(RuntimeError) { app.call('class' => 'klass') }
+    err = assert_raises(RuntimeError) { app.call('sig' => 'set', 'class' => 'klass') }
     assert_equal "unresolvable constant: \"klass\"", err.message
   end
   
-  def test_build_uses_spec_if_specified
-    app.env = {'klass' => BuildClass}
+  def test_set_initializes_with_spec_if_specified
+    app.env = {'klass' => SetClass}
     
     obj, args = app.call(
+      'sig' => 'set',
       'class' => 'klass',
       'spec' => {'config' => {'key' => 'alt'}})
     assert_equal 'alt', obj.key
   end
   
-  def test_build_uses_spec_as_spec_if_spec_is_not_specified
-    app.env = {'klass' => BuildClass}
+  def test_set_builds_hash_spec
+    app.env = {'klass' => SetClass}
+    
+    obj = app.call('sig' => 'set', 'class' => 'klass', 'spec' => {})
+    assert_equal :build, obj.build_method
+  end
+  
+  def test_set_uses_spec_as_spec_if_spec_is_not_specified
+    app.env = {'klass' => SetClass}
     
     obj, args = app.call(
+      'sig' => 'set',
       'class' => 'klass',
       'config' => {'key' => 'alt'})
     assert_equal 'alt', obj.key
   end
   
-  def test_build_stores_obj_by_var_if_specified
-    app.env = {'klass' => BuildClass}
+  def test_set_stores_obj_by_var_if_specified
+    app.env = {'klass' => SetClass}
     
-    obj, args = app.call('class' => 'klass')
+    obj, args = app.call('sig' => 'set', 'class' => 'klass')
     assert_equal({}, app.objects)
     
-    obj, args = app.call('var' => 'variable', 'class' => 'klass')
+    obj, args = app.call('sig' => 'set', 'var' => 'variable', 'class' => 'klass')
     assert_equal({'variable' => obj}, app.objects)
   end
   
-  def test_build_stores_obj_by_multiple_var_if_specified
-    app.env = {'klass' => BuildClass}
+  def test_set_stores_obj_by_multiple_var_if_specified
+    app.env = {'klass' => SetClass}
     
-    obj, args = app.call('class' => 'klass')
+    obj, args = app.call('sig' => 'set', 'class' => 'klass')
     assert_equal({}, app.objects)
     
-    obj, args = app.call('var' => ['a', 'b'], 'class' => 'klass')
+    obj, args = app.call('sig' => 'set', 'var' => ['a', 'b'], 'class' => 'klass')
     assert_equal({'a' => obj, 'b' => obj}, app.objects)
   end
   
@@ -1081,7 +1083,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # to_schema test
+  # serialize test
   #
   
   class SchemaObj < App::Api
@@ -1123,58 +1125,61 @@ class AppTest < Test::Unit::TestCase
     end
   end
   
-  def test_to_schema_serializes_application_objects=
+  def test_serialize_serializes_application_objects=
     app.set('var', SchemaObj.new)
     
     assert_equal [
-      { 'var' => 'var', 
+      { 'sig' => 'set',
+        'var' => 'var', 
         'class' => 'AppTest::SchemaObj', 
         'config' => {'key' => 'value'}
       }
-    ], app.to_schema
+    ], app.serialize
   end
   
-  def test_to_schema_serializes_queue
+  def test_serialize_serializes_queue
     obj = SchemaObj.new
     app.set('var', obj)
     app.enq(obj, 1, 2, 3)
     
     assert_equal [
-      { 'var' => 'var', 
+      { 'sig' => 'set',
+        'var' => 'var', 
         'class' => 'AppTest::SchemaObj', 
         'config' => {'key' => 'value'}
       },
       { 'sig' => 'enque', 
         'args' => ['var', 1,2,3]
       }
-    ], app.to_schema
+    ], app.serialize
   end
   
-  def test_to_schema_adds_sets_objects_if_necessary
+  def test_serialize_adds_sets_objects_if_necessary
     app.enq(SchemaObj.new, 1, 2, 3)
     
     assert_equal [
-      { 'var' => 0, 
+      { 'sig' => 'set',
+        'var' => 0, 
         'class' => 'AppTest::SchemaObj', 
         'config' => {'key' => 'value'}
       },
       { 'sig' => 'enque', 
         'args' => [0, 1,2,3]
       }
-    ], app.to_schema
+    ], app.serialize
   end
   
-  def test_to_schema_orders_objects_by_var
+  def test_serialize_orders_objects_by_var
     letters = ('a'..'z').to_a
     letters.each do |letter|
       app.set(letter, SchemaObj.new)
     end
     
-    order = app.to_schema.collect {|hash| hash['var'] }
+    order = app.serialize.collect {|hash| hash['var'] }
     assert_equal letters, order 
   end
   
-  def test_to_schema_orders_objects_by_associations
+  def test_serialize_orders_objects_by_associations
     a = SchemaObj.new({:key => 'a'}, app)
     b = SchemaObj.new({:key => 'b'}, app, [a])
     c = SchemaObj.new({:key => 'c'}, app)
@@ -1183,29 +1188,33 @@ class AppTest < Test::Unit::TestCase
     app.set('d', d)
     
     assert_equal [
-      { 'var' => 3, 
+      { 'sig' => 'set',
+        'var' => 3, 
         'class' => 'AppTest::SchemaObj', 
         'config' => {'key' => 'a'}
       },
-      { 'var' => 1, 
+      { 'sig' => 'set',
+        'var' => 1, 
         'class' => 'AppTest::SchemaObj', 
         'config' => {'key' => 'b'},
         'refs' => [3]
       },
-      { 'var' => 'd', 
+      { 'sig' => 'set',
+        'var' => 'd', 
         'class' => 'AppTest::SchemaObj', 
         'config' => {'key' => 'd'},
         'refs' => [1],
         'brefs' => [2]
       },
-      { 'var' => 2, 
+      { 'sig' => 'set',
+        'var' => 2, 
         'class' => 'AppTest::SchemaObj', 
         'config' => {'key' => 'c'}
       }
-    ], app.to_schema
+    ], app.serialize
   end
   
-  def test_to_schema_serializes_apps
+  def test_serialize_serializes_apps
     app_a = App.new :verbose => true
     a = SchemaObj.new({}, app_a)
     app_a.set('a', a)
@@ -1215,23 +1224,26 @@ class AppTest < Test::Unit::TestCase
     app_b.set('b', app_b)
     
     expected = [
-      { 'var' => 'b',
+      { 'sig' => 'set',
+        'var' => 'b',
         'class' => 'Tap::App',
         'config' => default_config.merge('quiet' => true),
         'self' => true
       },
-      { 'var' => 'a', 
+      { 'sig' => 'set',
+        'var' => 'a', 
         'class' => 'Tap::App',
         'config' => default_config.merge('verbose' => true),
-        'schema' => [
-          { 'var' => 'a', 
+        'signals' => [
+          { 'sig' => 'set',
+            'var' => 'a', 
             'class' => 'AppTest::SchemaObj', 
             'config' => {'key' => 'value'}
           }]
       }
     ]
     
-    assert_equal expected, app_b.to_schema(false)
+    assert_equal expected, app_b.serialize(false)
   end
   
   class NestSchemaByVar
@@ -1246,22 +1258,22 @@ class AppTest < Test::Unit::TestCase
     end
   end
   
-  def test_to_schema_nests_build_hashes_if_necessary
+  def test_serialize_nests_build_hashes_if_necessary
     app.set('by_var', NestSchemaByVar.new)
     app.set('by_obj', NestSchemaByObj.new)
     
     assert_equal [
-      { 
+      { 'sig' => 'set',
         'var' => 'by_obj', 
         'class' => 'AppTest::NestSchemaByObj',
         'spec' => {'obj' => 'this'}
       },
-      { 
+      { 'sig' => 'set',
         'var' => 'by_var', 
         'class' => 'AppTest::NestSchemaByVar',
         'spec' => {'var' => 'this'}
       }
-    ], app.to_schema
+    ], app.serialize
   end
   
   #
@@ -1279,13 +1291,19 @@ class AppTest < Test::Unit::TestCase
     
     expected = {
       'config' => default_config.merge('quiet' => true),
-      'schema' => [
-        {"self"=>true, "class"=>"Tap::App", "var"=>"b"},
-        { 'var' => 'a', 
+      'signals' => [
+        { 'sig' => 'set',
+          'var' => 'b', 
+          'class' => 'Tap::App',
+          'self' => true
+        },
+        { 'sig' => 'set',
+          'var' => 'a', 
           'class' => 'Tap::App',
           'config' => default_config.merge('verbose' => true),
-          'schema' => [
-            { 'var' => 'a', 
+          'signals' => [
+            { 'sig' => 'set',
+              'var' => 'a', 
               'class' => 'AppTest::SchemaObj', 
               'config' => {'key' => 'value'}
             }]}]

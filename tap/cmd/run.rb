@@ -165,7 +165,7 @@ begin
   end
   
   if opts[:preview]
-    YAML.dump(app.to_schema, $stdout)
+    YAML.dump(app.serialize, $stdout)
     exit(0)
   end
   

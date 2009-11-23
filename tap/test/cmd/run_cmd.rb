@@ -195,9 +195,9 @@ goodnight moon
   end
   
   SAMPLE_SCHEMA = [
-    {'var' => '0', 'class' => 'tap:load', "config"=>{"use_close"=>false, "file"=>false}},
-    {'var' => '1', 'class' => 'tap:dump', "config"=>{"overwrite"=>false}},
-    {'class' => 'tap:join', 'inputs' => ['0'], 'outputs' => ['1'], "config"=>{"splat"=>false, "enq"=>false, "iterate"=>false}},
+    {'sig' => 'set', 'var' => '0', 'class' => 'tap:load', "config"=>{"use_close"=>false, "file"=>false}},
+    {'sig' => 'set', 'var' => '1', 'class' => 'tap:dump', "config"=>{"overwrite"=>false}},
+    {'sig' => 'set', 'class' => 'tap:join', 'inputs' => ['0'], 'outputs' => ['1'], "config"=>{"splat"=>false, "enq"=>false, "iterate"=>false}},
     {'sig' => 'enque', 'args' => ['0', 'goodnight moon']}
   ]
   
@@ -278,7 +278,7 @@ a
   
   def test_run_using_signals
     sh_test %Q{
-% tap run -e --/set 0 load --/set 1 dump --/init join 0 1 --/enque 0 'goodnight moon'
+% tap run -e --/set 0 load --/set 1 dump --/set 2 join 0 1 --/enque 0 'goodnight moon'
 goodnight moon
 }
     sh_test %Q{
