@@ -1,5 +1,6 @@
 require 'logger'
 require 'tap/app/api'
+require 'tap/app/doc'
 require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
@@ -498,57 +499,7 @@ module Tap
       end
     end
     
-    signal_class :doc do            # manual pages
-      def call(args);  # :nodoc:
-        unless env.kind_of?(Tap::Env)
-          raise "doc pages are unavailable without an env"
-        end
-        
-        const, page = args
-        if const
-          klass = obj.resolve(const)
-          page ? render(klass, page) : pages(klass)
-        else
-          "constants:\n#{env.constants.summarize}"
-        end
-      end
-      
-      def env # :nodoc:
-        @env ||= obj.env
-      end
-      
-      def pages(klass) # :nodoc:
-        superclasses = klass.ancestors - klass.included_modules
-        pages = []
-        env.module_path(:doc, superclasses) do |dir|
-          next unless File.directory?(dir)
-          
-          Dir.chdir(dir) do
-            Dir.glob("*.erb").each do |pages|
-              pages << "  #{page.chomp(".erb")}"
-            end
-          end
-        end
-        
-        if pages.empty?
-          "no pages available (#{klass})"
-        else
-          "pages: (#{klass})\n#{pages.join("\n")}"
-        end
-      end
-      
-      def render(klass, page) # :nodoc:
-        superclasses = klass.ancestors - klass.included_modules
-        path = env.module_path(:doc, superclasses, "#{page}.erb") {|file| File.exists?(file) }
-        
-        unless path
-          raise "no such page: #{page.inspect} (#{klass.to_s})"
-        end
-        
-        Templater.build_file(path)
-      end
-    end
-    
+    signal_class :doc, Doc                       # manual pages
     signal :help, :class => Help, :bind => nil   # signals help
     
     # Creates a new App with the given configuration.  Options can be used to
