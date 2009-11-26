@@ -1,6 +1,5 @@
 require 'logger'
 require 'tap/app/api'
-require 'tap/app/doc'
 require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
@@ -489,7 +488,7 @@ module Tap
       end
     end
     
-    signal_class :doc, Doc                           # documentation
+    signal :doc, :signature => [:constant, :page]    # documentation
     signal :help, :class => Help, :bind => nil       # signals help
     
     # Creates a new App with the given configuration.  Options can be used to
@@ -952,6 +951,24 @@ module Tap
       "state: #{state} (#{State.state_str(state)}) queue: #{queue.size}"
     end
     
+    def doc(const_str=nil, page=nil)
+      unless env.kind_of?(Tap::Env)
+        raise "doc pages are only available for Tap::Env environments"
+      end
+       
+      constant = const_str ? resolve(const_str) : nil
+      modules = constant.kind_of?(Class) ? constant.ancestors - constant.included_modules : [constant]
+      
+      case
+      when constant && page
+        render(modules, page)
+      when constant
+        pages(modules)
+      else
+        "constants:\n#{env.constants.summarize}"
+      end
+    end
+    
     # Dumps self to the target as YAML. (note dump is still experimental)
     #
     # ==== Notes
@@ -1156,6 +1173,38 @@ module Tap
     def self_to_spec # :nodoc:
       config = self.config.to_hash {|hash, key, value| hash[key.to_s] = value }
       {'config' => config, 'self' => true}
+    end
+    
+    def pages(modules) # :nodoc:
+      constant = modules.last
+      pages = []
+      
+      env.module_path(:doc, modules) do |dir|
+        next unless File.directory?(dir)
+        
+        Dir.chdir(dir) do
+          Dir.glob("*.erb").each do |page|
+            pages << "  #{page.chomp('.erb')}"
+          end
+        end
+      end
+      
+      if pages.empty?
+        "no pages available (#{constant})"
+      else
+        "pages: (#{constant})\n#{pages.join("\n")}"
+      end
+    end
+    
+    def render(modules, page) # :nodoc:
+      constant = modules.last
+      path = env.module_path(:doc, modules, "#{page}.erb") {|file| File.exists?(file) }
+      
+      unless path
+        raise "no such page: #{page.inspect} (#{constant.to_s})"
+      end
+      
+      Templater.build_file(path, :app => self, :constant => constant)
     end
     
     # TerminateErrors are raised to kill executing nodes when terminate is 
