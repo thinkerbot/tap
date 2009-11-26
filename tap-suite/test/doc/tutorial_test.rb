@@ -107,13 +107,13 @@ hello world
 }
       sh_test %Q{
 % rap Say[hello] Goodnight[world] 2>&1
-warning: implict rake for [:node, "0", "Say[hello]", "Goodnight[world]"]
+warning: implict rake for [:node, nil, "set", "0", "Say[hello]", "Goodnight[world]"]
 (in #{method_root[:tmp]})
 hello world
 }
       sh_test %Q{
 % rap Say[hello] Goodnight[world] -- goodnight moon 2>&1
-warning: implict rake for [:node, "0", "Say[hello]", "Goodnight[world]"]
+warning: implict rake for [:node, nil, "set", "0", "Say[hello]", "Goodnight[world]"]
 (in #{method_root[:tmp]})
 hello world
 goodnight moon
@@ -211,8 +211,8 @@ class Goodnight < Tap::Task
   end
 end
 
-instance = Goodnight.parse!(ARGV)
-instance.execute(ARGV)
+instance, argv = Goodnight.parse!(ARGV)
+instance.execute(argv)
 }
     end
     

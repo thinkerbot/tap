@@ -40,7 +40,7 @@ when '--help', nil, '-T'
   tasks = constants.summarize do |constant|
     constant.types['task'] or begin
       const = constant.constantize(false)
-      const && const.respond_to?(:desc) && const.desc.kind_of?(Rap::Description) ? const.desc.desc : nil
+      const && const.ancestors.include?(Rap::Task) ? const.desc.desc : nil
     end
   end
 
@@ -59,19 +59,19 @@ when '--help', nil, '-T'
   
 else
   begin
-    parser = Tap::Parser.parse!(ARGV)
-    parser.specs.each do |spec|
-      type, var, klass = spec
-      next unless type == :node
-      
-      if env.constants.seek(klass).nil? && Rap::Rake.has_rakefile?
-        warn "warning: implict rake for #{spec.inspect}"
-        spec.insert(2, 'rap:rake')
+    app.call('sig' => 'parse', 'args' => ARGV) do |spec|
+      type, obj, sig, var, klass = spec
+
+      if type == :node
+        if env.constants.seek(klass).nil? && Rap::Rake.has_rakefile?
+          warn "warning: implict rake for #{spec.inspect}"
+          spec.insert(4, 'rap:rake')
+        end
       end
+
+      true
     end
-    parser.build(app, true)
     
-    parser = nil
     app.run
   rescue
     puts $!.message

@@ -95,9 +95,8 @@ module Rap
         # enque with no inputs to satisfy call, and
         # clear argv so auto-enque will do the same
         instance.enq if enque
-        argv.clear
         
-        instance
+        [instance, []]
       end
       
       # Instantiates the instance of self for app and reconfigures it as

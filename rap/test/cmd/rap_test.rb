@@ -205,34 +205,34 @@ end
     method_root.chdir(:tmp) do
       sh_test %Q{
 % rap a
-warning: implict rake for [:node, "0", "a"]
+warning: implict rake for [:node, nil, "set", "0", "a"]
 (in #{File.dirname(rakefile)})
 A
 }
       sh_test %Q{
 % rap a --silent
-warning: implict rake for [:node, "0", "a", "--silent"]
+warning: implict rake for [:node, nil, "set", "0", "a", "--silent"]
 A
 }
       sh_test %Q{
 % rap b --silent
-warning: implict rake for [:node, "0", "b", "--silent"]
+warning: implict rake for [:node, nil, "set", "0", "b", "--silent"]
 A
 B
 }      
       sh_test %Q{
 % rap c[arg] --silent
-warning: implict rake for [:node, "0", "c[arg]", "--silent"]
+warning: implict rake for [:node, nil, "set", "0", "c[arg]", "--silent"]
 ARG
 }
       sh_test %Q{
 % rap ns:a --silent
-warning: implict rake for [:node, "0", "ns:a", "--silent"]
+warning: implict rake for [:node, nil, "set", "0", "ns:a", "--silent"]
 nsA
 }
       sh_test %Q{
 % rap ns:c[arg] ns:b ns:a b --silent
-warning: implict rake for [:node, "0", "ns:c[arg]", "ns:b", "ns:a", "b", "--silent"]
+warning: implict rake for [:node, nil, "set", "0", "ns:c[arg]", "ns:b", "ns:a", "b", "--silent"]
 nsARG
 nsA
 nsB
