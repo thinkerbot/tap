@@ -1,5 +1,5 @@
 require 'configurable'
-require 'tap/signals'
+require 'tap/signals/help'
 
 module Tap
   class App
@@ -131,6 +131,8 @@ module Tap
     
       include Configurable
       include Signals
+      
+      signal :help, :class => Help, :bind => nil   # signals help
       
       # The App receiving self during enq
       attr_reader :app

@@ -8,7 +8,6 @@ module Tap
         # A description of self
         attr_accessor :desc
       end
-      @desc = nil
       
       # The object receiving signals through self.
       attr_reader :obj

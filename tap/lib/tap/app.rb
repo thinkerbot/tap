@@ -549,40 +549,7 @@ module Tap
       end
     end
     
-    signal_class :help do        # help for signals
-      def call(args) # :nodoc:
-        args.empty? ? list : process(*args)
-      end
-      
-      def list # :nodoc:
-        signals = obj.class.signals
-        width = signals.keys.inject(0) do |max, key|
-          max > key.length ? max : key.length
-        end
-        
-        lines = []
-        signals.each_pair do |key, signal|
-          next if key.empty?
-          
-          desc = signal.desc.to_s
-          desc = " # #{desc}" unless desc.empty?
-          lines << "  /#{key.ljust(width)}#{desc}"
-        end
-        
-        "signals: (#{obj.class})\n#{lines.join("\n")}"
-      end
-      
-      def process(sig) # :nodoc:
-        clas = obj.signal(sig).class
-        
-        if clas.respond_to?(:desc)
-          desc = clas.desc
-          "#{clas} -- #{desc.to_s}\n#{desc.wrap}"
-        else
-          "#{clas} -- no help available"
-        end
-      end
-    end
+    signal :help, :class => Help, :bind => nil   # signals help
     
     # Creates a new App with the given configuration.  Options can be used to
     # specify objects that are normally initialized for every new app:
@@ -768,10 +735,6 @@ module Tap
       sig = args['sig']
       args = args['args'] || args
       
-      route(obj, sig, &block).call(args)
-    end
-    
-    def route(obj, sig, &block)
       unless object = get(obj)
         raise "unknown object: #{obj.inspect}"
       end
@@ -780,9 +743,9 @@ module Tap
         raise "cannot signal: #{object.inspect}"
       end
       
-      object.signal(sig, &block)
+      object.signal(sig, &block).call(args)
     end
-    
+
     def resolve(const_str)
       constant = env ? env[const_str] : Env::Constant.constantize(const_str)
       constant or raise "unresolvable constant: #{const_str.inspect}"

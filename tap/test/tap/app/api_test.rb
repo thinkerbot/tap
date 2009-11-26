@@ -1,7 +1,11 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/app/api'
+require 'tap/test'
 
 class ApiTest < Test::Unit::TestCase
+  extend Tap::Test
+  acts_as_tap_test
+  
   Api = Tap::App::Api
   
   # ApiTest::Example::example desc is set to access this string
@@ -33,6 +37,25 @@ class ApiTest < Test::Unit::TestCase
   
     assert_equal "not_alt", Alt.type
     assert_equal "this is the description...", Alt.desc.to_s
+  end
+  
+  #
+  # help test
+  #
+  
+  def test_help_signal_lists_signals
+    app.set 'var', Example.new
+    list = app.call('obj' => 'var', 'sig' => 'help', 'args' => [])
+    assert list =~ /\/help\s+# signals help/
+  end
+  
+  def test_help_with_arg_lists_signal_help
+    app.set 'var', Example.new
+    help = app.call('obj' => 'var', 'sig' => 'help', 'args' => ['help'])
+    assert help =~ /Tap::App::Api::Help -- signals help/
+    
+    help = app.call('obj' => 'var', 'sig' => 'help', 'args' => {'sig' => 'help'})
+    assert help =~ /Tap::App::Api::Help -- signals help/
   end
 end
 

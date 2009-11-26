@@ -375,6 +375,25 @@ class AppTest < Test::Unit::TestCase
     assert_equal({'a' => instance, 'b' => instance}, instance.objects)
   end
   
+  #
+  # help test
+  #
+  
+  def test_help_signal_lists_signals
+    list = app.call('sig' => 'help', 'args' => [])
+    
+    assert list =~ /\/set\s+# set or unset objects/
+    assert list =~ /\/get\s+# get objects/
+  end
+  
+  def test_help_with_arg_lists_signal_help
+    help = app.call('sig' => 'help', 'args' => ['set'])
+    assert help =~ /Tap::App::Set -- set or unset objects/
+    
+    help = app.call('sig' => 'help', 'args' => {'sig' => 'set'})
+    assert help =~ /Tap::App::Set -- set or unset objects/
+  end
+  
   # 
   # initialization tests
   #
