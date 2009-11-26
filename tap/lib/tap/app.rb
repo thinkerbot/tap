@@ -450,7 +450,7 @@ module Tap
     signal_hash :set,               # set or unset objects
       :signature => ['var', 'class'],
       :remainder => 'spec',
-      :method_name => :init
+      :bind => :init
     
     signal_class :get do            # get objects
       def call(args) # :nodoc:

@@ -30,14 +30,19 @@ class SignalsTest < Test::Unit::TestCase
   
   class SignalDefTest < SignalsClass
     signal :echo
+    signal :echo_hash
   end
   
-  def test_signal_creates_a_signal_for_the_specified_method
+  def test_signal_creates_a_signal_bound_to_the_specified_method
     assert SignalDefTest.signals.has_key?('echo')
     
     obj = SignalDefTest.new
     assert_equal ["echo"], obj.signal('echo').call([])
     assert_equal [1,2,3, "echo"], obj.signal('echo').call([1,2,3])
+    assert_equal({:key => :value, 'echo' => true}, obj.signal('echo_hash').call([{:key => :value}]))
+    
+    err = assert_raises(ArgumentError) { obj.signal('echo_hash').call([1, 2]) }
+    assert_equal "wrong number of arguments (2 for 1)", err.message
   end
   
   def test_signal_stringifies_sig
@@ -50,10 +55,10 @@ class SignalsTest < Test::Unit::TestCase
   #
   
   class SignalTest < SignalsClass
-    signal :alt, :method_name => :echo
+    signal :alt, :bind => :echo
   end
   
-  def test_signal_method_name_sets_method_name
+  def test_bind_specifies_bound_method
     assert !SignalTest.signals.has_key?('echo')
     
     obj = SignalTest.new
@@ -72,7 +77,7 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   class SignalWithoutMethodTest < SignalsClass
-    signal :sig, :method_name => nil do |sig, argv|
+    signal :sig, :bind => nil do |sig, argv|
       argv << "was in block"
       argv
     end
@@ -90,6 +95,15 @@ class SignalsTest < Test::Unit::TestCase
   def test_signal_builds_argv_from_hash_signature
     obj = SignalSignatureTest.new
     assert_equal [1,2,3, "echo"], obj.signal('echo').call(:a => 1, :b => 2, :c => 3)
+  end
+  
+  class SignalSignatureWithRemainderTest < SignalsClass
+    signal :echo, :signature => [:a, :b], :remainder => true
+  end
+  
+  def test_signal_passes_remaining_args_as_options
+    obj = SignalSignatureWithRemainderTest.new
+    assert_equal [1,2, {:c => 3}, "echo"], obj.signal('echo').call(:a => 1, :b => 2, :c => 3)
   end
   
   class SignalOrderTest < SignalsClass
@@ -193,12 +207,12 @@ class SignalsTest < Test::Unit::TestCase
     signal_class :key, Sub
   end
   
-  def test_signal_class_creates_subclass_of_specified_class
+  def test_signal_class_sets_class_if_no_block_is_specified
     assert SignalSubClassTest.signals.has_key?('key')
     
     obj = SignalSubClassTest.new
     sig = obj.signal('key')
-    assert_equal SignalSubClassTest::Sub, sig.class.superclass
+    assert_equal SignalSubClassTest::Sub, sig.class
     assert_equal [1,2,3, "was in process"], sig.call([1,2,3])
   end
   

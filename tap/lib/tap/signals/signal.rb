@@ -5,35 +5,8 @@ module Tap
     # through a standard interface.
     class Signal
       class << self
-        
         # A description of self
-        attr_reader :desc
-        
-        def inherited(child) # :nodoc:
-          super
-          child.instance_variable_set(:@desc, nil)
-        end
-        
-        # Produces a subclass of self that will call the specified method on
-        # objects.  If a block is given it will pre-process arguments before
-        # the method is called.
-        def bind(method_name=nil, desc="", &block)
-          signal = Class.new(self)
-          signal.instance_variable_set(:@desc, desc)
-          
-          if method_name
-            signal.send(:define_method, :call) do |args|
-              args = process(args)
-              obj.send(method_name, *args, &self.block)
-            end
-          end
-          
-          if block_given?
-            signal.send(:define_method, :process, &block)
-          end
-          
-          signal
-        end
+        attr_accessor :desc
       end
       @desc = nil
       
@@ -56,6 +29,40 @@ module Tap
       # Simply returns the input args.  This method is a hook for subclasses.
       def process(args)
         args
+      end
+      
+      protected
+      
+      def convert_to_array(obj, signature=[], options=false)
+        return obj if obj.kind_of?(Array)
+        
+        argv = signature.collect {|key| obj[key] }
+        
+        if options
+          opts = {}
+          (obj.keys - signature).each do |key|
+            opts[key] = obj[key]
+          end
+          
+          argv << opts
+        end
+        
+        argv
+      end
+      
+      def convert_to_hash(obj, signature=[], remainder=nil)
+        return obj if obj.kind_of?(Hash)
+        
+        args, argh = obj, {}
+        signature.each do |key|
+          argh[key] = args.shift
+        end
+        
+        if remainder
+          argh[remainder] = args
+        end
+        
+        argh
       end
     end
   end

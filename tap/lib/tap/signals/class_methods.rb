@@ -16,6 +16,10 @@ module Tap
         unless base.instance_variable_defined?(:@signals)
           base.instance_variable_set(:@signals, nil)
         end
+        
+        unless base.instance_variable_defined?(:@use_signal_constants)
+          base.instance_variable_set(:@use_signal_constants, true)
+        end
       end
       
       # A hash of (key, Signal) pairs representing all signals defined on this
@@ -53,6 +57,10 @@ module Tap
       
       protected
       
+      def use_signal_constants(input=true)
+        @use_signal_constants = input
+      end
+      
       # Defines a signal to call a method using an argument vector. The argv
       # is sent to the method using a splat, so any method may be signaled.
       # A signature of keys may be specified to automatically generate an argv
@@ -63,13 +71,14 @@ module Tap
       # be an argv).
       def signal(sig, opts={}) # :yields: sig, argv
         signature = opts[:signature] || []
-        define_signal(sig, opts) do |args|
-          if args.kind_of?(Hash)
-            args = signature.collect {|key| args[key] }
-          end
-          
-          block_given? ? yield(self, args) : args
+        remainder = opts[:remainder] || false
+        
+        signal = define_signal(sig, opts) do |args|
+          argv = convert_to_array(args, signature, remainder)
+          block_given? ? yield(self, argv) : argv
         end
+        
+        register_signal(sig, signal, opts)
       end
       
       # Defines a signal to call a method that receives a single hash as an
@@ -80,66 +89,38 @@ module Tap
       # to the method; the block return is sent to the method (and so should
       # be a hash).
       def signal_hash(sig, opts={}) # :yields: sig, argh
-        remainder = opts[:remainder]
         signature = opts[:signature] || []
+        remainder = opts[:remainder]
         
-        define_signal(sig, opts) do |argh|
-          if argh.kind_of?(Array)
-            args, argh = argh, {}
-            signature.each do |key|
-              argh[key] = args.shift
-            end
-            
-            if remainder
-              argh[remainder] = args
-            end
-          end
-          
+        signal = define_signal(sig, opts) do |args|
+          argh = convert_to_hash(args, signature, remainder)
           [block_given? ? yield(self, argh) : argh]
         end
+        
+        register_signal(sig, signal, opts)
       end
       
       def signal_class(sig, signal_class=Signal, opts={}, &block) # :yields: sig, argv
-        signal = Class.new(signal_class)
-        signal.class_eval(&block) if block_given?
-        signal_registry[sig.to_s] = signal
-        
-        desc = opts.has_key?(:desc) ? opts[:desc] : Lazydoc.register_caller(Lazydoc::Trailer)
-        signal.instance_variable_set(:@desc, desc)
-        
-        # set the new constant, if specified
-        const_name = opts.has_key?(:const_name) ? opts[:const_name] : sig.to_s.capitalize
-        unless const_name.to_s.empty?
-          const_set(const_name, signal)
+        if block_given?
+          signal = Class.new(signal_class)
+          signal.class_eval(&block)
+        else
+          signal = signal_class
         end
         
-        signal
-      end
-      
-      def signal_alias(key, signal)
-        signal_registry[sig.to_s] = signal
+        register_signal(sig, signal, opts)
       end
       
       # Removes a signal much like remove_method removes a method.  The signal
       # constant is likewise removed unless the :remove_const option is set to
       # to true.
-      def remove_signal(key, options={})
-        key = key.to_s
-        unless signal_registry.has_key?(key)
-          raise NameError.new("#{key} is not a signal for #{self}")
+      def remove_signal(sig, opts={})
+        sig = sig.to_s
+        unless signal_registry.has_key?(sig)
+          raise NameError.new("#{sig} is not a signal for #{self}")
         end
 
-        options = {
-          :remove_const => true
-        }.merge(options)
-
-        signal = signal_registry.delete(key)
-        cache_signals(@signals != nil)
-
-        if options[:remove_const]
-          const_name = signal.to_s.split("::").pop
-          remove_const(const_name) if const_defined?(const_name)
-        end 
+        unregister_signal(sig, opts)
       end
 
       # Undefines a signal much like undef_method undefines a method.  The signal
@@ -155,50 +136,85 @@ module Tap
       # This is unlike remove_signal where the signal is simply deleted from
       # the signal_registry.
       #
-      def undef_signal(key, options={})
+      def undef_signal(sig, opts={})
         # temporarily cache as an optimization
-        sigs = signals
-        key = key.to_s
-        unless sigs.has_key?(key)
-          raise NameError.new("#{key} is not a signal for #{self}")
+        signals_cache = signals
+        sig = sig.to_s
+        unless signals_cache.has_key?(sig)
+          raise NameError.new("#{sig} is not a signal for #{self}")
         end
-
-        options = {
-          :remove_const => true
-        }.merge(options)
         
-        signal = sigs[key]
-        signal_registry[key] = nil
-        cache_signals(@signals != nil)
-        
-        if options[:remove_const]
-          const_name = signal.to_s.split("::").pop
-          remove_const(const_name) if const_defined?(const_name)
-        end
+        unregister_signal(sig, opts)
+        signal_registry[sig] = nil
+        signals_cache[sig]
       end
       
       private
-
+      
       def inherited(base) # :nodoc:
         ClassMethods.initialize(base)
+        
+        unless base.instance_variable_defined?(:@use_signal_constants)
+          base.instance_variable_set(:@use_signal_constants, true)
+        end
+        
         super
       end
       
-      def define_signal(sig, opts, &block) # :nodoc:
-        # generate a subclass of signal to bind the methods
-        method_name = opts.has_key?(:method_name) ? opts[:method_name] : sig
-        desc = opts.has_key?(:desc) ? opts[:desc] : Lazydoc.register_caller(Lazydoc::Trailer, 2)
+      def define_signal(sig, opts={}, &block) # :nodoc:
+        # generate a subclass of signal
         klass = opts[:class] || Signal
+        signal = Class.new(klass)
         
-        signal = klass.bind(method_name, desc, &block)
-        signal_registry[sig.to_s] = signal
-        
-        # set the new constant, if specified
-        const_name = opts.has_key?(:const_name) ? opts[:const_name] : sig.to_s.capitalize
-        unless const_name.to_s.empty?
-          const_set(const_name, signal)
+        # bind the new signal
+        method_name = opts.has_key?(:bind) ? opts[:bind] : sig
+        if method_name
+          signal.send(:define_method, :call) do |args|
+            args = process(args)
+            obj.send(method_name, *args, &self.block)
+          end
         end
         
+        if block_given?
+          signal.send(:define_method, :process, &block)
+        end
+        
+        signal
+      end
+      
+      def register_signal(sig, signal, opts={}) # :nodoc:
+        if signal.respond_to?(:desc=)
+          signal.desc ||= Lazydoc.register_caller(Lazydoc::Trailer, 2)
+        end
+        
+        signal_registry[sig.to_s] = signal
+        cache_signals(@signals != nil)
+        
+        # set the new constant, if specified
+        if @use_signal_constants
+          const_name = opts.has_key?(:const_name) ? opts[:const_name] : sig.to_s.capitalize
+          const_name = const_name.to_s
+          
+          if const_name =~ /\A[A-Z]\w*\z/ && !const_defined?(const_name)
+            const_set(const_name, signal)
+          end
+        end
+        
+        signal
+      end
+      
+      def unregister_signal(sig, opts={}) # :nodoc:
+        signal = signal_registry.delete(sig.to_s)
+        
+        remove_const = opts.has_key?(:remove_const) ? opts[:remove_const] : true
+        if @use_signal_constants && remove_const
+          const_name = signal.to_s.split("::").pop.to_s
+          if const_name =~ /\A[A-Z]\w*\z/ && const_defined?(const_name)
+            remove_const(const_name)
+          end
+        end
+        
+        cache_signals(@signals != nil)
         signal
       end
     end
