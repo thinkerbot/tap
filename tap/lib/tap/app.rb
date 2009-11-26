@@ -246,7 +246,7 @@ module Tap
   #   b.argv           # => [1, 2, 3]
   #
   # At the application level, these qualities allow resources to be created
-  # and serialized through the init and serialize methods.  Init takes a hash
+  # and serialized through the build and serialize methods.  Init takes a hash
   # defining these fields:
   #
   #   var     # a variable to identify the object
@@ -255,16 +255,16 @@ module Tap
   #
   # Initializing a resource looks like this:
   #
-  #   app.init('var' => 'a', 'class' => 'Resource', 'spec' => [1, 2, 3])
+  #   app.build('var' => 'a', 'class' => 'Resource', 'spec' => [1, 2, 3])
   #   a = app.get('a')
   #   a.class               # => Resource
   #   a.argv                # => [1, 2, 3]
   #
   # Note that when spec is a hash, and does not require any of the same keys,
-  # it can be merged with the init hash.  These both initialize a resource:
+  # it can be merged with the build hash.  These both build a resource:
   #
-  #   app.init('var' => 'b', 'class' => 'Resource', 'spec' => {'argv' => [4, 5, 6]})
-  #   app.init('var' => 'c', 'class' => 'Resource', 'argv' => [7, 8, 9])
+  #   app.build('var' => 'b', 'class' => 'Resource', 'spec' => {'argv' => [4, 5, 6]})
+  #   app.build('var' => 'c', 'class' => 'Resource', 'argv' => [7, 8, 9])
   #
   # Serializing the application objects looks like this:
   #
@@ -301,7 +301,7 @@ module Tap
   #   signal.call(args)            # call the signal with args
   #
   # An app can itself be signaled when set as an application object. As a
-  # result, signals can be used to initialize objects:
+  # result, signals can be used to build objects:
   #
   #   app = App.new
   #   app.set('', app)
@@ -321,8 +321,8 @@ module Tap
   # By convention an empty string is used to identify an app and apps are
   # constructed so that, at least when args are specified, the default signal
   # is 'set'.  Furthermore the args hash can be merged into the signal hash in
-  # the same way a spec can be merged into a init hash.  As a result many
-  # resources can be initialized with very compact signals:
+  # the same way a spec can be merged into a build hash.  As a result many
+  # resources can be built with very compact signals:
   #
   #   app.call('var' => 'b', 'class' => 'Resource', 'argv' => [4, 5])
   #   b = app.get('b')
@@ -330,7 +330,7 @@ module Tap
   #   b.argv                     # => [4, 5]
   #
   # This is ONLY possible for resources whose specs do not use any of the six
-  # signal or init keys (obj, sig, args, var, class, spec), and requires the
+  # signal or build keys (obj, sig, args, var, class, spec), and requires the
   # app is set to an empty string in objects.
   #
   # The Tap::Signals module provides a dsl for exposing methods as signals. In
@@ -448,59 +448,49 @@ module Tap
       :writer => false, 
       :init => false
     
-    signal_hash :set,               # set or unset objects
+    signal_hash :set,                                # set or unset objects
       :signature => ['var', 'class'],
       :remainder => 'spec',
-      :bind => :init
+      :bind => :build
+      
+    signal :get, :signature => ['var']               # get objects
     
-    signal_class :get do            # get objects
+    signal_class :list do                            # list available objects
       def call(args) # :nodoc:
-        object = obj.obj(args.shift)
-        object.inspect
-      end
-    end
-    
-    signal_class :list do           # list available objects
-      def call(args) # :nodoc:
-        lines = obj.objects.collect do |(key, obj)|
-          "#{key}: #{obj.class}"
-        end
+        lines = obj.objects.collect {|(key, obj)|  "#{key}: #{obj.class}" }
         lines.empty? ? "No objects yet..." : lines.sort.join("\n")
       end
     end
     
-    signal :enque                   # enques an object
+    signal :enque                                   # enques an object
     
-    signal_class :parse do          # parse a workflow
-      def call(argv) # :nodoc:
-        parse = obj.bang ? :parse! : :parse
-        obj.send(parse, argv)
+    signal_class :parse do                          # parse a workflow
+      def call(args) # :nodoc:
+        argv = convert_to_array(args, ['args'])
+        obj.send(obj.bang ? :parse! : :parse, argv)
       end
     end
     
-    signal_class :use do            # enables middleware
-      def call(spec) # :nodoc
-        if spec.kind_of?(Array)
-          spec = {'class' => spec.shift, 'spec' => spec}
-        end
-
-        obj.stack = obj.init(spec)
+    signal_class :use do                             # enables middleware
+      def call(args) # :nodoc
+        spec = convert_to_hash(args, ['class'], 'spec')
+        obj.stack = obj.build(spec)
       end
     end
     
-    signal :run                     # run the app
-    signal :stop                    # stop the app
-    signal :terminate               # terminate the app
-    signal :info                    # prints app status
+    signal :run                                      # run the app
+    signal :stop                                     # stop the app
+    signal :terminate                                # terminate the app
+    signal :info                                     # prints app status
     
-    signal_class :exit do           # exit immediately
+    signal_class :exit do                            # exit immediately
       def process(args) # :nodoc:
         exit(1)
       end
     end
     
-    signal_class :doc, Doc                       # manual pages
-    signal :help, :class => Help, :bind => nil   # signals help
+    signal_class :doc, Doc                           # documentation
+    signal :help, :class => Help, :bind => nil       # signals help
     
     # Creates a new App with the given configuration.  Options can be used to
     # specify objects that are normally initialized for every new app:
@@ -702,7 +692,7 @@ module Tap
       constant or raise "unresolvable constant: #{const_str.inspect}"
     end
     
-    def init(spec)
+    def build(spec)
       var = spec['var']
       clas = spec['class']
       spec = spec['spec'] || spec
