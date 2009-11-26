@@ -788,6 +788,41 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
+  # parse test
+  #
+  
+  def test_parse_parses_and_builds_specs_from_array
+    app.env = {'klass' => SetClass}
+    app.parse ['klass', '--/set', '3', 'klass']
+    
+    assert_equal SetClass, app.get('0').class
+    assert_equal SetClass, app.get('3').class
+  end
+  
+  def test_parse_accepts_a_block_to_filter_specs
+    app.env = {'klass' => SetClass}
+    app.parse "klass --/set 3 klass" do |spec|
+      spec[3] == "3" ? true : false
+    end
+    
+    assert_equal nil, app.get('0')
+    assert_equal SetClass, app.get('3').class
+  end
+  
+  def test_parse_block_is_passed_to_parse_signals
+    app.env = {'klass' => SetClass}
+    app.parse "klass --/set 3 klass --/parse -. --/set 5 klass --/set 1 klass .-" do |spec|
+      type, obj, sig, var = spec
+      var == "3" || var == "5" || sig == "parse"
+    end
+    
+    assert_equal nil, app.get('0')
+    assert_equal nil, app.get('1')
+    assert_equal SetClass, app.get('3').class
+    assert_equal SetClass, app.get('5').class
+  end
+  
+  #
   # enque test
   #
   

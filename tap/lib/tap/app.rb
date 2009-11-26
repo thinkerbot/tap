@@ -466,14 +466,14 @@ module Tap
     signal_class :parse do                          # parse a workflow
       def call(args) # :nodoc:
         argv = convert_to_array(args, ['args'])
-        obj.send(obj.bang ? :parse! : :parse, argv)
+        obj.send(obj.bang ? :parse! : :parse, argv, &block)
       end
     end
     
     signal_class :use do                             # enables middleware
       def call(args) # :nodoc
         spec = convert_to_hash(args, ['class'], 'spec')
-        obj.stack = obj.build(spec)
+        obj.stack = obj.build(spec, &block)
       end
     end
     
@@ -733,11 +733,11 @@ module Tap
       obj
     end
     
-    def parse(argv)
-      parse!(argv.dup)
+    def parse(argv, &block) # :yields: spec
+      parse!(argv.dup, &block)
     end
     
-    def parse!(argv)
+    def parse!(argv, &block) # :yields: spec
       parser = Parser.new
       argv = parser.parse!(argv)
       
@@ -746,24 +746,39 @@ module Tap
       # Safety (and speed) is improved with synchronization.
       queue.synchronize do
         deque = []
+        blocks = {}
+        
+        if auto_enque
+          blocks[:node] = lambda do |obj, args|
+            queue.enq(obj, args)
+            args = nil
+          end
+          
+          blocks[:join] = lambda do |obj, args|
+            unless obj.respond_to?(:outputs)
+              # warning
+            end
+            deque.concat obj.outputs
+          end
+        end
+        
         parser.specs.each do |spec|
+          if block_given?
+            next unless yield(spec)
+          end
+          
           type, obj, sig, *args = spec
           
-          call('obj' => obj, 'sig' => sig, 'args' => args) do |obj, args|
-            case type
-            when :node
-              queue.enq(obj, args)
-              args = nil
-            when :join
-              unless obj.respond_to?(:outputs)
-                # warning
-              end
-              
-              deque.concat obj.outputs
-            end if auto_enque
-            
-            warn_ignored_args(args)
+          sig_block = case sig
+          when 'set'
+            blocks[type]
+          when 'parse'
+            block
+          else
+            nil
           end
+          
+          call('obj' => obj, 'sig' => sig, 'args' => args, &sig_block)  
         end
         
         deque.uniq!
