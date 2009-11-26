@@ -181,15 +181,15 @@ goodnight moon
 }
 
     sh_test %Q{
-% tap run -e -- load --enque 'goodnight moon' --: dump
+% tap run --no-auto-enque -- load --enque 'goodnight moon' --: dump
 goodnight moon
 }
     sh_test %Q{
-% tap run -e -- load --: dump --/0/enq 'goodnight moon'
+% tap run --no-auto-enque -- load --: dump --/0/enq 'goodnight moon'
 goodnight moon
 }
     sh_test %Q{
-% tap run -e -- load -- dump --. join 0 1 --@0 'goodnight moon'
+% tap run --no-auto-enque -- load -- dump --. join 0 1 --@0 'goodnight moon'
 goodnight moon
 }
   end
@@ -224,10 +224,10 @@ hello world
 } 
   end
   
-  def test_run_prints_schema_on_preview
+  def test_run_serializes_workflow_on_serialize
     path = method_root.prepare(:tmp, 'schema.yml')
     sh_test %Q{
-% tap run -p -- load 'goodnight moon' --: dump > '#{path}'
+% tap run -s -- load 'goodnight moon' --: dump > '#{path}'
 }
     
     schema = YAML.load_file(path)
@@ -243,9 +243,9 @@ c
 }
   end
   
-  def test_require_enque_prevents_auto_enque
+  def test_no_auto_enque_prevents_auto_enque
     sh_test %Q{
-% tap run --require-enque -- load a -- load b --enque -- dump --[0,1][2] --/0/enq c 2>&1
+% tap run  --no-auto-enque  -- load a -- load b --enque -- dump --[0,1][2] --/0/enq c 2>&1
 b
 c
 }
@@ -262,7 +262,7 @@ ignoring args: ["a"]
 }
 
     sh_test %Q{
-% tap run -e -d -- load a --[0][0] -- load b 2>&1
+% tap run --no-auto-enque -d -- load a --[0][0] -- load b 2>&1
 ignoring args: ["a"]
 ignoring args: ["b"]
 }
@@ -278,11 +278,11 @@ a
   
   def test_run_using_signals
     sh_test %Q{
-% tap run -e --/set 0 load --/set 1 dump --/set 2 join 0 1 --/enque 0 'goodnight moon'
+% tap run --no-auto-enque --/set 0 load --/set 1 dump --/set 2 join 0 1 --/enque 0 'goodnight moon'
 goodnight moon
 }
     sh_test %Q{
-% tap run -e -- load --enque 'goodnight moon' --/set 1 dump --/set 2 join --/2/join 0 1 
+% tap run --no-auto-enque -- load --enque 'goodnight moon' --/set 1 dump --/set 2 join --/2/join 0 1 
 goodnight moon
 }
   end
@@ -294,7 +294,7 @@ wrong number of arguments (3 for 1)
 }
     
     sh_test %Q{
-% tap run -e --/set 0 dump --/enque 0 a b c
+% tap run --no-auto-enque --/set 0 dump --/enque 0 a b c
 wrong number of arguments (3 for 1)
 }
   end

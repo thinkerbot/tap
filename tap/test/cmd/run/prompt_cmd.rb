@@ -18,7 +18,7 @@ class PromptCmd < Test::Unit::TestCase
   # http://gist.github.com/194470 for some experiments.
   def prompt_test(script)
     inputs = []
-    expected = ["starting prompt (enter for help):\n"]
+    expected = ["starting prompt (help for help):\n"]
     script.lstrip.split(/^--\//).each do |lines|
       next if lines.empty?
       
@@ -27,7 +27,7 @@ class PromptCmd < Test::Unit::TestCase
       expected.concat(lines)
     end
     
-    actual = IO.popen(sh_test_options[:cmd] + " run -P", "r+") do |io|
+    actual = IO.popen(sh_test_options[:cmd] + " run -- prompt", "r+") do |io|
       io.write inputs.join
       io.close_write
       io.read

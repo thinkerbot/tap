@@ -6,8 +6,6 @@
 #   tap run -- load hello --: dump     Say hello
 #
 
-require 'tap/parser'
-
 app = Tap::App.instance
 
 opts = {}
@@ -26,12 +24,8 @@ parser = ConfigParser.bind(app.config) do |psr|
     exit(0)
   end
   
-  psr.on('-p', '--preview', 'Print the schema as YAML') do
-    opts[:preview] = true
-  end
-  
-  psr.on('-P', '--prompt', 'Enter the signal prompt') do
-    opts[:prompt] = true
+  psr.on('-s', '--serialize', 'Serialize the workflow') do
+    opts[:serialize] = true
   end
   
   psr.on('-t', '--manifest', 'Print a list of available resources') do
@@ -79,44 +73,11 @@ parser = ConfigParser.bind(app.config) do |psr|
     end
     app.queue.extend(mod)
   end
-  
-  psr.on('-e', '--require-enque', 'Require manual enque for tasks') do
-    app.config[:auto_enque] = false
-  end
 end
 
 #
 # build and run
 #
-
-# A prompt to signal a running app. Any signals that return app (ie /run /stop
-# /terminate) will exit the block.  Note that app should be running when the
-# prompt is called so that a run signal defers to the running app and allows
-# the prompt to exit.
-prompt = lambda do
-  require 'readline'
-  
-  puts "starting prompt (enter for help):"
-  loop do
-    begin
-      line = Readline.readline('--/', true).strip
-      next if line.empty?
-      
-      args = Shellwords.shellwords(line)
-      "/#{args.shift}" =~ Tap::Parser::SIGNAL
-      
-      result = app.call('obj' => $1, 'sig' => $2, 'args' => args)
-      if result == app
-        break
-      else
-        puts "=> #{result}"
-      end
-    rescue
-      puts $!.message
-      puts $!.backtrace if app.debug?
-    end
-  end
-end
 
 # Traps interrupt the normal flow of the program and so I assume thread safety
 # is an issue (ex if the INT occurs during an enque and a signal specifies
@@ -125,8 +86,10 @@ end
 # shouldn't be an issue.
 Signal.trap('INT') do
   puts
-  puts "Interrupt!  Note signals from an interruption are not thread-safe."
+  puts "Interrupt!  Signals from an interruption are not thread-safe."
   
+  require 'tap/prompt'
+  prompt = Tap::Prompt.new
   call_prompt = true
   3.times do
     print "Wait for thread-safe break? (y/n): "
@@ -164,14 +127,9 @@ begin
     ARGV.replace app.call('sig' => 'parse', 'args' => ARGV)
   end
   
-  if opts[:preview]
+  if opts[:serialize]
     YAML.dump(app.serialize, $stdout)
     exit(0)
-  end
-  
-  if opts[:prompt]
-    # ensures the app is running for the prompt
-    app.queue.unshift(prompt, [])
   end
   
   opts = nil
