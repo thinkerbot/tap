@@ -274,7 +274,7 @@ module Tap
       end
       
       unless action?(action)
-        raise ServerError.new("404 Error: page not found", 404)
+        not_found
       end
       
       send(action, *args)
@@ -377,6 +377,14 @@ module Tap
 
       response['Location'] = [uri]
       response.finish
+    end
+    
+    def not_found
+      error("404 Error: page not found", 404)
+    end
+    
+    def error(msg, status=500)
+      raise ServerError.new(msg, status)
     end
     
     private

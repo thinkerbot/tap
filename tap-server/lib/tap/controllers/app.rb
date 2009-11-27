@@ -7,59 +7,34 @@ module Tap
     class App < Tap::Controller
       include RestRoutes
       
-      # GET /projects
-      def index
-        render 'index.erb', :layout => true
-      end
-  
-      # GET /projects/*args
-      def show(obj, sig=nil)
-        obj = app.get(obj)
-        obj = obj.signal(sig) if sig
-        
-        module_render 'index.erb', obj, :locals => {:obj => obj, :sig => sig}, :layout => true
+      def route
+        unescape(request.path_info)
       end
       
-      # POST /projects/*args
-      def create(obj, sig)
-        params = request.params
-        args = params['args'] || params
-        sig ||= args.empty? ? nil : 'build'
-        
-        signal = app.get(obj).signal(sig)
-        
-        # The app is likely running on a separate thread so immediately calling
-        # the signal (the default) is not thread-safe.  Alternate modes are
-        # provided to enque the signal, which is a safe way to go because when
-        # the signal is executed it will have full control over the app.
-        #
-        # Thread mode is provided for long-running signals like /run.
-        case params.delete('_mode')
-        when 'safe'
-          app.enque(signal, args)
-        when 'thread'
-          Thread.new { signal.call(args) }
-        else
-          signal.call(args)
+      def dispatch(route)
+        if route == "/"
+          return render('index.erb', :layout => true)
         end
         
-        redirect uri(obj)
+        route =~ Tap::Parser::SIGNAL
+        signal = app.route($1, $2)
+        
+        request_method = request.request_method
+        case request_method
+        when /GET/i
+          module_render('get.erb', signal)
+        when /POST/i
+          result = signal.call(request.params)
+          module_render('post.erb', signal, :locals => {:result => result})
+        else
+          error("cannot signal via: #{request_method}")
+        end
       end
-      
-      #     # PUT /projects/*args
-      #     # POST /projects/*args?_method=put
-      #     def update(*args)...
-      # 
-      #     # DELETE /projects/*args
-      #     # POST /projects/*args?_method=delete
-      #     def destroy(*args)...
-      #
       
       def uri(obj, sig=nil)
-        super("#{obj}/#{sig}")
+        obj, sig = nil, obj unless sig
+        super(obj ? "#{obj}/#{sig}" : sig)
       end
-      
-      protected
       
       def app
         server.app
