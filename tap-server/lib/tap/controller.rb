@@ -209,14 +209,6 @@ module Tap
       uri.join
     end
     
-    def template_path(path)
-      server.env.path(:views, path) {|file| File.file?(file) }
-    end
-    
-    def module_path(path, klass=self.class)
-      server.env.module_path(:views, klass.ancestors, path) {|file| File.file?(file) }
-    end
-    
     # Routes the request to an action and returns the response.  Routing is
     # simple and fixed (see route):
     #
@@ -304,9 +296,9 @@ module Tap
       when options[:file]
         options[:file]
       when options[:template]
-        self.template_path(options[:template])
+        server.template_path(options[:template])
       else
-        self.module_path(path)
+        server.module_path(path, self.class)
       end
 
       unless template_path
@@ -369,7 +361,7 @@ module Tap
     end
     
     def module_render(path, obj, options={})
-      options[:file] = module_path(path, obj.class) || module_path(path)
+      options[:file] = server.module_path(path, obj.class)
       
       locals = options[:locals] ||= {}
       locals[:obj] ||= obj

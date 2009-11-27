@@ -43,10 +43,7 @@ module Tap
     
     def bind(controller)
       if controller.kind_of?(String)
-        unless const = app.env[controller]
-          raise "unknown controller: #{controller.inspect}"
-        end
-        return bind(const)
+        controller = app.resolve(controller)
       end
       
       unless controller.respond_to?(:call)
@@ -62,6 +59,14 @@ module Tap
     # action.
     def admin?(input)
       secret != nil && input == secret
+    end
+    
+    def template_path(path)
+      app.env.path(:views, path) {|file| File.file?(file) }
+    end
+    
+    def module_path(path, klass)
+      app.env.module_path(:views, klass.ancestors, path) {|file| File.file?(file) }
     end
     
     # The {Rack}[http://rack.rubyforge.org/doc/] interface method.
