@@ -111,8 +111,8 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal "/action", controller.uri(:action)
   end
   
-  def test_uri_prepends_controller_path_if_specified
-    controller.controller_path = "controller/path"
+  def test_uri_prepends_SCRIPT_NAME_if_specified
+    controller.request = Rack::Request.new({'SCRIPT_NAME' => "/controller/path"})
     assert_equal "/controller/path/action", controller.uri(:action)
   end
   
@@ -172,15 +172,6 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal nil, controller.server
     request.get("", 'tap.server' => 'server')
     assert_equal "server", controller.server
-  end
-  
-  def test_call_sets_controller_path_from_request_env
-    controller = CallController.new
-    request = Rack::MockRequest.new controller
-    
-    assert_equal nil, controller.controller_path
-    request.get("", 'tap.controller_path' => 'controller_path')
-    assert_equal "controller_path", controller.controller_path
   end
   
   def test_call_routes_empty_path_info_default_action

@@ -101,7 +101,6 @@ module Tap
           # adjust rack_env if route routes to a controller
           rack_env['SCRIPT_NAME'] = "#{rack_env['SCRIPT_NAME'].chomp('/')}/#{path}"
           rack_env['PATH_INFO'] = "/#{path_info}"
-          rack_env['tap.controller_path'] = path
 
           constant.unload if server.development
           controller = constant.constantize

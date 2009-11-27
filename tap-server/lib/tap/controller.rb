@@ -143,8 +143,6 @@ module Tap
     
     attr_accessor :server
     
-    attr_accessor :controller_path
-    
     # A Rack::Request wrapping env, set during call.
     attr_accessor :request
 
@@ -155,7 +153,7 @@ module Tap
     
     # Initializes a new instance of self.
     def initialize
-      @request = @response = @server = @controller_path = nil
+      @request = @response = @server = nil
     end
     
     # Returns true if action is registered as an action for self.
@@ -169,7 +167,7 @@ module Tap
     # these to the uri.
     def uri(action=nil, params=nil, options=nil)
       if action.kind_of?(Hash)
-        unless params == nil && options == nil
+        unless params.nil? && options.nil?
           raise "extra arguments specified for uri hash syntax"
         end
         
@@ -180,9 +178,8 @@ module Tap
       
       uri = []
       
-      if controller_path
-        uri << '/'
-        uri << controller_path
+      if request
+        uri << request.env['SCRIPT_NAME']
       end
       
       if action
@@ -190,7 +187,7 @@ module Tap
         uri << action
       end
       
-      unless params == nil || params.empty?
+      unless params.nil? || params.empty?
         uri << '?'
         uri << build_query(params)
       end
@@ -248,8 +245,6 @@ module Tap
     #
     def call(env)
       @server = env['tap.server']
-      @controller_path = env['tap.controller_path']
-      
       @request = Rack::Request.new(env)
       @response = Rack::Response.new
       
