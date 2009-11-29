@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap-test"
-  s.version = "0.2.0"
+  s.version = "0.3.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org/tap-test/"
@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.summary = "Test modules for Tap"
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 0.18.0")
+  s.add_dependency("tap", ">= 0.19.0")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Test}
   

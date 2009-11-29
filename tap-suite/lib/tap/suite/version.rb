@@ -1,9 +1,9 @@
 module Tap
-  module Test
+  module Suite
     MAJOR = 0
     MINOR = 3
     TINY = 0
-
-    VERSION="#{MAJOR}.#{MINOR}.#{TINY}"
+  
+    VERSION="#{MAJOR}.#{MINOR}.#{TINY}" 
   end
 end

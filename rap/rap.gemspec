@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "rap"
-  s.version = "0.14.1"
+  s.version = "0.15.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.summary = "A rakish extension to tap."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 0.18.0")
+  s.add_dependency("tap", ">= 0.19.0")
   s.bindir = "bin"
   s.executables = "rap"
   s.has_rdoc = true
