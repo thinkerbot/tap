@@ -1,28 +1,30 @@
 = Application Programming Interface
 
 Applications require the following methods for nodes, joins, and middleware.
-Tap provides modules or base classes that implement these APIs and may be used
-as the foundation for subclasses.
+Tap provides modules and base classes that implement these APIs.
 
 === {Node}[link:classes/Tap/App/Node.html] ({Task}[link:classes/Tap/Task.html])
 
   call(*inputs)    # any return is allowed
   joins()          # returns an array of joins, or nil (optional)
 
-The signature for call can be modified as necessary; any restrictions on the
-signature simply define the arguments that must be passed to the node from the
-command line or via a join.
+The signature for call defines the arguments that must be enqued to the node
+or passed to the node via a join. All signature constructs are allowed
+including multiple arguments, default arguments and splats (blocks are
+technically allowed but will never receive a value).
 
-The joins will be called when the node completes. If joins returns an empty
-array then the default application joins are called instead. If joins is not
-defined or returns nil then no joins will be called.
+The optional joins method specifies an array of joins to be called by a
+running application when the node completes. Each join is called in order. An
+empty array specifies the default application joins should be called; nil
+specifies that no joins should be called. No joins will be called when joins
+is left undefined.
 
 === {Join}[link:classes/Tap/Join.html]
 
   call(result)     # any return is allowed
 
-The call method receives the result of input nodes as they complete. The
-result of call is not used; call must internally performing the join actions.
+The call method receives the result of input nodes. The result of call is not
+used; call must internally performing the join actions.
 
 === {Middleware}[link:classes/Tap/Middleware.html]
 
@@ -30,26 +32,29 @@ result of call is not used; call must internally performing the join actions.
   call(node, inputs=[])          # any return is allowed
   stack()                        # returns the original stack
 
-The middleware API is essentially the same as for
-{Rack}[http://rack.rubyforge.org/]. Nodes enter middleware during execution;
-the middleware is responsible for processing the node, or passing it into the
-stack using the same call API.
+Middleware wraps the execution of nodes. Nodes and inputs are passed to the
+middleware during execution; the middleware is responsible for processing the
+node or passing it into the stack using the same call API. By default the base
+stack invokes call on the node with the inputs. Joins are performed after the
+middleware returns.
 
 == Application Interface
 
 In addition to the APIs for individual workflow objects, Tap defines an
-application API allowing objects to be created and modified from user
-interfaces such as a web application or the command line. The application API
-is distinct from the object APIs, although it is typical to implement the
-application API in on top of an object API.
+application interface allowing objects to be created and modified using
+signals sent to an application (think HTTP to a web app). Signals are simple
+hash constructs and typically form the basis for user interfaces. The
+application interface is distinct from the object APIs, although it is typical
+to implement the application interface on top of an object API.
 
 Tap::App::Api implements the application interface in a general way and is the
-baseclass for Tap::Task, Tap::Join, and Tap::Middleware. The basic idea behind
-the application interface is to allow instantiation of a class from a hash and
-conversion of an instance into a hash. The hash is referred to as a
-specification and must be serializable as {JSON}[http://json.org/].
+baseclass for Tap::Task, Tap::Join, and Tap::Middleware. The basic idea is to
+allow instantiation of a class from a hash and serialization of an instance
+back into a hash. The hash is referred to as a specification and must be
+serializable as {JSON}[http://json.org/], basically meaning the hash must
+consist of simple object types: numbers, strings, hashes, and arrays.
 
-This is a stub outlining the application interface:
+The application interface consists of two methods, build and to_spec:
 
   class Stub
     class << self
@@ -88,8 +93,8 @@ present they must adhere to these specifications.
       end
     end
     
-    # Takes a signal name and returns an object that responds to call; calling
-    # call on the object invokes the signal actions.
+    # Takes a signal name and returns an object that responds to call; the
+    # call method invokes the signal actions.
     def signal(sig)
     end
     
@@ -99,40 +104,42 @@ present they must adhere to these specifications.
     # BEFORE self and brefs are back-references to objects that must be built
     # AFTER self.
     #
-    # For example, nodes must be built before joins.  As such, nodes return
-    # brefs for each of the joins. Similarly, joins return refs to their input 
-    # and output nodes:
+    # For example, nodes must be built before joins.  As such, the associations
+    # method for a node returns a brefs for each of its joins. Similarly, joins
+    # must be built after nodes and hence the associations method for a join
+    # returns refs to their input and output nodes:
     #
     #   node.associations       # => [nil, join]
     #   join.associations       # => [inputs + outputs, nil]
     #
-    # Nil is also a valid return for associations, indicating no associations.
+    # Nil is a valid return for associations, indicating no associations.
     def associations
     end
   end
 
 The parse methods are used for building objects from interfaces that provide
 an array of inputs (ex the command line) rather a hash; without them objects
-are effectively excluded from use within these interfaces. Signals are used to
-interact with objects from a user interface. Objects without a signal method
-cannot receive signals. The associations method is used to order complex
-builds and is described below.
+are effectively excluded from use within these interfaces.
+
+Signals can be used to interact with specific objects from a user interface
+much as signals can interact with an app. Objects without a signal method
+cannot receive signals.
+
+The associations method is used to order complex builds and is described in
+more detail below.
 
 === Spec References
 
 Specifications often require references to other resources, as when a join
 refers to input and output nodes. These references are normally specified as
-variables to ensure the specification is serializable as JSON. Apps are
-constructed to do this easily via the +obj+ and +var+ methods:
+variables that, unlike the resource itself, are easily serializable as JSON
+and may be used in multiple places. Apps are constructed to do this easily via
+the +obj+ and +var+ methods.
+
+As an example, consider the Sample class that references some other
+application object:
 
   class Sample
-    class << self
-      def build(spec={}, app=Tap::App.instance)
-        object = app.obj(spec['key'])    # lookup an object from the spec
-        new(object)
-      end
-    end
-
     def initialize(object)
       @object = object
     end
@@ -142,29 +149,36 @@ constructed to do this easily via the +obj+ and +var+ methods:
     end
 
     def associations
-      [[@object], nil]
+      [[@object], nil]                   # establish a build order
+    end
+    
+    class << self
+      def build(spec={}, app=Tap::App.instance)
+        object = app.obj(spec['key'])    # retrieve an object referenced by the spec
+        new(object)
+      end
     end
   end
 
-Using this technique the spec always will have a serializable variable
-representing the object and the app will be able to properly schematize and
-rebuild the Sample instance and all its references. Apps use the associations
-array to determine the correct build order for references. In the example the
-@object reference must be built before the Sample instance, hence the
-associations array returns a ref (rather than a bref) to @object.
+Using this technique the spec will have a serializable variable representing
+the object and the app will be able to properly schematize and rebuild the
+instance and all its references. Apps use the associations array to determine
+the correct build order for the references. In the example the @object
+reference must be built before the Sample instance and correspondingly the
+associations method returns @object in the 'ref' array.
 
-Note that only application objects may be stored this way; non-application
-objects must be serialized and deserialized by the build/to_spec methods
-internally.
+Note that only references to objects implementing the application interface
+may be stored this way; references to objects that do not implement the
+application interface must be serialized and deserialized by the build/to_spec
+methods internally.
 
 === Resource Identifiers
 
 Tap discovers application resources using resource identifiers (ie constant
 attributes, see {Lazydoc}[http://tap.rubyforge.org/lazydoc]). Resources
-identified in this way can be automatically loaded by the Tap::Env, and as a
-result, specified directly from the command line. If no identifiers are
-specified for a resource, the user is responsible for manually requiring the
-resource.
+identified in this way can be automatically loaded by the Tap::Env. If no
+identifiers are specified for a resource, the user must manually load the
+resource files.
 
 As an example, this identifies the Sample constant as an 'example' resource.
 

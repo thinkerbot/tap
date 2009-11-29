@@ -51,7 +51,7 @@ Tap automatically discovers tasks.
       dump        # the default dump task
       load        # the default load task
       
-And generates documentation.
+And generates command line documentation.
 
   % tap run -- goodnight --help
   Goodnight -- your basic goodnight moon task
@@ -81,8 +81,8 @@ a dump task, which prints the message to stdout.
 === Workflow Syntax
 
 Workflows are specified on the command line using argument vectors separated
-by option breaks. The vectors define the tasks and modifications to the breaks
-specify joins.
+by option breaks (ie '--'). The argument vectors define the tasks while
+modifications to the breaks specify joins.
 
 A simple sequence.
 
@@ -110,10 +110,6 @@ A synchronized merge (the printout is <tt>['goodnight', 'moon'].to_s</tt>).
 
   % tap run -- load goodnight -- load moon -- dump --[0,1][2].sync
   goodnightmoon
-
-== Known Issues
-
-Tap::Env is still in flux and should not be treated as stable.
 
 == Installation
 

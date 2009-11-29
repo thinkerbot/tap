@@ -675,6 +675,10 @@ module Tap
       sig = args['sig']
       args = args['args'] || args
       
+      route(obj, sig, &block).call(args)
+    end
+    
+    def route(obj, sig, &block)
       unless object = get(obj)
         raise "unknown object: #{obj.inspect}"
       end
@@ -683,7 +687,7 @@ module Tap
         raise "cannot signal: #{object.inspect}"
       end
       
-      object.signal(sig, &block).call(args)
+      object.signal(sig, &block)
     end
 
     def resolve(const_str)
