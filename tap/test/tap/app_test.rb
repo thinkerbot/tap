@@ -376,52 +376,6 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # doc test
-  #
-  
-  def test_doc_signal_raises_error_for_no_env
-    assert_equal nil, app.env
-    
-    err = assert_raises(RuntimeError) { app.call('sig' => 'doc') }
-    assert_equal "doc pages are only available for Tap::Env environments", err.message
-  end
-  
-  def test_doc_signal_lists_constants
-    app.env = Tap::Env.new method_root[:tmp]
-    app.env.register(Object)
-    app.env.register(Array)
-    
-    list = app.call('sig' => 'doc', 'args' => [])
-    
-    assert list =~ /constants:/, list
-    assert list =~ /array\s+# Array/
-    assert list =~ /object\s+# Object/
-  end
-  
-  def test_doc_with_arg_lists_constant_pages
-    app.env = Tap::Env.new method_root[:tmp]
-    app.env.register(Object)
-    
-    method_root.prepare(:tmp, 'doc/object/a.erb') {}
-    method_root.prepare(:tmp, 'doc/object/b.txt') {}
-    
-    list = app.call('sig' => 'doc', 'args' => ['object'])
-    
-    assert list =~ /pages: \(Object\)/
-    assert list =~ /a/
-    assert list =~ /b/
-  end
-  
-  def test_doc_with_arg_and_page_renders_page
-    app.env = Tap::Env.new method_root[:tmp]
-    app.env.register(Object)
-    method_root.prepare(:tmp, 'doc/object/a.erb') {|io| io << "<%= constant %> was rendered" }
-
-    page = app.call('sig' => 'doc', 'args' => ['object', 'a'])
-    assert_equal "Object was rendered", page
-  end
-  
-  #
   # help test
   #
   

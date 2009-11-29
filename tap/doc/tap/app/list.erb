@@ -1,8 +1,0 @@
-<% if app.cache.empty? %>
-  No objects yet...
-<% else %>
-
-<%   app.cache.each_pair do |key, obj| %>
-  <%= key %>: <%= obj.class %>
-<%   end %>
-<% end%>

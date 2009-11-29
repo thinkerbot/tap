@@ -2,53 +2,7 @@ require 'shellwords'
 
 module Tap
   
-  # A parser for workflow schema defined on the command line.
-  #
-  # == Syntax
-  #
-  # The command line syntax can be thought of as a series of ARGV arrays
-  # connected by breaks.  The arrays define tasks in a workflow while the
-  # breaks define joins and middleware.  These are the available breaks:
-  #
-  #   break          meaning
-  #   --             default delimiter
-  #   --:            sequence join
-  #   --[][]         join (ex: sequence, fork, merge)
-  #   --/            middleware
-  #   --.            generic resource
-  #
-  # As an example, this defines three tasks (a, b, c) and sequences the
-  # b and c tasks:
-  #
-  #   Schema.parse("a -- b --: c").workflow
-  #   # => [
-  #   # [0, "task", "a"],
-  #   # [1, "task", "b"],
-  #   # [2, "task", "c"],
-  #   # [nil, "join", "join", [1], [2]]
-  #   # ]
-  #
-  # ==== Escapes and End Flags
-  #
-  # Breaks can be escaped by enclosing them in '-.' and '.-' delimiters;
-  # any number of arguments may be enclosed within the escape. After the 
-  # end delimiter, breaks are active once again.
-  #
-  #   Schema.parse("a -. -- b .- -- c").workflow
-  #   # => [
-  #   # [0, "task", "a", "--", "b"],
-  #   # [1, "task", "c"]
-  #   # ]
-  #
-  # Parsing continues until the end of argv, or a an end flag '---' is 
-  # reached.  The end flag may also be escaped.
-  #
-  #   Schema.parse("a -- b --- c").workflow
-  #   # => [
-  #   # [0, "task", "a"],
-  #   # [1, "task", "b"]
-  #   # ]
-  #
+  # A parser for workflows defined on the command line.
   class Parser
     class << self
       def parse(argv=ARGV)

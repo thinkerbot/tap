@@ -32,7 +32,6 @@ Gem::Specification.new do |s|
     lib/tap/tasks/load/csv.rb
     lib/tap/tasks/null.rb
     lib/tap/tasks/glob.rb
-    lib/tap/tasks/prompt.rb
     lib/tap/tasks/stream.rb
     lib/tap/tasks/stream/yaml.rb
     lib/tap/tasks/version.rb

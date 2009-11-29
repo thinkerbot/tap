@@ -3,11 +3,10 @@ require 'readline'
 
 module Tap
   
-  # ::prompt
-  # A prompt to signal a running app. Any signals that return app (ie /run /stop
-  # /terminate) will exit the block.  Note that app should be running when the
-  # prompt is called so that a run signal defers to the running app and allows
-  # the prompt to exit.
+  # :startdoc::prompt
+  #
+  # A prompt to signal a running app. Any signals that return app (ie /run
+  # /stop /terminate) will exit the prompt.
   class Prompt < App::Api
     
     def call

@@ -2,15 +2,14 @@ require 'rap/declarations/context'
 
 module Rap
   
-  # Defines the Rap task declaration methods.  They may be included at the
-  # top level (like Rake) or used through Rap.
+  # Defines the Rap task declaration methods.  They may be included at the top
+  # level (like Rake) or used through Rap.
   #
   # === Usage
   #
   # Unlike in rake, task will define actual task classes according to the task
-  # names.  Task classes may be nested within modules using namespace.  It's
-  # VERY important to realize this is the case both to aid in thing like
-  # testing and to prevent namespace conflicts.  For example:
+  # names.  Task classes may be nested within modules using namespace.  For
+  # example:
   #
   #   t = Rap.task(:sample)                  
   #   t.class                            # => Sample
@@ -20,8 +19,8 @@ module Rap
   #     t.class                          # => Nested::Sample
   #   end
   #
-  # Normally all declared tasks are subclasses of Rap::Task, but
-  # subclasses of Rap::Task can declare tasks as well.
+  # Normally all declared tasks are subclasses of Rap::Task, but subclasses of
+  # Rap::Task can declare tasks as well.
   #
   #   class Subclass < Rap::Task
   #   end
@@ -42,13 +41,13 @@ module Rap
   #     t.class.desc.to_s                # => "task two, a nested subclass of Subclass"
   #   end
   #
-  # This feature is only available to subclasses of Rap::Task and can
-  # be very useful for creating inheritance hierarchies.  Note that other
-  # declaration methods like 'desc' and 'namespace' are not available on
-  # Rap::Task or subclasses, just 'task'.
+  # This feature is only available to subclasses of Rap::Task and can be very
+  # useful for creating inheritance hierarchies.  Note that other declaration
+  # methods like 'desc' and 'namespace' are not available on Rap::Task or
+  # subclasses, just 'task'.
   #
-  # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for more
-  # information.
+  # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for
+  # more information.
   module Declarations
     
     # Returns the context app.

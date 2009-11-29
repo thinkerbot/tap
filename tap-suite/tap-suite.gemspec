@@ -19,8 +19,7 @@ Gem::Specification.new do |s|
   s.extra_rdoc_files = %W{
     README
     MIT-LICENSE
-    History
-    doc/Tutorial}
+    History}
   
   s.files = %W{}
 end

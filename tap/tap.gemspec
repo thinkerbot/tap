@@ -19,7 +19,6 @@ Gem::Specification.new do |s|
     MIT-LICENSE
     History
     doc/API
-    doc/Class\sReference
     doc/Examples/Command\sLine
     doc/Examples/Workflow}
   
@@ -27,13 +26,9 @@ Gem::Specification.new do |s|
     cmd/console.rb
     cmd/manifest.rb
     cmd/run.rb
-    doc/tap/app/help.erb
-    doc/tap/app/list.erb
-    doc/tap/app/tutorial.erb
     lib/tap.rb
     lib/tap/app.rb
     lib/tap/app/api.rb
-
     lib/tap/app/node.rb
     lib/tap/app/queue.rb
     lib/tap/app/stack.rb
@@ -48,13 +43,12 @@ Gem::Specification.new do |s|
     lib/tap/intern.rb
     lib/tap/join.rb
     lib/tap/joins.rb
-    lib/tap/prompt.rb
     lib/tap/joins/switch.rb
     lib/tap/joins/sync.rb
     lib/tap/middleware.rb
     lib/tap/middlewares/debugger.rb
-    lib/tap/middlewares/tracer.rb
     lib/tap/parser.rb
+    lib/tap/prompt.rb
     lib/tap/root.rb
     lib/tap/root/utils.rb
     lib/tap/root/versions.rb

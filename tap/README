@@ -14,15 +14,10 @@ Tap is the core of the
 {Tap-Suite}[http://tap.rubyforge.org/tap-suite/index.html] 
 which provides a standard library of 
 {tasks}[http://tap.rubyforge.org/tap-tasks/index.html],
-{generators}[http://tap.rubyforge.org/tap-gen/index.html], 
-{test utilities}[http://tap.rubyforge.org/tap-test/index.html], 
-and a
-{server}[http://tap.rubyforge.org/tap-server/index.html] 
-to execute workflows via HTTP.
+{generators}[http://tap.rubyforge.org/tap-gen/index.html], and 
+{test utilities}[http://tap.rubyforge.org/tap-test/index.html].
 
-* {Tutorial}[http://tap.rubyforge.org/tap-suite/files/doc/Tutorial.html], {API}[link:files/doc/API.html], {Structure}[link:files/doc/Class%20Reference.html]
 * Website[http://tap.rubyforge.org]
-* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
 * Github[http://github.com/bahuvrihi/tap/tree/master]
 * {Google Group}[http://groups.google.com/group/ruby-on-tap]
 
@@ -116,12 +111,6 @@ A synchronized merge (the printout is <tt>['goodnight', 'moon'].to_s</tt>).
 Tap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
 
   % gem install tap
-
-Tap requires an updated version of RubyGems[http://docs.rubygems.org/] 
-(>= 1.2.0).  To check the version and update RubyGems:
-
-  % gem --version
-  % gem --update system
 
 == Info 
 

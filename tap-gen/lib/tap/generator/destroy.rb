@@ -1,7 +1,7 @@
 module Tap
   module Generator
     
-    # ::module A mixin defining how to run manifest actions in reverse.
+    # :startdoc::module A mixin defining how to run manifest actions in reverse.
     module Destroy
       
       # Iterates over the actions in reverse, and collects the results.

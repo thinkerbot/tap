@@ -7,48 +7,6 @@ module Tap
     # Api implements the application interface described in the
     # API[link:files/doc/API.html] document, and provides additional
     # functionality shared by the Tap base classes.
-    #
-    # === Inheritance
-    # :startdoc:::-
-    #
-    # Api is designed so that subclasses are the base for a type of resource
-    # (ex Tap::Task, Tap::Join, Tap::Middleware).  Inheritance automatically
-    # sets up the +type+ and +desc+ class methods according to the basename of
-    # the Api subclass; all further subclasses inherit these methods their
-    # parent.
-    #
-    # For example the type of Tap::Task and all subclasses of Tap::Task is
-    # 'task' and similarly the type of Tap::Join and all Join subclasses is
-    # 'join'.  If we make an example resource:
-    #
-    #   # Example::example desc is set to access this string
-    #   class Example < Api
-    #   end
-    #
-    #   Example.type        # => "example"
-    #   Example.desc.to_s   # => "desc is set to access this string"
-    #
-    #   # Subclass::example the subclass also is also an 'example'
-    #   class Subclass < Example
-    #   end
-    #
-    #   Subclass.type        # => "example"
-    #   Subclass.desc.to_s   # => "the subclass also is also an 'example'"
-    #
-    # Type can be manually set when this heruistic is inappropriate, but note
-    # that desc will also need to be reset using this pattern:
-    #
-    #   # Alt::not_alt this is the description...
-    #   # Alt::alt     and not this.
-    #   class Alt < Api
-    #     @type = "not_alt"
-    #     lazy_attr(:desc, @type)
-    #   end
-    #
-    #   Alt.type        # => "not_alt"
-    #   Alt.desc.to_s   # => "this is the description..."
-    #
-    # :startdoc:::+
     class Api
       class << self
         
