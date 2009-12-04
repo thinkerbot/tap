@@ -141,6 +141,7 @@ module Tap
     # not be actions in subclasses. 
     set :define_action, false
     
+    # References the Tap::Server running this controller.
     attr_accessor :server
     
     # A Rack::Request wrapping env, set during call.
@@ -251,8 +252,8 @@ module Tap
       end
     end
 
-    # Returns the action, args, and extname for the request.path_info.  Routing
-    # is simple and fixed:
+    # Returns the action, args, and extname for the request.path_info. 
+    # Routing is simple and fixed:
     #
     #   route             returns
     #   /                 [:index, []]
@@ -266,6 +267,7 @@ module Tap
       route
     end
     
+    # Inputs a route like [action, *args] and dispatches it to the action.
     def dispatch(route)
       action, *args = route
       

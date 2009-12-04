@@ -3,7 +3,7 @@ require 'tap/controller'
 module Tap
   module Controllers
     
-    # :startdoc::controller builds and runs workflows
+    # :startdoc::controller dispatches signals to an app
     class App < Tap::Controller
       include RestRoutes
       
