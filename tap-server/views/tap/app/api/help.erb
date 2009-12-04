@@ -9,11 +9,11 @@
 </li>
 <li>
   <h2>Summary</h2>
-  <%= obj.desc.subject %>
+  <%= obj.desc ? obj.desc.subject : nil %>
 </li>
 <li>
   <h2>Documentation</h2>
-  <pre class="desc"><%= obj.desc.wrap %></pre>
+  <pre class="desc"><%= obj.desc ? obj.desc.wrap : nil %></pre>
 </li>
 <li>
   <h2>Signature</h2>

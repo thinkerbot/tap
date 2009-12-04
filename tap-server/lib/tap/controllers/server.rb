@@ -74,7 +74,7 @@ module Tap
       
       def help(*key)
         if constant = server.env[key.join('/')]
-          path = module_path('help.erb', constant)
+          path = server.module_path('help.erb', constant)
           render :file => path, :locals => {:obj => constant}
         else
           "unknown constant: #{key.join('/')}"
