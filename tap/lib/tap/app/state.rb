@@ -15,7 +15,8 @@ module Tap
       #   State.state_str(0)        # => 'READY'
       #   State.state_str(12)       # => nil
       def state_str(state)
-        constants.inject(nil) {|str, s| const_get(s) == state ? s.to_s : str}
+        const = constants.find {|const_name| const_get(const_name) == state }
+        const ? const.to_s : nil
       end
     end
   end
