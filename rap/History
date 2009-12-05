@@ -1,4 +1,4 @@
-== 0.15.0 / 2009-10-29
+== 0.15.0 / 2009-12-05
 
 * moved version information into separate file
 * made Rap::Utils required by Rap::Task

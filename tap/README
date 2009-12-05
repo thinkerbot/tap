@@ -114,7 +114,6 @@ Tap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
 
 == Info 
 
-Copyright (c) 2006-2009, Regents of the University of Colorado.
-Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com], {Biomolecular Structure Program}[http://biomol.uchsc.edu/], {Hansen Lab}[http://hsc-proteomics.uchsc.edu/hansenlab/] 
-Support:: CU Denver School of Medicine Deans Academic Enrichment Fund
+Copyright (c) 2009, Simon Chiang.
+Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com]
 License:: {MIT-Style}[link:files/MIT-LICENSE.html]
