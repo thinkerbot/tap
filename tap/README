@@ -108,12 +108,11 @@ A synchronized merge (the printout is <tt>['goodnight', 'moon'].to_s</tt>).
 
 == Installation
 
-Tap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+Tap is available as a gem on Gemcutter[http://gemcutter.org/gems/tap].
 
   % gem install tap
 
 == Info 
 
-Copyright (c) 2009, Simon Chiang.
 Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com]
 License:: {MIT-Style}[link:files/MIT-LICENSE.html]

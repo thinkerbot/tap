@@ -110,12 +110,11 @@ Sets up Tap::App.instance for testing tasks.
 
 == Installation
 
-Tap-Test is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+Tap-Test is available as a gem on Gemcutter[http://gemcutter.org/gems/tap-test].
 
   % gem install tap-test
   
 == Info
 
-Copyright (c) 2009, Simon Chiang.
 Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com]
 License:: {MIT-Style}[link:files/MIT-LICENSE.html]

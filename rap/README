@@ -114,13 +114,11 @@ workflow you can run with 'tap run' can be run without alteration by rap.
 
 == Installation
 
-Rap is available as a gem on RubyForge[http://rubyforge.org/projects/tap].
-Use:
+Rap is available as a gem on Gemcutter[http://gemcutter.org/gems/rap].
 
   % gem install rap
 
 == Info 
 
-Copyright (c) 2009, Simon Chiang.
 Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com]
 License:: {MIT-Style}[link:files/MIT-LICENSE.html]

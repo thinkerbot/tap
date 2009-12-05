@@ -30,18 +30,11 @@ should not be considered stable.
 
 == Installation
 
-Tap Server is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+Tap Server is available as a gem on Gemcutter[http://gemcutter.org/gems/tap-server].
 
   % gem install tap-server
-
-Tap requires an updated version of RubyGems[http://docs.rubygems.org/] 
-(>= 1.2.0).  To check the version and update RubyGems:
-
-  % gem --version
-  % gem --update system
     
 == Info 
 
-Copyright (c) 2009, Simon Chiang.
 Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com]
 License:: {MIT-Style}[link:files/MIT-LICENSE.html]

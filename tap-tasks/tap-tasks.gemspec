@@ -3,7 +3,7 @@ Gem::Specification.new do |s|
   s.version = "0.5.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
-  s.homepage = "http:/tap.rubyforge.org/tap-tasks/"
+  s.homepage = "http://tap.rubyforge.org/tap-tasks/"
   s.platform = Gem::Platform::RUBY
   s.summary = "A set of standard Tap tasks"
   s.require_path = "lib"
