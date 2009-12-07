@@ -34,29 +34,3 @@
   % TAP_GEMS=:all tap run -T
   % TAP_GEMS=:latest tap run -T
   % TAP_GEMS="[rap, tap-tasks]" tap run -T
-  
-== Signals
-
-The run command will bring up a signal prompt with the --prompt flag, or by
-sending and interrupt signal.  To illustrate the latter, setup an infinite
-loop and hit ctl-c to enter the prompt.  To exit, signal stop as shown here:
-
-  % tap run -- dump --[app][0]q --/0/enq 'hello world'
-  hello world
-  hello world
-  hello world
-  ... (this will continue to print until you press ctl-c) ...
-  
-  starting prompt (enter for help):
-  --/
-  => 
-    run       # run the app
-    stop      # stop the app
-    terminate # terminate the app
-    info      # prints app status
-    enque    
-    build    
-    use
-  --//info
-  => state: 1 (RUN) queue: 0
-  --//stop
