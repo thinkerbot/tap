@@ -1,3 +1,9 @@
+== 0.3.1 / 2009-12-09
+
+* updated Base to determine template directory from
+  app.env when possible (fixes missing templates for
+  installed gems)
+
 == 0.3.0 / 2009-12-05
 
 Updates for Tap-0.19.0
