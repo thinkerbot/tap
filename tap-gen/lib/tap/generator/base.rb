@@ -98,7 +98,7 @@ module Tap
         super
         @prompt_in = $stdin
         @prompt_out = $stdout
-        @template_dir = File.expand_path("templates/#{self.class.to_s.underscore}")
+        @template_dir = app.env.path(:templates, self.class.to_s.underscore) {|dir| File.directory?(dir) } || File.expand_path("templates/#{self.class.to_s.underscore}")
       end
       
       def set(mod)

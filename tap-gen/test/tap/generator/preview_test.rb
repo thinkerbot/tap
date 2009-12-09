@@ -6,9 +6,12 @@ class PreviewTest < Test::Unit::TestCase
   include Tap::Generator
   include Preview
   
+  acts_as_tap_test
+  
   attr_accessor :destination_root
   
   def setup
+    super
     @destination_root = Dir.pwd
     @preview = {}
   end
