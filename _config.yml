@@ -1,4 +1,4 @@
-home: http://tap.rubyforge.org
+home: # http://tap.rubyforge.org
 versions:
   configurable: 0.6.0
   lazydoc: 1.0.0
@@ -22,7 +22,6 @@ links:
   google-group: http://groups.google.com/group/ruby-on-tap
   issues: http://github.com/bahuvrihi/tap/issues
   rdoc: http://tap.rubyforge.org/rdoc/index.html
-  tutorial: http://tap.rubyforge.org/tap-suite/files/doc/Tutorial.html
   
   # gems
   tap: http://rubyforge.org/projects/tap
@@ -35,6 +34,7 @@ links:
   # site
   install: /installation.html
   license: /license.html
+  tutorial: /tutorial.html
   
   # external
   ucdenver: http://www.ucdenver.edu
