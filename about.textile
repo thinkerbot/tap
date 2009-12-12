@@ -4,25 +4,39 @@ layout: page
 
 h1. About
 
-Copyright (c) 2006-2007, Regents of the University of Colorado.
+|Developer|"Simon Chiang":{{ site.links.me }} ("Blog":{{ site.links.blog }}, "Twitter":{{ site.links.twitter }})|
+|Licence|"MIT-Style":{{ site.links.license }}|
 
-|Developer| "Simon Chiang":http://bahuvrihi.wordpress.com, "Biomolecular Structure Program":http://biomol.uchsc.edu/, "Hansen Lab":http://hsc-proteomics.uchsc.edu/hansenlab/|
-|Support| CU Denver School of Medicine Deans Academic Enrichment Fund|
-|Licence| "MIT-Style":{{ site.home }}/license.html|
+h2. Links
 
-h1. Acknowledgements
+* "Code":{{ site.links.github }}
+* "Issues":{{ site.links.issues }}
+* "Google Group":{{ site.links.google-group }}
 
-A great deal of inspiration came from other excellent open-source projects including "Rake":http://rake.rubyforge.org and "Ruby on Rails":http://www.rubyonrails.org. 
-
-Thanks to my advisor "Dr. Kirk Hansen":http://hsc-proteomics.uchsc.edu/hansenlab/ for his patience in letting me work on this project, and for putting together an awesome lab.
-
-Most of all I would like to *thank my family* for their never-ending support.
-
-h2. Code
-
-Tap uses ActiveSupport for dependencies loading and a variety of other extensions.  Tap uses Rails generators and redistributes the code in the gem, to avoid an additional dependency.
-
-h2. Photos
+h2. Photo Credits
 
 The main photo on this website, "cello":http://flickr.com/photos/bagels/451561809, was found on "Flickr":http://flickr.com/ and was made public by "SMN":http://flickr.com/photos/bagels/ under a Creative Commons "Attribution License":http://creativecommons.org/licenses/by/2.0/deed.en-us.  
 
+h1. History
+
+Tap began in 2006 as a project to process mass spectrometry data in the "Hansen Lab":{{ site.links.hansen_lab }} while I was a student in the "Biomolecular Structure Program":{{ site.links.bmsp }} at the University of Colorado at Denver.  At the time we needed a way to quickly build small programs for use by researchers without extensive programming skills.  Originally I tried repurposing "Rake":{{ site.links.rake }} to that end but came to see a number of new requirements that Rake was never designed to handle.  Specifically these small programs needed a way to pass results among themselves, and to link in an imperative rather than dependency-based style.
+
+Eventually it became clear that passing results in this manner is directly analogous to building workflows on the command line using pipes.  From that point forward Tap adopted the paradigm of using nodes and joins to construct workflows.  Middleware was inspired by "Rack":{{ site.links.rack }}.
+
+The Lazydoc and Configurable gems also grew out of Rake, which has similar but much more limited documentation and configuration capabilities.  Originally both were packaged with Tap, but their general utility and the advantages of modularity led them to be split out into their own libraries.  The Rap gem was likewise an integral part of Tap until it became clear the emulating Rake was not a good general practice; dependency-based tasks are a derivative of the general task model.
+
+The other gems in Tap-Suite arose to deal with specific functional or development requirements.  Tap-Gen, which took a great deal of inspiration from the Rails generators, allows projects to be quickly stubbed, packaged, and distributed.  Tap-Test standardized numerous common test methods that are often needed to test file manipulation/transformation tasks, and aids in cross-platform development.  Tap-Server represents the long-term goal of Tap; an intuitive interface for non-developers to build and run workflows.
+
+Making Tap available through a web interface posed numerous challenges, the most difficult of which was finding a common syntax to define workflows from the command line (the 'native' interface for Tap), the web, and serialized formats like JSON or YAML.  In the summer of 2009 Tap was massively refactored to incorporate the signaling model in current use.  Signals marked a kind of paradigm shift for Tap, in which application objects are something like models and signals are something like controllers.  Signals allowed the Tap API to accommodate serialization of workflows as well as their construction.
+
+h1. Acknowledgements
+
+A great deal of inspiration came from several excellent open-source projects including:
+
+* "Rake":{{ site.links.rake }}
+* "Rack":{{ site.links.rack }}
+* "Ruby on Rails":{{ site.links.rails }}
+
+Many thanks to my advisor "Dr. Kirk Hansen":{{ site.links.hansen_lab }}, and to the "Biomolecular Structure Program":{{ site.links.bmsp }}.  During my time at "UC Denver":{{ site.links.ucdenver }}, support was provided by the UC Denver School of Medicine Deans Academic Enrichment Fund. 
+
+Most of all I would like to *thank my family*.

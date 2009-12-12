@@ -1,1 +1,26 @@
 home: http://tap.rubyforge.org
+versions:
+  configurable: 0.6.0
+  lazydoc: 1.0.0
+  rap: 0.15.0
+  tap: 0.19.0
+  tap-gen: 0.3.1
+  tap-server: 0.6.0
+  tap-suite: 0.3.0
+  tap-tasks: 0.5.0
+  tap-test: 0.3.0
+
+links:
+  me: http://www.linkedin.com/in/simonachiang
+  twitter: http://twitter.com/bahuvrihi
+  blog: http://bahuvrihi.wordpress.com
+  github: http://github.com/bahuvrihi/tap
+  google-group: http://groups.google.com/group/ruby-on-tap
+  issues: http://github.com/bahuvrihi/tap/issues
+  hansen_lab: http://hsc-proteomics.uchsc.edu/hansenlab/
+  bmsp: http://biomol.uchsc.edu/
+  rake: http://rake.rubyforge.org/
+  rack: http://rack.rubyforge.org/
+  rails: http://www.rubyonrails.org
+  ucdenver: http://www.ucdenver.edu
+  license: /license.html
