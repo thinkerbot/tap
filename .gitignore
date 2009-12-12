@@ -1,1 +1,5 @@
 .DS_Store
+configurable
+lazydoc
+rack
+_site

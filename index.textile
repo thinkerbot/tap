@@ -1,0 +1,80 @@
+---
+layout: index
+---
+
+h1. Tap (<ins>T</ins>ask <ins>Ap</ins>plication)
+
+A framework for creating configurable, distributable tasks and workflows. Kind of like "Rake":http://rake.rubyforge.org/, kind of like "Rails":http://www.rubyonrails.org/, but geared towards command line applications.
+
+* "Rubyforge":http://rubyforge.org/projects/tap
+* "Github":http://github.com/bahuvrihi/tap/tree/master
+
+h2. Tap Features
+
+* easy configuration, documentation, and testing
+* imperative and dependency-based workflows
+* command-line execution
+* generators
+* distribution of task libraries as gems
+
+h2. A quick look
+
+Tasks are defined as full classes:
+
+bc.. 
+  [lib/goodnight.rb]
+
+  # Goodnight::task your basic goodnight moon task
+  # Says goodnight with a configurable message.
+  class Goodnight  Tap::Task
+    config :message, 'goodnight'           # a goodnight message
+
+    def process(name)
+      "#{message} #{name}"
+    end
+  end
+
+p. Tasks are immediately available on the command line for use in workflows:
+  
+bc.. 
+  % tap run -- goodnight moon --: dump
+  goodnight moon
+
+  % tap run -- load mittens -- load boat -- goodnight -- dump --[0,1][2] --[2][3]
+  goodnight mittens
+  goodnight boat
+  
+p. configurable &#8230;
+
+bc.. 
+  % tap run -- goodnight moon --message hello --: dump
+  hello moon
+
+p. and documented.
+
+bc.. 
+  % tap run -T
+  sample:
+    goodnight   # your basic goodnight moon task
+  tap:
+    dump        # the default dump task
+    load        # the default load task
+
+  % tap run -- goodnight --help
+  Goodnight -- your basic goodnight moon task
+  ------------------------------------------------------------------------------
+    Says goodnight with a configurable message.
+  ------------------------------------------------------------------------------
+  usage: tap run -- goodnight NAME
+
+  configurations:
+          --message MESSAGE            a goodnight message
+
+  options:
+      -h, --help                       Print this help
+          --name NAME                  Specify a name
+          --use FILE                   Loads inputs from file
+          
+p. Moreover tasks are distributed as gems; simply add a tap.yml file to a gem and tap will automatically discover tasks that have the '::task' resource identifier within the class documentation.
+
+See the "Tutorial":{{ site.home }}/tap-suite/files/doc/Tutorial.html and "Documentation":{{ site.home }}/rdoc/index.html for more information.

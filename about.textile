@@ -1,0 +1,28 @@
+---
+layout: page
+---
+
+h1. About
+
+Copyright (c) 2006-2007, Regents of the University of Colorado.
+
+|Developer| "Simon Chiang":http://bahuvrihi.wordpress.com, "Biomolecular Structure Program":http://biomol.uchsc.edu/, "Hansen Lab":http://hsc-proteomics.uchsc.edu/hansenlab/|
+|Support| CU Denver School of Medicine Deans Academic Enrichment Fund|
+|Licence| "MIT-Style":{{ site.home }}/license.html|
+
+h1. Acknowledgements
+
+A great deal of inspiration came from other excellent open-source projects including "Rake":http://rake.rubyforge.org and "Ruby on Rails":http://www.rubyonrails.org. 
+
+Thanks to my advisor "Dr. Kirk Hansen":http://hsc-proteomics.uchsc.edu/hansenlab/ for his patience in letting me work on this project, and for putting together an awesome lab.
+
+Most of all I would like to *thank my family* for their never-ending support.
+
+h2. Code
+
+Tap uses ActiveSupport for dependencies loading and a variety of other extensions.  Tap uses Rails generators and redistributes the code in the gem, to avoid an additional dependency.
+
+h2. Photos
+
+The main photo on this website, "cello":http://flickr.com/photos/bagels/451561809, was found on "Flickr":http://flickr.com/ and was made public by "SMN":http://flickr.com/photos/bagels/ under a Creative Commons "Attribution License":http://creativecommons.org/licenses/by/2.0/deed.en-us.  
+
