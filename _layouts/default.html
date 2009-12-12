@@ -2,15 +2,44 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link href="stylesheets/layout.css" media="screen" rel="stylesheet" type="text/css" />
+<!-- <link href="stylesheets/layout.css" media="screen" rel="stylesheet" type="text/css" />
 <link href="stylesheets/typography.css" media="screen" rel="stylesheet" type="text/css" />
-<link href="stylesheets/colors.css" media="screen" rel="stylesheet" type="text/css" />
+<link href="stylesheets/colors.css" media="screen" rel="stylesheet" type="text/css" /> -->
 <link href="stylesheets/syntax.css" media="screen" rel="stylesheet" type="text/css" />
 <title>{{ page.title }}</title>
 </head>
 
 <body>
 {{ content }}
+
+<div id="nav-tap" class="nav">
+  <h3>Tap</h3>
+  <ul>
+  <li><a href="{{ site.links.install }}">Install</a></li>
+  <li><a href="{{ site.links.rdoc }}">Documentation</a></li>
+  <li><a href="{{ site.links.tutorial }}">Tutorial</a></li>
+  </ul>
+</div>
+
+<div id="nav-gems" class="nav">
+  <h3>Gems</h3>
+  <ul>
+  <li><a href="{{ site.links.tap }}" title="A framework for creating configurable, distributable tasks and workflows.">Tap</a></li>
+  <li><a href="{{ site.links.constants }}" title="Libraries of physical and chemical constants for scientific calculations in Ruby.">Constants</a></li>
+  <li><a href="{{ site.links.molecules }}" title="A library of molecules for scientific calculations in Ruby.">Molecules</a></li>
+  <li><a href="{{ site.links.external }}" title="Indexing and array-like access to data stored on disk rather than in memory.">External</a></li>
+  <li><a href="{{ site.links.configurable }}" title="Class configurations that map to the command line.">Configurable</a></li>
+  <li><a href="{{ site.links.lazydoc }}" title="Lazy loading of comments into code.">Lazydoc</a></li>
+  </ul>
+</div>
+
+<div id="nav-info" class="nav">
+  <h3>Info</h3>
+  <ul>
+  <li><a href="/about.html" title="">About</a></li>
+  <li><a href="/license.html" title="">License</a></li>
+  </ul>
+</div>
 </body>
 </html>
 

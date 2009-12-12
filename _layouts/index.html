@@ -2,57 +2,22 @@
 layout: default
 ---
 
-<div id="branding_main">
-<div id="branding_text">A configurable, distributable workflow framework.<span id="branding_tap">Tap</span></div>
-<img id="branding_img" src="images/branding.jpg" alt="Tap" />
+<div id="branding-index" class="branding">
+  <img id="image" src="images/branding.jpg" alt="Tap" />
+  <p>
+  <span id="title"><a href="/index.html">Tap</a></span>
+  <span id="summary">A configurable, distributable workflow framework.</span>
+  </p>
 </div>
 
-<div id="nav_main" class="center_div">
-<ul id="nav_site">
-<li id="install"><a href="installation.html" title="Install">Install</a></li>
-<li id="documentation"><a href="rdoc/index.html" title="Documentation">Documentation</a></li>
-<li id="tutorial"><a href="tap-suite/files/doc/Tutorial.html" title="Tutorial">Tutorial</a></li>
-</ul>
+<div class="nav-main">
+  <ul>
+  <li><a href="{{ site.links.install }}">Install</a></li>
+  <li><a href="{{ site.links.rdoc }}">Documentation</a></li>
+  <li><a href="{{ site.links.tutorial }}">Tutorial</a></li>
+  </ul>
 </div>
 
-<div id="content" class="clear_children center_div">
-<div id="content_main" class="pc cc_tallest main_div">
-<div id="content_index" class="section">
+<div id="content" class="content">
 {{ content }}
 </div>
-</div>
-
-<div id="content_sub" class="sc sub_div">
-<div class="nav_div">
-  <h3>Tap</h3>
-  <ul class="nav_sub">
-  <li id="install"><a href="installation.html" title="Install">Install</a></li>
-  <li id="documentation"><a href="rdoc/index.html" title="Documentation">Documentation</a></li>
-  <li id="tutorial"><a href="rdoc/files/doc/Tutorial.html" title="Tutorial">Tutorial</a></li>
-  </ul>
-</div>
-
-<div class="nav_div">
-  <h3>Gems</h3>
-  <ul class="nav_sub">
-  <li><a href="http://rubyforge.org/projects/tap" title="A framework for creating configurable, distributable tasks and workflows.">Tap</a></li>
-  <li><a href="http://bioactive.rubyforge.org/constants" title="Libraries of physical and chemical constants for scientific calculations in Ruby.">Constants</a></li>
-  <li><a href="http://bioactive.rubyforge.org/molecules/" title="A library of molecules for scientific calculations in Ruby.">Molecules</a></li>
-  <li><a href="http://rubyforge.org/projects/external" title="Indexing and array-like access to data stored on disk rather than in memory.">External</a></li>
-  <li><a href="http://tap.rubyforge.org/configurable" title="Class configurations that map to the command line.">Configurable</a></li>
-  <li><a href="http://tap.rubyforge.org/lazydoc" title="Lazy loading of comments into code.">Lazydoc</a></li>
-  <li><a href="http://rubyforge.org/projects/joinfix" title="">JoinFix</a></li>
-  </ul>
-</div>
-
-<div class="nav_div">
-  <h3>Info</h3>
-  <ul class="nav_sub">
-  <li><a href="about.html" title="">About</a></li>
-  <li><a href="license.html" title="">License</a></li>
-  <li><a href="http://github.com/bahuvrihi/tap/wikis/home" title="">Wiki</a></li>
-  </ul>
-</div>
-</div>
-
-<script type="text/javascript" src="si-clear-children.js"></script>

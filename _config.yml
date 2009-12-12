@@ -11,16 +11,42 @@ versions:
   tap-test: 0.3.0
 
 links:
+  # about me
   me: http://www.linkedin.com/in/simonachiang
   twitter: http://twitter.com/bahuvrihi
   blog: http://bahuvrihi.wordpress.com
+  
+  # code
+  rubyforge: http://rubyforge.org/projects/tap
   github: http://github.com/bahuvrihi/tap
   google-group: http://groups.google.com/group/ruby-on-tap
   issues: http://github.com/bahuvrihi/tap/issues
+  rdoc: http://tap.rubyforge.org/rdoc/index.html
+  tutorial: http://tap.rubyforge.org/tap-suite/files/doc/Tutorial.html
+  
+  # gems
+  tap: http://rubyforge.org/projects/tap
+  configurable: http://tap.rubyforge.org/configurable
+  lazydoc: http://tap.rubyforge.org/lazydoc
+  external: http://rubyforge.org/projects/external
+  constants: http://bioactive.rubyforge.org/constants
+  molecules: http://bioactive.rubyforge.org/molecules
+    
+  # site
+  install: /installation.html
+  license: /license.html
+  
+  # external
+  ucdenver: http://www.ucdenver.edu
   hansen_lab: http://hsc-proteomics.uchsc.edu/hansenlab/
   bmsp: http://biomol.uchsc.edu/
   rake: http://rake.rubyforge.org/
   rack: http://rack.rubyforge.org/
   rails: http://www.rubyonrails.org
-  ucdenver: http://www.ucdenver.edu
-  license: /license.html
+  ruby: http://www.ruby-lang.org/en/
+  ruby-download: http://www.ruby-lang.org/en/downloads/
+  installer: 
+    osx: http://rubyosx.rubyforge.org/
+    windows: http://rubyinstaller.rubyforge.org/wiki/wiki.pl?RubyInstaller
+  rubygems: http://www.rubygems.org/
+  

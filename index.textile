@@ -4,10 +4,10 @@ layout: index
 
 h1. Tap (<ins>T</ins>ask <ins>Ap</ins>plication)
 
-A framework for creating configurable, distributable tasks and workflows. Kind of like "Rake":http://rake.rubyforge.org/, kind of like "Rails":http://www.rubyonrails.org/, but geared towards command line applications.
+A framework for creating configurable, distributable tasks and workflows. Kind of like "Rake":{{ site.links.rake }}, kind of like "Rails":{{ site.links.rails }}, but geared towards command line applications.
 
-* "Rubyforge":http://rubyforge.org/projects/tap
-* "Github":http://github.com/bahuvrihi/tap/tree/master
+* "Rubyforge":{{ site.links.rubyforge }}
+* "Github":{{ site.links.github }}
 
 h2. Tap Features
 
@@ -77,4 +77,4 @@ bc..
           
 p. Moreover tasks are distributed as gems; simply add a tap.yml file to a gem and tap will automatically discover tasks that have the '::task' resource identifier within the class documentation.
 
-See the "Tutorial":{{ site.home }}/tap-suite/files/doc/Tutorial.html and "Documentation":{{ site.home }}/rdoc/index.html for more information.
+See the "Tutorial":{{ site.links.tutorial }} and "Documentation":{{ site.links.rdoc }} for more information.

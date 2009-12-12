@@ -22,7 +22,7 @@ p. Your files will NOT be removed.
 
 h1. Installing Ruby and RubyGems
 
-"Ruby":http://www.ruby-lang.org/en/ and "RubyGems":http://www.rubygems.org/ are easy to install on all major operating systems including Mac and Windows.  Many Linux distributions already have Ruby installed by default, as does Mac (although the default Ruby installation on Mac is faulty; Tap requires you reinstall Ruby on Mac).
+"Ruby":{{ site.links.ruby }} and "RubyGems":{{ site.links.rubygems }} are easy to install on all major operating systems including Mac and Windows.  Many Linux distributions already have Ruby installed by default, as does Mac (although the default Ruby installation on Mac is faulty; Tap requires you reinstall Ruby on Mac).
 
 To test if you have Ruby installed, open a command prompt and type:
 
@@ -32,12 +32,12 @@ bc..
 
 p. The output is for a Mac -- your output will vary if you're not on a Mac.  
 
-Tap is developed on ruby 1.8.6, and tested against ruby 1.9.0; you should use it with caution on earlier versions.  See the main "Ruby Download":http://www.ruby-lang.org/en/downloads/ page for more instructions on installing Ruby if you want more details.  
+Tap is developed on ruby 1.8.6, and tested against ruby 1.9.0; you should use it with caution on earlier versions.  See the main "Ruby Download":{{ site.links.ruby-download }} page for more instructions on installing Ruby if you want more details.  
 
 h2. Installation on Windows
 
-Simply download the "Ruby 1.8.6 One-Click Installer for Windows":http://rubyinstaller.rubyforge.org/wiki/wiki.pl?RubyInstaller, double click and you're done.  On the installer website, go to the downloads page and pull down the latest stable version.
+Simply download the "Ruby 1.8.6 One-Click Installer for Windows":{{ site.links.installer.windows }}, double click and you're done.  On the installer website, go to the downloads page and pull down the latest stable version.
 
 h2. (Re)Installation on Mac
 
-Simply download the "Ruby One-Click Installer for OSX":http://rubyosx.rubyforge.org/, double click and you're done.  
+Simply download the "Ruby One-Click Installer for OSX":{{ site.links.installer.osx }}, double click and you're done.  
