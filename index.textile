@@ -62,18 +62,18 @@ bc..
 
   % tap run -- goodnight --help
   Goodnight -- your basic goodnight moon task
-  ------------------------------------------------------------------------------
+  --------------------------------------------------------------------------------
     Says goodnight with a configurable message.
-  ------------------------------------------------------------------------------
+  --------------------------------------------------------------------------------
   usage: tap run -- goodnight NAME
-
+  
   configurations:
           --message MESSAGE            a goodnight message
-
+  
   options:
-      -h, --help                       Print this help
-          --name NAME                  Specify a name
-          --use FILE                   Loads inputs from file
+          --help                       Print this help
+          --enque                      Manually enques self
+          --config FILE                Specifies a config file
           
 p. Moreover tasks are distributed as gems; simply add a tap.yml file to a gem and tap will automatically discover tasks that have the '::task' resource identifier within the class documentation.
 
