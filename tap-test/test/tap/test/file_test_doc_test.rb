@@ -4,8 +4,8 @@ require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 class FileTestDocTest < Test::Unit::TestCase
   extend Tap::Test
   
-  acts_as_file_test
-
+  acts_as_file_test :cleanup_dirs => [:output, :tmp]
+  
   def test_something
     # each test class has a class test root (ctr)
     # and each test method has a method-specific

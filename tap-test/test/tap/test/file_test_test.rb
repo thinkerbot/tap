@@ -6,9 +6,8 @@ class FileTestTest < Test::Unit::TestCase
   
   ASSERTION_ERROR = Object.const_defined?(:MiniTest) ? MiniTest::Assertion : Test::Unit::AssertionFailedError
   
-  self.class_test_root = Tap::Root.new(
-    :root => __FILE__.chomp("_test.rb"), 
-    :relative_paths => {:input => 'input', :output => 'output', :expected => 'expected'})
+  self.class_test_root = Tap::Root.new(:root => __FILE__.chomp("_test.rb"))
+  self.cleanup_dirs = [:output]
   
   #
   # method_root test

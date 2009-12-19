@@ -1,7 +1,9 @@
-==
+== 
 
 * added set_env method to ShellTest
 * added indent stripping to sh_test
+* changed FileTest to cleanup method_root
+  completely by default
 
 == 0.3.0 / 2009-12-05
 
