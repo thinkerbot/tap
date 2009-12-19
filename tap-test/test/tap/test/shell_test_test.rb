@@ -76,6 +76,30 @@ class ShellTestTest < Test::Unit::TestCase
   end
   
   #
+  # set_env test
+  #
+  
+  def test_set_env_sets_the_env_and_returns_the_current_env
+    current_env = {}
+    begin
+      ENV.each_pair do |key, value|
+        current_env[key] = value
+      end
+      
+      assert_equal nil, ENV['NEW_ENV_VAR']
+      assert_equal nil, current_env['NEW_ENV_VAR']
+      
+      assert_equal current_env, set_env('NEW_ENV_VAR' => 'value')
+      assert_equal 'value', ENV['NEW_ENV_VAR']
+    ensure
+      ENV.clear
+      current_env.each_pair do |key, value|
+        ENV[key] = value
+      end
+    end
+  end
+  
+  #
   # with_env test
   #
   

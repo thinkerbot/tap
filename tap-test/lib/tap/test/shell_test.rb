@@ -71,27 +71,37 @@ module Tap
         quiet && quiet =~ /^true$/i ? true : false
       end
       
-      # Sets the specified ENV variables for the duration of the block.
+      # Sets the specified ENV variables and returns the *current* env.
       # If replace is true, current ENV variables are replaced; otherwise
       # the new env variables are simply added to the existing set.
-      def with_env(env={}, replace=false)
+      def set_env(env={}, replace=false)
         current_env = {}
         ENV.each_pair do |key, value|
           current_env[key] = value
         end
         
+        ENV.clear if replace
+        
+        env.each_pair do |key, value|
+          ENV[key] = value
+        end if env
+        
+        current_env
+      end
+      
+      # Sets the specified ENV variables for the duration of the block.
+      # If replace is true, current ENV variables are replaced; otherwise
+      # the new env variables are simply added to the existing set.
+      #
+      # Returns the block return.
+      def with_env(env={}, replace=false)
+        current_env = nil
         begin
-          ENV.clear if replace
-          env.each_pair do |key, value|
-            ENV[key] = value
-          end if env
-          
+          current_env = set_env(env, replace)
           yield
-          
         ensure
-          ENV.clear
-          current_env.each_pair do |key, value|
-            ENV[key] = value
+          if current_env
+            set_env(current_env, true)
           end
         end
       end
