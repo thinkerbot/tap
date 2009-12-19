@@ -33,9 +33,7 @@ can be overlaid.
 
 Sets up a test-specific method_root for working with temporary files. Better
 in most cases than using Tempfile because you can flag temporary files to be
-saved on a failure (using ENV['KEEP_OUTPUTS']='true'). Also provides a new
-assertion to test that all the files in an expected directory are equal to
-those in an output directory.
+saved on a failure (using ENV['KEEP_OUTPUTS']='true').
 
   require 'tap/test/unit'
   class FileTestTest < Test::Unit::TestCase
@@ -63,9 +61,9 @@ Simple testing of shell commands.
     
     def test_echo_with_an_alias
       sh_test %q{
-  % alias goodnight moon
-  goodnight moon
-  }
+      % alias goodnight moon
+      goodnight moon
+      }
     end
   end
     
@@ -102,9 +100,9 @@ Sets up Tap::App.instance for testing tasks.
   class TapTestTest < Test::Unit::TestCase
     acts_as_tap_test
 
-    def test_task
-      t = Tap::Task.intern {|task| "result" }
-      assert_equal "result", t.process
+    def test_node
+      n = app.node { "result" }
+      assert_equal "result", n.call
     end
   end
 
