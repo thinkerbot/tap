@@ -1,6 +1,7 @@
 ==
 
 * added set_env method to ShellTest
+* added indent stripping to sh_test
 
 == 0.3.0 / 2009-12-05
 

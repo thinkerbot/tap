@@ -11,7 +11,8 @@ module Tap
         def sh_test_options
           @sh_test_options ||= {
             :cmd_pattern => '% ',
-            :cmd => '2>&1 '
+            :cmd => '2>&1 ',
+            :indents => true
           }
         end
 

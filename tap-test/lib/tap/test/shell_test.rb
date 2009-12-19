@@ -170,6 +170,29 @@ module Tap
       #   ["hello", "world"]
       #   }, opts
       #
+      # ==== Indents
+      #
+      # To improve the readability of tests, sh_test will lstrip each line in the
+      # expected output to the same degree as the command line.  So for instance
+      # these all pass:
+      #
+      #   sh_test %Q{
+      #   % argv_inspect hello world
+      #   ["hello", "world"]
+      #   }, opts
+      #
+      #   sh_test %Q{
+      #       % argv_inspect hello world
+      #       ["hello", "world"]
+      #   }, opts
+      #
+      #       sh_test %Q{
+      #       % argv_inspect hello world
+      #       ["hello", "world"]
+      #       }, opts
+      #
+      # Turn off indent stripping by specifying :indent => false.
+      #
       # ==== ENV variables
       #
       # Options may specify a hash of env variables that will be set in the
@@ -189,8 +212,15 @@ module Tap
       def sh_test(cmd, options={})
         options = sh_test_options.merge(options)
         
-        cmd, expected = cmd.lstrip.split(/^/, 2)
-        cmd.strip!
+        if cmd =~ /\A\s*?\n?(\s*)(.*?\n)(.*)\z/m
+          indent, cmd, expected = $1, $2, $3
+          cmd.strip!
+          
+          if indent.length > 0 && options[:indents]
+            expected.gsub!(/^\s{0,#{indent.length}}/, '')
+          end
+        end
+        
         result = sh(cmd, options)
         
         assert_equal(expected, result, cmd) if expected

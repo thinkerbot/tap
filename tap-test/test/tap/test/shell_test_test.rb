@@ -185,6 +185,21 @@ class ShellTestTest < Test::Unit::TestCase
 ["hello", "world"]
 }, opts
 
+sh_test %Q{
+% argv_inspect hello world
+["hello", "world"]
+}, opts
+
+sh_test %Q{
+    % argv_inspect hello world
+    ["hello", "world"]
+}, opts
+
+    sh_test %Q{
+    % argv_inspect hello world
+    ["hello", "world"]
+    }, opts
+
     sh_test %Q{
 ruby -e "puts ENV['SAMPLE']"
 value
@@ -226,6 +241,39 @@ echo
 }
   end
   
+  def test_sh_test_strips_indents
+    sh_test %Q{
+    echo goodnight
+    goodnight
+    }
+    
+    sh_test %Q{ \t   \r
+    echo goodnight
+    goodnight
+    }
+    
+    sh_test %Q{
+    ruby -e 'print "\\t\\n  "'
+    \t
+      }
+      
+    sh_test %Q{
+    echo
+    
+    }
+    
+    sh_test %Q{echo
+
+}
+  end
+  
+  def test_sh_test_does_not_strip_indents_unless_specified
+    sh_test %Q{
+    ruby -e 'print "    \\t\\n      "'
+    \t
+      }, :indents => false
+  end
+    
   def test_sh_test_fails_on_mismatch
     err = assert_raises(Test::Unit::AssertionFailedError) { sh_test %Q{ruby -e ""\nflunk} }
     assert_equal %Q{
