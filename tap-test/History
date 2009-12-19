@@ -1,4 +1,8 @@
-== 
+== 0.4.0 / 2009-19-09
+
+Various improvements to the test modules.  Note that FileTest now will
+cleanup the method_root directory completely by default; to restore
+the old behavior, set cleanup_dirs equal to [:output, :tmp].
 
 * added set_env method to ShellTest
 * added indent stripping to sh_test
