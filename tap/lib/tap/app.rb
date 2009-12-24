@@ -394,8 +394,26 @@ module Tap
     end
     
     def parse!(argv, &block) # :yields: spec
+      argv = Shellwords.shellwords(argv) if argv.kind_of?(String)
+      config_parser = ConfigParser.new(config,
+        :option_break => Parser::BREAK,
+        :keep_break => true,
+        :clear_config => false, 
+        :add_defaults => false)
+      config_parser.add(self.class.configurations)
       parser = Parser.new
-      argv = parser.parse!(argv)
+      
+      loop do
+        break if argv.empty?
+        config_parser.scan(argv) do |file|
+          puts file
+          args = YAML.load_file(file)
+          parse!(args)
+        end
+        
+        break if argv.empty?
+        parser.parse!(argv)
+      end
       
       # The queue API does not provide a delete method, so picking out the
       # deque jobs requires the whole queue be cleared, then re-enqued.
@@ -772,7 +790,7 @@ module Tap
     end
 
     private
-
+    
     # warns of ignored args
     def warn_ignored_args(args) # :nodoc:
       if args && debug? && !args.empty?
