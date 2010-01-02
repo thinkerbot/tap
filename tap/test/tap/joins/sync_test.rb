@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/joins'
+require 'tap/joins/sync'
 require 'tap/middlewares/tracer'
 
 class SyncTest < Test::Unit::TestCase

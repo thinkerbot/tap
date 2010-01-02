@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/joins'
+require 'tap/joins/switch'
 require 'tap/middlewares/tracer'
 
 class SwitchTest < Test::Unit::TestCase

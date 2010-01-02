@@ -1,5 +1,4 @@
 require 'tap/app'
-require 'tap/intern'
 
 module Tap
   class App
