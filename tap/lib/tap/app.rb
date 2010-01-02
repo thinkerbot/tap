@@ -92,8 +92,7 @@ module Tap
     config :force, false, :short => :f, &c.flag      # Force execution at checkpoints
     config :quiet, false, :short => :q, &c.flag      # Suppress logging
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
-    config :auto_enque, true, &c.switch              # Auto-enque parsed args
-    config :bang, true, &c.switch                    # Use parse! when possible
+    config :bang, true, &c.switch                    # Use parse! in build/parse signals
     
     nest :env, Env,                                  # The application environment
       :type => :hidden,
@@ -417,20 +416,16 @@ module Tap
       # Safety (and speed) is improved with synchronization.
       queue.synchronize do
         deque = []
-        blocks = {}
         
-        if auto_enque
-          blocks[:node] = lambda do |obj, args|
-            queue.enq(obj, args)
-            args = nil
-          end
-          
-          blocks[:join] = lambda do |obj, args|
-            unless obj.respond_to?(:outputs)
-              # warning
-            end
+        node_block = lambda do |obj, args|
+          queue.enq(obj, args)
+        end
+        
+        join_block = lambda do |obj, args|
+          if obj.respond_to?(:outputs)
             deque.concat obj.outputs
           end
+          warn_ignored_args(args)
         end
         
         parser.specs.each do |spec|
@@ -442,7 +437,14 @@ module Tap
           
           sig_block = case sig
           when 'set'
-            blocks[type]
+            case type
+            when :node
+              node_block
+            when :join
+              join_block
+            else 
+              nil
+            end
           when 'parse'
             block
           else
