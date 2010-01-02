@@ -232,6 +232,12 @@ module Tap
       node
     end
     
+    # Priority-enques (unshifts) the node with the inputs.  Returns the node.
+    def pq(node, *inputs)
+      queue.unshift(node, inputs)
+      node
+    end
+    
     # Generates a node from the block and enques. Returns the new node.
     def bq(*inputs, &block) # :yields: *inputs
       node = self.node(&block)

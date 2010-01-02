@@ -501,16 +501,34 @@ class AppTest < Test::Unit::TestCase
   # enq test
   #
   
-  def test_enq
-    t = intern {}
+  def test_enq_pushes_node_onto_queue
+    n = intern {}
     assert_equal 0, app.queue.size
-    app.enq(t)
-    assert_equal [[t, []]], app.queue.to_a
+    app.enq(n, 0)
+    app.enq(n, 1)
+    assert_equal [[n, [0]], [n, [1]]], app.queue.to_a
   end
   
-  def test_enq_returns_enqued_task
-    t = intern {}
-    assert_equal t, app.enq(t)
+  def test_enq_returns_enqued_node
+    n = intern {}
+    assert_equal n, app.enq(n)
+  end
+  
+  #
+  # pq test
+  #
+  
+  def test_pq_unshifts_node_onto_queue
+    n = intern {}
+    assert_equal 0, app.queue.size
+    app.pq(n, 0)
+    app.pq(n, 1)
+    assert_equal [[n, [1]], [n, [0]]], app.queue.to_a
+  end
+  
+  def test_pq_returns_enqued_node
+    n = intern {}
+    assert_equal n, app.pq(n)
   end
   
   #
