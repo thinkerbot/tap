@@ -93,7 +93,6 @@ module Tap
     config :quiet, false, :short => :q, &c.flag      # Suppress logging
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
     config :bang, true, &c.switch                    # Use parse! in build/parse signals
-    
     nest :env, Env,                                  # The application environment
       :type => :hidden,
       :writer => false, 
@@ -124,10 +123,33 @@ module Tap
       :signature => ['class'],
       :remainder => 'spec'
     
+    signal_class :parse do                           # parse a workflow
+      def call(args) # :nodoc:
+        argv = convert_to_array(args, ['args'])
+        obj.send(obj.bang ? :parse! : :parse, argv, &block)
+      end
+    end
+    
     signal_class :use do                             # enables middleware
       def call(args) # :nodoc:
         spec = convert_to_hash(args, ['class'], 'spec')
         obj.stack = obj.build(spec, &block)
+      end
+    end
+    
+    signal_class :configure do                       # configures the app
+      def call(config) # :nodoc:
+        if config.kind_of?(Array)
+          psr = ConfigParser.new(:add_defaults => false)
+          psr.add(obj.class.configurations)
+          args = psr.parse!(config)
+          obj.send(:warn_ignored_args, args)
+          
+          config = psr.config
+        end
+        
+        obj.reconfigure(config)
+        obj.config
       end
     end
     
@@ -141,19 +163,6 @@ module Tap
       def call(args) # :nodoc:
         lines = obj.objects.collect {|(key, obj)|  "#{key}: #{obj.class}" }
         lines.empty? ? "No objects yet..." : lines.sort.join("\n")
-      end
-    end
-    
-    signal_class :parse do                          # parse a workflow
-      def call(args) # :nodoc:
-        argv = convert_to_array(args, ['args'])
-        obj.send(obj.bang ? :parse! : :parse, argv, &block)
-      end
-    end
-    
-    signal_class :exit do                            # exit immediately
-      def process(args) # :nodoc:
-        exit(1)
       end
     end
     

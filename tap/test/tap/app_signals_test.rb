@@ -9,7 +9,7 @@ class AppSignalsTest < Test::Unit::TestCase
   App = Tap::App
   
   #
-  # enq
+  # enq test
   #
   
   def test_enq_enques_obj_with_inputs
@@ -26,7 +26,7 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   #
-  # pq
+  # pq test
   #
   
   def test_pq_priority_enques_obj_with_inputs
@@ -43,7 +43,7 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   #
-  # set
+  # set test
   #
   
   class SetClass < App::Api
@@ -204,6 +204,24 @@ class AppSignalsTest < Test::Unit::TestCase
     assert_equal [[zero, [1,2]]], app.queue.to_a
   end
   
+  def test_parse_returns_remaining_args
+    assert_equal ['a', 'b', 'c'], app.call('sig' => 'parse', 'args' => ['--/info', '---', 'a', 'b', 'c'])
+  end
+  
+  def test_parse_does_not_use_bang_unless_specified
+    app.bang = false
+    
+    args = ['--/info', '---', 'a', 'b', 'c']
+    assert_equal ['a', 'b', 'c'], app.call('sig' => 'parse', 'args' => args)
+    assert_equal ['--/info', '---', 'a', 'b', 'c'], args
+    
+    app.bang = true
+    
+    args = ['--/info', '---', 'a', 'b', 'c']
+    assert_equal ['a', 'b', 'c'], app.call('sig' => 'parse', 'args' => args)
+    assert_equal ['a', 'b', 'c'], args
+  end
+  
   #
   # use test
   #
@@ -226,6 +244,22 @@ class AppSignalsTest < Test::Unit::TestCase
     obj = app.call('sig' => 'use', 'args' => ['klass'])
     assert_equal UseClass, obj.class
     assert_equal [obj], app.middleware
+  end
+  
+  #
+  # configure test
+  #
+  
+  def test_configure_reconfigures_app
+    assert_equal false, app.verbose
+    assert_equal app.config, app.call('sig' => 'configure', 'args' => ['--verbose'])
+    assert_equal true, app.verbose
+  end
+  
+  def test_configure_reconfigures_app_from_hash_args
+    assert_equal false, app.verbose
+    assert_equal app.config, app.call('sig' => 'configure', 'args' => {'verbose' => true})
+    assert_equal true, app.verbose
   end
   
   #
