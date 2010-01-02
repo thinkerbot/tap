@@ -38,21 +38,6 @@ class SubclassTask < Tap::Task
   end
 end
 
-class TaskAppTest < Test::Unit::TestCase
-  def test_task_documentation
-    app = Tap::App.new
-    
-    no_inputs = app.task {|task| [] }
-    one_input = app.task {|task, input| [input] }
-    mixed_inputs = app.task {|task, a, b, *args| [a, b, args] }
-  
-    assert_equal [], no_inputs.execute
-    assert_equal [:a], one_input.execute(:a)
-    assert_equal [:a, :b, []], mixed_inputs.execute(:a, :b)
-    assert_equal [:a, :b, [1,2,3]], mixed_inputs.execute(:a, :b, 1, 2, 3)
-  end
-end
-
 class TaskTest < Test::Unit::TestCase
   extend Tap::Test
   acts_as_tap_test

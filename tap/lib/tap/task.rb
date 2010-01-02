@@ -2,30 +2,6 @@ require 'tap/joins'
 require 'tap/root'
 
 module Tap
-  class App
-    # Generates a task with the specified config, initialized to self.
-    #
-    # A block may be provided to overrride the process method; it will be
-    # called with the task instance, plus any inputs.
-    #
-    #   no_inputs = app.task {|task| [] }
-    #   one_input = app.task {|task, input| [input] }
-    #   mixed_inputs = app.task {|task, a, b, *args| [a, b, args] }
-    #
-    #   no_inputs.execute                            # => []
-    #   one_input.execute(:a)                        # => [:a]
-    #   mixed_inputs.execute(:a, :b)                 # => [:a, :b, []]
-    #   mixed_inputs.execute(:a, :b, 1, 2, 3)        # => [:a, :b, [1,2,3]]
-    #
-    def task(config={}, klass=Task, &block)
-      instance = klass.new(config, self)
-      if block_given?
-        instance.extend Intern
-        instance.process_block = block
-      end
-      instance
-    end
-  end
   
   # Tasks are nodes that map to the command line.  Tasks provide support for
   # configuration, documentation, and provide helpers to build workflows.

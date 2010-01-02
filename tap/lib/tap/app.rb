@@ -1,10 +1,10 @@
 require 'logger'
 require 'tap/app/api'
+require 'tap/app/env'
 require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
-require 'tap/app/env'
 require 'tap/parser'
 autoload(:YAML, 'yaml')
 
@@ -24,14 +24,6 @@ module Tap
       # exists for convenience only.
       def instance(auto_initialize=true)
         @instance ||= (auto_initialize ? new : nil)
-      end
-      
-      # Sets up and returns App.instance with an Env setup to the specified
-      # directory.  This method is used to initialize the app and env as seen
-      # by the tap executable.
-      def setup(dir=Dir.pwd)
-        env = Env.setup(dir)
-        @instance = new({}, :env => env)
       end
       
       def build(spec={}, app=nil)

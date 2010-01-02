@@ -50,22 +50,6 @@ class TaskSyntaxTest < Test::Unit::TestCase
     app.run
     assert t.was_in_process
   end
-
-  def test_block_with_no_input
-    was_in_block = false
-    t = app.task do |task|
-      was_in_block = true
-    end
-
-    assert_raises(ArgumentError) do
-      app.enq t, 1
-      app.run
-    end
-    
-    app.enq t
-    app.run
-    assert was_in_block
-  end
   
   ##
   class ProcessWithOneInput < ProcessTestBase
@@ -90,26 +74,6 @@ class TaskSyntaxTest < Test::Unit::TestCase
       app.enq t, 1, 2, 3
       app.run
     end
-  end
-
-  def test_block_with_one_input
-    runlist = []
-    t = app.task do |task, input|
-      runlist << input
-    end
-
-    assert_raises(ArgumentError) do
-      app.enq t
-      app.run
-    end
-    assert_raises(ArgumentError) do 
-      app.enq t, 1, 2
-      app.run
-    end
-    
-    app.enq t, 1
-    app.run
-    assert_equal [1], runlist
   end
   
   ##
@@ -136,26 +100,6 @@ class TaskSyntaxTest < Test::Unit::TestCase
     assert_equal [[1, 2]], t.runlist
   end
   
-  def test_block_with_multiple_inputs
-    runlist = []
-    t = app.task do |task, a, b|
-      runlist << [a,b]
-    end
-  
-    assert_raises(ArgumentError) do
-      app.enq t
-      app.run
-    end
-    assert_raises(ArgumentError) do 
-      app.enq t, 1
-      app.run
-    end
-    
-    app.enq t, 1, 2
-    app.run
-    assert_equal [[1, 2]], runlist
-  end
-  
   ##
   class ProcessWithArbitraryInputs < ProcessTestBase
     def process(*args)
@@ -177,25 +121,6 @@ class TaskSyntaxTest < Test::Unit::TestCase
     app.enq t, 1, 2, 3
     app.run
     assert_equal [[], [1], [1,2,3]], t.runlist
-  end
-
-  def test_block_with_arbitrary_inputs
-    runlist = []
-    t = app.task do |task, *args|
-      runlist << args
-    end
-
-    app.enq t
-    app.run
-    assert_equal [[]], runlist
-  
-    app.enq t, 1
-    app.run
-    assert_equal [[], [1]], runlist
-  
-    app.enq t, 1, 2, 3
-    app.run
-    assert_equal [[], [1], [1,2,3]], runlist
   end
 
   ##
@@ -224,30 +149,6 @@ class TaskSyntaxTest < Test::Unit::TestCase
     app.enq t, 1, 2, 3
     app.run
     assert_equal [[1, 2, []], [1, 2, [3]]], t.runlist
-  end
-  
-  def test_block_with_mixed_arbitrary_inputs
-    runlist = []
-    t = app.task do |task, a, b, *args|
-      runlist << [a, b, args]
-    end
-
-    assert_raises(ArgumentError) do
-      app.enq t
-      app.run
-    end
-    assert_raises(ArgumentError) do 
-      app.enq t, 1
-      app.run
-    end
-    
-    app.enq t, 1, 2
-    app.run
-    assert_equal [[1, 2, []]], runlist
-    
-    app.enq t, 1, 2, 3
-    app.run
-    assert_equal [[1, 2, []], [1, 2, [3]]], runlist
   end
 
   #

@@ -53,13 +53,6 @@ module Tap
           end
         end
         
-        if node.kind_of?(Intern)
-          process_block_arity = node.process_block
-          unless arity_ok?(process_block_arity, n)
-            raise InvalidSignatureError.new(node, inputs, :process_block, process_block_arity)
-          end
-        end
-        
       end
       
       class InvalidSignatureError < StandardError

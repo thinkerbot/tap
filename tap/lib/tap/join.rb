@@ -18,20 +18,6 @@ module Tap
   class Join < App::Api
     class << self
       
-      # Instantiates a new join with the input arguments and overrides
-      # call with the block.  The block will be called with the join
-      # instance and result.
-      #
-      # Simply instantiates a new join if no block is given.
-      def intern(config={}, app=Tap::App.instance, &block) # :yields: join, result
-        instance = new(config, app)
-        if block_given?
-          instance.extend Intern(:call)
-          instance.call_block = block
-        end
-        instance
-      end
-      
       def parse!(argv=ARGV, app=Tap::App.instance)
         parser = self.parser
         argv = parser.parse!(argv, :add_defaults => false)
