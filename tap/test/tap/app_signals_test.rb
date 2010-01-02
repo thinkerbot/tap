@@ -5,6 +5,7 @@ require 'tap/test'
 class AppSignalsTest < Test::Unit::TestCase
   extend Tap::Test
   acts_as_tap_test
+  acts_as_file_test
   
   App = Tap::App
   
@@ -355,5 +356,49 @@ class AppSignalsTest < Test::Unit::TestCase
   
   def test_info_returns_info_string
     assert_equal app.info, app.call('sig' => 'info')
+  end
+  
+  #
+  # serialize test
+  #
+  
+  def test_serialize_writes_signals_to_path
+    path = method_root.prepare('output.yml')
+    assert_equal app, app.call('sig' => 'serialize', 'args' => [path])
+    
+    assert_equal File.read(path), app.serialize.to_yaml
+  end
+  
+  def test_serialize_allows_bare_option
+    path = method_root.prepare('output.yml')
+    
+    assert_equal app, app.call('sig' => 'serialize', 'args' => [path, '--bare'])
+    assert_equal File.read(path), app.serialize(true).to_yaml
+    
+    assert_equal app, app.call('sig' => 'serialize', 'args' => [path, '--no-bare'])
+    assert_equal File.read(path), app.serialize(false).to_yaml
+  end
+  
+  def test_serialize_signature
+    path = method_root.prepare('output.yml')
+    
+    assert_equal app, app.call('sig' => 'serialize', 'path' => path, 'bare' => true)
+    assert_equal File.read(path), app.serialize(true).to_yaml
+    
+    assert_equal app, app.call('sig' => 'serialize', 'path' => path, 'bare' => false)
+    assert_equal File.read(path), app.serialize(false).to_yaml
+  end
+  
+  #
+  # import test
+  #
+  
+  def test_import_calls_serialized_signals
+    assert_equal false, app.verbose
+    path = method_root.prepare('output.yml') {|io| io << app.serialize(false).to_yaml }
+    
+    app.verbose = true
+    assert_equal app, app.call('sig' => 'import', 'args' => [path])
+    assert_equal false, app.verbose
   end
 end

@@ -166,6 +166,42 @@ module Tap
       end
     end
     
+    signal_class :serialize do                       # serialize the app as signals
+      def call(args) # :nodoc:
+        if args.kind_of?(Array)
+          psr = ConfigParser.new
+          psr.on('--[no-]bare') {|value| psr['bare'] = value }
+          path, *ignored = psr.parse!(args)
+          psr['path'] = path
+          args = psr.config
+        end
+        
+        bare = args.has_key?('bare') ? args['bare'] : true
+        signals = obj.serialize(bare)
+        
+        if path = args['path']
+          File.open(path, "w") {|io| YAML.dump(signals, io) }
+        else
+          YAML.dump(signals, $stdout)
+        end
+        
+        obj
+      end
+    end
+    
+    signal_class :import do                          # import serialized signals
+      def call(args) # :nodoc:
+        paths = convert_to_array(args, ['paths'])
+        paths.each do |path|
+          YAML.load_file(path).each do |signal|
+            obj.call(signal)
+          end
+        end
+        
+        obj
+      end
+    end
+    
     signal :help, :class => Help, :bind => nil       # signals help
     
     # Creates a new App with the given configuration.  Options can be used to
