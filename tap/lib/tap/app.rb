@@ -100,6 +100,14 @@ module Tap
       :writer => false, 
       :init => false
     
+    signal(:enq,                                     # enques an object
+      :signature => ['var'], 
+      :remainder => ['args'] 
+    ) do |sig, argv|
+      argv[0] = sig.obj.obj(argv[0])
+      argv
+    end
+    
     signal_hash :set,                                # set or unset objects
       :signature => ['var', 'class'],
       :remainder => 'spec',
@@ -113,8 +121,6 @@ module Tap
         lines.empty? ? "No objects yet..." : lines.sort.join("\n")
       end
     end
-    
-    signal :enque                                   # enques an object
     
     signal_class :parse do                          # parse a workflow
       def call(args) # :nodoc:
@@ -474,17 +480,6 @@ module Tap
       argv
     end
     
-    # Enques the application object specified by var with args.  Raises
-    # an error if no such application object exists.
-    def enque(var, *args)
-      unless node = get(var)
-        raise "unknown object: #{var.inspect}"
-      end
-      
-      queue.enq(node, args)
-      node
-    end
-    
     # Returns an array of middlware in use by self.
     def middleware
       middleware = []
@@ -702,7 +697,7 @@ module Tap
       
       # collect enque signals to setup queue
       signals = queue.to_a.collect do |(node, args)|
-        {'sig' => 'enque', 'args' => [var(node)] + args}
+        {'sig' => 'enq', 'args' => [var(node)] + args}
       end
       
       # collect and trace application objects

@@ -9,6 +9,17 @@ class AppSignalsTest < Test::Unit::TestCase
   App = Tap::App
   
   #
+  # enq
+  #
+  
+  def test_enq_enques_obj_with_inputs
+    n = app.node {}
+    app.set(0, n)
+    app.call('sig' => 'enq', 'args' => [0, 1, 2, 3])
+    assert_equal [[n, [1,2,3]]], app.queue.to_a
+  end
+  
+  #
   # set
   #
   

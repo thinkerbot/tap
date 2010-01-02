@@ -713,24 +713,6 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # enque test
-  #
-  
-  def test_enque_enques_the_specified_object_with_args
-    obj = Object.new
-    app.set('var', obj)
-    
-    assert_equal [], app.queue.to_a
-    app.enque('var', 1,2,3)
-    assert_equal [[obj, [1,2,3]]], app.queue.to_a
-  end
-  
-  def test_enque_raises_error_when_specified_obj_does_not_exist
-    err = assert_raises(RuntimeError) { app.enque('missing', 1,2,3) }
-    assert_equal "unknown object: \"missing\"", err.message
-  end
-  
-  #
   # middleware test
   #
   
@@ -1138,7 +1120,7 @@ class AppTest < Test::Unit::TestCase
         'class' => 'AppTest::SchemaObj', 
         'config' => {'key' => 'value'}
       },
-      { 'sig' => 'enque', 
+      { 'sig' => 'enq', 
         'args' => ['var', 1,2,3]
       }
     ], app.serialize
@@ -1153,7 +1135,7 @@ class AppTest < Test::Unit::TestCase
         'class' => 'AppTest::SchemaObj', 
         'config' => {'key' => 'value'}
       },
-      { 'sig' => 'enque', 
+      { 'sig' => 'enq', 
         'args' => [0, 1,2,3]
       }
     ], app.serialize
