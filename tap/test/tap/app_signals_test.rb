@@ -190,6 +190,21 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   #
+  # parse test
+  #
+  
+  def test_parse_parses_and_builds_workflow
+    app.env = {'klass' => SetClass}
+    app.call('sig' => 'parse', 'args' => ['klass', 1, 2, '--/set', '3', 'klass'])
+    
+    assert_equal SetClass, app.get('0').class
+    assert_equal SetClass, app.get('3').class
+    
+    zero = app.get('0')
+    assert_equal [[zero, [1,2]]], app.queue.to_a
+  end
+  
+  #
   # use test
   #
   
@@ -211,5 +226,100 @@ class AppSignalsTest < Test::Unit::TestCase
     obj = app.call('sig' => 'use', 'args' => ['klass'])
     assert_equal UseClass, obj.class
     assert_equal [obj], app.middleware
+  end
+  
+  #
+  # reset test
+  #
+  
+  def test_reset_resets_app
+    n = app.node {}
+    app.set(0, n)
+    app.enq(n, 1)
+    app.use UseClass
+    
+    assert_equal false, app.objects.empty?
+    assert_equal 1, app.queue.size
+    assert_equal 1, app.middleware.size
+    
+    assert_equal app, app.call('sig' => 'reset')
+    
+    assert_equal true, app.objects.empty?
+    assert_equal 0, app.queue.size
+    assert_equal 0, app.middleware.size
+  end
+  
+  #
+  # run test
+  #
+  
+  def test_run_runs_app
+    was_in_block = false
+    n = app.node { was_in_block = true }
+    app.enq(n)
+    
+    assert_equal app, app.call('sig' => 'run')
+    assert_equal 0, app.queue.size
+    assert_equal true, was_in_block
+  end
+  
+  #
+  # stop test
+  #
+  
+  def test_stop_stops_app
+    was_in_a = false
+    a = app.node do
+      was_in_a = true
+      assert_equal app, app.call('sig' => 'stop')
+      assert_equal App::State::STOP, app.state
+    end
+    
+    was_in_b = false
+    b = app.node do
+      was_in_b = true
+    end
+    
+    app.enq(a)
+    app.enq(b)
+    
+    app.run
+    assert_equal true, was_in_a
+    assert_equal false, was_in_b
+    assert_equal 1, app.queue.size
+  end
+  
+  #
+  # terminate test
+  #
+  
+  def test_terminate_terminates_app
+    was_in_a = false
+    a = app.node do
+      was_in_a = true
+      assert_equal app, app.call('sig' => 'terminate')
+      assert_equal App::State::TERMINATE, app.state
+    end
+    
+    was_in_b = false
+    b = app.node do
+      was_in_b = true
+    end
+    
+    app.enq(a)
+    app.enq(b)
+    
+    app.run
+    assert_equal true, was_in_a
+    assert_equal false, was_in_b
+    assert_equal 1, app.queue.size
+  end
+  
+  #
+  # info test
+  #
+  
+  def test_info_returns_info_string
+    assert_equal app.info, app.call('sig' => 'info')
   end
 end

@@ -132,6 +132,12 @@ module Tap
       end
     end
     
+    signal :reset                                    # reset the app
+    signal :run                                      # run the app
+    signal :stop                                     # stop the app
+    signal :terminate                                # terminate the app
+    signal :info                                     # prints app status
+    
     signal_class :list do                            # list available objects
       def call(args) # :nodoc:
         lines = obj.objects.collect {|(key, obj)|  "#{key}: #{obj.class}" }
@@ -145,11 +151,6 @@ module Tap
         obj.send(obj.bang ? :parse! : :parse, argv, &block)
       end
     end
-    
-    signal :run                                      # run the app
-    signal :stop                                     # stop the app
-    signal :terminate                                # terminate the app
-    signal :info                                     # prints app status
     
     signal_class :exit do                            # exit immediately
       def process(args) # :nodoc:
@@ -408,26 +409,8 @@ module Tap
     end
     
     def parse!(argv, &block) # :yields: spec
-      argv = Shellwords.shellwords(argv) if argv.kind_of?(String)
-      config_parser = ConfigParser.new(config,
-        :option_break => Parser::BREAK,
-        :keep_break => true,
-        :clear_config => false, 
-        :add_defaults => false)
-      config_parser.add(self.class.configurations)
       parser = Parser.new
-      
-      loop do
-        break if argv.empty?
-        config_parser.scan(argv) do |file|
-          puts file
-          args = YAML.load_file(file)
-          parse!(args)
-        end
-        
-        break if argv.empty?
-        parser.parse!(argv)
-      end
+      argv = parser.parse!(argv)
       
       # The queue API does not provide a delete method, so picking out the
       # deque jobs requires the whole queue be cleared, then re-enqued.
@@ -532,6 +515,7 @@ module Tap
         objects.clear
         queue.clear
       end
+      self
     end
     
     # Execute is a wrapper for dispatch allowing inputs to be listed out
