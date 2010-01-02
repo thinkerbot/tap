@@ -401,13 +401,13 @@ class AppTest < Test::Unit::TestCase
   def test_default_app
     app = App.new
 
-    assert_equal(App::Queue, app.queue.class)
+    assert_equal App::Queue, app.queue.class
     assert_equal 0, app.queue.size
-    assert_equal(App::Stack, app.stack.class)
+    assert_equal App::Stack, app.stack.class
     assert_equal [], app.joins
     assert_equal({}, app.objects)
     assert_equal App::State::READY, app.state
-    assert_equal nil, app.env
+    assert_equal App::Env, app.env.class
   end
   
   def test_initialization_with_block_sets_a_default_join
@@ -676,16 +676,14 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_parse_parses_and_builds_specs_from_array
-    app.env = {'klass' => ParseClass}
-    app.parse ['klass', '--/set', '3', 'klass']
+    app.parse ['AppTest::ParseClass', '--/set', '3', 'AppTest::ParseClass']
     
     assert_equal ParseClass, app.get('0').class
     assert_equal ParseClass, app.get('3').class
   end
   
   def test_parse_accepts_a_block_to_filter_specs
-    app.env = {'klass' => ParseClass}
-    app.parse "klass --/set 3 klass" do |spec|
+    app.parse "AppTest::ParseClass --/set 3 AppTest::ParseClass" do |spec|
       spec[3] == "3" ? true : false
     end
     
@@ -694,8 +692,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_parse_block_is_passed_to_parse_signals
-    app.env = {'klass' => ParseClass}
-    app.parse "klass --/set 3 klass --/parse -. --/set 5 klass --/set 1 klass .-" do |spec|
+    app.parse "AppTest::ParseClass --/set 3 AppTest::ParseClass --/parse -. --/set 5 AppTest::ParseClass --/set 1 AppTest::ParseClass .-" do |spec|
       type, obj, sig, var = spec
       var == "3" || var == "5" || sig == "parse"
     end

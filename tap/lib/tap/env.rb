@@ -668,21 +668,29 @@ module Tap
       end
     end
     
+    def resolve(key)
+      if constant = constants.seek(key)
+        constant.constantize
+      else
+        nil
+      end
+    end
+    
+    def unresolve(constant)
+      const_name = constant.to_s
+      constants.unseek(true) do |const|
+        const_name == const.const_name
+      end
+    end
+    
     # Seeks a constant for the key, constantizing if necessary.  If invert is
     # true, this method seeks and returns a key for the input constant.  In
     # both cases AGET returns nil if no key-constant pair can be found.
     def [](key, invert=invert?)
       if invert
-        const_name = key.to_s
-        constants.unseek(true) do |const|
-          const_name == const.const_name
-        end
+        unresolve(key)
       else
-        if constant = constants.seek(key)
-          constant.constantize
-        else
-          nil
-        end
+        resolve(key)
       end
     end
     

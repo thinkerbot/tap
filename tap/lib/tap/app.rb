@@ -4,8 +4,9 @@ require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
-require 'tap/env'
+require 'tap/app/env'
 require 'tap/parser'
+autoload(:YAML, 'yaml')
 
 module Tap
   
@@ -30,7 +31,7 @@ module Tap
       # by the tap executable.
       def setup(dir=Dir.pwd)
         env = Env.setup(dir)
-        @instance = new(:env => env)
+        @instance = new({}, :env => env)
       end
       
       def build(spec={}, app=nil)
@@ -88,15 +89,14 @@ module Tap
     # The application logger
     attr_accessor :logger
     
+    # The application environment
+    attr_accessor :env
+    
     config :debug, false, :short => :d, &c.flag      # Flag debugging
     config :force, false, :short => :f, &c.flag      # Force execution at checkpoints
     config :quiet, false, :short => :q, &c.flag      # Suppress logging
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
     config :bang, true, &c.switch                    # Use parse! in build/parse signals
-    nest :env, Env,                                  # The application environment
-      :type => :hidden,
-      :writer => false, 
-      :init => false
     
     signal :enq do |sig, argv|                       # enques an object
       argv[0] = sig.obj.obj(argv[0])
@@ -211,6 +211,7 @@ module Tap
     #   :queue      the application queue; an App::Queue
     #   :objects    application objects; a hash of (var, object) pairs
     #   :logger     the application logger
+    #   :env        the application environment
     #
     # A block may also be provided; it will be set as a default join.
     def initialize(config={}, options={}, &block)
@@ -221,24 +222,11 @@ module Tap
       @queue = options[:queue] || Queue.new
       @objects = options[:objects] || {}
       @logger = options[:logger] || DEFAULT_LOGGER
+      @env = options[:env] || Env.new
       @joins = []
-      on_complete(&block)
       
-      self.env = config.delete(:env) || config.delete('env')
+      on_complete(&block)
       initialize_config(config)
-    end
-    
-    # Sets the application environment and validates that env provides an AGET
-    # ([]) and invert method.  AGET is used to lookup constants during init;
-    # it receives the 'class' parameter and should return a corresponding
-    # class.  Invert should return an object that reverses the AGET lookup.
-    # Tap::Env and a regular Hash both satisfy this api.
-    #
-    # Env can be set to nil and is set to nil by default, but initialization
-    # is constrained without it.
-    def env=(env)
-      Validation.validate_api(env, [:[], :invert]) unless env.nil?
-      @env = env
     end
     
     # Sets the application stack.
@@ -401,9 +389,8 @@ module Tap
       object.signal(sig, &block)
     end
 
-    def resolve(const_str)
-      constant = env ? env[const_str] : Env::Constant.constantize(const_str)
-      constant or raise "unresolvable constant: #{const_str.inspect}"
+    def resolve(constant_key)
+      env.resolve(constant_key) or raise "unresolvable constant: #{constant_key.inspect}"
     end
     
     def build(spec)
@@ -768,7 +755,6 @@ module Tap
         (variables[obj] ||= []) << var
       end
       
-      invert_env = env ? env.invert : nil
       specs.keys.each do |obj|
         spec = {'sig' => 'set'}
         
@@ -782,9 +768,8 @@ module Tap
         end
 
         # assign the class
-        klass = obj.class
-        klass = invert_env[klass] if invert_env
-        spec['class'] = klass.to_s
+        klass = env.unresolve(obj.class) or raise "could not serialize (no class key available): #{obj.inspect}"
+        spec['class'] = klass
 
         # merge obj_spec if possible
         obj_spec = specs[obj]

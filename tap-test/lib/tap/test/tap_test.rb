@@ -15,12 +15,8 @@ module Tap
         Tap::App.instance = @app = Tap::App.new(app_config)
       end
       
-      def env_config
-        {:gems => :none, :root => @method_root || Dir.pwd}
-      end
-      
       def app_config
-        {:debug => true, :quiet => true, :env => Tap::Env.new(env_config)}
+        {:debug => true, :quiet => true}
       end
       
       def teardown
