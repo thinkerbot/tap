@@ -163,4 +163,53 @@ class AppSignalsTest < Test::Unit::TestCase
   def test_get_returns_nil_for_missing_object
     assert_equal nil,  app.call('sig' => 'get', 'args' => [1])
   end
+  
+  #
+  # resolve test
+  #
+  
+  def test_resolve_resolves_const_in_env
+    app.env = {'klass' => SetClass}
+    assert_equal SetClass, app.call('sig' => 'resolve', 'args' => ['klass'])
+  end
+  
+  def test_resolve_raises_error_for_unresolvable_const
+    err = assert_raises(RuntimeError) { app.call('sig' => 'resolve', 'args' => ['missing']) }
+    assert_equal "unresolvable constant: \"missing\"", err.message
+  end
+  
+  #
+  # build test
+  #
+  
+  def test_build_builds_and_returns_object
+    app.env = {'klass' => SetClass}
+    obj = app.call('sig' => 'build', 'args' => ['klass'])
+    assert_equal SetClass, obj.class
+    assert_equal :parse!, obj.build_method
+  end
+  
+  #
+  # use test
+  #
+  
+  class UseClass < App::Api
+    class << self
+      def build(spec={}, app=Tap::App.instance)
+        new(app.stack)
+      end
+    end
+    
+    attr_reader :stack
+    def initialize(stack)
+      @stack = stack
+    end
+  end
+  
+  def test_use_builds_and_sets_middleware
+    app.env = {'klass' => UseClass}
+    obj = app.call('sig' => 'use', 'args' => ['klass'])
+    assert_equal UseClass, obj.class
+    assert_equal [obj], app.middleware
+  end
 end

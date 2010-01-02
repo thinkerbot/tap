@@ -118,6 +118,20 @@ module Tap
     signal :get,                                     # get objects
       :signature => ['var']
     
+    signal :resolve,                                 # resolve a constant in env
+      :signature => ['constant']
+    
+    signal_hash :build,                              # build an object
+      :signature => ['class'],
+      :remainder => 'spec'
+    
+    signal_class :use do                             # enables middleware
+      def call(args) # :nodoc:
+        spec = convert_to_hash(args, ['class'], 'spec')
+        obj.stack = obj.build(spec, &block)
+      end
+    end
+    
     signal_class :list do                            # list available objects
       def call(args) # :nodoc:
         lines = obj.objects.collect {|(key, obj)|  "#{key}: #{obj.class}" }
@@ -129,13 +143,6 @@ module Tap
       def call(args) # :nodoc:
         argv = convert_to_array(args, ['args'])
         obj.send(obj.bang ? :parse! : :parse, argv, &block)
-      end
-    end
-    
-    signal_class :use do                             # enables middleware
-      def call(args) # :nodoc:
-        spec = convert_to_hash(args, ['class'], 'spec')
-        obj.stack = obj.build(spec, &block)
       end
     end
     
@@ -252,14 +259,6 @@ module Tap
       node = self.node(&block)
       queue.enq(node, inputs)
       node
-    end
-    
-    # Adds the specified middleware to the stack.  The argv will be used as
-    # extra arguments to initialize the middleware.
-    def use(middleware, *argv)
-      synchronize do
-        @stack = middleware.new(@stack, *argv)
-      end
     end
     
     # Sets the object to the specified variable and returns obj.  Provide nil
@@ -481,6 +480,14 @@ module Tap
       end
 
       argv
+    end
+    
+    # Adds the specified middleware to the stack.  The argv will be used as
+    # extra arguments to initialize the middleware.
+    def use(middleware, *argv)
+      synchronize do
+        @stack = middleware.new(@stack, *argv)
+      end
     end
     
     # Returns an array of middlware in use by self.
