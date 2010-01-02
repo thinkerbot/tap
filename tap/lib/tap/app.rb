@@ -108,6 +108,14 @@ module Tap
       argv
     end
     
+    signal(:pq,                                      # priority-enques an object
+      :signature => ['var'], 
+      :remainder => ['args'] 
+    ) do |sig, argv|
+      argv[0] = sig.obj.obj(argv[0])
+      argv
+    end
+    
     signal_hash :set,                                # set or unset objects
       :signature => ['var', 'class'],
       :remainder => 'spec',

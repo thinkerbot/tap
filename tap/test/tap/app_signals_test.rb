@@ -15,8 +15,31 @@ class AppSignalsTest < Test::Unit::TestCase
   def test_enq_enques_obj_with_inputs
     n = app.node {}
     app.set(0, n)
-    app.call('sig' => 'enq', 'args' => [0, 1, 2, 3])
-    assert_equal [[n, [1,2,3]]], app.queue.to_a
+    app.call('sig' => 'enq', 'args' => [0, 1,2,3])
+    app.call('sig' => 'enq', 'args' => [0, 4,5,6])
+    assert_equal [[n, [1,2,3]], [n, [4,5,6]]], app.queue.to_a
+  end
+  
+  def test_enq_raises_error_for_unknown_obj
+    err = assert_raises(RuntimeError) { app.call('sig' => 'enq', 'args' => [0]) }
+    assert_equal "no object set to: 0", err.message
+  end
+  
+  #
+  # pq
+  #
+  
+  def test_pq_priority_enques_obj_with_inputs
+    n = app.node {}
+    app.set(0, n)
+    app.call('sig' => 'pq', 'args' => [0, 1,2,3])
+    app.call('sig' => 'pq', 'args' => [0, 4,5,6])
+    assert_equal [[n, [4,5,6]], [n, [1,2,3]]], app.queue.to_a
+  end
+  
+  def test_pq_raises_error_for_unknown_obj
+    err = assert_raises(RuntimeError) { app.call('sig' => 'pq', 'args' => [0]) }
+    assert_equal "no object set to: 0", err.message
   end
   
   #
