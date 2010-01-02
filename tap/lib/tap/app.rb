@@ -100,18 +100,12 @@ module Tap
       :writer => false, 
       :init => false
     
-    signal(:enq,                                     # enques an object
-      :signature => ['var'], 
-      :remainder => ['args'] 
-    ) do |sig, argv|
+    signal :enq do |sig, argv|                       # enques an object
       argv[0] = sig.obj.obj(argv[0])
       argv
     end
     
-    signal(:pq,                                      # priority-enques an object
-      :signature => ['var'], 
-      :remainder => ['args'] 
-    ) do |sig, argv|
+    signal :pq do |sig, argv|                       # priority-enques an object
       argv[0] = sig.obj.obj(argv[0])
       argv
     end
@@ -121,7 +115,8 @@ module Tap
       :remainder => 'spec',
       :bind => :build
       
-    signal :get, :signature => ['var']               # get objects
+    signal :get,                                     # get objects
+      :signature => ['var']
     
     signal_class :list do                            # list available objects
       def call(args) # :nodoc:

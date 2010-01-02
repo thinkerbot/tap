@@ -50,19 +50,19 @@ class AppSignalsTest < Test::Unit::TestCase
     class << self
       def build(spec, app)
         obj = super
-        obj.build_method ||= :build
+        obj.build_method = :build
         obj
       end
       
       def parse(argv, app)
         obj, args = super
-        obj.build_method ||= :parse
+        obj.build_method = :parse
         [obj, args]
       end
       
       def parse!(argv, app)
         obj, args = super
-        obj.build_method ||= :parse!
+        obj.build_method = :parse!
         [obj, args]
       end
       
@@ -75,25 +75,52 @@ class AppSignalsTest < Test::Unit::TestCase
     attr_accessor :build_method
   end
   
-  def test_set_instantiates_class_as_resolved_by_env
+  def test_set_instantiates_and_stores_obj_by_var
     app.env = {'klass' => SetClass}
     
-    obj, args = app.call('sig' => 'set', 'class' => 'klass')
+    obj = app.call('sig' => 'set', 'args' => ['var', 'klass'])
     assert_equal SetClass, obj.class
-    assert_equal 'value', obj.key
-    assert_equal app, obj.app
+    assert_equal({'var' => obj}, app.objects)
   end
   
-  def test_set_raises_error_for_unresolvable_class
-    app.env = {}
-    err = assert_raises(RuntimeError) { app.call('sig' => 'set', 'class' => 'klass') }
-    assert_equal "unresolvable constant: \"klass\"", err.message
+  def test_set_does_not_set_obj_for_nil_var
+    app.env = {'klass' => SetClass}
+    
+    obj = app.call('sig' => 'set', 'args' => [nil, 'klass'])
+    assert_equal({}, app.objects)
+  end
+  
+  def test_set_parse_bangs_remaining_args
+    app.env = {'klass' => SetClass}
+    
+    was_in_block = false
+    obj = app.call('sig' => 'set', 'args' => ['var', 'klass', 'a', 'b', 'c']) do |o, args|
+      assert_equal ['a', 'b', 'c'], args
+      was_in_block = true
+    end
+    
+    assert_equal :parse!, obj.build_method
+    assert_equal true, was_in_block
+  end
+  
+  def test_set_parses_remaining_args_if_bang_is_false
+    app.env = {'klass' => SetClass}
+    
+    app.bang = false
+    was_in_block = false
+    obj = app.call('sig' => 'set', 'args' => ['var', 'klass', 'a', 'b', 'c']) do |o, args|
+      assert_equal ['a', 'b', 'c'], args
+      was_in_block = true
+    end
+    
+    assert_equal :parse, obj.build_method
+    assert_equal true, was_in_block
   end
   
   def test_set_initializes_with_spec_if_specified
     app.env = {'klass' => SetClass}
     
-    obj, args = app.call(
+    obj = app.call(
       'sig' => 'set',
       'class' => 'klass',
       'spec' => {'config' => {'key' => 'alt'}})
@@ -107,33 +134,33 @@ class AppSignalsTest < Test::Unit::TestCase
     assert_equal :build, obj.build_method
   end
   
-  def test_set_uses_spec_as_spec_if_spec_is_not_specified
-    app.env = {'klass' => SetClass}
-    
-    obj, args = app.call(
-      'sig' => 'set',
-      'class' => 'klass',
-      'config' => {'key' => 'alt'})
-    assert_equal 'alt', obj.key
-  end
-  
-  def test_set_stores_obj_by_var_if_specified
-    app.env = {'klass' => SetClass}
-    
-    obj, args = app.call('sig' => 'set', 'class' => 'klass')
-    assert_equal({}, app.objects)
-    
-    obj, args = app.call('sig' => 'set', 'var' => 'variable', 'class' => 'klass')
-    assert_equal({'variable' => obj}, app.objects)
-  end
-  
   def test_set_stores_obj_by_multiple_var_if_specified
     app.env = {'klass' => SetClass}
     
-    obj, args = app.call('sig' => 'set', 'class' => 'klass')
+    obj = app.call('sig' => 'set', 'class' => 'klass')
     assert_equal({}, app.objects)
     
-    obj, args = app.call('sig' => 'set', 'var' => ['a', 'b'], 'class' => 'klass')
+    obj = app.call('sig' => 'set', 'var' => ['a', 'b'], 'class' => 'klass')
     assert_equal({'a' => obj, 'b' => obj}, app.objects)
+  end
+  
+  def test_set_raises_error_for_unresolvable_class
+    app.env = {}
+    err = assert_raises(RuntimeError) { app.call('sig' => 'set', 'args' => ['var', 'klass']) }
+    assert_equal "unresolvable constant: \"klass\"", err.message
+  end
+  
+  #
+  # get test
+  #
+  
+  def test_get_returns_specified_object
+    n = app.node {}
+    app.set(0, n)
+    assert_equal n,  app.call('sig' => 'get', 'args' => [0])
+  end
+  
+  def test_get_returns_nil_for_missing_object
+    assert_equal nil,  app.call('sig' => 'get', 'args' => [1])
   end
 end
