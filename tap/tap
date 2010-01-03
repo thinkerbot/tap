@@ -1,0 +1,9 @@
+#! /usr/bin/env ruby
+# This executable is used to launch bin/tap during testing.
+
+ENV['TAP_GEMS'] ||= ''
+
+$:.unshift '../configurable/lib'
+$:.unshift '../lazydoc/lib'
+$:.unshift 'lib'
+load 'bin/tap'

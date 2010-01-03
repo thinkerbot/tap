@@ -158,6 +158,21 @@ module Tap
       end
     end
     
+    signal_class :exec do
+      def call(args) # :nodoc:
+        paths = convert_to_array(args, ['paths'])
+        paths.each do |path|
+          File.open(path) do |io|
+            Parser.each_signal(io) do |sig|
+              obj.call(sig)
+            end
+          end
+        end
+        
+        obj
+      end
+    end
+    
     signal_class :serialize do                       # serialize the app as signals
       def call(args) # :nodoc:
         if args.kind_of?(Array)

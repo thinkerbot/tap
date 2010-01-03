@@ -12,14 +12,10 @@
 #   tap command --help                   # prints help for 'command'
 #
 
-require "#{File.dirname(__FILE__)}/../lib/tap.rb"
-
-#
-# setup the application
-#
+require "tap"
 
 begin
-  app = Tap::App.setup
+  app = Tap.setup
 rescue(Tap::Env::ConfigError)
   # catch errors and exit gracefully
   # (errors usu from gem loading errors)
@@ -27,36 +23,22 @@ rescue(Tap::Env::ConfigError)
   exit(1)
 end
 
-#
-# launch the command
-#
-
-commands = app.env.manifest do |env|
-  env.root.glob(:cmd, "**/*.rb")
-end
-
-case command = ARGV.shift.to_s  
-when '', '--help'
-  template = %Q{<% unless minimap.empty? || count <= 1 %>
-<%= env_key %>:
-<% end %>
-<% minimap.each do |key, path| %>
-  <%= key.ljust(width) %>
-<% end %>}
-
-  puts Lazydoc.usage(__FILE__)
-  puts
-  puts "available commands:"
-  puts commands.summarize(template)
-  puts
-  puts "version #{Tap::VERSION} -- #{Tap::WEBSITE}"
-else
-  if path = commands.seek(command)
-    load path
-  else
-    puts "Unknown command: '#{command}'"
-    puts "Type 'tap --help' for usage information."
+loop do
+  break if ARGV.empty?
+  app.parse!(ARGV)
+  
+  break if ARGV.empty?
+  psr = ConfigParser.new(app.config, 
+    :option_break => Tap::Parser::BREAK, 
+    :keep_break => true, 
+    :clear_config => false, 
+    :add_defaults => false
+  )
+  psr.add(Tap::App.configurations)
+  psr.scan(ARGV) do |file|
+    app.call('sig' => 'exec', 'args' => [file])
   end
 end
 
+app.run
 exit(0)
