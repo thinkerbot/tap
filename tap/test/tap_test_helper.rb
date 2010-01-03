@@ -22,19 +22,3 @@ end
 unless Object.const_defined?(:RUBY_EXE)
   RUBY_EXE = "ruby"
 end
-
-module TestUtils
-  module_function
-  
-  def match_platform?(*platforms)
-    platforms.each do |platform|
-      platform.to_s =~ /^(non_)?(.*)/
-
-      non = true if $1
-      match_platform = !RUBY_PLATFORM.index($2).nil?
-      return false unless (non && !match_platform) || (!non && match_platform)
-    end
-
-    true
-  end
-end unless Object.const_defined?(:TestUtils)

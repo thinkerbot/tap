@@ -1,8 +1,10 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/root/utils'
+require 'tap/test/subset_test'
 
 class RootUtilsTest < Test::Unit::TestCase
   include Tap::Root::Utils
+  include Tap::Test::SubsetTest
   
   def root_dir 
     File.expand_path(File.join(File.dirname(__FILE__), 'utils'))
@@ -50,7 +52,7 @@ class RootUtilsTest < Test::Unit::TestCase
   end
   
   def test_relative_path_path_root
-    if TestUtils.match_platform?("mswin")
+    if self.class.match_platform?("mswin")
       assert path_root =~ /^[A-z]:\/$/
       assert_equal "path/to/file.txt", relative_path(path_root, path_root + "path/to/file.txt")
     else
@@ -262,7 +264,7 @@ class RootUtilsTest < Test::Unit::TestCase
   
   def test_path_root_type
     case
-    when TestUtils.match_platform?("mswin")
+    when self.class.match_platform?("mswin")
       assert_equal :win, path_root_type
     when File.expand_path(".")[0] == ?/
       assert_equal :nix, path_root_type
@@ -420,7 +422,7 @@ class RootUtilsTest < Test::Unit::TestCase
   # split tests
   #
   
-  if TestUtils.match_platform?("mswin")
+  if match_platform?("mswin")
     root_path = File.expand_path(".")
     while (parent_dir = File.dirname(root_path)) != root_path
       root_path = parent_dir
@@ -437,7 +439,7 @@ class RootUtilsTest < Test::Unit::TestCase
   def test_split_doc
     pwd = Dir.pwd
     begin
-      if TestUtils.match_platform?("mswin")
+      if self.class.match_platform?("mswin")
         Dir.chdir(root_path + "/")
         assert Dir.pwd =~ /^[A-Z]:\/$/
         assert_equal [root_path, "path", "to", "file"], split('path\to\..\.\to\file')

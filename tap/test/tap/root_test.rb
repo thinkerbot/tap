@@ -1,7 +1,9 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper') 
 require 'tap/root'
+require 'tap/test/subset_test'
 
 class RootTest < Test::Unit::TestCase
+  include Tap::Test::SubsetTest
   Root = Tap::Root
   
   attr_reader :r, :tr
@@ -107,9 +109,9 @@ class RootTest < Test::Unit::TestCase
   
   def test_path_root
     case
-    when TestUtils.match_platform?("mswin")
+    when self.class.match_platform?("mswin")
       assert r.path_root =~ /^[A-z]:\/$/i
-    when TestUtils.match_platform?("darwin")
+    when self.class.match_platform?("darwin")
       assert r.path_root == '/'
     else
       expected_path_root = File.expand_path(".")
