@@ -143,11 +143,11 @@ module Tap
     # ignored if no block is given.
     #
     # Returns path.
-    def prepare(path, mode='w')
-      path = expand(path)
+    def prepare(*path)
+      path = self.path(*path)
       dirname = File.dirname(path)
       FileUtils.mkdir_p(dirname) unless File.exists?(dirname)
-      File.open(path, mode) {|io| yield(io) } if block_given?
+      File.open(path, 'w') {|io| yield(io) } if block_given?
       path
     end
     

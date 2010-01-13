@@ -37,13 +37,13 @@ module Tap
     def acts_as_file_test(options={})
       include Tap::Test::FileTest
       
-      options[:root] ||= test_root_dir
-      
-      if options.has_key?(:cleanup_dirs)
-        self.cleanup_dirs = options.delete(:cleanup_dirs)
+      if root = options[:root]
+        self.class_root = Tap::Root.new(root)
       end
       
-      self.class_test_root = Tap::Root.new(options)
+      if cleanup_dirs = options[:cleanup_dirs]
+        self.cleanup_dirs = cleanup_dirs
+      end
     end
     
     # Includes ShellTest in the calling class.  Options are set as the default
@@ -56,24 +56,8 @@ module Tap
     # Includes TapTest in the calling class and calls acts_as_file_test with
     # the options.
     def acts_as_tap_test(options={})
-      options[:root] ||= test_root_dir
       acts_as_file_test(options)
       include Tap::Test::TapTest
-    end
-    
-    private
-  
-    # Infers the test root directory from the calling file.
-    #   'some_class.rb' => 'some_class'
-    #   'some_class_test.rb' => 'some_class'
-    def test_root_dir # :nodoc:
-      # caller[1] is considered the calling file (which should be the test case)
-      # note that caller entries are like this:
-      #   ./path/to/file.rb:10
-      #   ./path/to/file.rb:10:in 'method'
-      
-      calling_file = caller[1].gsub(/:\d+(:in .*)?$/, "")
-      calling_file.chomp(File.extname(calling_file)).chomp("_test") 
     end
   end
 end

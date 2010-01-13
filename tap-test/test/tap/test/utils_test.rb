@@ -5,7 +5,7 @@ class UtilsTest < Test::Unit::TestCase
   include Tap::Test::Utils
   
   def method_path(*paths)
-    File.join(__FILE__.chomp('_test.rb'), method_name.to_s, *paths)
+    File.expand_path File.join(__FILE__.chomp('_test.rb'), method_name.to_s, *paths)
   end
   
   #

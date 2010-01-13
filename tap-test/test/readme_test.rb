@@ -3,7 +3,7 @@ class FileTestReadmeTest < Test::Unit::TestCase
   acts_as_file_test
 
   def test_method_root
-    assert_equal "test_method_root", File.basename(method_root.root)
+    assert_equal "test_method_root", File.basename(method_root.path)
 
     path = method_root.prepare(:tmp, 'file.txt') {|io| io << 'content' }
     assert_equal "content", File.read(path)

@@ -58,17 +58,19 @@ module Tap
       #  # !> DereferenceError
       #
       def reference_map(source_dir, reference_dir, pattern='**/*.ref')
-        Dir.glob(File.join(source_dir, pattern)).sort.collect do |source|
+        source_root = Root.new(source_dir)
+        reference_root = Root.new(reference_dir)
+        source_root.glob(pattern).sort.collect do |source|
           # use the path specified in the source file
           relative_path = File.read(source).gsub(/#.*$/, "").strip
           
           # use the relative filepath of the source file to the
           # source dir (minus the extname) if no path is specified
           if relative_path.empty?
-            relative_path = Tap::Root::Utils.relative_path(source_dir, source).chomp(File.extname(source))
+            relative_path = source_root.rp(source).chomp(File.extname(source))
           end
           
-          reference = File.join(reference_dir, relative_path)
+          reference = reference_root.path(relative_path)
           
           # raise an error if no reference file is found
           unless File.exists?(reference)
