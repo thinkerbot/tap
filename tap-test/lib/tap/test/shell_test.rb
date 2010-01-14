@@ -278,14 +278,7 @@ module Tap
       #
       # Use the assert_output_equal! method to prevent indentation stripping.
       def assert_output_equal(a, b, msg=nil)
-        if a =~ /\A\s*?\n( *)(.*)\z/m
-          indent, a = $1, $2, $3
-          
-          if indent.length > 0
-            a.gsub!(/^ {0,#{indent.length}}/, '')
-          end
-        end
-        
+        a = strip_indent(a)
         assert_output_equal!(a, b, msg)
       end
       
@@ -330,16 +323,7 @@ module Tap
       # Use assert_alike! to prevent indentation stripping (conversion to a
       # RegexpEscape is still in effect).
       def assert_alike(a, b, msg=nil)
-        if a.kind_of?(String)
-          if a =~ /\A\s*?\n( *)(.*)\z/m
-            indent, a = $1, $2, $3
-          
-            if indent.length > 0
-              a.gsub!(/^ {0,#{indent.length}}/, '')
-            end
-          end
-        end
-        
+        a = strip_indent(a) if a.kind_of?(String)
         assert_alike!(a, b, msg)
       end
       
@@ -362,6 +346,19 @@ module Tap
       end
       
       private
+      
+      # helper for stripping indentation off a string
+      def strip_indent(str) # :nodoc:
+        if str =~ /\A\s*?\n( *)(.*)\z/m
+          indent, str = $1, $2, $3
+        
+          if indent.length > 0
+            str.gsub!(/^ {0,#{indent.length}}/, '')
+          end
+        end
+        
+        str
+      end
       
       # helper for formatting escaping whitespace into readable text
       def whitespace_escape(str) # :nodoc:
