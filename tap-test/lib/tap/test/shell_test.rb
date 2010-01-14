@@ -212,12 +212,13 @@ module Tap
       def sh_test(cmd, options={})
         options = sh_test_options.merge(options)
         
-        if cmd =~ /\A\s*?\n?(\s*)(.*?\n)(.*)\z/m
+        # strip indentiation if possible
+        if cmd =~ /\A(?:\s*?\n)?( *)(.*?\n)(.*)\z/m
           indent, cmd, expected = $1, $2, $3
           cmd.strip!
           
           if indent.length > 0 && options[:indents]
-            expected.gsub!(/^\s{0,#{indent.length}}/, '')
+            expected.gsub!(/^ {0,#{indent.length}}/, '')
           end
         end
         
@@ -228,6 +229,12 @@ module Tap
         result
       end
       
+      # Similar to sh_test, but matches the output against each of the
+      # regexps.  A hash of sh options can be provided as the last argument;
+      # it will be merged with the default sh_test_options.
+      #
+      # The output is yielded to the block, if given, for further validation.
+      # Returns the sh output.
       def sh_match(cmd, *regexps)
         
         options = regexps.last.kind_of?(Hash) ? regexps.pop : {}
@@ -247,8 +254,43 @@ module Tap
         self.class.sh_test_options
       end
       
+      # Asserts whether or not the a and b strings are equal, with a more
+      # readable output than assert_equal for large strings (especially large
+      # strings with significant whitespace).
+      #
+      # One gotcha is that assert_output_equal lstrips indentation off of 'a',
+      # so that these all pass:
+      #
+      #   assert_output_equal %q{
+      #   line one
+      #   line two
+      #   }, "line one\nline two\n"
+      #
+      #   assert_output_equal %q{
+      #     line one
+      #     line two
+      #   }, "line one\nline two\n
+      #
+      #     assert_output_equal %q{
+      #     line one
+      #     line two
+      #     }, "line one\nline two\n"
+      #
+      # Use the assert_output_equal! method to prevent indentation stripping.
       def assert_output_equal(a, b, msg=nil)
-        a = a[1..-1] if a[0] == ?\n
+        if a =~ /\A\s*?\n( *)(.*)\z/m
+          indent, a = $1, $2, $3
+          
+          if indent.length > 0
+            a.gsub!(/^ {0,#{indent.length}}/, '')
+          end
+        end
+        
+        assert_output_equal!(a, b, msg)
+      end
+      
+      # Same as assert_output_equal but without indentation stripping.
+      def assert_output_equal!(a, b, msg=nil)
         if a == b
           assert true
         else
@@ -262,8 +304,49 @@ module Tap
 }
         end
       end
-
+      
+      # Asserts whether or not b is like a (which should be a Regexp), and
+      # provides a more readable output in the case of a failure as compared
+      # with assert_match.
+      #
+      # If a is a string, then indentation is stripped off and it is turned
+      # into a RegexpEscape. Using that syntax, all these pass:
+      #
+      #   assert_alike %q{
+      #   the time is: :...:
+      #   now!
+      #   }, "the time is: #{Time.now}\nnow!\n"
+      #
+      #   assert_alike %q{
+      #     the time is: :...:
+      #     now!
+      #   }, "the time is: #{Time.now}\nnow!\n"
+      #
+      #     assert_alike %q{
+      #     the time is: :...:
+      #     now!
+      #     }, "the time is: #{Time.now}\nnow!\n"
+      #
+      # Use assert_alike! to prevent indentation stripping (conversion to a
+      # RegexpEscape is still in effect).
       def assert_alike(a, b, msg=nil)
+        if a.kind_of?(String)
+          if a =~ /\A\s*?\n( *)(.*)\z/m
+            indent, a = $1, $2, $3
+          
+            if indent.length > 0
+              a.gsub!(/^ {0,#{indent.length}}/, '')
+            end
+          end
+        end
+        
+        assert_alike!(a, b, msg)
+      end
+      
+      # Same as assert_alike but without indentation stripping.
+      def assert_alike!(a, b, msg=nil)
+        a = RegexpEscape.new(a) if a.kind_of?(String)
+        
         if b =~ a
           assert true
         else
@@ -280,7 +363,8 @@ module Tap
       
       private
       
-      def whitespace_escape(str)
+      # helper for formatting escaping whitespace into readable text
+      def whitespace_escape(str) # :nodoc:
         str.to_s.gsub(/\s/) do |match|
           case match
           when "\n" then "\\n\n"

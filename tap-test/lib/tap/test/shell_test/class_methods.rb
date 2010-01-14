@@ -15,13 +15,6 @@ module Tap
             :indents => true
           }
         end
-
-        private
-
-        # helper to retrieve class constants
-        def class_const(const_name) # :nodoc:
-          const_defined?(const_name) ? const_get(const_name) : nil
-        end
       end
     end
   end
