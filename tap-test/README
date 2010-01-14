@@ -33,7 +33,7 @@ can be overlaid.
 
 Sets up a test-specific method_root for working with temporary files. Better
 in most cases than using Tempfile because you can flag temporary files to be
-saved on a failure (using ENV['KEEP_OUTPUTS']='true').
+saved on a failure (using ENV['KEEP_RESULTS']='true').
 
   require 'tap/test/unit'
   class FileTestTest < Test::Unit::TestCase
@@ -42,7 +42,7 @@ saved on a failure (using ENV['KEEP_OUTPUTS']='true').
     def test_method_root
       assert_equal "test_method_root", File.basename(method_root.path)
       
-      path = method_root.prepare(:tmp, 'file.txt') {|io| io << 'content' }
+      path = method_root.prepare('tmp/file.txt') {|io| io << 'content' }
       assert_equal "content", File.read(path)
     end
   end

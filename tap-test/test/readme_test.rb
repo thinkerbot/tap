@@ -5,7 +5,7 @@ class FileTestReadmeTest < Test::Unit::TestCase
   def test_method_root
     assert_equal "test_method_root", File.basename(method_root.path)
 
-    path = method_root.prepare(:tmp, 'file.txt') {|io| io << 'content' }
+    path = method_root.prepare('tmp/file.txt') {|io| io << 'content' }
     assert_equal "content", File.read(path)
   end
 end

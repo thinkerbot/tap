@@ -209,37 +209,6 @@ module Tap
           Benchmark.bm(length, &block)
         end
       end
-
-      # Declares a subset_test for the ENV variable 'PROMPT'. When run, prompts
-      # the user for each input specified in array.  Inputs will then be passed
-      # as a hash to the block.  Prints 'p' unless run.
-      # 
-      #   def test_requiring_inputs
-      #     prompt_test(:a, :b, :c) {|a, b, c| ... }
-      #   end
-      #
-      # If run, the command line prompt will be like the following:
-      #
-      #   test_requiring_inputs: Enter values or 'skip'
-      #   a: avalue
-      #   b: bvalue      
-      #   c: cvalue
-      #
-      # The block recieves ['avalue', 'bvalue', 'cvalue'].  
-      def prompt_test(*keys, &block)
-        subset_test("PROMPT", "p") do
-          puts "\n#{name} -- Enter values or 'skip'."
-  
-          values = keys.collect do |key|
-            print "#{key}: "
-            value = gets.strip
-            flunk "skipped test" if value =~ /skip/i
-            value
-          end
-        
-          yield(*values)
-        end
-      end
     end
   end
 end

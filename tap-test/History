@@ -1,3 +1,14 @@
+==
+
+This release removes crufty methods that are rarely used and
+add confusion to otherwise focused test modules.
+
+* updated to simplified Tap::Root
+* removed FileTest#assert_files (and associated methods)
+* removed SubsetTest#prompt_test
+* added indent stripping to ShellTest#assert_output_equal
+* added indent stripping to ShellTest#assert_alike
+
 == 0.4.0 / 2009-19-09
 
 Various improvements to the test modules.  Note that FileTest now will
