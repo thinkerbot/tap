@@ -396,8 +396,8 @@ module Tap
       object.signal(sig, &block)
     end
 
-    def resolve(constant_key)
-      env.resolve(constant_key) or raise "unresolvable constant: #{constant_key.inspect}"
+    def resolve(key)
+      env.get(key) or raise "unresolvable constant: #{key.inspect}"
     end
     
     def build(spec)
@@ -775,8 +775,7 @@ module Tap
         end
 
         # assign the class
-        klass = env.unresolve(obj.class) or raise "could not serialize (no class key available): #{obj.inspect}"
-        spec['class'] = klass
+        spec['class'] = env.key(obj.class) or raise "could not serialize (object class is not set in env): #{obj.inspect}"
 
         # merge obj_spec if possible
         obj_spec = specs[obj]

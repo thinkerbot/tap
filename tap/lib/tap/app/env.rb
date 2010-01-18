@@ -1,18 +1,30 @@
 module Tap
   class App
     class Env
-      def resolve(key)
-        return key if key.kind_of?(Class)
+      def key(constant)
+        constant.to_s
+      end
+      
+      def get(key)
+        return key if key.kind_of?(Module)
         
         begin
-          key.split(/::/).inject(Object) {|const, name| const.const_get(name) }
+          current = Object
+          key.split(/::/).each do |const_name|
+            current = current.const_get(const_name)
+          end
+          current
         rescue(NameError)
           nil
         end
       end
       
-      def unresolve(constant)
-        constant.to_s
+      def set(*constants)
+        self
+      end
+      
+      def path(type)
+        [File.expand_path(type.to_s)]
       end
     end
   end
