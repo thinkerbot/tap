@@ -436,7 +436,7 @@ now!
   end
   
   def test_assert_alike
-    assert_alike /abc/, "...abc..."
+    assert_alike(/abc/, "...abc...")
   end
   
   def test_assert_alike_regexp_escapes_strings
