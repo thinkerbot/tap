@@ -5,7 +5,7 @@ require 'stringio'
 
 class DumpTest < Test::Unit::TestCase
   extend Tap::Test
-  acts_as_tap_test :cleanup_dirs => [:root]
+  acts_as_tap_test
   
   Dump = Tap::Tasks::Dump
   
