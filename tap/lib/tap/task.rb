@@ -127,7 +127,8 @@ module Tap
         
         # add option to specify a config file
         opts.on('--config FILE', 'Specifies a config file') do |config_file|
-          opts.config.merge!(load_config(config_file))
+          configs = Configurable::Utils.load_file(config_file, true)
+          opts.config.merge!(configs)
         end
         
         opts
@@ -145,16 +146,6 @@ module Tap
         
         instance.enq(*argv) if enque
         [instance, argv]
-      end
-      
-      # Recursively loads path into a nested configuration file.
-      def load_config(path) # :nodoc:
-        # optimization to check for trivial paths
-        return {} if Root::Utils.trivial?(path)
-        
-        Configurable::Utils.load_file(path, true) do |base, key, value|
-          base[key] ||= value if base.kind_of?(Hash)
-        end
       end
     end
     

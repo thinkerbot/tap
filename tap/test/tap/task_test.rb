@@ -92,6 +92,10 @@ class TaskTest < Test::Unit::TestCase
   # Task.parse test
   #
   
+  def prepare_yaml(path, obj)
+    method_root.prepare(path) {|file| file << obj.to_yaml }
+  end
+  
   def test_parse_returns_instance
     instance, args = Task.parse([1,2,3])
     assert_equal Task, instance.class
@@ -117,25 +121,42 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_parse_adds_configs_from_file_using_config_option
-    path = method_root.prepare(:tmp, 'config.yml') do |file| 
-      file << YAML.dump({:key => 'alt'})
-    end
+    path = prepare_yaml('config.yml', {:key => 'alt'})
     
     instance, args = ParseClass.parse(["--config", path])
     assert_equal({:key => 'alt'}, instance.config)
   end
   
   def test_config_files_may_have_string_keys
-    path = method_root.prepare(:tmp, 'config.yml') do |file| 
-      file << YAML.dump({'key' => 'alt'})
-    end
+    path = prepare_yaml('config.yml', {'key' => 'alt'})
     
     instance, args = ParseClass.parse(["--config", path])
     assert_equal({:key => 'alt'}, instance.config)
   end
   
+  def test_parse_recursively_loads_config_files
+    path = prepare_yaml("a.yml", {'a' => 'A'})
+           prepare_yaml("a/b.yml", 'B')
+           prepare_yaml("a/c.yml", 'C')
+
+    instance, args = Task.parse(["--config", path])
+    assert_equal({
+      'a' => 'A', 
+      'b' => 'B', 
+      'c' => 'C'
+    }, instance.config.to_hash)
+  end
+  
+  def test_parse_raises_error_for_non_existant_config_file
+    path = method_root.path('config.yml')
+    assert_equal false, File.exists?(path)
+
+    err = assert_raises(Errno::ENOENT) { ParseClass.parse ["--config", path] }
+    assert_equal "No such file or directory - #{path}", err.message
+  end
+  
   def test_parse_raises_error_for_ambiguity_in_configs
-    path = method_root.prepare(:tmp, 'config.yml') do |file| 
+    path = method_root.prepare('config.yml') do |file| 
       file << {'key' => 'one'}.to_yaml
     end
     
@@ -197,103 +218,6 @@ class TaskTest < Test::Unit::TestCase
   def test_build_respects_indifferent_access
     instance, args = BuildClass.build 'config' => {'key' => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
-  end
-  
-  #
-  # Task.load_config test
-  #
-  
-  def prepare_yaml(path, obj)
-    method_root.prepare(:tmp, path) {|file| file << obj.to_yaml }
-  end
-  
-  def test_load_config_returns_empty_array_for_non_existant_file
-    path = method_root.path("non_existant.yml")
-    assert !File.exists?(path)
-    assert_equal({}, Task.load_config(path))
-  end
-  
-  def test_load_config_returns_empty_array_for_empty_file
-    path = method_root.prepare(:tmp, "non_existant.yml") {}
-    
-    assert File.exists?(path)
-    assert_equal "", File.read(path)
-    assert_equal({}, Task.load_config(path))
-  end
-  
-  def test_load_config_loads_existing_files_as_yaml
-    path = prepare_yaml("file.yml", {'key' => 'value'})
-    assert_equal({'key' => 'value'}, Task.load_config(path))
-    
-    path = prepare_yaml("file.yml", [1,2])
-    assert_equal([1,2], Task.load_config(path))
-  end
-  
-  def test_load_config_recursively_loads_files
-    path = prepare_yaml("a.yml", {'key' => 'a value'})
-           prepare_yaml("a/b.yml", 'b value')
-           prepare_yaml("a/c.yml", 'c value')
-    
-    a = {'key' => 'a value', 'b' => 'b value', 'c' => 'c value'}
-    assert_equal(a, Task.load_config(path))
-  end
-  
-  def test_load_config_recursively_loads_directories
-    path = prepare_yaml("a.yml", {'key' => 'value'})
-           prepare_yaml("a/b/c.yml", 'c value')
-           prepare_yaml("a/c/d.yml", 'd value')
-           
-    a = {
-       'key' => 'value',
-       'b' => {'c' => 'c value'},
-       'c' => {'d' => 'd value'}
-    }
-    assert_equal(a, Task.load_config(path))
-  end
-  
-  def test_recursive_loading_with_files_and_directories
-    path = prepare_yaml("a.yml", {'key' => 'a value'})
-           prepare_yaml("a/b.yml", {'key' => 'b value'})
-           prepare_yaml("a/b/c.yml", 'c value')
-           
-           prepare_yaml("a/d.yml", {'key' => 'd value'})
-           prepare_yaml("a/d/e/f.yml", 'f value')
-    
-    d = {'key' => 'd value', 'e' => {'f' => 'f value'}}
-    b = {'key' => 'b value', 'c' => 'c value'}
-    a = {'key' => 'a value', 'b' => b, 'd' => d}
-    
-    assert_equal(a, Task.load_config(path))
-  end
-  
-  def test_recursive_loading_does_not_override_values_set_in_parent
-    path = prepare_yaml("a.yml", {'a' => 'set value', 'b' => 'set value'})
-           prepare_yaml("a/b.yml", 'recursive value')
-           prepare_yaml("a/c.yml", 'recursive value')
-           
-    a = {
-      'a' => 'set value',
-      'b' => 'set value',
-      'c' => 'recursive value'
-    }
-    
-    assert_equal(a, Task.load_config(path))
-  end
-  
-  def test_load_config_does_not_recursively_load_over_single_values
-    path = prepare_yaml("a.yml", 'single value')
-           prepare_yaml("a/b.yml", 'b value')
-    
-    assert_equal('single value', Task.load_config(path))
-  end
-  
-  def test_recursive_loading_raises_error_when_two_files_map_to_the_same_value
-    path = prepare_yaml("a.yml", {})
-    one = prepare_yaml("a/b.yml", 'one')
-    two = prepare_yaml("a/b.yaml", 'two')
-           
-    e = assert_raises(RuntimeError) { Task.load_config(path) }
-    assert_equal "multiple files load the same key: [\"b.yaml\", \"b.yml\"]", e.message
   end
   
   #
