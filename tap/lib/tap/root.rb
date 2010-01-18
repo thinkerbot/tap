@@ -16,6 +16,17 @@ module Tap
           end
         end
       end
+      
+      # Trivial indicates when a path does not have content to load.  Returns
+      # true if the file at path is empty, non-existant, a directory, or nil.
+      def trivial?(path)
+        path == nil || !File.file?(path) || File.size(path) == 0
+      end
+    
+      # Empty returns true when dir is an existing directory that has no files.
+      def empty?(dir)
+        File.directory?(dir) && (Dir.entries(dir) - ['.', '..']).empty?
+      end
     end
     
     # Regexp to match a windows-style root path.
