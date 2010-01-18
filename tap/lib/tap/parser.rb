@@ -280,7 +280,7 @@ module Tap
       
       case 
       when modifier.nil?
-        argv << 'tap:join'
+        argv << 'tap/join'
         argv << inputs
         argv << outputs
       when modifier =~ JOIN_MODIFIER

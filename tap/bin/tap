@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
-# usage: tap <command> {options} [args]
+# usage: tap [workflow...]
 #
-# Launches a tap command.
+# Parses and executes the workflow using Tap.
 #
 # examples:
 #   tap generate root .                  # generates a root dir
@@ -9,18 +9,16 @@
 #
 # help:
 #   tap --help                           # prints this help
-#   tap command --help                   # prints help for 'command'
 #
 
+$DEBUG = true if ENV['TAP_DEBUG'] == 'true'
 require "tap"
 
-begin
-  app = Tap.setup
-rescue(Tap::Env::ConfigError)
-  # catch errors and exit gracefully
-  # (errors usu from gem loading errors)
-  puts $!.message
-  exit(1)
+app = Tap.setup
+
+if ARGV == ['--help']
+  puts Lazydoc.usage(__FILE__)
+  exit(0)
 end
 
 loop do

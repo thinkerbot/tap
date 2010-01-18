@@ -324,9 +324,9 @@ class ParserTest < Test::Unit::TestCase
     assert_equal [
       [:node, nil, 'set', "0", "a"],
       [:node, nil, 'set', "1", "b"],
-      [:join, nil, 'set', nil, "tap:join", "0", "1"],
+      [:join, nil, 'set', nil, "tap/join", "0", "1"],
       [:node, nil, 'set', "2", "c"],
-      [:join, nil, 'set', nil, "tap:join", "1", "2"]
+      [:join, nil, 'set', nil, "tap/join", "1", "2"]
     ], parser.specs
   end
   
@@ -346,17 +346,17 @@ class ParserTest < Test::Unit::TestCase
   def test_parser_parses_joins
     parser.parse "--[1][2] --[1][2,3]"
     assert_equal [
-      [:join, nil, 'set', nil, "tap:join", "1", "2"],
-      [:join, nil, 'set', nil, "tap:join", "1", "2,3"]
+      [:join, nil, 'set', nil, "tap/join", "1", "2"],
+      [:join, nil, 'set', nil, "tap/join", "1", "2,3"]
     ], parser.specs
   end
   
   def test_join_does_not_infer_lead_or_end_index
     parser.parse "--[][] --[1][] --[][2]"
     assert_equal [
-      [:join, nil, 'set', nil, "tap:join", "", ""],
-      [:join, nil, 'set', nil, "tap:join", "1", ""],
-      [:join, nil, 'set', nil, "tap:join", "", "2"]
+      [:join, nil, 'set', nil, "tap/join", "", ""],
+      [:join, nil, 'set', nil, "tap/join", "1", ""],
+      [:join, nil, 'set', nil, "tap/join", "", "2"]
     ], parser.specs
   end
   

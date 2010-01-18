@@ -1,4 +1,5 @@
 require 'tap/env/string_ext'
+require 'tap/root'
 
 module Tap
   class Env
@@ -87,29 +88,30 @@ module Tap
         # Scans the directory and pattern for constants and adds them to the
         # constants hash by name.
         def scan(dir, pattern="**/*.rb", constants={})
-          if pattern.include?("..")
-            raise "patterns cannot include relative paths: #{pattern.inspect}"
-          end
-          
-          # note changing dir here makes require paths relative to load_path,
-          # hence they can be directly converted into a default_const_name
-          # rather than first performing Root.relative_path
-          Dir.chdir(dir) do
-            Dir.glob(pattern).each do |path| 
-              default_const_name = path.chomp(File.extname(path)).camelize
-
-              # scan for constants
-              Lazydoc::Document.scan(File.read(path)) do |const_name, type, summary|
-                const_name = default_const_name if const_name.empty?
-
-                constant = (constants[const_name] ||= Constant.new(const_name))
-                constant.register_as(type, summary)
-                constant.require_paths << path
+          root = Root.new(dir)
+          root.glob(pattern).each do |path|
+            Lazydoc::Document.scan(File.read(path)) do |const_name, type, summary|
+              if const_name.empty?
+                extname = File.extname(path)
+                const_name = root.relative_path(path).chomp(extname).camelize
               end
+              
+              constant = (constants[const_name] ||= new(const_name))
+              constant.register_as(type, summary)
+              constant.require_paths << path
             end
           end
-          
+
           constants
+        end
+        
+        def cast(obj)
+          case obj
+          when String   then new(obj)
+          when Module   then new(obj.to_s)
+          when Constant then obj
+          else raise ArgumentError, "not a constant or constant name: #{obj.inspect}"
+          end
         end
       
         private
@@ -206,12 +208,17 @@ module Tap
         another.const_name == self.const_name &&
         another.require_paths == self.require_paths
       end
+      
+      # Peforms comparison of the const_name of self vs another.
+      def <=>(another)
+        const_name <=> another.const_name
+      end
     
       # Registers the type and summary with self.  Raises an error if self is
       # already registerd as the type and override is false.
       def register_as(type, summary=nil, override=false)
         if types.include?(type) && !override
-          raise "already registered as a #{type.inspect}"
+          raise "already registered as a #{type.inspect} (#{const_name})"
         end
         
         types[type] = summary

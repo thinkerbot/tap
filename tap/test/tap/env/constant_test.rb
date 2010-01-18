@@ -247,7 +247,7 @@ class ConstantTest < Test::Unit::TestCase
     c.types[:type] = "summary"
     
     err = assert_raises(RuntimeError) { c.register_as(:type, "override summary") }
-    assert_equal "already registered as a :type", err.message
+    assert_equal "already registered as a :type (ConstName)", err.message
     assert_equal({:type => "summary"}, c.types)
   end
   
