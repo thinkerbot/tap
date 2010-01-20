@@ -5,18 +5,28 @@ autoload(:YAML, 'yaml')
 
 module Tap
   class Env
+    autoload(:Gems, 'tap/env/gems')
+    
     class << self
-      def setup(dir=Dir.pwd)
-        Dir.chdir(dir) do
-          paths = Path.split(ENV[ENV_PATH_VAR] || ".:#{HOME}")
-          paths = paths.collect! {|path| load_path(path) }
-          
-          constants = {}
-          paths.each do |path|
-            load_constants(path, constants)
-          end
-          
-          new(:paths => paths, :constants => constants.values)
+      def setup(dir=Dir.pwd, options={})
+        env_path = options[:env_path] || ENV[ENV_PATH_VAR] || "."
+        paths = Path.split(env_path, dir)
+        
+        gems = options[:gems] || ENV[GEMS_VAR] || default_gems
+        gems = gems.split(':') if gems.kind_of?(String)
+        gems.each {|gem_name| paths << Gems.gemspec(gem_name).full_gem_path }
+        
+        paths << HOME unless paths.include?(HOME)
+        paths.collect! {|path| load_path(path) }
+        
+        constants = {}
+        paths.each {|path| load_constants(path, constants) }
+        new(:paths => paths, :constants => constants.values)
+      end
+      
+      def default_gems
+        Gems.select_gems do |spec|
+          File.exists? File.join(spec.full_gem_path, PATH_FILE)
         end
       end
       

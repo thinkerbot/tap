@@ -2,8 +2,9 @@ module Tap
   class Env
     class Path
       class << self
-        def split(str)
-          paths = str.split(':').collect {|path| File.expand_path(path) }
+        def split(str, dir=Dir.pwd)
+          paths = str.kind_of?(String) ? str.split(':') : str
+          paths.collect! {|path| File.expand_path(path, dir) }
           paths.uniq!
           paths
         end

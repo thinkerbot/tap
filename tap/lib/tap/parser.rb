@@ -1,4 +1,4 @@
-require 'shellwords'
+autoload(:Shellwords, 'shellwords')
 
 module Tap
   
