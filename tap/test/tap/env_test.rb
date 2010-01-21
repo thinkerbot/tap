@@ -135,14 +135,14 @@ class EnvTest < Test::Unit::TestCase
     end
   end
   
-  def test_setup_loads_path_map_from_PATH_FILE_under_each_path
+  def test_setup_loads_path_map_from_Path_FILE_under_each_path
     set_env Env::ENV_PATH_VAR => 'a:b/c'
     
-    method_root.prepare('a', Env::PATH_FILE) do |io|
+    method_root.prepare('a', Env::Path::FILE) do |io|
       io << YAML.dump('dir' => 'A')
     end
     
-    method_root.prepare('b/c', Env::PATH_FILE) do |io|
+    method_root.prepare('b/c', Env::Path::FILE) do |io|
       io << YAML.dump('dir' => ['B', 'C'])
     end
     

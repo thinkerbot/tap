@@ -85,9 +85,10 @@ module Tap
           const
         end
         
-        # Scans the directory and pattern for constants and adds them to the
-        # constants hash by name.
-        def scan(dir, pattern="**/*.rb", constants={})
+        # Scans the directory and pattern for constants.
+        def scan(dir, pattern="**/*.rb")
+          constants = {}
+          
           root = Root.new(dir)
           root.glob(pattern).each do |path|
             Lazydoc::Document.scan(File.read(path)) do |const_name, type, summary|
@@ -102,7 +103,7 @@ module Tap
             end
           end
 
-          constants
+          constants.values
         end
         
         def cast(obj)

@@ -1,3 +1,5 @@
+autoload(:YAML, 'yaml')
+
 module Tap
   class Env
     class Path
@@ -8,7 +10,19 @@ module Tap
           paths.uniq!
           paths
         end
+        
+        def load(path)
+          path_file = File.join(path, FILE)
+          map = Root.trivial?(path_file) ? {} : (YAML.load_file(path_file) || {})
+          new(path, map)
+        end
+        
+        def loadable?(path)
+          File.exists? File.join(path, FILE)
+        end
       end
+      
+      FILE = 'tap.yml'
       
       attr_reader :base
       attr_reader :map

@@ -1,7 +1,6 @@
-require 'tap/env/constant'
+require 'tap/env/cache'
 require 'tap/env/minimap'
 require 'tap/env/path'
-autoload(:YAML, 'yaml')
 
 module Tap
   class Env
@@ -17,29 +16,22 @@ module Tap
         gems.each {|gem_name| paths << Gems.gemspec(gem_name).full_gem_path }
         
         paths << HOME unless paths.include?(HOME)
-        paths.collect! {|path| load_path(path) }
+        paths.collect! {|path| Path.load(path) }
         
-        constants = {}
-        paths.each {|path| load_constants(path, constants) }
-        new(:paths => paths, :constants => constants.values)
+        lib_paths = []
+        paths.each {|path| lib_paths.concat(path['lib']) }
+        $LOAD_PATH.replace(lib_paths + $LOAD_PATH)
+        
+        cache = options[:cache] || ENV[CACHE_VAR]
+        constants = Cache.load(cache, lib_paths)
+        
+        new(:paths => paths, :constants => constants)
       end
       
       def default_gems
         Gems.select_gems do |spec|
-          File.exists? File.join(spec.full_gem_path, PATH_FILE)
+          Path.loadable?(spec.full_gem_path)
         end
-      end
-      
-      def load_path(path)
-        path_file = File.join(path, PATH_FILE)
-        map = Root.trivial?(path_file) ? {} : (YAML.load_file(path_file) || {})
-        
-        Path.new(path, map)
-      end
-      
-      def load_constants(path, constants={})
-        path['lib'].each {|lib_path| Constant.scan(lib_path, '**/*.rb', constants) }
-        constants
       end
     end
     
@@ -50,7 +42,6 @@ module Tap
     GEMS_VAR     = 'TAP_GEMS'
     CACHE_VAR    = 'TAP_CACHE'
     TAPRC_VAR    = 'TAPRC'
-    PATH_FILE    = 'tap.yml'
     
     attr_reader :constants
     attr_reader :paths
