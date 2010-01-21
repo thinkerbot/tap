@@ -92,14 +92,16 @@ module Tap
           root = Root.new(dir)
           root.glob(pattern).each do |path|
             Lazydoc::Document.scan(File.read(path)) do |const_name, type, summary|
+              require_path = root.relative_path(path)
+              
               if const_name.empty?
                 extname = File.extname(path)
-                const_name = root.relative_path(path).chomp(extname).camelize
+                const_name = require_path.chomp(extname).camelize
               end
               
               constant = (constants[const_name] ||= new(const_name))
               constant.register_as(type, summary)
-              constant.require_paths << path
+              constant.require_paths << require_path
             end
           end
 
