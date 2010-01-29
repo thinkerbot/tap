@@ -1,5 +1,5 @@
 require 'configurable'
-require 'tap/signals/help'
+require 'tap/signals'
 
 module Tap
   class App

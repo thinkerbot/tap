@@ -1,4 +1,6 @@
 require 'tap/signals/module_methods'
+require 'tap/signals/help'
+require 'tap/signals/load'
 
 module Tap
   

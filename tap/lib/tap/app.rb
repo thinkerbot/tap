@@ -1,10 +1,10 @@
 require 'logger'
 require 'tap/app/api'
-require 'tap/app/env'
 require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
+require 'tap/env'
 require 'tap/parser'
 autoload(:YAML, 'yaml')
 
@@ -208,6 +208,8 @@ module Tap
         obj
       end
     end
+    
+    signal :load, :class => Load, :bind => nil
     
     signal :help, :class => Help, :bind => nil       # signals help
     

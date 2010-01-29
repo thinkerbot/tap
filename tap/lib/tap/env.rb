@@ -1,50 +1,66 @@
-require 'tap/env/cache'
-require 'tap/env/minimap'
+require 'tap/signals'
 require 'tap/env/path'
 
 module Tap
   class Env
     autoload(:Gems, 'tap/env/gems')
     
-    class << self
-      def setup(dir=Dir.pwd, options={})
-        env_path = options[:env_path] || ENV[ENV_PATH_VAR] || "."
-        paths = Path.split(env_path, dir)
-        
-        gems = options[:gems] || ENV[GEMS_VAR] || default_gems
-        gems = gems.split(':') if gems.kind_of?(String)
-        gems.each {|gem_name| paths << Gems.gemspec(gem_name).full_gem_path }
-        
-        paths << HOME unless paths.include?(HOME)
-        paths.collect! {|path| Path.load(path) }
-        
-        lib_paths = []
-        paths.each {|path| lib_paths.concat(path['lib']) }
-        $LOAD_PATH.replace(lib_paths + $LOAD_PATH)
-        
-        cache = options[:cache] || ENV[CACHE_VAR]
-        constants = Cache.load(cache, lib_paths)
-        
-        new(:paths => paths, :constants => constants)
-      end
+    include Signals
+    
+    attr_reader :paths
+    attr_reader :constants
+    attr_reader :namespaces
+    
+    signal :load, :class => Load, :bind => nil
+    
+    signal :auto, :bind => nil do |sig, argv|
+      dir, pathfile, lib, pattern = argv
+      lib ||= 'lib'
+      pattern ||= '**/*.rb'
+      path = Path.load(pathfile || 'tap.yml', dir)
       
-      def default_gems
-        Gems.select_gems do |spec|
-          Path.loadable?(spec.full_gem_path)
-        end
+      env = sig.obj
+      env.paths << path
+      path[lib].each do |lib_dir|
+        env.scan(lib_dir, pattern)
       end
+      env
     end
     
-    # The home directory for Tap
-    HOME = File.expand_path("#{File.dirname(__FILE__)}/../..")
+    signal :path, :bind => nil do |sig, argv|
+      paths = sig.obj.paths
+      argv.each {|path| paths << Path.parse(path) }
+      paths
+    end
     
-    ENV_PATH_VAR = 'TAP_ENV_PATH'
-    GEMS_VAR     = 'TAP_GEMS'
-    CACHE_VAR    = 'TAP_CACHE'
-    TAPRC_VAR    = 'TAPRC'
+    signal :set
     
-    attr_reader :constants
-    attr_reader :paths
+    signal :ns, :bind => nil do |sig, argv|
+      sig.obj.namespaces.concat(argv)
+    end
+    
+    signal :lp, :bind => nil do |sig, argv|
+      $LOAD_PATH.concat(argv)
+    end
+    
+    signal :unpath, :bind => nil do |sig, argv|
+      paths = sig.obj.paths
+      paths.delete_if {|path| argv.include?(path.base) }
+      paths
+    end
+    
+    signal :unset
+    
+    signal :unns, :bind => nil do |sig, argv|
+      namespaces = sig.obj.namespaces
+      argv.each {|ns| namespaces.delete(ns) }
+      namespaces
+    end
+    
+    signal :unlp, :bind => nil do |sig, argv|
+      argv.each {|path| $LOAD_PATH.delete(path) }
+      $LOAD_PATH
+    end
     
     def initialize(options={})
       @constants = [].extend Minimap
@@ -55,35 +71,19 @@ module Tap
       @paths = paths.collect {|path| path.kind_of?(Path) ? path : Path.new(path) }
     end
     
+    def scan(dir, pattern='**/*.rb')
+    end
+    
     def get(key)
-      if constant = constants.minimatch(key)
-        constant.constantize
-      else
-        nil
-      end
     end
     
-    def set(*constants)
-      constants.collect! {|constant| Constant.cast(constant) }
-      @constants.concat(constants)
-      @constants.uniq!
-      @constants.sort!
-      @keys = nil
-      self
+    def set(constant, *require_paths)
     end
     
-    def keys
-      @keys ||= begin
-        keys = {}
-        @constants.minihash.each_pair do |key, constant|
-          keys[constant.const_name] = key
-        end
-        keys
-      end
+    def unset(*constants)
     end
     
     def key(constant)
-      keys[constant.to_s]
     end
     
     def path(type)
