@@ -15,6 +15,16 @@ not been initialized. Use these commands and try again:
   raise
 end
 
+# a couple fixture constants...
+
+module ConstName
+end
+
+module Nest
+  module ConstName
+  end
+end
+
 unless Object.const_defined?(:TAP_ROOT)
   TAP_ROOT = File.expand_path(File.dirname(__FILE__) + "/..")
 end

@@ -153,11 +153,7 @@ module Tap
       # Initializes a new Constant with the specified constant name, and
       # require_paths.  Raises an error if const_name is not valid.
       def initialize(const_name, *require_paths)
-        unless CONST_REGEXP =~ const_name
-          raise NameError, "#{const_name.inspect} is not a valid constant name!"
-        end
-        
-        @const_name = $1
+        @const_name = normalize(const_name)
         @require_paths = require_paths
         @types = {}
       end
@@ -287,6 +283,16 @@ module Tap
       # Returns const_name
       def to_s
         const_name
+      end
+      
+      private
+      
+      def normalize(const_name)
+        case const_name
+        when Module       then const_name.to_s
+        when CONST_REGEXP then $1
+        else raise NameError, "#{const_name.inspect} is not a valid constant name!"
+        end
       end
     end
   end

@@ -1,10 +1,11 @@
 require 'tap/signals'
 require 'tap/env/path'
 
+autoload(:YAML, 'yaml')
 module Tap
   class Env
-    autoload(:Gems, 'tap/env/gems')
     
+    autoload(:Gems, 'tap/env/gems')
     include Signals
     
     attr_reader :paths
@@ -63,27 +64,14 @@ module Tap
     end
     
     def initialize(options={})
-      @constants = [].extend Minimap
-      constants = options[:constants] || []
-      set(*constants)
+      @paths = options[:paths] || []
+      @paths.collect! {|path| path.kind_of?(Path) ? path : Path.new(*path) }
       
-      paths = options[:paths] || []
-      @paths = paths.collect {|path| path.kind_of?(Path) ? path : Path.new(path) }
-    end
-    
-    def scan(dir, pattern='**/*.rb')
-    end
-    
-    def get(key)
-    end
-    
-    def set(constant, *require_paths)
-    end
-    
-    def unset(*constants)
-    end
-    
-    def key(constant)
+      @constants = options[:constants] || []
+      @constants.collect! {|const| const.kind_of?(Constant) ? const : Constant.new(*const) }
+      @constants.sort!
+      
+      @namespaces = options[:namespaces] || ["/"]
     end
     
     def path(type)
@@ -93,5 +81,28 @@ module Tap
       end
       result
     end
+    
+    def get(key)
+      namespaces.each do |ns|
+        path = File.join(ns, key)
+        constant = constants.find {|const| const.path == path }
+        
+        return constant if constant
+      end
+      nil
+    end
+    
+    def set(constant, *require_paths)
+      constants << Constant.new(constant, *require_paths)
+      constants.sort!
+    end
+    
+    def set?(constant)
+      const_name = constant.to_s
+      constants.find {|const| const.const_name == const_name }
+    end
+    
+    # def unset(*constants)
+    # end
   end
 end

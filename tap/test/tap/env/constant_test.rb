@@ -1,15 +1,6 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/env/constant'
 
-# used in tests
-module ConstName
-end
-
-module ConstantNest
-  module ConstName
-  end
-end
-
 module UnloadNest
   module UnloadName
   end
@@ -75,15 +66,15 @@ class ConstantTest < Test::Unit::TestCase
     assert_equal ConstName, Constant.constantize("::ConstName")
     assert_equal ConstName, Constant.constantize("Object::ConstName")
     
-    # ConstantNest::ConstName
-    assert_equal ConstantNest::ConstName, Constant.constantize("ConstantNest::ConstName")
-    assert_equal ConstantNest::ConstName, Constant.constantize("::ConstantNest::ConstName")
-    assert_equal ConstantNest::ConstName, Constant.constantize("Object::ConstantNest::ConstName")
+    # Nest::ConstName
+    assert_equal Nest::ConstName, Constant.constantize("Nest::ConstName")
+    assert_equal Nest::ConstName, Constant.constantize("::Nest::ConstName")
+    assert_equal Nest::ConstName, Constant.constantize("Object::Nest::ConstName")
   end
   
   def test_constantize_starts_looking_for_the_constant_under_const
-    assert_equal ConstantNest::ConstName, Constant.constantize("ConstName", ConstantNest)
-    assert_equal ConstantNest::ConstName, Constant.constantize("::ConstName", ConstantNest)
+    assert_equal Nest::ConstName, Constant.constantize("ConstName", Nest)
+    assert_equal Nest::ConstName, Constant.constantize("::ConstName", Nest)
   end
   
   def test_constantize_raise_error_for_invalid_constant_names
