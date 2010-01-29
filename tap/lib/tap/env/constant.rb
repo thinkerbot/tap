@@ -134,7 +134,10 @@ module Tap
         end
       end
     
-      # Matches a valid constant
+      # Matches a valid constant.  After the match:
+      #
+      #   $1:: The unqualified constant (ex 'Const' for '::Const')
+      #
       CONST_REGEXP = /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/
     
       # The full constant name
@@ -147,21 +150,24 @@ module Tap
       # A hash of (type, summary) pairs used to classify self.
       attr_reader :types
     
-      # Initializes a new Constant with the specified constant name,
-      # require_path, and comment.  The const_name should be a valid
-      # constant name.
+      # Initializes a new Constant with the specified constant name, and
+      # require_paths.  Raises an error if const_name is not valid.
       def initialize(const_name, *require_paths)
-        @const_name = const_name
+        unless CONST_REGEXP =~ const_name
+          raise NameError, "#{const_name.inspect} is not a valid constant name!"
+        end
+        
+        @const_name = $1
         @require_paths = require_paths
         @types = {}
       end
     
       # Returns the underscored const_name.
       #
-      #   Constant.new("Const::Name").path           # => 'const/name'
+      #   Constant.new("Const::Name").path           # => '/const/name'
       #
       def path
-        @path ||= const_name.underscore
+        @path ||= "/#{const_name.underscore}"
       end
     
       # Returns the basename of path.
@@ -174,10 +180,10 @@ module Tap
     
       # Returns the path, minus the basename of path.
       #
-      #   Constant.new("Const::Name").dirname        # => 'const'
+      #   Constant.new("Const::Name").dirname        # => '/const'
       #
       def dirname
-        @dirname ||= (dirname = File.dirname(path)) == "." ? "" : dirname
+        @dirname ||= File.dirname(path)
       end
     
       # Returns the name of the constant, minus nesting.

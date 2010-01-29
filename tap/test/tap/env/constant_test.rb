@@ -142,12 +142,12 @@ class ConstantTest < Test::Unit::TestCase
   #
   
   def test_path_documentation
-    assert_equal "const/name", Constant.new("Const::Name").path
+    assert_equal "/const/name", Constant.new("Const::Name").path
   end
   
-  def test_path_returns_underscored_const_name
-    assert_equal 'const_name', c.path
-    assert_equal 'nested/sample/const_name', nested.path
+  def test_path_returns_fully_qualified_and_underscored_const_name
+    assert_equal '/const_name', c.path
+    assert_equal '/nested/sample/const_name', nested.path
   end
   
   #
@@ -168,12 +168,12 @@ class ConstantTest < Test::Unit::TestCase
   #
   
   def test_dirname_documentation
-    assert_equal "const", Constant.new("Const::Name").dirname
+    assert_equal "/const", Constant.new("Const::Name").dirname
   end
   
   def test_dirname_returns_the_path_minus_basename
-    assert_equal '', c.dirname
-    assert_equal 'nested/sample', nested.dirname
+    assert_equal '/', c.dirname
+    assert_equal '/nested/sample', nested.dirname
   end
   
   #
