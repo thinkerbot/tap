@@ -6,7 +6,11 @@ module Tap
     # Methods for working with {RubyGems}[http://www.rubygems.org/].
     module Gems
       module_function
-    
+      
+      def env_path(gem_name)
+        
+      end
+      
       # Returns the gemspec for the specified gem.  A gem version 
       # can be specified in the name, like 'gem >= 1.2'.  The gem
       # is not activated by this method.

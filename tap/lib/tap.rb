@@ -3,15 +3,11 @@ require 'tap/app'
 require 'tap/env'
 
 module Tap
-  # The home directory for Tap
-  HOME = File.expand_path("#{File.dirname(__FILE__)}/..")
-  
   module_function
   
   def setup(dir=Dir.pwd, options={})
     env = Env.new
     load = env.signal(:load)
-    load.call ['tapenv', HOME]
     
     env_path = options[:env_path] || ENV['TAP_ENV_PATH'] || ["tapenv"]
     Env::Path.split(env_path).each {|path| load.call [path] }

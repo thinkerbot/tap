@@ -1,6 +1,6 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/joins/sync'
-require 'tap/middlewares/tracer'
+require 'tap/test/tracer'
 
 class SyncTest < Test::Unit::TestCase
   Sync = Tap::Joins::Sync
@@ -9,7 +9,7 @@ class SyncTest < Test::Unit::TestCase
   
   def setup
     @app = Tap::App.new
-    tracer = app.use(Tap::Middlewares::Tracer)
+    tracer = app.use(Tap::Test::Tracer)
     
     @results = tracer.results
     @runlist = tracer.runlist

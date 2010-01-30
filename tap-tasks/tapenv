@@ -10,5 +10,6 @@ set Tap::Joins::Switch tap/joins/switch
 set Tap::Joins::Sync tap/joins/sync
 set Tap::Middlewares::Debugger tap/middlewares/debugger
 set Tap::Tasks::Dump tap/tasks/dump
+set Tap::Tasks::Dump::Yaml tap/tasks/dump/yaml
 set Tap::Tasks::Load tap/tasks/load
 set Tap::Tasks::Sig tap/tasks/sig

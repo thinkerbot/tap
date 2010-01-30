@@ -7,6 +7,7 @@ class TapCmd < Test::Unit::TestCase
   
   acts_as_file_test
   acts_as_shell_test :cmd_pattern => "% tap", :cmd => [
+    "TAP_ENV_PATH=#{TAP_ROOT}/../tap-tasks/tapenv",
     RUBY_EXE,
     "-I'#{TAP_ROOT}/../configurable/lib'",
     "-I'#{TAP_ROOT}/../lazydoc/lib'",

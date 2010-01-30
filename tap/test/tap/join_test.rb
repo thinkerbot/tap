@@ -1,15 +1,16 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/join'
-require 'tap/middlewares/tracer'
+require 'tap/test/tracer'
 
 class JoinTest < Test::Unit::TestCase
   Join = Tap::Join
+  Tracer = Tap::Test::Tracer
   
   attr_reader :app, :results, :runlist
   
   def setup
     @app = Tap::App.new
-    tracer = app.use(Tap::Middlewares::Tracer)
+    tracer = app.use(Tracer)
     
     @results = tracer.results
     @runlist = tracer.runlist

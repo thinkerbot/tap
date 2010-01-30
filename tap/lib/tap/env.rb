@@ -42,7 +42,9 @@ module Tap
     end
     
     signal :load_path, :bind => nil do |sig, argv|
-      $LOAD_PATH.concat(argv)
+      argv.each {|path| $LOAD_PATH << File.expand_path(path) }
+      $LOAD_PATH.uniq!
+      $LOAD_PATH
     end
     
     signal :unpath, :bind => nil do |sig, argv|
@@ -60,7 +62,7 @@ module Tap
     end
     
     signal :unload_path, :bind => nil do |sig, argv|
-      argv.each {|path| $LOAD_PATH.delete(path) }
+      argv.each {|path| $LOAD_PATH.delete File.expand_path(path) }
       $LOAD_PATH
     end
     

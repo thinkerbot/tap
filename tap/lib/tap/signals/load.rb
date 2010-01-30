@@ -12,13 +12,16 @@ module Tap
       
       def process(path, dir=Dir.pwd)
         path = File.expand_path(path, dir)
+        return obj unless File.exists?(path)
         
-        File.open(path) do |io|
-          io.each_line do |line|
-            sig, *args = Parser.shellsplit(line)
-            obj.signal(sig).call(args) if sig
+        Dir.chdir(File.dirname(path)) do 
+          File.open(path) do |io|
+            io.each_line do |line|
+              sig, *args = Parser.shellsplit(line)
+              obj.signal(sig).call(args) if sig
+            end
           end
-        end if File.exists?(path)
+        end
         
         obj
       end

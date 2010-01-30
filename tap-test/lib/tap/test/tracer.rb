@@ -1,7 +1,7 @@
 require 'tap/middleware'
 
 module Tap
-  module Middlewares
+  module Test
     class Tracer < Middleware
       attr_reader :stack
       attr_reader :results
