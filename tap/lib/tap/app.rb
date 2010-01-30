@@ -1,10 +1,10 @@
 require 'logger'
 require 'tap/app/api'
+require 'tap/app/env'
 require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
-require 'tap/env'
 require 'tap/parser'
 autoload(:YAML, 'yaml')
 
@@ -26,14 +26,14 @@ module Tap
         @instance ||= (auto_initialize ? new : nil)
       end
       
-      def build(spec={}, app=nil)
+      def build(spec={}, app=Tap::App.instance)
         config = spec['config'] || {}
         signals = spec['signals'] || []
         
         if spec['self']
           app.reconfigure(config)
         else
-          app = new(config)
+          app = new(config, :env => app.env)
         end
         
         signals.each do |args|
@@ -777,7 +777,7 @@ module Tap
         end
 
         # assign the class
-        spec['class'] = env.key(obj.class) or raise "could not serialize (object class is not set in env): #{obj.inspect}"
+        spec['class'] = obj.class.to_s
 
         # merge obj_spec if possible
         obj_spec = specs[obj]

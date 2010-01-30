@@ -1,5 +1,6 @@
 require 'tap/signals'
 require 'tap/env/path'
+require 'tap/env/constant'
 
 autoload(:YAML, 'yaml')
 module Tap
@@ -87,9 +88,11 @@ module Tap
         path = File.join(ns, key)
         constant = constants.find {|const| const.path == path }
         
-        return constant if constant
+        return constant.constantize if constant
       end
-      nil
+      
+      constant = constants.find {|const| const.const_name == key }
+      constant ? constant.constantize : nil
     end
     
     def set(constant, *require_paths)
@@ -99,7 +102,7 @@ module Tap
     
     def set?(constant)
       const_name = constant.to_s
-      constants.find {|const| const.const_name == const_name }
+      constants.any? {|const| const.const_name == const_name }
     end
     
     # def unset(*constants)
