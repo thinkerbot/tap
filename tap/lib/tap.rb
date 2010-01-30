@@ -3,24 +3,28 @@ require 'tap/app'
 require 'tap/env'
 
 module Tap
+  # The home directory for Tap
+  HOME = File.expand_path("#{File.dirname(__FILE__)}/..")
+  
   module_function
   
-  def setup(dir=Dir.pwd, options)
+  def setup(dir=Dir.pwd, options={})
     env = Env.new
-    envload = env.signal(:load)
+    load = env.signal(:load)
+    load.call ['tapenv', HOME]
     
     env_path = options[:env_path] || ENV['TAP_ENV_PATH'] || ["tapenv"]
-    split(env_path).each {|path| envload.call path }
+    Env::Path.split(env_path).each {|path| load.call [path] }
     
     gems = options[:gems] || ENV['TAP_GEMS'] || []
-    split(gems).each {|gem_name| envload.call Gems.env_path(gem_name) }
+    Env::Path.split(gems).each {|gem_name| load.call [Gems.env_path(gem_name)] }
     
     #
     app = App.new({}, :env => env)
-    appload = app.signal(:load)
+    load = app.signal(:load)
     
     rc_path = options[:taprc_path] || ENV['TAPRC'] || ["~/.taprc"]
-    split(rc_path).each {|path| appload.call path }
+    Env::Path.split(rc_path).each {|path| load.call [path] }
     
     App.instance = app
   end

@@ -17,7 +17,7 @@ class TapCmd < Test::Unit::TestCase
   def setup
     super
     @pwd = Dir.pwd
-    method_root.chdir(:root, true)
+    method_root.chdir('.', true)
   end
   
   def teardown

@@ -13,7 +13,7 @@ module Tap
     attr_reader :constants
     attr_reader :namespaces
     
-    signal :load, :class => Load, :bind => nil
+    signal_class :load, Load
     
     signal :auto, :bind => nil do |sig, argv|
       dir, pathfile, lib, pattern = argv
@@ -41,7 +41,7 @@ module Tap
       sig.obj.namespaces.concat(argv)
     end
     
-    signal :lp, :bind => nil do |sig, argv|
+    signal :load_path, :bind => nil do |sig, argv|
       $LOAD_PATH.concat(argv)
     end
     
@@ -59,7 +59,7 @@ module Tap
       namespaces
     end
     
-    signal :unlp, :bind => nil do |sig, argv|
+    signal :unload_path, :bind => nil do |sig, argv|
       argv.each {|path| $LOAD_PATH.delete(path) }
       $LOAD_PATH
     end
@@ -83,15 +83,15 @@ module Tap
       result
     end
     
-    def get(key)
+    def constant(const_str)
       namespaces.each do |ns|
-        path = File.join(ns, key)
+        path = File.join(ns, const_str)
         constant = constants.find {|const| const.path == path }
         
         return constant.constantize if constant
       end
       
-      constant = constants.find {|const| const.const_name == key }
+      constant = constants.find {|const| const.const_name == const_str }
       constant ? constant.constantize : nil
     end
     

@@ -71,13 +71,13 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
-  # get test
+  # constant test
   #
   
-  def test_get_gets_the_constant_matching_key
+  def test_constant_returns_the_constant_matching_key
     env = Env.new :constants => [ConstName, Nest::ConstName]
     
-    assert_equal ConstName, env.get('/const_name')
-    assert_equal Nest::ConstName, env.get('/nest/const_name')
+    assert_equal ConstName, env.constant('/const_name')
+    assert_equal Nest::ConstName, env.constant('/nest/const_name')
   end
 end

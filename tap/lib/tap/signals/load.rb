@@ -1,4 +1,5 @@
 require 'tap/signals'
+require 'tap/parser'
 
 module Tap
   module Signals
@@ -6,12 +7,19 @@ module Tap
       
       def call(args)
         process(*args)
+        
       end
       
       def process(path, dir=Dir.pwd)
-        # parse lines
-        # parse args
-        # signal each to obj
+        path = File.expand_path(path, dir)
+        
+        File.open(path) do |io|
+          io.each_line do |line|
+            sig, *args = Parser.shellsplit(line)
+            obj.signal(sig).call(args) if sig
+          end
+        end if File.exists?(path)
+        
         obj
       end
     end
