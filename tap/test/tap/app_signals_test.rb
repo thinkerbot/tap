@@ -16,13 +16,13 @@ class AppSignalsTest < Test::Unit::TestCase
   def test_enq_enques_obj_with_inputs
     n = app.node {}
     app.set(0, n)
-    app.call('sig' => 'enq', 'args' => [0, 1,2,3])
-    app.call('sig' => 'enq', 'args' => [0, 4,5,6])
+    signal :enq, [0, 1,2,3]
+    signal :enq, [0, 4,5,6]
     assert_equal [[n, [1,2,3]], [n, [4,5,6]]], app.queue.to_a
   end
   
   def test_enq_raises_error_for_unknown_obj
-    err = assert_raises(RuntimeError) { app.call('sig' => 'enq', 'args' => [0]) }
+    err = assert_raises(RuntimeError) { signal :enq, [0] }
     assert_equal "no object set to: 0", err.message
   end
   
@@ -33,13 +33,13 @@ class AppSignalsTest < Test::Unit::TestCase
   def test_pq_priority_enques_obj_with_inputs
     n = app.node {}
     app.set(0, n)
-    app.call('sig' => 'pq', 'args' => [0, 1,2,3])
-    app.call('sig' => 'pq', 'args' => [0, 4,5,6])
+    signal :pq, [0, 1,2,3]
+    signal :pq, [0, 4,5,6]
     assert_equal [[n, [4,5,6]], [n, [1,2,3]]], app.queue.to_a
   end
   
   def test_pq_raises_error_for_unknown_obj
-    err = assert_raises(RuntimeError) { app.call('sig' => 'pq', 'args' => [0]) }
+    err = assert_raises(RuntimeError) { signal(:pq, [0]) }
     assert_equal "no object set to: 0", err.message
   end
   
@@ -77,19 +77,19 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   def test_set_instantiates_and_stores_obj_by_var
-    obj = app.call('sig' => 'set', 'args' => ['var', SetClass])
+    obj = signal :set, ['var', SetClass]
     assert_equal SetClass, obj.class
     assert_equal({'var' => obj}, app.objects)
   end
   
   def test_set_does_not_set_obj_for_nil_var
-    obj = app.call('sig' => 'set', 'args' => [nil, SetClass])
+    obj = signal :set, [nil, SetClass]
     assert_equal({}, app.objects)
   end
   
   def test_set_parse_bangs_remaining_args
     was_in_block = false
-    obj = app.call('sig' => 'set', 'args' => ['var', SetClass, 'a', 'b', 'c']) do |o, args|
+    obj = signal(:set, ['var', SetClass, 'a', 'b', 'c']) do |o, args|
       assert_equal ['a', 'b', 'c'], args
       was_in_block = true
     end
@@ -101,7 +101,7 @@ class AppSignalsTest < Test::Unit::TestCase
   def test_set_parses_remaining_args_if_bang_is_false
     app.bang = false
     was_in_block = false
-    obj = app.call('sig' => 'set', 'args' => ['var', SetClass, 'a', 'b', 'c']) do |o, args|
+    obj = signal(:set, ['var', SetClass, 'a', 'b', 'c']) do |o, args|
       assert_equal ['a', 'b', 'c'], args
       was_in_block = true
     end
@@ -111,28 +111,28 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   def test_set_initializes_with_spec_if_specified
-    obj = app.call(
-      'sig' => 'set',
+    obj = signal(:set, 
       'class' => SetClass,
-      'spec' => {'config' => {'key' => 'alt'}})
+      'spec' => {'config' => {'key' => 'alt'}}
+    )
     assert_equal 'alt', obj.key
   end
   
   def test_set_builds_hash_spec
-    obj = app.call('sig' => 'set', 'class' => SetClass, 'spec' => {})
+    obj = signal :set, 'class' => SetClass, 'spec' => {}
     assert_equal :build, obj.build_method
   end
   
   def test_set_stores_obj_by_multiple_var_if_specified
-    obj = app.call('sig' => 'set', 'class' => SetClass)
+    obj = signal :set, 'class' => SetClass
     assert_equal({}, app.objects)
     
-    obj = app.call('sig' => 'set', 'var' => ['a', 'b'], 'class' => SetClass)
+    obj = signal :set, 'var' => ['a', 'b'], 'class' => SetClass
     assert_equal({'a' => obj, 'b' => obj}, app.objects)
   end
   
   def test_set_raises_error_for_unresolvable_class
-    err = assert_raises(RuntimeError) { app.call('sig' => 'set', 'args' => ['var', 'Non::Existant']) }
+    err = assert_raises(RuntimeError) { signal(:set, ['var', 'Non::Existant']) }
     assert_equal "unresolvable constant: \"Non::Existant\"", err.message
   end
   
@@ -143,11 +143,11 @@ class AppSignalsTest < Test::Unit::TestCase
   def test_get_returns_specified_object
     n = app.node {}
     app.set(0, n)
-    assert_equal n,  app.call('sig' => 'get', 'args' => [0])
+    assert_equal n, signal(:get, [0])
   end
   
   def test_get_returns_nil_for_missing_object
-    assert_equal nil,  app.call('sig' => 'get', 'args' => [1])
+    assert_equal nil,  signal(:get, [1])
   end
   
   #
@@ -155,11 +155,11 @@ class AppSignalsTest < Test::Unit::TestCase
   #
   
   def test_resolve_resolves_const_in_env
-    assert_equal SetClass, app.call('sig' => 'resolve', 'args' => [SetClass])
+    assert_equal SetClass, signal(:resolve, [SetClass])
   end
   
   def test_resolve_raises_error_for_unresolvable_const
-    err = assert_raises(RuntimeError) { app.call('sig' => 'resolve', 'args' => ['missing']) }
+    err = assert_raises(RuntimeError) { signal(:resolve, ['missing']) }
     assert_equal "unresolvable constant: \"missing\"", err.message
   end
   
@@ -168,7 +168,7 @@ class AppSignalsTest < Test::Unit::TestCase
   #
   
   def test_build_builds_and_returns_object
-    obj = app.call('sig' => 'build', 'args' => [SetClass])
+    obj = signal(:build, [SetClass])
     assert_equal SetClass, obj.class
     assert_equal :parse!, obj.build_method
   end
@@ -178,7 +178,7 @@ class AppSignalsTest < Test::Unit::TestCase
   #
   
   def test_parse_parses_and_builds_workflow
-    app.call('sig' => 'parse', 'args' => ['AppSignalsTest::SetClass', '1', '2', '--/set', '3', 'AppSignalsTest::SetClass'])
+    signal(:parse, ['AppSignalsTest::SetClass', '1', '2', '--/set', '3', 'AppSignalsTest::SetClass'])
     
     assert_equal SetClass, app.get('0').class
     assert_equal SetClass, app.get('3').class
@@ -188,20 +188,20 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   def test_parse_returns_remaining_args
-    assert_equal ['a', 'b', 'c'], app.call('sig' => 'parse', 'args' => ['--/info', '---', 'a', 'b', 'c'])
+    assert_equal ['a', 'b', 'c'], signal(:parse, ['--/info', '---', 'a', 'b', 'c'])
   end
   
   def test_parse_does_not_use_bang_unless_specified
     app.bang = false
     
     args = ['--/info', '---', 'a', 'b', 'c']
-    assert_equal ['a', 'b', 'c'], app.call('sig' => 'parse', 'args' => args)
+    assert_equal ['a', 'b', 'c'], signal(:parse, args)
     assert_equal ['--/info', '---', 'a', 'b', 'c'], args
     
     app.bang = true
     
     args = ['--/info', '---', 'a', 'b', 'c']
-    assert_equal ['a', 'b', 'c'], app.call('sig' => 'parse', 'args' => args)
+    assert_equal ['a', 'b', 'c'], signal(:parse, args)
     assert_equal ['a', 'b', 'c'], args
   end
   
@@ -223,7 +223,7 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   def test_use_builds_and_sets_middleware
-    obj = app.call('sig' => 'use', 'args' => [UseClass])
+    obj = signal(:use, [UseClass])
     assert_equal UseClass, obj.class
     assert_equal [obj], app.middleware
   end
@@ -234,13 +234,13 @@ class AppSignalsTest < Test::Unit::TestCase
   
   def test_configure_reconfigures_app
     assert_equal false, app.verbose
-    assert_equal app.config, app.call('sig' => 'configure', 'args' => ['--verbose'])
+    assert_equal app.config, signal('configure', ['--verbose'])
     assert_equal true, app.verbose
   end
   
   def test_configure_reconfigures_app_from_hash_args
     assert_equal false, app.verbose
-    assert_equal app.config, app.call('sig' => 'configure', 'args' => {'verbose' => true})
+    assert_equal app.config, signal('configure', {'verbose' => true})
     assert_equal true, app.verbose
   end
   
@@ -258,7 +258,7 @@ class AppSignalsTest < Test::Unit::TestCase
     assert_equal 1, app.queue.size
     assert_equal 1, app.middleware.size
     
-    assert_equal app, app.call('sig' => 'reset')
+    assert_equal app, signal(:reset)
     
     assert_equal true, app.objects.empty?
     assert_equal 0, app.queue.size
@@ -274,7 +274,7 @@ class AppSignalsTest < Test::Unit::TestCase
     n = app.node { was_in_block = true }
     app.enq(n)
     
-    assert_equal app, app.call('sig' => 'run')
+    assert_equal app, signal(:run)
     assert_equal 0, app.queue.size
     assert_equal true, was_in_block
   end
@@ -287,7 +287,7 @@ class AppSignalsTest < Test::Unit::TestCase
     was_in_a = false
     a = app.node do
       was_in_a = true
-      assert_equal app, app.call('sig' => 'stop')
+      assert_equal app, signal(:stop)
       assert_equal App::State::STOP, app.state
     end
     
@@ -313,7 +313,7 @@ class AppSignalsTest < Test::Unit::TestCase
     was_in_a = false
     a = app.node do
       was_in_a = true
-      assert_equal app, app.call('sig' => 'terminate')
+      assert_equal app, signal(:terminate)
       assert_equal App::State::TERMINATE, app.state
     end
     
@@ -336,7 +336,7 @@ class AppSignalsTest < Test::Unit::TestCase
   #
   
   def test_info_returns_info_string
-    assert_equal app.info, app.call('sig' => 'info')
+    assert_equal app.info, signal(:info)
   end
   
   #
@@ -345,7 +345,7 @@ class AppSignalsTest < Test::Unit::TestCase
   
   def test_serialize_writes_signals_to_path
     path = method_root.prepare('output.yml')
-    assert_equal app, app.call('sig' => 'serialize', 'args' => [path])
+    assert_equal app, signal(:serialize, [path])
     
     assert_equal File.read(path), YAML.dump(app.serialize)
   end
@@ -353,20 +353,20 @@ class AppSignalsTest < Test::Unit::TestCase
   def test_serialize_allows_bare_option
     path = method_root.prepare('output.yml')
     
-    assert_equal app, app.call('sig' => 'serialize', 'args' => [path, '--bare'])
+    assert_equal app, signal(:serialize, [path, '--bare'])
     assert_equal File.read(path), YAML.dump(app.serialize(true))
     
-    assert_equal app, app.call('sig' => 'serialize', 'args' => [path, '--no-bare'])
+    assert_equal app, signal(:serialize, [path, '--no-bare'])
     assert_equal File.read(path), YAML.dump(app.serialize(false))
   end
   
   def test_serialize_signature
     path = method_root.prepare('output.yml')
     
-    assert_equal app, app.call('sig' => 'serialize', 'path' => path, 'bare' => true)
+    assert_equal app, signal(:serialize, 'path' => path, 'bare' => true)
     assert_equal File.read(path), YAML.dump(app.serialize(true))
     
-    assert_equal app, app.call('sig' => 'serialize', 'path' => path, 'bare' => false)
+    assert_equal app, signal(:serialize, 'path' => path, 'bare' => false)
     assert_equal File.read(path), YAML.dump(app.serialize(false))
   end
   
@@ -379,7 +379,7 @@ class AppSignalsTest < Test::Unit::TestCase
     path = method_root.prepare('output.yml') {|io| io << YAML.dump(app.serialize(false)) }
     
     app.verbose = true
-    assert_equal app, app.call('sig' => 'import', 'args' => [path])
+    assert_equal app, signal(:import, [path])
     assert_equal false, app.verbose
   end
 end
