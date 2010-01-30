@@ -151,19 +151,6 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   #
-  # resolve test
-  #
-  
-  def test_resolve_resolves_const_in_env
-    assert_equal SetClass, signal(:resolve, [SetClass])
-  end
-  
-  def test_resolve_raises_error_for_unresolvable_const
-    err = assert_raises(RuntimeError) { signal(:resolve, ['missing']) }
-    assert_equal "unresolvable constant: \"missing\"", err.message
-  end
-  
-  #
   # build test
   #
   

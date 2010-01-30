@@ -108,9 +108,6 @@ module Tap
     signal :get,                                     # get objects
       :signature => ['var']
     
-    signal :resolve,                                 # resolve a constant in env
-      :signature => ['constant']
-    
     signal_hash :build,                              # build an object
       :signature => ['class'],
       :remainder => 'spec'
@@ -398,10 +395,6 @@ module Tap
       object.signal(sig, &block)
     end
 
-    def resolve(key)
-      env.get(key) or raise "unresolvable constant: #{key.inspect}"
-    end
-    
     def build(spec)
       var = spec['var']
       clas = spec['class']
@@ -413,12 +406,14 @@ module Tap
           raise "no class specified"
         end
       else
-        clas = resolve(clas)
+        unless klass = env.constant(clas)
+          raise "unresolvable constant: #{clas.inspect}"
+        end
         
         case spec
         when Array
           parse = bang ? :parse! : :parse
-          obj, args = clas.send(parse, spec, self)
+          obj, args = klass.send(parse, spec, self)
       
           if block_given?
             yield(obj, args)
@@ -427,7 +422,7 @@ module Tap
           end
         
         when Hash
-          obj = clas.build(spec, self)
+          obj = klass.build(spec, self)
         else
           raise "invalid spec: #{spec.inspect}"
         end

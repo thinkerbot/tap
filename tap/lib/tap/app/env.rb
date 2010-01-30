@@ -5,7 +5,7 @@ module Tap
         [File.expand_path(type.to_s)]
       end
       
-      def get(const_str)
+      def constant(const_str)
         return const_str if const_str.kind_of?(Module)
         
         begin
@@ -17,10 +17,6 @@ module Tap
         rescue(NameError)
           nil
         end
-      end
-      
-      def set(constant)
-        self
       end
     end
   end
