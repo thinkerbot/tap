@@ -10,11 +10,25 @@ module Tap
         # An array of pre-split paths may also be provided as an input.
         def split(str, dir=Dir.pwd)
           paths = str.kind_of?(String) ? str.split(':') : str
-          paths.collect! {|path| File.expand_path(path, dir) }
+          paths.collect! {|path| File.expand_path(path, dir) } if dir
           paths.uniq!
           paths
         end
+        
+        def join(paths)
+          paths.join(':')
+        end
+        
+        def load(path_file)
+          Root.trivial?(path_file) ? {} : (YAML.load_file(path_file) || {})
+        end
+        
+        def escape(path)
+          path.gsub("'", "\\'")
+        end
       end
+      
+      FILE = 'tap.yml'
       
       # The path base.
       attr_reader :base
@@ -40,6 +54,12 @@ module Tap
       # base (see Path.split).
       def []=(type, paths)
         map[type] = Path.split(paths, base)
+      end
+      
+      def ==(another)
+        another.kind_of?(Path) &&
+        base == another.base &&
+        map == another.map
       end
       
       # Returns the base path.

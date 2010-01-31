@@ -1,5 +1,6 @@
 module Tap
   module Utils
+    module_function
     
     def shellsplit(line, comment="#")
       words = []

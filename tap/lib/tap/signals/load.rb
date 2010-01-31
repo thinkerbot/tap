@@ -7,14 +7,12 @@ module Tap
       include Utils
       
       def call(args)
-        process(*args)
+        args.each {|path| process(path) }
+        obj
       end
       
-      def process(path, dir=Dir.pwd)
-        path = File.expand_path(path, dir)
-        return obj unless File.exists?(path)
-        
-        Dir.chdir(File.dirname(path)) do 
+      def process(path)
+        if File.exists?(path)
           File.open(path) do |io|
             each_signal(io) do |sig, args|
               obj.signal(sig).call(args)

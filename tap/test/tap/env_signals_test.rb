@@ -20,15 +20,15 @@ class EnvSignalsTest < Test::Unit::TestCase
   end
   
   #
-  # load_path test
+  # loadpath test
   #
   
-  def test_load_path_adds_paths_to_LOAD_PATH
+  def test_loadpath_adds_paths_to_LOAD_PATH
     current = $LOAD_PATH.dup
     begin
       $LOAD_PATH.clear
       
-      assert_equal $LOAD_PATH, signal('load_path', '/a', '/b/c')
+      assert_equal $LOAD_PATH, signal('loadpath', '/a', '/b/c')
       assert_equal ['/a', '/b/c'], $LOAD_PATH
     ensure
       $LOAD_PATH.concat(current)
@@ -36,16 +36,16 @@ class EnvSignalsTest < Test::Unit::TestCase
   end
   
   #
-  # unload_path test
+  # unloadpath test
   #
   
-  def test_unload_path_deletes_paths_to_LOAD_PATH
+  def test_unloadpath_deletes_paths_to_LOAD_PATH
     current = $LOAD_PATH.dup
     begin
       $LOAD_PATH.clear
       $LOAD_PATH.concat ['/a', '/b/c', '/d', '/e']
       
-      assert_equal $LOAD_PATH, signal('unload_path', '/e', '/b/c')
+      assert_equal $LOAD_PATH, signal('unloadpath', '/e', '/b/c')
       assert_equal ['/a', '/d'], $LOAD_PATH
     ensure
       $LOAD_PATH.concat(current)
