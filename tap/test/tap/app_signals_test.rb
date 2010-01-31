@@ -98,18 +98,6 @@ class AppSignalsTest < Test::Unit::TestCase
     assert_equal true, was_in_block
   end
   
-  def test_set_parses_remaining_args_if_bang_is_false
-    app.bang = false
-    was_in_block = false
-    obj = signal(:set, ['var', SetClass, 'a', 'b', 'c']) do |o, args|
-      assert_equal ['a', 'b', 'c'], args
-      was_in_block = true
-    end
-    
-    assert_equal :parse, obj.build_method
-    assert_equal true, was_in_block
-  end
-  
   def test_set_initializes_with_spec_if_specified
     obj = signal(:set, 
       'class' => SetClass,
@@ -158,38 +146,6 @@ class AppSignalsTest < Test::Unit::TestCase
     obj = signal(:build, [SetClass])
     assert_equal SetClass, obj.class
     assert_equal :parse!, obj.build_method
-  end
-  
-  #
-  # parse test
-  #
-  
-  def test_parse_parses_and_builds_workflow
-    signal(:parse, ['AppSignalsTest::SetClass', '1', '2', '--/set', '3', 'AppSignalsTest::SetClass'])
-    
-    assert_equal SetClass, app.get('0').class
-    assert_equal SetClass, app.get('3').class
-    
-    zero = app.get('0')
-    assert_equal [[zero, ['1', '2']]], app.queue.to_a
-  end
-  
-  def test_parse_returns_remaining_args
-    assert_equal ['a', 'b', 'c'], signal(:parse, ['--/info', '---', 'a', 'b', 'c'])
-  end
-  
-  def test_parse_does_not_use_bang_unless_specified
-    app.bang = false
-    
-    args = ['--/info', '---', 'a', 'b', 'c']
-    assert_equal ['a', 'b', 'c'], signal(:parse, args)
-    assert_equal ['--/info', '---', 'a', 'b', 'c'], args
-    
-    app.bang = true
-    
-    args = ['--/info', '---', 'a', 'b', 'c']
-    assert_equal ['a', 'b', 'c'], signal(:parse, args)
-    assert_equal ['a', 'b', 'c'], args
   end
   
   #

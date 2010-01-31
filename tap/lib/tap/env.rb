@@ -86,6 +86,8 @@ module Tap
     end
     
     def constant(const_str)
+      return const_str if const_str.kind_of?(Module)
+      
       namespaces.each do |ns|
         path = File.join(ns, const_str)
         constant = constants.find {|const| const.path == path }

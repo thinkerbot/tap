@@ -43,6 +43,33 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
+  # OBJECT test
+  #
+  
+  def test_OBJECT_regexp
+    r = App::OBJECT
+    
+    assert "nest/obj/sig" =~ r
+    assert_equal "nest/obj", $1
+    assert_equal "sig", $2
+    
+    assert "obj/sig" =~ r
+    assert_equal "obj", $1
+    assert_equal "sig", $2
+    
+    assert "/sig" =~ r
+    assert_equal "", $1
+    assert_equal "sig", $2
+    
+    assert "/" =~ r
+    assert_equal "", $1
+    assert_equal "", $2
+    
+    # non-matching
+    assert "str" !~ r
+  end
+  
+  #
   # documentation test
   #
   
@@ -666,41 +693,6 @@ class AppTest < Test::Unit::TestCase
     
     err = assert_raises(RuntimeError) { app.call('obj' => 'var') }
     assert_equal "cannot signal: #{obj.inspect}", err.message
-  end
-  
-  #
-  # parse test
-  #
-  
-  class ParseClass < App::Api
-  end
-  
-  def test_parse_parses_and_builds_specs_from_array
-    app.parse ['AppTest::ParseClass', '--/set', '3', 'AppTest::ParseClass']
-    
-    assert_equal ParseClass, app.get('0').class
-    assert_equal ParseClass, app.get('3').class
-  end
-  
-  def test_parse_accepts_a_block_to_filter_specs
-    app.parse "AppTest::ParseClass --/set 3 AppTest::ParseClass" do |spec|
-      spec[3] == "3" ? true : false
-    end
-    
-    assert_equal nil, app.get('0')
-    assert_equal ParseClass, app.get('3').class
-  end
-  
-  def test_parse_block_is_passed_to_parse_signals
-    app.parse "AppTest::ParseClass --/set 3 AppTest::ParseClass --/parse -. --/set 5 AppTest::ParseClass --/set 1 AppTest::ParseClass .-" do |spec|
-      type, obj, sig, var = spec
-      var == "3" || var == "5" || sig == "parse"
-    end
-    
-    assert_equal nil, app.get('0')
-    assert_equal nil, app.get('1')
-    assert_equal ParseClass, app.get('3').class
-    assert_equal ParseClass, app.get('5').class
   end
   
   #

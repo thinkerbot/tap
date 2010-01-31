@@ -5,7 +5,6 @@ require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
-require 'tap/parser'
 autoload(:YAML, 'yaml')
 
 module Tap
@@ -66,6 +65,17 @@ module Tap
       "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
     end
     
+    # Splits a signal into an object string and a signal string.  If OBJECT
+    # doesn't match, then the string can be considered a signal, and the
+    # object is nil. After a match:
+    #
+    #   $1:: The object string
+    #        (ex: 'obj/sig' => 'obj')
+    #   $2:: The signal string
+    #        (ex: 'obj/sig' => 'sig')
+    #
+    OBJECT = /\A(.*)\/(.*)\z/
+    
     # The state of the application (see App::State)
     attr_reader :state
     
@@ -88,7 +98,6 @@ module Tap
     config :force, false, :short => :f, &c.flag      # Force execution at checkpoints
     config :quiet, false, :short => :q, &c.flag      # Suppress logging
     config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
-    config :bang, true, &c.switch                    # Use parse! in build/parse signals
     
     signal :enq do |sig, argv|                       # enques an object
       argv[0] = sig.obj.obj(argv[0])
@@ -111,13 +120,6 @@ module Tap
     signal_hash :build,                              # build an object
       :signature => ['class'],
       :remainder => 'spec'
-    
-    signal_class :parse do                           # parse a workflow
-      def call(args) # :nodoc:
-        argv = convert_to_array(args, ['args'])
-        obj.send(obj.bang ? :parse! : :parse, argv, &block)
-      end
-    end
     
     signal_class :use do                             # enables middleware
       def call(args) # :nodoc:
@@ -152,21 +154,6 @@ module Tap
       def call(args) # :nodoc:
         lines = obj.objects.collect {|(key, obj)|  "#{key}: #{obj.class}" }
         lines.empty? ? "No objects yet..." : lines.sort.join("\n")
-      end
-    end
-    
-    signal_class :exec do
-      def call(args) # :nodoc:
-        paths = convert_to_array(args, ['paths'])
-        paths.each do |path|
-          File.open(path) do |io|
-            Parser.each_signal(io) do |sig|
-              obj.call(sig)
-            end
-          end
-        end
-        
-        obj
       end
     end
     
@@ -206,7 +193,7 @@ module Tap
       end
     end
     
-    signal :load, :class => Load, :bind => nil
+    signal_class :load, Load
     
     signal :help, :class => Help, :bind => nil       # signals help
     
@@ -383,6 +370,11 @@ module Tap
       route(obj, sig, &block).call(args)
     end
     
+    def signal(sig, &block)
+      sig = sig.to_s
+      sig =~ OBJECT ? route($1, $2, &block) : super(sig, &block)
+    end
+    
     def route(obj, sig, &block)
       unless object = get(obj)
         raise "unknown object: #{obj.inspect}"
@@ -412,15 +404,14 @@ module Tap
         
         case spec
         when Array
-          parse = bang ? :parse! : :parse
-          obj, args = klass.send(parse, spec, self)
-      
+          obj, args = klass.parse!(spec, self)
+          
           if block_given?
             yield(obj, args)
           else
             warn_ignored_args(args)
           end
-        
+          
         when Hash
           obj = klass.build(spec, self)
         else
@@ -437,70 +428,6 @@ module Tap
       end
       
       obj
-    end
-    
-    def parse(argv, &block) # :yields: spec
-      parse!(argv.dup, &block)
-    end
-    
-    def parse!(argv, &block) # :yields: spec
-      parser = Parser.new
-      argv = parser.parse!(argv)
-      
-      # The queue API does not provide a delete method, so picking out the
-      # deque jobs requires the whole queue be cleared, then re-enqued.
-      # Safety (and speed) is improved with synchronization.
-      queue.synchronize do
-        deque = []
-        
-        node_block = lambda do |obj, args|
-          queue.enq(obj, args)
-        end
-        
-        join_block = lambda do |obj, args|
-          if obj.respond_to?(:outputs)
-            deque.concat obj.outputs
-          end
-          warn_ignored_args(args)
-        end
-        
-        parser.specs.each do |spec|
-          if block_given?
-            next unless yield(spec)
-          end
-          
-          type, obj, sig, *args = spec
-          
-          sig_block = case sig
-          when 'set'
-            case type
-            when :node
-              node_block
-            when :join
-              join_block
-            else 
-              nil
-            end
-          when 'parse'
-            block
-          else
-            nil
-          end
-          
-          call('obj' => obj, 'sig' => sig, 'args' => args, &sig_block)  
-        end
-        
-        deque.uniq!
-        queue.clear.each do |(obj, args)|
-          if deque.delete(obj)
-            warn_ignored_args(args)
-          else
-            queue.enq(obj, args)
-          end
-        end
-      end
-
-      argv
     end
     
     # Adds the specified middleware to the stack.  The argv will be used as

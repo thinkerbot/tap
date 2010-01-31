@@ -12,9 +12,11 @@
 #
 
 $DEBUG = true if ENV['TAP_DEBUG'] == 'true'
-require "tap"
+require 'tap'
+require 'tap/parser'
 
 app = Tap.setup
+parser = Tap::Parser.new
 
 if ARGV == ['--help']
   puts Lazydoc.usage(__FILE__)
@@ -23,7 +25,8 @@ end
 
 loop do
   break if ARGV.empty?
-  app.parse!(ARGV)
+  parser.parse!(ARGV)
+  parser.build_to(app)
   
   break if ARGV.empty?
   psr = ConfigParser.new(app.config, 
@@ -34,7 +37,7 @@ loop do
   )
   psr.add(Tap::App.configurations)
   psr.scan(ARGV) do |file|
-    app.call('sig' => 'exec', 'args' => [file])
+    app.call('sig' => 'load', 'args' => [file])
   end
 end
 

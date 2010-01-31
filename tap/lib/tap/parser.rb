@@ -1,67 +1,9 @@
-autoload(:Shellwords, 'shellwords')
+require 'tap/join'
 
 module Tap
   
   # A parser for workflows defined on the command line.
   class Parser
-    class << self
-      def parse(argv=ARGV)
-        parse!(argv.dup)
-      end
-      
-      def parse!(argv=ARGV)
-        argv = shellsplit(argv) if argv.kind_of?(String)
-        return nil if argv.empty?
-        
-        sig, obj = argv.shift, nil
-        
-        if sig =~ OBJECT
-          obj, sig = $1, $2
-        end
-        
-        {'obj' => obj, 'sig' => sig, 'args' => argv}
-      end
-      
-      def shellsplit(line, comment="#")
-        words = []
-        field = ''
-        line.scan(/\G\s*(?>([^\s\\\'\"]+)|'([^\']*)'|"((?:[^\"\\]|\\.)*)"|(\\.?)|(\S))(\s|\z)?/m) do
-          |word, sq, dq, esc, garbage, sep|
-          raise ArgumentError, "Unmatched double quote: #{line.inspect}" if garbage
-          break if word == comment
-          field << (word || sq || (dq || esc).gsub(/\\(?=.)/, ''))
-          if sep
-            words << field
-            field = ''
-          end
-        end
-        words
-      end
-      
-      def each_signal(io)
-        offset = -1 * ($/.length + 1)
-        
-        carryover = nil
-        io.each_line do |line|
-          if line[offset] == ?\\
-            carryover ||= []
-            carryover << line[0, line.length + offset]
-            carryover << $/
-            next
-          end
-          
-          if carryover
-            carryover << line
-            line = carryover.join
-            carryover = nil
-          end
-          
-          signal = parse!(line)
-          yield(signal) if signal
-        end
-      end
-    end
-    
     # The escape begin argument
     ESCAPE_BEGIN = "-."
 
@@ -136,31 +78,18 @@ module Tap
     #
     SIGNAL = /\A\/(?:(.*)\/)?(.*)\z/
     
-    # Splits a signal into an object string and a signal string.  If OBJECT
-    # doesn't match, then the string can be considered a signal, and the
-    # object is nil. After a match:
-    #
-    #   $1:: The object string
-    #        (ex: 'obj/sig' => 'obj')
-    #   $2:: The signal string
-    #        (ex: 'obj/sig' => 'sig')
-    #
-    OBJECT = /\A(.*)\/(.*)\z/
-    
     attr_reader :specs
     
-    def initialize(specs=[])
-      @specs = specs
+    def initialize
+      @specs = []
     end
     
     def parse(argv)
-      argv = argv.dup unless argv.kind_of?(String)
-      parse!(argv)
+      parse!(argv.dup)
     end
 
     # Same as parse, but removes parsed args from argv.
     def parse!(argv)
-      argv = Shellwords.shellwords(argv) if argv.kind_of?(String)
       return argv if argv.empty?
       
       unless argv[0] =~ BREAK
@@ -218,7 +147,62 @@ module Tap
       argv
     end
     
+    def build_to(app)
+      queue = app.queue
+      deque = []
+      
+      # The queue API does not provide a delete method, so picking out the
+      # deque jobs requires the whole queue be cleared, then re-enqued.
+      # Safety (and speed) is improved with synchronization.
+      queue.synchronize do
+        node_block = lambda do |obj, args|
+          queue.enq(obj, args)
+        end
+
+        join_block = lambda do |obj, args|
+          if obj.respond_to?(:outputs)
+            deque.concat obj.outputs
+          end
+          warn_ignored_args(args)
+        end
+
+        specs.each do |spec|
+          type, obj, sig, *args = spec
+
+          sig_block = case type
+          when :node
+            node_block
+          when :join
+            join_block
+          else 
+            nil
+          end
+
+          app.call('obj' => obj, 'sig' => sig, 'args' => args, &sig_block)  
+        end
+
+        deque.uniq!
+        queue.clear.each do |(obj, args)|
+          if deque.delete(obj)
+            warn_ignored_args(args)
+          else
+            queue.enq(obj, args)
+          end
+        end
+      end
+      
+      specs.clear
+      self
+    end
+    
     private
+    
+    # warns of ignored args
+    def warn_ignored_args(args) # :nodoc:
+      if args && !args.empty?
+        warn "ignoring args: #{args.inspect}"
+      end
+    end
     
     def spec(*argv) # :nodoc:
       specs << argv
@@ -280,11 +264,11 @@ module Tap
       
       case 
       when modifier.nil?
-        argv << '/tap/join'
+        argv << Tap::Join
         argv << inputs
         argv << outputs
       when modifier =~ JOIN_MODIFIER
-        argv << ($2 || 'join')
+        argv << ($2 || Tap::Join)
         argv << inputs
         argv << outputs
         $1.split("").each {|char| argv << "-#{char}"}
