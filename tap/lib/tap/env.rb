@@ -87,7 +87,8 @@ module Tap
     def register(dir, map={})
       new_path = Path.new(dir, map)
       if paths.any? {|path| path == new_path }
-        raise "already registered: #{new_path}"
+        #raise "already registered: #{new_path}"
+        return new_path
       end
       
       paths << new_path

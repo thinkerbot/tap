@@ -36,6 +36,9 @@ class RubyBenchmark < Test::Unit::TestCase
       cmd = "#{ruby} -rubygems -e ''"
       x.report("ruby -rubygems") { n.times { `#{cmd}` } }
       
+      cmd = "#{ruby} -rrbconfig -e ''"
+      x.report("ruby -rrrbconfig") { n.times { `#{cmd}` } }
+      
       tap = `which tap`.chomp
       x.report("tap (installed)") { n.times { `#{tap}` } }
       

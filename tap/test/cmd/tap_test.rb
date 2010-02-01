@@ -11,7 +11,7 @@ class TapCmd < Test::Unit::TestCase
     "-I'#{TAP_ROOT}/../configurable/lib'",
     "-I'#{TAP_ROOT}/../lazydoc/lib'",
     "-I'#{TAP_ROOT}/lib'",
-    "'#{TAP_ROOT}/bin/tap --/env/auto '#{TAP_ROOT}/../tap-tasks' -- "
+    "'#{TAP_ROOT}/bin/tap' --/env/auto '#{TAP_ROOT}/../tap-tasks' -- "
   ].join(" ")
   
   def setup

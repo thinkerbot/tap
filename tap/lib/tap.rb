@@ -17,7 +17,7 @@ module Tap
     
     gems = options[:gems] || ENV['TAP_GEMS'] || []
     Env::Path.split(gems, nil).each do |gem_name|
-      load.call Env::Gems.env_paths(gem_name) 
+      load.call Env::Gems.env_files(gem_name) 
     end
     
     app = App.new({}, :env => env)
