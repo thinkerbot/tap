@@ -5,7 +5,10 @@ module Tap
   module Tasks
     # :startdoc::task
     class Sig < Tap::Task
-      def process(sig, *args)
+      config :bind, nil
+      
+      def process(*args)
+        sig = bind || args.shift
         app.call('sig' => sig, 'args' => args)
       end
     end

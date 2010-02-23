@@ -28,17 +28,19 @@ module Tap
     #   $1:: The string after the break, or nil
     #        (ex: '--' => nil, '--:' => ':', '--[1,2][3,4]' => '[1,2][3,4]')
     #
-    BREAK =  /\A-(-)?(?:\z|([\:\/].*?)\z)/
+    BREAK = /\A-(-|-?[\:\/].*)?\z/
   
     # The node modifier.
-    NODE_BREAK = nil
+    NODE = nil
+    
+    ENQUE_NODE = '-'
     
     # Matches a sequence break. After the match:
     #
     #   $1:: The modifier string, or nil
     #        (ex: ':' => nil, ':i' => 'i')
     #
-    SEQUENCE = /\A:(.+)?\z/
+    SEQUENCE = /\A(-)?:(.+)?\z/
   
     # Matches a join modifier. After the match:
     #
@@ -56,7 +58,10 @@ module Tap
     #   $2:: The signal string
     #        (ex: 'obj/sig' => 'sig')
     #
-    SIGNAL = /\A\/(.*)\z/
+    SIGNAL = /\A(-)?\/(.*)\z/
+    
+    ENQUE = lambda {|app, obj, argv| app.queue.enq(obj, argv) }
+    EXEC  = lambda {|app, obj, argv| app.dispatch(obj, argv) }
     
     attr_reader :specs
     
@@ -76,10 +81,9 @@ module Tap
         argv.unshift("--") 
       end
       
-      current_index = -1
+      index = -1
       current = nil
       escape = false
-      enque = []
       
       while !argv.empty?
         arg = argv.shift
@@ -98,29 +102,11 @@ module Tap
         # handle breaks and parser flags
         case arg
         when BREAK
-          current_index += 1
-          enque = $1.nil? ? false : true
-          current = spec(enque, current_index.to_s)
-          
-          case $2
-          when NODE_BREAK
-            # nothing to do...
-            
-          when SEQUENCE
-            unless current_index > 0
-              raise "no prior entry"
-            end
-
-            seq = parse_sequence($1)
-            seq << (current_index - 1).to_s
-            seq << current_index.to_s
-            
-          when SIGNAL
-            current << Tap::Tasks::Sig
-            current << $1
-            
-          else
-            raise "invalid break: #{arg}"
+          begin
+            index += 1
+            current = parse_break(index, $1)
+          rescue
+            raise "invalid break: #{arg} (#{$!.message})"
           end
           next
 
@@ -141,10 +127,8 @@ module Tap
     end
     
     def build_to(app)
-      specs.each do |(enque, args)|
-        app.call('sig' => 'set', 'args' => args) do |obj, argv|
-          app.enq(obj, *argv) if enque
-        end
+      specs.each do |(type, args)|
+        app.call('sig' => 'set', 'args' => args, &block(type))
       end
       
       specs.clear
@@ -153,16 +137,45 @@ module Tap
     
     private
     
-    def spec(enque, *argv) # :nodoc:
-      specs << [enque, argv]
+    def spec(type, *argv) # :nodoc:
+      specs << [type, argv]
       argv
     end
     
-    # parses the match of a SEQUENCE regexp
-    def parse_sequence(one) # :nodoc:
-      argv = spec(false, nil)
-      
+    def block(type) # :nodoc:
+      case type
+      when :ignore then nil
+      when :enque  then ENQUE
+      when :exec   then EXEC
+      else raise "unknown block type: #{type.inspect}"
+      end
+    end
+    
+    def parse_break(index, one) # :nodoc
       case one
+      when NODE
+        spec(:ignore, index.to_s)
+      when ENQUE_NODE
+        spec(:enque, index.to_s)
+      when SEQUENCE
+        parse_sequence(index, $1, $2)
+      when SIGNAL
+        parse_signal(index, $1, $2)
+      else
+        raise "invalid modifier"
+      end
+    end
+      
+    # parses the match of a SEQUENCE regexp
+    def parse_sequence(index, one, two) # :nodoc:
+      unless index > 0
+       raise "no prior entry"
+      end
+      
+      current = parse_break(index, one)
+      argv = spec(:ignore, nil)
+      
+      case two
       when nil
         argv << Tap::Join
       when MODIFIER
@@ -172,7 +185,15 @@ module Tap
         raise "invalid join modifier"
       end
       
-      argv
+      argv << (index - 1).to_s
+      argv << index.to_s
+      
+      current
+    end
+    
+    def parse_signal(index, one, two) # :nodoc:
+      type = one.nil? ? :exec : :enque
+      spec(type, index.to_s, Tap::Tasks::Sig, '--bind', two)
     end
   end
 end
