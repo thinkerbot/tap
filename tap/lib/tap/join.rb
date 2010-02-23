@@ -17,18 +17,6 @@ module Tap
   class Join < App::Api
     class << self
       
-      def parse!(argv=ARGV, app=Tap::App.instance)
-        parser = self.parser
-        argv = parser.parse!(argv, :add_defaults => false)
-        instance = build({
-          'config' => parser.nested_config,
-          'inputs' => argv.shift,
-          'outputs' => argv.shift
-        }, app)
-        
-        [instance, argv]
-      end
-      
       def build(spec={}, app=Tap::App.instance)
         inputs = resolve(spec['inputs']) do |var|
           app.get(var) or raise "missing join input: #{var}"
@@ -42,6 +30,14 @@ module Tap
       end
       
       protected
+      
+      def convert_to_spec(parser, args)
+        {
+          'config' => parser.nested_config,
+          'inputs' => args.shift,
+          'outputs' => args.shift
+        }
+      end
       
       def resolve(refs) # :nodoc:
         refs = case refs

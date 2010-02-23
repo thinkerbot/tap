@@ -387,37 +387,17 @@ module Tap
       object.signal(sig, &block)
     end
 
-    def build(spec)
+    def build(spec, &block)
       var = spec['var']
       clas = spec['class']
       spec = spec['spec'] || spec
-      obj = nil
       
-      if clas.nil?
-        unless spec.empty?
-          raise "no class specified"
-        end
-      else
-        unless klass = env.constant(clas)
-          raise "unresolvable constant: #{clas.inspect}"
-        end
-        
-        case spec
-        when Array
-          obj, args = klass.parse!(spec, self)
-          
-          if block_given?
-            yield(obj, args)
-          else
-            warn_ignored_args(args)
-          end
-          
-        when Hash
-          obj = klass.build(spec, self)
-        else
-          raise "invalid spec: #{spec.inspect}"
-        end
+      unless constant = env.constant(clas)
+        raise "unresolvable constant: #{clas.inspect}"
       end
+      
+      method_name = spec.kind_of?(Array) ? :parse : :build
+      obj = constant.send(method_name, spec, self, &block)
       
       unless var.nil?
         if var.respond_to?(:each)

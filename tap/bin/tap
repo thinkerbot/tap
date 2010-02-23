@@ -1,11 +1,8 @@
 #!/usr/bin/env ruby
-# usage: tap [workflow...]
+# usage: tap [workflow...] [--- tapfile]
 #
-# Parses and executes the workflow using Tap.
-#
-# examples:
-#   tap generate root .                  # generates a root dir
-#   tap run taskname --option input      # runs the 'taskname' task
+# workflows:
+#   tap load 'goodnight moon' --: dump   # a simple workflow
 #
 # help:
 #   tap --help                           # prints this help
@@ -20,6 +17,7 @@ parser = Tap::Parser.new
 
 if ARGV == ['--help']
   puts Lazydoc.usage(__FILE__)
+  puts "\nversion #{Tap::VERSION} -- #{Tap::WEBSITE}"
   exit(0)
 end
 

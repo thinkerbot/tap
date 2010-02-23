@@ -121,10 +121,6 @@ module Tap
           exit
         end
         
-        opts.on('--enque', 'Manually enques self') do
-          opts['enque'] = true
-        end
-        
         # add option to specify a config file
         opts.on('--config FILE', 'Specifies a config file') do |config_file|
           configs = Configurable::Utils.load_file(config_file, true)
@@ -132,20 +128,6 @@ module Tap
         end
         
         opts
-      end
-      
-      # Same as parse, but removes arguments destructively.
-      def parse!(argv=ARGV, app=Tap::App.instance)
-        parser = self.parser
-        
-        # (note defaults are not added so they will not
-        # conflict with string keys from a config file)
-        argv = parser.parse!(argv, :add_defaults => false)
-        enque = parser.config.delete('enque')
-        instance = build({'config' => parser.nested_config}, app)
-        
-        instance.enq(*argv) if enque
-        [instance, argv]
       end
     end
     

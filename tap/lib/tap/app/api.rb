@@ -56,17 +56,14 @@ module Tap
         # an argh then calls build, but there is no requirement that this
         # occurs in subclasses.
         def parse(argv=ARGV, app=Tap::App.instance)
-          parse!(argv.dup, app)
-        end
-      
-        # Same as parse, but removes arguments destructively.
-        def parse!(argv=ARGV, app=Tap::App.instance)
           parser = self.parser
-          argv = parser.parse!(argv, :add_defaults => false)
+          args = parser.parse!(argv, :add_defaults => false)
+          obj = build(convert_to_spec(parser, args), app)
           
-          [build({'config' => parser.nested_config}, app), argv]
+          block_given? ? yield(obj, args) : warn_ignored_args(args)
+          obj
         end
-      
+        
         # Returns an instance of self.  By default build calls new with the
         # configurations specified by spec['config'], and app.
         def build(spec={}, app=Tap::App.instance)
@@ -84,6 +81,18 @@ module Tap
           end
 
           lines.join("\n")
+        end
+        
+        protected
+        
+        def convert_to_spec(parser, args)
+          {'config' => parser.nested_config}
+        end
+        
+        def warn_ignored_args(args)
+          if args && !args.empty?
+            warn "ignoring args: #{args.inspect}"
+          end
         end
       end
     

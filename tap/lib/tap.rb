@@ -1,24 +1,14 @@
 require 'tap/version'
 require 'tap/app'
 require 'tap/env'
-require 'tap/join'
 
 module Tap
   module_function
   
   def setup(dir=Dir.pwd, options={})
     env = Env.new
-    env.set Tap::Join
-    env.ns 'tap'
-    load = env.signal(:load)
-    
-    env_path = options[:env_path] || ENV['TAP_ENV_PATH'] || ["tapenv"]
-    load.call Env::Path.split(env_path)
-    
-    gems = options[:gems] || ENV['TAP_GEMS'] || []
-    Env::Path.split(gems, nil).each do |gem_name|
-      load.call Env::Gems.env_files(gem_name) 
-    end
+    env_dirs = options[:env_dirs] || ENV['TAP_ENV_DIRS'] || ['.']
+    Env::Path.split(env_dirs).each {|dir| env.auto(dir) }
     
     app = App.new({}, :env => env)
     app.set('app', app)

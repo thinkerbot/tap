@@ -50,6 +50,7 @@ module Tap
     signal :unloadpath
     signal :unset
     signal :unns
+    signal :help, :class => Help, :bind => nil       # signals help
     
     def initialize(options={})
       @paths = options[:paths] || []

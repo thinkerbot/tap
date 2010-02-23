@@ -22,7 +22,7 @@ module Tap
           lines << "  /#{key.ljust(width)}#{desc}"
         end
         
-        "signals: (#{obj.class})\n#{lines.join("\n")}"
+        "signals (#{obj.class})\n#{lines.join("\n")}"
       end
       
       def desc(sig)
