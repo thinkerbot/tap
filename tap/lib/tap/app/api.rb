@@ -60,7 +60,7 @@ module Tap
           args = parser.parse!(argv, :add_defaults => false)
           obj = build(convert_to_spec(parser, args), app)
           
-          block_given? ? yield(app, obj, args) : warn_ignored_args(args)
+          block_given? ? yield(obj, args) : warn_ignored_args(args)
           obj
         end
         
