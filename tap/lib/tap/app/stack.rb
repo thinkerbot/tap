@@ -17,7 +17,7 @@ module Tap
       #
       def call(node, inputs)
         app.check_terminate
-        node.call(*inputs)
+        node.call(inputs)
       end
     end
   end

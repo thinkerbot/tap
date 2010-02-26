@@ -1,5 +1,5 @@
 require 'tap/join'
-require 'tap/tasks/sig'
+require 'tap/signal'
 
 module Tap
   
@@ -40,6 +40,17 @@ module Tap
     #        (ex: 'obj/sig' => 'sig')
     #
     SIGNAL = /\A-\/(.*)\z/
+    
+    # Splits a signal into an object string and a signal string.  If OBJECT
+    # doesn't match, then the string can be considered a signal, and the
+    # object is nil. After a match:
+    #
+    #   $1:: The object string
+    #        (ex: 'obj/sig' => 'obj')
+    #   $2:: The signal string
+    #        (ex: 'obj/sig' => 'sig')
+    #
+    OBJECT = /\A(.*)\/(.*)\z/
     
     # The escape begin argument
     ESCAPE_BEGIN = "-."
@@ -185,9 +196,16 @@ module Tap
       raise "no signal specified" if one.empty?
       
       args = next_args
-      args << Tap::Tasks::Sig
-      args << '--bind'
-      args << one
+      args << Tap::Signal
+      
+      if one =~ OBJECT
+        args << $1
+        args << $2
+      else
+        args << nil
+        args << one
+      end
+      
       spec(:enque, args)
     end
   end

@@ -66,15 +66,6 @@ module Tap
     # Causes the outputs to be enqued rather than executed immediately.
     config :enq, false, :short => 'q', &c.flag      # Enque output nodes
     
-    # Splats the result to the outputs, allowing a many-to-one join
-    # from the perspective of the results.
-    #
-    #   # results: [1,2,3]
-    #   # outputs: call(*inputs)
-    #   app.execute(output, *result)
-    #
-    config :splat, false, :short => 's', &c.flag    # Splat results to outputs
-    
     # Iterates the results to the outputs, allowing a many-to-one join
     # from the perspective of the results.  Non-array results are converted
     # to arrays using to_ary:
@@ -138,7 +129,7 @@ module Tap
     # each output.
     def call(result)
       outputs.each do |output|
-        dispatch(output, result)
+        execute(output, result)
       end
     end
     
@@ -155,20 +146,12 @@ module Tap
     
     protected
     
-    # Dispatches the results to the node.
-    def dispatch(node, result) # :nodoc:
-      mode = enq ? :enq : :execute
-      if iterate
-        result.to_ary.each {|r| execute(mode, node, r) }
-      else
-        execute(mode, node, result)
-      end
-    end
-    
     # Executes the node with the input results.
-    def execute(mode, node, result) # :nodoc:
-      if splat
-        app.send(mode, node, *result)
+    def execute(node, result) # :nodoc:
+      mode = enq ? :enq : :execute
+      
+      if iterate
+        result.to_ary.each {|item| app.send(mode, node, item) }
       else
         app.send(mode, node, result)
       end

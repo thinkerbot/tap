@@ -65,17 +65,6 @@ module Tap
       "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
     end
     
-    # Splits a signal into an object string and a signal string.  If OBJECT
-    # doesn't match, then the string can be considered a signal, and the
-    # object is nil. After a match:
-    #
-    #   $1:: The object string
-    #        (ex: 'obj/sig' => 'obj')
-    #   $2:: The signal string
-    #        (ex: 'obj/sig' => 'sig')
-    #
-    OBJECT = /\A(.*)\/(.*)\z/
-    
     # The state of the application (see App::State)
     attr_reader :state
     
@@ -370,11 +359,6 @@ module Tap
       route(obj, sig, &block).call(args)
     end
     
-    def signal(sig, &block)
-      sig = sig.to_s
-      sig =~ OBJECT ? route($1, $2, &block) : super(sig, &block)
-    end
-    
     def route(obj, sig, &block)
       unless object = get(obj)
         raise "unknown object: #{obj.inspect}"
@@ -463,12 +447,6 @@ module Tap
       self
     end
     
-    # Execute is a wrapper for dispatch allowing inputs to be listed out
-    # rather than provided as an array.
-    def execute(node, *inputs)
-      dispatch(node, inputs)
-    end
-    
     # Dispatch does the following in order:
     #
     # - call stack with the node and inputs
@@ -479,7 +457,7 @@ module Tap
     # not provide a joins method.
     #
     # Dispatch returns the stack result.
-    def dispatch(node, inputs=[])
+    def execute(node, inputs=[])
       result = stack.call(node, inputs)
       
       if node.respond_to?(:joins)
@@ -523,7 +501,7 @@ module Tap
       begin
         while state == State::RUN
           break unless entry = queue.deq
-          dispatch(*entry)
+          execute(*entry)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors

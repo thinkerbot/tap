@@ -23,6 +23,14 @@ module Tap
       sig = sig.to_s
       self.class.signals.has_key?(sig.to_s)
     end
+    
+    def sig(signal)
+      signal = signal.class
+      self.class.signals.each_pair do |sig, value|
+        return sig if value == signal
+      end
+      nil
+    end
   end
 end
 

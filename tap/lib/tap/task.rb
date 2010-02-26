@@ -152,11 +152,12 @@ module Tap
     end
     
     def execute(*inputs)
-      app.dispatch(self, inputs)
+      app.execute(self, inputs)
     end
     
-    def call(*inputs)
-      process(*inputs)
+    def call(inputs)
+      result = process(*inputs)
+      result ? [result] : []
     end
     
     # The method for processing inputs into outputs.  Override this method in
