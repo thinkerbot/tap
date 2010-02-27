@@ -39,5 +39,11 @@ loop do
   end
 end
 
-app.run
+begin
+  app.run
+rescue(Exception)
+  YAML.dump(app.serialize, $stderr)
+  raise
+end
+
 exit(0)

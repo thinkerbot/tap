@@ -43,6 +43,7 @@ module Tap
   
     def initialize(obj, app=Tap::App.instance, &block)
       @obj = obj
+      @app = app
       @joins = []
       @block = block
     end
@@ -58,7 +59,7 @@ module Tap
     end
   
     def associations
-      [obj]
+      [[obj]]
     end
   
     def to_spec
@@ -67,7 +68,11 @@ module Tap
         'sig' => obj.sig(self)
       }
     end
-  
+    
+    def inspect
+      "#<#{self.class}:#{object_id}>"
+    end
+    
     protected
   
     def convert_to_array(obj, signature=[], options=false)

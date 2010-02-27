@@ -679,6 +679,10 @@ module Tap
       # obj must exist before brefs (back-references)
       if obj.respond_to?(:associations)
         refs, brefs = obj.associations
+        
+        unless array_or_nil?(refs) && array_or_nil?(brefs)
+          raise "invalid associations on object (refs, brefs must be an array or nil): #{obj.inspect}"
+        end
       
         refs.each {|ref| trace(ref, specs, order) } if refs
         order << obj
@@ -688,6 +692,10 @@ module Tap
       end
       
       order
+    end
+    
+    def array_or_nil?(obj) # :nodoc:
+      obj.nil? || obj.kind_of?(Array)
     end
     
     def self_to_spec # :nodoc:

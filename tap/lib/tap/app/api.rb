@@ -118,7 +118,7 @@ module Tap
       # config is a stringified representation of the configurations for self.
       def to_spec
         config = self.config.to_hash {|hash, key, value| hash[key.to_s] = value }
-        {'config' => config}
+        config.empty? ? {} : {'config' => config}
       end
     end
   end
