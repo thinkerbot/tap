@@ -40,9 +40,9 @@ class JoinTest < Test::Unit::TestCase
     e = app.node { 'd' }
     app.join([a,b], [c,d])
     
-    app.enq a
-    app.enq b
-    app.enq e
+    a.enq
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -70,9 +70,9 @@ class JoinTest < Test::Unit::TestCase
     e = app.node { 'd' }
     join = app.join([a,b], [c,d], :enq => true)
     
-    app.enq a
-    app.enq b
-    app.enq e
+    a.enq
+    b.enq
+    e.enq
     app.run
     
     assert_equal [
@@ -104,9 +104,9 @@ class JoinTest < Test::Unit::TestCase
     e = app.node { 'd' }
     join = app.join([a,b], [c,d], :iterate => true)
     
-    app.enq a
-    app.enq b
-    app.enq e
+    a.enq
+    b.enq
+    e.enq
     app.run
     
     assert_equal [
@@ -127,70 +127,6 @@ class JoinTest < Test::Unit::TestCase
       'a1.d',
       'b0.d',
       'b1.d',
-    ], results[d]
-  end
-  
-  def test_splat_join
-    a = app.node { %w{a0 a1} }
-    b = app.node { %w{b0 b1} }
-    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
-    e = app.node { 'd' }
-    join = app.join([a,b], [c,d], :splat => true)
-    
-    app.enq a
-    app.enq b
-    app.enq e
-    app.run
-    
-    assert_equal [
-      a, c, d,
-      b, c, d,
-      e,
-    ], runlist
-
-    assert_equal [
-      ['a0.c', 'a1.c'],
-      ['b0.c', 'b1.c'],
-    ], results[c]
-    
-    assert_equal [
-      ['a0.d', 'a1.d'],
-      ['b0.d', 'b1.d'],
-    ], results[d]
-  end
-  
-  def test_iterate_splat_join
-    a = app.node { [%w{a0 a1}, "a2"] }
-    b = app.node { [%w{b0 b1}, "b2"] }
-    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
-    e = app.node { 'd' }
-    join = app.join([a,b], [c,d], :iterate => true, :splat => true)
-    
-    app.enq a
-    app.enq b
-    app.enq e
-    app.run
-    
-    assert_equal [
-      a, c, c, d, d,
-      b, c, c, d, d,
-      e,
-    ], runlist
-
-    assert_equal [
-      ['a0.c', 'a1.c'],
-      ['a2.c'],
-      ['b0.c', 'b1.c'],
-      ['b2.c'],
-    ], results[c]
-    
-    assert_equal [
-      ['a0.d', 'a1.d'],
-      ['a2.d'],
-      ['b0.d', 'b1.d'],
-      ['b2.d'],
     ], results[d]
   end
   

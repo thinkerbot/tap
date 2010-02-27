@@ -1,27 +1,38 @@
 module Tap
   class App
-    
-    # Node adds the node API[link:files/doc/API.html] to objects responding
-    # to call.  Additional helper methods are added to simplify the
-    # construction of workflows; they are not required by the API.
-    module Node
-
+    class Node
+      class << self
+        # Interns a new node by extending the block with Node. 
+        def intern(app=Tap::App.instance, &block)
+          new(block, app)
+        end
+      end
+      
+      attr_reader :app
+      
+      attr_reader :callable
+      
       # The joins called when call completes
       attr_accessor :joins
       
       # Interns a new node by extending the block with Node. 
-      def self.intern(&block)
-        block.extend self
+      def initialize(callable, app=Tap::App.instance)
+        @callable = callable
+        @app = app
+        @joins = []
       end
       
-      # Sets up required variables for extended objects.
-      def self.extended(obj) # :nodoc:
-        obj.instance_variable_set(:@joins, [])
+      def call(input)
+        callable.call(*input)
+      end
+      
+      def enq(*args)
+        app.enq(self, args)
       end
       
       # Sets the block as a join for self.
       def on_complete(&block) # :yields: result
-        self.joins << block if block
+        joins << block if block
         self
       end
     end

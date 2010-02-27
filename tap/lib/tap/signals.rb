@@ -1,4 +1,5 @@
 require 'tap/signals/module_methods'
+require 'tap/signals/configure'
 require 'tap/signals/help'
 require 'tap/signals/load'
 

@@ -72,13 +72,12 @@ module Tap
       def signal(sig, opts={}) # :yields: sig, argv
         signature = opts[:signature] || []
         remainder = opts[:remainder] || false
+        opts[:caller_index] ||= 2
         
-        signal = define_signal(sig, opts) do |args|
+        define_signal(sig, opts) do |args|
           argv = convert_to_array(args, signature, remainder)
           block_given? ? yield(self, argv) : argv
         end
-        
-        register_signal(sig, signal, opts)
       end
       
       # Defines a signal to call a method that receives a single hash as an
@@ -91,21 +90,39 @@ module Tap
       def signal_hash(sig, opts={}) # :yields: sig, argh
         signature = opts[:signature] || []
         remainder = opts[:remainder]
+        opts[:caller_index] ||= 2
         
-        signal = define_signal(sig, opts) do |args|
+        define_signal(sig, opts) do |args|
           argh = convert_to_hash(args, signature, remainder)
           [block_given? ? yield(self, argh) : argh]
         end
-        
-        register_signal(sig, signal, opts)
       end
       
-      def signal_class(sig, signal_class=Signal, opts={}, &block) # :yields: sig, argv
+      def define_signal(sig, opts=nil, &block) # :yields: args
+        unless opts.kind_of?(Hash)
+          opts = {:class => opts, :bind => false}
+        end
+        
+        # generate a subclass of signal
+        klass = opts[:class] || Signal
+        signal = Class.new(klass)
+        
+        # bind the new signal
+        method_name = opts.has_key?(:bind) ? opts[:bind] : sig
+        if method_name
+          signal.send(:define_method, :call) do |args|
+            args = process(args)
+            obj.send(method_name, *args, &self.block)
+          end
+        end
+        
         if block_given?
-          signal = Class.new(signal_class)
-          signal.class_eval(&block)
-        else
-          signal = signal_class
+          signal.send(:define_method, :process, &block)
+        end
+        
+        if signal.respond_to?(:desc=)
+          caller_index = opts[:caller_index] || 1
+          signal.desc ||= Lazydoc.register_caller(Lazydoc::Trailer, caller_index)
         end
         
         register_signal(sig, signal, opts)
@@ -161,32 +178,7 @@ module Tap
         super
       end
       
-      def define_signal(sig, opts={}, &block) # :nodoc:
-        # generate a subclass of signal
-        klass = opts[:class] || Signal
-        signal = Class.new(klass)
-        
-        # bind the new signal
-        method_name = opts.has_key?(:bind) ? opts[:bind] : sig
-        if method_name
-          signal.send(:define_method, :call) do |args|
-            args = process(args)
-            obj.send(method_name, *args, &self.block)
-          end
-        end
-        
-        if block_given?
-          signal.send(:define_method, :process, &block)
-        end
-        
-        signal
-      end
-      
       def register_signal(sig, signal, opts={}) # :nodoc:
-        if signal.respond_to?(:desc=)
-          signal.desc ||= Lazydoc.register_caller(Lazydoc::Trailer, 2)
-        end
-        
         signal_registry[sig.to_s] = signal
         cache_signals(@signals != nil)
         

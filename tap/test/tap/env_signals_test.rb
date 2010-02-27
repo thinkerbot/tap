@@ -4,7 +4,7 @@ require 'tap/test'
 
 class EnvSignalsTest < Test::Unit::TestCase
   extend Tap::Test
-  acts_as_file_test
+  acts_as_tap_test
   
   Env = Tap::Env
   

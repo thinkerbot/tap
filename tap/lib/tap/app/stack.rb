@@ -11,13 +11,13 @@ module Tap
         @app = app
       end
       
-      # Checks app for termination and then calls the node with the inputs:
+      # Checks app for termination and then calls the node with the input:
       #
-      #   node.call(*inputs)
+      #   node.call(input)
       #
-      def call(node, inputs)
+      def call(node, input)
         app.check_terminate
-        node.call(inputs)
+        node.call(input)
       end
     end
   end

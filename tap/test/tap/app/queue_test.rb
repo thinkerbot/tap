@@ -24,14 +24,14 @@ class QueueTest < Test::Unit::TestCase
   # enq test
   #
   
-  def test_enq_pushes_task_and_inputs_onto_queue
+  def test_enq_pushes_task_and_input_onto_queue
     assert_equal [], queue.to_a
     
-    queue.enq(m, [1])
-    assert_equal [[m,[1]]], queue.to_a
+    queue.enq(m, :a)
+    assert_equal [[m, :a]], queue.to_a
 
-    queue.enq(m, [2])
-    assert_equal [[m,[1]], [m,[2]]], queue.to_a
+    queue.enq(m, :b)
+    assert_equal [[m, :a], [m, :b]], queue.to_a
   end
 
   #
@@ -41,11 +41,11 @@ class QueueTest < Test::Unit::TestCase
   def test_unshift
     assert_equal [], queue.to_a
     
-    queue.unshift(m, [1])
-    assert_equal [[m,[1]]], queue.to_a
+    queue.unshift(m, :a)
+    assert_equal [[m, :a]], queue.to_a
 
-    queue.unshift(m, [2])
-    assert_equal [[m,[2]], [m,[1]]], queue.to_a
+    queue.unshift(m, :b)
+    assert_equal [[m, :b], [m, :a]], queue.to_a
   end
 
   #
@@ -53,11 +53,11 @@ class QueueTest < Test::Unit::TestCase
   #
   
   def test_deq
-    queue.enq(m, [1])
-    queue.enq(m, [2])
+    queue.enq(m, :a)
+    queue.enq(m, :b)
     
-    assert_equal [m, [1]], queue.deq
-    assert_equal [m, [2]], queue.deq
+    assert_equal [m, :a], queue.deq
+    assert_equal [m, :b], queue.deq
   end
   
   #
@@ -86,9 +86,9 @@ class QueueTest < Test::Unit::TestCase
   def test_clear_returns_existing_queue
     assert_equal([], queue.to_a)
     
-    queue.enq m, [1,2]
-    queue.enq m, [3,4]
-    assert_equal [[m, [1,2]], [m, [3,4]]], queue.clear
+    queue.enq m, :a
+    queue.enq m, :b
+    assert_equal [[m, :a], [m, :b]], queue.clear
   end
   
   #
@@ -99,35 +99,35 @@ class QueueTest < Test::Unit::TestCase
     # control
     a = Thread.new do
       Thread.pass;
-      queue.enq(m, [1])
+      queue.enq(m, :a)
       Thread.pass
-      queue.enq(m, [2])
+      queue.enq(m, :b)
     end
     
-    queue.enq(m, [3])
+    queue.enq(m, :c)
     Thread.pass
-    queue.enq(m, [4])
+    queue.enq(m, :d)
     
     a.join
-    assert_equal [[m, [3]], [m, [1]], [m, [4]], [m, [2]]], queue.to_a
+    assert_equal [[m, :c], [m, :a], [m, :d], [m, :b]], queue.to_a
     queue.clear
     
     # sync
     a = Thread.new do
       Thread.pass;
-      queue.enq(m, [1])
+      queue.enq(m, :a)
       Thread.pass
-      queue.enq(m, [2])
+      queue.enq(m, :b)
     end
     
     queue.synchronize do
-      queue.enq(m, [3])
+      queue.enq(m, :c)
       Thread.pass
-      queue.enq(m, [4])
+      queue.enq(m, :d)
     end
     
     a.join
-    assert_equal [[m, [3]], [m, [4]], [m, [1]], [m, [2]]], queue.to_a
+    assert_equal [[m, :c], [m, :d], [m, :a], [m, :b]], queue.to_a
   end
   
   #
@@ -135,12 +135,12 @@ class QueueTest < Test::Unit::TestCase
   #
   
   def test_to_a_returns_an_array_of_enqued_methods_and_entries
-    queue.enq m, [1]
-    queue.enq m, [2]
+    queue.enq m, :a
+    queue.enq m, :b
     
     assert_equal [
-      [m, [1]],
-      [m, [2]]
+      [m, :a],
+      [m, :b]
     ], queue.to_a
   end
 end

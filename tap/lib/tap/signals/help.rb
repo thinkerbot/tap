@@ -1,12 +1,10 @@
-require 'tap/signals'
-
 module Tap
   module Signals
     class Help < Signal
       
-      def call(args)
-        argv = convert_to_array(args, ['sig'])
-        argv.empty? ? list : desc(*argv)
+      def call(input)
+        args = convert_to_array(input, ['sig'])
+        args.empty? ? list : process(*args)
       end
       
       def list
@@ -25,7 +23,7 @@ module Tap
         "signals (#{obj.class})\n#{lines.join("\n")}"
       end
       
-      def desc(sig)
+      def process(sig)
         clas = obj.signal(sig).class
         
         if clas.respond_to?(:desc)

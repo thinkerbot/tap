@@ -1,5 +1,4 @@
 require 'tap/join'
-require 'tap/signal'
 
 module Tap
   
@@ -39,7 +38,7 @@ module Tap
     #   $2:: The signal string
     #        (ex: 'obj/sig' => 'sig')
     #
-    SIGNAL = /\A-\/(.*)\z/
+    SIGNAL = /\A-(-)?\/(.*)\z/
     
     # Splits a signal into an object string and a signal string.  If OBJECT
     # doesn't match, then the string can be considered a signal, and the
@@ -103,7 +102,7 @@ module Tap
           # parse option/break arguments
           case arg
           when SET
-            current = spec(:ignore)
+            current = spec(:set)
           when ENQUE
             current = spec(:enque)
           when OPTION
@@ -111,7 +110,7 @@ module Tap
           when JOIN
             current = parse_join($1)
           when SIGNAL
-            current = parse_signal($1)
+            current = parse_signal($1, $2)
           when EXECUTE
             current = spec(:execute)
           when ESCAPE_BEGIN
@@ -160,7 +159,7 @@ module Tap
       when :enque
         lambda {|obj, args| app.queue.enq(obj, args) }
       when :execute
-        lambda {|obj, args| app.dispatch(obj, args) }
+        lambda {|obj, args| app.execute(obj, args) }
       else
         nil
       end
@@ -172,8 +171,8 @@ module Tap
         raise "no prior entry"
       end
       
-      current = spec(:ignore)
-      join = spec(:ignore, [nil])
+      current = spec(:set)
+      join = spec(:set, [nil])
       
       case one
       when nil
@@ -192,21 +191,19 @@ module Tap
     end
     
     # parses the match of a SIGNAL regexp
-    def parse_signal(one) # :nodoc:
-      raise "no signal specified" if one.empty?
-      
+    def parse_signal(one, two) # :nodoc:
       args = next_args
       args << Tap::Signal
       
-      if one =~ OBJECT
+      if two =~ OBJECT
         args << $1
         args << $2
       else
         args << nil
-        args << one
+        args << two
       end
       
-      spec(:enque, args)
+      spec(one.nil? ? :enque : :execute, args)
     end
   end
 end

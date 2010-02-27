@@ -96,8 +96,6 @@ module Tap
   #   end
   #
   class Task < App::Api
-    include App::Node
-    
     class << self
       
       def parser
@@ -134,6 +132,8 @@ module Tap
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
     
+    attr_reader :joins
+    
     # Initializes a new Task.
     def initialize(config={}, app=Tap::App.instance)
       @joins = []
@@ -147,7 +147,7 @@ module Tap
     # Enqueues self to app with the inputs. The number of inputs provided
     # should match the number of inputs for the method_name method.
     def enq(*inputs)
-      app.queue.enq(self, inputs)
+      app.enq(self, inputs)
       self
     end
     
@@ -156,8 +156,7 @@ module Tap
     end
     
     def call(inputs)
-      result = process(*inputs)
-      result ? [result] : []
+      process(*inputs)
     end
     
     # The method for processing inputs into outputs.  Override this method in
@@ -234,6 +233,12 @@ module Tap
     # Logs the inputs to the application logger (via app.log)
     def log(action, msg=nil, level=Logger::INFO)
       app.log(action, msg, level) { yield }
+    end
+    
+    # Sets the block as a join for self.
+    def on_complete(&block) # :yields: result
+      self.joins << block if block
+      self
     end
     
     # Provides an abbreviated version of the default inspect, with only

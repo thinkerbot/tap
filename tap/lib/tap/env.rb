@@ -37,7 +37,7 @@ module Tap
     attr_reader :constants
     attr_reader :namespaces
     
-    signal_class :load, Load
+    define_signal :load, Load
     
     signal_hash :auto, :signature => [:dir, :pathfile, :lib, :pattern]
     
@@ -50,7 +50,7 @@ module Tap
     signal :unloadpath
     signal :unset
     signal :unns
-    signal :help, :class => Help, :bind => nil       # signals help
+    define_signal :help, Help                       # signals help
     
     def initialize(options={})
       @paths = options[:paths] || []
@@ -72,17 +72,20 @@ module Tap
     end
     
     def constant(const_str)
-      return const_str if const_str.kind_of?(Module)
-      
-      namespaces.each do |ns|
-        path = File.join(ns, const_str)
-        constant = constants.find {|const| const.path == path }
+      case const_str
+      when Module, nil
+        const_str
+      else
+        namespaces.each do |ns|
+          path = File.join(ns, const_str)
+          constant = constants.find {|const| const.path == path }
         
-        return constant.constantize if constant
-      end
+          return constant.constantize if constant
+        end
       
-      constant = constants.find {|const| const.const_name == const_str }
-      constant ? constant.constantize : nil
+        constant = constants.find {|const| const.const_name == const_str }
+        constant ? constant.constantize : nil
+      end
     end
     
     def register(dir, map={})

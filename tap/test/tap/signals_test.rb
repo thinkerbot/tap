@@ -1,7 +1,11 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/signals'
+require 'tap/test'
 
 class SignalsTest < Test::Unit::TestCase
+  extend Tap::Test
+  acts_as_tap_test
+  
   Signals = Tap::Signals
   
   #
@@ -173,46 +177,45 @@ class SignalsTest < Test::Unit::TestCase
   end
   
   #
-  # signal_class options
+  # define_signal options
   #
   
   class SignalClassTest
     include Signals
     
-    signal_class :key do
-      def process(argv)
-        argv << "was in process"
-        argv
-      end
+    define_signal :key do |input|
+      input << "was in block"
+      input
     end
   end
   
-  def test_signal_class_creates_signal_subclass
+  def test_define_signal_creates_signal_subclass
     assert SignalClassTest.signals.has_key?('key')
     
     obj = SignalClassTest.new
-    assert_equal [1,2,3, "was in process"], obj.signal('key').call([1,2,3])
+    assert_equal [1,2,3, "was in block"], obj.signal('key').call([1,2,3])
   end
   
   class SignalSubClassTest
     include Signals
     
-    class Sub < Signal
+    class Sub < Tap::Signal
       def process(argv)
         argv << "was in process"
         argv
       end
     end
     
-    signal_class :key, Sub
+    define_signal :key, Sub
   end
   
-  def test_signal_class_sets_class_if_no_block_is_specified
+  def test_define_signal_sets_class_if_no_block_is_specified
     assert SignalSubClassTest.signals.has_key?('key')
     
     obj = SignalSubClassTest.new
     sig = obj.signal('key')
-    assert_equal SignalSubClassTest::Sub, sig.class
+    assert_equal SignalSubClassTest::Key, sig.class
+    assert_equal SignalSubClassTest::Sub, sig.class.superclass
     assert_equal [1,2,3, "was in process"], sig.call([1,2,3])
   end
   

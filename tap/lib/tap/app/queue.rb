@@ -9,10 +9,10 @@ module Tap
     # === API
     #
     # The following methods are required in alternative implementations of an
-    # applicaton queue, where a job is a [node, inputs] array:
+    # applicaton queue, where a job is a [node, input] array:
     #
-    #   enq(node, inputs)     # pushes the job onto the queue
-    #   unshift(node, inputs) # unshifts the job onto the queue
+    #   enq(node, input)      # pushes the job onto the queue
+    #   unshift(node, input)  # unshifts the job onto the queue
     #   deq                   # shifts a job off the queue
     #   size                  # returns the number of jobs in the queue
     #   clear                 # clears the queue, returns current jobs
@@ -29,22 +29,21 @@ module Tap
         @queue = []
       end
       
-      # Enqueues the node and inputs as a job.
-      def enq(node, inputs)
+      # Enqueues the node and input.
+      def enq(node, input)
         synchronize do
-          @queue.push [node, inputs]
+          @queue.push [node, input]
         end
       end
       
-      # Enqueues the node and inputs, but to the top of the queue.
-      def unshift(node, inputs)
+      # Enqueues the node and input, but to the top of the queue.
+      def unshift(node, input)
         synchronize do
-          @queue.unshift [node, inputs]
+          @queue.unshift [node, input]
         end
       end
       
-      # Dequeues the next job as an array like [node, inputs]. Returns nil if
-      # the queue is empty.
+      # Dequeues the next job. Returns nil if the queue is empty.
       def deq
         synchronize { @queue.shift }
       end

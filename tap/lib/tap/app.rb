@@ -47,7 +47,6 @@ module Tap
     include Configurable
     include MonitorMixin
     include Signals
-    include Node
     
     # The reserved call keys
     CALL_KEYS = %w{obj sig args}
@@ -83,108 +82,87 @@ module Tap
     # The application environment
     attr_accessor :env
     
-    config :debug, false, :short => :d, &c.flag      # Flag debugging
-    config :force, false, :short => :f, &c.flag      # Force execution at checkpoints
-    config :quiet, false, :short => :q, &c.flag      # Suppress logging
-    config :verbose, false, :short => :v, &c.flag    # Enables extra logging (overrides quiet)
+    attr_reader :joins
     
-    signal :enq do |sig, argv|                       # enques an object
-      argv[0] = sig.obj.obj(argv[0])
-      argv
+    config :debug, false, :short => :d, &c.flag     # Flag debugging
+    config :force, false, :short => :f, &c.flag     # Force execution at checkpoints
+    config :quiet, false, :short => :q, &c.flag     # Suppress logging
+    config :verbose, false, :short => :v, &c.flag   # Enables extra logging (overrides quiet)
+    
+    signal :enq do |sig, argv|                      # enques an object
+      var, *input = argv
+      [sig.obj.obj(var), input]
     end
     
     signal :pq do |sig, argv|                       # priority-enques an object
-      argv[0] = sig.obj.obj(argv[0])
-      argv
+      var, *input = argv
+      [sig.obj.obj(var), input]
     end
     
-    signal_hash :set,                                # set or unset objects
+    signal_hash :set,                               # set or unset objects
       :signature => ['var', 'class'],
       :remainder => 'spec',
       :bind => :build
       
-    signal :get,                                     # get objects
+    signal :get,                                    # get objects
       :signature => ['var']
     
-    signal_hash :build,                              # build an object
+    signal_hash :build,                             # build an object
       :signature => ['class'],
       :remainder => 'spec'
     
-    signal_class :use do                             # enables middleware
-      def call(args) # :nodoc:
-        spec = convert_to_hash(args, ['class'], 'spec')
-        obj.stack = obj.build(spec, &block)
-      end
+    define_signal :use do |input|                   # enables middleware
+      spec = convert_to_hash(input, ['class'], 'spec')
+      obj.stack = obj.build(spec, &block)
     end
     
-    signal_class :configure do                       # configures the app
-      def call(config) # :nodoc:
-        if config.kind_of?(Array)
-          psr = ConfigParser.new(:add_defaults => false)
-          psr.add(obj.class.configurations)
-          args = psr.parse!(config)
-          obj.send(:warn_ignored_args, args)
-          
-          config = psr.config
+    define_signal :configure, Configure             # configures the app
+    
+    signal :reset                                   # reset the app
+    signal :run                                     # run the app
+    signal :stop                                    # stop the app
+    signal :terminate                               # terminate the app
+    signal :info                                    # prints app status
+    
+    define_signal :list do |input|                  # list available objects
+      lines = obj.objects.collect {|(key, obj)|  "#{key}: #{obj.class}" }
+      lines.empty? ? "No objects yet..." : lines.sort.join("\n")
+    end
+    
+    define_signal :serialize do |input|             # serialize the app as signals
+      if input.kind_of?(Array)
+        psr = ConfigParser.new
+        psr.on('--[no-]bare') {|value| psr['bare'] = value }
+        path, *ignored = psr.parse!(input)
+        psr['path'] = path
+        input = psr.config
+      end
+      
+      bare = input.has_key?('bare') ? input['bare'] : true
+      signals = obj.serialize(bare)
+      
+      if path = input['path']
+        File.open(path, "w") {|io| YAML.dump(signals, io) }
+      else
+        YAML.dump(signals, $stdout)
+      end
+      
+      obj
+    end
+    
+    define_signal :import do |input|                # import serialized signals
+      paths = convert_to_array(input, ['paths'])
+      paths.each do |path|
+        YAML.load_file(path).each do |signal|
+          obj.call(signal)
         end
-        
-        obj.reconfigure(config)
-        obj.config
       end
+      
+      obj
     end
     
-    signal :reset                                    # reset the app
-    signal :run                                      # run the app
-    signal :stop                                     # stop the app
-    signal :terminate                                # terminate the app
-    signal :info                                     # prints app status
-    
-    signal_class :list do                            # list available objects
-      def call(args) # :nodoc:
-        lines = obj.objects.collect {|(key, obj)|  "#{key}: #{obj.class}" }
-        lines.empty? ? "No objects yet..." : lines.sort.join("\n")
-      end
-    end
-    
-    signal_class :serialize do                       # serialize the app as signals
-      def call(args) # :nodoc:
-        if args.kind_of?(Array)
-          psr = ConfigParser.new
-          psr.on('--[no-]bare') {|value| psr['bare'] = value }
-          path, *ignored = psr.parse!(args)
-          psr['path'] = path
-          args = psr.config
-        end
-        
-        bare = args.has_key?('bare') ? args['bare'] : true
-        signals = obj.serialize(bare)
-        
-        if path = args['path']
-          File.open(path, "w") {|io| YAML.dump(signals, io) }
-        else
-          YAML.dump(signals, $stdout)
-        end
-        
-        obj
-      end
-    end
-    
-    signal_class :import do                          # import serialized signals
-      def call(args) # :nodoc:
-        paths = convert_to_array(args, ['paths'])
-        paths.each do |path|
-          YAML.load_file(path).each do |signal|
-            obj.call(signal)
-          end
-        end
-        
-        obj
-      end
-    end
-    
-    signal_class :load, Load
-    
-    signal :help, :class => Help, :bind => nil       # signals help
+    define_signal :load, Load
+    define_signal :help, Help                       # signals help
     
     # Creates a new App with the given configuration.  Options can be used to
     # specify objects that are normally initialized for every new app:
@@ -253,26 +231,19 @@ module Tap
     end
     
     # Returns a new node that executes block on call.
-    def node(&block) # :yields: *inputs
-      Node.intern(&block)
+    def node(&block) # :yields: *args
+      Node.intern(self, &block)
     end
     
-    # Enques the node with the inputs.  Returns the node.
-    def enq(node, *inputs)
-      queue.enq(node, inputs)
+    # Enques the node with the input.  Returns the node.
+    def enq(node, input)
+      queue.enq(node, input)
       node
     end
     
-    # Priority-enques (unshifts) the node with the inputs.  Returns the node.
-    def pq(node, *inputs)
-      queue.unshift(node, inputs)
-      node
-    end
-    
-    # Generates a node from the block and enques. Returns the new node.
-    def bq(*inputs, &block) # :yields: *inputs
-      node = self.node(&block)
-      queue.enq(node, inputs)
+    # Priority-enques (unshifts) the node with the input.  Returns the node.
+    def pq(node, input)
+      queue.unshift(node, input)
       node
     end
     
@@ -350,7 +321,6 @@ module Tap
     #   signal.call(args)            # call the signal with args
     #
     # Call returns the result of the signal call.
-    #
     def call(args, &block)
       obj = args['obj']
       sig = args['sig']
@@ -376,12 +346,15 @@ module Tap
       clas = spec['class']
       spec = spec['spec'] || spec
       
-      unless constant = env.constant(clas)
-        raise "unresolvable constant: #{clas.inspect}"
-      end
+      obj = nil
+      unless clas.nil?
+        unless constant = env.constant(clas)
+          raise "unresolvable constant: #{clas.inspect}"
+        end
       
-      method_name = spec.kind_of?(Array) ? :parse : :build
-      obj = constant.send(method_name, spec, self, &block)
+        method_name = spec.kind_of?(Array) ? :parse : :build
+        obj = constant.send(method_name, spec, self, &block)
+      end
       
       unless var.nil?
         if var.respond_to?(:each)
@@ -447,18 +420,18 @@ module Tap
       self
     end
     
-    # Dispatch does the following in order:
+    # Execute does the following in order:
     #
-    # - call stack with the node and inputs
+    # - call stack with the node and input
     # - call the node joins (node.joins)
     #
     # The joins for self will be called if the node joins are an empty array.
     # No joins will be called if the node joins are nil, or if the node does
     # not provide a joins method.
     #
-    # Dispatch returns the stack result.
-    def execute(node, inputs=[])
-      result = stack.call(node, inputs)
+    # Execute returns the stack result.
+    def execute(node, input)
+      result = stack.call(node, input)
       
       if node.respond_to?(:joins)
         if joins = node.joins
@@ -476,15 +449,15 @@ module Tap
       result
     end
     
-    # Sequentially dispatches each enqued (node, inputs) pair to the
-    # application stack.  A run continues until the queue is empty.  
+    # Sequentially executes each enqued job (a [node, input] pair).  A run
+    # continues until the queue is empty.
     #
-    # Run checks the state of self before dispatching a node.  If the state
+    # Run checks the state of self before executing a node.  If the state
     # changes from RUN, the following behaviors result:
-    #   
-    #   STOP        No more nodes will be dispatched; the current node
+    #       
+    #   STOP        No more nodes will be executed; the current node
     #               will continute to completion.
-    #   TERMINATE   No more nodes will be dispatched and the currently
+    #   TERMINATE   No more nodes will be executed and the currently
     #               running node will be discontinued as described in
     #               terminate.
     #
@@ -500,12 +473,12 @@ module Tap
       
       begin
         while state == State::RUN
-          break unless entry = queue.deq
-          execute(*entry)
+          break unless job = queue.deq
+          execute(*job)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors
-        queue.unshift(*entry)
+        queue.unshift(*job)
       ensure
         synchronize { @state = State::READY }
       end
@@ -513,7 +486,7 @@ module Tap
       self
     end
     
-    # Signals a running app to stop dispatching nodes to the application stack
+    # Signals a running app to stop executing nodes to the application stack
     # by setting state to STOP.  The node currently in the stack will continue
     # to completion.
     #
@@ -558,42 +531,10 @@ module Tap
       "state: #{state} (#{State.state_str(state)}) queue: #{queue.size}"
     end
     
-    # Dumps self to the target as YAML. (note dump is still experimental)
-    #
-    # ==== Notes
-    #
-    # Platforms that use {Syck}[http://whytheluckystiff.net/syck/] (ex MRI)
-    # require a fix because Syck misformats certain dumps, such that they
-    # cannot be reloaded (even by Syck).  Specifically:
-    #
-    #   &id001 !ruby/object:Tap::Task ?
-    #
-    # should be:
-    #
-    #   ? &id001 !ruby/object:Tap::Task
-    #
-    # Dump fixes this error and, in addition, removes Thread and Proc dumps
-    # because they can't be allocated on load.
-    def dump(target=$stdout, options={})
-      synchronize do
-        options = {
-          :date_format => '%Y-%m-%d %H:%M:%S',
-          :date => true,
-          :info => true
-        }.merge(options)
-        
-        # print basic headers
-        target.puts "# date: #{Time.now.strftime(options[:date_format])}" if options[:date]
-        target.puts "# info: #{info}" if options[:info]
-        
-        # dump yaml, fixing as necessary
-        yaml = YAML.dump(self)
-        yaml.gsub!(/\&(.*!ruby\/object:.*?)\s*\?/) {"? &#{$1} " } if YAML.const_defined?(:Syck)
-        yaml.gsub!(/!ruby\/object:(Thread|Proc) \{\}/, '')
-        target << yaml
-      end
-      
-      target
+    # Sets the block as a join for self.
+    def on_complete(&block) # :yields: result
+      joins << block if block
+      self
     end
     
     # Converts the self to a schema that can be used to build a new app with
@@ -613,8 +554,8 @@ module Tap
       order = []
       
       # collect enque signals to setup queue
-      signals = queue.to_a.collect do |(node, args)|
-        {'sig' => 'enq', 'args' => [var(node)] + args}
+      signals = queue.to_a.collect do |(node, input)|
+        {'sig' => 'enq', 'args' => [var(node), input]}
       end
       
       # collect and trace application objects
@@ -703,15 +644,8 @@ module Tap
     def inspect
       "#<#{self.class}:#{object_id} #{info}>"
     end
-
-    private
     
-    # warns of ignored args
-    def warn_ignored_args(args) # :nodoc:
-      if args && debug? && !args.empty?
-        warn "ignoring args: #{args.inspect}"
-      end
-    end
+    private
     
     # Traces each object backwards and forwards for node, joins, etc. and adds
     # each to specs as needed.  The trace determines and returns the order in

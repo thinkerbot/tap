@@ -2,6 +2,12 @@ module Tap
   module Utils
     module_function
     
+    def warn_ignored_args(args)
+      if args && !args.empty?
+        warn "ignoring args: #{args.inspect}"
+      end
+    end
+    
     def shellsplit(line, comment="#")
       words = []
       field = ''

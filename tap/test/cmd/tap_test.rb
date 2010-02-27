@@ -25,8 +25,6 @@ class TapCmd < Test::Unit::TestCase
     super
   end
   
-  #
-  
   def test_tap_returns_nothing_with_no_input
     sh_test %q{
     % tap
@@ -35,14 +33,14 @@ class TapCmd < Test::Unit::TestCase
   
   def test_tap_parses_and_runs_workflow
     sh_test %q{
-    % tap load 'goodnight moon' --: dump
+    % tap load 'goodnight moon' -: dump
     goodnight moon
     }
   end
   
   def test_tap_parses_signals
     sh_test %q{
-    % tap --/set 0 load --/set 1 dump --/build join 0 1 --/enq 0 'goodnight moon'
+    % tap -/set 0 load -/set 1 dump -/build join 0 1 -/enq 0 'goodnight moon'
     goodnight moon
     }
   end

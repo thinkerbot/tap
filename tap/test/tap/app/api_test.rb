@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
-require 'tap/app/api'
+require 'tap/app'
 require 'tap/test'
 
 class ApiTest < Test::Unit::TestCase
@@ -52,10 +52,10 @@ class ApiTest < Test::Unit::TestCase
   def test_help_with_arg_lists_signal_help
     app.set 'var', Example.new
     help = app.call('obj' => 'var', 'sig' => 'help', 'args' => ['help'])
-    assert help =~ /Tap::App::Api::Help -- signals help/
+    assert help =~ /Help -- signals help/
     
     help = app.call('obj' => 'var', 'sig' => 'help', 'args' => {'sig' => 'help'})
-    assert help =~ /Tap::App::Api::Help -- signals help/
+    assert help =~ /Help -- signals help/
   end
 end
 

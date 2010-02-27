@@ -93,11 +93,11 @@ class TaskTest < Test::Unit::TestCase
   #
   
   def prepare_yaml(path, obj)
-    method_root.prepare(path) {|file| file << obj.to_yaml }
+    method_root.prepare(path) {|file| file << YAML.dump(obj) }
   end
   
   def test_parse_returns_instance
-    instance, args = Task.parse([1,2,3])
+    instance = Task.parse([])
     assert_equal Task, instance.class
   end
   
@@ -106,31 +106,31 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_parse_returns_instance_of_subclass
-    instance, args = ParseClass.parse([])
+    instance = ParseClass.parse([])
     assert_equal ParseClass, instance.class
   end
   
   def test_parse_instance_is_initialized_with_default_config
-    instance, args = ParseClass.parse([])
+    instance = ParseClass.parse([])
     assert_equal({:key => 'value'}, instance.config)
   end
   
   def test_parse_reconfigures_instance_using_configs_in_argv
-    instance, args = ParseClass.parse(%w{--key alt})
+    instance = ParseClass.parse(%w{--key alt})
     assert_equal({:key => 'alt'}, instance.config)
   end
   
   def test_parse_adds_configs_from_file_using_config_option
     path = prepare_yaml('config.yml', {:key => 'alt'})
     
-    instance, args = ParseClass.parse(["--config", path])
+    instance = ParseClass.parse(["--config", path])
     assert_equal({:key => 'alt'}, instance.config)
   end
   
   def test_config_files_may_have_string_keys
     path = prepare_yaml('config.yml', {'key' => 'alt'})
     
-    instance, args = ParseClass.parse(["--config", path])
+    instance = ParseClass.parse(["--config", path])
     assert_equal({:key => 'alt'}, instance.config)
   end
   
@@ -139,7 +139,7 @@ class TaskTest < Test::Unit::TestCase
            prepare_yaml("a/b.yml", 'B')
            prepare_yaml("a/c.yml", 'C')
 
-    instance, args = Task.parse(["--config", path])
+    instance = Task.parse(["--config", path])
     assert_equal({
       'a' => 'A', 
       'b' => 'B', 
@@ -173,23 +173,12 @@ class TaskTest < Test::Unit::TestCase
       ARGV.clear
       ARGV.concat(%w{--key alt})
       
-      instance, args = ParseClass.parse
+      instance = ParseClass.parse
       assert_equal({:key => 'alt'}, instance.config)
     ensure
       ARGV.clear
       ARGV.concat(current_argv)
     end
-  end
-  
-  #
-  # parse! test
-  #
-  
-  def test_parse_bang_removes_args_from_input
-    argv = [1, "--key", "alt", 2, 3]
-    instance, args = ParseClass.parse!(argv)
-    assert_equal({:key => 'alt'}, instance.config)
-    assert_equal [1,2,3], argv
   end
   
   #
@@ -201,22 +190,22 @@ class TaskTest < Test::Unit::TestCase
   end
   
   def test_build_returns_instance_of_subclass
-    instance, args = BuildClass.build
+    instance = BuildClass.build
     assert_equal BuildClass, instance.class
   end
   
   def test_instance_is_built_with_default_config
-    instance, args = BuildClass.build
+    instance = BuildClass.build
     assert_equal({:key => 'value'}, instance.config)
   end
   
   def test_instance_is_built_with_user_config
-    instance, args = BuildClass.build 'config' => {:key => 'alt'}
+    instance = BuildClass.build 'config' => {:key => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
   end
   
   def test_build_respects_indifferent_access
-    instance, args = BuildClass.build 'config' => {'key' => 'alt'}
+    instance = BuildClass.build 'config' => {'key' => 'alt'}
     assert_equal({:key => 'alt'}, instance.config)
   end
   

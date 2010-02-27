@@ -1,4 +1,3 @@
-require 'tap/signals'
 require 'tap/utils'
 
 module Tap

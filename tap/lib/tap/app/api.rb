@@ -52,15 +52,22 @@ module Tap
           opts
         end
         
+        def parse(argv=ARGV, app=Tap::App.instance, &block)
+          parse!(argv.dup, app, &block)
+        end
+        
         # Parses the argv into an instance of self.  Internally parse parses
         # an argh then calls build, but there is no requirement that this
         # occurs in subclasses.
-        def parse(argv=ARGV, app=Tap::App.instance)
+        #
+        # Returns the instance.  If a block is given, the instance and any
+        # remaining arguments will be yielded to it.
+        def parse!(argv=ARGV, app=Tap::App.instance)
           parser = self.parser
           args = parser.parse!(argv, :add_defaults => false)
           obj = build(convert_to_spec(parser, args), app)
           
-          block_given? ? yield(obj, args) : warn_ignored_args(args)
+          block_given? ? yield(obj, args) : Utils.warn_ignored_args(args)
           obj
         end
         
@@ -88,18 +95,12 @@ module Tap
         def convert_to_spec(parser, args)
           {'config' => parser.nested_config}
         end
-        
-        def warn_ignored_args(args)
-          if args && !args.empty?
-            warn "ignoring args: #{args.inspect}"
-          end
-        end
       end
     
       include Configurable
       include Signals
       
-      signal :help, :class => Help, :bind => nil   # signals help
+      define_signal :help, Help                     # signals help
       
       # The App receiving self during enq
       attr_reader :app

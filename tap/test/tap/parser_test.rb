@@ -18,136 +18,113 @@ class ParserTest < Test::Unit::TestCase
   def test_BREAK_regexp
     r = Parser::BREAK
     
-    # break
-    assert "--" =~ r
-    assert_equal nil, $1
+    # standard breaks
+    assert '-' =~ r
+    assert '--' =~ r
+    assert '-:' =~ r
+    assert '-!' =~ r
+    assert '-/' =~ r
+    assert '--/' =~ r
     
-    # join break
-    assert "--." =~ r
-    assert_equal ".", $1
-    
-    # sequence join
-    assert "--:" =~ r
-    assert_equal ":", $1
-    
-    assert "--:is" =~ r
-    assert_equal ":is", $1
-    
-    # general join
-    assert "--[]" =~ r
-    assert_equal "[]", $1
-        
-    assert "--[1,2][3,4]is.join" =~ r
-    assert_equal "[1,2][3,4]is.join", $1
-    
-    # enque
-    assert "--@var" =~ r
-    assert_equal "@var", $1
-    
-    # signal
-    assert "--/var" =~ r
-    assert_equal "/var", $1
-    
-    # non-matching
-    assert "goodnight" !~ r
-    assert "moon" !~ r
-    assert "8" !~ r
-    
-    assert "-" !~ r
-    assert " -- " !~ r
-    assert "-- " !~ r
-    assert " --" !~ r
-    
-    assert "-o" !~ r
-    assert "-opt" !~ r
-    assert "--opt" !~ r
-    assert "--no-opt" !~ r
+    # unused breaks
+    assert '-@' =~ r
+    assert '-*' =~ r
     
     # escapes
-    assert "---" !~ r
-    assert "-." !~ r
-    assert ".-" !~ r
+    assert '---' =~ r
+    assert '-.' =~ r
+    assert '.-' !~ r
+    
+    # non-matching
+    assert 'goodnight' !~ r
+    assert 'moon' !~ r
+    assert '8' !~ r
+    
+    assert '-o' !~ r
+    assert '-opt' !~ r
+    assert '--opt' !~ r
+    assert '--no-opt' !~ r
+  end
+  
+  #
+  # OPTION test
+  #
+  
+  def test_OPTION_regexp
+    r = Parser::OPTION
+    
+    # options
+    assert '-o' =~ r
+    assert '-opt' =~ r
+    assert '--opt' =~ r
+    assert '--no-opt' =~ r
+    
+    # non-matching
+    assert '-' !~ r
+    assert '--' !~ r
+    assert '-:' !~ r
+    assert '-!' !~ r
+    assert '-/' !~ r
+    assert '--/' !~ r
+    assert '---' !~ r
+    
+    assert 'goodnight' !~ r
+    assert 'moon' !~ r
+    assert '8' !~ r
   end
 
-  #
-  # SEQUENCE test
-  #
-  
-  def test_SEQUENCE_regexp
-    r = Parser::SEQUENCE
-    
-    assert ":" =~ r
-    assert_equal nil, $1
-  
-    assert ":i" =~ r
-    assert_equal "i", $1
-    
-    assert ":is.join" =~ r
-    assert_equal "is.join", $1
-  end
-  
   #
   # JOIN test
   #
   
   def test_JOIN_regexp
     r = Parser::JOIN
-
-    assert "[][]" =~ r
-    assert_equal "", $1
-    assert_equal "", $2
-    assert_equal nil, $3
     
-    assert "[1,2,3][4,5,6]is.join" =~ r
-    assert_equal "1,2,3", $1
-    assert_equal "4,5,6", $2
-    assert_equal "is.join", $3
+    assert '-:' =~ r
+    assert_equal nil, $1
+  
+    assert '-:i' =~ r
+    assert_equal 'i', $1
     
-    # input/output variations
-    assert "[1][2]" =~ r
-    assert_equal "1", $1
-    assert_equal "2", $2
-    
-    # non-matching
-    assert "1[2]" !~ r
-    assert "[1]2" !~ r
+    assert '-:is.join' =~ r
+    assert_equal 'is.join', $1
   end
   
   #
-  # JOIN_MODIFIER test
+  # MODIFIER test
   #
   
-  def test_JOIN_MODIFIER_regexp
-    r = Parser::JOIN_MODIFIER
+  def test_MODIFIER_regexp
+    r = Parser::MODIFIER
     
-    assert "i" =~ r
-    assert_equal "i", $1
+    assert 'i' =~ r
+    assert_equal 'i', $1
     assert_equal nil, $2
     
-    assert "is" =~ r
-    assert_equal "is", $1
+    assert 'is' =~ r
+    assert_equal 'is', $1
     assert_equal nil, $2
     
-    assert "is.sync" =~ r
-    assert_equal "is", $1
-    assert_equal "sync", $2
+    assert 'is.sync' =~ r
+    assert_equal 'is', $1
+    assert_equal 'sync', $2
     
-    assert ".sync" =~ r
-    assert_equal "", $1
-    assert_equal "sync", $2
+    assert '.sync' =~ r
+    assert_equal '', $1
+    assert_equal 'sync', $2
     
-    assert "A.sync" =~ r
-    assert_equal "A", $1
-    assert_equal "sync", $2
+    assert 'A.sync' =~ r
+    assert_equal 'A', $1
+    assert_equal 'sync', $2
     
-    assert "is." =~ r
-    assert_equal "is", $1
-    assert_equal "", $2
+    assert 'is.' =~ r
+    assert_equal 'is', $1
+    assert_equal '', $2
     
     # non-matching cases
-    assert " join -i -s" !~ r
-    assert " " !~ r
-    assert "1" !~ r
+    assert ' join -i -s' !~ r
+    assert ' ' !~ r
+    assert '1' !~ r
   end
   
   #
@@ -157,61 +134,112 @@ class ParserTest < Test::Unit::TestCase
   def test_SIGNAL_regexp
     r = Parser::SIGNAL
     
-    assert "/nest/obj/sig" =~ r
-    assert_equal "nest/obj", $1
-    assert_equal "sig", $2
-    
-    assert "/obj/sig" =~ r
-    assert_equal "obj", $1
-    assert_equal "sig", $2
-    
-    assert "//sig" =~ r
-    assert_equal "", $1
-    assert_equal "sig", $2
-    
-    assert "/sig" =~ r
+    assert '-/obj/sig' =~ r
     assert_equal nil, $1
-    assert_equal "sig", $2
+    assert_equal 'obj/sig', $2
     
-    assert "/" =~ r
+    assert '-//sig' =~ r
     assert_equal nil, $1
-    assert_equal "", $2
+    assert_equal '/sig', $2
+    
+    assert '-/sig' =~ r
+    assert_equal nil, $1
+    assert_equal 'sig', $2
+    
+    assert '-/' =~ r
+    assert_equal nil, $1
+    assert_equal '', $2
+    
+    # exec signals
+    assert '--/obj/sig' =~ r
+    assert_equal '-', $1
+    assert_equal 'obj/sig', $2
+    
+    assert '--/sig' =~ r
+    assert_equal '-', $1
+    assert_equal 'sig', $2
     
     # non-matching
-    assert "str" !~ r
+    assert 'str' !~ r
+  end
+  
+  #
+  # OBJECT test
+  #
+  
+  def test_OBJECT_regexp
+    r = Parser::OBJECT
+    
+    assert 'nest/obj/sig' =~ r
+    assert_equal 'nest/obj', $1
+    assert_equal 'sig', $2
+    
+    assert 'obj/sig' =~ r
+    assert_equal 'obj', $1
+    assert_equal 'sig', $2
+    
+    assert '/sig' =~ r
+    assert_equal '', $1
+    assert_equal 'sig', $2
+    
+    assert '/' =~ r
+    assert_equal '', $1
+    assert_equal '', $2
+    
+    # non-matching
+    assert 'str' !~ r
   end
   
   #
   # parse test
   #
   
-  def test_parse_parses_specs_along_option_break
-    parser.parse %w{-- a b c -- x y z}
+  def test_parse_parses_set_breaks
+    parser.parse %w{- a b c - x y z}
     assert_equal [
-      [:node, nil, 'set', "0", "a", "b", "c"],
-      [:node, nil, 'set', "1", "x", "y", "z"]
+      [{'sig' => 'set', 'args' => ['0', 'a', 'b', 'c']}, :set],
+      [{'sig' => 'set', 'args' => ['1', 'x', 'y', 'z']}, :set]
     ], parser.specs
   end
   
-  def test_parse_unshifts_option_break_if_argv_does_not_start_with_a_break
+  def test_parse_parses_enque_breaks
+    parser.parse %w{-- a b c -- x y z}
+    assert_equal [
+      [{'sig' => 'set', 'args' => ['0', 'a', 'b', 'c']}, :enque],
+      [{'sig' => 'set', 'args' => ['1', 'x', 'y', 'z']}, :enque]
+    ], parser.specs
+  end
+  
+  def test_parse_parses_exec_breaks
+    parser.parse %w{-! a b c -! x y z}
+    assert_equal [
+      [{'sig' => 'set', 'args' => ['0', 'a', 'b', 'c']}, :execute],
+      [{'sig' => 'set', 'args' => ['1', 'x', 'y', 'z']}, :execute]
+    ], parser.specs
+  end
+  
+  def test_parse_unshifts_enque_break_if_argv_does_not_start_with_a_break
     parser.parse %w{a b c}
     assert_equal [
-      [:node, nil, 'set', "0", "a", "b", "c"],
+      [{'sig' => 'set', 'args' => ['0', 'a', 'b', 'c']}, :enque]
     ], parser.specs
   end
   
   def test_parse_allows_options_in_specs
     parser.parse %w{-- a -b --c}
     assert_equal [
-      [:node, nil, 'set', "0", "a", "-b", "--c"],
+      [{'sig' => 'set', 'args' => ['0', 'a', '-b', '--c']}, :enque],
     ], parser.specs
   end
   
-  def test_parse_incrementes_index_but_does_not_add_specs_for_empty_breaks
-    parser.parse %w{-- a -- -- -- b --}
+  def test_parse_adds_specs_for_empty_breaks
+    parser.parse %w{-- a - -! -- b --}
     assert_equal [
-      [:node, nil, 'set', "0", "a"],
-      [:node, nil, 'set', "3", "b"]
+      [{"args"=>["0", "a"], "sig"=>"set"}, :enque],
+      [{"args"=>["1"], "sig"=>"set"}, :set],
+      [{"args"=>["2"], "sig"=>"set"}, :execute],
+      [{"args"=>["3", "b"], "sig"=>"set"}, :enque],
+      [{"args"=>["4"], "sig"=>"set"}, :enque]
     ], parser.specs
   end
   
@@ -224,38 +252,38 @@ class ParserTest < Test::Unit::TestCase
   def test_parse_does_not_parse_escaped_args
     parser.parse %w{-- a -. -- --: -z- .- b -- c}
     assert_equal [
-      [:node, nil, 'set', "0", "a", "--", "--:", "-z-", "b"],
-      [:node, nil, 'set', "1", "c"]
+      [{'sig' => 'set', 'args' => ['0', 'a', '--', '--:', '-z-', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['1', 'c']}, :enque]
     ], parser.specs
   end
   
   def test_parse_stops_at_end_flag
     parser.parse %w{-- a --- -- b}
     assert_equal [
-      [:node, nil, 'set', "0", "a"]
+      [{'sig' => 'set', 'args' => ['0', 'a']}, :enque],
     ], parser.specs
   end
   
   def test_parse_returns_remaining_args
     assert_equal [], parser.parse(%w{-- a -- b})
-    assert_equal ["b"], parser.parse(%w{-- a --- b})
+    assert_equal ['b'], parser.parse(%w{-- a --- b})
   end
   
   def test_parse_resets_counter_and_appends_specs_for_each_call
-    parser.parse %w{-- a b c}
-    parser.parse %w{-- x y z}
+    parser.parse %w{-- a}
+    parser.parse %w{-- b}
     assert_equal [
-      [:node, nil, 'set', "0", "a", "b", "c"],
-      [:node, nil, 'set', "0", "x", "y", "z"]
+      [{'sig' => 'set', 'args' => ['0', 'a']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', 'b']}, :enque]
     ], parser.specs
   end
   
   def test_parse_raises_error_for_invalid_breaks
     err = assert_raises(RuntimeError) { parser.parse %w{--[]} }
-    assert_equal "invalid break: --[] (invalid modifier)", err.message
+    assert_equal 'invalid break: --[] (unknown)', err.message
     
-    err = assert_raises(RuntimeError) { parser.parse %w{--[][]123} }
-    assert_equal "invalid break: --[][]123 (invalid join modifier)", err.message
+    err = assert_raises(RuntimeError) { parser.parse %w{- -:!} }
+    assert_equal 'invalid break: -:! (invalid join modifier)', err.message
   end
   
   #
@@ -269,79 +297,30 @@ class ParserTest < Test::Unit::TestCase
   end
   
   #
-  # join_break test
+  # join break test
   # 
   
-  def test_parser_parses_join_breaks
-    parser.parse %w{--. join 1 2 --. join 1 2,3}
+  def test_parser_parses_join_to_join_preceding_and_following_specs
+    parser.parse %w{-- a -: b}
     assert_equal [
-      [:join, nil, 'set', "0", "join", "1", "2"],
-      [:join, nil, 'set', "1", "join", "1", "2,3"]
+      [{'sig' => 'set', 'args' => ['0', 'a']}, :enque],
+      [{'sig' => 'set', 'args' => ['1', 'b']}, :set],
+      [{'sig' => 'set', 'args' => [nil, Tap::Join, '0', '1']}, :set]
     ], parser.specs
   end
   
-  #
-  # sequence test
-  #
-  
-  def test_sequence_breaks_assign_sequence_joins
-    parser.parse %w{-- a --: b --: c}
+  def test_joins_can_add_a_modifier_to_specify_short_flags_and_class
+    parser.parse %w{-- a -:is.class b}
     assert_equal [
-      [:node, nil, 'set', "0", "a"],
-      [:node, nil, 'set', "1", "b"],
-      [:join, nil, 'set', nil, Tap::Join, "0", "1"],
-      [:node, nil, 'set', "2", "c"],
-      [:join, nil, 'set', nil, Tap::Join, "1", "2"]
+      [{'sig' => 'set', 'args' => ['0', 'a']}, :enque],
+      [{'sig' => 'set', 'args' => ['1', 'b']}, :set],
+      [{'sig' => 'set', 'args' => [nil, 'class', '-i', '-s', '0', '1']}, :set]
     ], parser.specs
   end
   
-  def test_sequence_with_modifier
-    parser.parse  %w{-- a --:is.class b}
-    assert_equal [
-      [:node, nil, 'set', "0", "a"],
-      [:node, nil, 'set', "1", "b"],
-      [:join, nil, 'set', nil, "class", "0", "1", "-i", "-s"],
-    ], parser.specs
-  end
-  
-  #
-  # join test
-  # 
-  
-  def test_parser_parses_joins
-    parser.parse %w{--[1][2] --[1][2,3]}
-    assert_equal [
-      [:join, nil, 'set', nil, Tap::Join, "1", "2"],
-      [:join, nil, 'set', nil, Tap::Join, "1", "2,3"]
-    ], parser.specs
-  end
-  
-  def test_join_does_not_infer_lead_or_end_index
-    parser.parse %w{--[][] --[1][] --[][2]}
-    assert_equal [
-      [:join, nil, 'set', nil, Tap::Join, "", ""],
-      [:join, nil, 'set', nil, Tap::Join, "1", ""],
-      [:join, nil, 'set', nil, Tap::Join, "", "2"]
-    ], parser.specs
-  end
-  
-  def test_join_with_modifier
-    parser.parse  %w{--[][]is.class}
-    assert_equal [
-      [:join, nil, 'set', nil, "class", "", "", "-i", "-s"]
-    ], parser.specs
-  end
-  
-  #
-  # enque test
-  # 
-  
-  def test_parser_parses_enques
-    parser.parse %w{--@a b c --@x y z}
-    assert_equal [
-      [:signal, nil, 'enque', "a", "b", "c"],
-      [:signal, nil, 'enque', "x", "y", "z"]
-    ], parser.specs
+  def test_join_raises_error_for_no_preceding_spec
+    err = assert_raises(RuntimeError) { parser.parse %w{-:!} }
+    assert_equal 'invalid break: -:! (no prior entry)', err.message
   end
   
   #
@@ -349,20 +328,22 @@ class ParserTest < Test::Unit::TestCase
   #
   
   def test_parser_parses_signals
-    parser.parse  %w{--/variable/signal a b c}
-    parser.parse  %w{--/variable/ a b c}
-    parser.parse  %w{--//signal a b c}
-    parser.parse  %w{--/signal a b c}
-    parser.parse  %w{--// a b c}
-    parser.parse  %w{--/ a b c}
+    parser.parse %w{-/var/sig a b}
+    parser.parse %w{-/var/ a b}
+    parser.parse %w{-//sig a b}
+    parser.parse %w{-/sig a b}
+    parser.parse %w{-// a b}
+    parser.parse %w{-/ a b}
+    parser.parse %w{--/var/sig a b}
     
     assert_equal [
-      [:signal, "variable", "signal", "a", "b", "c"],
-      [:signal, "variable", "", "a", "b", "c"],
-      [:signal, "", "signal", "a", "b", "c"],
-      [:signal, nil, "signal", "a", "b", "c"],
-      [:signal, "", "", "a", "b", "c"],
-      [:signal, nil, "", "a", "b", "c"]
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, 'var', 'sig', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, 'var', '', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, '', 'sig', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, nil, 'sig', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, '', '', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, nil, '', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, 'var', 'sig',  'a', 'b']}, :execute]
     ], parser.specs
   end
 end

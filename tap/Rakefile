@@ -145,14 +145,14 @@ namespace :test do
   desc 'run root tests'
   task(:root) { test_section :root }
   
+  desc 'run app tests'
+  task(:app) { test_section :app }
+  
   desc 'run signals tests'
   task(:signals) { test_section :signals }
   
   desc 'run env tests'
   task(:env) { test_section :env }
-  
-  desc 'run app tests'
-  task(:app) { test_section :app }
   
   desc 'run task tests'
   task :task do

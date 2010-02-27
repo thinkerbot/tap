@@ -58,13 +58,7 @@ class AppSignalsTest < Test::Unit::TestCase
       def parse(argv, app)
         obj, args = super
         obj.build_method = :parse
-        [obj, args]
-      end
-      
-      def parse!(argv, app)
-        obj, args = super
-        obj.build_method = :parse!
-        [obj, args]
+        obj
       end
       
       def minikey
@@ -85,17 +79,6 @@ class AppSignalsTest < Test::Unit::TestCase
   def test_set_does_not_set_obj_for_nil_var
     obj = signal :set, [nil, SetClass]
     assert_equal({}, app.objects)
-  end
-  
-  def test_set_parse_bangs_remaining_args
-    was_in_block = false
-    obj = signal(:set, ['var', SetClass, 'a', 'b', 'c']) do |o, args|
-      assert_equal ['a', 'b', 'c'], args
-      was_in_block = true
-    end
-    
-    assert_equal :parse!, obj.build_method
-    assert_equal true, was_in_block
   end
   
   def test_set_initializes_with_spec_if_specified
@@ -145,7 +128,7 @@ class AppSignalsTest < Test::Unit::TestCase
   def test_build_builds_and_returns_object
     obj = signal(:build, [SetClass])
     assert_equal SetClass, obj.class
-    assert_equal :parse!, obj.build_method
+    assert_equal :parse, obj.build_method
   end
   
   #
@@ -192,9 +175,8 @@ class AppSignalsTest < Test::Unit::TestCase
   #
   
   def test_reset_resets_app
-    n = app.node {}
+    n = app.node {}.enq
     app.set(0, n)
-    app.enq(n, 1)
     app.use UseClass
     
     assert_equal false, app.objects.empty?
@@ -214,8 +196,7 @@ class AppSignalsTest < Test::Unit::TestCase
   
   def test_run_runs_app
     was_in_block = false
-    n = app.node { was_in_block = true }
-    app.enq(n)
+    app.node { was_in_block = true }.enq
     
     assert_equal app, signal(:run)
     assert_equal 0, app.queue.size
@@ -239,8 +220,8 @@ class AppSignalsTest < Test::Unit::TestCase
       was_in_b = true
     end
     
-    app.enq(a)
-    app.enq(b)
+    a.enq
+    b.enq
     
     app.run
     assert_equal true, was_in_a
@@ -265,8 +246,8 @@ class AppSignalsTest < Test::Unit::TestCase
       was_in_b = true
     end
     
-    app.enq(a)
-    app.enq(b)
+    a.enq
+    b.enq
     
     app.run
     assert_equal true, was_in_a

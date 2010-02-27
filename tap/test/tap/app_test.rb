@@ -1,6 +1,5 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'tap/app'
-require 'stringio'
 require 'tap/test'
 
 class AppTest < Test::Unit::TestCase
@@ -23,16 +22,12 @@ class AppTest < Test::Unit::TestCase
     @runlist = []
   end
   
-  def intern(&block)
-    App::Node.intern(&block)
-  end
-  
   # returns a tracing executable. node adds the key to 
-  # runlist then returns input + key
+  # runlist then returns trace + key
   def node(key)
-    intern do |input| 
+    app.node do |trace| 
       @runlist << key
-      input += key
+      trace += key
     end
   end
   
@@ -40,33 +35,6 @@ class AppTest < Test::Unit::TestCase
     App.new.config.to_hash do |hash, key, value|
       hash[key.to_s] = value
     end
-  end
-  
-  #
-  # OBJECT test
-  #
-  
-  def test_OBJECT_regexp
-    r = App::OBJECT
-    
-    assert "nest/obj/sig" =~ r
-    assert_equal "nest/obj", $1
-    assert_equal "sig", $2
-    
-    assert "obj/sig" =~ r
-    assert_equal "obj", $1
-    assert_equal "sig", $2
-    
-    assert "/sig" =~ r
-    assert_equal "", $1
-    assert_equal "sig", $2
-    
-    assert "/" =~ r
-    assert_equal "", $1
-    assert_equal "", $2
-    
-    # non-matching
-    assert "str" !~ r
   end
   
   #
@@ -81,15 +49,15 @@ class AppTest < Test::Unit::TestCase
       @audit = []
     end
 
-    def call(node, inputs=[])
-      audit << [node, inputs]
-      stack.call(node, inputs)
+    def call(node, input)
+      audit << [node, input]
+      stack.call(node, input)
     end
   end
   
   class Resource
     class << self
-      def parse!(argv=ARGV, app=Tap::App.instance)
+      def parse(argv=ARGV, app=Tap::App.instance)
         build({'argv' => argv}, app)
       end
 
@@ -129,7 +97,7 @@ class AppTest < Test::Unit::TestCase
     app = Tap::App.new
     cat  = app.node {|file| File.read(file) }
     sort = app.node {|str| str.split("\n").sort }
-    cat.on_complete {|res| app.enq(sort, res) }
+    cat.on_complete {|res| sort.enq(res) }
   
     results = []
     app.on_complete {|result| results << result }
@@ -139,17 +107,17 @@ class AppTest < Test::Unit::TestCase
       io.puts "c"
       io.puts "b"
     end
-  
-    app.enq(cat, example)
+    
+    cat.enq(example)
     app.run
     assert_equal [["a", "b", "c"]], results
   
     rsort = app.node {|str| str.split("\n").sort.reverse }
-    cat.on_complete  {|res| app.enq(rsort, res) }
+    cat.on_complete  {|res| rsort.enq(res) }
     assert_equal 2, cat.joins.length
     
     results.clear
-    app.enq(cat, example)
+    cat.enq(example)
     app.run
     assert_equal [["a", "b", "c"], ["c", "b", "a"]], results
     
@@ -157,21 +125,20 @@ class AppTest < Test::Unit::TestCase
     
     auditor = app.use AuditMiddleware
   
-    app.enq(cat, example)
+    cat.enq(example)
     app.run
   
     expected = [
-    [cat, [example]],
-    [sort, ["a\nc\nb\n"]],
-    [rsort, ["a\nc\nb\n"]]
+      [cat, [example]],
+      [sort, ["a\nc\nb\n"]],
+      [rsort, ["a\nc\nb\n"]]
     ]
     assert_equal expected, auditor.audit
   
     ##
     extended_test do
       runlist = []
-      node = app.node { runlist << "node" }
-      app.enq(node)
+      node = app.node { runlist << "node" }.enq
   
       assert_equal [], runlist
       assert_equal [[node, []]], app.queue.to_a
@@ -182,9 +149,9 @@ class AppTest < Test::Unit::TestCase
       assert_equal [], app.queue.to_a
   
       sleeper = app.node { sleep 1; runlist << "sleeper" }
-      app.enq(node)
-      app.enq(sleeper)
-      app.enq(node)
+      node.enq
+      sleeper.enq
+      node.enq
   
       runlist.clear
       assert_equal [[node, []], [sleeper, []], [node, []]], app.queue.to_a
@@ -208,9 +175,9 @@ class AppTest < Test::Unit::TestCase
         app.check_terminate
         runlist << "terminator"
       end
-      app.enq(node)
-      app.enq(terminator)
-      app.enq(node)
+      node.enq
+      terminator.enq
+      node.enq
   
       runlist.clear
       assert_equal [[node, []], [terminator, []], [node, []]], app.queue.to_a
@@ -235,7 +202,7 @@ class AppTest < Test::Unit::TestCase
     assert_equal :A, app.get('a')
     assert_equal({'a' => :A}, app.objects)
   
-    a = Resource.parse!([1, 2, 3], app)
+    a = Resource.parse([1, 2, 3], app)
     assert_equal [1, 2, 3], a.argv
   
     b = Resource.build(a.to_spec, app)
@@ -295,19 +262,19 @@ class AppTest < Test::Unit::TestCase
       @audit = []
     end
 
-    def call(node, inputs=[])
+    def call(node, input)
       audit << node
-      stack.call(node, inputs)
+      stack.call(node, input)
     end
   end
   
   def test_old_app_documentation
     app = Tap::App.new
     n = app.node {|*inputs| inputs }
-    app.enq(n, 'a', 'b', 'c')
-    app.enq(n, 1)
-    app.enq(n, 2)
-    app.enq(n, 3)
+    n.enq('a', 'b', 'c')
+    n.enq(1)
+    n.enq(2)
+    n.enq(3)
   
     results = []
     app.on_complete {|result| results << result }
@@ -323,7 +290,7 @@ class AppTest < Test::Unit::TestCase
   
     n0.on_complete {|result| app.execute(n1, result) }
     n1.on_complete {|result| app.execute(n2, result) }
-    app.enq(n0)
+    n0.enq
   
     results.clear
     app.run
@@ -333,9 +300,9 @@ class AppTest < Test::Unit::TestCase
   
     auditor = app.use OldAuditMiddleware
   
-    app.enq(n0)
-    app.enq(n2, "x")
-    app.enq(n1, "y")
+    n0.enq
+    n2.enq("x")
+    n1.enq("y")
   
     results.clear
     app.run
@@ -518,10 +485,10 @@ class AppTest < Test::Unit::TestCase
   # node test
   #
   
-  def test_node_interns_node_with_block
+  def test_node_interns_node_that_calls_block
     n = app.node {|input| input + " was provided" }
     assert n.kind_of?(App::Node)
-    assert_equal "str was provided", n.call("str")
+    assert_equal "str was provided", n.call(["str"])
   end
   
   #
@@ -529,16 +496,16 @@ class AppTest < Test::Unit::TestCase
   #
   
   def test_enq_pushes_node_onto_queue
-    n = intern {}
+    n = app.node {}
     assert_equal 0, app.queue.size
-    app.enq(n, 0)
-    app.enq(n, 1)
-    assert_equal [[n, [0]], [n, [1]]], app.queue.to_a
+    app.enq(n, :a)
+    app.enq(n, :b)
+    assert_equal [[n, :a], [n, :b]], app.queue.to_a
   end
   
   def test_enq_returns_enqued_node
-    n = intern {}
-    assert_equal n, app.enq(n)
+    n = app.node {}
+    assert_equal n, app.enq(n, :a)
   end
   
   #
@@ -546,29 +513,16 @@ class AppTest < Test::Unit::TestCase
   #
   
   def test_pq_unshifts_node_onto_queue
-    n = intern {}
+    n = app.node {}
     assert_equal 0, app.queue.size
-    app.pq(n, 0)
-    app.pq(n, 1)
-    assert_equal [[n, [1]], [n, [0]]], app.queue.to_a
+    app.pq(n, :a)
+    app.pq(n, :b)
+    assert_equal [[n, :b], [n, :a]], app.queue.to_a
   end
   
   def test_pq_returns_enqued_node
-    n = intern {}
-    assert_equal n, app.pq(n)
-  end
-  
-  #
-  # bq test
-  #
-  
-  def test_bq
-    assert_equal 0, app.queue.size
-    t = app.bq(1,2,3) {|*args| args}
-    t1 = app.bq { "result" }
-    
-    assert_equal "result", t1.call
-    assert_equal [[t, [1,2,3]], [t1, []]], app.queue.to_a
+    n = app.node {}
+    assert_equal n, app.pq(n, :a)
   end
   
   #
@@ -757,54 +711,25 @@ class AppTest < Test::Unit::TestCase
   # execute test
   #
   
-  class ExecuteStack
-    def initialize(stack)
-      @stack = stack
-    end
-    
-    def call(node, inputs)
-      inputs << 'stack'
-      @stack.call(node, inputs)
-    end
-  end
-  
-  def test_execute_calls_stack_with_node_and_inputs
-    app.use ExecuteStack
-    
+  def test_execute_calls_node_with_input
     was_in_block = false
-    n = intern do |*inputs|
-      assert_equal [1,2,3,'stack'], inputs
+    n = app.node do |input|
+      assert_equal :input, input
       was_in_block = true
     end
     
     assert !was_in_block
-    app.execute(n,1,2,3)
+    app.execute(n, [:input])
     assert was_in_block
   end
   
-  #
-  # dispatch test
-  #
-  
-  def test_dispatch_calls_node_with_splat_inputs
-    was_in_block = false
-    n = intern do |*inputs|
-      assert_equal [1,2,3], inputs
-      was_in_block = true
-    end
-    
-    assert !was_in_block
-    app.dispatch(n, [1,2,3])
-    assert was_in_block
+  def test_execute_returns_node_result
+    n = app.node { "result" }
+    assert_equal "result", app.execute(n, [])
   end
   
-  def test_dispatch_returns_node_result
-    n = intern { "result" }
-    assert_equal "result", app.dispatch(n)
-  end
-  
-  def test_dispatch_calls_joins_if_specified
-    n = intern { "result" }
+  def test_execute_calls_joins_if_specified
+    n = app.node { "result" }
     
     was_in_block_a = false
     n.on_complete do |result|
@@ -818,13 +743,13 @@ class AppTest < Test::Unit::TestCase
       was_in_block_b = true
     end
     
-    app.dispatch(n)
+    app.execute(n, [])
     assert was_in_block_a
     assert was_in_block_b
   end
   
-  def test_dispatch_calls_app_joins_if_no_joins_are_specified
-    n = intern { "result" }
+  def test_execute_calls_app_joins_if_no_joins_are_specified
+    n = app.node { "result" }
     
     was_in_block_a = false
     app.on_complete do |result|
@@ -838,21 +763,17 @@ class AppTest < Test::Unit::TestCase
       was_in_block_b = true
     end
     
-    app.dispatch(n)
+    app.execute(n, [])
     assert was_in_block_a
     assert was_in_block_b
   end
   
   class NilJoins
-    def call
-      "result"
-    end
-    def joins
-      nil
-    end
+    def call(input); "result"; end
+    def joins; nil; end
   end
   
-  def test_dispatch_does_not_call_app_joins_if_joins_returns_nil
+  def test_execute_does_not_call_app_joins_if_joins_returns_nil
     n = NilJoins.new
     
     was_in_block = false
@@ -861,17 +782,15 @@ class AppTest < Test::Unit::TestCase
       was_in_block = true
     end
     
-    assert_equal "result", app.dispatch(n)
+    assert_equal "result", app.execute(n, [])
     assert_equal false, was_in_block
   end
   
   class NoJoins
-    def call
-      "result"
-    end
+    def call(input); "result"; end
   end
   
-  def test_dispatch_does_not_call_app_joins_if_node_does_not_respond_to_joins
+  def test_execute_does_not_call_app_joins_if_node_does_not_respond_to_joins
     n = NoJoins.new
     
     was_in_block = false
@@ -880,7 +799,7 @@ class AppTest < Test::Unit::TestCase
       was_in_block = true
     end
     
-    assert_equal "result", app.dispatch(n)
+    assert_equal "result", app.execute(n, [])
     assert_equal false, was_in_block
   end
   
@@ -889,8 +808,7 @@ class AppTest < Test::Unit::TestCase
   #
   
   def test_simple_enque_and_run
-    t = node('.b')
-    app.enq t, 'a'
+    node('.b').enq 'a'
     app.run
     
     assert_equal 1, results.length
@@ -899,9 +817,9 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_run_calls_each_node_in_order
-    app.enq node('a'), ''
-    app.enq node('b'), ''
-    app.enq node('c'), ''
+    node('a').enq ''
+    node('b').enq ''
+    node('c').enq ''
     app.run
   
     assert_equal ['a', 'b', 'c'], runlist
@@ -910,24 +828,25 @@ class AppTest < Test::Unit::TestCase
   def test_run_returns_immediately_when_already_running
     queue_before = nil
     queue_after = nil
-    t1 = intern do 
+    
+    n1 = app.node do 
       queue_before = app.queue.to_a
       app.run
       queue_after = app.queue.to_a
     end
-    t2 = intern {}
+    n2 = app.node {}
     
-    app.enq t1
-    app.enq t2
+    n1.enq
+    n2.enq
     app.run
     
-    assert_equal [[t2, []]], queue_before
-    assert_equal [[t2, []]], queue_after
+    assert_equal [[n2, []]], queue_before
+    assert_equal [[n2, []]], queue_after
   end
   
   def test_run_resets_state_to_ready
     in_block_state = nil
-    app.bq { in_block_state = app.state }
+    app.node { in_block_state = app.state }.enq
     
     assert_equal App::State::READY, app.state
     assert_equal nil, in_block_state
@@ -940,10 +859,7 @@ class AppTest < Test::Unit::TestCase
   
   def test_run_resets_state_to_ready_when_stopped
     in_block_state = nil
-    app.bq intern do
-      app.stop
-      in_block_state = app.state
-    end
+    app.node { app.stop; in_block_state = app.state }.enq
     
     assert_equal App::State::READY, app.state
     assert_equal nil, in_block_state
@@ -956,13 +872,13 @@ class AppTest < Test::Unit::TestCase
   
   def test_run_resets_state_to_ready_when_terminated
     in_block_state = nil
-    app.bq intern do
+    app.node do
       app.terminate
       in_block_state = app.state
       
       app.check_terminate
       flunk "should have been terminated"
-    end
+    end.enq
     
     assert_equal App::State::READY, app.state
     assert_equal nil, in_block_state
@@ -975,10 +891,10 @@ class AppTest < Test::Unit::TestCase
   
   def test_run_resets_state_to_ready_after_unhandled_error
     was_in_block = false
-    app.bq do
+    app.node do
       was_in_block = true
       raise "error!"
-    end
+    end.enq
     
     assert_equal App::State::READY, app.state
     assert_equal false, was_in_block
@@ -1001,11 +917,11 @@ class AppTest < Test::Unit::TestCase
   
   def test_check_terminate_yields_to_block_before_raising_terminiate_error
     was_in_block = false
-    app.bq intern do
+    app.node do
       app.terminate
       app.check_terminate { was_in_block = true }
       flunk "should have been terminated"
-    end
+    end.enq
     
     assert_equal false, was_in_block
     app.run
@@ -1080,7 +996,7 @@ class AppTest < Test::Unit::TestCase
     end
   end
   
-  def test_serialize_serializes_application_objects=
+  def test_serialize_serializes_application_objects
     app.set('var', SchemaObj.new)
     
     assert_equal [
@@ -1095,7 +1011,7 @@ class AppTest < Test::Unit::TestCase
   def test_serialize_serializes_queue
     obj = SchemaObj.new
     app.set('var', obj)
-    app.enq(obj, 1, 2, 3)
+    app.enq(obj, :input)
     
     assert_equal [
       { 'sig' => 'set',
@@ -1104,13 +1020,13 @@ class AppTest < Test::Unit::TestCase
         'config' => {'key' => 'value'}
       },
       { 'sig' => 'enq', 
-        'args' => ['var', 1,2,3]
+        'args' => ['var', :input]
       }
     ], app.serialize
   end
   
   def test_serialize_adds_sets_objects_if_necessary
-    app.enq(SchemaObj.new, 1, 2, 3)
+    app.enq(SchemaObj.new, :input)
     
     assert_equal [
       { 'sig' => 'set',
@@ -1119,7 +1035,7 @@ class AppTest < Test::Unit::TestCase
         'config' => {'key' => 'value'}
       },
       { 'sig' => 'enq', 
-        'args' => [0, 1,2,3]
+        'args' => [0, :input]
       }
     ], app.serialize
   end
@@ -1270,7 +1186,7 @@ class AppTest < Test::Unit::TestCase
   def test_to_spec_build_rebuilds_app
     obj = SchemaObj.new :key => 'obj'
     app.use SchemaMiddleware
-    app.enq(obj, 1,2,3)
+    app.enq(obj, :input)
     app.set('var', app)
     
     alt = App.build(app.to_spec)
@@ -1278,9 +1194,9 @@ class AppTest < Test::Unit::TestCase
     assert_equal [SchemaMiddleware], alt.middleware.collect {|m| m.class }
     assert_equal 1, alt.queue.size
     
-    obj, args = alt.queue.deq
+    obj, input = alt.queue.deq
     assert_equal 'obj', obj.config[:key]
-    assert_equal [1,2,3], args
+    assert_equal [:input], input
     assert_equal({'var' => alt}, alt.objects)
   end
   
@@ -1290,11 +1206,11 @@ class AppTest < Test::Unit::TestCase
   
   def test_terminate_errors_are_handled
     was_in_block = false
-    app.bq do
+    app.node do
       was_in_block = true
       raise Tap::App::TerminateError
       flunk "should have been terminated"
-    end
+    end.enq
     
     app.run
     assert was_in_block
@@ -1303,11 +1219,14 @@ class AppTest < Test::Unit::TestCase
   def test_terminate_errors_reque_the_latest_node
     was_in_block = false
     terminate = true
-    node = app.bq(1,2,3) do |*inputs|
+    node = app.node do |*inputs|
       was_in_block = true
       raise Tap::App::TerminateError if terminate
     end
-    another = app.bq {}
+    another = app.node {}
+    
+    node.enq(1,2,3)
+    another.enq
     
     assert_equal [[node, [1,2,3]], [another, []]], app.queue.to_a
     
