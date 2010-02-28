@@ -60,7 +60,7 @@ module Tap
         verbose && verbose =~ /^true$/i ? true : false
       end
       
-      # Returns true if the ENV variable 'QUIET' is true.  When quiet,
+      # Returns true if the ENV variable 'QUIET' is true or nil.  When quiet,
       # ShellTest does not print any extra information to $stdout.
       #
       # If 'VERBOSE' and 'QUIET' are both set, verbose wins.
@@ -68,7 +68,7 @@ module Tap
         return false if verbose?
         
         quiet = ENV['QUIET']
-        quiet && quiet =~ /^true$/i ? true : false
+        quiet.nil? || quiet =~ /^true$/i ? true : false
       end
       
       # Sets the specified ENV variables and returns the *current* env.

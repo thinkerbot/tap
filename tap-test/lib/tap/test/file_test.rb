@@ -12,7 +12,7 @@ module Tap
     # ==== Cleanup
     #
     # By default the entire method_root directory is cleaned up at the end of
-    # the test. To prevent cleanup, either set the KEEP_RESULTS or
+    # the test. To prevent cleanup, either set the KEEP_OUTPUTS or
     # KEEP_FAILURES ENV variable to 'true'.  The cleanup directories can be
     # specified manually using cleanup_dirs class variable:
     #
@@ -68,7 +68,7 @@ module Tap
         end
         
         # clear out the output folder if it exists, unless flagged otherwise
-        unless ENV["KEEP_RESULTS"] == "true" || (!passed? && ENV["KEEP_FAILURES"] == "true")
+        unless ENV["KEEP_OUTPUTS"] == "true" || (!passed? && ENV["KEEP_FAILURES"] == "true")
           begin
             cleanup
           rescue
