@@ -17,7 +17,7 @@ module Tap
         path = Path.new(dir, map)
         path[lib].each do |lib_dir|
           lines << "loadpath '#{Path.escape(lib_dir)}'"
-
+          
           Constant.scan(lib_dir, pattern).each do |const|
             lines << "set #{const.const_name} #{Path.join(const.require_paths)}"
             lines << "ns #{const.dirname}"
@@ -99,7 +99,7 @@ module Tap
       new_path
     end
     
-    def auto(options)
+    def auto(options, log=nil)
       Env.generate(options).each do |line|
         sig, *args = Utils.shellsplit(line)
         signal(sig).call(args)

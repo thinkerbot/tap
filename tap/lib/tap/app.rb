@@ -57,6 +57,17 @@ module Tap
     # Reserved call and init keys as a single array
     RESERVED_KEYS = CALL_KEYS + INIT_KEYS
     
+    # Splits a signal into an object string and a signal string.  If OBJECT
+    # doesn't match, then the string can be considered a signal, and the
+    # object is nil. After a match:
+    #
+    #   $1:: The object string
+    #        (ex: 'obj/sig' => 'obj')
+    #   $2:: The signal string
+    #        (ex: 'obj/sig' => 'sig')
+    #
+    OBJECT = /\A(.*)\/(.*)\z/
+    
     # The default App logger (writes to $stderr at level INFO)
     DEFAULT_LOGGER = Logger.new($stderr)
     DEFAULT_LOGGER.level = Logger::INFO
@@ -163,6 +174,8 @@ module Tap
     
     define_signal :load, Load
     define_signal :help, Help                       # signals help
+    
+    cache_signals
     
     # Creates a new App with the given configuration.  Options can be used to
     # specify objects that are normally initialized for every new app:
@@ -326,7 +339,13 @@ module Tap
       sig = args['sig']
       args = args['args'] || args
       
-      route(obj, sig, &block).call(args)
+      # nil obj routes back to app, so optimize by evaluating signal directly
+      (obj.nil? ? signal(sig, &block) : route(obj, sig, &block)).call(args)
+    end
+    
+    def signal(sig, &block)
+      sig = sig.to_s
+      sig =~ OBJECT ? route($1, $2, &block) : super(sig, &block)
     end
     
     def route(obj, sig, &block)

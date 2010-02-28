@@ -164,33 +164,6 @@ class ParserTest < Test::Unit::TestCase
   end
   
   #
-  # OBJECT test
-  #
-  
-  def test_OBJECT_regexp
-    r = Parser::OBJECT
-    
-    assert 'nest/obj/sig' =~ r
-    assert_equal 'nest/obj', $1
-    assert_equal 'sig', $2
-    
-    assert 'obj/sig' =~ r
-    assert_equal 'obj', $1
-    assert_equal 'sig', $2
-    
-    assert '/sig' =~ r
-    assert_equal '', $1
-    assert_equal 'sig', $2
-    
-    assert '/' =~ r
-    assert_equal '', $1
-    assert_equal '', $2
-    
-    # non-matching
-    assert 'str' !~ r
-  end
-  
-  #
   # parse test
   #
   
@@ -337,13 +310,13 @@ class ParserTest < Test::Unit::TestCase
     parser.parse %w{--/var/sig a b}
     
     assert_equal [
-      [{'sig' => 'set', 'args' => ['0', Tap::Signal, 'var', 'sig', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => ['0', Tap::Signal, 'var', '', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => ['0', Tap::Signal, '', 'sig', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => ['0', Tap::Signal, nil, 'sig', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => ['0', Tap::Signal, '', '', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => ['0', Tap::Signal, nil, '', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => ['0', Tap::Signal, 'var', 'sig',  'a', 'b']}, :execute]
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, 'var/sig', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, 'var/', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, '/sig', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, 'sig', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, '/', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, '', 'a', 'b']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', Tap::Signal, 'var/sig',  'a', 'b']}, :execute]
     ], parser.specs
   end
 end

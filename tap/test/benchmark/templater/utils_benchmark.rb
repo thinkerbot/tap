@@ -1,14 +1,14 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require 'tap/test/unit'
 require 'tap/templater'
-require 'benchmark'
 
 class TemplaterUtilsBenchmark < Test::Unit::TestCase
-  include Benchmark
   include Tap::Templater::Utils
   
+  acts_as_subset_test
+  
   def test_nest_speed
-    puts method_name
-    bm(20) do |x|
+    benchmark_test(20) do |x|
       content = "some content\n" * 100
       nesting = [['module Sample', 'end'], ['module Nest', 'end']]
       

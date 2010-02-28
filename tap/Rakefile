@@ -173,14 +173,11 @@ namespace :test do
   
   desc 'run documentation tests'
   task(:doc) do
-    ENV['QUIET'] ||= 'true'
     test Dir["test/doc/**/*_test.rb"]
   end
   
   desc 'run cmd tests'
   task(:cmd) do
-    ENV['QUIET'] ||= 'true'
-    ENV['TAP_GEMS'] = ''
     test Dir["test/cmd/**/*_test.rb"]
   end
   

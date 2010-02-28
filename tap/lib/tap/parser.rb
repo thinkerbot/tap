@@ -40,17 +40,6 @@ module Tap
     #
     SIGNAL = /\A-(-)?\/(.*)\z/
     
-    # Splits a signal into an object string and a signal string.  If OBJECT
-    # doesn't match, then the string can be considered a signal, and the
-    # object is nil. After a match:
-    #
-    #   $1:: The object string
-    #        (ex: 'obj/sig' => 'obj')
-    #   $2:: The signal string
-    #        (ex: 'obj/sig' => 'sig')
-    #
-    OBJECT = /\A(.*)\/(.*)\z/
-    
     # The escape begin argument
     ESCAPE_BEGIN = "-."
 
@@ -194,14 +183,7 @@ module Tap
     def parse_signal(one, two) # :nodoc:
       args = next_args
       args << Tap::Signal
-      
-      if two =~ OBJECT
-        args << $1
-        args << $2
-      else
-        args << nil
-        args << two
-      end
+      args << two
       
       spec(one.nil? ? :enque : :execute, args)
     end

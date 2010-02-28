@@ -1,24 +1,40 @@
 require File.join(File.dirname(__FILE__), '../tap_test_helper')
+require 'tap/test/unit'
 require 'tap/app'
-require 'benchmark'
 
 class AppBenchmark < Test::Unit::TestCase
+  acts_as_subset_test
+  
+  attr_reader :app
+  
+  def setup
+    super
+    @app = Tap::App.new(:quiet => true)
+  end
   
   #
   # benchmarks
   #
   
-  def test_run_speed
-    app = Tap::App.new(:quiet => true) {|audit| }
-    
-    puts method_name
-    Benchmark.bm(20) do |x|
+  def test_call_speed
+    benchmark_test(20) do |x|
       n = 10000
       
-      t = app.node {}
-      x.report("10k enq ") { n.times { app.enq(t) } }
+      app.set('app', app)
+      x.report("10k stop") { n.times { app.stop } }
+      x.report("10k call stop") { n.times { app.call('sig' => 'stop')} }
+      x.report("10k call app/stop") { n.times { app.call('sig' => 'app/stop')} }
+    end
+  end
+  
+  def test_run_speed
+    benchmark_test(20) do |x|
+      n = 10000
+      
+      node = app.node {}
+      x.report("10k enq ") { n.times { node.enq } }
       x.report("10k run ") { n.times {}; app.run }
-      x.report("10k call ") { n.times { t.call } }
+      x.report("10k call ") { n.times { node.call([]) } }
     end
   end
   
@@ -29,17 +45,14 @@ class AppBenchmark < Test::Unit::TestCase
   end
   
   def test_unsynchronized_run_speed
-    app = Tap::App.new(:quiet => true) {|audit| }
-    app.queue.extend(Unsynchronize)
-    
-    puts method_name
-    Benchmark.bm(20) do |x|
+    benchmark_test(20) do |x|
+      app.queue.extend(Unsynchronize)
       n = 10000
       
-      t = app.node {}
-      x.report("10k enq ") { n.times { app.enq(t) } }
+      node = app.node {}
+      x.report("10k enq ") { n.times { node.enq } }
       x.report("10k run ") { n.times {}; app.run }
-      x.report("10k call ") { n.times { t.call } }
+      x.report("10k call ") { n.times { node.call([]) } }
     end
   end
 end

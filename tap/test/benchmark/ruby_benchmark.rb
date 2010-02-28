@@ -1,11 +1,10 @@
-require 'test/unit'
-require 'benchmark'
+require 'tap/test/unit'
 
 class RubyBenchmark < Test::Unit::TestCase
+  acts_as_subset_test
   
   def test_launch_times
-    puts method_name
-    Benchmark.bm(20) do |x|
+    benchmark_test(20) do |x|
       n = 10
       
       echo = `which echo`.chomp

@@ -18,8 +18,8 @@ module Tap
       # an argh then calls build, but there is no requirement that this
       # occurs in subclasses.
       def parse!(argv=ARGV, app=Tap::App.instance)
-        obj, sig, *args = argv
-        obj = app.route(obj, sig)
+        sig, *args = argv
+        obj = app.signal(sig)
         yield(obj, args) if block_given?
         obj
       end
