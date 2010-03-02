@@ -50,15 +50,16 @@ module Tap
     signal :unloadpath
     signal :unset
     signal :unns
+    
     define_signal :help, Help                       # signals help
     
     def initialize(options={})
       @paths = options[:paths] || []
       @paths.collect! {|path| path.kind_of?(Path) ? path : Path.new(*path) }
       
-      @constants = options[:constants] || []
-      @constants.collect! {|const| const.kind_of?(Constant) ? const : Constant.new(*const) }
-      @constants.sort!
+      @constants = {}
+      constants = options[:constants] || []
+      constants.each {|constant| set(*constant)}
       
       @namespaces = options[:namespaces] || ["/"]
     end
@@ -76,14 +77,7 @@ module Tap
       when Module, nil
         const_str
       else
-        namespaces.each do |ns|
-          path = File.join(ns, const_str)
-          constant = constants.find {|const| const.path == path }
-        
-          return constant.constantize if constant
-        end
-      
-        constant = constants.find {|const| const.const_name == const_str }
+        constant = constants[const_str] || resolve(const_str)
         constant ? constant.constantize : nil
       end
     end
@@ -134,15 +128,15 @@ module Tap
         require_paths << const_name.underscore
       end
       
-      new_constant = Constant.new(const_name, *require_paths)
-      constants << new_constant
-      constants.sort!
-      new_constant
+      constant = constants[const_name] || Constant.new(const_name)
+      constant.require_paths.concat(require_paths)
+      constants[constant.const_name] = constant
+      constant
     end
     
     def unset(*const_names)
       const_names.each do |const_name|
-        constants.delete_if do |constant|
+        constants.delete_if do |key, constant|
           constant.const_name == const_name
         end
       end
@@ -159,6 +153,20 @@ module Tap
     def unns(*prefixes)
       prefixes.each {|prefix| namespaces.delete(prefix) }
       self
+    end
+    
+    protected
+    
+    def resolve(const_str) # :nodoc:
+      values = constants.values
+      
+      namespaces.each do |ns|
+        path = File.join(ns, const_str)
+        constant = values.find {|constant| constant.path == path }
+        return constant if constant
+      end
+      
+      nil
     end
   end
 end

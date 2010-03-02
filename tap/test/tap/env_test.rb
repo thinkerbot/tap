@@ -40,12 +40,12 @@ class EnvTest < Test::Unit::TestCase
     assert_equal [
       'ConstName',
       'Nest::ConstName'
-    ], env.constants.collect {|const| const.const_name }
+    ], env.constants.values.collect {|const| const.const_name }.sort
     
     assert_equal [
       [],
       ['require/path/a', 'require/path/b']
-    ], env.constants.collect {|const| const.require_paths }
+    ], env.constants.values.collect {|const| const.require_paths }.sort
   end
   
   #

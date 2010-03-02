@@ -7,7 +7,10 @@ module Tap
   
   def setup(dir=Dir.pwd, options={})
     env = Env.new
-    env.auto(:dir => File.expand_path('../..', __FILE__), :glob => 'lib/tap/{join,signal,task,middleware}.rb')
+    env.ns '/tap'
+    env.set 'Tap::Join', "tap/join.rb"
+    env.set 'Tap::Signal', "tap/signal.rb"
+    
     env_dirs = options[:env_dirs] || ENV['TAP_ENV_DIRS'] || ['.']
     Env::Path.split(env_dirs).each {|dir| env.auto(:dir => dir) }
     

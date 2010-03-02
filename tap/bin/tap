@@ -42,7 +42,7 @@ end
 begin
   app.run
 rescue(Exception)
-  YAML.dump(app.serialize, $stderr)
+  YAML.dump(app.serialize, $stderr) if $DEBUG
   raise
 end
 
