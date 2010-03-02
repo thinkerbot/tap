@@ -102,6 +102,11 @@ class RootTest < Test::Unit::TestCase
     assert_equal nil, root.relative_path(File.expand_path('/alt/path'))
   end
   
+  def test_relative_path_works_for_root_dir
+    root = Root.new('/')
+    assert_equal 'path/to/file', root.relative_path('/path/to/file')
+  end
+  
   #
   # root test
   #

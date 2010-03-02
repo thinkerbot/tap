@@ -172,7 +172,13 @@ module Tap
     # helper to memoize and return the length of path root, plus a trailing
     # separator; used in determining relative paths
     def path_root_length # :nodoc:
-      @path_root_length ||= @path_root.length + File::SEPARATOR.length
+      @path_root_length ||= begin
+        length = @path_root.length
+        unless @path_root == File::SEPARATOR
+          length += File::SEPARATOR.length
+        end
+        length
+      end
     end
   end
 end
