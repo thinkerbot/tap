@@ -3,18 +3,6 @@ require 'tap/task'
 require 'tap/test'
 
 # used in documentation test
-class NoInput < Tap::Task
-  def process(); []; end
-end
-
-class OneInput < Tap::Task
-  def process(input); [input]; end
-end
-
-class MixedInputs < Tap::Task
-  def process(a, b, *args); [a,b,args]; end
-end
-
 class ConfiguredTask < Tap::Task
   config :one, 'one'
   config :two, 'two'
@@ -63,11 +51,6 @@ class TaskTest < Test::Unit::TestCase
   #
   
   def test_documentation
-    assert_equal [], NoInput.new.execute
-    assert_equal [:a], OneInput.new.execute(:a)
-    assert_equal [:a, :b, []], MixedInputs.new.execute(:a, :b)
-    assert_equal [:a, :b, [1,2,3]], MixedInputs.new.execute(:a, :b, 1, 2, 3)
-  
     ####
     t = ConfiguredTask.new
     assert_equal({:one => 'one', :two => 'two'}, t.config)
@@ -226,23 +209,6 @@ class TaskTest < Test::Unit::TestCase
   #
   # process test
   #
-  
-  class TaskWithTwoInputs < Tap::Task
-    def process(a, b)
-      [b,a]
-    end
-  end
-  
-  def test_process_documentation
-    results = []
-    app = Tap::App.new {|result| results << result }
-  
-    t = TaskWithTwoInputs.new({}, app)
-    t.enq(1,2).enq(3,4)
-    
-    app.run
-    assert_equal [[2,1], [4,3]], results
-  end
   
   def test_process_returns_inputs
     t = Task.new

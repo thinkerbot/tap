@@ -3,7 +3,8 @@
 
 ENV['TAP_GEMS'] ||= ''
 
-$:.unshift File.expand_path '../configurable/lib'
-$:.unshift File.expand_path '../lazydoc/lib'
-$:.unshift File.expand_path 'lib'
-load 'bin/tap'
+root = File.expand_path('..', __FILE__)
+$:.unshift "#{root}/../configurable/lib"
+$:.unshift "#{root}/../lazydoc/lib"
+$:.unshift "#{root}/lib"
+load "#{root}/bin/tap"

@@ -36,15 +36,11 @@ module Tap
   
     attr_reader :app
   
-    # The joins called when call completes
-    attr_reader :joins
-  
     attr_reader :block
   
     def initialize(obj, app=Tap::App.instance, &block)
       @obj = obj
       @app = app
-      @joins = []
       @block = block
     end
   

@@ -115,6 +115,12 @@ module Tap
         input.joins.delete(self)
       end if @inputs
       
+      inputs.each do |input|
+        unless input.respond_to?(:joins)
+          raise "input does not support joins: #{input.inspect}"
+        end
+      end
+      
       @inputs = inputs
       
       inputs.each do |input|

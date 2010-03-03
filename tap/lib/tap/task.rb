@@ -5,29 +5,6 @@ module Tap
   # Tasks are nodes that map to the command line.  Tasks provide support for
   # configuration, documentation, and provide helpers to build workflows.
   #
-  # === Task Definition
-  #
-  # Tasks specify executable code by overridding the process method in
-  # subclasses. The number of inputs to process corresponds to the inputs
-  # given to execute or enq.
-  #
-  #   class NoInput < Tap::Task
-  #     def process(); []; end
-  #   end
-  #
-  #   class OneInput < Tap::Task
-  #     def process(input); [input]; end
-  #   end
-  #
-  #   class MixedInputs < Tap::Task
-  #     def process(a, b, *args); [a,b,args]; end
-  #   end
-  #
-  #   NoInput.new.execute                          # => []
-  #   OneInput.new.execute(:a)                     # => [:a]
-  #   MixedInputs.new.execute(:a, :b)              # => [:a, :b, []]
-  #   MixedInputs.new.execute(:a, :b, 1, 2, 3)     # => [:a, :b, [1,2,3]]
-  #
   # === Configuration 
   #
   # Tasks are configurable.  By default each task will be configured as 
@@ -156,30 +133,9 @@ module Tap
     end
     
     def call(inputs)
-      process(*inputs)
+      arrayify process(*inputs)
     end
     
-    # The method for processing inputs into outputs.  Override this method in
-    # subclasses to provide class-specific process logic.  The number of 
-    # arguments specified by process corresponds to the number of arguments
-    # the task should have when enqued or executed.  
-    #
-    #   class TaskWithTwoInputs < Tap::Task
-    #     def process(a, b)
-    #       [b,a]
-    #     end
-    #   end
-    #
-    #   results = []
-    #   app = Tap::App.new {|result| results << result }
-    #
-    #   t = TaskWithTwoInputs.new({}, app)
-    #   t.enq(1,2).enq(3,4)
-    #   
-    #   app.run
-    #   results                 # => [[2,1], [4,3]]
-    #
-    # By default, process simply returns the inputs.
     def process(*inputs)
       inputs
     end
@@ -245,6 +201,12 @@ module Tap
     # the task class, object_id, and configurations listed.
     def inspect
       "#<#{self.class.to_s}:#{object_id} #{config.to_hash.inspect} >"
+    end
+    
+    protected
+    
+    def arrayify(obj)
+      obj.nil? ? [] : [obj]
     end
   end
 end
