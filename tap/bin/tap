@@ -39,6 +39,38 @@ loop do
   end
 end
 
+# Traps interrupt the normal flow of the program and so I assume thread safety
+# is an issue (ex if the INT occurs during an enque and a signal specifies
+# another enque). A safer way to go is to enque the prompt... when the prompt
+# is executed the app won't be be doing anything else so thread safety
+# shouldn't be an issue.
+Signal.trap('INT') do
+  puts
+  puts "Interrupt!  Signals from an interruption are not thread-safe."
+  
+  require 'tap/tasks/prompt'
+  prompt = Tap::Tasks::Prompt.new({:prompt => '~/'}, app)
+  call_prompt = true
+  3.times do
+    print "Wait for thread-safe break? (y/n): "
+    
+    case gets.strip
+    when /^y(es)?$/i
+      puts "waiting for break..."
+      app.pq(prompt, [])
+      call_prompt = false
+      break
+      
+    when /^no?$/i
+      break
+    end
+  end
+  
+  if call_prompt
+    prompt.call([])
+  end
+end
+
 begin
   app.run
 rescue(Exception)

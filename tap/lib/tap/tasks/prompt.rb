@@ -17,8 +17,8 @@ module Tap
     #
     class Prompt < Stream
       include Tap::Utils
-      PROMPT = '/'
       
+      config :prompt, "/", &c.string_or_nil         # The prompt sequence
       config :terminal, $stdout, &c.io_or_nil       # The terminal IO
       
       def process(io=$stdin)
@@ -34,9 +34,10 @@ module Tap
       
       def load(io)
         open_io(terminal) do |terminal|
-          terminal.print PROMPT
-        end unless file
+          terminal.print prompt
+        end if prompt && !file
         
+        return nil if io.eof?
         line = readline(io)
         return nil if line.empty?
         
@@ -49,7 +50,7 @@ module Tap
       end
       
       def readline(io)
-        io.readline
+        io.readline.strip!
       end
       
       def complete?(io, result)
