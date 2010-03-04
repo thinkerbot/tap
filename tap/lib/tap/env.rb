@@ -51,7 +51,6 @@ module Tap
     signal :unset
     signal :unns
     
-    signal :manifest
     define_signal :help, Help                       # signals help
     
     def initialize(options={})
@@ -154,18 +153,6 @@ module Tap
     def unns(*prefixes)
       prefixes.each {|prefix| namespaces.delete(prefix) }
       self
-    end
-    
-    def manifest
-      keys = constants.keys.sort
-      max = keys.collect {|key| key.length }.max
-      
-      keys.collect! do |key|
-        value = constants[key].require_paths.sort.join(', ')
-        "%-#{max}s: %s" % [key, value]
-      end
-      
-      keys.join("\n")
     end
     
     protected
