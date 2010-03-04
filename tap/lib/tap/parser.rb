@@ -181,11 +181,8 @@ module Tap
     
     # parses the match of a SIGNAL regexp
     def parse_signal(one, two) # :nodoc:
-      args = next_args
-      args << Tap::Signal
-      args << two
-      
-      spec(one.nil? ? :enque : :execute, args)
+      next_args
+      spec(one.nil? ? :enque : :execute, [nil, Tap::Signal, two])
     end
   end
 end
