@@ -5,7 +5,7 @@ require 'tap/env'
 module Tap
   module_function
   
-  def setup(dir=Dir.pwd, options={})
+  def setup(options={})
     env = Env.new
     env.ns '/tap'
     env.ns '/tap/tasks'
@@ -15,16 +15,17 @@ module Tap
     env.set 'Tap::Tasks::Dump',   'tap/tasks/dump.rb'
     env.set 'Tap::Tasks::Prompt', 'tap/tasks/prompt.rb'
     
-    env_dirs = options[:env_dirs] || ENV['TAP_ENV_DIRS'] || ['.']
-    Env::Path.split(env_dirs).each {|dir| env.auto(:dir => dir) }
+    if env_dir_path = options[:env_dir_path]
+      Env::Path.split(env_dir_path).each {|dir| env.auto(:dir => dir) }
+    end
     
     app = App.new({}, :env => env)
     app.set('app', app)
     app.set('env', env)
-    load = app.signal(:load)
     
-    rc_path = options[:taprc_path] || ENV['TAPRC'] || ['~/.taprc']
-    load.call Env::Path.split(rc_path)
+    if taprc_path = options[:taprc_path]
+      app.signal(:load).call Env::Path.split(taprc_path)
+    end
     
     App.instance = app
   end

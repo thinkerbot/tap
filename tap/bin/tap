@@ -8,18 +8,26 @@
 #   tap --help                           # prints this help
 #
 
-$DEBUG = true if ENV['TAP_DEBUG'] == 'true'
-require 'tap'
-require 'tap/parser'
-
-app = Tap.setup
-parser = Tap::Parser.new
+if ENV['TAP_DEBUG'] == 'true'
+  $DEBUG = true 
+end
 
 if ARGV == ['--help']
   puts Lazydoc.usage(__FILE__)
   puts "\nversion #{Tap::VERSION} -- #{Tap::WEBSITE}"
   exit(0)
 end
+
+require 'tap'
+require 'tap/parser'
+
+options = {
+  :env_dir_path => ENV['TAP_ENV_DIRS'] || ['.'],
+  :taprc_path   => ENV['TAPRC'] || ['~/.taprc']
+}
+
+app = Tap.setup(options)
+parser = Tap::Parser.new
 
 loop do
   break if ARGV.empty?

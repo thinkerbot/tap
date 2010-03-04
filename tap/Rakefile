@@ -134,11 +134,10 @@ def test_section(type)
   test Dir["test/tap/#{type}*_test.rb", "test/tap/#{type}/**/*_test.rb"].uniq
 end
 
-desc 'run test:tap, test:doc, and test:cmd'
+desc 'run test:tap, test:doc'
 task :test => %w{
   test:tap
   test:doc
-  test:cmd
 }
 
 namespace :test do
@@ -169,17 +168,10 @@ namespace :test do
   task(:parser) { test_section :parser }
 
   desc 'run all tap tests'
-  task(:tap) { test(Dir.glob('test/tap/**/*_test.rb')) }
+  task(:tap) { test(Dir['test/tap/**/*_test.rb'] + Dir["test/*_test.rb"]) }
   
   desc 'run documentation tests'
-  task(:doc) do
-    test Dir["test/doc/**/*_test.rb"]
-  end
-  
-  desc 'run cmd tests'
-  task(:cmd) do
-    test Dir["test/cmd/**/*_test.rb"]
-  end
+  task(:doc) { test Dir["test/doc/**/*_test.rb"] }
   
   desc 'run benchmark tests'
   task(:benchmark) { test Dir["test/benchmark/**/*_benchmark.rb"] }

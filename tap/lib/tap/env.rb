@@ -72,6 +72,18 @@ module Tap
       result
     end
     
+    def resolve(const_str)
+      values = constants.values
+      
+      namespaces.each do |ns|
+        path = File.join(ns, const_str)
+        constant = values.find {|constant| constant.path == path }
+        return constant if constant
+      end
+      
+      nil
+    end
+    
     def constant(const_str)
       case const_str
       when Module, nil
@@ -153,20 +165,6 @@ module Tap
     def unns(*prefixes)
       prefixes.each {|prefix| namespaces.delete(prefix) }
       self
-    end
-    
-    protected
-    
-    def resolve(const_str) # :nodoc:
-      values = constants.values
-      
-      namespaces.each do |ns|
-        path = File.join(ns, const_str)
-        constant = values.find {|constant| constant.path == path }
-        return constant if constant
-      end
-      
-      nil
     end
   end
 end
