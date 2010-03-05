@@ -1,12 +1,16 @@
 #!/usr/bin/env ruby
 # usage: tap [workflow...] [--- tapfile]
 #
-# workflows:
+# examples:
 #   tap load 'goodnight moon' --: dump   # a simple workflow
+#   tap prompt                           # open a prompt
 #
 # help:
 #   tap --help                           # prints this help
 #
+
+require 'tap'
+require 'tap/parser'
 
 if ENV['TAP_DEBUG'] == 'true'
   $DEBUG = true 
@@ -17,9 +21,6 @@ if ARGV == ['--help']
   puts "\nversion #{Tap::VERSION} -- #{Tap::WEBSITE}"
   exit(0)
 end
-
-require 'tap'
-require 'tap/parser'
 
 begin
   options = {

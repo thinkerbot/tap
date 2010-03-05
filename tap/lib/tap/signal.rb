@@ -1,31 +1,24 @@
 require 'tap/utils'
 
 module Tap
-  # ::signal
-  #
   # Signal attaches an object and allows a specific method to be triggered
   # through a standard interface.
   class Signal
     class << self
       # A description of self
       attr_accessor :desc
-    
+      
       def parse(argv=ARGV, app=Tap::App.instance, &block)
         parse!(argv.dup, app, &block)
       end
       
-      # Parses the argv into an instance of self.  Internally parse parses
-      # an argh then calls build, but there is no requirement that this
-      # occurs in subclasses.
       def parse!(argv=ARGV, app=Tap::App.instance)
         sig, *args = argv
         obj = app.signal(sig)
         yield(obj, args) if block_given?
         obj
       end
-    
-      # Returns an instance of self.  By default build calls new with the
-      # configurations specified by spec['config'], and app.
+      
       def build(spec={}, app=Tap::App.instance)
         app.route(spec['obj'], spec['sig'])
       end
@@ -34,8 +27,11 @@ module Tap
     # The object receiving signals through self.
     attr_reader :obj
   
+    # The app for self
     attr_reader :app
   
+    # An optional block, used at the signal's discretion (normally passed to
+    # the method the signal targets on obj).
     attr_reader :block
   
     def initialize(obj, app=Tap::App.instance, &block)

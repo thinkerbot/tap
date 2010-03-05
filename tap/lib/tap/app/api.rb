@@ -102,7 +102,7 @@ module Tap
       
       define_signal :help, Help                     # signals help
       
-      # The App receiving self during enq
+      # The app for self
       attr_reader :app
       
       def initialize(config={}, app=Tap::App.instance)

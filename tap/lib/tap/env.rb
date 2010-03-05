@@ -37,20 +37,20 @@ module Tap
     attr_reader :constants
     attr_reader :namespaces
     
-    define_signal :load, Load
+    signal_hash :auto,                              # auto-scan resources from a dir
+      :signature => [:dir, :pathfile, :lib, :pattern]
     
-    signal_hash :auto, :signature => [:dir, :pathfile, :lib, :pattern]
+    signal :register                                # add a resource path
+    signal :loadpath                                # add a load path
+    signal :set                                     # add a constant
+    signal :ns                                      # add a namespace
     
-    signal :register
-    signal :loadpath
-    signal :set
-    signal :ns
+    signal :unregister                              # remove a resource path
+    signal :unloadpath                              # remove a load path
+    signal :unset                                   # remove a constant
+    signal :unns                                    # remove a namespace
     
-    signal :unregister
-    signal :unloadpath
-    signal :unset
-    signal :unns
-    
+    define_signal :load, Load                       # load a tapenv file
     define_signal :help, Help                       # signals help
     
     def initialize(options={})

@@ -34,12 +34,32 @@ class TapExeTest < Test::Unit::TestCase
     % tap
     }
   end
-
+  
+  def test_tap_with_a_help_option_returns_help
+    sh_match' % tap --help',
+      /usage: tap/
+      /version.*--http:/
+  end
+  
   def test_tap_parses_and_runs_workflow
     sh_test %Q{
     % tap -- load 'goodnight moon' -: dump
     goodnight moon
     }
+  end
+  
+  def test_tap_squelches_unhandled_errors
+    sh_test %q{
+    % tap a 2>&1
+    unresolvable constant: "a"
+    }
+  end
+  
+  def test_TAP_DEBUG_variable_turns_on_debugging
+    with_env('TAP_DEBUG' => 'true') do
+      sh_match' % tap a 2>&1',
+        /unresolvable constant.*RuntimeError/
+    end
   end
   
   def test_tap_executes_tapfiles_in_app_context

@@ -172,7 +172,7 @@ module Tap
       obj
     end
     
-    define_signal :load, Load
+    define_signal :load, Load                       # load a tapfile
     define_signal :help, Help                       # signals help
     
     cache_signals
