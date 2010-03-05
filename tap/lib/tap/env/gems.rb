@@ -12,9 +12,23 @@ module Tap
       CACHE_HOME = File.expand_path("#{RbConfig::CONFIG['RUBY_INSTALL_NAME']}/#{RUBY_VERSION}", CACHE_DIR)
       GEM_PATH_FILE = File.expand_path('gemfile', CACHE_HOME)
       
-      def env_files(gem_pattern)
-        unless gem_pattern.kind_of?(Regexp)
-          gem_pattern = Regexp.new(gem_pattern)
+      def env_path(patterns)
+        unless patterns.kind_of?(Array)
+          patterns = patterns.split(':')
+        end
+        
+        paths = []
+        patterns.each do |pattern|
+          paths.concat env_files(pattern)
+        end
+        
+        paths.uniq!
+        paths
+      end
+      
+      def env_files(pattern)
+        unless pattern.kind_of?(Regexp)
+          pattern = Regexp.new(pattern)
         end
         
         if File.exists?(GEM_PATH_FILE)
@@ -32,7 +46,7 @@ module Tap
         end
         
         Dir.glob(File.join(CACHE_HOME, '*-*')).select do |env_file|
-          File.basename(env_file) =~ gem_pattern
+          File.basename(env_file) =~ pattern
         end
       end
       

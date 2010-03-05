@@ -18,7 +18,8 @@ class TapExeTest < Test::Unit::TestCase
     super
     @pwd = Dir.pwd
     @current_env = set_env({
-      'HOME' => method_root.path('home')
+      'HOME' => method_root.path('home'),
+      'TAP_GEMS' => ''
     }, true)
     method_root.chdir('pwd', true)
   end
@@ -135,7 +136,7 @@ moon'
     }
   end
   
-  def test_TAP_AUTO_PATH_variable_can_be_used_to_specify_the_auto_scan_dirs
+  def test_TAP_AUTO_variable_can_be_used_to_specify_the_auto_scan_dirs
     method_root.prepare('alt/lib/a.rb') do |io|
       io.puts 'require "tap/task"'
       io.puts '# ::task'
@@ -147,7 +148,7 @@ moon'
     unresolvable constant: "a"
     }
     
-    with_env('TAP_AUTO_PATH' => '../alt') do
+    with_env('TAP_AUTO' => '../alt') do
       sh_test %Q{
       % tap a
       A
@@ -172,7 +173,7 @@ moon'
     }
   end
   
-  def test_TAP_ENV_PATH_variable_can_be_used_to_specify_the_tapenv_files
+  def test_TAPENV_variable_can_be_used_to_specify_the_tapenv_files
     method_root.prepare('alt/lib/a.rb') do |io|
       io.puts 'require "tap/task"'
       io.puts '# ::task'
@@ -188,7 +189,7 @@ moon'
     unresolvable constant: "a"
     }
     
-    with_env('TAP_ENV_PATH' => 'altenv') do
+    with_env('TAPENV' => 'altenv') do
       sh_test %Q{
       % tap a
       A

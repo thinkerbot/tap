@@ -24,11 +24,12 @@ end
 
 begin
   options = {
-    :auto_path  => ENV['TAP_AUTO_PATH'] || ['.'],
-    :env_path   => ENV['TAP_ENV_PATH'] || ['tapenv'],
+    :gems       => ENV['TAP_GEMS'] || ['.'],
+    :auto_path  => ENV['TAP_AUTO'] || ['.'],
+    :env_path   => ENV['TAPENV'] || ['tapenv'],
     :taprc_path => ENV['TAPRC'] || ['~/.taprc']
   }
-
+  
   app = Tap.setup(options)
   parser = Tap::Parser.new
   

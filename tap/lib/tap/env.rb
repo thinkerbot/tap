@@ -141,7 +141,7 @@ module Tap
       end
       
       constant = constants[const_name] || Constant.new(const_name)
-      constant.require_paths.concat(require_paths)
+      constant.require_paths.concat(require_paths).uniq!
       constants[constant.const_name] = constant
       constant
     end
