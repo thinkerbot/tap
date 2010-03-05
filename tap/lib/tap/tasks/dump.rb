@@ -39,7 +39,11 @@ module Tap
     class Dump < Tap::Task
       config :output, $stdout, &c.io(:<<, :puts, :print)   # The dump target file
       config :overwrite, false, &c.flag                    # Overwrite the existing target
-    
+      
+      def call(input)
+        package process(input)
+      end
+      
       # The default process prints dump headers as specified in the config,
       # then append the audit value to io.
       def process(input)
@@ -48,7 +52,11 @@ module Tap
         end
         input
       end
-    
+      
+      def package(output)
+        output
+      end
+      
       # Dumps the object to io, by default dump puts (not prints) obj.to_s.
       def dump(input, io)
         io.puts input.to_s

@@ -66,19 +66,17 @@ module Tap
     # Causes the outputs to be enqued rather than executed immediately.
     config :enq, false, :short => 'q', &c.flag      # Enque output nodes
     
-    # Iterates the results to the outputs, allowing a many-to-one join
-    # from the perspective of the results.  Non-array results are converted
-    # to arrays using to_ary:
+    # Converts each result into a one-member array before being passed onto
+    # outputs. Arrayify occurs before iterate and combined the two flags
+    # cancel.
+    config :arrayify, false, :short => 'a', &c.flag # Arrayify results
+    
+    # Iterates the results to the outputs.  Non-array results are converted to
+    # arrays using to_ary:
     #
     #   # results: [1,2,3]
     #   # outputs: call(input)
     #   result.to_ary.each {|r| app.execute(output, r) }
-    #
-    # Iterate may be combined with splat:
-    #
-    #   # results: [[1,2],3]
-    #   # outputs: call(*inputs)
-    #   result.to_ary.each {|r| app.execute(output, *r) }
     #
     config :iterate, false, :short => 'i', &c.flag  # Iterate results to outputs
     
@@ -155,6 +153,10 @@ module Tap
     # Executes the node with the input results.
     def execute(node, result) # :nodoc:
       mode = enq ? :enq : :execute
+      
+      if arrayify
+        result = [result]
+      end
       
       if iterate
         result.to_ary.each {|item| app.send(mode, node, item) }

@@ -133,11 +133,15 @@ module Tap
     end
     
     def call(inputs)
-      arrayify process(*inputs)
+      package(*process(*inputs))
     end
     
     def process(*inputs)
       inputs
+    end
+    
+    def package(*outputs)
+      outputs
     end
     
     # Sets a sequence workflow pattern for the tasks; each task
@@ -201,12 +205,6 @@ module Tap
     # the task class, object_id, and configurations listed.
     def inspect
       "#<#{self.class.to_s}:#{object_id} #{config.to_hash.inspect} >"
-    end
-    
-    protected
-    
-    def arrayify(obj)
-      obj.nil? ? [] : [obj]
     end
   end
 end
