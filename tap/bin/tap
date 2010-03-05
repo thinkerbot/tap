@@ -21,69 +21,71 @@ end
 require 'tap'
 require 'tap/parser'
 
-options = {
-  :env_dir_path => ENV['TAP_ENV_DIRS'] || ['.'],
-  :taprc_path   => ENV['TAPRC'] || ['~/.taprc']
-}
+begin
+  options = {
+    :auto_path  => ENV['TAP_AUTO_PATH'] || ['.'],
+    :env_path   => ENV['TAP_ENV_PATH'] || ['tapenv'],
+    :taprc_path => ENV['TAPRC'] || ['~/.taprc']
+  }
 
-app = Tap.setup(options)
-parser = Tap::Parser.new
-
-loop do
-  break if ARGV.empty?
-  parser.parse!(ARGV)
-  parser.build_to(app)
+  app = Tap.setup(options)
+  parser = Tap::Parser.new
   
-  break if ARGV.empty?
-  psr = ConfigParser.new(app.config, 
-    :option_break => Tap::Parser::BREAK, 
-    :keep_break => true, 
-    :clear_config => false, 
-    :add_defaults => false
-  )
-  psr.add(Tap::App.configurations)
-  psr.scan(ARGV) do |file|
-    app.call('sig' => 'load', 'args' => [file])
-  end
-end
-
-# Traps interrupt the normal flow of the program and so I assume thread safety
-# is an issue (ex if the INT occurs during an enque and a signal specifies
-# another enque). A safer way to go is to enque the prompt... when the prompt
-# is executed the app won't be be doing anything else so thread safety
-# shouldn't be an issue.
-Signal.trap('INT') do
-  puts
-  puts "Interrupt!  Signals from an interruption are not thread-safe."
+  loop do
+    break if ARGV.empty?
+    parser.parse!(ARGV)
+    parser.build_to(app)
   
-  require 'tap/tasks/prompt'
-  prompt = Tap::Tasks::Prompt.new({:prompt => '~/'}, app)
-  call_prompt = true
-  3.times do
-    print "Wait for thread-safe break? (y/n): "
-    
-    case gets.strip
-    when /^y(es)?$/i
-      puts "waiting for break..."
-      app.pq(prompt, [])
-      call_prompt = false
-      break
-      
-    when /^no?$/i
-      break
+    break if ARGV.empty?
+    psr = ConfigParser.new(app.config, 
+      :option_break => Tap::Parser::BREAK, 
+      :keep_break => true, 
+      :clear_config => false, 
+      :add_defaults => false
+    )
+    psr.add(Tap::App.configurations)
+    psr.scan(ARGV) do |file|
+      app.call('sig' => 'load', 'args' => [file])
     end
   end
-  
-  if call_prompt
-    prompt.call([])
-  end
-end
 
-begin
+  # Traps interrupt the normal flow of the program and so I assume thread safety
+  # is an issue (ex if the INT occurs during an enque and a signal specifies
+  # another enque). A safer way to go is to enque the prompt... when the prompt
+  # is executed the app won't be be doing anything else so thread safety
+  # shouldn't be an issue.
+  Signal.trap('INT') do
+    puts
+    puts "Interrupt!  Signals from an interruption are not thread-safe."
+  
+    require 'tap/tasks/prompt'
+    prompt = Tap::Tasks::Prompt.new({:prompt => '~/'}, app)
+    call_prompt = true
+    3.times do
+      print "Wait for thread-safe break? (y/n): "
+    
+      case gets.strip
+      when /^y(es)?$/i
+        puts "waiting for break..."
+        app.pq(prompt, [])
+        call_prompt = false
+        break
+      
+      when /^no?$/i
+        break
+      end
+    end
+  
+    if call_prompt
+      prompt.call([])
+    end
+  end
+
   app.run
 rescue(Exception)
-  YAML.dump(app.serialize, $stderr) if $DEBUG
-  raise
+  raise if $DEBUG
+  $stderr.puts $!.message
+  exit(1)
 end
 
 exit(0)

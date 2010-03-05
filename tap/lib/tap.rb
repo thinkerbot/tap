@@ -15,8 +15,12 @@ module Tap
     env.set 'Tap::Tasks::Dump',   'tap/tasks/dump.rb'
     env.set 'Tap::Tasks::Prompt', 'tap/tasks/prompt.rb'
     
-    if env_dir_path = options[:env_dir_path]
-      Env::Path.split(env_dir_path).each {|dir| env.auto(:dir => dir) }
+    if auto_path = options[:auto_path]
+      Env::Path.split(auto_path).each {|dir| env.auto(:dir => dir) }
+    end
+    
+    if env_path = options[:env_path]
+      env.signal(:load).call Env::Path.split(env_path)
     end
     
     app = App.new({}, :env => env)

@@ -102,7 +102,81 @@ moon'
     }
   end
   
-  def test_tap_load_taprc_file_in_home_directory
+  def test_tap_auto_scans_pwd
+    method_root.prepare('pwd/lib/a.rb') do |io|
+      io.puts 'require "tap/task"'
+      io.puts '# ::task'
+      io.puts 'class A < Tap::Task; def process; puts "A"; end; end'
+    end
+    
+    sh_test %Q{
+    % tap a
+    A
+    }
+  end
+  
+  def test_TAP_AUTO_PATH_variable_can_be_used_to_specify_the_auto_scan_dirs
+    method_root.prepare('alt/lib/a.rb') do |io|
+      io.puts 'require "tap/task"'
+      io.puts '# ::task'
+      io.puts 'class A < Tap::Task; def process; puts "A"; end; end'
+    end
+    
+    sh_test %Q{
+    % tap a 2>&1
+    unresolvable constant: "a"
+    }
+    
+    with_env('TAP_AUTO_PATH' => '../alt') do
+      sh_test %Q{
+      % tap a
+      A
+      }
+    end
+  end
+  
+  def test_tap_loads_tapenv_file_in_env_context
+    method_root.prepare('alt/lib/a.rb') do |io|
+      io.puts 'require "tap/task"'
+      io.puts '# ::task'
+      io.puts 'class A < Tap::Task; def process; puts "A"; end; end'
+    end
+    
+    method_root.prepare('pwd/tapenv') do |io|
+      io.puts 'auto ../alt'
+    end
+    
+    sh_test %Q{
+    % tap a
+    A
+    }
+  end
+  
+  def test_TAP_ENV_PATH_variable_can_be_used_to_specify_the_tapenv_files
+    method_root.prepare('alt/lib/a.rb') do |io|
+      io.puts 'require "tap/task"'
+      io.puts '# ::task'
+      io.puts 'class A < Tap::Task; def process; puts "A"; end; end'
+    end
+    
+    method_root.prepare('pwd/altenv') do |io|
+      io.puts 'auto ../alt'
+    end
+    
+    sh_test %Q{
+    % tap a 2>&1
+    unresolvable constant: "a"
+    }
+    
+    with_env('TAP_ENV_PATH' => 'altenv') do
+      sh_test %Q{
+      % tap a
+      A
+      }
+    end
+  end
+  
+  def test_tap_loads_taprc_file_in_home_directory
     method_root.prepare('home/.taprc') do |io|
       io.puts "set 0 load"
       io.puts "set 1 dump"

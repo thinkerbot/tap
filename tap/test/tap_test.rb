@@ -10,12 +10,12 @@ class TapTest < Test::Unit::TestCase
   # setup test
   #
   
-  def test_setup_scans_env_dir_path_for_constants
+  def test_setup_scans_auto_path_for_constants
     method_root.prepare('one/lib/a.rb')   {|io| io.puts '# ::task'}
     method_root.prepare('one/lib/b/c.rb') {|io| io.puts '# B::task'}
     method_root.prepare('two/lib/c.rb')   {|io| io.puts '# ::task'}
     
-    app = Tap.setup(:env_dir_path => "#{method_root.path('one')}:#{method_root.path('two')}")
+    app = Tap.setup(:auto_path => "#{method_root.path('one')}:#{method_root.path('two')}")
     
     a = app.env.constants['A']
     assert_equal ['a.rb'], a.require_paths
@@ -25,6 +25,22 @@ class TapTest < Test::Unit::TestCase
     
     c = app.env.constants['C']
     assert_equal ['c.rb'], c.require_paths
+  end
+  
+  def test_setup_loads_env_path_in_env_context
+    method_root.prepare('one/lib/a.rb')   {|io| io.puts '# ::task'}
+    method_root.prepare('two/lib/b/c.rb') {|io| io.puts '# B::task'}
+    
+    a = method_root.prepare('a') {|io| io.puts "auto '#{method_root.path('one')}'" }
+    b = method_root.prepare('b') {|io| io.puts "auto '#{method_root.path('two')}'" }
+    
+    app = Tap.setup(:env_path => "#{a}:#{b}")
+    
+    a = app.env.constants['A']
+    assert_equal ['a.rb'], a.require_paths
+    
+    b = app.env.constants['B']
+    assert_equal ['b/c.rb'], b.require_paths
   end
   
   def test_setup_loads_taprc_path_in_app_context
