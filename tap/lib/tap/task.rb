@@ -133,15 +133,11 @@ module Tap
     end
     
     def call(inputs)
-      package(*process(*inputs))
+      process(*inputs)
     end
     
     def process(*inputs)
       inputs
-    end
-    
-    def package(*outputs)
-      outputs
     end
     
     # Sets a sequence workflow pattern for the tasks; each task

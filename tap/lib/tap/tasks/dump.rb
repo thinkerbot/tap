@@ -41,7 +41,7 @@ module Tap
       config :overwrite, false, &c.flag                    # Overwrite the existing target
       
       def call(input)
-        package process(input)
+        process(input)
       end
       
       # The default process prints dump headers as specified in the config,
@@ -51,10 +51,6 @@ module Tap
           dump(input, io)
         end
         input
-      end
-      
-      def package(output)
-        output
       end
       
       # Dumps the object to io, by default dump puts (not prints) obj.to_s.

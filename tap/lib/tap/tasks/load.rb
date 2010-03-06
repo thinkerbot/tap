@@ -38,10 +38,6 @@ module Tap
       config :file, false, &c.flag                         # Opens the input as a file
       config :use_close, false, :long => :close, &c.flag   # Close the input when complete
       
-      def call(input)
-        package process(*input)
-      end
-      
       # Loads data from io.  Process will open the input io object, load
       # a result.  Process will close io when loading is complete, provided
       # use_close or file is specified.
@@ -54,10 +50,6 @@ module Tap
         end
         
         result
-      end
-      
-      def package(output)
-        output
       end
       
       # Opens the io; specifically this means:
