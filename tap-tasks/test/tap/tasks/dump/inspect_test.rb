@@ -12,13 +12,8 @@ class DumpInspectTest < Test::Unit::TestCase
 
   def test_documentation
     sh_test %q{
-% tap run -- load/yaml "{key: value}" --: inspect
+% tap load/yaml "{key: value}" -: inspect
 {"key"=>"value"}
-}
-
-    sh_test %q{
-% tap run -- load string --: inspect -m length
-6
 }
   end
 end

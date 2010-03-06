@@ -8,7 +8,7 @@ module Tap
       #
       # Loads data from the input IO as YAML.
       #
-      #   % tap run -- load/yaml "{key: value}" --: dump/yaml
+      #   % tap load/yaml "{key: value}" --: dump/yaml
       #   --- 
       #   key: value
       #

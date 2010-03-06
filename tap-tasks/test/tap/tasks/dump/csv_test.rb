@@ -4,9 +4,21 @@ require 'stringio'
 
 class DumpCsvTest < Test::Unit::TestCase
   acts_as_tap_test 
+  acts_as_shell_test(SH_TEST_OPTIONS)
   
   Csv = Tap::Tasks::Dump::Csv
 
+  #
+  # documentation test
+  #
+
+  def test_documentation
+    sh_test %q{
+% tap load/yaml '["a", "b", "c"]' -: dump/csv
+a,b,c
+}
+  end
+  
   #
   # process test
   #

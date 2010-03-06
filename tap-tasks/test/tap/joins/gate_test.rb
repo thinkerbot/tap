@@ -7,11 +7,11 @@ class GateDocumentationTest < Test::Unit::TestCase
   
   def test_gate_documentation
       sh_test %Q{
-% tap run -- load a -- load b -- inspect --[0,1][2].gate
+% tap load a -- load b - inspect - gate 0,1 2
 ["a", "b"]
 }
       sh_test %Q{
-% tap run -- load/yaml "[1, 2, 3]" --:i inspect --:.gate inspect
+% tap load/yaml "[1, 2, 3]" -:i inspect -:.gate inspect
 1
 2
 3
@@ -19,7 +19,7 @@ class GateDocumentationTest < Test::Unit::TestCase
 }
 
       sh_test %Q{
-% tap run -- load/yaml "[1, 2, 3]" --:i inspect --:.sync inspect
+% tap load/yaml "[1, 2, 3]" -:i inspect -:.sync inspect
 1
 [1]
 2
@@ -29,7 +29,7 @@ class GateDocumentationTest < Test::Unit::TestCase
 }
 
       sh_test %Q{
-% tap run -- load/yaml "[1, 2, 3]" --:i inspect -- inspect --. gate 1 2 --limit 2
+% tap load/yaml "[1, 2, 3]" -:i inspect - inspect - gate 1 2 --limit 2
 1
 2
 [1, 2]
@@ -99,7 +99,7 @@ class GateTest < Test::Unit::TestCase
   
   def test_gate_join_dispatches_results_when_called_with_results
     was_in_block = false
-    node = app.node do |inputs|
+    node = app.node do |*inputs|
       assert_equal ['a', 'b', 'c'], inputs
       was_in_block = true
     end
@@ -120,17 +120,17 @@ class GateTest < Test::Unit::TestCase
   def test_simple_gate
     a = app.node { 'a' }
     b = app.node { 'b' }
-    c = app.node {|inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|inputs| inputs.collect {|input| "#{input}.d" } }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
     join = app.join([a,b], [c,d], {}, Gate)
     
-    app.enq a
-    app.enq a
-    app.enq a
-    app.enq b
-    app.enq b
-    app.enq e
+    a.enq
+    a.enq
+    a.enq
+    b.enq
+    b.enq
+    e.enq
     app.run
     
     assert_equal [
@@ -153,17 +153,17 @@ class GateTest < Test::Unit::TestCase
   def test_gate_with_limit
     a = app.node { 'a' }
     b = app.node { 'b' }
-    c = app.node {|inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|inputs| inputs.collect {|input| "#{input}.d" } }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
     join = app.join([a,b], [c,d], {:limit => 2}, Gate)
     
-    app.enq a
-    app.enq a
-    app.enq a
-    app.enq b
-    app.enq b
-    app.enq e
+    a.enq
+    a.enq
+    a.enq
+    b.enq
+    b.enq
+    e.enq
     app.run
     
     assert_equal [
@@ -195,15 +195,15 @@ class GateTest < Test::Unit::TestCase
     d = app.node { 'd' }
     e = app.node { 'e' }
     f = app.node { 'f' }
-    g = app.node {|inputs| inputs.collect {|input| "#{input}.g" } }
+    g = app.node {|*inputs| inputs.collect {|input| "#{input}.g" } }
     
     app.join([b], [c])
     app.join([c], [d,e])
     join = app.join([a,d,e,f], [g], {}, Gate)
     
-    app.enq a
-    app.enq b
-    app.enq f
+    a.enq
+    b.enq
+    f.enq
     app.run
     
     assert_equal [
@@ -223,15 +223,15 @@ class GateTest < Test::Unit::TestCase
     d = app.node { 'd' }
     e = app.node { 'e' }
     f = app.node { 'f' }
-    g = app.node {|inputs| inputs.collect {|input| "#{input}.g" } }
+    g = app.node {|*inputs| inputs.collect {|input| "#{input}.g" } }
     
     app.join([b], [d], :enq => true)
     app.join([d], [e,f], :enq => true)
     join = app.join([a,c,e,f], [g], {:enq => true}, Gate)
     
-    app.enq a
-    app.enq b
-    app.enq c
+    a.enq
+    b.enq
+    c.enq
     app.run
     
     assert_equal [

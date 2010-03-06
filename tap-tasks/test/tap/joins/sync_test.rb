@@ -22,14 +22,14 @@ class SyncTest < Test::Unit::TestCase
   def test_simple_sync
     a = app.node { 'a' }
     b = app.node { 'b' }
-    c = app.node {|inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|inputs| inputs.collect {|input| "#{input}.d" } }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
     app.join([a,b], [c,d], {}, Sync)
     
-    app.enq a
-    app.enq b
-    app.enq e
+    a.enq
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -50,14 +50,14 @@ class SyncTest < Test::Unit::TestCase
   def test_enq_sync
     a = app.node { 'a' }
     b = app.node { 'b' }
-    c = app.node {|inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|inputs| inputs.collect {|input| "#{input}.d" } }
+    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
+    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
     e = app.node { 'd' }
     app.join([a,b], [c,d], {:enq => true}, Sync)
     
-    app.enq a
-    app.enq b
-    app.enq e
+    a.enq
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -85,9 +85,9 @@ class SyncTest < Test::Unit::TestCase
     e = app.node { 'd' }
     app.join([a,b], [c,d], {:iterate => true}, Sync)
     
-    app.enq a
-    app.enq b
-    app.enq e
+    a.enq
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -115,9 +115,9 @@ class SyncTest < Test::Unit::TestCase
     e = app.node { 'd' }
     app.join([a,b], [c,d], {:splat => true}, Sync)
     
-    app.enq a
-    app.enq b
-    app.enq e
+    a.enq
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -143,9 +143,9 @@ class SyncTest < Test::Unit::TestCase
     e = app.node { 'd' }
     app.join([a,b], [c,d], {:iterate => true, :splat => true}, Sync)
     
-    app.enq a
-    app.enq b
-    app.enq e
+    a.enq
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -172,9 +172,9 @@ class SyncTest < Test::Unit::TestCase
     e = app.node { 'd' }
     app.join([a,b], [c], {}, Sync)
     
-    app.enq a
-    app.enq a
-    app.enq e
+    a.enq
+    b.enq
+    e.enq
     
     app.debug = true
     err = assert_raises(Tap::Joins::Sync::SynchronizeError) { app.run }

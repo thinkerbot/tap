@@ -8,11 +8,14 @@ module Tap
     # to Null go nowhere.  Null does not accept joins and will not execute
     # the default app joins.
     #
-    #   % tap run -- load a --: null
+    #   % tap load a -: null
     #
     class Null < Tap::Task 
       def process(*args)
-        nil
+      end
+      
+      def package(*outputs)
+        []
       end
       
       def joins

@@ -33,8 +33,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick c
     index = 0
-    app.enq a
-    app.enq e
+    a.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -50,8 +50,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    app.enq b
-    app.enq e
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -84,8 +84,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick c
     index = 0
-    app.enq a
-    app.enq e
+    a.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -102,8 +102,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    app.enq b
-    app.enq e
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -138,8 +138,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick c
     index = 0
-    app.enq a
-    app.enq e
+    a.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -156,8 +156,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    app.enq b
-    app.enq e
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -192,8 +192,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick c
     index = 0
-    app.enq a
-    app.enq e
+    a.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -209,8 +209,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    app.enq b
-    app.enq e
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -243,8 +243,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick c
     index = 0
-    app.enq a
-    app.enq e
+    a.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -261,8 +261,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    app.enq b
-    app.enq e
+    b.enq
+    e.enq
     app.run
   
     assert_equal [
@@ -293,8 +293,8 @@ class SwitchTest < Test::Unit::TestCase
       3
     end
 
-    app.enq a
-    app.enq e
+    a.enq
+    e.enq
     
     app.debug = true
     err = assert_raises(Tap::Joins::Switch::SwitchError) { app.run }

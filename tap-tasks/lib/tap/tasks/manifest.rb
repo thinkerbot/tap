@@ -4,22 +4,26 @@ module Tap
   module Tasks
     # :startdoc::task
     #
-    class Manifest < Dump 
-      def process
-        super(manifest)
+    class Manifest < Dump
+      def process(input)
+        super manifest(*input)
       end
       
-      def manifest
+      def manifest(filter=nil)
         constants = app.env.constants
         
-        keys = constants.keys.sort
-        max = keys.collect {|key| key.length }.max
-
-        keys.collect! do |key|
+        keys = constants.keys.collect! do |key|
           value = constants[key].require_paths.sort.join(', ')
-          "%-#{max}s: %s" % [key, value]
+          [key, value]
         end
-
+        
+        if filter
+          filter = Regexp.new(filter)
+          keys = keys.select {|(key, value)| key =~ filter || value =~ filter }
+        end
+        
+        max = keys.collect {|(key, value)| key.length }.max
+        keys.collect! {|entry| "%-#{max}s: %s" % entry }.sort!
         keys.join("\n")
       end
     end 

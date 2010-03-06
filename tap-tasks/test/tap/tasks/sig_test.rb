@@ -14,6 +14,6 @@ class SigTest < Test::Unit::TestCase
   
   def test_process_parses_and_invokes_signal
     sig = Sig.new
-    assert_equal(app.info, sig.process('info'))
+    assert_equal(app.info, sig.process(nil, 'info'))
   end
 end

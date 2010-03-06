@@ -20,11 +20,9 @@ module Tap
       
       def call(node, inputs=[])
         open_io(output) do |io|
-          io.puts "- - #{node.class}"
-          io.puts "  - #{summarize(inputs)}"
+          io.puts "- #{node.class} #{summarize(inputs)}"
         end
         
-        check_signature(node, inputs)
         super
       end
       
@@ -36,23 +34,6 @@ module Tap
         end
         
         inputs.inspect
-      end
-      
-      def check_signature(node, inputs)
-        n = inputs.length
-        
-        call_arity = node.method(:call).arity
-        unless arity_ok?(call_arity, n)
-          raise InvalidSignatureError.new(node, inputs, :call, call_arity)
-        end
-        
-        if node.kind_of?(Task)
-          process_arity = node.method(:process).arity
-          unless arity_ok?(process_arity, n)
-            raise InvalidSignatureError.new(node, inputs, :process, process_arity)
-          end
-        end
-        
       end
       
       class InvalidSignatureError < StandardError

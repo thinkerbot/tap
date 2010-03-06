@@ -21,7 +21,7 @@ key: value
     end
 
     sh_test %Q{
-% tap run -- stream/yaml --file "#{path}" --: inspect
+% tap stream/yaml --file "#{path}" -: inspect
 :sym
 [1, 2, 3]
 {"key"=>"value"}

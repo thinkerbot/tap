@@ -10,15 +10,12 @@ module Tap
       # method can be specified for inspection using the inspect_method
       # config.
       #
-      #   % tap run -- load/yaml "{key: value}" --: inspect
+      #   % tap load/yaml "{key: value}" -: inspect
       #   {"key"=>"value"}
-      #
-      #   % tap run -- load string --: inspect -m length
-      #   6
       #
       class Inspect < Dump
         
-        config :inspect_method, 'inspect', :short => :m    # The inspection method
+        config :inspect_method, 'inspect', :long => :method, :short => :m    # The inspection method
         
         # Dumps the object to io using obj.inspect
         def dump(obj, io)

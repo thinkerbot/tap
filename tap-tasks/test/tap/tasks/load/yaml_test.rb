@@ -13,7 +13,7 @@ class LoadYamlTest < Test::Unit::TestCase
   
   def test_documentation
     sh_test %q{
-% tap run -- load/yaml "{key: value}" --: dump/yaml
+% tap load/yaml "{key: value}" -: dump/yaml
 --- 
 key: value
 }

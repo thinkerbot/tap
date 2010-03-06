@@ -8,7 +8,7 @@ module Tap
       #
       # Dumps workflow results to a file or IO as YAML.
       #
-      #   % tap run -- load/yaml "{key: value}" --: dump/yaml
+      #   % tap load/yaml "{key: value}" -: dump/yaml
       #   --- 
       #   key: value
       #

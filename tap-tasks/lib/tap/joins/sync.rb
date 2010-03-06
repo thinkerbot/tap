@@ -67,7 +67,7 @@ module Tap
         results[index] = result
         
         unless results.include?(NIL_VALUE)
-          outputs.each {|output| dispatch(output, results) }
+          outputs.each {|output| execute(output, results) }
           reset
         end
       end

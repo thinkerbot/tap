@@ -10,7 +10,7 @@ module Tap
       # Load CSV data as an array of arrays, selecting the specified rows and
       # columns.
       # 
-      #   % tap run -- load/csv 'a,b,c.d,e,f' --row-sep '.' --: inspect
+      #   % tap load/csv 'a,b,c.d,e,f' --row-sep '.' -: inspect
       #   [["a", "b", "c"], ["d", "e", "f"]]
       # 
       # Note this task is quite inefficient in that it will load all data

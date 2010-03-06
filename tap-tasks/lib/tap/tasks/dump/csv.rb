@@ -11,7 +11,7 @@ module Tap
       # into a single line of csv, ie multiple dumps build the csv results.
       # Non-array objects are converted to arrays using to_ary.
       #
-      #   % tap run -- load/yaml ["a", "b", "c"] --: dump/csv
+      #   % tap load/yaml '["a", "b", "c"]' -: dump/csv
       #   a,b,c
       #
       class Csv < Dump

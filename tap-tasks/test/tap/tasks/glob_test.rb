@@ -17,7 +17,7 @@ class GlobTest < Test::Unit::TestCase
   #
   
   def test_process_globs_for_files
-    ctr.chdir(:root) do
+    class_root.chdir('.', true) do
       assert_equal %w{
         a.txt
         b.txt
@@ -33,7 +33,7 @@ class GlobTest < Test::Unit::TestCase
   end
   
   def test_process_globs_dirs_if_specified
-    ctr.chdir(:root) do
+    class_root.chdir('.', true) do
       g.dirs = true
       assert_equal %w{
         a.txt
@@ -44,7 +44,7 @@ class GlobTest < Test::Unit::TestCase
   end
   
   def test_process_omits_files_if_specified
-    ctr.chdir(:root) do
+    class_root.chdir('.', true) do
       g.dirs = true
       g.files = false
       assert_equal %w{
@@ -54,7 +54,7 @@ class GlobTest < Test::Unit::TestCase
   end
   
   def test_process_globs_multiple_patterns
-    ctr.chdir(:root) do
+    class_root.chdir('.', true) do
       assert_equal %w{
         c/a.txt
         c/b.txt
@@ -64,7 +64,7 @@ class GlobTest < Test::Unit::TestCase
   end
   
   def test_process_removes_duplicates
-    ctr.chdir(:root) do
+    class_root.chdir('.', true) do
       assert_equal %w{
         a.txt
         b.txt
@@ -73,7 +73,7 @@ class GlobTest < Test::Unit::TestCase
   end
   
   def test_process_preserves_duplicates_if_specified
-    ctr.chdir(:root) do
+    class_root.chdir('.', true) do
       g.unique = false
       assert_equal %w{
         a.txt
@@ -85,7 +85,7 @@ class GlobTest < Test::Unit::TestCase
   end
   
   def test_process_filters_by_filters
-    ctr.chdir(:root) do
+    class_root.chdir('.', true) do
       g.excludes = [/a/]
       
       assert_equal %w{

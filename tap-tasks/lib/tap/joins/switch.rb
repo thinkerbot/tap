@@ -35,7 +35,7 @@ module Tap
           raise SwitchError, "no switch target at index: #{index}"
         end
 
-        dispatch(output, result)
+        execute(output, result)
       end
       
       # Raised by a Switch join to indicate when a switch index is out of bounds.

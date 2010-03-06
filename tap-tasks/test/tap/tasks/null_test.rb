@@ -18,7 +18,7 @@ class NullTest < Test::Unit::TestCase
 
   def test_null_documentation
     sh_test %q{
-% tap run -- load a --: null
+% tap load a -: null
 }
   end
   
@@ -37,13 +37,12 @@ class NullTest < Test::Unit::TestCase
     was_in_block = false
     app.on_complete { was_in_block = true }
     
-    app.enq(task)
+    task.enq
     app.run
     
     assert_equal false, was_in_block
     
-    foil = app.node {}
-    app.enq(foil)
+    app.node {}.enq
     app.run
     
     assert_equal true, was_in_block
