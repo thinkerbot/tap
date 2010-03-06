@@ -84,9 +84,11 @@ begin
   end
 
   app.run
+rescue(SystemExit)
+  raise
 rescue(Exception)
   raise if $DEBUG
-  $stderr.puts $!.message
+  $stderr.puts "#{$!.message} (#{$!.class})"
   exit(1)
 end
 
