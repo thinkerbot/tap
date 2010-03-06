@@ -5,11 +5,13 @@ module Tap
     # :startdoc::task
     #
     class Manifest < Dump
-      def process(input)
-        super manifest(*input)
+      config :all, false, :short => :a, &c.flag
+      
+      def call(input)
+        process manifest(*input)
       end
       
-      def manifest(filter=nil)
+      def manifest(*filters)
         constants = app.env.constants
         
         keys = constants.keys.collect! do |key|
@@ -17,9 +19,15 @@ module Tap
           [key, value]
         end
         
-        if filter
-          filter = Regexp.new(filter)
-          keys = keys.select {|(key, value)| key =~ filter || value =~ filter }
+        filters.collect! do |filter|
+          Regexp.new(filter)
+        end
+        
+        method_name = all ? :all? : :any?
+        keys = keys.select do |(key, value)|
+          filters.send(method_name) do |filter|
+            key =~ filter || value =~ filter
+          end
         end
         
         max = keys.collect {|(key, value)| key.length }.max

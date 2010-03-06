@@ -10,12 +10,8 @@ module Tap
     #
     #   % tap load a -: null
     #
-    class Null < Tap::Task 
+    class Null < Tap::Task
       def process(*args)
-      end
-      
-      def package(*outputs)
-        []
       end
       
       def joins

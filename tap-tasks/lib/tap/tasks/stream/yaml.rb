@@ -18,7 +18,7 @@ module Tap
       #   --- 
       #   key: value
       # 
-      #   % tap run -- stream/yaml --file example.yml --: inspect
+      #   % tap stream/yaml --file example.yml -: inspect
       #   :sym
       #   [1, 2, 3]
       #   {"key"=>"value"}
