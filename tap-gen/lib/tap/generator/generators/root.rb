@@ -36,17 +36,17 @@ module Tap::Generator::Generators
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
     def manifest(m, root, project_name=nil)
-      r = Tap::Root.new(File.expand_path(root, destination_root))
+      r = destination_root.root(root)
       project_name = File.basename(r.root) if project_name == nil
       
-      m.directory r.root
-      m.directory r['lib']
-      m.directory r['test']
+      m.directory r.path
+      m.directory r.path('lib')
+      m.directory r.path('test')
       
       template_files do |source, target|
         case
         when File.directory?(source)
-          m.directory r[target]
+          m.directory r.path(target)
           next
         when source =~ /gemspec$/
           locals = gemspec.config.to_hash.merge(
@@ -54,7 +54,7 @@ module Tap::Generator::Generators
             :license => license,
             :history => history
           )
-          m.template r[project_name + '.gemspec'], source, locals
+          m.template r.path("#{project_name}.gemspec"), source, locals
           next
         when source =~ /Rakefile$/
           next unless rakefile
@@ -64,28 +64,10 @@ module Tap::Generator::Generators
           next unless license
         end
         
-        m.template r[target], source, :project_name => project_name, :license => license
+        m.template r.path(target), source, :project_name => project_name, :license => license
       end
       
-      m.file(r['History']) if history
-      m.file(r['tap.yml']) do |file|
-        Configurable::Utils.dump(Tap::Env.configurations, file) do |key, config|
-          # get the description
-          desc = config.attributes[:desc]
-          doc = desc.to_s
-          doc = desc.comment if doc.empty?
-          
-          # wrap as lines
-          lines = Lazydoc::Utils.wrap(doc, 78).collect {|line| "# #{line}"}
-          lines << "" unless lines.empty?
-          
-          # setup formatting
-          default = config.default
-          leader = key == 'root' || default == nil ? '# ' : ''
-          config = YAML.dump({key => default})[5..-1].strip.gsub(/\n+/, "\n#{leader}")
-          "#{lines.join("\n")}#{leader}#{config}\n\n"
-        end if env
-      end
+      m.file(r.path('History')) if history
     end
     
   end

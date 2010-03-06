@@ -47,7 +47,7 @@ state: 0 (READY) queue: 0
     $stdout.string = ""
     ARGV << "--help"
     
-    cmd_file = method_root.prepare(:tmp, 'cmd') {|file| file << c.preview['cmd/command_name.rb'] }
+    cmd_file = method_root.prepare('cmd') {|file| file << c.preview['cmd/command_name.rb'] }
     assert_raise(SystemExit) { load(cmd_file) }
     
     assert_equal %q{

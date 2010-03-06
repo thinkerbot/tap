@@ -1,4 +1,4 @@
-require 'tap'
+require 'tap/task'
 require 'tap/generator/manifest'
 require 'tap/generator/arguments'
 require 'tap/generator/generate'
@@ -75,18 +75,25 @@ module Tap
       lazy_attr :args, :manifest
       lazy_register :manifest, Arguments
       
-      config :destination_root, Dir.pwd,      # The destination root directory
+      config_attr :destination_root, nil,     # The destination root directory
         :long => :destination,
-        :short => :d
+        :short => :d do |root|
+        root ||= default_destination_root
+        @destination_root = root.kind_of?(Root) ? root : Root.new(root)
+      end
+      
+      config_attr :template_root, nil,        # The template root directory
+        :long => :destination,
+        :short => :d do |root|
+        root ||= default_template_root
+        @template_root = root.kind_of?(Root) ? root : Root.new(root)
+      end
+      
       config :pretend, false, &c.flag         # Run but rollback any changes.
       config :force, false, &c.flag           # Overwrite files that already exist.
       config :skip, false, &c.flag            # Skip files that already exist.
       
       signal :set                             # Set this generator to generate or destroy
-      
-      # The generator-specific templates directory.  By default:
-      # 'templates/path/to/name' for 'lib/path/to/name.rb'
-      attr_accessor :template_dir
       
       # The IO used to pull prompt inputs (default: $stdin)
       attr_accessor :prompt_in
@@ -98,12 +105,10 @@ module Tap
         super
         @prompt_in = $stdin
         @prompt_out = $stdout
-        @template_dir = app.env.path(:templates, self.class.to_s.underscore) {|dir| File.directory?(dir) } || File.expand_path("templates/#{self.class.to_s.underscore}")
       end
       
-      def set(mod)
-        mod = app.env[mod] unless mod.class == Module
-        extend(mod)
+      def set(module_name)
+        extend app.env.constant(module_name)
         self
       end
       
@@ -134,7 +139,7 @@ module Tap
       
       # Constructs a path relative to destination_root.
       def path(*paths)
-        File.expand_path(File.join(*paths), destination_root)
+        destination_root.path(*paths)
       end
       
       # Peforms a directory action (ex generate or destroy).  Must be
@@ -163,11 +168,9 @@ module Tap
       
       # Makes (or destroys) the target by templating the source using
       # the specified attributes.  Source is expanded relative to
-      # template_dir.  Options are passed onto file.
+      # template_root.  Options are passed onto file.
       def template(target, source, attributes={}, options={})
-        raise "no template dir is set" unless template_dir
-        
-        template_path = File.expand_path(source, template_dir)
+        template_path = template_root.path(source)
         templater = Templater.new(File.read(template_path), attributes)
         
         file(target, options) do |file| 
@@ -175,16 +178,14 @@ module Tap
         end
       end
       
-      # Yields each source file under template_dir to the block, with
-      # a target path of the source relative to template_dir.
+      # Yields each source file under template_root to the block, with
+      # a target path of the source relative to template_root.
       def template_files
-        raise "no template dir is set" unless template_dir
-        
         targets = []
-        Dir.glob(template_dir + "/**/*").sort.each do |source|
+        template_root.glob('**/*').sort.each do |source|
           next unless File.file?(source)
           
-          target = Tap::Root::Utils.relative_path(template_dir, source)
+          target = template_root.relative_path(source)
           yield(source, target)
           targets << target
         end
@@ -205,10 +206,31 @@ module Tap
         raise NotImplementedError
       end
       
-      # Logs the action with the relative filepath from Dir.pwd to path.
+      # Logs the action with the relative filepath from destination_root to path.
       def log_relative(action, path)
-        relative_path = Tap::Root::Utils.relative_path(Dir.pwd, path)
+        relative_path = destination_root.relative_path(path)
         log(action, relative_path || path)
+      end
+      
+      protected
+      
+      def default_destination_root
+        Root.new
+      end
+      
+      def default_template_root
+        class_path = self.class.to_s.underscore
+        
+        template_dir = nil
+        app.env.path(:templates).each do |dir|
+          path = File.join(dir, class_path)
+          if File.directory?(path)
+            template_dir = path
+            break
+          end
+        end
+        
+        Root.new(template_dir || "templates/#{class_path}")
       end
     end
   end

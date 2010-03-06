@@ -9,7 +9,6 @@ class <%= const.name %> < Tap::Task
   config :message, 'goodnight'           # A sample config
   
   def process(name)
-    log message, name
     "#{message} #{name}"
   end
 end <% module_nest(const.nesting, '  ') { target } end %>

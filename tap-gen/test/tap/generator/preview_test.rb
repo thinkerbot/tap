@@ -5,6 +5,7 @@ require 'tap/generator/preview'
 class PreviewTest < Test::Unit::TestCase
   include Tap::Generator
   include Preview
+  Root = Tap::Root
   
   acts_as_tap_test
   
@@ -12,7 +13,7 @@ class PreviewTest < Test::Unit::TestCase
   
   def setup
     super
-    @destination_root = Dir.pwd
+    @destination_root = Root.new Dir.pwd
     @preview = {}
   end
   
@@ -56,7 +57,7 @@ class PreviewTest < Test::Unit::TestCase
   #
   
   def test_relative_path_returns_the_path_of_path_relative_to_destination_root
-    path = File.expand_path("path/to/file.txt", destination_root)
+    path = destination_root.path("path/to/file.txt")
     assert_equal "path/to/file.txt", relative_path(path)
   end
   
@@ -66,9 +67,9 @@ class PreviewTest < Test::Unit::TestCase
   
   def test_relative_path_returns_full_path_for_paths_not_relative_to_destination_root
     path = File.expand_path("/path/to/dir")
-    @destination_root = File.expand_path("/path/to/destination_root")
+    @destination_root = Root.new File.expand_path("/path/to/destination_root")
     
-    assert_equal nil, Tap::Root::Utils.relative_path(destination_root, path)
+    assert_equal nil, destination_root.relative_path(path)
     assert_equal path, relative_path(path)
   end
 
@@ -77,7 +78,7 @@ class PreviewTest < Test::Unit::TestCase
   #
   
   def test_directory_returns_the_relative_path_of_the_target
-    path = File.expand_path("path/to/file.txt", destination_root)
+    path = destination_root.path("path/to/file.txt")
     assert_equal "path/to/file.txt", directory(path)
   end
 
@@ -86,12 +87,12 @@ class PreviewTest < Test::Unit::TestCase
   #
   
   def test_file_returns_the_relative_path_of_the_target
-    path = File.expand_path("path/to/file.txt", destination_root)
+    path = destination_root.path("path/to/file.txt")
     assert_equal "path/to/file.txt", file(path)
   end
   
   def test_file_stores_block_content_in_preview
-    path = File.expand_path("file.txt", destination_root)
+    path = destination_root.path("file.txt")
     assert_equal({}, preview)
     file(path) {|io| io << "content"}
     assert_equal({'file.txt' => 'content'}, preview)

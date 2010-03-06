@@ -45,7 +45,7 @@ module Tap
       # Returns the path of path, relative to destination_root.  If path
       # is destination_root, '.' will be returned.
       def relative_path(path)
-        path = Root::Utils.relative_path(destination_root, path, destination_root) || path
+        path = destination_root.relative_path(path) || path
         path.empty? ? "." : path
       end
       

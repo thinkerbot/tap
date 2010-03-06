@@ -22,12 +22,10 @@ class RootGeneratorTest < Test::Unit::TestCase
       Rakefile
       lib
       project.gemspec
-      tap.yml
       test
       test/tap_test_helper.rb
     }, g.process(Dir.pwd, 'project').sort
     
-    assert g.preview['tap.yml'].empty?
     assert g.preview['README'] =~ /MIT-LICENSE/
     assert g.preview['project.gemspec'] =~ /MIT-LICENSE/
   end
@@ -44,12 +42,9 @@ class RootGeneratorTest < Test::Unit::TestCase
       Rakefile
       lib
       project.gemspec
-      tap.yml
       test
       test/tap_test_helper.rb
     }, g.process(Dir.pwd, 'project').sort
-    
-    assert !g.preview['tap.yml'].empty?
   end
   
   def test_history_false_prevents_creation_of_History
@@ -63,7 +58,6 @@ class RootGeneratorTest < Test::Unit::TestCase
       Rakefile
       lib
       project.gemspec
-      tap.yml
       test
       test/tap_test_helper.rb
     }, g.process(Dir.pwd, 'project').sort
@@ -80,7 +74,6 @@ class RootGeneratorTest < Test::Unit::TestCase
       Rakefile
       lib
       project.gemspec
-      tap.yml
       test
       test/tap_test_helper.rb
     }, g.process(Dir.pwd, 'project').sort
@@ -102,7 +95,6 @@ class RootGeneratorTest < Test::Unit::TestCase
       Rapfile
       lib
       project.gemspec
-      tap.yml
       test
       test/tap_test_helper.rb
     }, g.process(Dir.pwd, 'project').sort

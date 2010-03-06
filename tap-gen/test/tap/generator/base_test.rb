@@ -16,9 +16,14 @@ class BaseTest < Test::Unit::TestCase
   # initialize test
   #
   
-  def test_initialize
+  def test_initialize_sets_destination_root_to_pwd
     b = Base.new
-    assert_equal File.expand_path("templates/tap/generator/base"), b.template_dir
+    assert_equal File.expand_path("."), b.destination_root.path
+  end
+  
+  def test_initialize_sets_template_root_by_generator_class_path
+    b = Base.new
+    assert_equal File.expand_path("templates/tap/generator/base"), b.template_root.path
   end
   
   #
@@ -30,10 +35,6 @@ class BaseTest < Test::Unit::TestCase
     end
     def iterate(actions)
       "results"
-    end
-    def directory(target, options={})
-    end
-    def file(target, options={})
     end
   end
   
@@ -128,25 +129,18 @@ class BaseTest < Test::Unit::TestCase
   end
   
   def test_template_calls_file_with_target_and_prints_source_templated_with_args
-    source = method_root.prepare(:tmp, 'source') do |file|
+    source = method_root.prepare('source') do |file|
       file << "<%= key %> was templated"
     end
     
-    t = Template.new
-    t.template_dir = method_root.root
+    t = Template.new :template_root => method_root
     
     t.template('target', source, {:key => 'value'}, {:opt => 'value'})
     assert_equal [['target', {:opt => 'value'}], "value was templated"], t.file_call
     
-    relative_source = method_root.relative_path(:root, source)
+    relative_source = method_root.relative_path(source)
     t.template('target', relative_source, {:key => 'value'}, {:opt => 'value'})
     assert_equal [['target', {:opt => 'value'}], "value was templated"], t.file_call
-  end
-  
-  def test_template_raises_error_if_no_template_dir_is_set
-    b.template_dir = nil
-    err = assert_raises(RuntimeError) { b.template('target', 'source') }
-    assert_equal "no template dir is set", err.message
   end
   
   #
@@ -154,12 +148,11 @@ class BaseTest < Test::Unit::TestCase
   #
   
   def test_template_files_yields_templates_and_targets
-    a = method_root.prepare(:tmp, 'a') {}
-    b = method_root.prepare(:tmp, 'b') {}
-    c = method_root.prepare(:tmp, 'c/a') {} 
+    a = method_root.prepare('a') {}
+    b = method_root.prepare('b') {}
+    c = method_root.prepare('c/a') {} 
 
-    base = Base.new
-    base.template_dir = method_root[:tmp]
+    base = Base.new :template_root => method_root
     
     results = []
     base.template_files do |src, target|
@@ -174,20 +167,12 @@ class BaseTest < Test::Unit::TestCase
   end
   
   def test_template_files_returns_targets
-    a = method_root.prepare(:tmp, 'a') {}
-    b = method_root.prepare(:tmp, 'b') {}
-    c = method_root.prepare(:tmp, 'c/a') {} 
-
-    base = Base.new
-    base.template_dir = method_root[:tmp]
+    a = method_root.prepare('a') {}
+    b = method_root.prepare('b') {}
+    c = method_root.prepare('c/a') {} 
     
+    base = Base.new :template_root => method_root
     assert_equal ['a', 'b', 'c/a'], base.template_files {|s,t| }
-  end
-  
-  def test_template_files_raises_error_if_no_template_dir_is_set
-    b.template_dir = nil
-    err = assert_raises(RuntimeError) { b.template_files {} }
-    assert_equal "no template dir is set", err.message
   end
   
   #

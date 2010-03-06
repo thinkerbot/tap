@@ -26,12 +26,11 @@ class GeneratorGeneratorTest < Test::Unit::TestCase
     assert !GeneratorGeneratorTest.const_defined?(:ConstNameGenerator)
     eval(g.preview['lib/const_name.rb'])
     
-    method_root.prepare(:tmp, 'template_file.erb') do |file|
+    method_root.prepare('template_file.erb') do |file|
       file << g.preview['templates/const_name/template_file.erb']
     end
     
-    c = ConstName.new.extend Preview
-    c.template_dir = method_root[:tmp]
+    c = ConstName.new(:template_root => method_root).extend Preview
     
     assert_equal %w{
       const_name_file.txt
