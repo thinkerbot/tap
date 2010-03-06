@@ -6,7 +6,7 @@ class ReadmeTest < Test::Unit::TestCase
   
   def test_readme
       sh_test %Q{
-% tap run -- load/yaml "{key: value}" --: inspect
+% tap load/yaml "{key: value}" -: inspect
 {"key"=>"value"}
 }
   end

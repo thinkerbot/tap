@@ -19,7 +19,7 @@ these links for documentation, development, and bug tracking.
 
 Usage is the same as for any tasks.
 
-  % tap run -- load/yaml "{key: value}" --: inspect
+  % tap load/yaml "{key: value}" -: inspect
   {"key" => "value"}
 
 == Installation

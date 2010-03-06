@@ -107,64 +107,6 @@ class SyncTest < Test::Unit::TestCase
     ], results[d]
   end
   
-  def test_splat_sync
-    a = app.node { 'a' }
-    b = app.node { 'b' }
-    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
-    e = app.node { 'd' }
-    app.join([a,b], [c,d], {:splat => true}, Sync)
-    
-    a.enq
-    b.enq
-    e.enq
-    app.run
-  
-    assert_equal [
-      a, 
-      b, c, d,
-      e,
-    ], runlist
-    
-    assert_equal [
-      ['a.c', 'b.c']
-    ], results[c]
-    
-    assert_equal [
-      ['a.d', 'b.d']
-    ], results[d]
-  end
-  
-  def test_iterate_splat_sync
-    a = app.node { ['a0', 'a1'] }
-    b = app.node { ['b0', 'b1'] }
-    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
-    e = app.node { 'd' }
-    app.join([a,b], [c,d], {:iterate => true, :splat => true}, Sync)
-    
-    a.enq
-    b.enq
-    e.enq
-    app.run
-  
-    assert_equal [
-      a, 
-      b, c, c, d, d,
-      e,
-    ], runlist
-    
-    assert_equal [
-      ['a0.c', 'a1.c'],
-      ['b0.c', 'b1.c']
-    ], results[c]
-    
-    assert_equal [
-      ['a0.d', 'a1.d'],
-      ['b0.d', 'b1.d']
-    ], results[d]
-  end
-  
   def test_sync_merge_raises_error_if_target_cannot_be_enqued_before_a_source_executes_twice
     a = app.node { 'a' }
     b = app.node { 'b' }
@@ -173,7 +115,7 @@ class SyncTest < Test::Unit::TestCase
     app.join([a,b], [c], {}, Sync)
     
     a.enq
-    b.enq
+    a.enq
     e.enq
     
     app.debug = true

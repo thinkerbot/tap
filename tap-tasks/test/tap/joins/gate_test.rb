@@ -66,14 +66,14 @@ class GateTest < Test::Unit::TestCase
     join.call('a')
     
     assert_equal [
-      [join, [['a']]]
+      [join, ['a']]
     ], app.queue.to_a
     
     assert join.results != nil
     join.call('b')
     
     assert_equal [
-      [join, [['a', 'b']]]
+      [join, ['a', 'b']]
     ], app.queue.to_a
     
     # resets join results
@@ -83,12 +83,12 @@ class GateTest < Test::Unit::TestCase
     join.call('c')
     
     assert_equal [
-      [join, [['a', 'b']]],
-      [join, [['c']]]
+      [join, ['a', 'b']],
+      [join, ['c']]
     ], app.queue.to_a
   end
   
-  def test_gate_join_gate_results_on_each_call
+  def test_gate_join_collects_results_on_each_call
     join = Gate.new({}, app)
     join.call('a')
     join.call('b')
@@ -97,7 +97,7 @@ class GateTest < Test::Unit::TestCase
     assert_equal ['a', 'b', 'c'], join.results
   end
   
-  def test_gate_join_dispatches_results_when_called_with_results
+  def test_gate_join_executes_results_when_called_with_results
     was_in_block = false
     node = app.node do |*inputs|
       assert_equal ['a', 'b', 'c'], inputs
@@ -188,7 +188,7 @@ class GateTest < Test::Unit::TestCase
     ], results[d]
   end
   
-  def test_gate_from_imperative_workflow
+  def test_gate_from_execute_workflow
     a = app.node { 'a' }
     b = app.node { 'b' }
     c = app.node { 'c' }
