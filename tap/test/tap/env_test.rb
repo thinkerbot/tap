@@ -34,7 +34,7 @@ class EnvTest < Test::Unit::TestCase
   def test_initialize_casts_constants
     env = Env.new :constants => [
       ConstName, 
-      ['Nest::ConstName', 'require/path/a', 'require/path/b']
+      ['Nest::ConstName', 'require/path/a:require/path/b']
     ]
     
     assert_equal [

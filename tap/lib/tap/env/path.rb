@@ -23,8 +23,8 @@ module Tap
           Root.trivial?(path_file) ? {} : (YAML.load_file(path_file) || {})
         end
         
-        def escape(path)
-          path.gsub("'", "\\'")
+        def escape(str)
+          "'#{str.gsub("'", "\\\\'")}'"
         end
       end
       

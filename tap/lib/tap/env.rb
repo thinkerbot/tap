@@ -13,14 +13,17 @@ module Tap
         lib = options[:lib] || 'lib'
         pattern = options[:pattern] || '**/*.rb'
         
-        lines = ["register '#{Path.escape(dir)}'"]
+        lines = ["register #{Path.escape(dir)}"]
+        
         path = Path.new(dir, map)
         path[lib].each do |lib_dir|
-          lines << "loadpath '#{Path.escape(lib_dir)}'"
+          lines << "loadpath #{Path.escape(lib_dir)}"
           
-          Constant.scan(lib_dir, pattern).each do |const|
-            lines << "set #{const.const_name} #{Path.join(const.require_paths)}"
-            lines << "ns #{const.dirname}"
+          Constant.scan(lib_dir, pattern).each do |constant|
+            require_paths = Path.join(constant.require_paths)
+            types = constant.types.to_a.collect {|type| Path.escape(Path.join(type)) }
+            lines << "set #{constant.const_name} #{Path.escape require_paths} #{types.join(' ')}"
+            lines << "ns #{constant.dirname}"
           end
         end
         
@@ -72,8 +75,9 @@ module Tap
       result
     end
     
-    def resolve(const_str)
+    def resolve(const_str, &block)
       values = constants.values
+      values = values.select(&block) if block_given?
       
       namespaces.each do |ns|
         path = File.join(ns, const_str)
@@ -84,12 +88,12 @@ module Tap
       nil
     end
     
-    def constant(const_str)
+    def constant(const_str, &block)
       case const_str
       when Module, nil
         const_str
       else
-        constant = constants[const_str] || resolve(const_str)
+        constant = constants[const_str] || resolve(const_str, &block)
         constant ? constant.constantize : nil
       end
     end
@@ -135,13 +139,20 @@ module Tap
       $LOAD_PATH
     end
     
-    def set(const_name, *require_paths)
+    def set(const_name, require_path=nil, *types)
+      constant = constants[const_name] || Constant.new(const_name)
+      
+      require_paths = require_path ? Path.split(require_path, nil) : []
       if require_paths.empty? && const_name.kind_of?(String)
         require_paths << const_name.underscore
       end
       
-      constant = constants[const_name] || Constant.new(const_name)
       constant.require_paths.concat(require_paths).uniq!
+      types.each do |type|
+        type, summary = Path.split(type, nil)
+        constant.register_as(type, summary, true)
+      end
+      
       constants[constant.const_name] = constant
       constant
     end
