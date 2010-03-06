@@ -28,7 +28,7 @@ module Tap
           filters.send(method_name) do |filter|
             key =~ filter || value =~ filter
           end
-        end
+        end unless filters.empty?
         
         max = keys.collect {|(key, value)| key.length }.max
         keys.collect! {|entry| "%-#{max}s: %s" % entry }.sort!

@@ -1,4 +1,5 @@
 require 'tap/task'
+require 'tap/templater'
 require 'tap/generator/manifest'
 require 'tap/generator/arguments'
 require 'tap/generator/generate'
@@ -83,8 +84,8 @@ module Tap
       end
       
       config_attr :template_root, nil,        # The template root directory
-        :long => :destination,
-        :short => :d do |root|
+        :long => :template,
+        :short => :t do |root|
         root ||= default_template_root
         @template_root = root.kind_of?(Root) ? root : Root.new(root)
       end

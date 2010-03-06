@@ -6,10 +6,12 @@ module Tap
     # :startdoc::task
     #
     class Destroy < Tap::Task
-      def process(*argv)
-        app.call('sig' => 'build', 'args' => args) do |generator, argv|
-          generator.set(Generator::Destroy)
-          return generator.call(argv)
+      def process(generator, *args)
+        app.env.constant(generator) do |constant|
+          constant.types.has_key?('generator')
+        end.parse!(args) do |generator, argv|
+          generator.extend Generator::Destroy
+          generator.call(argv)
         end
       end
     end 
