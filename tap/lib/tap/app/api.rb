@@ -67,8 +67,12 @@ module Tap
           args = parser.parse!(argv, :add_defaults => false)
           obj = build(convert_to_spec(parser, args), app)
           
-          block_given? ? yield(obj, args) : Utils.warn_ignored_args(args)
-          obj
+          if block_given?
+            yield(obj, args)
+          else
+            Utils.warn_ignored_args(args)
+            obj
+          end
         end
         
         # Returns an instance of self.  By default build calls new with the
