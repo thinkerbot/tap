@@ -64,7 +64,7 @@ class ShellTestTest < Test::Unit::TestCase
     end
     
     with_env 'QUIET' => nil do
-      assert_equal false, quiet?
+      assert_equal true, quiet?
     end
   end
   
@@ -207,11 +207,6 @@ value
   end
   
   def test_sh_test_replaces_percent_and_redirects_output_by_default 
-    sh_test %Q{
-ruby -e "STDERR.puts 'on stderr'; STDOUT.puts 'on stdout'"
-on stdout
-}
-
     sh_test %Q{
 % ruby -e "STDERR.puts 'on stderr'; STDOUT.puts 'on stdout'"
 on stderr

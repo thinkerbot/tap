@@ -236,7 +236,6 @@ module Tap
       # The output is yielded to the block, if given, for further validation.
       # Returns the sh output.
       def sh_match(cmd, *regexps)
-        
         options = regexps.last.kind_of?(Hash) ? regexps.pop : {}
         options = sh_test_options.merge(options)
         result = sh(cmd, options)

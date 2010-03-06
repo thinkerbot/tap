@@ -51,6 +51,6 @@ class TapTestReadmeTest < Test::Unit::TestCase
 
   def test_node
     n = app.node { "result" }
-    assert_equal "result", n.call
+    assert_equal "result", n.call([])
   end
 end

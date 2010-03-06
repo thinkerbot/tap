@@ -102,7 +102,7 @@ Sets up Tap::App.instance for testing tasks.
 
     def test_node
       n = app.node { "result" }
-      assert_equal "result", n.call
+      assert_equal "result", n.call([])
     end
   end
 
