@@ -26,8 +26,8 @@ begin
   options = {
     :tapfile_path => ENV['TAPFILE'] || ['tapfile'],
     :gems         => ENV['TAP_GEMS'] || ['.'],
-    :auto_path    => ENV['TAP_AUTO'] || ['.'],
-    :env_path     => ENV['TAPENV'] || ['tapenv'],
+    :path         => ENV['TAP_PATH'] || ['.'],
+    :tapenv_path  => ENV['TAPENV'] || ['tapenv'],
     :taprc_path   => ENV['TAPRC'] || ['~/.taprc']
   }
   

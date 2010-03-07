@@ -136,7 +136,7 @@ moon'
     }
   end
   
-  def test_TAP_AUTO_variable_can_be_used_to_specify_the_auto_scan_dirs
+  def test_TAP_PATH_variable_can_be_used_to_specify_the_auto_scan_dirs
     method_root.prepare('alt/lib/a.rb') do |io|
       io.puts 'require "tap/task"'
       io.puts '# ::task'
@@ -148,7 +148,7 @@ moon'
     unresolvable constant: "a" (RuntimeError)
     }
     
-    with_env('TAP_AUTO' => '../alt') do
+    with_env('TAP_PATH' => '../alt') do
       sh_test %Q{
       % tap a
       A

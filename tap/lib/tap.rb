@@ -31,12 +31,12 @@ module Tap
       env.signal(:load).call Env::Gems.env_path(gems)
     end
     
-    if auto_path = options[:auto_path]
-      Env::Path.split(auto_path).each {|dir| env.auto(:dir => dir) }
+    if path = options[:path]
+      Env::Path.split(path).each {|dir| env.auto(:dir => dir) }
     end
     
-    if env_path = options[:env_path]
-      env.signal(:load).call Env::Path.split(env_path)
+    if tapenv_path = options[:tapenv_path]
+      env.signal(:load).call Env::Path.split(tapenv_path)
     end
     
     if taprc_path = options[:taprc_path]
