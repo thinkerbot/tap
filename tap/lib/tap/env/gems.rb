@@ -1,6 +1,7 @@
 require 'tap/env/path'
 require 'rbconfig'
 
+autoload(:Gem, 'rubygems')
 module Tap
   class Env
     
@@ -10,7 +11,7 @@ module Tap
       
       CACHE_DIR = ENV['TAP_CACHE'] || '~/.tap'
       CACHE_HOME = File.expand_path("#{RbConfig::CONFIG['RUBY_INSTALL_NAME']}/#{RUBY_VERSION}", CACHE_DIR)
-      GEM_PATH_FILE = File.expand_path('gemfile', CACHE_HOME)
+      GEM_PATH_FILE = File.expand_path('gempath', CACHE_HOME)
       
       def env_path(patterns)
         unless patterns.kind_of?(Array)
@@ -37,11 +38,11 @@ module Tap
           
           unless FileUtils.uptodate?(GEM_PATH_FILE, gem_path)
             errlog { [:info, 'gem cache is out of date'] }
-            FileUtils.rm_r(CACHE_HOME)
+            FileUtils.rm_r(CACHE_HOME) # unless manually-manage is flagged
           end
         end
         
-        unless File.exists?(CACHE_HOME)
+        unless File.exists?(GEM_PATH_FILE)
           generate_cache(CACHE_HOME, GEM_PATH_FILE)
         end
         
@@ -57,8 +58,6 @@ module Tap
       end
       
       def generate_cache(cache_home, gem_path_file)
-        require 'rubygems'
-        
         FileUtils.mkdir_p(cache_home)
         File.open(gem_path_file, 'w') do |io|
           errlog { [:generate, gem_path_file] } 
@@ -68,7 +67,7 @@ module Tap
         end
         
         visited={}
-        Gem.source_index.gems.each do |(name, gemspec)|
+        Gem.source_index.latest_specs.each do |gemspec|
           path_file = File.expand_path(Path::FILE, gemspec.full_gem_path)
           unless File.exists?(path_file)
             errlog { [:skip, gemspec.full_name] }

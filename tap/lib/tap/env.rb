@@ -148,10 +148,7 @@ module Tap
       end
       
       constant.require_paths.concat(require_paths).uniq!
-      types.each do |type|
-        type, summary = Path.split(type, nil)
-        constant.register_as(type, summary, true)
-      end
+      types.each {|type| constant.register_as(*Path.split(type, nil)) }
       
       constants[constant.const_name] = constant
       constant
