@@ -33,6 +33,10 @@ begin
   app = Tap.setup(options)
   parser = Tap::Parser.new
   
+  Dir.glob('[Tt]apfile{,.rb}').each do |tapfile|
+    load tapfile
+  end
+  
   loop do
     break if ARGV.empty?
     parser.parse!(ARGV)
@@ -50,7 +54,7 @@ begin
       app.call('sig' => 'load', 'args' => [file])
     end
   end
-
+  
   # Traps interrupt the normal flow of the program and so I assume thread safety
   # is an issue (ex if the INT occurs during an enque and a signal specifies
   # another enque). A safer way to go is to enque the prompt... when the prompt
