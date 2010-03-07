@@ -24,18 +24,15 @@ end
 
 begin
   options = {
-    :gems       => ENV['TAP_GEMS'] || ['.'],
-    :auto_path  => ENV['TAP_AUTO'] || ['.'],
-    :env_path   => ENV['TAPENV'] || ['tapenv'],
-    :taprc_path => ENV['TAPRC'] || ['~/.taprc']
+    :tapfile_path => ENV['TAPFILE'] || ['tapfile'],
+    :gems         => ENV['TAP_GEMS'] || ['.'],
+    :auto_path    => ENV['TAP_AUTO'] || ['.'],
+    :env_path     => ENV['TAPENV'] || ['tapenv'],
+    :taprc_path   => ENV['TAPRC'] || ['~/.taprc']
   }
   
   app = Tap.setup(options)
   parser = Tap::Parser.new
-  
-  Dir.glob('[Tt]apfile{,.rb}').each do |tapfile|
-    load tapfile
-  end
   
   loop do
     break if ARGV.empty?
@@ -43,14 +40,14 @@ begin
     parser.build_to(app)
   
     break if ARGV.empty?
-    psr = ConfigParser.new(app.config, 
+    config_parser = ConfigParser.new(app.config, 
       :option_break => Tap::Parser::BREAK, 
       :keep_break => true, 
       :clear_config => false, 
-      :add_defaults => false
-    )
-    psr.add(Tap::App.configurations)
-    psr.scan(ARGV) do |file|
+      :add_defaults => false)
+    config_parser.add(app.class.configurations)
+    
+    config_parser.scan(ARGV) do |file|
       app.call('sig' => 'load', 'args' => [file])
     end
   end

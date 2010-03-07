@@ -15,6 +15,18 @@ module Tap
     env.set 'Tap::Tasks::Dump',   'tap/tasks/dump.rb'
     env.set 'Tap::Tasks::Prompt', 'tap/tasks/prompt.rb'
     
+    app = App.new({}, :env => env)
+    app.set('app', app)
+    app.set('env', env)
+    
+    App.instance = app
+    
+    if tapfile_path = options[:tapfile_path]
+      Env::Path.split(tapfile_path).each do |tapfile|
+        load(tapfile) if File.file?(tapfile)
+      end
+    end
+    
     if gems = options[:gems]
       env.signal(:load).call Env::Gems.env_path(gems)
     end
@@ -27,14 +39,10 @@ module Tap
       env.signal(:load).call Env::Path.split(env_path)
     end
     
-    app = App.new({}, :env => env)
-    app.set('app', app)
-    app.set('env', env)
-    
     if taprc_path = options[:taprc_path]
       app.signal(:load).call Env::Path.split(taprc_path)
     end
     
-    App.instance = app
+    app
   end
 end

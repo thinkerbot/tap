@@ -10,6 +10,15 @@ class TapTest < Test::Unit::TestCase
   # setup test
   #
   
+  def test_setup_load_tapfile_path_files
+    a = method_root.prepare('a')   {|io| io.puts 'Tap::App.instance.set("A", Tap::App.instance)'}
+    b = method_root.prepare('b')   {|io| io.puts 'Tap::App.instance.set("B", Tap::App.instance)'}
+    app = Tap.setup(:tapfile_path => "#{a}:#{b}")
+    
+    assert_equal app, app.objects['A']
+    assert_equal app, app.objects['B']
+  end
+  
   def test_setup_scans_auto_path_for_constants
     method_root.prepare('one/lib/a.rb')   {|io| io.puts '# ::task'}
     method_root.prepare('one/lib/b/c.rb') {|io| io.puts '# B::task'}
