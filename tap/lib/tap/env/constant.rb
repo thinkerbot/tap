@@ -222,7 +222,7 @@ module Tap
       # Registers the type and summary with self.  Raises an error if self is
       # already registerd as the type and override is false.
       def register_as(type, summary=nil, override=false)
-        if types.include?(type) && !override
+        if types.include?(type) && types[type] != summary && !override
           raise "already registered as a #{type.inspect} (#{const_name})"
         end
         
