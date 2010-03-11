@@ -1,36 +1,112 @@
-= Command Line Examples
+= Command Line
 
-== Basic Input/Output
+Tap can work in the context of a command line like any other executable. By
+default the load/dump tasks read and write to stdin/stdout. These patterns
+represent common ways to hook up a Tap workflow.
 
 === Read data from $stdin
   # [goodnight.txt]
   # goodnight moon
   
-  % tap run -- load --: dump < goodnight.txt
+  % tap load -: dump < goodnight.txt
   goodnight moon
 
 === Pipe data from $stdin
-  % echo goodnight moon | tap run -- load --: dump
+  % echo goodnight moon | tap load -: dump
   goodnight moon
 
-=== Load data from argument
-  % tap run -- load 'goodnight moon' --: dump
+=== Manually specify data with an argument
+  % tap load 'goodnight moon' -: dump
   goodnight moon
 
 === Dump data to $stdout
-  % tap run -- load 'goodnight moon' --: dump > goodnight.txt
+  % tap load 'goodnight moon' -: dump > goodnight.txt
   % more goodnight.txt
   goodnight moon
 
 === Pipe data via $stdout
-  % tap run -- load 'goodnight moon' --: dump | more
+  % tap load 'goodnight moon' -: dump | more
   goodnight moon
 
-== Setup
+= ENV
 
-=== Use an ENV variable to setup the Tap::Env
+Several ENV variables tell the tap executable where to find setup and config
+files. Each of the ENV variables can be treated like PATH, where multiple
+paths are joined by ':'. The ENV files are handled in order as listed, before
+the command line workflow is parsed.
 
-  % TAP_GEMS= tap run -T
-  % TAP_GEMS=:all tap run -T
-  % TAP_GEMS=:latest tap run -T
-  % TAP_GEMS="[rap, tap-tasks]" tap run -T
+=== TAPFILE (default 'tapfile')
+
+Specifies ruby files that will be loaded after the default app and env are set
+up. Tapfiles can be used to declare tasks, typically using the
+Tap::Declarations module, or to manually setup workflows.
+
+  [tapfile]
+  require 'tap/declarations'
+  include Tap::Declarations
+  
+  task :goodnight do |task, args|
+    "Goodnight #{args}!"
+  end
+  
+  % tap goodnight Moon -: dump
+  Goodnight Moon!
+
+=== TAP_GEMS (default '.')
+
+Specifies a glob of gems to automatically load into the environment. All
+current versions of installed gems will be available for selection. Use an
+empty string to specify no gems.
+
+  % gem install tap-tasks
+  % TAP_GEMS=. tap inspect string
+  "string"
+  % TAP_GEMS=tap-ta* tap inspect string
+  "string"
+  % TAP_GEMS=nomatch tap inspect string
+  unresolvable constant: 'inspect' (RuntimeError)
+  % TAP_GEMS= tap inspect string
+  unresolvable constant: 'inspect' (RuntimeError)
+
+=== TAP_PATH (default '.')
+
+Specifies directories to be scanned for constants and registered with the
+tap env.
+
+  [notpwd/lib/goodnight.rb]
+  # ::task
+  class Goodnight
+    def call(input)
+      "goodnight #{input}"
+    end
+  end
+  
+  % tap goodnight moon
+  unresolvable constant: 'goodnight' (RuntimeError)
+  % TAP_PATH=notpwd tap goodnight moon
+  goodnight moon
+  
+=== TAPENV (default 'tapenv')
+
+Specifies files to be loaded in the env context. These files can be used to
+manually specify an environment by setting/unsetting constants, namespaces,
+and resource paths.
+
+  [tapenv]
+  unset Tap::Tasks::Dump
+  
+  % tap load a -: dump
+  unresolvable constant: 'dump' (RuntimeError)
+
+=== TAPRC (default '~/.taprc:taprc')
+
+Specifies files to be loaded in the app context. These files can be used to
+manually build workflows, or configure the app.
+
+  [taprc]
+  set loader load
+  set dumper dump
+
+  % tap join loader dumper -/enq loader 'goodnight moon'
+  goodnight moon
+
