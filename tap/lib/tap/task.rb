@@ -1,4 +1,7 @@
 require 'tap/app'
+require 'tap/joins/gate'
+require 'tap/joins/switch'
+require 'tap/joins/sync'
 
 module Tap
   

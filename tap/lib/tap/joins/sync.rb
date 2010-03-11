@@ -1,5 +1,3 @@
-require 'tap/join'
-
 module Tap
   module Joins
     

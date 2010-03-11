@@ -32,3 +32,19 @@ end
 unless Object.const_defined?(:RUBY_EXE)
   RUBY_EXE = "ruby"
 end
+
+unless Object.const_defined?(:SH_TEST_OPTIONS)
+  SH_TEST_OPTIONS = {
+    :cmd_pattern => "% tap", 
+    :cmd => [
+      RUBY_EXE,
+      "-I'#{TAP_ROOT}/../configurable/lib'",
+      "-I'#{TAP_ROOT}/../lazydoc/lib'",
+      "-I'#{TAP_ROOT}/lib'",
+      "'#{TAP_ROOT}/bin/tap'"
+    ].join(" "),
+    :env => {
+      'TAP_GEMS' => ''
+    }
+  }
+end

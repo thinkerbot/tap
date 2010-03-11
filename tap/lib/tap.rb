@@ -11,7 +11,7 @@ module Tap
     env.ns '/tap/tasks'
     
     lib = File.expand_path('..', __FILE__)
-    pattern = 'tap/{join,signal,tasks/load,tasks/dump,tasks/prompt}.rb'
+    pattern = 'tap/{join,signal,joins/*,tasks/*}.rb'
     Env::Constant.scan(lib, pattern).each do |constant|
       env.constants[constant.const_name] = constant
     end

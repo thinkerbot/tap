@@ -1,8 +1,10 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper')
 require 'tap/joins/gate'
+require 'tap/test'
 require 'tap/test/tracer'
 
 class GateDocumentationTest < Test::Unit::TestCase 
+  extend Tap::Test
   acts_as_shell_test(SH_TEST_OPTIONS)
   
   def test_gate_documentation
