@@ -1,4 +1,4 @@
-require 'tap/join'
+require 'tap/app'
 
 module Tap
   

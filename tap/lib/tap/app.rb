@@ -5,6 +5,7 @@ require 'tap/app/node'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
+require 'tap/join'
 autoload(:YAML, 'yaml')
 
 module Tap
@@ -246,6 +247,11 @@ module Tap
     # Returns a new node that executes block on call.
     def node(&block) # :yields: *args
       Node.intern(self, &block)
+    end
+    
+    # Generates a join between the inputs and outputs.
+    def join(inputs, outputs, config={}, klass=Join, &block)
+      klass.new(config, self).join(inputs, outputs, &block)
     end
     
     # Enques the node with the input.  Returns the node.

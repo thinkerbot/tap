@@ -1,13 +1,4 @@
-require 'tap/app'
-
 module Tap
-  class App
-    # Generates a join between the inputs and outputs.
-    def join(inputs, outputs, config={}, klass=Join, &block)
-      klass.new(config, self).join(inputs, outputs, &block)
-    end
-  end
-  
   # :startdoc::join an unsyncrhonized, multi-way join
   #
   # Join defines an unsynchronized, multi-way join where n inputs send their
