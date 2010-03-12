@@ -15,18 +15,34 @@ module Tap
   # App coordinates the setup and execution of workflows.
   class App
     class << self
-      # Sets the current app instance
-      attr_writer :instance
-      
-      # Returns the current instance of App.  If no instance has been set,
-      # then instance initializes a new App with the default configuration.
-      # Instance is used to initialize tasks when no app is specified and
-      # exists for convenience only.
-      def instance(auto_initialize=true)
-        @instance ||= (auto_initialize ? new : nil)
+      def set_context(context={})
+        current = Thread.current[CONTEXT]
+        Thread.current[CONTEXT] = context
+        current
       end
       
-      def build(spec={}, app=Tap::App.instance)
+      def with_context(context)
+        begin
+          current = set_context(context)
+          yield
+        ensure
+          set_context(current)
+        end
+      end
+      
+      def context
+        Thread.current[CONTEXT] ||= {}
+      end
+      
+      def instance=(app)
+        context[INSTANCE] = app
+      end
+      
+      def instance
+        context[INSTANCE] ||= new
+      end
+      
+      def build(spec={}, app=instance)
         config = spec['config'] || {}
         signals = spec['signals'] || []
         
@@ -48,6 +64,12 @@ module Tap
     include Configurable
     include MonitorMixin
     include Signals
+    
+    # A variable to store the application context in Thread.current
+    CONTEXT  = 'tap.context'
+    
+    # A variable to store an instance in the application context.
+    INSTANCE = 'tap.instance'
     
     # The reserved call keys
     CALL_KEYS = %w{obj sig args}
@@ -94,6 +116,7 @@ module Tap
     # The application environment
     attr_accessor :env
     
+    # The application joins
     attr_reader :joins
     
     config :debug, false, :short => :d, &c.flag     # Flag debugging
@@ -560,6 +583,12 @@ module Tap
     def on_complete(&block) # :yields: result
       joins << block if block
       self
+    end
+    
+    # Sets self as instance in the current context, for the duration of the
+    # block (see App.with_context).
+    def scope
+      App.with_context(APP => self) { yield }
     end
     
     # Converts the self to a schema that can be used to build a new app with
