@@ -7,15 +7,6 @@ module Tap
   
   def setup(options={})
     env = Env.new
-    env.ns '/tap'
-    env.ns '/tap/tasks'
-    
-    lib = File.expand_path('..', __FILE__)
-    pattern = 'tap/{join,signal,joins/*,tasks/*}.rb'
-    Env::Constant.scan(lib, pattern).each do |constant|
-      env.constants[constant.const_name] = constant
-    end
-    
     app = App.new({}, :env => env)
     app.set('app', app)
     app.set('env', env)

@@ -54,12 +54,14 @@ class TapTest < Test::Unit::TestCase
   
   def test_setup_loads_taprc_path_in_app_context
     a = method_root.prepare('a') do |io|
-      io.puts "set 0 load"
-      io.puts "set 1 load"
+      io.puts "env/set Tap::Tasks::Load"
+      io.puts "set 0 tap/tasks/load"
+      io.puts "set 1 tap/tasks/load"
     end
     
     b = method_root.prepare('b') do |io|
-      io.puts "set 1 dump"
+      io.puts "env/set Tap::Tasks::Dump"
+      io.puts "set 1 tap/tasks/dump"
     end
     
     app = Tap.setup(:taprc_path => "#{a}:#{b}")

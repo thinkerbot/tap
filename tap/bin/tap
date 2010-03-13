@@ -23,13 +23,22 @@ if ARGV == ['--help']
 end
 
 begin
-  options = {
-    :tapfile_path => ENV['TAPFILE'] || ['tapfile'],
-    :gems         => ENV['TAP_GEMS'] || ['.'],
-    :path         => ENV['TAP_PATH'] || ['.'],
-    :tapenv_path  => ENV['TAPENV'] || ['tapenv'],
-    :taprc_path   => ENV['TAPRC'] || ['~/.taprc']
-  }
+  # Assume this script is running through RubyGems if Gem is defined
+  options = Object.const_defined?(:Gem) ? {
+    :tapfile_path => ['tapfile'],
+    :gems         => ['.'],
+    :path         => ['.'],
+    :tapenv_path  => ['tapenv'],
+    :taprc_path   => ['~/.taprc', 'taprc']
+  } : {}
+  
+  options.merge!(
+    :tapfile_path => ENV['TAPFILE'],
+    :gems         => ENV['TAP_GEMS'],
+    :path         => ENV['TAP_PATH'],
+    :tapenv_path  => ENV['TAPENV'],
+    :taprc_path   => ENV['TAPRC']
+  )
   
   app = Tap.setup(options)
   parser = Tap::Parser.new

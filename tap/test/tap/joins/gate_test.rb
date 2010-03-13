@@ -3,44 +3,6 @@ require 'tap/joins/gate'
 require 'tap/test'
 require 'tap/test/tracer'
 
-class GateDocumentationTest < Test::Unit::TestCase 
-  extend Tap::Test
-  acts_as_shell_test(SH_TEST_OPTIONS)
-  
-  def test_gate_documentation
-      sh_test %Q{
-% tap load a -- load b - inspect - gate 0,1 2
-["a", "b"]
-}
-      sh_test %Q{
-% tap load/yaml "[1, 2, 3]" -:i inspect -:.gate inspect
-1
-2
-3
-[1, 2, 3]
-}
-
-      sh_test %Q{
-% tap load/yaml "[1, 2, 3]" -:i inspect -:.sync inspect
-1
-[1]
-2
-[2]
-3
-[3]
-}
-
-      sh_test %Q{
-% tap load/yaml "[1, 2, 3]" -:i inspect - inspect - gate 1 2 --limit 2
-1
-2
-[1, 2]
-3
-[3]
-}
-  end
-end
-
 class GateTest < Test::Unit::TestCase
   Gate = Tap::Joins::Gate
   

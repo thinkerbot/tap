@@ -42,9 +42,6 @@ unless Object.const_defined?(:SH_TEST_OPTIONS)
       "-I'#{TAP_ROOT}/../lazydoc/lib'",
       "-I'#{TAP_ROOT}/lib'",
       "'#{TAP_ROOT}/bin/tap'"
-    ].join(" "),
-    :env => {
-      'TAP_GEMS' => ''
-    }
+    ].join(" ")
   }
 end

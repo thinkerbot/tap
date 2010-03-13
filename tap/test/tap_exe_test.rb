@@ -6,20 +6,15 @@ class TapExeTest < Test::Unit::TestCase
   extend Tap::Test
   
   acts_as_file_test
-  acts_as_shell_test :cmd_pattern => "% tap", :cmd => [
-    RUBY_EXE,
-    "-I'#{TAP_ROOT}/../configurable/lib'",
-    "-I'#{TAP_ROOT}/../lazydoc/lib'",
-    "-I'#{TAP_ROOT}/lib'",
-    "'#{TAP_ROOT}/bin/tap'"
-  ].join(" ")
+  acts_as_shell_test SH_TEST_OPTIONS
   
   def setup
     super
     @pwd = Dir.pwd
     @current_env = set_env({
       'HOME' => method_root.path('home'),
-      'TAP_GEMS' => ''
+      'TAP_GEMS' => '',
+      'TAP_PATH' => TAP_ROOT
     }, true)
     method_root.chdir('pwd', true)
   end
@@ -123,20 +118,7 @@ moon'
     }
   end
   
-  def test_tap_auto_scans_pwd
-    method_root.prepare('pwd/lib/a.rb') do |io|
-      io.puts 'require "tap/task"'
-      io.puts '# ::task'
-      io.puts 'class A < Tap::Task; def process; puts "A"; end; end'
-    end
-    
-    sh_test %Q{
-    % tap a
-    A
-    }
-  end
-  
-  def test_TAP_PATH_variable_can_be_used_to_specify_the_auto_scan_dirs
+  def test_TAP_PATH_variable_specifies_auto_scan_dirs
     method_root.prepare('alt/lib/a.rb') do |io|
       io.puts 'require "tap/task"'
       io.puts '# ::task'
@@ -155,25 +137,8 @@ moon'
       }
     end
   end
-  
-  def test_tap_loads_tapenv_file_in_env_context
-    method_root.prepare('alt/lib/a.rb') do |io|
-      io.puts 'require "tap/task"'
-      io.puts '# ::task'
-      io.puts 'class A < Tap::Task; def process; puts "A"; end; end'
-    end
-    
-    method_root.prepare('pwd/tapenv') do |io|
-      io.puts 'auto ../alt'
-    end
-    
-    sh_test %Q{
-    % tap a
-    A
-    }
-  end
-  
-  def test_TAPENV_variable_can_be_used_to_specify_the_tapenv_files
+
+  def test_TAPENV_specifies_tapenv_files_run_in_env_context
     method_root.prepare('alt/lib/a.rb') do |io|
       io.puts 'require "tap/task"'
       io.puts '# ::task'
@@ -197,22 +162,7 @@ moon'
     end
   end
   
-  def test_tap_loads_taprc_file_in_home_directory
-    method_root.prepare('home/.taprc') do |io|
-      io.puts "set 0 load"
-      io.puts "set 1 dump"
-      io.puts "build join 0 1"
-      io.puts "enq 0 'goodnight moon'"
-    end
-    
-    sh_test %Q{
-    % tap load 'hello world' -: dump
-    goodnight moon
-    hello world
-    }
-  end
-  
-  def test_TAPRC_variable_can_be_used_to_specify_the_path_to_taprc_files
+  def test_TAPRC_variable_specifies_taprc_files_run_in_app_context
     a = method_root.prepare('home/a') do |io|
       io.puts "set 0 load"
     end

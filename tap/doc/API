@@ -10,16 +10,16 @@ workflow objects.
 === {Node}[link:classes/Tap/App/Node.html] ({Task}[link:classes/Tap/Task.html])
 
   call(input)                    # any return is allowed
-  joins()                        # returns an array of joins, or nil (optional)
+  joins()                        # returns an enumerable of joins, or nil (optional)
 
 The call method takes an object and returns an object. There are no formal
 constraints for the input/output objects.
 
-The optional joins method specifies an array of joins to be called by an
-application when the node completes. Each join is called in order. An empty
-array specifies the default application joins should be called; nil specifies
-that no joins should be called. No joins will be called when the joins method
-is left undefined.
+The optional joins method specifies an enumerable of joins (ie an object that
+responds to each) to be called by an application when the node completes. Each
+join is called in order. An empty array specifies the default application
+joins should be called; nil specifies that no joins should be called. No joins
+will be called when the joins method is left undefined.
 
 === {Join}[link:classes/Tap/Join.html]
 
