@@ -25,6 +25,23 @@ class ShellTestSample < Test::Unit::TestCase
   end
 end
 
+class ShellTestBaseClass < Test::Unit::TestCase
+  include Tap::Test::ShellTest
+  self.sh_test_options = {}
+
+  def test_nothing
+  end
+end
+
+class ShellTestSubClass < ShellTestBaseClass
+  def test_sh_test_options_are_inherited
+    a = ShellTestBaseClass.sh_test_options
+    b = ShellTestSubClass.sh_test_options
+    assert_equal a, b
+    assert a.object_id != b.object_id
+  end
+end
+
 class ShellTestTest < Test::Unit::TestCase
   include Tap::Test::ShellTest
   

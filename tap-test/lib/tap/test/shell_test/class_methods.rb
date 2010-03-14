@@ -3,9 +3,13 @@ module Tap
     module ShellTest
       # Class methods extending tests which include ShellTest.
       module ClassMethods
-      
         # Sets the default sh_test_options
         attr_writer :sh_test_options
+        
+        def inherited(base) # :nodoc:
+          super
+          base.sh_test_options = sh_test_options.dup
+        end
         
         # Returns a hash of the default sh_test options.
         def sh_test_options
