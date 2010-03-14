@@ -5,7 +5,19 @@ require 'tap/env'
 module Tap
   module_function
   
-  def setup(options={})
+  def options
+    {
+      :tapfile_path => ENV['TAPFILE'],
+      :gems         => ENV['TAP_GEMS'],
+      :path         => ENV['TAP_PATH'],
+      :tapenv_path  => ENV['TAPENV'],
+      :taprc_path   => ENV['TAPRC'],
+      :tap_cache    => ENV['TAP_CACHE'] || '~/.tap',
+      :debug        => ENV['TAP_DEBUG']
+    }
+  end
+  
+  def setup(options=self.options)
     env = Env.new
     app = App.new({}, :env => env)
     app.set('app', app)

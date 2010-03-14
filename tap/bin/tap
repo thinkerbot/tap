@@ -12,26 +12,21 @@
 require 'tap'
 require 'tap/parser'
 
-if ENV['TAP_DEBUG'] == 'true'
-  $DEBUG = true 
-end
-
-if ARGV == ['--help']
-  puts Lazydoc.usage(__FILE__)
-  puts "\nversion #{Tap::VERSION} -- #{Tap::WEBSITE}"
-  exit(0)
-end
-
 begin
-  options = {
-    :tapfile_path => ENV['TAPFILE'],
-    :gems         => ENV['TAP_GEMS'],
-    :path         => ENV['TAP_PATH'],
-    :tapenv_path  => ENV['TAPENV'],
-    :taprc_path   => ENV['TAPRC']
-  }
+  options = Tap.options
   
-  # Assume this script is running through RubyGems if Gem is defined
+  if options[:debug] == 'true'
+    $DEBUG = true 
+  end
+
+  if ARGV == ['--help']
+    puts Lazydoc.usage(__FILE__)
+    puts "\nversion #{Tap::VERSION} -- #{Tap::WEBSITE}"
+    exit(0)
+  end
+  
+  # Assume this script is running through RubyGems if Gem is defined and set
+  # the default (convenience) environment variables
   if Object.const_defined?(:Gem)
     options[:tapfile_path] ||= ['tapfile']
     options[:gems]         ||= ['.']
