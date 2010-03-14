@@ -14,7 +14,7 @@ class TapExeTest < Test::Unit::TestCase
     @current_env = set_env({
       'HOME' => method_root.path('home'),
       'TAP_GEMS' => '',
-      'TAP_PATH' => TAP_ROOT
+      'TAP_PATH' => File.expand_path('../..', __FILE__)
     }, true)
     method_root.chdir('pwd', true)
   end
