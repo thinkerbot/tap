@@ -11,44 +11,55 @@ module Tap
       
       CACHE_DIR = ENV['TAP_CACHE'] || '~/.tap'
       CACHE_HOME = File.expand_path("#{RbConfig::CONFIG['RUBY_INSTALL_NAME']}/#{RUBY_VERSION}", CACHE_DIR)
-      GEM_PATH_FILE = File.expand_path('gempath', CACHE_HOME)
       
-      def env_path(patterns)
-        unless patterns.kind_of?(Array)
-          patterns = patterns.split(':')
+      def env_path(dependencies)
+        if dependencies.kind_of?(String)
+          dependencies = dependencies.split(':')
         end
         
-        paths = []
-        patterns.each do |pattern|
-          paths.concat env_files(pattern)
+        env_paths = []
+        dependencies.collect! do |dep|
+          dep.kind_of?(String) ? dep.split(',', 2) : dep
+        end.each do |(pattern, version_requirements)|
+          pattern = Regexp.new("^#{pattern}$") if pattern.kind_of?(String)
+          env_paths.concat env_files(pattern, version_requirements)
         end
         
-        paths.uniq!
-        paths
+        env_paths.uniq!
+        env_paths
       end
       
-      def env_files(pattern)
-        unless pattern.kind_of?(Regexp)
-          pattern = Regexp.new(pattern)
+      def env_files(pattern, version_requirements)
+        dependency = Gem::Dependency.new(pattern, version_requirements)
+        
+        unless File.exists?(CACHE_HOME)
+          FileUtils.mkdir_p(CACHE_HOME)
         end
         
-        if File.exists?(GEM_PATH_FILE)
-          gem_path = File.read(GEM_PATH_FILE).split(/\r?\n/)
-          gem_path << __FILE__
-          
-          unless FileUtils.uptodate?(GEM_PATH_FILE, gem_path)
-            errlog { [:info, 'gem cache is out of date'] }
-            FileUtils.rm_r(CACHE_HOME) # unless manually-manage is flagged
+        sources = {}
+        Gem.source_index.search(dependency).sort.reverse_each do |spec|
+          sources[spec.name] ||= spec
+        end
+        
+        results = []
+        sources.values.sort_by do |spec|
+          spec.name
+        end.each do |spec|
+          path_file = File.expand_path(Path::FILE, spec.full_gem_path)
+          unless File.exists?(path_file)
+            next
           end
+          
+          cache_path = File.join(CACHE_HOME, spec.full_name)
+          gem_path = spec.full_gem_path
+          
+          unless FileUtils.uptodate?(cache_path, gem_path)
+            generate_envfile(spec, cache_path)
+          end
+          
+          results << cache_path
         end
-        
-        unless File.exists?(GEM_PATH_FILE)
-          generate_cache(CACHE_HOME, GEM_PATH_FILE)
-        end
-        
-        Dir.glob(File.join(CACHE_HOME, '*-*')).select do |env_file|
-          File.basename(env_file) =~ pattern
-        end
+        results
       end
       
       def errlog
@@ -57,51 +68,22 @@ module Tap
         end
       end
       
-      def generate_cache(cache_home, gem_path_file)
-        FileUtils.mkdir_p(cache_home)
-        File.open(gem_path_file, 'w') do |io|
-          errlog { [:generate, gem_path_file] } 
-          Gem.path.each do |gem_path|
-            io.puts File.join(gem_path, 'specifications')
-          end
-        end
+      def generate_envfile(gemspec, cache_path)
+        errlog { [:generate, gemspec.full_name] }
         
-        visited={}
-        Gem.source_index.latest_specs.each do |gemspec|
-          path_file = File.expand_path(Path::FILE, gemspec.full_gem_path)
-          unless File.exists?(path_file)
-            errlog { [:skip, gemspec.full_name] }
-            next
+        File.open(cache_path, 'w') do |io|
+          io.puts "# Generated for #{gemspec.full_name} on #{Time.now}.  Do not edit."
+          lines = Env.generate(:dir => gemspec.full_gem_path, :pathfile => File.expand_path(Path::FILE, gemspec.full_gem_path))
+          
+          load_paths(gemspec).flatten.each do |path|
+            next unless path
+            lines << "loadpath '#{Path.escape(path)}'"
           end
           
-          generate_envfile(gemspec, cache_home, visited)
+          lines.uniq!
+          lines.sort!
+          io << lines.join("\n")
         end
-      end
-      
-      def generate_envfile(gemspec, cache_home, visited)
-        return visited[gemspec] if visited.has_key?(gemspec)
-        
-        env_file = File.expand_path(gemspec.full_name, cache_home)
-        if FileUtils.uptodate?(env_file, [gemspec.full_gem_path, __FILE__])
-          errlog { [:uptodate, gemspec.full_name] }
-        else
-          errlog { [:generate, gemspec.full_name] }
-          File.open(env_file, 'w') do |io|
-            io.puts "# Generated for #{gemspec.full_name} on #{Time.now}.  Do not edit."
-            lines = Env.generate(:dir => gemspec.full_gem_path, :pathfile => File.expand_path(Path::FILE, gemspec.full_gem_path))
-            
-            load_paths(gemspec).flatten.each do |path|
-              next unless path
-              lines << "loadpath '#{Path.escape(path)}'"
-            end
-            
-            lines.uniq!
-            lines.sort!
-            io << lines.join("\n")
-          end
-        end
-        
-        visited[gemspec] = env_file
       end
       
       def load_paths(spec)

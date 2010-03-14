@@ -17,6 +17,7 @@ convenience, not speed. Much better performance can be achieved by
 circumventing RubyGems.
 
 See the website for more details: http://tap.rubyforge.org
+
 }
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\s(Task\sApplication)}
@@ -68,5 +69,6 @@ See the website for more details: http://tap.rubyforge.org
     lib/tap/templater.rb
     lib/tap/utils.rb
     lib/tap/version.rb
+    tap.yml
     }
 end
