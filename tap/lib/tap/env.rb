@@ -1,5 +1,5 @@
 require 'tap/signals'
-require 'tap/env/path'
+require 'tap/env/cache'
 require 'tap/env/constant'
 
 autoload(:YAML, 'yaml')
@@ -7,23 +7,36 @@ module Tap
   class Env
     class << self
       def generate(options={})
+        options = {
+          :register => true, 
+          :load_paths => true,
+          :set => true, 
+          :ns => true
+        }.merge(options)
+        
         dir = File.expand_path(options[:dir] || Dir.pwd)
         pathfile = options[:pathfile] || File.expand_path(Path::FILE, dir)
         map = options[:map] || Path.load(pathfile)
         lib = options[:lib] || 'lib'
         pattern = options[:pattern] || '**/*.rb'
         
-        lines = ["register #{Path.escape(dir)}"]
+        register = options[:register]
+        load_paths = options[:load_paths] 
+        set = options[:set]
+        ns = options[:ns]
+        
+        lines = []
+        lines << "register #{Path.escape(dir)}" if register
         
         path = Path.new(dir, map)
         path[lib].each do |lib_dir|
-          lines << "loadpath #{Path.escape(lib_dir)}"
+          lines << "loadpath #{Path.escape(lib_dir)}" if load_paths
           
           Constant.scan(lib_dir, pattern).each do |constant|
             require_paths = Path.join(constant.require_paths)
             types = constant.types.to_a.collect {|type| Path.escape(Path.join(type)) }
-            lines << "set #{constant.const_name} #{Path.escape require_paths} #{types.join(' ')}"
-            lines << "ns #{constant.dirname}"
+            lines << "set #{constant.const_name} #{Path.escape require_paths} #{types.join(' ')}" if set
+            lines << "ns #{constant.dirname}" if ns
           end
         end
         
@@ -33,7 +46,6 @@ module Tap
       end
     end
     
-    autoload(:Gems, 'tap/env/gems')
     include Signals
     
     attr_reader :paths
@@ -42,6 +54,8 @@ module Tap
     
     signal_hash :auto,                              # auto-scan resources from a dir
       :signature => [:dir, :pathfile, :lib, :pattern]
+    
+    signal :activate, :signature => [:name, :version]
     
     signal :register                                # add a resource path
     signal :loadpath                                # add a load path
@@ -115,6 +129,10 @@ module Tap
         signal(sig).call(args)
       end
       self
+    end
+    
+    def activate(name, version)
+      Gem.activate(name, version)
     end
     
     def unregister(*dirs)

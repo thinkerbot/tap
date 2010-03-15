@@ -43,8 +43,8 @@ See the website for more details: http://tap.rubyforge.org
     lib/tap/declarations/context.rb
     lib/tap/declarations/description.rb
     lib/tap/env.rb
+    lib/tap/env/cache.rb
     lib/tap/env/constant.rb
-    lib/tap/env/gems.rb
     lib/tap/env/path.rb
     lib/tap/env/string_ext.rb
     lib/tap/join.rb

@@ -28,11 +28,11 @@ begin
   # Assume this script is running through RubyGems if Gem is defined and set
   # the default (convenience) environment variables
   if Object.const_defined?(:Gem)
-    options[:tapfile_path] ||= ['tapfile']
-    options[:gems]         ||= ['.']
-    options[:path]         ||= ['.']
-    options[:tapenv_path]  ||= ['tapenv']
-    options[:taprc_path]   ||= ['~/.taprc', 'taprc']
+    options[:tapfile_path] ||= 'tapfile'
+    options[:gems]         ||= '.'
+    options[:path]         ||= '.'
+    options[:tapenv_path]  ||= 'tapenv'
+    options[:taprc_path]   ||= '~/.taprc:taprc'
   end
   
   app = Tap.setup(options)
