@@ -72,7 +72,7 @@ module Tap
     #
     # :startdoc:::+
     class Base < Tap::Task
-      lazy_attr :manifest, 'generator'
+      lazy_attr :desc, 'generator'
       lazy_attr :args, :manifest
       lazy_register :manifest, Arguments
       
