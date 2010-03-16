@@ -37,7 +37,7 @@ module Tap::Generator::Generators
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
     def manifest(m, root, project_name=nil)
       r = destination_root.root(root)
-      project_name = File.basename(r.root) if project_name == nil
+      project_name = File.basename(r.path) if project_name == nil
       
       m.directory r.path
       m.directory r.path('lib')

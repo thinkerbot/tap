@@ -157,13 +157,17 @@ module Tap
         @require_paths = require_paths
         @types = {}
       end
+      
+      def relative_path
+        @relative_path ||= const_name.underscore
+      end
     
       # Returns the underscored const_name.
       #
       #   Constant.new("Const::Name").path           # => '/const/name'
       #
       def path
-        @path ||= "/#{const_name.underscore}"
+        @path ||= "/#{relative_path}"
       end
     
       # Returns the basename of path.

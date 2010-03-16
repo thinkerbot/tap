@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__), '<%= '../' * const.nesting_depth %>tap_test_helper.rb') 
-require '<%= const.path %>'
+require '<%= const.relative_path %>'
 require 'tap/generator/preview.rb'
 
 class <%= const.name %>Test < Test::Unit::TestCase

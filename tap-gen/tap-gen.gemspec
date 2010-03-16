@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap-gen"
-  s.version = "0.3.1"
+  s.version = "0.4.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org/tap-gen"
@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.summary = "Generators for Tap"
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 0.19.0")
+  s.add_dependency("tap", ">= 1.0.0")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Generator}
   
@@ -22,13 +22,10 @@ Gem::Specification.new do |s|
   # list the files you want to include here. you can
   # check this manifest using 'rap print_manifest'
   s.files = %W{
-    cmd/destroy.rb
-    cmd/generate.rb
     lib/tap/generator/arguments.rb
     lib/tap/generator/base.rb
     lib/tap/generator/destroy.rb
     lib/tap/generator/generate.rb
-    lib/tap/generator/generators/command.rb
     lib/tap/generator/generators/config.rb
     lib/tap/generator/generators/generator.rb
     lib/tap/generator/generators/middleware.rb
@@ -38,8 +35,9 @@ Gem::Specification.new do |s|
     lib/tap/generator/manifest.rb
     lib/tap/generator/preview.rb
     lib/tap/generator/version.rb
+    lib/tap/tasks/destroy.rb
+    lib/tap/tasks/generate.rb
     tap.yml
-    templates/tap/generator/generators/command/command.erb
     templates/tap/generator/generators/generator/resource.erb
     templates/tap/generator/generators/generator/test.erb
     templates/tap/generator/generators/middleware/resource.erb

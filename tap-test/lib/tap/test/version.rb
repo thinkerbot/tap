@@ -1,7 +1,7 @@
 module Tap
   module Test
     MAJOR = 0
-    MINOR = 3
+    MINOR = 5
     TINY = 0
 
     VERSION="#{MAJOR}.#{MINOR}.#{TINY}"

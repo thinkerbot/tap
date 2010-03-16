@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap"
-  s.version = "1.0.0.pre"
+  s.version = "1.0.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org"
@@ -12,12 +12,13 @@ Gem::Specification.new do |s|
   s.executables = "tap"
   s.add_dependency("configurable", ">= 0.6.0")
   s.post_install_message = %q{
-Welcome to Tap! The tap executable that runs through RubyGems is setup for
-convenience, not speed. Much better performance can be achieved by
-circumventing RubyGems.
+*****************************************************************************
+  Welcome to Tap! The tap executable that runs through RubyGems is setup
+  for convenience, not speed. Much better performance can be achieved by
+  circumventing RubyGems.
 
-See the website for more details: http://tap.rubyforge.org
-
+  See the website for more details: http://tap.rubyforge.org
+*****************************************************************************
 }
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\s(Task\sApplication)}
