@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), '../rap_test_helper')
+require File.expand_path('../../rap_test_helper', __FILE__)
 require 'rap/declarations'
 
 # many of these tests are patterned after check/rake_check.rb

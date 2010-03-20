@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), '../rap_test_helper')
+require File.expand_path('../../rap_test_helper', __FILE__)
 require 'rap/task'
 
 class RapTaskTest < Test::Unit::TestCase
@@ -60,15 +60,6 @@ class RapTaskTest < Test::Unit::TestCase
   
   def test_depends_on_returns_self
     assert_equal DependentClass, DependentClass.send(:depends_on, :one, DependencyClassOne)
-  end
-  
-  class DependentDupClass < Rap::Task
-    depends_on :one, DependencyClassOne
-    depends_on :one, DependencyClassOne
-  end
-  
-  def test_depends_on_does_not_add_duplicates
-    assert_equal [DependencyClassOne], DependentDupClass.dependencies
   end
   
   class DependentParentClass < Rap::Task

@@ -100,13 +100,11 @@ desc 'Run tests.'
 task :test => %w{
   test:check
   test:rap
-  test:doc
-  test:cmd
 }
 
 namespace :test do
   desc 'run rap tests'
-  task(:rap) { test Dir["test/rap/**/*_test.rb"] }
+  task(:rap) { test Dir["test/rap/**/*_test.rb"] + Dir["test/rap_test.rb"] }
   
   desc 'run check tests'
   task(:check) { test Dir["test/check/**/*_check.rb"] }
