@@ -26,7 +26,6 @@ Gem::Specification.new do |s|
     lib/tap/test/file_test.rb
     lib/tap/test/file_test/class_methods.rb
     lib/tap/test/shell_test.rb
-    lib/tap/test/shell_test/class_methods.rb
     lib/tap/test/shell_test/regexp_escape.rb
     lib/tap/test/subset_test.rb
     lib/tap/test/subset_test/class_methods.rb
