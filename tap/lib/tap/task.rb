@@ -81,24 +81,6 @@ module Tap
       def parser
         opts = super
         
-        # add option to print help
-        opts.on!("--help", "Print this help") do
-          lines = desc.kind_of?(Lazydoc::Comment) ? desc.wrap(77, 2, nil) : []
-          lines.collect! {|line| "  #{line}"}
-          unless lines.empty?
-            line = '-' * 80
-            lines.unshift(line)
-            lines.push(line)
-          end
-
-          puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
-          puts help
-          puts "usage: tap run -- #{to_s} #{args}"
-          puts          
-          puts opts
-          exit
-        end
-        
         # add option to specify a config file
         opts.on('--config FILE', 'Specifies a config file') do |config_file|
           configs = Configurable::Utils.load_file(config_file, true)
