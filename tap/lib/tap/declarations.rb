@@ -33,7 +33,9 @@ module Tap
     # Namespaces may be nested.
     def namespace(name)
       previous_namespace = context.namespace
-      context.namespace = File.join(previous_namespace, name.to_s.underscore)
+      namespace = File.join(previous_namespace, name.to_s.underscore)
+      context.namespace = namespace
+      app.env.ns(namespace)
       yield
       context.namespace = previous_namespace
     end
