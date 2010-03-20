@@ -1,7 +1,5 @@
 require 'tap/task'
-require 'tap/env'
-require 'rap/description'
-require 'rap/utils'
+require 'tap/utils'
 require 'ostruct'
 
 module Rap
@@ -74,31 +72,6 @@ module Rap
         args
       end
       
-      # Parses as normal, but also stores the arguments on the instance to
-      # allows arguments to be specified on dependency tasks:
-      #
-      #   # [Rapfile]
-      #   # Rap.task(:a, :obj) {|t, a| puts "A #{a.obj}"}
-      #   # Rap.task({:b => :a}, :obj) {|t, a| puts "B #{a.obj}"}
-      #
-      #   % rap b world -- a hello
-      #   A hello
-      #   B world
-      #
-      def parse!(argv=ARGV, app=Tap::App.instance)
-        parser = self.parser
-        
-        argv = parser.parse!(argv, :add_defaults => false)
-        enque = parser.config.delete('enque')
-        instance = build({'config' => parser.nested_config, 'args' => argv.dup}, app)
-        
-        # enque with no inputs to satisfy call, and
-        # clear argv so auto-enque will do the same
-        instance.enq if enque
-        
-        [instance, []]
-      end
-      
       # Instantiates the instance of self for app and reconfigures it as
       # specified in argh.
       def build(argh={}, app=Tap::App.instance)
@@ -113,49 +86,6 @@ module Rap
         end
         
         instance
-      end
-      
-      # Looks up or creates the Rap::Task subclass specified by const_name
-      # and adds the configs and dependencies.
-      #
-      # Configurations are always validated using the yaml transformation block
-      # (see {Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]).
-      def subclass(const_name, configs={}, dependencies=[])
-        # lookup or generate the subclass
-        subclass = Tap::Env::Constant.constantize(const_name.to_s) do |base, constants|
-          subclass_const = constants.pop
-          constants.inject(base) do |namespace, const|
-            # nesting Task classes into other Task classes is required
-            # for namespaces with the same name as a task
-            namespace.const_set(const, Class.new(Rap::Task))
-          end.const_set(subclass_const, Class.new(self))
-        end
-
-        # check a correct class was found
-        unless subclass.ancestors.include?(self)
-          raise "not a #{self}: #{subclass}"
-        end
-
-        # append configuration (note that specifying a desc 
-        # prevents lazydoc registration of these lines)
-        convert_to_yaml = Configurable::Validation.yaml
-        configs.each_pair do |key, value|
-          subclass.send(:config, key, value, :desc => "", &convert_to_yaml)
-        end
-
-        # add dependencies
-        dependencies.each do |dependency|
-          dependency_name = File.basename(dependency.to_s.underscore)
-          
-          # this suppresses 'method redefined' warnings
-          if subclass.method_defined?(dependency_name)
-            subclass.send(:undef_method, dependency_name)
-          end
-          
-          subclass.send(:depends_on, dependency_name, dependency)
-        end
-        
-        subclass
       end
       
       # Sets a class-level dependency; when task class B depends_on another
@@ -199,6 +129,12 @@ module Rap
         
         self
       end
+      
+      protected
+      
+      def convert_to_spec(parser, args) # :nodoc:
+        {'config' => parser.nested_config, 'args' => args}
+      end
     end
     
     # This sets the class-level dependencies array.
@@ -226,7 +162,7 @@ module Rap
     # set).  Call recursively resolves dependencies and raises an error for
     # circular dependencies.
     #
-    def call
+    def call(inputs=nil)
       if resolved?
         return
       end
@@ -238,7 +174,7 @@ module Rap
       @resolved = nil
       begin
         dependencies.each do |dependency|
-          dependency.call
+          dependency.call(nil)
         end
       rescue(DependencyError)
         $!.trace.unshift(self)
@@ -246,7 +182,8 @@ module Rap
       end
 
       @resolved = true
-      args ? super(*args) : super()
+      args ? process(*args) : process()
+      inputs
     end
     
     # Alias for call.

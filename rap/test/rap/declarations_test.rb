@@ -10,9 +10,11 @@ end
 class DeclarationsTest < Test::Unit::TestCase
   include Rap::Declarations
   
+  Description = Tap::Declarations::Description
+  
   def setup
     env = Tap::Env.new
-    app = Tap::App.new(:env => env)
+    app = Tap::App.new({}, :env => env)
     Context.instance.app = app
   end
   
@@ -317,7 +319,7 @@ class DeclarationsTest < Test::Unit::TestCase
     task(:task0)
   
     Lazydoc[__FILE__].resolved = false
-    assert_equal Rap::Description, Task0.desc.class
+    assert_equal Description, Task0.desc.class
     assert_equal "summary", Task0.desc.to_s
     assert_equal "a multiline comment", Task0.desc.comment
   
@@ -340,7 +342,7 @@ class DeclarationsTest < Test::Unit::TestCase
     task(:task0)
   
     Lazydoc[__FILE__].resolved = false
-    assert_equal Rap::Description, Task0.desc.class
+    assert_equal Description, Task0.desc.class
     assert_equal "new summary", Task0.desc.to_s
     assert_equal "new comment", Task0.desc.comment
   end

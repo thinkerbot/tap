@@ -1,4 +1,5 @@
-require 'rap/declarations/context'
+require 'tap/declarations'
+require 'rap/task'
 
 module Rap
   
@@ -49,11 +50,7 @@ module Rap
   # See the {Syntax Reference}[link:files/doc/Syntax%20Reference.html] for
   # more information.
   module Declarations
-    
-    # Returns the context app.
-    def app
-      context.app
-    end
+    include Tap::Declarations
     
     # Returns the instance for the class, registered to app.
     def instance(klass)
@@ -68,40 +65,29 @@ module Rap
         register Rap::Task.subclass(dependency)
       end
       
-      # generate the task class
-      const_name = File.join(context.namespace, name.to_s).camelize
-      tasc = declaration_class.subclass(const_name, configs, dependencies)
-      register tasc
-      
-      # register documentation
       desc = Lazydoc.register_caller(Description)
-      desc.desc = context.desc
-      context.desc = nil
-      
+      tasc = super(name, configs, desc, &nil)
       tasc.arg_names = arg_names
-      tasc.desc = desc
       
       # add the action
       tasc.actions << action if action
+      
+      # add dependencies
+      dependencies.each do |dependency|
+        dependency_name = File.basename(dependency.to_s.underscore)
+        
+        # this suppresses 'method redefined' warnings
+        if tasc.method_defined?(dependency_name)
+          tasc.send(:undef_method, dependency_name)
+        end
+        
+        tasc.send(:depends_on, dependency_name, dependency)
+      end
       
       # return the instance
       instance = tasc.instance(app)
       instance.config.import(configs)
       instance
-    end
-    
-    # Nests tasks within the named module for the duration of the block.
-    # Namespaces may be nested.
-    def namespace(name)
-      previous_namespace = context.namespace
-      context.namespace = File.join(previous_namespace, name.to_s.underscore)
-      yield
-      context.namespace = previous_namespace
-    end
-    
-    # Sets the description for use by the next task declaration.
-    def desc(str)
-      context.desc = str
     end
     
     private
@@ -175,31 +161,19 @@ module Rap
       name.to_s.tr(":", "/")
     end
     
-    # The declarations context.
-    def context
-      @context ||= Context.instance
-    end
-    
     # The class of task declared by task, by default Rap::Task. 
     # Used as a hook to set the declaring class in including modules 
     # (such as Rap::Task itself).
     def declaration_class
       Rap::Task
     end
-    
-    # Registers a task class with the Declarations.app.env, if necessary.
-    # Returns task_class.
-    def register(tasc)
-      app.env.register(tasc)
-      tasc
-    end
   end
+  extend Declarations
   
   class Task
     class << self
       # :stopdoc:
       alias original_desc desc
-      alias original_instance instance
       # :startdoc:
       
       include Declarations
@@ -207,15 +181,14 @@ module Rap
       # :stopdoc:
       undef_method :desc
       alias desc original_desc
-      
-      undef_method :instance
-      alias instance original_instance
-      
-      # hide remaining Declarations methods (including Utils methods)
       private :namespace, :app
       # :startdoc:
       
       private
+      
+      def nest_class # :nodoc:
+        Rap::Task
+      end
       
       # overridden to provide self as the declaration_class
       def declaration_class # :nodoc:
@@ -223,6 +196,4 @@ module Rap
       end
     end
   end
-  
-  extend Declarations
 end

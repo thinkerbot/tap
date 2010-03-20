@@ -108,12 +108,6 @@ namespace :test do
   desc 'run rap tests'
   task(:rap) { test Dir["test/rap/**/*_test.rb"] }
   
-  desc 'run doc tests'
-  task(:doc) { test Dir["test/doc/**/*_test.rb"] }
-  
-  desc 'run cmd tests'
-  task(:cmd) { test Dir["test/cmd/**/*_test.rb"] }
-  
   desc 'run check tests'
   task(:check) { test Dir["test/check/**/*_check.rb"] }
 end

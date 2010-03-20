@@ -131,17 +131,6 @@ class RapTaskTest < Test::Unit::TestCase
     assert_equal([:key, :key=, 'value'], [config.reader, config.writer, config.default])
   end
   
-  def test_subclass_adds_dependencies_to_subclass
-    Task.subclass('Task0')
-    Task.subclass('Task1')
-    Task.subclass('Task2')
-    
-    assert_equal([], Task0.dependencies)
-    
-    Task.subclass('Task0', {}, [Task1, Task2])
-    assert_equal([Task1, Task2], Task0.dependencies)
-  end
-  
   def test_subclass_raises_error_if_it_constant_which_is_not_a_subclass_of_self
     e = assert_raises(RuntimeError) { Task.subclass('Object') }
     assert_equal "not a Rap::Task: Object", e.message

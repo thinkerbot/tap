@@ -7,7 +7,7 @@ class DeclarationsCompatibilityTest < Test::Unit::TestCase
   
   def setup
     env = Tap::Env.new
-    app = Tap::App.new(:env => env)
+    app = Tap::App.new({}, :env => env)
     Context.instance.app = app
   end
   

@@ -1,4 +1,5 @@
 require 'tap/task'
+require 'tap/env'
 require 'tap/declarations/context'
 require 'tap/declarations/description'
 
@@ -12,7 +13,7 @@ module Tap
     
     # Declares a task with a rake-like syntax.  Task generates a subclass of
     # Tap::Task, nested within the current namespace.
-    def task(name, configs={}, &block)
+    def task(name, configs={}, desc=nil, &block)
       # generate the task class (note that nesting Task classes into other
       # Task classes is required for namespaces with the same name as a task)
       const_name = File.join(context.namespace, name.to_s).camelize
@@ -20,7 +21,7 @@ module Tap
       register tasc
       
       # register documentation
-      desc = Lazydoc.register_caller(Description)
+      desc ||= Lazydoc.register_caller(Description)
       desc.desc = context.desc
       context.desc = nil
       
@@ -79,11 +80,15 @@ module Tap
       private :namespace, :app
       # :startdoc:
       
+      # Looks up or creates the subclass specified by const_name.
+      #
+      # Configurations are always validated using the yaml transformation
+      # block (see {Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]).
       def subclass(const_name, configs={})
         subclass = Env::Constant.constantize(const_name) do |base, constants|
           subclass_const = constants.pop
           constants.inject(base) do |namespace, const|
-            namespace.const_set(const, Class.new(Tap::Task))
+            namespace.const_set(const, Class.new(nest_class))
           end.const_set(subclass_const, Class.new(self))
         end
 
@@ -107,6 +112,10 @@ module Tap
       end
       
       private
+      
+      def nest_class # :nodoc:
+        Tap::Task
+      end
       
       # overridden to provide self as the declaration_class
       def declaration_class # :nodoc:
