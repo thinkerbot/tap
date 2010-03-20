@@ -22,7 +22,6 @@ unless Object.const_defined?(:SH_TEST_OPTIONS)
   
   SH_TEST_OPTIONS = {
     :cmd_pattern => '% tap',
-    :cmd => (["ruby"] + load_paths + ["'#{tap_root}/../tap/bin/tap'"]).join(" "),
-    :env => {'TAP_GEMS' => ''}
+    :cmd => (["ruby", "2>&1"] + load_paths + ["'#{tap_root}/../tap/bin/tap'"]).join(" ")
   } 
 end 

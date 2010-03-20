@@ -85,7 +85,7 @@ module Tap
         opts.on('--config FILE', 'Specifies a config file') do |config_file|
           configs = Configurable::Utils.load_file(config_file, true)
           opts.config.merge!(configs)
-        end unless configurations.empty?
+        end
         
         opts
       end

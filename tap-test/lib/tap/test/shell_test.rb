@@ -1,4 +1,3 @@
-require 'tap/test/shell_test/class_methods'
 require 'tap/test/shell_test/regexp_escape'
 
 module Tap
@@ -40,11 +39,6 @@ module Tap
     #   end
     #
     module ShellTest
-      
-      def self.included(base) # :nodoc:
-        super
-        base.extend ShellTest::ClassMethods
-      end
       
       # Sets up the ShellTest module.  Be sure to call super if you override
       # setup in an including module.
@@ -247,10 +241,20 @@ module Tap
         result
       end
       
-      # Returns a hash of the default sh_test options.  See
-      # ShellTest::ClassMethods#sh_test_options.
+      # Returns a hash of default sh_test options.
       def sh_test_options
-        self.class.sh_test_options
+        {
+          :cmd_pattern => '% ',
+          :cmd => '2>&1 ',
+          :indents => true,
+          :env => {
+            'TAPFILE'  => '',
+            'TAP_GEMS' => '', 
+            'TAP_PATH' => '.',
+            'TAPENV'   => '',
+            'TAPRC'    => ''
+          }
+        }
       end
       
       # Asserts whether or not the a and b strings are equal, with a more

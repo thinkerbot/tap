@@ -4,10 +4,12 @@ require 'tap/test/shell_test'
 class ShellTestSample < Test::Unit::TestCase
   include Tap::Test::ShellTest
   
-  self.sh_test_options = {
-    :cmd_pattern => '% inspect_argv',
-    :cmd => 'ruby -e "puts ARGV.inspect"'
-  }
+  def sh_test_options
+    {
+      :cmd_pattern => '% inspect_argv',
+      :cmd => 'ruby -e "puts ARGV.inspect"'
+    }
+  end
   
   def test_echo
     assert_equal "goodnight moon", sh("echo goodnight moon").strip
@@ -22,23 +24,6 @@ class ShellTestSample < Test::Unit::TestCase
 % inspect_argv a b c
 ["a", "b", "c"]
 }
-  end
-end
-
-class ShellTestBaseClass < Test::Unit::TestCase
-  include Tap::Test::ShellTest
-  self.sh_test_options = {}
-
-  def test_nothing
-  end
-end
-
-class ShellTestSubClass < ShellTestBaseClass
-  def test_sh_test_options_are_inherited
-    a = ShellTestBaseClass.sh_test_options
-    b = ShellTestSubClass.sh_test_options
-    assert_equal a, b
-    assert a.object_id != b.object_id
   end
 end
 
@@ -338,25 +323,6 @@ ruby -e ''.
 echo pass.
 <"pass\\n"> expected to be =~
 </fail/>.}, "\n" + err.message
-  end
-    
-  #
-  # sh_test_options test
-  #
-  
-  class ShellTestOptionsExample
-    include Tap::Test::ShellTest
-
-    self.sh_test_options = {
-      :cmd_pattern => '% sample',
-      :cmd => 'command'
-    }
-  end
-  
-  def test_sh_test_options
-    options = ShellTestOptionsExample.new.sh_test_options
-    assert_equal '% sample', options[:cmd_pattern]
-    assert_equal 'command', options[:cmd]
   end
   
   #

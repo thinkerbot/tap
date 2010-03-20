@@ -58,7 +58,7 @@ module Tap
     # sh_test_options.
     def acts_as_shell_test(options=nil)
       include Tap::Test::ShellTest
-      self.sh_test_options.merge!(options) if options
+      define_method(:sh_test_options) { super.merge(options) } unless options.nil?
     end
     
     # Includes TapTest in the calling class and calls acts_as_file_test.  See

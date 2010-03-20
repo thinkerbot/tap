@@ -4,25 +4,48 @@ require 'tap/version'
 
 class TapExeTest < Test::Unit::TestCase 
   extend Tap::Test
+  TAP_ROOT = File.expand_path("../..", __FILE__)
   
   acts_as_file_test
-  acts_as_shell_test SH_TEST_OPTIONS
+  acts_as_shell_test
   
   def setup
     super
     @pwd = Dir.pwd
-    @current_env = set_env({
-      'HOME' => method_root.path('home'),
-      'TAP_GEMS' => '',
-      'TAP_PATH' => File.expand_path('../..', __FILE__)
-    }, true)
     method_root.chdir('pwd', true)
   end
   
   def teardown
-    set_env(@current_env, true)
     Dir.chdir(@pwd)
     super
+  end
+  
+  def sh_test_options
+    {
+      :cmd_pattern => "% tap", 
+      :cmd => [
+        "ruby",
+        "-I'#{TAP_ROOT}/../configurable/lib'",
+        "-I'#{TAP_ROOT}/../lazydoc/lib'",
+        "-I'#{TAP_ROOT}/lib'",
+        "'#{TAP_ROOT}/bin/tap'"
+      ].join(" "),
+      :indents => true,
+      :env => default_env,
+      :replace_env => true
+    }
+  end
+  
+  def default_env
+    {
+      'HOME' => method_root.path('home'),
+      'TAPFILE'  => '',
+      'TAP_GEMS' => '', 
+      'TAP_PATH' => "#{TAP_ROOT}",
+      'TAPENV'   => '',
+      'TAPRC'    => '',
+      'TAP_GEMS' => ''
+    }
   end
   
   def test_tap_returns_nothing_with_no_input
@@ -52,10 +75,9 @@ class TapExeTest < Test::Unit::TestCase
   end
   
   def test_TAP_DEBUG_variable_turns_on_debugging
-    with_env('TAP_DEBUG' => 'true') do
-      sh_match' % tap a 2>&1',
-        /unresolvable constant.*RuntimeError/
-    end
+    sh_match '% tap a 2>&1',
+      /unresolvable constant.*RuntimeError/,
+      default_env.merge('TAP_DEBUG' => true)
   end
   
   def test_tap_executes_tapfiles_in_app_context
@@ -130,12 +152,10 @@ moon'
     unresolvable constant: "a" (RuntimeError)
     }
     
-    with_env('TAP_PATH' => '../alt') do
-      sh_test %Q{
-      % tap a
-      A
-      }
-    end
+    sh_test %Q{
+    % tap a
+    A
+    }, :env => default_env.merge('TAP_PATH' => '../alt')
   end
 
   def test_TAPENV_specifies_tapenv_files_run_in_env_context
@@ -154,12 +174,10 @@ moon'
     unresolvable constant: "a" (RuntimeError)
     }
     
-    with_env('TAPENV' => 'altenv') do
-      sh_test %Q{
-      % tap a
-      A
-      }
-    end
+    sh_test %Q{
+    % tap a
+    A
+    }, :env => default_env.merge('TAPENV' => 'altenv')
   end
   
   def test_TAPRC_variable_specifies_taprc_files_run_in_app_context
@@ -173,12 +191,10 @@ moon'
       io.puts "enq 0 'goodnight moon'"
     end
     
-    with_env('TAPRC' => '~/a:./path/to/b') do
-      sh_test %Q{
-      % tap load 'hello world' -: dump
-      goodnight moon
-      hello world
-      }
-    end
+    sh_test %Q{
+    % tap load 'hello world' -: dump
+    goodnight moon
+    hello world
+    }, :env => default_env.merge('TAPRC' => '~/a:./path/to/b')
   end
 end

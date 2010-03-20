@@ -8,7 +8,7 @@ module Tap
     # to Null go nowhere.  Null does not accept joins and will not execute
     # the default app joins.
     #
-    #   % tap load a -: null
+    #   % tap load/yaml '[1, 2, 3]' -: null
     #
     class Null < Tap::Task
       def process(*args)

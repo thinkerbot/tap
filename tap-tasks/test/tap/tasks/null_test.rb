@@ -18,7 +18,7 @@ class NullTest < Test::Unit::TestCase
 
   def test_null_documentation
     sh_test %q{
-% tap load a -: null
+% tap load/yaml '[1, 2, 3]' -: null
 }
   end
   
