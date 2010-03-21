@@ -31,7 +31,6 @@ Gem::Specification.new do |s|
     lib/tap/tasks/glob.rb
     lib/tap/tasks/load/csv.rb
     lib/tap/tasks/load/yaml.rb
-    lib/tap/tasks/manifest.rb
     lib/tap/tasks/null.rb
     lib/tap/tasks/sig.rb
     lib/tap/tasks/sleep.rb
