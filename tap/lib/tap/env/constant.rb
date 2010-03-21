@@ -275,7 +275,14 @@ module Tap
       
         nil
       end
-    
+      
+      def match?(str)
+        str == const_name || begin
+          index = path.rindex(str)
+          index && (index + str.length) == path.length && (index == 0 || path[index-1] == ?/)
+        end
+      end
+      
       # Returns a string like:
       #
       #   "#<Tap::Env::Constant:object_id Const::Name (require_path)>"

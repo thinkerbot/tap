@@ -34,20 +34,8 @@ class EnvTest < Test::Unit::TestCase
   end
   
   def test_initialize_casts_constants
-    env = Env.new :constants => [
-      ConstName, 
-      ['Nest::ConstName', 'require/path/a:require/path/b']
-    ]
-    
-    assert_equal [
-      'ConstName',
-      'Nest::ConstName'
-    ], env.constants.values.collect {|const| const.const_name }.sort
-    
-    assert_equal [
-      [],
-      ['require/path/a', 'require/path/b']
-    ], env.constants.values.collect {|const| const.require_paths }.sort
+    env = Env.new :constants => [ConstName]
+    assert_equal 'ConstName', env.constants[0].const_name
   end
   
   #

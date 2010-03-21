@@ -35,7 +35,6 @@ module Tap
       previous_namespace = context.namespace
       namespace = File.join(previous_namespace, name.to_s.underscore)
       context.namespace = namespace
-      app.env.ns(namespace)
       yield
       context.namespace = previous_namespace
     end

@@ -26,14 +26,9 @@ class TapTest < Test::Unit::TestCase
     
     app = Tap.setup(:path => "#{method_root.path('one')}:#{method_root.path('two')}")
     
-    a = app.env.constants['A']
-    assert_equal ['a.rb'], a.require_paths
-    
-    b = app.env.constants['B']
-    assert_equal ['b/c.rb'], b.require_paths
-    
-    c = app.env.constants['C']
-    assert_equal ['c.rb'], c.require_paths
+    assert_equal ['a.rb'], app.env.resolve('A').require_paths
+    assert_equal ['b/c.rb'], app.env.resolve('B').require_paths
+    assert_equal ['c.rb'], app.env.resolve('C').require_paths
   end
   
   def test_setup_loads_tapenv_path_path_in_env_context
@@ -45,11 +40,8 @@ class TapTest < Test::Unit::TestCase
     
     app = Tap.setup(:tapenv_path => "#{a}:#{b}")
     
-    a = app.env.constants['A']
-    assert_equal ['a.rb'], a.require_paths
-    
-    b = app.env.constants['B']
-    assert_equal ['b/c.rb'], b.require_paths
+    assert_equal ['a.rb'], app.env.resolve('A').require_paths
+    assert_equal ['b/c.rb'], app.env.resolve('B').require_paths
   end
   
   def test_setup_loads_taprc_path_in_app_context

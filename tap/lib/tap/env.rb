@@ -10,8 +10,7 @@ module Tap
         options = {
           :register => true, 
           :load_paths => true,
-          :set => true, 
-          :ns => true
+          :set => true
         }.merge(options)
         
         dir = File.expand_path(options[:dir] || Dir.pwd)
@@ -23,7 +22,6 @@ module Tap
         register = options[:register]
         load_paths = options[:load_paths] 
         set = options[:set]
-        ns = options[:ns]
         
         lines = []
         lines << "register #{Path.escape(dir)}" if register
@@ -36,7 +34,6 @@ module Tap
             require_paths = Path.join(constant.require_paths)
             types = constant.types.to_a.collect {|type| Path.escape(Path.join(type)) }
             lines << "set #{constant.const_name} #{Path.escape require_paths} #{types.join(' ')}" if set
-            lines << "ns #{constant.dirname}" if ns
           end
         end
         
@@ -50,7 +47,6 @@ module Tap
     
     attr_reader :paths
     attr_reader :constants
-    attr_reader :namespaces
     
     signal_hash :auto,                              # auto-scan resources from a dir
       :signature => [:dir, :pathfile, :lib, :pattern]
@@ -60,12 +56,10 @@ module Tap
     signal :register                                # add a resource path
     signal :loadpath                                # add a load path
     signal :set                                     # add a constant
-    signal :ns                                      # add a namespace
     
     signal :unregister                              # remove a resource path
     signal :unloadpath                              # remove a load path
     signal :unset                                   # remove a constant
-    signal :unns                                    # remove a namespace
     
     define_signal :load, Load                       # load a tapenv file
     define_signal :help, Help                       # signals help
@@ -73,12 +67,8 @@ module Tap
     def initialize(options={})
       @paths = options[:paths] || []
       @paths.collect! {|path| path.kind_of?(Path) ? path : Path.new(*path) }
-      
-      @constants = {}
-      constants = options[:constants] || []
-      constants.each {|constant| set(*constant)}
-      
-      @namespaces = options[:namespaces] || ["/"]
+      @constants = options[:constants] || []
+      @constants.collect! {|constant| constant.kind_of?(Constant) ? constant : Constant.new(constant) }
     end
     
     def path(type)
@@ -90,26 +80,18 @@ module Tap
     end
     
     def resolve(const_str, &block)
-      values = constants.values
+      values = constants.select {|value| value.match?(const_str) }
       values = values.select(&block) if block_given?
       
-      namespaces.each do |ns|
-        path = File.join(ns, const_str)
-        constant = values.find {|constant| constant.path == path }
-        return constant if constant
+      case values.length
+      when 0 then raise "unresolvable constant: #{const_str.inspect}"
+      when 1 then values.at(0)
+      else raise "multiple matching constants: #{const_str.inspect} (#{values.join(', ')})"
       end
-      
-      nil
     end
     
     def constant(const_str, &block)
-      case const_str
-      when Module, nil
-        const_str
-      else
-        constant = constants[const_str] || resolve(const_str, &block)
-        constant ? constant.constantize : nil
-      end
+      const_str.kind_of?(Module) ? const_str : resolve(const_str, &block).constantize
     end
     
     def register(dir, map={})
@@ -158,7 +140,12 @@ module Tap
     end
     
     def set(const_name, require_path=nil, *types)
-      constant = constants[const_name] || Constant.new(const_name)
+      constant = constants.find {|c| c.const_name == const_name }
+      
+      unless constant
+        constant = Constant.new(const_name)
+        constants << constant
+      end
       
       require_paths = require_path ? Path.split(require_path, nil) : []
       if require_paths.empty? && const_name.kind_of?(String)
@@ -168,7 +155,6 @@ module Tap
       constant.require_paths.concat(require_paths).uniq!
       types.each {|type| constant.register_as(*Path.split(type, nil)) }
       
-      constants[constant.const_name] = constant
       constant
     end
     
@@ -178,18 +164,6 @@ module Tap
           constant.const_name == const_name
         end
       end
-      self
-    end
-    
-    def ns(prefix)
-      unless namespaces.include?(prefix)
-        namespaces << prefix
-      end
-      prefix
-    end
-    
-    def unns(*prefixes)
-      prefixes.each {|prefix| namespaces.delete(prefix) }
       self
     end
   end

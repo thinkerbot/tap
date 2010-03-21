@@ -396,12 +396,8 @@ module Tap
       
       obj = nil
       unless clas.nil?
-        unless constant = env.constant(clas)
-          raise "unresolvable constant: #{clas.inspect}"
-        end
-      
         method_name = spec.kind_of?(Array) ? :parse : :build
-        obj = constant.send(method_name, spec, self, &block)
+        obj = env.constant(clas).send(method_name, spec, self, &block)
       end
       
       unless var.nil?

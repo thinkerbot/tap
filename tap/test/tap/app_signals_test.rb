@@ -104,7 +104,7 @@ class AppSignalsTest < Test::Unit::TestCase
   
   def test_set_raises_error_for_unresolvable_class
     err = assert_raises(RuntimeError) { signal(:set, ['var', 'Non::Existant']) }
-    assert_equal "unresolvable constant: \"Non::Existant\"", err.message
+    assert_equal "uninitialized constant: \"Non::Existant\"", err.message
   end
   
   #

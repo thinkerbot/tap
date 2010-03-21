@@ -15,7 +15,7 @@ module Tap
           end
           current
         rescue(NameError)
-          nil
+          raise "uninitialized constant: #{const_str.inspect}"
         end
       end
     end
