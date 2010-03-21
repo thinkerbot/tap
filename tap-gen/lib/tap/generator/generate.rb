@@ -3,7 +3,7 @@ require 'tempfile'
 module Tap
   module Generator
     
-    # :startdoc::module A mixin defining how to run manifest actions.
+    # A mixin defining how to run manifest actions.
     module Generate
       
       # Creates the target directory if it doesn't exist.  When pretend is
