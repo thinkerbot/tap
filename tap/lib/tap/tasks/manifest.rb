@@ -22,21 +22,37 @@ module Tap
         paths = minimap(constants)
         constants = constants.sort_by {|constant| paths[constant] }
         
-        lines = []
-        indent = types.length > 1 ? '  ' : nil
+        descriptions = {}
+        selected_paths = []
         types.each do |type|
-          if indent
-            lines << "#{type}:"
-          end
-          
+          lines = []
           constants.each do |constant|
             next unless constant.types.include?(type)
-            lines << [indent, paths[constant], describe(constant, type)]
+            
+            path = paths[constant]
+            selected_paths << path
+            lines << [path, describe(constant, type)]
+          end
+          
+          descriptions[type] = lines unless lines.empty?
+        end
+        
+        format = "  %-#{max_width(selected_paths)}s # %s"
+        
+        lines = []
+        types.each do |type|
+          next unless descriptions.has_key?(type)
+          
+          lines << "#{type}:"
+          descriptions[type].each do |description|
+            lines << (format % description)
           end
         end
         
-        format = "%s%-#{max_width(lines)}s # %s"
-        lines.collect! {|line| line.kind_of?(Array) ? (format % line) : line }
+        if lines.empty?
+          lines << "(no constants match criteria)"
+        end
+        
         lines.join("\n")
       end
       
@@ -98,9 +114,9 @@ module Tap
         end
       end
       
-      def max_width(lines)
-        max = lines.collect {|line| line.kind_of?(Array) ? line.at(1).length : 0 }.max
-        max < 20 ? 20 : max
+      def max_width(paths)
+        max = paths.collect {|path| path.length }.max
+        max.nil? || max < 20 ? 20 : max
       end
     end 
   end
