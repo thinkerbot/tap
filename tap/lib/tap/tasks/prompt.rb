@@ -21,7 +21,18 @@ module Tap
       config :prompt, "/", &c.string_or_nil         # The prompt sequence
       config :terminal, $stdout, &c.io_or_nil       # The terminal IO
       
+      def signal(sig)
+        lambda do |spec|
+          app.build('class' => sig, 'spec' => spec) do |obj, args|
+            obj.call(args)
+          end
+        end
+      end
+      
       def process(io=$stdin)
+        current = app.get('')
+        app.set('', self)
+        
         result = super(io)
         unless file || result.nil? || result == app
           open_io(terminal) do |terminal|
@@ -29,6 +40,7 @@ module Tap
           end
         end
         
+        app.set('', current)
         result
       end
       
