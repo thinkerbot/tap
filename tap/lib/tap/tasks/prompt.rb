@@ -1,4 +1,5 @@
 require 'tap/tasks/stream'
+require 'readline'
 
 module Tap
   module Tasks
@@ -18,8 +19,9 @@ module Tap
     class Prompt < Stream
       include Tap::Utils
       
-      config :prompt, "/", &c.string_or_nil         # The prompt sequence
+      config :prompt, '/', &c.string_or_nil         # The prompt sequence
       config :terminal, $stdout, &c.io_or_nil       # The terminal IO
+      config :variable, '', &c.string_or_nil        # Assign to variable in app
       
       def signal(sig)
         lambda do |spec|
@@ -30,8 +32,7 @@ module Tap
       end
       
       def process(io=$stdin)
-        current = app.get('')
-        app.set('', self)
+        app.set(variable, self) if variable
         
         result = super(io)
         unless file || result.nil? || result == app
@@ -40,16 +41,11 @@ module Tap
           end
         end
         
-        app.set('', current)
+        app.set(variable, nil) if variable
         result
       end
       
       def load(io)
-        open_io(terminal) do |terminal|
-          terminal.print prompt
-        end if prompt && !file
-        
-        return nil if io.eof?
         line = readline(io)
         return nil if line.empty?
         
@@ -62,7 +58,17 @@ module Tap
       end
       
       def readline(io)
-        io.readline.strip!
+        if io == $stdin && terminal == $stdout
+          return Readline.readline(prompt, true)
+        end
+        
+        if prompt && !file
+          open_io(terminal) do |terminal|
+            terminal.print prompt
+          end
+        end
+        
+        io.eof? ? '' : io.readline.strip!
       end
       
       def complete?(io, result)
