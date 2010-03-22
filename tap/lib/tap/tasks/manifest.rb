@@ -2,7 +2,7 @@ require 'tap/tasks/dump'
 
 module Tap
   module Tasks
-    # :startdoc::task
+    # :startdoc::task lists resources
     #
     class Manifest < Dump
       

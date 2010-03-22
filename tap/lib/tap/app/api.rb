@@ -1,5 +1,6 @@
 require 'configurable'
 require 'tap/signals'
+require 'tap/env/string_ext'
 
 module Tap
   class App
@@ -30,7 +31,7 @@ module Tap
         #
         # The parse method uses parser by default, so subclasses can simply
         # modify parser and ensure parse still works correctly.
-        def parser
+        def parser(app)
           opts = ConfigParser.new
           
           unless configurations.empty?
@@ -42,10 +43,10 @@ module Tap
           opts.separator "options:"
         
           # add option to print help
-          opts.on("-h", "--help", "Print this help") do
+          opts.on("--help", "Print this help") do
             puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
             puts help
-            puts "usage: tap #{to_s} #{args}"
+            puts "usage: tap #{to_s.underscore} #{args}"
             puts
             puts opts
             exit
@@ -65,7 +66,7 @@ module Tap
         # Returns the instance.  If a block is given, the instance and any
         # remaining arguments will be yielded to it.
         def parse!(argv=ARGV, app=Tap::App.instance)
-          parser = self.parser
+          parser = self.parser(app)
           args = parser.parse!(argv, :add_defaults => false)
           obj = build(convert_to_spec(parser, args), app)
           

@@ -26,6 +26,7 @@ which provides a standard library of
 Tasks are defined as subclasses of Tap::Task.
 
   [lib/goodnight.rb]
+  require 'tap/task'
   
   # Goodnight::task your basic goodnight moon task
   # Says goodnight with a configurable message.
@@ -39,72 +40,90 @@ Tasks are defined as subclasses of Tap::Task.
 
 Tap automatically discovers tasks.
 
-  % tap run -T
-    sample:
-      goodnight   # your basic goodnight moon task
-    tap:
-      dump        # the default dump task
-      load        # the default load task
-      
+  % tap manifest
+  task:
+    dump                 # the default dump task
+    goodnight            # your basic goodnight moon task
+    load                 # the default load task
+    manifest             # lists resources
+    prompt               # an input prompt
+  join:
+    gate                 # collects results before the join
+    join                 # an unsyncrhonized, multi-way join
+    sync                 # a synchronized multi-way join
+
 And generates command line documentation.
 
-  % tap run -- goodnight --help
+  % tap goodnight --help
   Goodnight -- your basic goodnight moon task
   --------------------------------------------------------------------------------
     Says goodnight with a configurable message.
   --------------------------------------------------------------------------------
-  usage: tap run -- goodnight NAME
+  usage: tap goodnight NAME
 
   configurations:
           --message MESSAGE            a goodnight message
 
   options:
           --help                       Print this help
-          --enque                      Manually enques self
           --config FILE                Specifies a config file
 
 Tasks are immediately available for use in workflows, and may be configured as
 if they were individual executables. This workflow joins the goodnight task to
 a dump task, which prints the message to stdout.
 
-  % tap run -- goodnight moon --: dump
+  % tap goodnight moon -: dump
   goodnight moon
 
-  % tap run -- goodnight world --message hello --: dump
+  % tap goodnight world --message hello -: dump
   hello world
 
 === Workflow Syntax
 
 Workflows are specified on the command line using argument vectors separated
-by option breaks (ie '--'). The argument vectors define the tasks while
-modifications to the breaks specify joins.
+by various breaks (ex '-', '--', '-:'). The argument vectors define tasks,
+joins, and other resources, while the breaks signify what to do with the
+resources.
 
-A simple sequence.
+A simple sequence, indicated by '-:'.
 
-  % tap run -- load 'goodnight moon' --: dump
+  % tap load 'goodnight moon' -: dump
   goodnight moon
 
-A more formal way of specifying a sequence.
+A more formal way of specifying a sequence where '-' separates each resource.
 
-  % tap run -- load 'goodnight moon' -- dump --[0][1]
+  % tap load 'goodnight moon' - dump - join 0 1
   goodnight moon
 
 A fork.
 
-  % tap run -- load 'goodnight moon' -- dump -- dump --[0][1,2]
+  % tap load 'goodnight moon' - dump - dump - join 0 1,2
   goodnight moon
   goodnight moon
 
-A merge (note that dump receives the inputs in serial).
+A merge, using '--' to enque a second load task.
 
-  % tap run -- load goodnight -- load moon -- dump --[0,1][2]
+  % tap load goodnight -- load moon - dump - join 0,1 2
   goodnight
   moon
 
-A synchronized merge (the printout is <tt>['goodnight', 'moon'].to_s</tt>).
+A synchronized merge.
 
-  % tap run -- load goodnight -- load moon -- dump --[0,1][2].sync
+  % tap load goodnight -- load moon - dump - sync 0,1 2
   goodnightmoon
+
+The simple merge passes outputs immediately whereas the sync collects outputs
+into an array first; the printout is <tt>['goodnight', 'moon'].to_s</tt>.
+Joins can be configured to iterate an array of outputs:
+
+A synchronized merge, iterated.
+
+  % tap load goodnight -- load moon - dump - sync 0,1 2 --iterate
+  goodnight
+  moon
+
+As a useful analogy, think of tap as a shell where tasks are executables,
+objects are stdin/stdout, and joins are many variations of pipe.
 
 == Installation
 

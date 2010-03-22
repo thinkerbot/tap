@@ -78,7 +78,7 @@ module Tap
   class Task < App::Api
     class << self
       
-      def parser
+      def parser(app)
         opts = super
         
         # add option to specify a config file
