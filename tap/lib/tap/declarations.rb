@@ -18,7 +18,6 @@ module Tap
       # Task classes is required for namespaces with the same name as a task)
       const_name = File.join(context.namespace, name.to_s).camelize
       tasc = declaration_class.subclass(const_name, configs, &block)
-      register tasc
       
       # register documentation
       desc ||= Lazydoc.register_caller(Description)
@@ -26,7 +25,7 @@ module Tap
       context.desc = nil
       
       tasc.desc = desc
-      tasc
+      register tasc
     end
     
     # Nests tasks within the named module for the duration of the block.
@@ -62,7 +61,7 @@ module Tap
     # Returns task_class.
     def register(tasc)
       constant = app.env.set(tasc, nil)
-      constant.register_as('declaration', tasc.desc.to_s)
+      constant.register_as('task', tasc.desc.to_s)
       tasc
     end
   end
@@ -101,12 +100,16 @@ module Tap
         # append configuration (note that specifying a desc prevents lazydoc
         # registration of these lines)
         convert_to_yaml = Configurable::Validation.yaml
-        configs.each_pair {|key, value| subclass.send(:config, key, value, :desc => "", &convert_to_yaml) }
+        configs.each_pair do |key, value|
+          opts = {:desc => ""}
+          opts[:short] = key if key.to_s.length == 1
+          subclass.send(:config, key, value, opts, &convert_to_yaml)
+        end
 
         if block_given?
           # prevents assessment of process args by lazydoc
           subclass.const_attrs[:process] = '*args'
-          subclass.send(:define_method, :process) {|*args| yield(self, args) }
+          subclass.send(:define_method, :process) {|*args| yield(self, *args) }
         end
         
         subclass

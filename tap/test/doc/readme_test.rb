@@ -30,16 +30,20 @@ class ReadmeTest < Test::Unit::TestCase
         "'#{TAP_ROOT}/bin/tap'"
       ].join(" "),
       :indents => true,
-      :env => {
-        'HOME' => method_root.path('home'),
-        'TAPFILE'  => '',
-        'TAP_GEMS' => '', 
-        'TAP_PATH' => "#{TAP_ROOT}:.",
-        'TAPENV'   => '',
-        'TAPRC'    => '',
-        'TAP_GEMS' => ''
-      },
+      :env => default_env,
       :replace_env => true
+    }
+  end
+  
+  def default_env
+    {
+      'HOME' => method_root.path('home'),
+      'TAPFILE'  => '',
+      'TAP_GEMS' => '', 
+      'TAP_PATH' => "#{TAP_ROOT}:.",
+      'TAPENV'   => '',
+      'TAPRC'    => '',
+      'TAP_GEMS' => ''
     }
   end
   
@@ -99,6 +103,30 @@ class ReadmeTest < Test::Unit::TestCase
       % tap goodnight world --message hello -: dump
       hello world
     }
+    
+    method_root.prepare('tapfile') do |io|
+      # don't use indents so grep output is correct
+      io << %q{
+require 'tap/declarations'
+include Tap::Declarations
+
+desc "concat file contents"
+task :cat do |config, *files|
+  files.collect {|file| File.read(file) }.join
+end
+
+desc "grep lines"
+task :grep, :e => '.' do |config, str|
+  str.split("\n").grep(/#{config.e}/)
+end
+}
+    end
+    
+    sh_test %q{
+    % tap cat tapfile -:a grep -e task -:i dump
+    task :cat do |config, *files|
+    task :grep, :e => '.' do |config, str|
+    }, :env => default_env.merge('TAPFILE' => 'tapfile')
     
     sh_test %q{
       % tap load 'goodnight moon' -: dump

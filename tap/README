@@ -78,6 +78,31 @@ a dump task, which prints the message to stdout.
   % tap goodnight world --message hello -: dump
   hello world
 
+Written as classes, tasks can be packaged into gems as normal. Tap will find
+tasks in gems with a tap.yml file (see more in the documentation), such that
+distribution is normal and unobtrusive.
+
+For local tasks that don't need to be distributed, Tap provides declarations
+a-la Rake.  By default any tasks in a tapfile are also available for use.
+
+  [tapfile]
+  require 'tap/declarations'
+  include Tap::Declarations
+  
+  desc "concat file contents"
+  task :cat do |config, *files|
+    files.collect {|file| File.read(file) }.join
+  end
+  
+  desc "grep lines"
+  task :grep, :e => '.' do |config, str|
+    str.split("\n").grep(/#{config.e}/)
+  end
+  
+  % tap cat tapfile -:a grep -e task -:i dump
+  task :cat do |config, *files|
+  task :grep, :e => '.' do |config, str|
+
 === Workflow Syntax
 
 Workflows are specified on the command line using argument vectors separated
