@@ -9,11 +9,11 @@ module Tap
     # it doesn't exist, constantize requires require_path and tries again.
     #
     #   Object.const_defined?(:Net)                      # => false
-    #   $".include?('net/http')                          # => false
+    #   $".grep(/net\/http.rb$/).empty?                  # => true
     #
     #   http = Constant.new('Net::HTTP', 'net/http.rb')
     #   http.constantize                                 # => Net::HTTP
-    #   $".include?('net/http.rb')                       # => true
+    #   $".grep(/net\/http.rb$/).empty?                  # => false
     #
     # === Unloading
     #
@@ -267,7 +267,9 @@ module Tap
         if const.const_defined?(name)
           require_paths.each do |require_path|
             path = File.extname(require_path).empty? ? "#{require_path}.rb" : require_path
-            $".delete(path)
+            regexp = /#{path}$/
+            
+            $".delete_if {|path| path =~ regexp }
           end if unrequire
         
           return const.send(:remove_const, name)

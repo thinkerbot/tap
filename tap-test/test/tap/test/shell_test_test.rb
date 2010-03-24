@@ -30,6 +30,8 @@ end
 class ShellTestTest < Test::Unit::TestCase
   include Tap::Test::ShellTest
   
+  TestUnitErrorClass = Object.const_defined?(:MiniTest) ? MiniTest::Assertion : Test::Unit::AssertionFailedError
+  
   #
   # quiet, verbose test
   #
@@ -272,17 +274,8 @@ echo
   end
     
   def test_sh_test_fails_on_mismatch
-    err = assert_raises(Test::Unit::AssertionFailedError) { sh_test %Q{ruby -e ""\nflunk} }
-    assert_equal %Q{
-ruby -e "".
-<"flunk"> expected but was
-<"">.}, "\n" + err.message
-
-    err = assert_raises(Test::Unit::AssertionFailedError) { sh_test %Q{echo pass\nflunk} }
-    assert_equal %Q{
-echo pass.
-<"flunk"> expected but was
-<"pass\\n">.}, "\n" + err.message
+    assert_raises(TestUnitErrorClass) { sh_test %Q{ruby -e ""\nflunk} }
+    assert_raises(TestUnitErrorClass) { sh_test %Q{echo pass\nflunk} }
   end
   
   #
@@ -306,23 +299,13 @@ echo pass.
   end
   
   def test_sh_match_fails_on_mismatch
-    err = assert_raises(Test::Unit::AssertionFailedError) do
+    assert_raises(TestUnitErrorClass) do
       sh_match "ruby -e ''", /output/
     end
     
-    assert_equal %Q{
-ruby -e ''.
-<""> expected to be =~
-</output/>.}, "\n" + err.message
-
-    err = assert_raises(Test::Unit::AssertionFailedError) do
+    assert_raises(TestUnitErrorClass) do
       sh_match "echo pass", /pas+/, /fail/
     end
-    
-    assert_equal %Q{
-echo pass.
-<"pass\\n"> expected to be =~
-</fail/>.}, "\n" + err.message
   end
   
   #

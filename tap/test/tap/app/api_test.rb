@@ -1,6 +1,6 @@
 require File.expand_path('../../../tap_test_helper', __FILE__)
 require 'tap/app'
-require 'tap/test'
+require 'tap/test/unit'
 
 class ApiTest < Test::Unit::TestCase
   extend Tap::Test
@@ -52,10 +52,10 @@ class ApiTest < Test::Unit::TestCase
   def test_help_with_arg_lists_signal_help
     app.set 'var', Example.new
     help = app.call('obj' => 'var', 'sig' => 'help', 'args' => ['help'])
-    assert help =~ /Help -- signals help/
+    assert_match(/Help -- signals help/, help)
     
     help = app.call('obj' => 'var', 'sig' => 'help', 'args' => {'sig' => 'help'})
-    assert help =~ /Help -- signals help/
+    assert_match(/Help -- signals help/, help)
   end
 end
 

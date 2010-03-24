@@ -22,12 +22,12 @@ module Tap
         config :columns, nil, :short => :C, &c.range_or_nil   # Specify a range of columns
         config :rows, nil, :short => :R, &c.range_or_nil      # Specify a range of rows
         
-        config :col_sep, nil, :short => :c, &c.string_or_nil  # The column separator (",")
-        config :row_sep, nil, :short => :r, &c.string_or_nil  # The row separator ("\r\n" or "\n")
+        config :col_sep, ',', :short => :c, &c.string_or_nil  # The column separator (",")
+        config :row_sep, $/, :short => :r, &c.string_or_nil   # The row separator ("\r\n" or "\n")
         
         # Loads the io data as CSV, into an array of arrays.
         def load(io)
-          data = CSV.parse(io.read, col_sep, row_sep)
+          data = parse(io.read)
           
           if rows
             data = data[rows]
@@ -42,6 +42,17 @@ module Tap
           data
         end
         
+        private
+        
+        if RUBY_VERSION >= '1.9'
+          def parse(str)
+            CSV.parse(str, :col_sep => col_sep, :row_sep => row_sep)
+          end
+        else
+          def parse(str)
+            CSV.parse(str, col_sep, row_sep)
+          end
+        end
       end 
     end
   end

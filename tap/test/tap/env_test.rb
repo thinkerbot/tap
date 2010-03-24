@@ -2,7 +2,7 @@ require File.expand_path('../../tap_test_helper', __FILE__)
 require File.expand_path('../../fixtures/constants', __FILE__)
 
 require 'tap/env'
-require 'tap/test'
+require 'tap/test/unit'
 
 class EnvTest < Test::Unit::TestCase
   extend Tap::Test

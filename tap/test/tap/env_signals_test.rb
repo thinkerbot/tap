@@ -1,6 +1,6 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
 require 'tap/env'
-require 'tap/test'
+require 'tap/test/unit'
 
 class EnvSignalsTest < Test::Unit::TestCase
   extend Tap::Test

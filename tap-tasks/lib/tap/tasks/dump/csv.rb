@@ -17,12 +17,22 @@ module Tap
       class Csv < Dump
         
         config :col_sep, ",", :short => :c, &c.string    # The column separator (",")
-        config :row_sep, "\n", :short => :r, &c.string   # The row separator ("\n")
+        config :row_sep, $/, :short => :r, &c.string     # The row separator ("\n")
         
-        # Dumps the data to io as CSV.  Data is converted to an array using
-        # to_ary.
         def dump(data, io)
-          io << CSV.generate_line(data.to_ary, col_sep) + row_sep
+          io << generate_line(data.to_ary)
+        end
+        
+        private
+        
+        if RUBY_VERSION >= '1.9'
+          def generate_line(data)
+            CSV.generate_line(data, :col_sep => col_sep, :row_sep => row_sep)
+          end
+        else
+          def generate_line(data)
+            CSV.generate_line(data, col_sep) + row_sep
+          end
         end
       end
     end

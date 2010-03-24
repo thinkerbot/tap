@@ -1,6 +1,6 @@
 require File.join(File.dirname(__FILE__), '../../tap_test_helper.rb') 
 require 'tap/tasks/stream'
-require 'tap/test'
+require 'tap/test/unit'
 
 class StreamTest < Test::Unit::TestCase
   extend Tap::Test

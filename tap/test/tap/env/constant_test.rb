@@ -24,17 +24,17 @@ class ConstantTest < Test::Unit::TestCase
   
   def test_documentation
     assert_equal false, Object.const_defined?(:Net)
-    assert_equal false, $".include?('net/http.rb')
+    assert_equal true, $".grep(/net\/http.rb$/).empty?
   
     http = Constant.new('Net::HTTP', 'net/http.rb')
     assert_equal http.constantize, Net::HTTP
-    assert_equal true, $".include?('net/http.rb')
+    assert_equal false, $".grep(/net\/http.rb$/).empty?
   
     # [simple.rb]
     # class Simple
     # end
     
-    load_path = File.expand_path("#{File.dirname(__FILE__)}/constant")
+    load_path = File.expand_path("../constant", __FILE__)
     begin
       assert !$:.include?(load_path)
       $: << load_path

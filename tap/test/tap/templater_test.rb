@@ -1,6 +1,6 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
 require 'tap/templater'
-require 'tap/test'
+require 'tap/test/unit'
 
 class TemplaterTest < Test::Unit::TestCase
   Templater = Tap::Templater

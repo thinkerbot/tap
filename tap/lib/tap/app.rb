@@ -436,7 +436,7 @@ module Tap
           visited << current
           
           if circular_stack
-            visited.collect! {|middleware| middleware.class.to_s }.join(', ')
+            visited.collect! {|m| m.class.to_s }.join(', ')
             raise "circular stack detected:\n[#{visited}]"
           end
         end

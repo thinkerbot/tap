@@ -1,6 +1,6 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
 require 'tap/task'
-require 'tap/test'
+require 'tap/test/unit'
 
 # used in documentation test
 class ConfiguredTask < Tap::Task

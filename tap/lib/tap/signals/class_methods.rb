@@ -69,14 +69,14 @@ module Tap
       # A block may also be provided to pre-process the argv before it is sent
       # to the method; the block return is sent to the method (and so should
       # be an argv).
-      def signal(sig, opts={}) # :yields: sig, argv
+      def signal(sig, opts={}, &block) # :yields: sig, argv
         signature = opts[:signature] || []
         remainder = opts[:remainder] || false
         opts[:caller_index] ||= 2
         
         define_signal(sig, opts) do |args|
           argv = convert_to_array(args, signature, remainder)
-          block_given? ? yield(self, argv) : argv
+          block ? block.call(self, argv) : argv
         end
       end
       
@@ -87,14 +87,14 @@ module Tap
       # A block may also be provided to pre-process the hash before it is sent
       # to the method; the block return is sent to the method (and so should
       # be a hash).
-      def signal_hash(sig, opts={}) # :yields: sig, argh
+      def signal_hash(sig, opts={}, &block) # :yields: sig, argh
         signature = opts[:signature] || []
         remainder = opts[:remainder]
         opts[:caller_index] ||= 2
         
         define_signal(sig, opts) do |args|
           argh = convert_to_hash(args, signature, remainder)
-          [block_given? ? yield(self, argh) : argh]
+          [block ? block.call(self, argh) : argh]
         end
       end
       
@@ -187,8 +187,10 @@ module Tap
           const_name = opts.has_key?(:const_name) ? opts[:const_name] : sig.to_s.capitalize
           const_name = const_name.to_s
           
-          if const_name =~ /\A[A-Z]\w*\z/ && !const_defined?(const_name)
-            const_set(const_name, signal)
+          if const_name =~ /\A[A-Z]\w*\z/
+            unless const_defined?(const_name) && const_get(const_name) == signal
+              const_set(const_name, signal)
+            end
           end
         end
         

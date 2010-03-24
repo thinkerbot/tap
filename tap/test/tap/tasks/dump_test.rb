@@ -1,6 +1,6 @@
 require File.expand_path('../../../tap_test_helper', __FILE__) 
 require 'tap/tasks/dump'
-require 'tap/test'
+require 'tap/test/unit'
 require 'stringio'
 
 class DumpTest < Test::Unit::TestCase

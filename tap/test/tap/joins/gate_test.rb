@@ -1,6 +1,6 @@
 require File.expand_path('../../../tap_test_helper', __FILE__)
 require 'tap/joins/gate'
-require 'tap/test'
+require 'tap/test/unit'
 require 'tap/test/tracer'
 
 class GateTest < Test::Unit::TestCase
