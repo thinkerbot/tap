@@ -92,45 +92,6 @@ class QueueTest < Test::Unit::TestCase
   end
   
   #
-  # synchronize test
-  #
-  
-  def test_queue_allows_external_synchronization
-    # control
-    a = Thread.new do
-      Thread.pass;
-      queue.enq(m, :a)
-      Thread.pass
-      queue.enq(m, :b)
-    end
-    
-    queue.enq(m, :c)
-    Thread.pass
-    queue.enq(m, :d)
-    
-    a.join
-    assert_equal [[m, :c], [m, :a], [m, :d], [m, :b]], queue.to_a
-    queue.clear
-    
-    # sync
-    a = Thread.new do
-      Thread.pass;
-      queue.enq(m, :a)
-      Thread.pass
-      queue.enq(m, :b)
-    end
-    
-    queue.synchronize do
-      queue.enq(m, :c)
-      Thread.pass
-      queue.enq(m, :d)
-    end
-    
-    a.join
-    assert_equal [[m, :c], [m, :d], [m, :a], [m, :b]], queue.to_a
-  end
-  
-  #
   # to_a test
   #
   
