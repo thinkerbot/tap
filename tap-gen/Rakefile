@@ -63,9 +63,12 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   # Using CDoc to template your RDoc will result in configurations being
   # listed with documentation in a subsection following attributes.  Not
   # necessary, but nice.
-  require 'cdoc'
-  rdoc.template = 'cdoc/cdoc_html_template' 
-  rdoc.options << '--fmt' << 'cdoc'
+  begin
+    require 'cdoc'
+    rdoc.template = 'cdoc/cdoc_html_template' 
+    rdoc.options << '--fmt' << 'cdoc'
+  rescue(LoadError)
+  end
 end
 
 desc "Publish RDoc to RubyForge"

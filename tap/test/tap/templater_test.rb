@@ -94,7 +94,6 @@ end}
     t = Templater.new %Q{<% raise 'error!' %>}
     err = assert_raises(RuntimeError) { t.build(nil, 'filename') }
     assert_equal 'error!', err.message
-    assert err.backtrace[0] =~ /filename:1:in /
+    assert_match(/filename:/, err.backtrace[0])
   end
-  
 end

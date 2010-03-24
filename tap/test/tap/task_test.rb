@@ -53,13 +53,13 @@ class TaskTest < Test::Unit::TestCase
   def test_documentation
     ####
     t = ConfiguredTask.new
-    assert_equal({:one => 'one', :two => 'two'}, t.config)
+    assert_equal({:one => 'one', :two => 'two'}, t.config.to_hash)
     assert_equal('one', t.one)
     t.one = 'ONE'
-    assert_equal({:one => 'ONE', :two => 'two'}, t.config)
+    assert_equal({:one => 'ONE', :two => 'two'}, t.config.to_hash)
   
     t = ConfiguredTask.new(:one => 'ONE', :three => 'three')
-    assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, t.config)
+    assert_equal({:one => 'ONE', :two => 'two', :three => 'three'}, t.config.to_hash)
     assert_equal false, t.respond_to?(:three)
   
     ####
@@ -95,26 +95,26 @@ class TaskTest < Test::Unit::TestCase
   
   def test_parse_instance_is_initialized_with_default_config
     instance = ParseClass.parse([])
-    assert_equal({:key => 'value'}, instance.config)
+    assert_equal({:key => 'value'}, instance.config.to_hash)
   end
   
   def test_parse_reconfigures_instance_using_configs_in_argv
     instance = ParseClass.parse(%w{--key alt})
-    assert_equal({:key => 'alt'}, instance.config)
+    assert_equal({:key => 'alt'}, instance.config.to_hash)
   end
   
   def test_parse_adds_configs_from_file_using_config_option
     path = prepare_yaml('config.yml', {:key => 'alt'})
     
     instance = ParseClass.parse(["--config", path])
-    assert_equal({:key => 'alt'}, instance.config)
+    assert_equal({:key => 'alt'}, instance.config.to_hash)
   end
   
   def test_config_files_may_have_string_keys
     path = prepare_yaml('config.yml', {'key' => 'alt'})
     
     instance = ParseClass.parse(["--config", path])
-    assert_equal({:key => 'alt'}, instance.config)
+    assert_equal({:key => 'alt'}, instance.config.to_hash)
   end
   
   def test_parse_recursively_loads_config_files
@@ -135,7 +135,7 @@ class TaskTest < Test::Unit::TestCase
     assert_equal false, File.exists?(path)
 
     err = assert_raises(Errno::ENOENT) { ParseClass.parse ["--config", path] }
-    assert_equal "No such file or directory - #{path}", err.message
+    assert_match(/No such file or directory .* #{path}/, err.message)
   end
   
   def test_parse_raises_error_for_ambiguity_in_configs
@@ -157,7 +157,7 @@ class TaskTest < Test::Unit::TestCase
       ARGV.concat(%w{--key alt})
       
       instance = ParseClass.parse
-      assert_equal({:key => 'alt'}, instance.config)
+      assert_equal({:key => 'alt'}, instance.config.to_hash)
     ensure
       ARGV.clear
       ARGV.concat(current_argv)
@@ -179,17 +179,17 @@ class TaskTest < Test::Unit::TestCase
   
   def test_instance_is_built_with_default_config
     instance = BuildClass.build
-    assert_equal({:key => 'value'}, instance.config)
+    assert_equal({:key => 'value'}, instance.config.to_hash)
   end
   
   def test_instance_is_built_with_user_config
     instance = BuildClass.build 'config' => {:key => 'alt'}
-    assert_equal({:key => 'alt'}, instance.config)
+    assert_equal({:key => 'alt'}, instance.config.to_hash)
   end
   
   def test_build_respects_indifferent_access
     instance = BuildClass.build 'config' => {'key' => 'alt'}
-    assert_equal({:key => 'alt'}, instance.config)
+    assert_equal({:key => 'alt'}, instance.config.to_hash)
   end
   
   #
@@ -198,12 +198,12 @@ class TaskTest < Test::Unit::TestCase
   
   def test_default_initialization
     assert_equal Tap::App.instance, t.app
-    assert_equal({}, t.config)
+    assert_equal({}, t.config.to_hash)
   end
   
   def test_initialization_with_config
     t = Task.new({:key => 'value'})
-    assert_equal({:key => 'value'}, t.config)
+    assert_equal({:key => 'value'}, t.config.to_hash)
   end
   
   #

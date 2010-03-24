@@ -46,7 +46,7 @@ class SignalsTest < Test::Unit::TestCase
     assert_equal({:key => :value, 'echo' => true}, obj.signal('echo_hash').call([{:key => :value}]))
     
     err = assert_raises(ArgumentError) { obj.signal('echo_hash').call([1, 2]) }
-    assert_equal "wrong number of arguments (2 for 1)", err.message
+    assert_match(/wrong (#|number) of arguments ?\(2 for 1\)/, err.message)
   end
   
   def test_signal_stringifies_sig
