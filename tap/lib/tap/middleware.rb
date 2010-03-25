@@ -28,8 +28,8 @@ module Tap
     end
     
     # By default call simply calls stack with the node and inputs.
-    def call(node, inputs=[])
-      stack.call(node, inputs)
+    def call(node, input)
+      stack.call(node, input)
     end
   end
 end

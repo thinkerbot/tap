@@ -51,6 +51,8 @@ Tap discovers tasks.
     gate                 # collects results before the join
     join                 # an unsyncrhonized, multi-way join
     sync                 # a synchronized multi-way join
+  middleware:
+    debugger             # the default debugger
 
 Generates command-line documentation.
 

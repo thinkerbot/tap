@@ -76,6 +76,8 @@ class ReadmeTest < Test::Unit::TestCase
         gate                 # collects results before the join
         join                 # an unsyncrhonized, multi-way join
         sync                 # a synchronized multi-way join
+      middleware:
+        debugger             # the default debugger
     }
     
     sh_test %q{
@@ -104,6 +106,17 @@ class ReadmeTest < Test::Unit::TestCase
       hello world
     }
     
+    # note there is a transposition in the last two lines...
+    # not sure how to force it otherwise
+    sh_test %q{
+      % tap goodnight moon -: dump --/use debugger 2>&1
+      + 0 ["moon"]
+      - 0 "goodnight moon"
+      + 1 "goodnight moon"
+      - 1 "goodnight moon"
+      goodnight moon
+    }
+    
     method_root.prepare('tapfile') do |io|
       # don't use indents so grep output is correct
       io << %q{
@@ -127,38 +140,5 @@ end
     task :cat do |config, *files|
     task :grep, :e => '.' do |config, str|
     }, :env => default_env.merge('TAPFILE' => 'tapfile')
-    
-    sh_test %q{
-      % tap load 'goodnight moon' -: dump
-      goodnight moon
-    }
-    
-    sh_test %q{
-      % tap load 'goodnight moon' - dump - join 0 1
-      goodnight moon
-    }
-    
-    sh_test %q{
-      % tap load 'goodnight moon' - dump - dump - join 0 1,2
-      goodnight moon
-      goodnight moon
-    }
-    
-    sh_test %q{
-      % tap load goodnight -- load moon - dump - join 0,1 2
-      goodnight
-      moon
-    }
-    
-    sh_test %q{
-      % tap load goodnight -- load moon - dump - sync 0,1 2
-      goodnightmoon
-    }
-    
-    sh_test %q{
-      % tap load goodnight -- load moon - dump - sync 0,1 2 --iterate
-      goodnight
-      moon
-    }
   end
 end
