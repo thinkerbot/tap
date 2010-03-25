@@ -11,6 +11,7 @@ class EnvTest < Test::Unit::TestCase
   
   Env = Tap::Env
   Path = Tap::Env::Path
+  Constant = Tap::Env::Constant
   
   #
   # initialize test
@@ -58,6 +59,41 @@ class EnvTest < Test::Unit::TestCase
       method_root.path('a/alt'),
       method_root.path('b/alt')
     ], env.path('alt')
+  end
+  
+  #
+  # resolve test
+  #
+  
+  def test_resolve_resolves_constants_by_const_name
+    env = Env.new :constants => [
+      Constant.new('A'),
+      Constant.new('A::B'),
+      Constant.new('A::B::C'),
+      Constant.new('C')
+    ]
+    
+    assert_equal 'A', env.resolve('A').const_name
+    assert_equal 'A', env.resolve('::A').const_name
+    assert_equal 'C', env.resolve('C').const_name
+    assert_equal 'A::B::C', env.resolve('A::B::C').const_name
+    assert_equal 'A::B::C', env.resolve('::A::B::C').const_name
+  end
+  
+  def test_resolve_resolves_constants_by_path_matching
+    env = Env.new :constants => [
+      Constant.new('A'),
+      Constant.new('A::B'),
+      Constant.new('A::B::C'),
+      Constant.new('C')
+    ]
+    
+    assert_equal 'A', env.resolve('a').const_name
+    assert_equal 'A', env.resolve('/a').const_name
+    assert_equal 'A::B', env.resolve('b').const_name
+    assert_equal 'A::B', env.resolve('a/b').const_name
+    assert_equal 'A::B', env.resolve('/a/b').const_name
+    assert_equal 'A::B::C', env.resolve('a:c').const_name
   end
   
   #

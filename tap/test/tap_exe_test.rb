@@ -67,6 +67,28 @@ class TapExeTest < Test::Unit::TestCase
     }
   end
   
+  def test_tap_identifies_constants_by_head_and_tail
+    method_root.prepare(:pwd, 'lib/alt/dump.rb') do |io|
+      io << %q{
+      require 'tap/tasks/dump'
+      # ::task
+      module Alt
+        class Dump < Tap::Tasks::Dump
+          def dump(input, io)
+            io.puts input.to_s.reverse
+          end
+        end
+      end
+      }
+    end
+        
+    sh_test %Q{
+    % tap -- tap:dump goodnight -- alt:dump goodnight
+    goodnight
+    thgindoog
+    }, :env => default_env.merge('TAP_PATH' => "#{TAP_ROOT}:#{method_root.path(:pwd)}")
+  end
+  
   def test_tap_squelches_unhandled_errors
     sh_test %q{
     % tap a 2>&1
@@ -77,7 +99,8 @@ class TapExeTest < Test::Unit::TestCase
   def test_TAP_DEBUG_variable_turns_on_debugging
     sh_match '% tap a 2>&1',
       /unresolvable constant.*RuntimeError/,
-      default_env.merge('TAP_DEBUG' => true)
+      /from/,
+      :env => default_env.merge('TAP_DEBUG' => 'true')
   end
   
   def test_tap_executes_tapfiles_in_app_context

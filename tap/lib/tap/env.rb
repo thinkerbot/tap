@@ -80,7 +80,7 @@ module Tap
     end
     
     def resolve(const_str, &block)
-      values = constants.select {|value| value.match?(const_str) }
+      values = const_str =~ Constant::CONST_REGEXP ? constants_by_const_name($1) : constants_by_path(const_str)
       values = values.select(&block) if block_given?
       
       case values.length
@@ -165,6 +165,20 @@ module Tap
         end
       end
       self
+    end
+    
+    private
+    
+    def constants_by_const_name(const_str) # :nodoc:
+      constants.select do |constant|
+        constant.const_name == const_str
+      end
+    end
+
+    def constants_by_path(const_str) # :nodoc:
+      head, tail = const_str.split(':', 2)
+      head, tail = nil, head unless tail
+      constants.select {|constant| constant.path_match?(head, tail) }
     end
   end
 end

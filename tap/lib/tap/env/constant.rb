@@ -266,8 +266,8 @@ module Tap
       
         if const.const_defined?(name)
           require_paths.each do |require_path|
-            path = File.extname(require_path).empty? ? "#{require_path}.rb" : require_path
-            regexp = /#{path}$/
+            require_path = File.extname(require_path).empty? ? "#{require_path}.rb" : require_path
+            regexp = /#{require_path}$/
             
             $".delete_if {|path| path =~ regexp }
           end if unrequire
@@ -278,11 +278,8 @@ module Tap
         nil
       end
       
-      def match?(str)
-        str == const_name || begin
-          index = path.rindex(str)
-          index && (index + str.length) == path.length && (index == 0 || path[index-1] == ?/)
-        end
+      def path_match?(head, tail=nil)
+        (head.nil? || head_match(head)) && (tail.nil? || tail_match(tail))
       end
       
       # Returns a string like:
@@ -300,12 +297,21 @@ module Tap
       
       private
       
-      def normalize(const_name)
+      def normalize(const_name) # :nodoc:
         case const_name
         when Module       then const_name.to_s
         when CONST_REGEXP then $1
         else raise NameError, "#{const_name.inspect} is not a valid constant name!"
         end
+      end
+      
+      def head_match(head) # :nodoc:
+        path.index(head) == (head[0] == ?/ ? 0 : 1)
+      end
+      
+      def tail_match(tail) # :nodoc:
+        index = path.rindex(tail)
+        index && (index + tail.length) == path.length && (index == 0 || path[index-1] == ?/)
       end
     end
   end
