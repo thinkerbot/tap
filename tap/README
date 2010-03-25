@@ -28,7 +28,7 @@ Tasks are defined as subclasses of Tap::Task.
   [lib/goodnight.rb]
   require 'tap/task'
   
-  # Goodnight::task your basic goodnight moon task
+  # ::task your basic goodnight moon task
   # Says goodnight with a configurable message.
   class Goodnight < Tap::Task
     config :message, 'goodnight'           # a goodnight message
@@ -38,7 +38,7 @@ Tasks are defined as subclasses of Tap::Task.
     end
   end
 
-Tap automatically discovers tasks.
+Tap discovers tasks.
 
   % tap manifest
   task:
@@ -52,7 +52,7 @@ Tap automatically discovers tasks.
     join                 # an unsyncrhonized, multi-way join
     sync                 # a synchronized multi-way join
 
-And generates command line documentation.
+Generates command-line documentation.
 
   % tap goodnight --help
   Goodnight -- your basic goodnight moon task
@@ -68,9 +68,9 @@ And generates command line documentation.
           --help                       Print this help
           --config FILE                Specifies a config file
 
-Tasks are immediately available for use in workflows, and may be configured as
-if they were individual executables. This workflow joins the goodnight task to
-a dump task, which prints the message to stdout.
+And provides a robust {syntax}[link:files/doc/Workflow%20Syntax.html] for
+building both simple and complex workflows. This joins a goodnight task to a
+dump task in order to print the goodnight message.
 
   % tap goodnight moon -: dump
   goodnight moon
@@ -78,12 +78,23 @@ a dump task, which prints the message to stdout.
   % tap goodnight world --message hello -: dump
   hello world
 
-Written as classes, tasks can be packaged into gems as normal. Tap will find
-tasks in gems with a tap.yml file (see more in the documentation), such that
-distribution is normal and unobtrusive.
+Workflows support the use of middleware to wrap the execution of each task,
+most commonly for logging and/or debugging.
+
+  % tap goodnight moon -: dump --/use debugger
+  + 0 ["moon"]
+  - 0 "goodnight moon"
+  + 1 "goodnight moon"
+  goodnight moon
+  - 1 "goodnight moon"
+
+Tasks can be packaged into gems like any other code. Tap automatically finds
+tasks in gems containing a tap.yml file so that distribution feels normal and
+unobtrusive.
 
 For local tasks that don't need to be distributed, Tap provides declarations
-a-la Rake.  By default any tasks in a tapfile are also available for use.
+a-la {Rake}[http://rake.rubyforge.org/]. By default any tasks in a tapfile are
+available for use.
 
   [tapfile]
   require 'tap/declarations'
@@ -103,52 +114,10 @@ a-la Rake.  By default any tasks in a tapfile are also available for use.
   task :cat do |config, *files|
   task :grep, :e => '.' do |config, str|
 
-=== Workflow Syntax
-
-Workflows are specified on the command line using argument vectors separated
-by various breaks (ex '-', '--', '-:'). The argument vectors define tasks,
-joins, and other resources, while the breaks signify what to do with the
-resources.
-
-A simple sequence, indicated by '-:'.
-
-  % tap load 'goodnight moon' -: dump
-  goodnight moon
-
-A more formal way of specifying a sequence where '-' separates each resource.
-
-  % tap load 'goodnight moon' - dump - join 0 1
-  goodnight moon
-
-A fork.
-
-  % tap load 'goodnight moon' - dump - dump - join 0 1,2
-  goodnight moon
-  goodnight moon
-
-A merge, using '--' to enque a second load task.
-
-  % tap load goodnight -- load moon - dump - join 0,1 2
-  goodnight
-  moon
-
-A synchronized merge.
-
-  % tap load goodnight -- load moon - dump - sync 0,1 2
-  goodnightmoon
-
-The simple merge passes outputs immediately whereas the sync collects outputs
-into an array first; the printout is <tt>['goodnight', 'moon'].to_s</tt>.
-Joins can be configured to iterate an array of outputs:
-
-A synchronized merge, iterated.
-
-  % tap load goodnight -- load moon - dump - sync 0,1 2 --iterate
-  goodnight
-  moon
-
-As a useful analogy, think of tap as a shell where tasks are executables,
-objects are stdin/stdout, and joins are many variations of pipe.
+See the documentation for a greater explanation of the {workflow
+syntax}[link:files/doc/Workflow%20Syntax.html], several common
+{patterns}[link:files/doc/Examples.html], and the underlying
+{APIs}[link:files/doc/API.html].
 
 == Installation
 

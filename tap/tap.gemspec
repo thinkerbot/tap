@@ -29,8 +29,9 @@ Gem::Specification.new do |s|
     MIT-LICENSE
     History
     doc/API
+    doc/Workflow\sSyntax
     doc/Examples/Command\sLine
-    doc/Examples/Workflow}
+    doc/Examples}
   
   s.files = %W{
     lib/tap.rb

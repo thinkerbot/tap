@@ -1,4 +1,4 @@
-= Application Programming Interface
+= Application Programming Interfaces
 
 Applications require the following methods for nodes, joins, and middleware.
 Tap provides base classes that implement these APIs. Notably, all joins

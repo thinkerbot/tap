@@ -1,0 +1,176 @@
+= Workflow Syntax
+
+Tap uses a custom syntax for specifying workflows. The syntax consists of
+argument vectors separated by various breaks (ex '-', '--', '-:'). The
+argument vectors define tasks, joins, and other workflow objects, while the
+breaks signify various thing to do with the objects.
+
+== Basics
+
+Argument vectors start with a constant identifier and subsequent arguments
+indicate inputs and/or options.
+
+  % tap dump 'goodnight moon'
+  goodnight moon
+  
+  % tap dump --help
+  Tap::Tasks::Dump -- the default dump task
+  ...
+
+Multiple objects can be specified using delimiters where a single-dash (-)
+delimits, and a double-dash (--) enques. The first object is implicitly
+enqued, but that behavior can be changed by manually setting a delimiter.
+
+  % tap dump a - dump b -- dump c
+  a
+  c
+
+  % tap - dump a -- dump b - dump c
+  b
+
+Each object in a workflow is stored in the application by index, allowing them
+to be referenced from various contexts (note the individual context decides
+when to reference objects -- for example join is specifically designed to treat
+it's inputs as references to objects):
+
+  % tap load 'joined by a join' - dump - join 0 1
+  joined by a join
+  
+  % tap - dump -/0/enq 'enqued by a signal'
+  enqued by a signal
+
+Constants are identified by matching strings right-to-left as if the constant
+were underscored into a path. Alternatively, the full constant name can be
+provided. These all resolve to Tap::Tasks::Load.
+
+  % tap load
+  % tap tap/tasks/load
+  % tap /tap/tasks/load
+  % tap Tap::Tasks::Load
+
+In addition a left:right identifier can be specified to match the left side
+and/or the right side of the constant path (note this is actually much more
+useful in practice than the example implies):
+
+  % tap tap:load
+  % tap /tap/tasks:tasks/load
+  % tap /tap/tasks/load:
+
+The workflow syntax reserves dash and all dash-nonword pairs as breaks. To
+enter a reserved break, use the escape begin (-.) and escape end (.-) breaks:
+
+  % tap dump begin -. - -- --- -: -/ --/ .- end
+  begin - -- --- -: -/ --/ end
+
+Not all possible breaks are used, but reserving them all makes for one simple
+rule.  The various breaks and common use cases are described below.
+
+== Sequence (-:)
+
+Objects can be linked into sequences using a -: break.
+
+  % tap load 'goodnight moon' -: dump
+  goodnight moon
+
+The sequence break is a convenient shorthand for manually building two objects
+and a join:
+
+  % tap load 'goodnight moon' - dump - join 0 1
+  goodnight moon
+
+Using this second syntax allows for multi-way joins like fork and merge:
+
+  % tap load 'goodnight moon' - dump - dump - join 0 1,2
+  goodnight moon
+  goodnight moon
+  
+  % tap load goodnight - load moon - dump - join 0,1 2
+  goodnight
+  moon
+
+And also allows for specification of more complex join types. For example this
+is a gate join where the outputs are collected into a fixed-size array before
+being passed along.
+
+  % tap load a - load b - load c - dump - gate 0,1,2 3 --limit 2
+  ab
+  c
+
+=== Variations
+
+Joins can iterate or arrayify outputs before passing them to join targets.
+These options are useful for aligning the input/output signatures of objects
+across a join. For example (borrowing the yaml loading task from tap-tasks):
+
+  % tap load/yaml "[1, 2, 3]" - dump - join 0 1
+  123
+  
+  % tap load/yaml "[1, 2, 3]" - dump - join 0 1 --iterate
+  1
+  2
+  3
+
+Sequences can specify flags and a join class like '-:flags.class'. For
+example, these are equivalent workflows:
+
+  % tap load/yaml "[1, 2, 3]" - dump - dump - join 0 1 --iterate - gate 1 2
+  1
+  2
+  3
+  123
+  
+  % tap load/yaml "[1, 2, 3]" -:i dump -:.gate dump
+  1
+  2
+  3
+  123
+
+== Signals (-/, --/)
+
+Internally tap parses workflows into signals that build, enque, and control
+workflow objects. These signals can be specified manually on the command line:
+
+  % tap -/set 0 load -/set 1 dump -/build join 0 1 -/enq 0 'goodnight moon'
+  goodnight moon
+
+Invoked from a prompt:
+
+  % tap prompt
+  /set 0 load
+  /set 1 dump
+  /build join 0 1
+  /enq 0 'goodnight moon'
+  /run
+  goodnight moon
+
+Or specified in a taprc file, one or more of which can be invoked with a
+triple-dash. Complex workflows are normally written in this way when they
+become too cumbersome to write in the single-line syntax.
+
+  [taprc]
+  set 0 load
+  set 1 dump
+  build join 0 1
+  enq 0 'goodnight moon'
+
+  % tap --- taprc
+  goodnight moon
+
+  % tap --- taprc taprc taprc
+  goodnight moon
+  goodnight moon
+  goodnight moon
+
+Signals are the basis for controlling apps and objects. Objects set in the
+application object space, including app itself, can be signaled directly by
+name.
+
+  % tap - dump -/0/enq 'goodnight moon'
+  goodnight moon
+
+Note that on the command line signals can be enqued using '-/' or executed
+immediately with '--/'.
+
+  % tap - dump -/0/enq enque --/0/enq execute
+  execute
+  enque
