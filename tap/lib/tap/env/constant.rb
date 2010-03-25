@@ -279,7 +279,7 @@ module Tap
       end
       
       def path_match?(head, tail=nil)
-        (head.nil? || head_match(head)) && (tail.nil? || tail_match(tail))
+        (head.nil? || head.empty? || head_match(head)) && (tail.nil? || tail.empty? || tail_match(tail))
       end
       
       # Returns a string like:
@@ -306,7 +306,11 @@ module Tap
       end
       
       def head_match(head) # :nodoc:
-        path.index(head) == (head[0] == ?/ ? 0 : 1)
+        index = path.index(head)
+        index == (head[0] == ?/ ? 0 : 1) && begin
+          match_end = index + head.length
+          (match_end == path.length || path[match_end] == ?/)
+        end
       end
       
       def tail_match(tail) # :nodoc:

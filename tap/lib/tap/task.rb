@@ -94,6 +94,9 @@ module Tap
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
     
+    signal :enq
+    signal :exe, :bind => :execute
+    
     attr_reader :joins
     
     # Initializes a new Task.

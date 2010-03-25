@@ -94,6 +94,19 @@ class EnvTest < Test::Unit::TestCase
     assert_equal 'A::B', env.resolve('a/b').const_name
     assert_equal 'A::B', env.resolve('/a/b').const_name
     assert_equal 'A::B::C', env.resolve('a:c').const_name
+    assert_equal 'A::B::C', env.resolve('/a/b/c:').const_name
+    assert_equal 'A::B::C', env.resolve(':/a/b/c').const_name
+    assert_equal 'C', env.resolve('c:').const_name
+    assert_equal 'C', env.resolve('/c:').const_name
+  end
+  
+  def test_path_matching_forces_match_along_word_breaks
+    env = Env.new :constants => [
+      Constant.new('Nested::Const::Name')
+    ]
+    
+    assert_raises(RuntimeError) { env.resolve('ame') }
+    assert_raises(RuntimeError) { env.resolve('/nest:') }
   end
   
   #

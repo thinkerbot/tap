@@ -22,10 +22,13 @@ delimits, and a double-dash (--) enques. The first object is implicitly
 enqued, but that behavior can be changed by manually setting a delimiter.
 
   % tap dump a - dump b -- dump c
+  ignoring args: ["b"]
   a
   c
 
   % tap - dump a -- dump b - dump c
+  ignoring args: ["a"]
+  ignoring args: ["c"]
   b
 
 Each object in a workflow is stored in the application by index, allowing them
@@ -57,10 +60,11 @@ useful in practice than the example implies):
   % tap /tap/tasks/load:
 
 The workflow syntax reserves dash and all dash-nonword pairs as breaks. To
-enter a reserved break, use the escape begin (-.) and escape end (.-) breaks:
+enter a reserved break, such as the standard double-dash option break, use the
+escape begin (-.) and escape end (.-) sequences:
 
-  % tap dump begin -. - -- --- -: -/ --/ .- end
-  begin - -- --- -: -/ --/ end
+  % tap dump begin -. -- - -- --- -: -/ --/ .- end
+  begin-------:-/--/end
 
 Not all possible breaks are used, but reserving them all makes for one simple
 rule.  The various breaks and common use cases are described below.
@@ -84,7 +88,7 @@ Using this second syntax allows for multi-way joins like fork and merge:
   goodnight moon
   goodnight moon
   
-  % tap load goodnight - load moon - dump - join 0,1 2
+  % tap load goodnight -- load moon - dump - join 0,1 2
   goodnight
   moon
 
@@ -92,7 +96,7 @@ And also allows for specification of more complex join types. For example this
 is a gate join where the outputs are collected into a fixed-size array before
 being passed along.
 
-  % tap load a - load b - load c - dump - gate 0,1,2 3 --limit 2
+  % tap load a -- load b -- load c - dump - gate 0,1,2 3 --limit 2
   ab
   c
 
