@@ -1,0 +1,86 @@
+= Ruby (1.8.*) to Ruby (1.9.*)
+
+Tap runs on at least these interpreters without problem:
+
+* ruby-1.8.7
+* ruby-1.9.1
+* jruby-1.4.0
+
+However there are suble and important changes in ruby-1.9.* that affect how
+you construct workflows and what outputs you see on the command line. The
+most noticeable changes are related to arrays. 
+
+== Array#to_s
+
+In 1.9 Array#to_s is more like Array#inspect in 1.8. There's no real harm in
+the to_s change, but it does change the output of dumps and in many cases
+makes dumps more clear:
+
+  # 1.8
+  % tap load string -: dump
+  string
+  
+  % tap load/yaml [array] -: dump
+  array
+
+  # 1.9
+  % tap load string -: dump
+  string
+  
+  % tap load/yaml [array] -: dump
+  ["array"]
+
+== String.to_a
+
+In 1.9 this method goes away, whereas in 1.8 to_a will split a string along
+newlines into an array. Seems inconsequential but it has big ramifications for
+objects that splat a string into a helper method. One example is Tap::Task
+itself, which splats the call input to process so that process can be written
+with a signature that implies the command-line arguments.
+
+  class Tap::Task
+    def call(inputs)
+      process(*inputs)
+    end
+    
+    def process(*inputs)
+      inputs
+    end
+  end
+
+Declaration tasks do the same thing, such that arguments after config are
+populated by a splat. So say you made a couple tasks:
+
+  [tapfile]
+  require 'tap/declarations'
+  Tap.task(:one) {|config, a, b, c| "#{a}\n#{b}\n#{c}" }
+  Tap.task(:two) {|config, input| puts input }
+
+On 1.9 you can directly join one to two without problem:
+
+  # 1.9
+  % tap one 1 2 3 -: two
+  1
+  2
+  3
+
+Now see what happens on 1.8:
+
+  # 1.8
+  % tap one 1 2 3 -: two
+  1
+
+The string created by one has newlines so it gets splatted into an array
+before being passed into two; since two only takes one argument, all that it
+receives is the first argument of the new array (1).  Totally lousy, but easy
+to fix.  Just be sure to arrayify outputs if the target splats it's input.
+
+  # 1.8
+  % tap one 1 2 3 -:a two
+  1
+  2
+  3
+
+Note that arrayification changes nothing on 1.9, so cross-ruby workflows
+should do this as a best practice.
+

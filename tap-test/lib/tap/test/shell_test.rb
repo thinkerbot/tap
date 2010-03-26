@@ -253,7 +253,8 @@ module Tap
             'TAP_PATH' => '.',
             'TAPENV'   => '',
             'TAPRC'    => ''
-          }
+          },
+          :replace_env => false
         }
       end
       

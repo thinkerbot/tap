@@ -5,13 +5,18 @@ argument vectors separated by various breaks (ex '-', '--', '-:'). The
 argument vectors define tasks, joins, and other workflow objects, while the
 breaks signify various thing to do with the objects.
 
+*Note* this documentation is written from the perspective of ruby-1.9.*, which
+changes the output of Array#to_s (among other things). See the {Ruby to
+Ruby}[link:files/doc/Ruby%20to%20Ruby.html] document for more details.
+
 == Basics
 
 Argument vectors start with a constant identifier and subsequent arguments
-indicate inputs and/or options.
+indicate inputs and/or options.  Inputs are passed to the task as an array
+while options are parsed out as configurations.
 
   % tap dump 'goodnight moon'
-  goodnight moon
+  ["goodnight moon"]
   
   % tap dump --help
   Tap::Tasks::Dump -- the default dump task
@@ -23,24 +28,21 @@ enqued, but that behavior can be changed by manually setting a delimiter.
 
   % tap dump a - dump b -- dump c
   ignoring args: ["b"]
-  a
-  c
+  ["a"]
+  ["c"]
 
   % tap - dump a -- dump b - dump c
   ignoring args: ["a"]
   ignoring args: ["c"]
-  b
+  ["b"]
 
 Each object in a workflow is stored in the application by index, allowing them
-to be referenced from various contexts (note the individual context decides
-when to reference objects -- for example join is specifically designed to treat
-it's inputs as references to objects):
+to be referenced from contexts that specifically need them, such as during
+joins or in signaling (note the context chooses when this happens; normally
+indexes like 0 are just another character).
 
-  % tap load 'joined by a join' - dump - join 0 1
-  joined by a join
-  
   % tap - dump -/0/enq 'enqued by a signal'
-  enqued by a signal
+  ["enqued by a signal"]
 
 Constants are identified by matching strings right-to-left as if the constant
 were underscored into a path. Alternatively, the full constant name can be
@@ -51,38 +53,40 @@ provided. These all resolve to Tap::Tasks::Load.
   % tap /tap/tasks/load
   % tap Tap::Tasks::Load
 
-In addition a left:right identifier can be specified to match the left side
-and/or the right side of the constant path (note this is actually much more
-useful in practice than the example implies):
+In addition a left:right identifier can be specified to match both sides of
+the constant path:
 
   % tap tap:load
   % tap /tap/tasks:tasks/load
   % tap /tap/tasks/load:
+  % tap :/tap/tasks/load
 
-The workflow syntax reserves dash and all dash-nonword pairs as breaks. To
-enter a reserved break, such as the standard double-dash option break, use the
-escape begin (-.) and escape end (.-) sequences:
+The workflow syntax reserves dash and all dash-nonword pairs as breaks. Use
+the escape begin (-.) and escape end (.-) sequences to provide a breaks as
+inputs.
 
   % tap dump begin -. -- - -- --- -: -/ --/ .- end
-  begin-------:-/--/end
+  ["begin", "-", "--", "---", "-:", "-/", "--/", "end"]
 
 Not all possible breaks are used, but reserving them all makes for one simple
 rule.  The various breaks and common use cases are described below.
 
 == Sequence (-:)
 
-Objects can be linked into sequences using a -: break.
+Objects can be linked into sequences using a -: break. Here load processes the
+input into a string, which gets passed to dump and printed (hence the output
+looks like a string, not an array).
 
   % tap load 'goodnight moon' -: dump
   goodnight moon
 
 The sequence break is a convenient shorthand for manually building two objects
-and a join:
+and a join.
 
   % tap load 'goodnight moon' - dump - join 0 1
   goodnight moon
 
-Using this second syntax allows for multi-way joins like fork and merge:
+The longer syntax supports multi-way joins like fork and merge.
 
   % tap load 'goodnight moon' - dump - dump - join 0 1,2
   goodnight moon
@@ -92,22 +96,22 @@ Using this second syntax allows for multi-way joins like fork and merge:
   goodnight
   moon
 
-And also allows for specification of more complex join types. For example this
-is a gate join where the outputs are collected into a fixed-size array before
-being passed along.
+It also allows for more complex join types. For example this is a gate join
+where the outputs are collected into a size-limited array before being passed
+along.
 
   % tap load a -- load b -- load c - dump - gate 0,1,2 3 --limit 2
-  ab
-  c
+  ["a", "b"]
+  ["c"]
 
 === Variations
 
 Joins can iterate or arrayify outputs before passing them to join targets.
-These options are useful for aligning the input/output signatures of objects
+These options are useful for changing the input/output signatures of objects
 across a join. For example (borrowing the yaml loading task from tap-tasks):
 
   % tap load/yaml "[1, 2, 3]" - dump - join 0 1
-  123
+  [1, 2, 3]
   
   % tap load/yaml "[1, 2, 3]" - dump - join 0 1 --iterate
   1
@@ -121,23 +125,23 @@ example, these are equivalent workflows:
   1
   2
   3
-  123
+  [1, 2, 3]
   
   % tap load/yaml "[1, 2, 3]" -:i dump -:.gate dump
   1
   2
   3
-  123
+  [1, 2, 3]
 
 == Signals (-/, --/)
 
-Internally tap parses workflows into signals that build, enque, and control
-workflow objects. These signals can be specified manually on the command line:
+Internally tap parses workflows into signals that build and control workflow
+objects. These signals can be specified manually on the command line.
 
   % tap -/set 0 load -/set 1 dump -/build join 0 1 -/enq 0 'goodnight moon'
   goodnight moon
 
-Invoked from a prompt:
+Invoked from a prompt.
 
   % tap prompt
   /set 0 load
@@ -147,7 +151,7 @@ Invoked from a prompt:
   /run
   goodnight moon
 
-Or specified in a taprc file, one or more of which can be invoked with a
+Or specified in a taprc file, one or more of which can be loaded with a
 triple-dash. Complex workflows are normally written in this way when they
 become too cumbersome to write in the single-line syntax.
 
@@ -165,16 +169,17 @@ become too cumbersome to write in the single-line syntax.
   goodnight moon
   goodnight moon
 
-Signals are the basis for controlling apps and objects. Objects set in the
-application object space, including app itself, can be signaled directly by
-name.
+Signals are the basis for controlling apps and objects. As mentioned before,
+objects in the application space can be signaled directly by name.
 
-  % tap - dump -/0/enq 'goodnight moon'
-  goodnight moon
+  % tap - dump -/0/exe 'goodnight moon'
+  ["goodnight moon"]
 
-Note that on the command line signals can be enqued using '-/' or executed
-immediately with '--/'.
+Note that the dash-slash break (-/) enques signals, and as such they will run
+in order, as declared in the workflow. To execute a signal immediately, use a
+double-dash-slash (--/).
 
-  % tap - dump -/0/enq enque --/0/enq execute
-  execute
-  enque
+  % tap -- dump a -/0/exe b --/0/exe c
+  ["c"]
+  ["a"]
+  ["b"]

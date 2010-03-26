@@ -30,8 +30,8 @@ Gem::Specification.new do |s|
     History
     doc/API
     doc/Workflow\sSyntax
-    doc/Examples/Command\sLine
-    doc/Examples}
+    doc/Ruby\sto\sRuby
+    doc/Examples/Command\sLine}
   
   s.files = %W{
     lib/tap.rb

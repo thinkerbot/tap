@@ -31,7 +31,7 @@ class ReadmeTest < Test::Unit::TestCase
       ].join(" "),
       :indents => true,
       :env => default_env,
-      :replace_env => true
+      :replace_env => false
     }
   end
   
@@ -106,16 +106,17 @@ class ReadmeTest < Test::Unit::TestCase
       hello world
     }
     
-    # note there is a transposition in the last two lines...
-    # not sure how to force it otherwise
-    sh_test %q{
-      % tap goodnight moon -: dump --/use debugger 2>&1
-      + 0 ["moon"]
-      - 0 "goodnight moon"
-      + 1 "goodnight moon"
-      - 1 "goodnight moon"
-      goodnight moon
-    }
+    # sometimes a sh_test will transpose the last two lines... I'm
+    # assuming because of variations in when stdin and stdout flush
+    actual = sh_test "% tap goodnight moon -: dump --/use debugger 2>&1"
+    expected = %q{
++ 0 ["moon"]
+- 0 "goodnight moon"
++ 1 "goodnight moon"
+goodnight moon
+- 1 "goodnight moon"
+}.strip
+    assert_equal expected.split("\n").sort, actual.split("\n").sort
     
     method_root.prepare('tapfile') do |io|
       # don't use indents so grep output is correct

@@ -32,7 +32,7 @@ class TapExeTest < Test::Unit::TestCase
       ].join(" "),
       :indents => true,
       :env => default_env,
-      :replace_env => true
+      :replace_env => false
     }
   end
   
@@ -83,7 +83,7 @@ class TapExeTest < Test::Unit::TestCase
     end
         
     sh_test %Q{
-    % tap -- tap:dump goodnight -- alt:dump goodnight
+    % tap -- load goodnight - tap:dump - alt:dump - join 0 1,2
     goodnight
     thgindoog
     }, :env => default_env.merge('TAP_PATH' => "#{TAP_ROOT}:#{method_root.path(:pwd)}")
@@ -120,7 +120,9 @@ class TapExeTest < Test::Unit::TestCase
   def test_tapfiles_may_contain_newlines_empty_lines_and_indentation
     tapfile = method_root.prepare('tapfile') do |io|
       io << %q{
-  set 0 dump
+set 0 load
+    set 1 dump
+  build join 0 1
 
 enq 0 'goodnight\
 moon'
@@ -138,7 +140,9 @@ moon'
     tapfile = method_root.prepare('tapfile') do |io|
       io << %q{
       # comment
-      set 0 dump              # tail comment
+      set 0 load              # tail comment
+      set 1 dump
+      build join 0 1
       enq 0 \#notacomment
       enq 0 not#acomment
       enq 0 notacomment#

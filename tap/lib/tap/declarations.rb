@@ -84,7 +84,7 @@ module Tap
       #
       # Configurations are always validated using the yaml transformation
       # block (see {Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]).
-      def subclass(const_name, configs={})
+      def subclass(const_name, configs={}, &block)
         subclass = Env::Constant.constantize(const_name) do |base, constants|
           subclass_const = constants.pop
           constants.inject(base) do |namespace, const|
@@ -106,10 +106,10 @@ module Tap
           subclass.send(:config, key, value, opts, &convert_to_yaml)
         end
 
-        if block_given?
+        if block
           # prevents assessment of process args by lazydoc
           subclass.const_attrs[:process] = '*args'
-          subclass.send(:define_method, :process) {|*args| yield(self, *args) }
+          subclass.send(:define_method, :process) {|*args| block.call(self, *args) }
         end
         
         subclass
