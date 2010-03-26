@@ -8,7 +8,7 @@ Tap runs on at least these interpreters without problem:
 
 However there are suble and important changes in ruby-1.9.* that affect how
 you construct workflows and what outputs you see on the command line. The
-most noticeable changes are related to arrays. 
+most noticeable changes are related to arrays and strings. 
 
 == Array#to_s
 
@@ -35,8 +35,7 @@ makes dumps more clear:
 In 1.9 this method goes away, whereas in 1.8 to_a will split a string along
 newlines into an array. Seems inconsequential but it has big ramifications for
 objects that splat a string into a helper method. One example is Tap::Task
-itself, which splats the call input to process so that process can be written
-with a signature that implies the command-line arguments.
+itself, which splats the call input to process.
 
   class Tap::Task
     def call(inputs)
@@ -48,8 +47,8 @@ with a signature that implies the command-line arguments.
     end
   end
 
-Declaration tasks do the same thing, such that arguments after config are
-populated by a splat. So say you made a couple tasks:
+Declaration tasks do the same thing, such that arguments to the block are
+populated by a splat. Say you made a couple tasks:
 
   [tapfile]
   require 'tap/declarations'
@@ -71,9 +70,10 @@ Now see what happens on 1.8:
   1
 
 The string created by one has newlines so it gets splatted into an array
-before being passed into two; since two only takes one argument, all that it
-receives is the first argument of the new array (1).  Totally lousy, but easy
-to fix.  Just be sure to arrayify outputs if the target splats it's input.
+before being passed into two. Task two only takes one argument and so all that
+it receives is the first argument of the new array (ie '1'). Totally lousy,
+but easy to fix. Just be sure to arrayify outputs if the target splats it's
+input.
 
   # 1.8
   % tap one 1 2 3 -:a two
@@ -81,6 +81,5 @@ to fix.  Just be sure to arrayify outputs if the target splats it's input.
   2
   3
 
-Note that arrayification changes nothing on 1.9, so cross-ruby workflows
-should do this as a best practice.
-
+Note that arrayification is less necessary 1.9, it works fine either way, but
+cross-ruby workflows should consider this a best practice.

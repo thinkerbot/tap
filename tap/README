@@ -15,7 +15,7 @@ Tap is the core of the
 which provides a standard library of 
 {tasks}[http://tap.rubyforge.org/tap-tasks/index.html],
 {generators}[http://tap.rubyforge.org/tap-gen/index.html], and 
-{test utilities}[http://tap.rubyforge.org/tap-test/index.html].
+{test modules}[http://tap.rubyforge.org/tap-test/index.html].
 
 * Website[http://tap.rubyforge.org]
 * Github[http://github.com/bahuvrihi/tap/tree/master]
@@ -90,9 +90,39 @@ most commonly for logging and/or debugging.
   goodnight moon
   - 1 "goodnight moon"
 
+Tap provides a set of {test
+modules}[http://tap.rubyforge.org/tap-test/index.html] to simplify testing of
+workflows both off and on the command-line (this documentation is tested, for
+example):
+
+  require 'tap/test/unit'
+  
+  class ShellTestTest < Test::Unit::TestCase
+    acts_as_shell_test
+    
+    def test_goodnight_moon
+      sh_test %q{
+      % tap load 'goodnight moon' -: dump
+      goodnight moon
+      }
+    end
+  end
+
 Tasks can be packaged into gems like any other code. Tap automatically finds
 tasks in gems containing a tap.yml file so that distribution feels normal and
 unobtrusive.
+
+  % tap load/yaml
+  unresolvable constant: "load/yaml" (RuntimeError)
+  
+  % gem install tap-tasks
+  ...
+  
+  % tap load/yaml "[1, 2, 3]" -: dump/yaml
+  --- 
+  - 1
+  - 2
+  - 3
 
 For local tasks that don't need to be distributed, Tap provides declarations
 a-la {Rake}[http://rake.rubyforge.org/]. By default any tasks in a tapfile are

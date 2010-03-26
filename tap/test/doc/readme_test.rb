@@ -118,6 +118,35 @@ goodnight moon
 }.strip
     assert_equal expected.split("\n").sort, actual.split("\n").sort
     
+    # (see below)
+    # require 'tap/test/unit'
+    # 
+    # class ShellTestTest < Test::Unit::TestCase
+    #   acts_as_shell_test
+    # 
+    #   def test_goodnight_moon
+    #     sh_test %q{
+    #     % tap load 'goodnight moon' -: dump
+    #     goodnight moon
+    #     }
+    #   end
+    # end
+    
+    sh_test %q{
+      % tap load/yaml 2>&1
+      unresolvable constant: "load/yaml" (RuntimeError)
+    }
+    
+     #% gem install tap-tasks
+     
+    sh_test %q{
+      % tap load/yaml "[1, 2, 3]" -: dump/yaml
+      --- 
+      - 1
+      - 2
+      - 3
+    }, :env => default_env.merge('TAP_PATH' => "#{TAP_ROOT}:#{TAP_ROOT}/../tap-tasks")
+      
     method_root.prepare('tapfile') do |io|
       # don't use indents so grep output is correct
       io << %q{
@@ -142,4 +171,15 @@ end
     task :grep, :e => '.' do |config, str|
     }, :env => default_env.merge('TAPFILE' => 'tapfile')
   end
+  
+  # class ShellTestTest < Test::Unit::TestCase
+    # acts_as_shell_test
+
+    def test_goodnight_moon
+      sh_test %q{
+      % tap load 'goodnight moon' -: dump
+      goodnight moon
+      }
+    end
+  # end
 end
