@@ -1,0 +1,165 @@
+= {Tap (Task Application)}[http://tap.rubyforge.org]
+
+  tap n. to draw a supply from a resource
+
+A configurable, distributable workflow framework.
+
+== Description
+
+Tap allows the construction of workflows that may be defined, configured, and
+run from the command line. The tasks and joins composing a workflow are easy
+to test, subclass, and distribute as gems.
+
+Tap is the core of the
+{Tap-Suite}[http://tap.rubyforge.org/tap-suite/index.html] 
+which provides a standard library of 
+{tasks}[http://tap.rubyforge.org/tap-tasks/index.html],
+{generators}[http://tap.rubyforge.org/tap-gen/index.html], and 
+{test modules}[http://tap.rubyforge.org/tap-test/index.html].
+
+* Website[http://tap.rubyforge.org]
+* Github[http://github.com/bahuvrihi/tap/tree/master]
+* {Google Group}[http://groups.google.com/group/ruby-on-tap]
+
+== Usage
+
+Tasks are defined as subclasses of Tap::Task.
+
+  [lib/goodnight.rb]
+  require 'tap/task'
+  
+  # ::task your basic goodnight moon task
+  # Says goodnight with a configurable message.
+  class Goodnight < Tap::Task
+    config :message, 'goodnight'           # a goodnight message
+    
+    def process(name)
+      "#{message} #{name}"
+    end
+  end
+
+Tap discovers tasks.
+
+  % tap manifest
+  task:
+    dump                 # the default dump task
+    goodnight            # your basic goodnight moon task
+    load                 # the default load task
+    manifest             # lists resources
+    prompt               # an input prompt
+  join:
+    gate                 # collects results before the join
+    join                 # an unsyncrhonized, multi-way join
+    sync                 # a synchronized multi-way join
+  middleware:
+    debugger             # the default debugger
+
+Generates command-line documentation.
+
+  % tap goodnight --help
+  Goodnight -- your basic goodnight moon task
+  --------------------------------------------------------------------------------
+    Says goodnight with a configurable message.
+  --------------------------------------------------------------------------------
+  usage: tap goodnight NAME
+
+  configurations:
+          --message MESSAGE            a goodnight message
+
+  options:
+          --help                       Print this help
+          --config FILE                Specifies a config file
+
+And provides a robust
+{syntax}[http://tap.rubyforge.org/rdoc/files/doc/Workflow%20Syntax.html] for
+building both simple and complex workflows. This joins a goodnight task to a
+dump task in order to print the goodnight message.
+
+  % tap goodnight moon -: dump
+  goodnight moon
+
+  % tap goodnight world --message hello -: dump
+  hello world
+
+Workflows support the use of middleware to wrap the execution of each task,
+most commonly for logging and/or debugging.
+
+  % tap goodnight moon -: dump --/use debugger
+  + 0 ["moon"]
+  - 0 "goodnight moon"
+  + 1 "goodnight moon"
+  goodnight moon
+  - 1 "goodnight moon"
+
+Tap provides a set of {test
+modules}[http://tap.rubyforge.org/tap-test/index.html] to simplify testing of
+workflows both off and on the command-line (this documentation is tested, for
+example):
+
+  require 'tap/test/unit'
+  
+  class ShellTestTest < Test::Unit::TestCase
+    acts_as_shell_test
+    
+    def test_goodnight_moon
+      sh_test %q{
+      % tap load 'goodnight moon' -: dump
+      goodnight moon
+      }
+    end
+  end
+
+Tasks can be packaged into gems like any other code. Tap automatically finds
+tasks in gems containing a tap.yml file so that distribution feels normal and
+unobtrusive.
+
+  % tap load/yaml
+  unresolvable constant: "load/yaml" (RuntimeError)
+  
+  % gem install tap-tasks
+  ...
+  
+  % tap load/yaml "[1, 2, 3]" -: dump/yaml
+  --- 
+  - 1
+  - 2
+  - 3
+
+For local tasks that don't need to be distributed, Tap provides declarations
+a-la {Rake}[http://rake.rubyforge.org/]. By default any tasks in a tapfile are
+available for use.
+
+  [tapfile]
+  require 'tap/declarations'
+  include Tap::Declarations
+  
+  desc "concat file contents"
+  task :cat do |config, *files|
+    files.collect {|file| File.read(file) }.join
+  end
+  
+  desc "grep lines"
+  task :grep, :e => '.' do |config, str|
+    str.split("\n").grep(/#{config.e}/)
+  end
+  
+  % tap cat tapfile -:a grep -e task -:i dump
+  task :cat do |config, *files|
+  task :grep, :e => '.' do |config, str|
+
+See the documentation for a greater explanation of the {workflow
+syntax}[http://tap.rubyforge.org/rdoc/files/doc/Workflow%20Syntax.html],
+several common
+{patterns}[http://tap.rubyforge.org/rdoc/files/doc/Examples.html], and the
+underlying {APIs}[http://tap.rubyforge.org/rdoc/files/doc/API.html].
+
+== Installation
+
+Tap is available as a gem on Gemcutter[http://gemcutter.org/gems/tap].
+
+  % gem install tap
+
+== Info 
+
+Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com]
+License:: {MIT-Style}[http://tap.rubyforge.org/rdoc/files/MIT-LICENSE.html]
