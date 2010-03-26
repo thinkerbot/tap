@@ -1,52 +1,12 @@
 require File.expand_path('../tap_test_helper', __FILE__)
-require 'tap/test/unit'
+require 'tap/test'
 require 'tap/version'
 
 class TapExeTest < Test::Unit::TestCase 
   extend Tap::Test
-  TAP_ROOT = File.expand_path("../..", __FILE__)
-  
   acts_as_file_test
   acts_as_shell_test
-  
-  def setup
-    super
-    @pwd = Dir.pwd
-    method_root.chdir('pwd', true)
-  end
-  
-  def teardown
-    Dir.chdir(@pwd)
-    super
-  end
-  
-  def sh_test_options
-    {
-      :cmd_pattern => "% tap", 
-      :cmd => [
-        "ruby",
-        "-I'#{TAP_ROOT}/../configurable/lib'",
-        "-I'#{TAP_ROOT}/../lazydoc/lib'",
-        "-I'#{TAP_ROOT}/lib'",
-        "'#{TAP_ROOT}/bin/tap'"
-      ].join(" "),
-      :indents => true,
-      :env => default_env,
-      :replace_env => false
-    }
-  end
-  
-  def default_env
-    {
-      'HOME' => method_root.path('home'),
-      'TAPFILE'  => '',
-      'TAP_GEMS' => '', 
-      'TAP_PATH' => "#{TAP_ROOT}",
-      'TAPENV'   => '',
-      'TAPRC'    => '',
-      'TAP_GEMS' => ''
-    }
-  end
+  include TapTestMethods
   
   def test_tap_returns_nothing_with_no_input
     sh_test %q{
@@ -68,7 +28,7 @@ class TapExeTest < Test::Unit::TestCase
   end
   
   def test_tap_identifies_constants_by_head_and_tail
-    method_root.prepare(:pwd, 'lib/alt/dump.rb') do |io|
+    method_root.prepare('lib/alt/dump.rb') do |io|
       io << %q{
       require 'tap/tasks/dump'
       # ::task
@@ -86,7 +46,7 @@ class TapExeTest < Test::Unit::TestCase
     % tap -- load goodnight - tap:dump - alt:dump - join 0 1,2
     goodnight
     thgindoog
-    }, :env => default_env.merge('TAP_PATH' => "#{TAP_ROOT}:#{method_root.path(:pwd)}")
+    }
   end
   
   def test_tap_squelches_unhandled_errors
@@ -182,7 +142,7 @@ moon'
     sh_test %Q{
     % tap a
     A
-    }, :env => default_env.merge('TAP_PATH' => '../alt')
+    }, :env => default_env.merge('TAP_PATH' => 'alt')
   end
 
   def test_TAPENV_specifies_tapenv_files_run_in_env_context
@@ -192,8 +152,8 @@ moon'
       io.puts 'class A < Tap::Task; def process; puts "A"; end; end'
     end
     
-    method_root.prepare('pwd/altenv') do |io|
-      io.puts 'auto ../alt'
+    method_root.prepare('tapenv') do |io|
+      io.puts 'auto alt'
     end
     
     sh_test %Q{
@@ -204,15 +164,15 @@ moon'
     sh_test %Q{
     % tap a
     A
-    }, :env => default_env.merge('TAPENV' => 'altenv')
+    }, :env => default_env.merge('TAPENV' => 'tapenv')
   end
   
   def test_TAPRC_variable_specifies_taprc_files_run_in_app_context
-    a = method_root.prepare('home/a') do |io|
+    a = method_root.prepare('home/taprc') do |io|
       io.puts "set 0 load"
     end
     
-    b = method_root.prepare('pwd/path/to/b') do |io|
+    b = method_root.prepare('taprc') do |io|
       io.puts "set 1 dump"
       io.puts "build join 0 1"
       io.puts "enq 0 'goodnight moon'"
@@ -222,6 +182,6 @@ moon'
     % tap load 'hello world' -: dump
     goodnight moon
     hello world
-    }, :env => default_env.merge('TAPRC' => '~/a:./path/to/b')
+    }, :env => default_env.merge('TAPRC' => '~/taprc:taprc')
   end
 end

@@ -1,53 +1,13 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
-require 'tap/test/unit'
+require 'tap/test'
 require 'tap/version'
 
-class ReadmeTest < Test::Unit::TestCase 
+class ReadmeTest < Test::Unit::TestCase
   extend Tap::Test
-  TAP_ROOT = File.expand_path("../../..", __FILE__)
-  
   acts_as_file_test
   acts_as_shell_test
   acts_as_subset_test
-  
-  def setup
-    super
-    @pwd = Dir.pwd
-    method_root.chdir('.', true)
-  end
-  
-  def teardown
-    Dir.chdir(@pwd)
-    super
-  end
-  
-  def sh_test_options
-    {
-      :cmd_pattern => "% tap", 
-      :cmd => [
-        "ruby",
-        "-I'#{TAP_ROOT}/../configurable/lib'",
-        "-I'#{TAP_ROOT}/../lazydoc/lib'",
-        "-I'#{TAP_ROOT}/lib'",
-        "'#{TAP_ROOT}/bin/tap'"
-      ].join(" "),
-      :indents => true,
-      :env => default_env,
-      :replace_env => false
-    }
-  end
-  
-  def default_env
-    {
-      'HOME' => method_root.path('home'),
-      'TAPFILE'  => '',
-      'TAP_GEMS' => '', 
-      'TAP_PATH' => "#{TAP_ROOT}:.",
-      'TAPENV'   => '',
-      'TAPRC'    => '',
-      'TAP_GEMS' => ''
-    }
-  end
+  include TapTestMethods
   
   def test_readme
     method_root.prepare('lib/goodnight.rb') do |io|
