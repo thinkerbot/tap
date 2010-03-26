@@ -49,13 +49,13 @@ current versions of installed gems will be available for selection. Use an
 empty string to specify no gems.
 
   % gem install tap-tasks
-  % TAP_GEMS=. tap inspect string
-  "string"
-  % TAP_GEMS=tap-ta* tap inspect string
-  "string"
-  % TAP_GEMS=nomatch tap inspect string
+  % TAP_GEMS=. tap inspect a b c
+  ["a", "b", "c"]
+  % TAP_GEMS=tap-ta* tap inspect a b c
+  ["a", "b", "c"]
+  % TAP_GEMS=nomatch tap inspect a b c
   unresolvable constant: "inspect" (RuntimeError)
-  % TAP_GEMS= tap inspect string
+  % TAP_GEMS= tap inspect a b c
   unresolvable constant: "inspect" (RuntimeError)
 
 === TAP_PATH (default '.')

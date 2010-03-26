@@ -4,6 +4,7 @@ require 'tap/test/unit'
 class SetupTest < Test::Unit::TestCase 
   acts_as_file_test
   acts_as_shell_test
+  acts_as_subset_test
   include TapTestMethods
 
   def test_TAPFILE_doc
@@ -22,17 +23,34 @@ class SetupTest < Test::Unit::TestCase
     }, :env => default_env.merge('TAPFILE' => 'tapfile')
   end
 
-  # def test_TAP_GEMS_doc
-  #   % gem install tap-tasks
-  #   % TAP_GEMS=. tap inspect string
-  #   "string"
-  #   % TAP_GEMS=tap-ta* tap inspect string
-  #   "string"
-  #   % TAP_GEMS=nomatch tap inspect string
-  #   unresolvable constant: 'inspect' (RuntimeError)
-  #   % TAP_GEMS= tap inspect string
-  #   unresolvable constant: 'inspect' (RuntimeError)
-  # end
+  def test_TAP_GEMS_doc
+    extended_test do
+      gem_test do |gem_env|
+        sh_gem("gem install '#{build_gem("tap-tasks")}' --local --no-rdoc --no-ri", :env => gem_env)
+        
+        sh_test %q{
+          % tap inspect a b c
+          ["a", "b", "c"]
+        }, :env => gem_env.merge('TAP_GEMS' => '.')
+        
+        sh_test %q{
+          % tap inspect a b c
+          ["a", "b", "c"]
+        }, :env => gem_env.merge('TAP_GEMS' => 'tap-ta*')
+        
+        sh_test %q{
+          % tap inspect a b c
+          unresolvable constant: "inspect" (RuntimeError)
+        }, :env => gem_env.merge('TAP_GEMS' => 'nomatch')
+        
+        sh_test %q{
+          % tap inspect a b c
+          unresolvable constant: "inspect" (RuntimeError)
+        }, :env => gem_env.merge('TAP_GEMS' => '')
+      end
+    end
+
+  end
   
   def test_TAP_PATH_doc
     method_root.prepare('dir/lib/goodnight.rb') do |io|
