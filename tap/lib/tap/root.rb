@@ -142,6 +142,13 @@ module Tap
       Dir.chdir(dir, &block)
     end
     
+    # Makes the specified directory and parent directories (as required).
+    def mkdir(*path)
+      path = self.path(*path)
+      FileUtils.mkdir_p(path) unless File.directory?(path)
+      path
+    end
+    
     # Opens the path in the specified mode, using the same semantics as
     # File.open.
     def open(path, mode='r', &block)

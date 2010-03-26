@@ -1,5 +1,6 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
 require 'tap/test/unit'
+require 'tap/version'
 
 class ReadmeTest < Test::Unit::TestCase 
   extend Tap::Test
@@ -7,6 +8,7 @@ class ReadmeTest < Test::Unit::TestCase
   
   acts_as_file_test
   acts_as_shell_test
+  acts_as_subset_test
   
   def setup
     super
@@ -119,34 +121,11 @@ goodnight moon
     assert_equal expected.split("\n").sort, actual.split("\n").sort
     
     # (see below)
-    # require 'tap/test/unit'
-    # 
     # class ShellTestTest < Test::Unit::TestCase
-    #   acts_as_shell_test
-    # 
-    #   def test_goodnight_moon
-    #     sh_test %q{
-    #     % tap load 'goodnight moon' -: dump
-    #     goodnight moon
-    #     }
-    #   end
-    # end
     
-    sh_test %q{
-      % tap load/yaml 2>&1
-      unresolvable constant: "load/yaml" (RuntimeError)
-    }
+    # much setup is required to test the gem install cleanly
+    # and so it has been put into it's own test 
     
-     #% gem install tap-tasks
-     
-    sh_test %q{
-      % tap load/yaml "[1, 2, 3]" -: dump/yaml
-      --- 
-      - 1
-      - 2
-      - 3
-    }, :env => default_env.merge('TAP_PATH' => "#{TAP_ROOT}:#{TAP_ROOT}/../tap-tasks")
-      
     method_root.prepare('tapfile') do |io|
       # don't use indents so grep output is correct
       io << %q{
@@ -173,13 +152,71 @@ end
   end
   
   # class ShellTestTest < Test::Unit::TestCase
-    # acts_as_shell_test
-
-    def test_goodnight_moon
-      sh_test %q{
-      % tap load 'goodnight moon' -: dump
-      goodnight moon
-      }
+  def test_goodnight_moon
+    sh_test %q{
+    % tap load 'goodnight moon' -: dump
+    goodnight moon
+    }
+  end
+  
+  # for some reason jruby gem doesn't want to run itself as ruby, and instead
+  # it wants to run as a sh script.  this rigmarole specifically runs it as
+  # a ruby script
+  #
+  #  % gem build tap.gemspec
+  #  ...jruby-1.4.0/bin/gem: line 8: require: command not found
+  #  ...
+  #
+  def sh_gem(cmd, options={})
+    gem_path = `which gem`.strip
+    cmd = cmd.sub(/^gem/, "ruby '#{gem_path}'")
+    sh(cmd, options)
+  end
+  
+  def build_gem(name)
+    gemspec = "#{TAP_ROOT}/../#{name}/#{name}.gemspec"
+    Dir.chdir(File.dirname(gemspec)) do 
+      output = sh_gem("gem build #{gemspec} 2>&1")
+      flunk("failed to build #{gemspec}: #{output}") unless $? == 0
+      
+      src = output.split("\n").last.split(": ").last
+      target = method_root.prepare('cache', src)
+      
+      FileUtils.mv(src, target)
+      target
     end
-  # end
+  end
+  
+  def test_gem_install_readme
+    extended_test do
+      gem_env = default_env.merge(
+        'GEM_HOME' => method_root.path('gem'), 
+        'GEM_PATH' => method_root.path('gem'),
+        'HOME' => method_root.mkdir('home'),
+        'TAP_GEMS' => nil
+      )
+      
+      lazydoc = build_gem("lazydoc")
+      configurable = build_gem("configurable")
+      tap = build_gem("tap")
+      tap_tasks = build_gem("tap-tasks")
+      
+      sh_gem("gem install '#{lazydoc}' '#{configurable}' '#{tap}' --local --no-rdoc --no-ri", :env => gem_env)
+    
+      sh_test %q{
+        % tap load/yaml 2>&1
+        unresolvable constant: "load/yaml" (RuntimeError)
+      }, :env => gem_env
+  
+      sh_gem("gem install '#{tap_tasks}' --local --no-rdoc --no-ri", :env => gem_env)
+   
+      sh_test %q{
+        % tap load/yaml "[1, 2, 3]" -: dump/yaml 2>&1
+        --- 
+        - 1
+        - 2
+        - 3
+      }, :env => gem_env
+    end
+  end
 end
