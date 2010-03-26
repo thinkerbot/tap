@@ -1,0 +1,30 @@
+= Command Line
+
+Tap can work in the context of a command line like any other executable. By
+default the load/dump tasks read and write to stdin/stdout. These patterns
+represent common ways to hook up a Tap workflow.
+
+=== Read data from $stdin
+  # [goodnight.txt]
+  # goodnight moon
+  
+  % tap load -: dump < goodnight.txt
+  goodnight moon
+
+=== Pipe data from $stdin
+  % echo goodnight moon | tap load -: dump
+  goodnight moon
+
+=== Manually specify data with an argument
+  % tap load 'goodnight moon' -: dump
+  goodnight moon
+
+=== Dump data to $stdout
+  % tap load 'goodnight moon' -: dump > goodnight.txt
+  % more goodnight.txt
+  goodnight moon
+
+=== Pipe data via $stdout
+  % tap load 'goodnight moon' -: dump | more
+  goodnight moon
+

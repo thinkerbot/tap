@@ -160,7 +160,7 @@ module Tap
     
     def unset(*const_names)
       const_names.each do |const_name|
-        constants.delete_if do |key, constant|
+        constants.delete_if do |constant|
           constant.const_name == const_name
         end
       end

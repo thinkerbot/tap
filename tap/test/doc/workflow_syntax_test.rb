@@ -1,8 +1,7 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
-require 'tap/test'
+require 'tap/test/unit'
 
 class WorkflowSyntaxTest < Test::Unit::TestCase 
-  extend Tap::Test
   acts_as_file_test
   acts_as_shell_test
   include TapTestMethods
