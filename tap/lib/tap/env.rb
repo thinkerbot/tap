@@ -33,8 +33,8 @@ module Tap
           Constant.scan(lib_dir, pattern).each do |constant|
             require_paths = Path.join(constant.require_paths)
             types = constant.types.to_a.collect {|type| Path.escape(Path.join(type)) }
-            lines << "set #{constant.const_name} #{Path.escape require_paths} #{types.join(' ')}" if set
-          end
+            lines << "set #{constant.const_name} #{Path.escape require_paths} #{types.join(' ')}"
+          end if set
         end
         
         lines.uniq!

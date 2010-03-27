@@ -105,7 +105,9 @@ module Tap
             end
           end
 
-          constants.values
+          constants = constants.values
+          constants.each {|constant| constant.require_paths.uniq! }
+          constants
         end
         
         def cast(obj)
