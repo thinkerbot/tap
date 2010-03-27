@@ -17,7 +17,7 @@ begin
   
   if ARGV[-1] == '-d-'
     ARGV.pop
-    options[:debug] = true
+    options[:debug] = 'true'
   end
   
   if ARGV == ['--help']

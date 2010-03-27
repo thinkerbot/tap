@@ -27,13 +27,13 @@ module Tap
     
     def options.process(key, default=nil)
       value = self[key] || default
-      if self[:debug]
+      if self[:debug] == 'true'
         $stderr.puts "%12s: %s" % [key, value]
       end
       value && block_given? ? yield(value) : nil
     end
     
-    if options[:debug]
+    if options[:debug] == 'true'
       options.process(:ruby, "#{RbConfig::CONFIG['RUBY_INSTALL_NAME']}-#{RUBY_VERSION} (#{RUBY_RELEASE_DATE})")
       options.process(:tap, VERSION)
     end
