@@ -7,15 +7,14 @@ module Tap
   
   def options
     options = {
-      :tapfile   => ENV['TAPFILE'],
-      :gems      => ENV['TAP_GEMS'],
-      :path      => ENV['TAP_PATH'],
-      :tapenv    => ENV['TAPENV'],
-      :taprc     => ENV['TAPRC'],
+      :tapfile   => ENV['TAPFILE']   || 'tapfile',
+      :gems      => ENV['TAP_GEMS']  || '.',
+      :path      => ENV['TAP_PATH']  || '.',
+      :tapenv    => ENV['TAPENV']    || 'tapenv',
+      :taprc     => ENV['TAPRC']     || '~/.taprc:taprc',
       :tap_cache => ENV['TAP_CACHE'] || '~/.tap',
       :debug     => ENV['TAP_DEBUG']
     }
-    
     options
   end
   

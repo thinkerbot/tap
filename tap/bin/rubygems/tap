@@ -1,7 +1,0 @@
-ENV['TAPFILE']   ||= 'tapfile'
-ENV['TAP_GEMS']  ||= '.'
-ENV['TAP_PATH']  ||= '.'
-ENV['TAPENV']    ||= 'tapenv'
-ENV['TAPRC']     ||= '~/.taprc:taprc'
-ENV['TAP_CACHE'] ||= '~/.tap'
-load File.expand_path('../../tap', __FILE__)
