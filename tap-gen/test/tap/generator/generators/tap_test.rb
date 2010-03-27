@@ -1,26 +1,33 @@
 require File.join(File.dirname(__FILE__), '../../../tap_test_helper.rb') 
 require 'tap/generator/generators/tap'
 require 'tap/generator/preview.rb'
+require 'tap/version'
+require 'rbconfig'
 
 class TapTest < Test::Unit::TestCase
-
-  # Preview fakes out a generator for testing
-  Preview = Tap::Generator::Preview
+  include Tap::Generator
+  include Generators
+  acts_as_tap_test
+  acts_as_shell_test
   
-  acts_as_tap_test 
+  #
+  # process test
+  #
   
-  def test_tap
-    g = Tap::Generator::Generators::Tap.new.extend Preview
+  def test_tap_generator
+    t = Tap.new.extend Preview
     
-    # check the files and directories
     assert_equal %w{
-      tap/generator/generators/tap_file.txt
-    }, g.process
+      tap
+      profile.sh
+    }, t.process
     
-    # check the content as necessary
-    assert_equal %q{
-# A sample template file.
-key: value
-}, "\n" + g.preview['tap/generator/generators/tap_file.txt']
+    tap = Tempfile.new('tap.rb')
+    tap << t.preview['tap'] 
+    tap.close
+    
+    sh_match %Q{ruby '#{tap.path}' -d- 2>&1},
+      /ruby: #{RbConfig::CONFIG['RUBY_INSTALL_NAME']}-#{RUBY_VERSION} \(#{RUBY_RELEASE_DATE}\)/m,
+      /tap: #{::Tap::VERSION}/m
   end
 end

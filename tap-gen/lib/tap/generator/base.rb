@@ -122,7 +122,7 @@ module Tap
         
         iterate(actions) do |action, args, block|
           send(action, *args, &block)
-        end
+        end.compact
       end
       
       # Overridden in subclasses to add actions to the input Manifest.

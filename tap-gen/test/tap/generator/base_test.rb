@@ -34,13 +34,13 @@ class BaseTest < Test::Unit::TestCase
     def manifest(m, *argv)
     end
     def iterate(actions)
-      "results"
+      ["a", nil, "b"]
     end
   end
   
-  def test_process_returns_iterate_results
+  def test_process_returns_compact_iterate_results
     b.extend MockIterate
-    assert_equal "results", b.process
+    assert_equal ["a", "b"], b.process
   end
   
   #

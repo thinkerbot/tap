@@ -24,7 +24,7 @@ class GeneratorGeneratorTest < Test::Unit::TestCase
     }, g.process('const_name')
     
     assert !GeneratorGeneratorTest.const_defined?(:ConstNameGenerator)
-    eval(g.preview['lib/const_name.rb'])
+    eval(g.preview['lib/const_name.rb'], TOPLEVEL_BINDING)
     
     method_root.prepare('template_file.erb') do |file|
       file << g.preview['templates/const_name/template_file.erb']
