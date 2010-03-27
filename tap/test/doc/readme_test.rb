@@ -121,15 +121,18 @@ end
   def test_gem_install_readme
     extended_test do
       gem_test do |gem_env|
-        sh_test %q{
-          % tap load/yaml 2>&1
+        gem_env.merge!('TAP_GEMS' => '.')
+        tap_path = method_root.path('gem/bin/tap')
+        
+        sh_test %Q{
+          '#{tap_path}' load/yaml 2>&1
           unresolvable constant: "load/yaml" (RuntimeError)
         }, :env => gem_env
       
         sh_gem("gem install '#{build_gem("tap-tasks")}' --local --no-rdoc --no-ri", :env => gem_env)
-      
-        sh_test %q{
-          % tap load/yaml "[1, 2, 3]" -: dump/yaml 2>&1
+        
+        sh_test %Q{
+          '#{tap_path}' load/yaml "[1, 2, 3]" -: dump/yaml 2>&1
           --- 
           - 1
           - 2

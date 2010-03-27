@@ -10,10 +10,10 @@ class TapTest < Test::Unit::TestCase
   # setup test
   #
   
-  def test_setup_load_tapfile_path_files
+  def test_setup_loads_files_on_tapfile_path
     a = method_root.prepare('a')   {|io| io.puts 'Tap::App.instance.set("A", Tap::App.instance)'}
     b = method_root.prepare('b')   {|io| io.puts 'Tap::App.instance.set("B", Tap::App.instance)'}
-    app = Tap.setup(:tapfile_path => "#{a}:#{b}")
+    app = Tap.setup(:tapfile => "#{a}:#{b}")
     
     assert_equal app, app.objects['A']
     assert_equal app, app.objects['B']
@@ -31,20 +31,20 @@ class TapTest < Test::Unit::TestCase
     assert_equal ['c.rb'], app.env.resolve('C').require_paths
   end
   
-  def test_setup_loads_tapenv_path_path_in_env_context
+  def test_setup_loads_files_on_tapenv_path_in_env_context
     method_root.prepare('one/lib/a.rb')   {|io| io.puts '# ::task'}
     method_root.prepare('two/lib/b/c.rb') {|io| io.puts '# B::task'}
     
     a = method_root.prepare('a') {|io| io.puts "auto '#{method_root.path('one')}'" }
     b = method_root.prepare('b') {|io| io.puts "auto '#{method_root.path('two')}'" }
     
-    app = Tap.setup(:tapenv_path => "#{a}:#{b}")
+    app = Tap.setup(:tapenv => "#{a}:#{b}")
     
     assert_equal ['a.rb'], app.env.resolve('A').require_paths
     assert_equal ['b/c.rb'], app.env.resolve('B').require_paths
   end
   
-  def test_setup_loads_taprc_path_in_app_context
+  def test_setup_loads_files_on_taprc_path_in_app_context
     a = method_root.prepare('a') do |io|
       io.puts "env/set Tap::Tasks::Load"
       io.puts "set 0 tap/tasks/load"
@@ -56,7 +56,7 @@ class TapTest < Test::Unit::TestCase
       io.puts "set 1 tap/tasks/dump"
     end
     
-    app = Tap.setup(:taprc_path => "#{a}:#{b}")
+    app = Tap.setup(:taprc => "#{a}:#{b}")
     assert_equal Tap::Tasks::Load, app.get('0').class
     assert_equal Tap::Tasks::Dump, app.get('1').class
   end

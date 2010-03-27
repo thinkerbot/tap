@@ -77,7 +77,11 @@ module Tap
         ENV.clear if replace
         
         env.each_pair do |key, value|
-          ENV[key] = value
+          if value.nil?
+            ENV.delete(key)
+          else
+            ENV[key] = value
+          end
         end if env
         
         current_env

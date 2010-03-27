@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.summary = "A configurable, distributable workflow framework."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.bindir = "bin"
+  s.bindir = "bin/rubygems"
   s.executables = "tap"
   s.add_dependency("configurable", ">= 0.6.0")
   s.post_install_message = %q{
@@ -35,6 +35,7 @@ Gem::Specification.new do |s|
     doc/Setup}
   
   s.files = %W{
+    bin/tap
     lib/tap.rb
     lib/tap/app.rb
     lib/tap/app/api.rb

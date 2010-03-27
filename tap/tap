@@ -1,7 +1,6 @@
 #! /usr/bin/env ruby
 # This executable is used to launch bin/tap during testing.
 
-ENV['TAP_GEMS'] ||= ''
 ENV['TAP_PATH'] ||= '.:../tap-tasks'
 
 root = File.expand_path('..', __FILE__)

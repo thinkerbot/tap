@@ -15,6 +15,11 @@ require 'tap/parser'
 begin
   options = Tap.options
   
+  if ARGV[-1] == '-d-'
+    ARGV.pop
+    options[:errlog] = true
+  end
+  
   if options[:debug] == 'true'
     $DEBUG = true 
   end
@@ -23,16 +28,6 @@ begin
     puts Lazydoc.usage(__FILE__)
     puts "\nversion #{Tap::VERSION} -- #{Tap::WEBSITE}"
     exit(0)
-  end
-  
-  # Assume this script is running through RubyGems if Gem is defined and set
-  # the default (convenience) environment variables
-  if Object.const_defined?(:Gem)
-    options[:tapfile_path] ||= 'tapfile'
-    options[:gems]         ||= '.'
-    options[:path]         ||= '.'
-    options[:tapenv_path]  ||= 'tapenv'
-    options[:taprc_path]   ||= '~/.taprc:taprc'
   end
   
   app = Tap.setup(options)

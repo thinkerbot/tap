@@ -7,8 +7,9 @@ module Tap
     class Cache
       attr_reader :cache_home
       
-      def initialize(dir=Dir.pwd)
+      def initialize(dir=Dir.pwd, debug=false)
         @cache_home = File.expand_path("#{RbConfig::CONFIG['RUBY_INSTALL_NAME']}/#{RUBY_VERSION}", dir)
+        @debug = debug
       end
       
       def select(dependencies)
@@ -54,7 +55,10 @@ module Tap
               FileUtils.mkdir_p(cache_home)
             end
             
-            Tap.debug { [:generate, spec.full_name] }
+            if @debug 
+              $stderr.puts "%12s: %s" % [:generate, spec.full_name]
+            end
+            
             File.open(path, 'w') do |io|
               io << generate(spec)
             end
