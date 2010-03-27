@@ -17,13 +17,9 @@ begin
   
   if ARGV[-1] == '-d-'
     ARGV.pop
-    options[:errlog] = true
+    options[:debug] = true
   end
   
-  if options[:debug] == 'true'
-    $DEBUG = true 
-  end
-
   if ARGV == ['--help']
     puts Lazydoc.usage(__FILE__)
     puts "\nversion #{Tap::VERSION} -- #{Tap::WEBSITE}"
@@ -58,7 +54,7 @@ begin
   # shouldn't be an issue.
   Signal.trap('INT') do
     puts
-    puts "Interrupt!  Signals from an interruption are not thread-safe."
+    puts "Interrupt! Signals from an interruption are not thread-safe."
   
     require 'tap/tasks/prompt'
     prompt = Tap::Tasks::Prompt.new({:prompt => '~/'}, app)
@@ -87,7 +83,7 @@ begin
 rescue(SystemExit)
   raise
 rescue(Exception)
-  raise if $DEBUG
+  raise if $DEBUG || options[:debug]
   $stderr.puts "#{$!.message} (#{$!.class})"
   exit(1)
 end

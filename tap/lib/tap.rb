@@ -28,13 +28,13 @@ module Tap
     
     def options.process(key, default=nil)
       value = self[key] || default
-      if self[:errlog]
+      if self[:debug]
         $stderr.puts "%12s: %s" % [key, value]
       end
       value && block_given? ? yield(value) : nil
     end
     
-    if options[:errlog]
+    if options[:debug]
       options.process(:ruby, "#{RbConfig::CONFIG['RUBY_INSTALL_NAME']}-#{RUBY_VERSION} (#{RUBY_RELEASE_DATE})")
       options.process(:tap, VERSION)
     end
@@ -48,7 +48,7 @@ module Tap
     options.process(:gems) do |gems|
       cache_dir = options[:tap_cache]
       cache_dir = Dir.tmpdir if cache_dir.to_s.strip.empty?
-      env.signal(:load).call Env::Cache.new(cache_dir, options[:errlog]).select(gems)
+      env.signal(:load).call Env::Cache.new(cache_dir, options[:debug]).select(gems)
     end
     
     options.process(:path) do |path|
