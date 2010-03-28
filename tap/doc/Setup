@@ -1,37 +1,89 @@
 = Setup
 
 By default the tap executable that runs through RubyGems is setup for
-convenience, not speed. To make all installed tasks available, tap activates
-the most recent version of every gem with a tap.yml file. Under development,
-this is definitely the most useful setup but it is 'loading the world' and visibly slows launch time (there is no effect on execution).
+convenience, not performance. RubyGems allows tap to make resources from gems
+automatically available, but the overhead of RubyGems significantly slows the
+tap launch time.
 
-Much better performance can be achieved by circumventing RubyGems. Tap can be
+Much faster startup can be achieved by circumventing RubyGems. Tap can be
 installed as a single file that you put along your PATH. Run in this way, the
-executable will not load RubyGems, activate installed gems, or do anything you
-don't specifically configure it to do (see the ENV section below).
+executable will not load RubyGems nor guess which resources you want made
+available. This setup can be very useful when launch time matters but requires
+users to manually configure tap using several ENV variables (see below).
+
+To be clear, the performance difference is between fast and instantaneous.
+Most people will not need to go through this setup, which can be a little
+technical.
 
 == Installation
 
-To install tap along your path:
+To generate an installable tap:
 
+  % gem install tap-gen
+  % tap generate tap
 
-== ENV
+This will produce an executable 'tap' file and a 'profile.sh' script that will
+export sensible ENV defaults.
+
+  % source profile.sh
+  % ./tap -d-
+          ruby: ruby-1.9.1 (2010-01-10)
+           tap: 1.0.0
+       tapfile: tapfile
+          gems: 
+          path: .
+        tapenv: ~/.tapenv:tapenv
+         taprc: ~/.taprc:taprc
+
+As shown, the executable can be run immediately, if desired. To install,
+replace the executable run by RubyGems with the generated one and append the
+profile script to your bash profile. For example, you could do this (<em>be
+sure you know what this does before doing it</em>):
+
+  # check which tap to replace
+  % which tap
+  /usr/bin/tap
+  
+  # backup files
+  % mv /usr/bin/tap /usr/bin/tap.bak
+  % cp ~/.bash_profile ~/.bash_profile.bak
+  
+  # install
+  % mv tap /usr/bin/tap
+  % cat profile.sh >> ~/.bash_profile
+  
+  # uninstall
+  % mv /usr/bin/tap.bak /usr/bin/tap
+  % mv ~/.bash_profile.bak ~/.bash_profile
+
+When you first install tap like this, tap will have no resources loaded by
+default. Generate tapenv files for the resources you want available using the
+env generator. To make all current gems available, run this command to create
+a ~/tapenv file:
+
+  % TAP_GEMS=. tap generate env --auto -: dump ~/tapenv
+
+Note the generated tap is linked to the version of tap used to run the
+generator; you will have to regenerate both when you upgrade tap or it's
+dependencies. Likewise you will have to re-run the tapenv generator when you
+install or upgrade gems that the executable needs to access.
+
+= ENV
 
 Configuring the tap is a matter of setting ENV variables that tell the
 executable what to make available in workflows. Each of the ENV variables can
 be treated like PATH, where multiple paths are joined by ':'. The ENV files
 are handled in order as listed, before the command line workflow is parsed.
-The defaults apply only to the executable running via RubyGems.
 
-Note that tap can be configured with the ENV variables even when run through
-RubyGems -- it just won't launch as fast as possible. The biggest drag is
-loading RubyGems itself, although activating gems does play a part.
+Note the defaults apply only to the executable running via RubyGems. The
+installed tap does not set any default values by itself; that's what the
+profile.sh script is intended to do.
 
 === TAPFILE (default 'tapfile')
 
-Specifies ruby files that will be loaded after the default app and env are
-initialized. Tapfiles can be used to declare tasks, typically using the
-Tap::Declarations module, or to manually setup workflows.
+Specifies ruby files that will be loaded immediately after the default app and
+env are initialized. Tapfiles can be used to declare tasks, typically using
+the Tap::Declarations module, or to manually setup workflows.
 
   [tapfile]
   require 'tap/declarations'
@@ -57,6 +109,9 @@ empty string to specify no gems.
   unresolvable constant: "inspect" (RuntimeError)
   % TAP_GEMS= tap inspect a b c
   unresolvable constant: "inspect" (RuntimeError)
+
+Note that any matching gems will be activated when tap launches. Using this
+configuration will load RubyGems and slow the launch time.
 
 === TAP_PATH (default '.')
 
