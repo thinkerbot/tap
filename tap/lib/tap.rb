@@ -46,7 +46,12 @@ module Tap
     
     options.process(:gems) do |gems|
       cache_dir = options[:tap_cache]
-      cache_dir = Dir.tmpdir if cache_dir.to_s.strip.empty?
+      
+      if cache_dir.to_s.strip.empty?
+        require 'tmpdir'
+        cache_dir = Dir.tmpdir
+      end
+      
       env.signal(:load).call Env::Cache.new(cache_dir, options[:debug]).select(gems)
     end
     

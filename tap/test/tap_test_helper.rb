@@ -17,7 +17,7 @@ end
 
 module TapTestMethods
   TAP_ROOT = File.expand_path("../..", __FILE__)
-  
+
   def setup
     super
     @pwd = Dir.pwd
@@ -37,7 +37,7 @@ module TapTestMethods
         "-I'#{TAP_ROOT}/../configurable/lib'",
         "-I'#{TAP_ROOT}/../lazydoc/lib'",
         "-I'#{TAP_ROOT}/lib'",
-        "'#{TAP_ROOT}/bin/tap'"
+        "'#{TAP_ROOT}/bin/tapexe'"
       ].join(" "),
       :indents => true,
       :env => default_env,
@@ -48,12 +48,17 @@ module TapTestMethods
   def default_env
     {
       'HOME' => method_root.path('home'),
-      'TAPFILE'  => '',
-      'TAP_GEMS' => '', 
-      'TAP_PATH' => "#{TAP_ROOT}:.",
-      'TAPENV'   => '',
-      'TAPRC'    => '',
-      'TAP_GEMS' => ''
+      'TAPFILE'   => nil,
+      'TAP_GEMS'  => nil,
+      'TAP_PATH'  => "#{TAP_ROOT}:.",
+      'TAPENV'    => nil,
+      'TAPRC'     => nil,
+      'TAP_GEMS'  => nil,
+      'TAP_DEBUG' => nil,
+      
+      # optimization for jruby:
+      # http://blog.headius.com/2010/03/jruby-startup-time-tips.html
+      'JAVA_OPTS' => "-d32"
     }
   end
   
