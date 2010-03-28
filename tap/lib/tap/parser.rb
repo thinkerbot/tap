@@ -15,6 +15,8 @@ module Tap
     
     EXECUTE = '-!'
     
+    SIGENQ = '-@'
+    
     # Matches a sequence break. After the match:
     #
     #   $1:: The modifier string, or nil
@@ -98,6 +100,8 @@ module Tap
             current << arg
           when JOIN
             current = parse_join($1)
+          when SIGENQ
+            current = parse_signal(nil, 'enq')
           when SIGNAL
             current = parse_signal($1, $2)
           when EXECUTE
