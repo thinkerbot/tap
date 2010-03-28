@@ -252,11 +252,12 @@ module Tap
           :cmd => '2>&1 ',
           :indents => true,
           :env => {
-            'TAPFILE'  => '',
-            'TAP_GEMS' => '', 
-            'TAP_PATH' => '.',
-            'TAPENV'   => '',
-            'TAPRC'    => ''
+            'TAPFILE'   => nil,
+            'TAP_GEMS'  => nil, 
+            'TAP_PATH'  => nil,
+            'TAPENV'    => nil,
+            'TAPRC'     => nil,
+            'TAP_DEBUG' => nil
           },
           :replace_env => false
         }
