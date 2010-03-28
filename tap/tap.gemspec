@@ -35,6 +35,7 @@ Gem::Specification.new do |s|
     doc/Setup}
   
   s.files = %W{
+    bin/tapexe
     lib/tap.rb
     lib/tap/app.rb
     lib/tap/app/api.rb

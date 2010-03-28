@@ -11,7 +11,7 @@ module Tap
         
         def manifest(m)
           load_paths = load_paths('lazydoc', 'configurable', 'tap')
-          bin_path = File.join(load_paths.last.chomp('lib'), 'bin/tap')
+          bin_path = File.join(load_paths.last.chomp('lib'), 'bin/tapexe')
           
           m.template name, 'tap.erb', {
             :load_paths => load_paths,
