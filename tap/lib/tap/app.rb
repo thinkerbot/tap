@@ -268,8 +268,10 @@ module Tap
     end
     
     # Returns a new node that executes block on call.
-    def node(&block) # :yields: *args
-      Node.intern(self, &block)
+    def node(var=nil, &block) # :yields: *args
+      node = Node.intern(self, &block)
+      set(var, node) if var
+      node
     end
     
     # Generates a join between the inputs and outputs.
