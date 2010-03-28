@@ -3,8 +3,9 @@ require 'tap/generator/generators/generator'
 require 'tap/generator/preview.rb'
 
 class GeneratorGeneratorTest < Test::Unit::TestCase
-  include Tap::Generator
-  include Generators
+  Preview = Tap::Generator::Preview
+  Generator = Tap::Generator::Generators::Generator
+
   acts_as_tap_test
   
   #
@@ -24,7 +25,7 @@ class GeneratorGeneratorTest < Test::Unit::TestCase
     }, g.process('const_name')
     
     assert !GeneratorGeneratorTest.const_defined?(:ConstNameGenerator)
-    eval(g.preview['lib/const_name.rb'], TOPLEVEL_BINDING)
+    eval(g.preview['lib/const_name.rb'])
     
     method_root.prepare('template_file.erb') do |file|
       file << g.preview['templates/const_name/template_file.erb']

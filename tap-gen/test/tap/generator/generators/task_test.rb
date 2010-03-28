@@ -3,8 +3,9 @@ require 'tap/generator/generators/task'
 require 'tap/generator/preview.rb'
 
 class TaskGeneratorTest < Test::Unit::TestCase
-  include Tap::Generator
-  include Generators
+  Preview = Tap::Generator::Preview
+  Task = Tap::Generator::Generators::Task
+  
   acts_as_tap_test
   
   #
@@ -22,7 +23,7 @@ class TaskGeneratorTest < Test::Unit::TestCase
     }, t.process('task_const_name')
     
     assert !TaskGeneratorTest.const_defined?(:TaskConstName)
-    eval(t.preview['lib/task_const_name.rb'], TOPLEVEL_BINDING)
+    eval(t.preview['lib/task_const_name.rb'])
 
     assert_equal "goodnight moon", TaskConstName.new.process('moon')
     assert_equal "hello world", TaskConstName.new(:message => 'hello').process('world')
@@ -49,7 +50,7 @@ class TaskGeneratorTest < Test::Unit::TestCase
     }, t.process('nested/const')
     
     assert !TaskGeneratorTest.const_defined?(:Nested)
-    eval(t.preview['lib/nested/const.rb'], TOPLEVEL_BINDING)
+    eval(t.preview['lib/nested/const.rb'])
     
     assert_equal "goodnight moon", Nested::Const.new.process('moon')
   end

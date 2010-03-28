@@ -3,8 +3,6 @@ require 'tap/generator/generators/middleware'
 require 'tap/generator/preview.rb'
 
 class MiddlewareGeneratorTest < Test::Unit::TestCase
-
-  # Preview fakes out a generator for testing
   Preview = Tap::Generator::Preview
   Middleware = Tap::Generator::Generators::Middleware
   
