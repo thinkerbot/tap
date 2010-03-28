@@ -1,0 +1,92 @@
+= Configuration
+
+Configuring tap is a matter of setting ENV variables that tell the executable
+what to make available to workflows. Each of the ENV variables can be treated
+like PATH, where multiple paths may be joined by a colon. The config files
+specified in the ENV are handled in order as listed, before the command line
+workflow is parsed.
+
+=== TAPFILE (default 'tapfile')
+
+Specifies ruby files that will be loaded immediately after the default app and
+env are initialized. Tapfiles can be used to declare tasks, typically using
+the Tap::Declarations module, or to manually setup workflows.
+
+  [tapfile]
+  require 'tap/declarations'
+  Tap.task :goodnight do |task, args|
+    "Goodnight #{args}!"
+  end
+  
+  % tap goodnight Moon -: dump
+  Goodnight Moon!
+
+=== TAP_GEMS (default '.')
+
+Specifies globs of gems to automatically load into the environment. Versions
+can be specified as normal, separated by a comma. Use an empty string to
+specify no gems.
+
+  % gem install tap-tasks
+  % TAP_GEMS=. tap inspect a b c
+  ["a", "b", "c"]
+  % TAP_GEMS=tap-ta* tap inspect a b c
+  ["a", "b", "c"]
+  % TAP_GEMS='tap-tasks, >= 0.6.0' tap inspect a b c
+  ["a", "b", "c"]
+  % TAP_GEMS=nomatch tap inspect a b c
+  unresolvable constant: "inspect" (RuntimeError)
+  % TAP_GEMS= tap inspect a b c
+  unresolvable constant: "inspect" (RuntimeError)
+
+Note that all matching gems will be activated when tap launches.
+
+=== TAP_PATH (default '.')
+
+Specifies directories to be scanned and registered with the tap env. All files
+matching TAP_PATH/lib/**/*.rb will be scanned for constants; TAP_PATH itself
+will be registered as a path in env. If TAP_PATH/tap.yml exists, it will be
+loaded as a map of paths.
+
+As a shorthand, just know that any constants under the lib directory of
+TAP_PATH will be discovered.
+
+  [dir/lib/goodnight.rb]
+  require 'tap/task'
+  
+  # ::task
+  class Goodnight < Tap::Task
+    def process(input)
+      puts "goodnight #{input}"
+    end
+  end
+  
+  % tap goodnight moon
+  unresolvable constant: "goodnight" (RuntimeError)
+  % TAP_PATH=dir tap goodnight moon
+  goodnight moon
+  
+=== TAPENV (default 'tapenv')
+
+Specifies signal files to be loaded in the env context. These files can be
+used to manually adjust an environment by setting/unsetting constants and
+resource paths.
+
+  [tapenv]
+  unset Tap::Tasks::Dump
+  
+  % tap load a -: dump
+  unresolvable constant: "dump" (RuntimeError)
+
+=== TAPRC (default '~/.taprc:taprc')
+
+Specifies signal files to be loaded in the app context. These files can be
+used to manually build workflows, or configure the app.
+
+  [taprc]
+  set loader load
+  set dumper dump
+
+  % tap - join loader dumper -/enq loader 'goodnight moon'
+  goodnight moon
+

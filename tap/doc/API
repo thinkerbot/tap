@@ -1,33 +1,32 @@
 = Application Programming Interfaces
 
-Applications require the following methods for nodes, joins, and middleware.
-Tap provides base classes that implement these APIs. Notably, all joins
-satisfy the node API.
+All of the objects used by tap have two APIs -- one regarding the specific
+type of object (ex a node, a join, or middleware), and another regarding how
+applications find and use the objects. These APIs allow users to make custom
+objects.
 
-Objects satisfying the node, join, or middleware API are referred to as
-workflow objects.
+== Object Interface
+
+Applications require the following methods for nodes, joins, and middleware.
+Tap provides base classes that implement these APIs. Objects satisfying the
+node, join, or middleware API are referred to as workflow objects.
 
 === {Node}[link:classes/Tap/App/Node.html] ({Task}[link:classes/Tap/Task.html])
 
   call(input)                    # any return is allowed
-  joins()                        # returns an enumerable of joins, or nil (optional)
+  joins()                        # returns an array of joins, or nil (optional)
 
 The call method takes an object and returns an object. There are no formal
-constraints for the input/output objects.
-
-The optional joins method specifies an enumerable of joins (ie an object that
-responds to each) to be called by an application when the node completes. Each
-join is called in order. An empty array specifies the default application
-joins should be called; nil specifies that no joins should be called. No joins
-will be called when the joins method is left undefined.
+constraints for the input/output objects. The optional joins method returns an
+array of joins to be called when the node completes, or nil if no joins are to
+be called. Each join is called in order.
 
 === {Join}[link:classes/Tap/Join.html]
 
   call(output)                   # any return is allowed
 
-The call method receives the output of a node. The result of call is not used
-(although it could be if a join is used as a node); call internally performs
-the join actions.
+The call method receives the output of a node. The result of call is not used;
+call internally performs the join actions.
 
 === {Middleware}[link:classes/Tap/Middleware.html]
 
@@ -36,9 +35,7 @@ the join actions.
   stack()                        # returns the original stack
 
 Middleware wraps the execution of nodes. Nodes and inputs are passed to the
-middleware during execution; the middleware is responsible for calling the
-node or passing it into the stack using the same call API. Joins, if defined,
-are performed with the call output.
+middleware during execution. Joins are performed with the call output.
 
 == {Application Interface}[link:classes/Tap/App/Api.html]
 
@@ -53,7 +50,12 @@ specification and must be serializable as {JSON}[http://json.org/] (meaning
 the hash must consist of simple object types: numbers, strings, hashes, and
 arrays).
 
-The application interface consists of two methods, build and to_spec:
+The application interface consists of two methods:
+
+  Const.build(spec, app)         # returns an instance of self
+  to_spec                        # returns a spec
+
+As an example:
 
   class Example
     class << self
@@ -74,14 +76,20 @@ The application interface consists of two methods, build and to_spec:
   end
 
 The application interface reserves several additional methods that do not need
-to be implemented but add functionality for specific, common use cases. If
-they are present they must adhere to these specifications.
+to be implemented but add functionality for specific, common use cases. These
+are:
 
-  # Optional methods #
+  Const.parse(argv, app)         # returns an instance of self, cannot modify ARGV
+  Const.parse!(argv, app)        # same as parse but can modify ARGV
+  signal(sig)                    # returns an object responding to call
+  associations                   # returns an array like [refs, brefs]
+
+If present they must do the following:
+
   class Example
     class << self
-      # Parse takes an argument vector (an array, usually from the command
-      # line) and returns an instance of self.  If a block is given, parse
+      # Takes an argument vector (an array, usually from the command line)
+      # and returns an instance of self.  If a block is given, parse
       # yields the instance and remaining args and returns block result.
       #
       # Parse should not modify argv.
@@ -117,7 +125,7 @@ they are present they must adhere to these specifications.
   end
 
 The parse methods are used for building objects from interfaces that provide
-an array of inputs (ex the command line) rather a hash; without them objects
+an array of inputs rather a hash (ex the command line); without them objects
 are effectively excluded from use within these interfaces.
 
 Signals can be used to interact with specific objects from a user interface
@@ -129,39 +137,39 @@ more detail below.
 
 === Object References
 
-Specifications often require references to other resources, as when a join
-refers to input and output nodes. These references are normally specified as
-variables that, unlike the resource itself, are easily serializable as JSON.
-Apps manage variables via the +obj+ and +var+ methods.
+Specifications often require references to other application objects, as when
+a join refers to input and output nodes. These references are normally
+specified as variables that, unlike the object itself, are serializable as
+JSON. Apps manage variables via the +obj+ and +var+ methods.
 
-As an example, consider the Sample class that references some other
-application object:
+As an example:
 
-  class Sample
-    def initialize(object)
-      @object = object
+  class A
+    def initialize(b)
+      @b = b
     end
 
     def to_spec
-      {'key' => app.var(@object)}        # store a variable into the spec
+      {'b' => app.var(@b)}       # store a variable into the spec
     end
 
     def associations
-      [[@object], nil]                   # establish a build order
+      [[@b], nil]                # establish a build order
     end
     
     class << self
       def build(spec={}, app=Tap::App.instance)
-        object = app.obj(spec['key'])    # retrieve an object referenced by the spec
-        new(object)
+        b = app.obj(spec['b'])   # retrieve an object referenced by the spec
+        new(b)
       end
     end
   end
 
-Using this technique the spec will have a serializable variable representing
-the object and the app will be able to properly serialize and rebuild the
-instance and all its references. Applications use the associations array to
-determine the correct build-order for the references.
+The to_spec method records a variable identifying @b, rather than @b itself,
+which allows the spec to be properly serialized. Likewise the build method
+de-references the variable to retrieve b when initializing a new instance; the
+associations array is used to ensure that b is built by the time A.build tries
+to de-reference the variable.
 
 Note that only references to objects implementing the application interface
 should be stored this way.

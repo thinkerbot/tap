@@ -33,21 +33,6 @@ class NullTest < Test::Unit::TestCase
     assert_equal nil, task.process(1, 2) {}
   end
   
-  def test_null_does_not_execute_app_defaullt_joins
-    was_in_block = false
-    app.on_complete { was_in_block = true }
-    
-    task.enq
-    app.run
-    
-    assert_equal false, was_in_block
-    
-    app.node {}.enq
-    app.run
-    
-    assert_equal true, was_in_block
-  end
-  
   #
   # on_complete test
   #

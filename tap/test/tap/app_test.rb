@@ -6,314 +6,19 @@ class AppTest < Test::Unit::TestCase
   extend Tap::Test
   acts_as_file_test
   acts_as_subset_test
-  
   App = Tap::App
   
-  attr_reader :app, :runlist, :results
+  attr_reader :app
     
   def setup
     super
-    
-    @results = []
-    @app = Tap::App.new(:debug => true) do |result|
-      @results << result
-      result
-    end
-    @runlist = []
-  end
-  
-  # returns a tracing executable. node adds the key to 
-  # runlist then returns trace + key
-  def node(key)
-    app.node do |trace| 
-      @runlist << key
-      trace += key
-    end
+    @app = Tap::App.new(:debug => true)
   end
   
   def default_config
     App.new.config.to_hash do |hash, key, value|
       hash[key.to_s] = value
     end
-  end
-  
-  #
-  # documentation test
-  #
-  
-  class AuditMiddleware
-    attr_reader :stack, :audit
-
-    def initialize(stack)
-      @stack = stack
-      @audit = []
-    end
-
-    def call(node, input)
-      audit << [node, input]
-      stack.call(node, input)
-    end
-  end
-  
-  class Resource
-    class << self
-      def parse(argv=ARGV, app=Tap::App.instance)
-        build({'argv' => argv}, app)
-      end
-
-      def build(spec={}, app=Tap::App.instance)
-        new(spec['argv'], app)
-      end
-    end
-
-    attr_reader :argv, :app
-    def initialize(argv, app)
-      @argv = argv
-      @app = app
-    end
-
-    def associations
-      nil
-    end
-
-    def to_spec
-      {'argv' => @argv}
-    end
-  end
-  
-  class Resource
-    include Tap::Signals
-    signal :length
-
-    def length(extra=0)
-      @argv.length + extra
-    end
-  end
-  
-  def test_app_documentation
-    # implement a command line workflow in ruby
-    # % cat [file] | sort
-  
-    app = Tap::App.new
-    cat  = app.node {|file| File.read(file) }
-    sort = app.node {|str| str.split("\n").sort }
-    cat.on_complete {|res| sort.enq(res) }
-  
-    results = []
-    app.on_complete {|result| results << result }
-  
-    example = method_root.prepare(:tmp, "example.txt") do |io|
-      io.puts "a"
-      io.puts "c"
-      io.puts "b"
-    end
-    
-    cat.enq(example)
-    app.run
-    assert_equal [["a", "b", "c"]], results
-  
-    rsort = app.node {|str| str.split("\n").sort.reverse }
-    cat.on_complete  {|res| rsort.enq(res) }
-    assert_equal 2, cat.joins.length
-    
-    results.clear
-    cat.enq(example)
-    app.run
-    assert_equal [["a", "b", "c"], ["c", "b", "a"]], results
-    
-    ##
-    
-    auditor = app.use AuditMiddleware
-  
-    cat.enq(example)
-    app.run
-  
-    expected = [
-      [cat, [example]],
-      [sort, ["a\nc\nb\n"]],
-      [rsort, ["a\nc\nb\n"]]
-    ]
-    assert_equal expected, auditor.audit
-  
-    ##
-    extended_test do
-      runlist = []
-      node = app.node { runlist << "node" }.enq
-  
-      assert_equal [], runlist
-      assert_equal [[node, []]], app.queue.to_a
-      assert_equal App::State::READY, app.state
-  
-      app.run
-      assert_equal ["node"], runlist
-      assert_equal [], app.queue.to_a
-  
-      sleeper = app.node { sleep 1; runlist << "sleeper" }
-      node.enq
-      sleeper.enq
-      node.enq
-  
-      runlist.clear
-      assert_equal [[node, []], [sleeper, []], [node, []]], app.queue.to_a
-  
-      a = Thread.new { app.run }
-      Thread.new do 
-        Thread.pass while runlist.empty?
-        app.stop
-        a.join
-      end.join
-    
-      assert_equal ["node", "sleeper"], runlist
-      assert_equal [[node, []]], app.queue.to_a
-    
-      app.run
-      assert_equal ["node", "sleeper", "node"], runlist
-      assert_equal [], app.queue.to_a
-
-      terminator = app.node do
-        sleep 1
-        app.check_terminate
-        runlist << "terminator"
-      end
-      node.enq
-      terminator.enq
-      node.enq
-  
-      runlist.clear
-      assert_equal [[node, []], [terminator, []], [node, []]], app.queue.to_a
-  
-      a = Thread.new { app.run }
-      Thread.new do 
-        Thread.pass while runlist.empty?
-        app.terminate
-        a.join
-      end.join
-  
-      assert_equal ["node"], runlist
-      assert_equal [[terminator, []], [node, []]], app.queue.to_a
-  
-      app.run
-      assert_equal ["node", "terminator", "node"], runlist
-      assert_equal [], app.queue.to_a
-    end
-    
-    app = App.new
-    app.set('a', :A)
-    assert_equal :A, app.get('a')
-    assert_equal({'a' => :A}, app.objects)
-  
-    a = Resource.parse([1, 2, 3], app)
-    assert_equal [1, 2, 3], a.argv
-  
-    b = Resource.build(a.to_spec, app)
-    assert_equal [1, 2, 3], b.argv
-  
-    app.build('var' => 'a', 'class' => 'AppTest::Resource', 'spec' => [1, 2, 3])
-    a = app.get('a')
-    assert_equal Resource, a.class
-    assert_equal [1, 2, 3], a.argv
-  
-    app.build('var' => 'b', 'class' => 'AppTest::Resource', 'spec' => {'argv' => [4, 5, 6]})
-    app.build('var' => 'c', 'class' => 'AppTest::Resource', 'argv' => [7, 8, 9])
-    
-    expected = [
-    {'sig' => 'set', 'var' => 'a', 'class' => 'AppTest::Resource', 'argv' => [1, 2, 3]},
-    {'sig' => 'set', 'var' => 'b', 'class' => 'AppTest::Resource', 'argv' => [4, 5, 6]},
-    {'sig' => 'set', 'var' => 'c', 'class' => 'AppTest::Resource', 'argv' => [7, 8, 9]}
-    ]
-    assert_equal expected, app.serialize
-    
-    ###
-  
-    app = App.new
-    app.set('', app)
-    app.call(
-      'obj' => '', 
-      'sig' => 'set', 
-      'args' => {
-        'var' => 'a',
-        'class' => 'AppTest::Resource',
-        'spec' => {'argv' => [1, 2, 3]}
-       }
-    )
-    a = app.get('a')
-    assert_equal Resource, a.class
-    assert_equal [1, 2, 3], a.argv
-  
-    app.call('sig' => 'set', 'var' => 'b', 'class' => 'AppTest::Resource', 'argv' => [4, 5])
-    b = app.get('b')
-    assert_equal Resource, b.class
-    assert_equal [4, 5], b.argv
-  
-    assert_equal 3, a.length
-    assert_equal 2, b.length
-    assert_equal 3, b.length(1)
-  
-    assert_equal 3, app.call('obj' => 'a', 'sig' => 'length', 'args' => [])
-    assert_equal 2, app.call('obj' => 'b', 'sig' => 'length', 'args' => [])
-    assert_equal 3, app.call('obj' => 'b', 'sig' => 'length', 'args' => [1])
-  end
-  
-  class OldAuditMiddleware
-    attr_reader :stack, :audit
-
-    def initialize(stack)
-      @stack = stack
-      @audit = []
-    end
-
-    def call(node, input)
-      audit << node
-      stack.call(node, input)
-    end
-  end
-  
-  def test_old_app_documentation
-    app = Tap::App.new
-    n = app.node {|*inputs| inputs }
-    n.enq('a', 'b', 'c')
-    n.enq(1)
-    n.enq(2)
-    n.enq(3)
-  
-    results = []
-    app.on_complete {|result| results << result }
-  
-    app.run
-    assert_equal [['a', 'b', 'c'], [1], [2], [3]], results
-  
-    ###
-    
-    n0 = app.node { "a" }
-    n1 = app.node {|input| "#{input}.b" }
-    n2 = app.node {|input| "#{input}.c"}
-  
-    n0.on_complete {|result| app.execute(n1, result) }
-    n1.on_complete {|result| app.execute(n2, result) }
-    n0.enq
-  
-    results.clear
-    app.run
-    assert_equal ["a.b.c"], results
-  
-    ###
-  
-    auditor = app.use OldAuditMiddleware
-  
-    n0.enq
-    n2.enq("x")
-    n1.enq("y")
-  
-    results.clear
-    app.run
-    assert_equal ["a.b.c", "x.c", "y.b.c"], results
-                 
-    expected = [
-    n0, n1, n2, 
-    n2,
-    n1, n2
-    ]
-    assert_equal expected, auditor.audit
   end
   
   #
@@ -775,26 +480,6 @@ class AppTest < Test::Unit::TestCase
     assert was_in_block_b
   end
   
-  def test_execute_calls_app_joins_if_no_joins_are_specified
-    n = app.node { "result" }
-    
-    was_in_block_a = false
-    app.on_complete do |result|
-      assert_equal "result", result
-      was_in_block_a = true
-    end
-    
-    was_in_block_b = false
-    app.on_complete do |result|
-      assert_equal "result", result
-      was_in_block_b = true
-    end
-    
-    app.execute(n, [])
-    assert was_in_block_a
-    assert was_in_block_b
-  end
-  
   class NilJoins
     def call(input); "result"; end
     def joins; nil; end
@@ -834,19 +519,11 @@ class AppTest < Test::Unit::TestCase
   # run tests
   #
   
-  def test_simple_enque_and_run
-    node('.b').enq 'a'
-    app.run
-    
-    assert_equal 1, results.length
-    assert_equal 'a.b', results[0]
-    assert_equal ['.b'], runlist
-  end
-  
-  def test_run_calls_each_node_in_order
-    node('a').enq ''
-    node('b').enq ''
-    node('c').enq ''
+  def test_run_calls_each_enqued_node_in_order
+    runlist = []
+    app.node { runlist << 'a' }.enq 
+    app.node { runlist << 'b' }.enq 
+    app.node { runlist << 'c' }.enq 
     app.run
   
     assert_equal ['a', 'b', 'c'], runlist

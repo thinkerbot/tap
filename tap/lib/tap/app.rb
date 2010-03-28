@@ -469,21 +469,12 @@ module Tap
     # - call stack with the node and input
     # - call the node joins (node.joins)
     #
-    # The joins for self will be called if the node joins are an empty array.
-    # No joins will be called if the node joins are nil, or if the node does
-    # not provide a joins method.
-    #
     # Execute returns the stack result.
     def execute(node, input)
       result = stack.call(node, input)
       
       if node.respond_to?(:joins)
         if joins = node.joins
-
-          if joins.empty?
-            joins = self.joins
-          end
-        
           joins.each do |join|
             join.call(result)
           end

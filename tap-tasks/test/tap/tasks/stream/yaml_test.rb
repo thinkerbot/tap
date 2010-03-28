@@ -39,12 +39,13 @@ key: value
   
   def test_stream_yaml_loads_multiple_documents
     io = StringIO.new %Q{--- :one\n--- :two\n--- :three}
-    Stream::Yaml.new.enq(io)
     
     results = []
-    app.on_complete {|result| results << result }
-    app.run
+    task = Stream::Yaml.new
+    task.on_complete {|result| results << result }
+    task.enq(io)
     
+    app.run
     assert_equal([:one, :two, :three], results)
   end
   
