@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), '../../../tap_test_helper.rb') 
+require File.expand_path('../../../../tap_test_helper.rb', __FILE__) 
 require 'tap/generator/generators/env'
 require 'tap/generator/preview.rb'
 
