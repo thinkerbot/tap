@@ -46,7 +46,7 @@ module Tap
           opts.on("--help", "Print this help") do
             puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
             puts help
-            puts "usage: tap #{to_s.underscore} #{args}"
+            puts "usage: tap #{to_s.underscore} #{respond_to?(:args) ? args : nil}"
             puts
             puts opts
             exit
