@@ -6,21 +6,6 @@ like PATH, where multiple paths may be joined by a colon. The config files
 specified in the ENV are handled in order as listed, before the command line
 workflow is parsed.
 
-=== TAPFILE (default 'tapfile')
-
-Specifies ruby files that will be loaded immediately after the default app and
-env are initialized. Tapfiles can be used to declare tasks, typically using
-the Tap::Declarations module, or to manually setup workflows.
-
-  [tapfile]
-  require 'tap/declarations'
-  Tap.task :goodnight do |task, args|
-    "Goodnight #{args}!"
-  end
-  
-  % tap goodnight Moon -: dump
-  Goodnight Moon!
-
 === TAP_GEMS (default '.')
 
 Specifies globs of gems to automatically load into the environment. Versions
@@ -90,3 +75,17 @@ used to manually build workflows, or configure the app.
   % tap - join loader dumper -/enq loader 'goodnight moon'
   goodnight moon
 
+=== TAPFILE (default 'tapfile')
+
+Specifies ruby files that will be executed in the app context. Tapfiles can be
+used to declare tasks, typically using the Tap::Declarations module, or to
+manually setup workflows.
+
+  [tapfile]
+  require 'tap/declarations'
+  Tap.task :goodnight do |task, args|
+    "Goodnight #{args}!"
+  end
+
+  % tap goodnight Moon -: dump
+    Goodnight Moon!

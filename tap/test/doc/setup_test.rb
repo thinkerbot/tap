@@ -19,12 +19,12 @@ class SetupTest < Test::Unit::TestCase
           '#{tap_path}' -d- 2>&1
                   ruby: #{RbConfig::CONFIG['RUBY_INSTALL_NAME']}-#{RUBY_VERSION} (#{RUBY_RELEASE_DATE})
                    tap: #{Tap::VERSION}
-               tapfile: tapfile
                   gems: .
               generate: tap-#{Tap::VERSION}
                   path: .
                 tapenv: tapenv
                  taprc: ~/.taprc:taprc
+               tapfile: tapfile
         }, :env => gem_env
       end
     end

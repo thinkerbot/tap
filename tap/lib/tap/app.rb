@@ -278,6 +278,8 @@ module Tap
     # class using env and initializes a new instance with the configs and
     # self. 
     def join(inputs, outputs, config={}, clas=Join, &block)
+      inputs  = [inputs]  unless inputs.kind_of?(Array)
+      outputs = [outputs] unless outputs.kind_of?(Array)
       init(clas, config, self).join(inputs, outputs, &block)
     end
     
@@ -586,6 +588,10 @@ module Tap
     # block (see App.with_context).
     def scope
       App.with_context(APP => self) { yield }
+    end
+    
+    def eval(str, filename=nil, lineno=0)
+      Kernel.eval(str, binding, filename, lineno)
     end
     
     # Converts the self to a schema that can be used to build a new app with

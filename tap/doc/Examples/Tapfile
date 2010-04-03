@@ -1,0 +1,44 @@
+= Tapfile
+
+Tapfiles can be used to define tasks and workflows, typically using the
+Tap::Declarations syntax which is reminiscent of the Rake syntax.
+
+  [tapfile]
+  require 'tap/declarations'
+  
+
+A task declaration:
+
+  task(<name>, <arg_names...>, {<configs>}) do |task, args|
+    # arguments are available through args:
+    args.arg_name
+    
+    # configurations are available through task
+    task.key
+  end
+
+A task declaration with dependencies:
+
+  task({<name> => [<dependencies...>]}, <arg_names...>, {<configs>}) { task ... }
+
+A namespace declaration:
+
+  namespace(<name>) { task ... }
+ 
+Simple documentation:
+ 
+  desc "description"
+  task ...
+  
+Extended documentation:
+  
+  # :: description
+  # Extended documentation may span multiple lines, and 
+  # supports
+  #
+  #   code indentation
+  #   like this.
+  #
+  # Lines are justified and wrapped on the command line.
+  task ...
+

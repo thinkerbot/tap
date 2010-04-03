@@ -29,11 +29,11 @@ export sensible ENV defaults.
   % ./tap -d-
           ruby: ruby-1.9.1 (2010-01-10)
            tap: 1.0.0
-       tapfile: tapfile
           gems: 
           path: .
         tapenv: ~/.tapenv:tapenv
          taprc: ~/.taprc:taprc
+       tapfile: tapfile
 
 As shown, the executable can be run immediately, if desired. To install,
 replace the executable run by RubyGems with the generated one and append the

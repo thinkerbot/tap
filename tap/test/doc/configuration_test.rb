@@ -7,22 +7,6 @@ class ConfigurationTest < Test::Unit::TestCase
   acts_as_subset_test
   include TapTestMethods
 
-  def test_TAPFILE_doc
-    method_root.prepare('tapfile') do |io|
-      io << %q{
-        require 'tap/declarations'
-        Tap.task :goodnight do |task, arg|
-          "Goodnight #{arg}!"
-        end
-      }
-    end
-    
-    sh_test %q{
-      % tap goodnight Moon -: dump
-      Goodnight Moon!
-    }, :env => default_env.merge('TAPFILE' => 'tapfile')
-  end
-
   def test_TAP_GEMS_doc
     extended_test do
       gem_test do |gem_env|
@@ -106,5 +90,21 @@ class ConfigurationTest < Test::Unit::TestCase
       % tap - join loader dumper -/enq loader 'goodnight moon'
       goodnight moon
     }, :env => default_env.merge('TAPRC' => 'taprc')
+  end
+  
+  def test_TAPFILE_doc
+    method_root.prepare('tapfile') do |io|
+      io << %q{
+        require 'tap/declarations'
+        Tap.task :goodnight do |task, arg|
+          "Goodnight #{arg}!"
+        end
+      }
+    end
+    
+    sh_test %q{
+      % tap goodnight Moon -: dump
+      Goodnight Moon!
+    }, :env => default_env.merge('TAPFILE' => 'tapfile')
   end
 end

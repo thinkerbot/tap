@@ -21,7 +21,8 @@ Gem::Specification.new do |s|
     doc/API
     doc/Workflow\sSyntax
     doc/Ruby\sto\sRuby
-    doc/Examples
+    doc/Examples/Command\sLine
+    doc/Examples/Tapfile
     doc/Configuration}
   
   s.files = %W{

@@ -38,12 +38,6 @@ module Tap
       options.process(:tap, VERSION)
     end
     
-    options.process(:tapfile) do |tapfile_path|
-      Env::Path.split(tapfile_path).each do |tapfile|
-        load(tapfile) if File.file?(tapfile)
-      end
-    end
-    
     options.process(:gems) do |gems|
       cache_dir = options[:tap_cache]
       
@@ -65,6 +59,13 @@ module Tap
     
     options.process(:taprc) do |taprc_path|
       app.signal(:load).call Env::Path.split(taprc_path)
+    end
+    
+    options.process(:tapfile) do |tapfile_path|
+      Env::Path.split(tapfile_path).each do |tapfile|
+        next unless File.file?(tapfile)
+        app.eval File.read(tapfile), tapfile
+      end
     end
     
     app
