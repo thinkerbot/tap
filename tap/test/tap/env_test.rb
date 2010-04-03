@@ -109,6 +109,15 @@ class EnvTest < Test::Unit::TestCase
     assert_raises(RuntimeError) { env.resolve('/nest:') }
   end
   
+  def test_resolve_stringifies_inputs
+    env = Env.new :constants => [
+      Constant.new('A')
+    ]
+    
+    assert_equal 'A', env.resolve('a').const_name
+    assert_equal 'A', env.resolve(:a).const_name
+  end
+  
   #
   # constant test
   #

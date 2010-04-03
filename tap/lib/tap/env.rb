@@ -80,6 +80,8 @@ module Tap
     end
     
     def resolve(const_str, &block)
+      const_str = const_str.to_s
+      
       values = const_str =~ Constant::CONST_REGEXP ? constants_by_const_name($1) : constants_by_path(const_str)
       values = values.select(&block) if block_given?
       
