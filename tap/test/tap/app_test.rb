@@ -223,6 +223,26 @@ class AppTest < Test::Unit::TestCase
     assert_equal "str was provided", n.call(["str"])
   end
   
+  def test_node_sets_node_in_objects_by_var_if_specified
+    n = app.node('var') {}
+    assert_equal n, app.get('var')
+  end
+  
+  #
+  # join test
+  #
+  
+  def test_join_joins_inputs_and_outputs_with_configs
+    a = app.node 
+    b = app.node 
+    app.join [a], [b], :arrayify => true
+    
+    join = a.joins[0]
+    assert_equal [a], join.inputs
+    assert_equal [b], join.outputs
+    assert_equal true, join.arrayify
+  end
+  
   #
   # enq test
   #
@@ -379,6 +399,28 @@ class AppTest < Test::Unit::TestCase
     
     err = assert_raises(RuntimeError) { app.call('obj' => 'var') }
     assert_equal "cannot signal: #{obj.inspect}", err.message
+  end
+  
+  #
+  # init test
+  #
+  
+  class InitClass
+    attr_reader :args
+    attr_reader :block
+    def initialize(*args, &block)
+      @args = args
+      @block = block
+    end
+  end
+  
+  def test_init_resolves_constant_and_initializes_with_args
+    block = lambda {}
+    obj = app.init('AppTest::InitClass', 1, 2, 3, &block)
+    
+    assert_equal InitClass, obj.class
+    assert_equal [1, 2, 3], obj.args
+    assert_equal block, obj.block
   end
   
   #

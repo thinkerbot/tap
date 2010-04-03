@@ -274,9 +274,11 @@ module Tap
       node
     end
     
-    # Generates a join between the inputs and outputs.
-    def join(inputs, outputs, config={}, klass=Join, &block)
-      klass.new(config, self).join(inputs, outputs, &block)
+    # Generates a join between the inputs and outputs.  Join resolves the
+    # class using env and initializes a new instance with the configs and
+    # self. 
+    def join(inputs, outputs, config={}, clas=Join, &block)
+      init(clas, config, self).join(inputs, outputs, &block)
     end
     
     # Enques the node with the input.  Returns the node.
@@ -390,7 +392,13 @@ module Tap
       
       object.signal(sig, &block)
     end
-
+    
+    # Resolves the class in env and initializes a new instance with the args
+    # and block.  Note that the app is not appended to args by default.
+    def init(clas, *args, &block)
+      env.constant(clas).new(*args, &block)
+    end
+    
     def build(spec, &block)
       var = spec['var']
       clas = spec['class']
@@ -415,9 +423,9 @@ module Tap
     
     # Adds the specified middleware to the stack.  The argv will be used as
     # extra arguments to initialize the middleware.
-    def use(middleware, *argv)
+    def use(clas, *argv)
       synchronize do
-        @stack = middleware.new(@stack, *argv)
+        @stack = init(clas, @stack, *argv)
       end
     end
     
