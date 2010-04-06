@@ -262,7 +262,7 @@ module Tap
     #
     def log(action, msg=nil, level=Logger::INFO)
       if !quiet || verbose
-        msg ||= yield
+        msg ||= block_given? ? yield : ''
         logger.add(level, msg, action.to_s)
       end
     end

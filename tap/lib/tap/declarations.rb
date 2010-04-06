@@ -1,132 +1,79 @@
-require 'tap/task'
+require 'tap/workflow'
 require 'tap/env'
-require 'tap/declarations/context'
 require 'tap/declarations/description'
 
 module Tap
   module Declarations
-    
-    # Returns the context app.
-    def app
-      context.app
+    def self.extended(base)
+      base.instance_variable_set(:@desc, nil)
+      base.instance_variable_set(:@namespace, Object)
     end
     
-    # Declares a task with a rake-like syntax.  Task generates a subclass of
-    # Tap::Task, nested within the current namespace.
-    def task(name, configs={}, desc=nil, &block)
-      # generate the task class (note that nesting Task classes into other
-      # Task classes is required for namespaces with the same name as a task)
-      const_name = File.join(context.namespace, name.to_s).camelize
-      tasc = declaration_class.subclass(const_name, configs, &block)
-      
-      # register documentation
-      desc ||= Lazydoc.register_caller(Description)
-      desc.desc = context.desc
-      context.desc = nil
-      
-      tasc.desc = desc
-      register tasc
+    # Sets the description for use by the next task declaration.
+    def desc(str)
+      @desc = Lazydoc.register_caller(Description)
+      @desc.desc = str
+      @desc
     end
     
     # Nests tasks within the named module for the duration of the block.
     # Namespaces may be nested.
     def namespace(name)
-      previous_namespace = context.namespace
-      namespace = File.join(previous_namespace, name.to_s.underscore)
-      context.namespace = namespace
-      yield
-      context.namespace = previous_namespace
-    end
-    
-    # Sets the description for use by the next task declaration.
-    def desc(str)
-      context.desc = str
-    end
-    
-    private
-    
-    # The declarations context.
-    def context
-      @context ||= Context.instance
-    end
-    
-    # The class of task declared by task, by default Tap::Task. 
-    # Used as a hook to set the declaring class in including modules 
-    # (such as Tap::Task itself).
-    def declaration_class
-      Tap::Task
-    end
-    
-    # Registers a task class with the Declarations.app.env, if necessary.
-    # Returns task_class.
-    def register(tasc)
-      constant = app.env.set(tasc, nil)
-      constant.register_as('task', tasc.desc.to_s)
-      tasc
-    end
-  end
-  
-  class Task
-    class << self
-      # :stopdoc:
-      alias original_desc desc
-      # :startdoc:
-      
-      include Declarations
-      
-      # :stopdoc:
-      undef_method :desc
-      alias desc original_desc
-      private :namespace, :app
-      # :startdoc:
-      
-      # Looks up or creates the subclass specified by const_name.
-      #
-      # Configurations are always validated using the yaml transformation
-      # block (see {Configurable::Validation}[http://tap.rubyforge.org/configurable/classes/Configurable/Validation.html]).
-      def subclass(const_name, configs={}, &block)
-        subclass = Env::Constant.constantize(const_name) do |base, constants|
-          subclass_const = constants.pop
-          constants.inject(base) do |namespace, const|
-            namespace.const_set(const, Class.new(nest_class))
-          end.const_set(subclass_const, Class.new(self))
-        end
-
-        # check a correct class was found
-        unless subclass.ancestors.include?(self)
-          raise "not a #{self}: #{subclass}"
-        end
-
-        # append configuration (note that specifying a desc prevents lazydoc
-        # registration of these lines)
-        convert_to_yaml = Configurable::Validation.yaml
-        configs.each_pair do |key, value|
-          opts = {:desc => ""}
-          opts[:short] = key if key.to_s.length == 1
-          subclass.send(:config, key, value, opts, &convert_to_yaml)
-        end
-
-        if block
-          # prevents assessment of process args by lazydoc
-          subclass.const_attrs[:process] = '*args'
-          subclass.send(:define_method, :process) {|*args| block.call(self, *args) }
+      previous_namespace = @namespace
+      begin
+        const_name = name.to_s.camelize
+        @namespace = Env::Constant.constantize(const_name, previous_namespace) do |base, constants|
+          constants.inject(base) {|current, const| current.const_set(const, Module.new) }
         end
         
-        subclass
-      end
-      
-      private
-      
-      def nest_class # :nodoc:
-        Tap::Task
-      end
-      
-      # overridden to provide self as the declaration_class
-      def declaration_class # :nodoc:
-        self
+        yield
+      ensure
+        @namespace = previous_namespace
       end
     end
+    
+    def declare(clas, name, configs={}, &block)
+      const_name = name.to_s.camelize
+      subclass = Class.new(env.constant(clas))
+      @namespace.const_set(const_name, subclass)
+      
+      # define configs
+      convert_to_yaml = Configurable::Validation.yaml
+      configs.each_pair do |key, value|
+        # specifying a desc prevents lazydoc registration of these lines
+        opts = {:desc => ""}
+        opts[:short] = key if key.to_s.length == 1
+        subclass.send(:config, key, value, opts, &convert_to_yaml)
+      end
+      
+      # define process
+      if block
+        # prevents assessment of process args by lazydoc
+        subclass.const_attrs[:process] = '*args'
+        subclass.send(:define_method, :process) {|*args| block.call(self, *args) }
+      end
+      
+      # register documentation
+      subclass.desc = @desc || Lazydoc.register_caller(Description)
+      @desc = nil
+      
+      # register subclass
+      source_file = subclass.desc.document.source_file
+      type = File.basename(source_file).chomp(File.extname(source_file))
+      constant = env.set(subclass, nil)
+      constant.register_as(type, subclass.desc.to_s)
+      
+      subclass
+    end
+    
+    def task(name, configs={}, &block)
+      @desc ||= Lazydoc.register_caller(Description)
+      declare(Tap::Task, name, configs, &block)
+    end
+    
+    def workflow(name, configs={}, &block)
+      @desc ||= Lazydoc.register_caller(Description)
+      declare(Tap::Workflow, name, configs, &block)
+    end
   end
-  
-  extend Declarations
 end

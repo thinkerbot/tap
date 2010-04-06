@@ -131,7 +131,7 @@ available for use.
 
   [tapfile]
   require 'tap/declarations'
-  include Tap::Declarations
+  extend Tap::Declarations
   
   desc "concat file contents"
   task :cat do |config, *files|

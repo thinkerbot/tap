@@ -89,7 +89,7 @@ goodnight moon
       # don't use indents so grep output is correct
       io << %q{
 require 'tap/declarations'
-include Tap::Declarations
+extend Tap::Declarations
 
 desc "concat file contents"
 task :cat do |config, *files|

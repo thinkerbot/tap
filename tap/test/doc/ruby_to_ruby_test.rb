@@ -36,8 +36,10 @@ class RubyToRubyTest < Test::Unit::TestCase
     tapfile = method_root.prepare('tapfile') do |io|
       io << %q{
         require 'tap/declarations'
-        Tap.task(:one) {|config, a, b, c| "#{a}\n#{b}\n#{c}" }
-        Tap.task(:two) {|config, input| puts input }
+        extend Tap::Declarations
+        
+        task(:one) {|config, a, b, c| "#{a}\n#{b}\n#{c}" }
+        task(:two) {|config, input| puts input }
       }
     end
     

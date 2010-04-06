@@ -96,7 +96,9 @@ class ConfigurationTest < Test::Unit::TestCase
     method_root.prepare('tapfile') do |io|
       io << %q{
         require 'tap/declarations'
-        Tap.task :goodnight do |task, arg|
+        extend Tap::Declarations
+        
+        task :goodnight do |task, arg|
           "Goodnight #{arg}!"
         end
       }

@@ -2,9 +2,10 @@
 # This executable is used to launch bin/tap during testing.
 
 ENV['TAP_PATH'] ||= '.:../tap-tasks'
+ENV['TAPFILE']  ||= 'tapfile'
 
 root = File.expand_path('..', __FILE__)
 $:.unshift "#{root}/../configurable/lib"
 $:.unshift "#{root}/../lazydoc/lib"
 $:.unshift "#{root}/lib"
-load "#{root}/bin/tap"
+load "#{root}/bin/tapexe"

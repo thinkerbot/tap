@@ -52,8 +52,10 @@ populated by a splat. Say you made a couple tasks:
 
   [tapfile]
   require 'tap/declarations'
-  Tap.task(:one) {|config, a, b, c| "#{a}\n#{b}\n#{c}" }
-  Tap.task(:two) {|config, input| puts input }
+  extend Tap::Declarations
+  
+  task(:one) {|config, a, b, c| "#{a}\n#{b}\n#{c}" }
+  task(:two) {|config, input| puts input }
 
 On 1.9 you can directly join one to two without problem:
 

@@ -36,7 +36,6 @@ Gem::Specification.new do |s|
     lib/tap/app/stack.rb
     lib/tap/app/state.rb
     lib/tap/declarations.rb
-    lib/tap/declarations/context.rb
     lib/tap/declarations/description.rb
     lib/tap/env.rb
     lib/tap/env/cache.rb
@@ -48,6 +47,7 @@ Gem::Specification.new do |s|
     lib/tap/joins/switch.rb
     lib/tap/joins/sync.rb
     lib/tap/middleware.rb
+    lib/tap/middlewares/debugger.rb
     lib/tap/parser.rb
     lib/tap/root.rb
     lib/tap/signal.rb
@@ -66,6 +66,7 @@ Gem::Specification.new do |s|
     lib/tap/templater.rb
     lib/tap/utils.rb
     lib/tap/version.rb
+    lib/tap/workflow.rb
     tap.yml
     }
 end
