@@ -1,3 +1,5 @@
+require 'tempfile'
+
 module Tap
   
   #
@@ -34,6 +36,10 @@ module Tap
         end
       end
       words
+    end
+    
+    def sh_escape(str)
+      str.to_s.gsub("'", "\\\\'").gsub(";", '\\;')
     end
     
     # :startdoc:::-
