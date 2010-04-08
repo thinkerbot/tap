@@ -94,8 +94,8 @@ module Tap
     # The default App logger (writes to $stderr at level INFO)
     DEFAULT_LOGGER = Logger.new($stderr)
     DEFAULT_LOGGER.level = Logger::INFO
-    DEFAULT_LOGGER.formatter = lambda do |severity, time, progname, msg|
-      "  %s[%s] %18s %s\n" % [severity[0,1], time.strftime('%H:%M:%S') , progname || '--' , msg]
+    DEFAULT_LOGGER.formatter = lambda do |severity, time, head, tail|
+      "  %s %15s %s\n" % [time.strftime('%H:%M:%S'), head, tail]
     end
     
     # The state of the application (see App::State)
@@ -260,10 +260,10 @@ module Tap
     #   log(:action, "but a message with #{a}, #{b}, #{c}, and #{d}")
     #   log(:action) { "may be #{best} in a block because you can #{turn} #{it} #{off}" }
     #
-    def log(action, msg=nil, level=Logger::INFO)
+    def log(action='', msg=nil, level=Logger::INFO)
       if !quiet || verbose
-        msg ||= block_given? ? yield : ''
-        logger.add(level, msg, action.to_s)
+        msg = yield if msg.nil? && block_given?
+        logger.add(level, msg.to_s, action.to_s)
       end
     end
     
