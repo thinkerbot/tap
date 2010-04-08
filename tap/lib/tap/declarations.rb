@@ -54,15 +54,16 @@ module Tap
       end
       
       # register documentation
-      subclass.desc = @desc || Lazydoc.register_caller(Description)
-      @desc = nil
+      @desc ||= Lazydoc.register_caller(Description)
+      subclass.desc = @desc
       
       # register subclass
-      source_file = subclass.desc.document.source_file
+      source_file = @desc.document.source_file
       type = File.basename(source_file).chomp(File.extname(source_file))
       constant = env.set(subclass, nil)
-      constant.register_as(type, subclass.desc.to_s)
+      constant.register_as(type, @desc)
       
+      @desc = nil
       subclass
     end
     

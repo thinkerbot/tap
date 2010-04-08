@@ -98,7 +98,7 @@ class ConfigurationTest < Test::Unit::TestCase
         require 'tap/declarations'
         extend Tap::Declarations
         
-        task :goodnight do |task, arg|
+        task :goodnight do |config, arg|
           "Goodnight #{arg}!"
         end
       }

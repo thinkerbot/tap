@@ -1,7 +1,7 @@
 require 'tap/task'
 
 module Tap
-  class Workflow < App::Api
+  class Workflow < Tap::Task
     class << self
       protected
       
@@ -96,16 +96,33 @@ module Tap
       end
     end
     
+    attr_reader :entry_point
+    attr_reader :exit_point
+    
+    def initialize(config={}, app=Tap::App.instance)
+      super
+      @entry_point, @exit_point = process
+    end
+    
     def call(input)
-      nodes = process
+      output = nil
       
-      unless nodes.kind_of?(Array)
-        nodes = [nodes]
+      if exit_point
+        joins = exit_point.joins
+      
+        collector = lambda do |result|
+          output = result
+          joins.delete(collector)
+        end
+      
+        joins << collector 
       end
       
-      nodes.collect do |node|
-        app.execute(node, input)
+      if entry_point
+        app.execute(entry_point, input)
       end
+      
+      output
     end
   end
 end

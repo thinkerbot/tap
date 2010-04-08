@@ -53,9 +53,9 @@ TAP_PATH will be discovered.
   
 === TAPENV (default 'tapenv')
 
-Specifies signal files to be loaded in the env context. These files can be
-used to manually adjust an environment by setting/unsetting constants and
-resource paths.
+Specifies signal files to be loaded in the env signaling context. These files
+can be used to manually adjust an environment by setting/unsetting constants
+and resource paths.
 
   [tapenv]
   unset Tap::Tasks::Dump
@@ -65,8 +65,8 @@ resource paths.
 
 === TAPRC (default '~/.taprc:taprc')
 
-Specifies signal files to be loaded in the app context. These files can be
-used to manually build workflows, or configure the app.
+Specifies signal files to be loaded in the app signaling context. These files
+can be used to manually build workflows, or configure the app.
 
   [taprc]
   set loader load
@@ -77,13 +77,15 @@ used to manually build workflows, or configure the app.
 
 === TAPFILE (default 'tapfile')
 
-Specifies ruby files that will be executed in the app context. Tapfiles can be
-used to declare tasks, typically using the Tap::Declarations module, or to
-manually setup workflows.
+Specifies ruby files that will be executed in the app context (ie using the
+binding of the app instance). Tapfiles can be used to declare tasks, typically
+using the Tap::Declarations module, or to manually setup workflows.
 
   [tapfile]
   require 'tap/declarations'
-  Tap.task :goodnight do |task, args|
+  extend Tap::Declarations
+  
+  task :goodnight do |config, args|
     "Goodnight #{args}!"
   end
 
