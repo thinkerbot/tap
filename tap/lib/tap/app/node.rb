@@ -30,6 +30,10 @@ module Tap
         app.enq(self, args)
       end
       
+      def exe(*inputs)
+        app.exe(self, inputs)
+      end
+      
       # Sets the block as a join for self.
       def on_complete(&block) # :yields: result
         joins << block if block

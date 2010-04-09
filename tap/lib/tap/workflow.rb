@@ -23,13 +23,9 @@ module Tap
       #     define :b, AddALetter, {:letter => 'b'}
       #     define :c, AddALetter, {:letter => 'c'}
       #
-      #     def initialize(*args)
-      #       super
-      #       a.sequence(b, c)
-      #     end
-      # 
       #     def process
-      #       a.exe("")
+      #       sequence(a, b, c)
+      #       [a, c]
       #     end
       #   end
       #
@@ -102,6 +98,17 @@ module Tap
     def initialize(config={}, app=Tap::App.instance)
       super
       @entry_point, @exit_point = process
+    end
+    
+    # Sets a sequence workflow pattern for the tasks.
+    def sequence(*tasks)
+      options = tasks[-1].kind_of?(Hash) ? tasks.pop : {}
+      
+      previous = tasks.shift
+      tasks.each do |current|
+        app.join [previous], [current], options
+        previous = current
+      end
     end
     
     def call(input)

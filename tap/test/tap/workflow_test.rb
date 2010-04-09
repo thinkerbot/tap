@@ -18,7 +18,7 @@ class WorkflowTest < Test::Unit::TestCase
     define :c, AddALetter, {:letter => 'c'}
     
     def process
-      a.sequence(b, c)
+      sequence(a, b, c)
       [a, c]
     end
   end
