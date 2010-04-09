@@ -8,7 +8,13 @@ module Tap
     class Generate < Tap::Task
       class << self
         def parse!(argv=ARGV, app=Tap::App.instance)
-          argv.unshift('--generator') unless argv.empty? || argv[0] == '--help'
+          unless argv.empty? || argv[0] == '--help'
+            generator = argv.shift
+            argv.unshift('--')
+            argv.unshift(generator)
+            argv.unshift('--generator')
+          end
+          
           super(argv, app)
         end
       end
