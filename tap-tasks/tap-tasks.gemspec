@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap-tasks"
-  s.version = "0.6.1"
+  s.version = "0.6.2"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org/tap-tasks/"
@@ -29,7 +29,6 @@ Gem::Specification.new do |s|
     lib/tap/tasks/dump/yaml.rb
     lib/tap/tasks/error.rb
     lib/tap/tasks/glob.rb
-    lib/tap/tasks/echo.rb
     lib/tap/tasks/load/csv.rb
     lib/tap/tasks/load/yaml.rb
     lib/tap/tasks/null.rb
