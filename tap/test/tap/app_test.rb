@@ -482,10 +482,10 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # execute test
+  # exe test
   #
   
-  def test_execute_calls_node_with_input
+  def test_exe_calls_node_with_input
     was_in_block = false
     n = app.node do |input|
       assert_equal :input, input
@@ -493,16 +493,16 @@ class AppTest < Test::Unit::TestCase
     end
     
     assert !was_in_block
-    app.execute(n, [:input])
+    app.exe(n, [:input])
     assert was_in_block
   end
   
-  def test_execute_returns_node_result
+  def test_exe_returns_node_result
     n = app.node { "result" }
-    assert_equal "result", app.execute(n, [])
+    assert_equal "result", app.exe(n, [])
   end
   
-  def test_execute_calls_joins_if_specified
+  def test_exe_calls_joins_if_specified
     n = app.node { "result" }
     
     was_in_block_a = false
@@ -517,7 +517,7 @@ class AppTest < Test::Unit::TestCase
       was_in_block_b = true
     end
     
-    app.execute(n, [])
+    app.exe(n, [])
     assert was_in_block_a
     assert was_in_block_b
   end
@@ -527,7 +527,7 @@ class AppTest < Test::Unit::TestCase
     def joins; nil; end
   end
   
-  def test_execute_does_not_call_app_joins_if_joins_returns_nil
+  def test_exe_does_not_call_app_joins_if_joins_returns_nil
     n = NilJoins.new
     
     was_in_block = false
@@ -536,7 +536,7 @@ class AppTest < Test::Unit::TestCase
       was_in_block = true
     end
     
-    assert_equal "result", app.execute(n, [])
+    assert_equal "result", app.exe(n, [])
     assert_equal false, was_in_block
   end
   
@@ -544,7 +544,7 @@ class AppTest < Test::Unit::TestCase
     def call(input); "result"; end
   end
   
-  def test_execute_does_not_call_app_joins_if_node_does_not_respond_to_joins
+  def test_exe_does_not_call_app_joins_if_node_does_not_respond_to_joins
     n = NoJoins.new
     
     was_in_block = false
@@ -553,7 +553,7 @@ class AppTest < Test::Unit::TestCase
       was_in_block = true
     end
     
-    assert_equal "result", app.execute(n, [])
+    assert_equal "result", app.exe(n, [])
     assert_equal false, was_in_block
   end
   

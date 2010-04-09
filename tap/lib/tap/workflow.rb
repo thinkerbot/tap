@@ -29,7 +29,7 @@ module Tap
       #     end
       # 
       #     def process
-      #       a.execute("")
+      #       a.exe("")
       #     end
       #   end
       #
@@ -119,7 +119,7 @@ module Tap
       end
       
       if entry_point
-        app.execute(entry_point, input)
+        app.exe(entry_point, input)
       end
       
       output

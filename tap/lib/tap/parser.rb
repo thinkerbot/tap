@@ -66,7 +66,7 @@ module Tap
       return argv if argv.empty?
       
       @current_index = -1
-      current = argv[0] =~ BREAK ? nil : spec(:enque)
+      current = argv[0] =~ BREAK ? nil : spec(:enq)
       escape = false
       
       while !argv.empty?
@@ -95,7 +95,7 @@ module Tap
           when SET
             current = spec(:set)
           when ENQUE
-            current = spec(:enque)
+            current = spec(:enq)
           when OPTION
             current << arg
           when JOIN
@@ -105,7 +105,7 @@ module Tap
           when SIGNAL
             current = parse_signal($1, $2)
           when EXECUTE
-            current = spec(:execute)
+            current = spec(:exe)
           when ESCAPE_BEGIN
             escape = true
           when END_FLAG
@@ -149,10 +149,10 @@ module Tap
     
     def block(type, app) # :nodoc:
       case type
-      when :enque
+      when :enq
         lambda {|obj, args| app.queue.enq(obj, args); obj }
-      when :execute
-        lambda {|obj, args| app.execute(obj, args); obj }
+      when :exe
+        lambda {|obj, args| app.exe(obj, args); obj }
       else
         nil
       end
@@ -186,7 +186,7 @@ module Tap
     # parses the match of a SIGNAL regexp
     def parse_signal(one, two) # :nodoc:
       next_args
-      spec(one.nil? ? :enque : :execute, [nil, Tap::Signal, two])
+      spec(one.nil? ? :enq : :exe, [nil, Tap::Signal, two])
     end
   end
 end

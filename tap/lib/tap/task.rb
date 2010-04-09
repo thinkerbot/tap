@@ -95,7 +95,7 @@ module Tap
     lazy_register :process, Lazydoc::Arguments
     
     signal :enq
-    signal :exe, :bind => :execute
+    signal :exe
     
     attr_reader :joins
     
@@ -116,8 +116,8 @@ module Tap
       self
     end
     
-    def execute(*inputs)
-      app.execute(self, inputs)
+    def exe(*inputs)
+      app.exe(self, inputs)
     end
     
     def call(inputs)

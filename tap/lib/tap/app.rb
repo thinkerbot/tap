@@ -476,13 +476,13 @@ module Tap
       self
     end
     
-    # Execute does the following in order:
+    # Executes nodes by doing the following.
     #
     # - call stack with the node and input
     # - call the node joins (node.joins)
     #
-    # Execute returns the stack result.
-    def execute(node, input)
+    # Returns the stack result.
+    def exe(node, input)
       result = stack.call(node, input)
       
       if node.respond_to?(:joins)
@@ -521,7 +521,7 @@ module Tap
       begin
         while state == State::RUN
           break unless job = queue.deq
-          execute(*job)
+          exe(*job)
         end
       rescue(TerminateError)
         # gracefully fail for termination errors

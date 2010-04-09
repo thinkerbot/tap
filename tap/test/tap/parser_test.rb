@@ -178,41 +178,41 @@ class ParserTest < Test::Unit::TestCase
   def test_parse_parses_enque_breaks
     parser.parse %w{-- a b c -- x y z}
     assert_equal [
-      [{'sig' => 'set', 'args' => ['0', 'a', 'b', 'c']}, :enque],
-      [{'sig' => 'set', 'args' => ['1', 'x', 'y', 'z']}, :enque]
+      [{'sig' => 'set', 'args' => ['0', 'a', 'b', 'c']}, :enq],
+      [{'sig' => 'set', 'args' => ['1', 'x', 'y', 'z']}, :enq]
     ], parser.specs
   end
   
   def test_parse_parses_exec_breaks
     parser.parse %w{-! a b c -! x y z}
     assert_equal [
-      [{'sig' => 'set', 'args' => ['0', 'a', 'b', 'c']}, :execute],
-      [{'sig' => 'set', 'args' => ['1', 'x', 'y', 'z']}, :execute]
+      [{'sig' => 'set', 'args' => ['0', 'a', 'b', 'c']}, :exe],
+      [{'sig' => 'set', 'args' => ['1', 'x', 'y', 'z']}, :exe]
     ], parser.specs
   end
   
   def test_parse_unshifts_enque_break_if_argv_does_not_start_with_a_break
     parser.parse %w{a b c}
     assert_equal [
-      [{'sig' => 'set', 'args' => ['0', 'a', 'b', 'c']}, :enque]
+      [{'sig' => 'set', 'args' => ['0', 'a', 'b', 'c']}, :enq]
     ], parser.specs
   end
   
   def test_parse_allows_options_in_specs
     parser.parse %w{-- a -b --c}
     assert_equal [
-      [{'sig' => 'set', 'args' => ['0', 'a', '-b', '--c']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', 'a', '-b', '--c']}, :enq],
     ], parser.specs
   end
   
   def test_parse_adds_specs_for_empty_breaks
     parser.parse %w{-- a - -! -- b --}
     assert_equal [
-      [{"args"=>["0", "a"], "sig"=>"set"}, :enque],
+      [{"args"=>["0", "a"], "sig"=>"set"}, :enq],
       [{"args"=>["1"], "sig"=>"set"}, :set],
-      [{"args"=>["2"], "sig"=>"set"}, :execute],
-      [{"args"=>["3", "b"], "sig"=>"set"}, :enque],
-      [{"args"=>["4"], "sig"=>"set"}, :enque]
+      [{"args"=>["2"], "sig"=>"set"}, :exe],
+      [{"args"=>["3", "b"], "sig"=>"set"}, :enq],
+      [{"args"=>["4"], "sig"=>"set"}, :enq]
     ], parser.specs
   end
   
@@ -225,15 +225,15 @@ class ParserTest < Test::Unit::TestCase
   def test_parse_does_not_parse_escaped_args
     parser.parse %w{-- a -. -- --: -z- .- b -- c}
     assert_equal [
-      [{'sig' => 'set', 'args' => ['0', 'a', '--', '--:', '-z-', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => ['1', 'c']}, :enque]
+      [{'sig' => 'set', 'args' => ['0', 'a', '--', '--:', '-z-', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => ['1', 'c']}, :enq]
     ], parser.specs
   end
   
   def test_parse_stops_at_end_flag
     parser.parse %w{-- a --- -- b}
     assert_equal [
-      [{'sig' => 'set', 'args' => ['0', 'a']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', 'a']}, :enq],
     ], parser.specs
   end
   
@@ -246,8 +246,8 @@ class ParserTest < Test::Unit::TestCase
     parser.parse %w{-- a}
     parser.parse %w{-- b}
     assert_equal [
-      [{'sig' => 'set', 'args' => ['0', 'a']}, :enque],
-      [{'sig' => 'set', 'args' => ['0', 'b']}, :enque]
+      [{'sig' => 'set', 'args' => ['0', 'a']}, :enq],
+      [{'sig' => 'set', 'args' => ['0', 'b']}, :enq]
     ], parser.specs
   end
   
@@ -276,7 +276,7 @@ class ParserTest < Test::Unit::TestCase
   def test_parser_parses_join_to_join_preceding_and_following_specs
     parser.parse %w{-- a -: b}
     assert_equal [
-      [{'sig' => 'set', 'args' => ['0', 'a']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', 'a']}, :enq],
       [{'sig' => 'set', 'args' => ['1', 'b']}, :set],
       [{'sig' => 'set', 'args' => [nil, Tap::Join, '0', '1']}, :set]
     ], parser.specs
@@ -285,7 +285,7 @@ class ParserTest < Test::Unit::TestCase
   def test_joins_can_add_a_modifier_to_specify_short_flags_and_class
     parser.parse %w{-- a -:is.class b}
     assert_equal [
-      [{'sig' => 'set', 'args' => ['0', 'a']}, :enque],
+      [{'sig' => 'set', 'args' => ['0', 'a']}, :enq],
       [{'sig' => 'set', 'args' => ['1', 'b']}, :set],
       [{'sig' => 'set', 'args' => [nil, 'class', '-i', '-s', '0', '1']}, :set]
     ], parser.specs
@@ -310,13 +310,13 @@ class ParserTest < Test::Unit::TestCase
     parser.parse %w{--/var/sig a b}
     
     assert_equal [
-      [{'sig' => 'set', 'args' => [nil, Tap::Signal, 'var/sig', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => [nil, Tap::Signal, 'var/', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => [nil, Tap::Signal, '/sig', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => [nil, Tap::Signal, 'sig', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => [nil, Tap::Signal, '/', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => [nil, Tap::Signal, '', 'a', 'b']}, :enque],
-      [{'sig' => 'set', 'args' => [nil, Tap::Signal, 'var/sig',  'a', 'b']}, :execute]
+      [{'sig' => 'set', 'args' => [nil, Tap::Signal, 'var/sig', 'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Signal, 'var/', 'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Signal, '/sig', 'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Signal, 'sig', 'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Signal, '/', 'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Signal, '', 'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Signal, 'var/sig',  'a', 'b']}, :exe]
     ], parser.specs
   end
 end

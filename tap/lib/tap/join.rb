@@ -67,7 +67,7 @@ module Tap
     #
     #   # results: [1,2,3]
     #   # outputs: call(input)
-    #   result.to_ary.each {|r| app.execute(output, r) }
+    #   result.to_ary.each {|r| app.exe(output, r) }
     #
     config :iterate, false, :short => 'i', &c.flag  # Iterate results to outputs
     
@@ -124,7 +124,7 @@ module Tap
     # each output.
     def call(result)
       outputs.each do |output|
-        execute(output, result)
+        exe(output, result)
       end
     end
     
@@ -142,8 +142,8 @@ module Tap
     protected
     
     # Executes the node with the input results.
-    def execute(node, result) # :nodoc:
-      mode = enq ? :enq : :execute
+    def exe(node, result) # :nodoc:
+      mode = enq ? :enq : :exe
       
       if arrayify
         result = [result]
