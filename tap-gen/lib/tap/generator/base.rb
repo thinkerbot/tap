@@ -210,7 +210,7 @@ module Tap
       # Logs the action with the relative filepath from destination_root to path.
       def log_relative(action, path)
         relative_path = destination_root.relative_path(path)
-        log(action, relative_path || path)
+        app.log(action, relative_path || path)
       end
       
       protected
