@@ -174,6 +174,12 @@ module Tap
         template_path = template_root.path(source)
         templater = Templater.new(File.read(template_path), attributes)
         
+        if helpers = options[:helpers]
+          helpers.each do |helper|
+            templater.extend(helper)
+          end
+        end
+        
         file(target, options) do |file| 
           file << templater.build(nil, template_path)
         end

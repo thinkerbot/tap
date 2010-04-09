@@ -129,10 +129,7 @@ class BaseTest < Test::Unit::TestCase
   end
   
   def test_template_calls_file_with_target_and_prints_source_templated_with_args
-    source = method_root.prepare('source') do |file|
-      file << "<%= key %> was templated"
-    end
-    
+    source = method_root.prepare('source') {|io| io << "<%= key %> was templated" }
     t = Template.new :template_root => method_root
     
     t.template('target', source, {:key => 'value'}, {:opt => 'value'})
@@ -143,6 +140,26 @@ class BaseTest < Test::Unit::TestCase
     assert_equal [['target', {:opt => 'value'}], "value was templated"], t.file_call
   end
   
+  module HelperOne
+    def reverse(str)
+      str.reverse
+    end
+  end
+  
+  module HelperTwo
+    def exclaim(str)
+      "#{str}!"
+    end
+  end
+  
+  def test_template_makes_helpers_available
+    source = method_root.prepare('source') {|io| io << "<%= exclaim(reverse(key)) %>" }
+    t = Template.new :template_root => method_root
+    
+    t.template('target', source, {:key => 'value'}, {:helpers => [HelperOne, HelperTwo]})
+    assert_equal [['target', {:helpers => [HelperOne, HelperTwo]}], "eulav!"], t.file_call
+  end
+
   #
   # template_files test
   #
