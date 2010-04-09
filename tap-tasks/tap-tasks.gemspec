@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "tap-tasks"
-  s.version = "0.6.0"
+  s.version = "0.6.1"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org/tap-tasks/"
@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.summary = "A set of standard Tap tasks"
   s.require_path = "lib"
   s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 1.0.0")
+  s.add_dependency("tap", ">= 1.1.0")
   s.add_development_dependency("tap-test", ">= 0.3.0")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Tasks}
@@ -29,6 +29,7 @@ Gem::Specification.new do |s|
     lib/tap/tasks/dump/yaml.rb
     lib/tap/tasks/error.rb
     lib/tap/tasks/glob.rb
+    lib/tap/tasks/echo.rb
     lib/tap/tasks/load/csv.rb
     lib/tap/tasks/load/yaml.rb
     lib/tap/tasks/null.rb

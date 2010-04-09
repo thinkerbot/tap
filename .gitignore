@@ -2,6 +2,7 @@
 pkg
 rdoc
 backup
+tap/tapfile
 tap-server/log
 tap-server/schema
 tap-server/data
