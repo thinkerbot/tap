@@ -27,7 +27,7 @@ class TapTest < Test::Unit::TestCase
     tap.close
     
     sh_match %Q{ruby '#{tap.path}' -d- 2>&1},
-      /ruby: #{RbConfig::CONFIG['RUBY_INSTALL_NAME']}-#{RUBY_VERSION} \(#{RUBY_RELEASE_DATE}\)/m,
-      /tap: #{::Tap::VERSION}/m
+      /ruby #{RbConfig::CONFIG['RUBY_INSTALL_NAME']}-#{RUBY_VERSION} \(#{RUBY_RELEASE_DATE}\)/m,
+      /tap #{::Tap::VERSION}/m
   end
 end
