@@ -4,6 +4,7 @@ require 'tap/generator/manifest'
 require 'tap/generator/arguments'
 require 'tap/generator/generate'
 require 'tap/generator/destroy'
+require 'tap/generator/helpers'
 
 module Tap
   module Generator
@@ -72,6 +73,8 @@ module Tap
     #
     # :startdoc:::+
     class Base < Tap::Task
+      extend Helpers
+      
       lazy_attr :desc, 'generator'
       lazy_attr :args, :manifest
       lazy_register :manifest, Arguments
@@ -174,10 +177,8 @@ module Tap
         template_path = template_root.path(source)
         templater = Templater.new(File.read(template_path), attributes)
         
-        if helpers = options[:helpers]
-          helpers.each do |helper|
-            templater.extend(helper)
-          end
+        (options[:helpers] || self.class.helpers).each do |helper|
+          templater.extend(helper)
         end
         
         file(target, options) do |file| 

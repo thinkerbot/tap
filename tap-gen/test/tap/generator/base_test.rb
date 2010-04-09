@@ -160,6 +160,22 @@ class BaseTest < Test::Unit::TestCase
     assert_equal [['target', {:helpers => [HelperOne, HelperTwo]}], "eulav!"], t.file_call
   end
 
+  class TemplateWithHelper < Template
+    helper do
+      def reverse(str)
+        str.reverse
+      end
+    end
+  end
+
+  def test_template_defaults_to_helpers_declared_in_class
+    source = method_root.prepare('source') {|io| io << "<%= reverse(key) %>" }
+    t = TemplateWithHelper.new :template_root => method_root
+
+    t.template('target', source, {:key => 'value'})
+    assert_equal [['target', {}], "eulav"], t.file_call
+  end
+
   #
   # template_files test
   #
