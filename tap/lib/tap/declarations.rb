@@ -18,29 +18,29 @@ module Tap
       @desc
     end
     
-    def baseclass(clas)
+    def baseclass(clas=nil)
       previous_baseclass = @baseclass
       begin
-        @baseclass = clas
-        yield
+        @baseclass = clas unless clas.nil?
+        yield if block_given?
       ensure
-        @baseclass = previous_baseclass
+        @baseclass = previous_baseclass if block_given?
       end
     end
     
     # Nests tasks within the named module for the duration of the block.
     # Namespaces may be nested.
-    def namespace(name)
+    def namespace(name=nil)
       previous_namespace = @namespace
       begin
         const_name = name.to_s.camelize
         @namespace = Env::Constant.constantize(const_name, previous_namespace) do |base, constants|
           constants.inject(base) {|current, const| current.const_set(const, Module.new) }
-        end
+        end unless name.nil?
         
-        yield
+        yield if block_given?
       ensure
-        @namespace = previous_namespace
+        @namespace = previous_namespace if block_given?
       end
     end
     
