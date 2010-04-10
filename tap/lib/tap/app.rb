@@ -142,9 +142,10 @@ module Tap
     signal :get,                                    # get objects
       :signature => ['var']
     
-    signal_hash :build,                             # build an object
+    signal_hash :bld,                               # build an object
       :signature => ['class'],
-      :remainder => 'spec'
+      :remainder => 'spec',
+      :bind => :build
     
     define_signal :use do |input|                   # enables middleware
       spec = convert_to_hash(input, ['class'], 'spec')

@@ -122,11 +122,11 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   #
-  # build test
+  # bld test
   #
   
-  def test_build_builds_and_returns_object
-    obj = signal(:build, [SetClass])
+  def test_bld_builds_and_returns_object
+    obj = signal(:bld, [SetClass])
     assert_equal SetClass, obj.class
     assert_equal :parse, obj.build_method
   end

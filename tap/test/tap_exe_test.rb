@@ -66,7 +66,7 @@ class TapExeTest < Test::Unit::TestCase
     tapfile = method_root.prepare('tapfile') do |io|
       io.puts "set 0 load"
       io.puts "set 1 dump"
-      io.puts "build join 0 1"
+      io.puts "bld join 0 1"
       io.puts "enq 0 'goodnight moon'"
     end
     
@@ -81,7 +81,7 @@ class TapExeTest < Test::Unit::TestCase
       io << %q{
 set 0 load
     set 1 dump
-  build join 0 1
+  bld join 0 1
 
 enq 0 'goodnight\
 moon'
@@ -101,7 +101,7 @@ moon'
       # comment
       set 0 load              # tail comment
       set 1 dump
-      build join 0 1
+      bld join 0 1
       enq 0 \#notacomment
       enq 0 not#acomment
       enq 0 notacomment#
@@ -173,7 +173,7 @@ moon'
     
     b = method_root.prepare('taprc') do |io|
       io.puts "set 1 dump"
-      io.puts "build join 0 1"
+      io.puts "bld join 0 1"
       io.puts "enq 0 'goodnight moon'"
     end
     

@@ -138,7 +138,7 @@ example, these are equivalent workflows:
 Internally tap parses workflows into signals that build and control workflow
 objects. These signals can be specified manually on the command line.
 
-  % tap -/set 0 load -/set 1 dump -/build join 0 1 -/enq 0 'goodnight moon'
+  % tap -/set 0 load -/set 1 dump -/bld join 0 1 -/enq 0 'goodnight moon'
   goodnight moon
 
 Invoked from a prompt.
@@ -146,7 +146,7 @@ Invoked from a prompt.
   % tap prompt
   /set 0 load
   /set 1 dump
-  /build join 0 1
+  /bld join 0 1
   /enq 0 'goodnight moon'
   /run
   goodnight moon
@@ -158,7 +158,7 @@ become too cumbersome to write in the single-line syntax.
   [taprc]
   set 0 load
   set 1 dump
-  build join 0 1
+  bld join 0 1
   enq 0 'goodnight moon'
 
   % tap --- taprc

@@ -110,7 +110,7 @@ if RUBY_VERSION < '1.9'
     }, :env => default_env.merge('TAP_PATH' => "#{TAP_ROOT}:#{TAP_ROOT}/../tap-tasks")
     
     sh_test %q{
-      % tap -/set 0 load -/set 1 dump -/build join 0 1 -/enq 0 'goodnight moon'
+      % tap -/set 0 load -/set 1 dump -/bld join 0 1 -/enq 0 'goodnight moon'
       goodnight moon
     }
     
@@ -118,7 +118,7 @@ if RUBY_VERSION < '1.9'
     #   % tap prompt
     #   /set 0 load
     #   /set 1 dump
-    #   /build join 0 1
+    #   /bld join 0 1
     #   /enq 0 'goodnight moon'
     #   /run
     #   goodnight moon
@@ -127,7 +127,7 @@ if RUBY_VERSION < '1.9'
       io << %q{
       set 0 load
       set 1 dump
-      build join 0 1
+      bld join 0 1
       enq 0 'goodnight moon'
       }
     end
@@ -255,7 +255,7 @@ else
     }, :env => default_env.merge('TAP_PATH' => "#{TAP_ROOT}:#{TAP_ROOT}/../tap-tasks")
     
     sh_test %q{
-      % tap -/set 0 load -/set 1 dump -/build join 0 1 -/enq 0 'goodnight moon'
+      % tap -/set 0 load -/set 1 dump -/bld join 0 1 -/enq 0 'goodnight moon'
       goodnight moon
     }
     
@@ -263,7 +263,7 @@ else
     #   % tap prompt
     #   /set 0 load
     #   /set 1 dump
-    #   /build join 0 1
+    #   /bld join 0 1
     #   /enq 0 'goodnight moon'
     #   /run
     #   goodnight moon
@@ -272,7 +272,7 @@ else
       io << %q{
       set 0 load
       set 1 dump
-      build join 0 1
+      bld join 0 1
       enq 0 'goodnight moon'
       }
     end
