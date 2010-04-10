@@ -93,9 +93,10 @@ module Tap
     
     # The default App logger (writes to $stderr at level INFO)
     DEFAULT_LOGGER = Logger.new($stderr)
-    DEFAULT_LOGGER_FORMAT = "  %8s %10s %s\n"
+    DEFAULT_LOGGER_FORMAT = "%s %8s %10s %s\n"
     DEFAULT_LOGGER.formatter = lambda do |severity, time, head, tail|
-      DEFAULT_LOGGER_FORMAT % [time.strftime('%H:%M:%S'), head, tail]
+      code = (severity == 'INFO' ? ' ' : severity[0,1])
+      DEFAULT_LOGGER_FORMAT % [code, time.strftime('%H:%M:%S'), head, tail]
     end
     
     # The state of the application (see App::State)

@@ -28,7 +28,7 @@ module Tap
     def options.process(key, default=nil)
       value = self[key] || default
       if self[:debug] == 'true'
-        $stderr.puts(App::DEFAULT_LOGGER_FORMAT % [nil, key, value])
+        $stderr.puts(App::DEFAULT_LOGGER_FORMAT % [' ', nil, key, value])
       end
       value && block_given? ? yield(value) : nil
     end
