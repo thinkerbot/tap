@@ -263,30 +263,30 @@ class ConstantTest < Test::Unit::TestCase
   end
   
   def test_constantize_requires_require_path_if_the_constant_cannot_be_found
-    require_path = File.expand_path("#{File.dirname(__FILE__)}/constant/require_path.rb")
+    require_path = File.expand_path("#{File.dirname(__FILE__)}/constant/require_path_a.rb")
     
-    assert !Object.const_defined?(:UnknownConstant)
+    assert !Object.const_defined?(:UnknownConstantA)
     assert File.exists?(require_path)
     assert !$".include?(require_path)
     
     # assertion can't be done in on line since UnknownConstant
     # is not defined until after constantize
-    const = Constant.new('UnknownConstant', require_path).constantize
-    assert_equal UnknownConstant, const
+    const = Constant.new('UnknownConstantA', require_path).constantize
+    assert_equal UnknownConstantA, const
     
     assert $".include?(require_path)
   end
   
   def test_constantize_does_not_autorequire_path_unless_specified
-    require_path = File.expand_path("#{File.dirname(__FILE__)}/constant/require_path.rb")
+    require_path = File.expand_path("#{File.dirname(__FILE__)}/constant/require_path_b.rb")
     
-    assert !Object.const_defined?(:UnknownConstant)
+    assert !Object.const_defined?(:UnknownConstantB)
     assert File.exists?(require_path)
     assert !$".include?(require_path)
     
-    assert_equal nil, Constant.new('UnknownConstant', require_path).constantize(false)
+    assert_equal nil, Constant.new('UnknownConstantB', require_path).constantize(false)
     
-    assert !Object.const_defined?(:UnknownConstant)
+    assert !Object.const_defined?(:UnknownConstantB)
     assert File.exists?(require_path)
     assert !$".include?(require_path)
   end

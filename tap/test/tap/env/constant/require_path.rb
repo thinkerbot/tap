@@ -1,2 +1,0 @@
-class UnknownConstant
-end

@@ -92,13 +92,13 @@ class WorkflowTest < Test::Unit::TestCase
     assert_equal({:key => 'three'}, t.define_task.config.to_hash)
     
     t.define_task.key = "two"
-    assert_equal({:key => 'two'}, t.config[:define_task])
+    assert_equal({:key => 'two'}, t.config[:define_task].to_hash)
     
     t.define_task.reconfigure(:key => 'one')
-    assert_equal({:key => 'one'}, t.config[:define_task])
+    assert_equal({:key => 'one'}, t.config[:define_task].to_hash)
     
     t.define_task.config[:key] = 'zero'
-    assert_equal({:key => 'zero'}, t.config[:define_task])
+    assert_equal({:key => 'zero'}, t.config[:define_task].to_hash)
   end
   
   class NestedDefineClass < Tap::Workflow
