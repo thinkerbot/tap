@@ -55,7 +55,7 @@ end
 # etc.
 
 desc "sort the lines of a file"
-workflow :sort_file, :reverse => false do |config|
+work :sort_file, :reverse => false do |config|
   cat  = init(:cat)
   sort = init(:sort, :reverse => config.reverse)
   dump = init(:dump)
@@ -107,7 +107,7 @@ end
     }, :env => default_env.merge('TAPFILE' => 'tapfile')
     
     sh_match '% tap sort_file tapfile --reverse true',
-      /\Aworkflow :sort_file, :reverse => false do |config|\ntask :goodnight, :msg => 'goodnight' do |config, thing|/, 
+      /\Awork :sort_file, :reverse => false do |config|\ntask :goodnight, :msg => 'goodnight' do |config, thing|/, 
       :env => default_env.merge('TAPFILE' => 'tapfile')
   end
 end

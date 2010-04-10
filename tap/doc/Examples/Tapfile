@@ -50,7 +50,7 @@ Tap::Declarations module which provides a syntax reminiscent of
   # etc.
   
   desc "sort the lines of a file"
-  workflow :sort_file, :reverse => false do |config|
+  work :sort_file, :reverse => false do |config|
     cat  = init(:cat)
     sort = init(:sort, :reverse => config.reverse)
     dump = init(:dump)
@@ -99,7 +99,7 @@ And documented:
 Workflows work just like tasks:
 
   % tap sort_file tapfile --reverse true
-  workflow :sort_file, :reverse => false do |config|
+  work :sort_file, :reverse => false do |config|
   task :goodnight, :msg => 'goodnight' do |config, thing|
   ...
 

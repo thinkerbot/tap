@@ -69,12 +69,65 @@ module Tap
     
     def task(name, configs={}, &block)
       @desc ||= Lazydoc.register_caller(Description)
-      declare(Tap::Task, name, configs, &block)
+      name, prerequisites = parse(name)
+
+      if prerequisites.nil?
+        return declare(Tap::Task, name, configs, &block)
+      end
+
+      desc = @desc
+      tasc = declare(Tap::Workflow, name, configs) do |workflow|
+        prereqs = prerequisites.collect {|prereq| init(prereq) }
+        obj     = init("#{name}/task", workflow.config.to_hash)
+
+        setup = lambda do |input|
+          prereqs.each {|prereq| exe(prereq, []) }
+          exe(obj, input)
+        end
+
+        [setup, obj]
+      end
+
+      @desc = desc
+      namespace(name) do
+        declare(Tap::Task, 'Task', configs, &block)
+      end
+
+      tasc
     end
-    
-    def workflow(name, configs={}, &block)
+
+    def work(name, configs={}, &block)
       @desc ||= Lazydoc.register_caller(Description)
       declare(Tap::Workflow, name, configs, &block)
+    end
+
+    private
+
+    def parse(const_name)
+      prerequisites = nil
+
+      if const_name.is_a?(Hash)
+        hash = const_name
+        case hash.length
+        when 0
+          const_name = nil
+        when 1
+          const_name = hash.keys[0]
+          prerequisites = hash[const_name]
+        else
+          raise ArgumentError, "multiple task names specified: #{hash.keys.inspect}"
+        end
+      end
+
+      if const_name.nil?
+        raise ArgumentError, "no constant name specified"
+      end
+
+      unless prerequisites.nil? || prerequisites.kind_of?(Array)
+        prerequisites = [prerequisites]
+      end
+
+      [const_name, prerequisites]
     end
   end
 end
