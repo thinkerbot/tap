@@ -124,6 +124,11 @@ module Tap
     config :quiet, false, :short => :q, &c.flag     # Suppress logging
     config :verbose, false, :short => :v, &c.flag   # Enables extra logging (overrides quiet)
     
+    signal :exe do |sig, argv|                      # executes an object
+      var, *input = argv
+      [sig.obj.obj(var), input]
+    end
+    
     signal :enq do |sig, argv|                      # enques an object
       var, *input = argv
       [sig.obj.obj(var), input]
@@ -138,7 +143,7 @@ module Tap
       :signature => ['var', 'class'],
       :remainder => 'spec',
       :bind => :build
-      
+    
     signal :get,                                    # get objects
       :signature => ['var']
     

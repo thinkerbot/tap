@@ -10,6 +10,25 @@ class AppSignalsTest < Test::Unit::TestCase
   App = Tap::App
   
   #
+  # exe test
+  #
+  
+  def test_exe_executes_obj_with_inputs
+    runlist = []
+    n = app.node {|*inputs| runlist << inputs }
+    app.set(0, n)
+    signal :exe, [0, 1,2,3]
+    signal :exe, [0, 4,5,6]
+    assert_equal [], app.queue.to_a
+    assert_equal [[1,2,3], [4,5,6]], runlist
+  end
+  
+  def test_exe_raises_error_for_unknown_obj
+    err = assert_raises(RuntimeError) { signal :exe, [0] }
+    assert_equal "no object set to: 0", err.message
+  end
+  
+  #
   # enq test
   #
   
