@@ -1,15 +1,19 @@
+require File.expand_path('../../tap/lib/tap/version', __FILE__)
+require File.expand_path('../../tap-test/lib/tap/test/version', __FILE__)
+require File.expand_path('../lib/tap/tasks/version', __FILE__)
+
 Gem::Specification.new do |s|
-  s.name = "tap-tasks"
-  s.version = "0.6.2"
-  s.author = "Simon Chiang"
-  s.email = "simon.a.chiang@gmail.com"
-  s.homepage = "http://tap.rubyforge.org/tap-tasks/"
+  s.name = 'tap-tasks'
+  s.version = Tap::Tasks::VERSION
+  s.author = 'Simon Chiang'
+  s.email = 'simon.a.chiang@gmail.com'
+  s.homepage = File.join(Tap::WEBSITE, 'tap-tasks')
   s.platform = Gem::Platform::RUBY
-  s.summary = "A set of standard Tap tasks"
-  s.require_path = "lib"
-  s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 1.1.0")
-  s.add_development_dependency("tap-test", ">= 0.3.0")
+  s.summary = 'A set of standard Tap tasks'
+  s.require_path = 'lib'
+  s.rubyforge_project = 'tap'
+  s.add_dependency('tap', ">= #{Tap::VERSION}")
+  s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Tasks}
   

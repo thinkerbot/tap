@@ -1,5 +1,4 @@
 require 'rake'
-require 'rake/testtask'
 require 'rake/rdoctask'
 require 'rake/gempackagetask'
 
@@ -9,11 +8,7 @@ require 'rake/gempackagetask'
 
 def gemspec
   require 'rubygems/specification'
-  
-  data = File.read('tap-tasks.gemspec')
-  spec = nil
-  Thread.new { spec = eval("$SAFE = 3\n#{data}") }.join
-  spec
+  eval File.read('tap-tasks.gemspec')
 end
 
 Rake::GemPackageTask.new(gemspec) do |pkg|
@@ -34,16 +29,16 @@ task :print_manifest do
   # and add to the files list if they are not
   # included already (marking by the absence
   # of a label)
-  Dir.glob("**/*").each do |file|
+  Dir.glob('**/*').each do |file|
     next if file =~ /^(rdoc|pkg|backup|test)/ || File.directory?(file)
     
     path = File.expand_path(file)
-    files[path] = ["", file] unless files.has_key?(path)
+    files[path] = ['', file] unless files.has_key?(path)
   end
   
   # sort and output the results
   files.values.sort_by {|exists, file| file }.each do |entry| 
-    puts "%-5s %s" % entry
+    puts '%-5s %s' % entry
   end
 end
 
@@ -73,16 +68,16 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   end
 end
 
-desc "Publish RDoc to RubyForge"
+desc 'Publish RDoc to RubyForge'
 task :publish_rdoc => [:rdoc] do
   require 'yaml'
   
-  config = YAML.load(File.read(File.expand_path("~/.rubyforge/user-config.yml")))
-  host = "#{config["username"]}@rubyforge.org"
+  config = YAML.load(File.read(File.expand_path('~/.rubyforge/user-config.yml')))
+  host = "#{config['username']}@rubyforge.org"
   
-  rsync_args = "-v -c -r"
-  remote_dir = "/var/www/gforge-projects/tap/tap-tasks"
-  local_dir = "rdoc"
+  rsync_args = '-v -c -r'
+  remote_dir = '/var/www/gforge-projects/tap/tap-tasks'
+  local_dir = 'rdoc'
  
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
 end
@@ -95,18 +90,17 @@ desc 'Default: Run tests.'
 task :default => :test
 
 desc 'Run tests.'
-Rake::TestTask.new(:test) do |t|
-  t.libs = ['lib']
+task :test do
+  libs = ['lib']
   unless ENV['gems']
-    t.libs << '../lazydoc/lib'
-    t.libs << '../configurable/lib'
-    t.libs << '../tap/lib'
-    t.libs << '../tap-test/lib'
+    libs << '../configurable/lib'
+    libs << '../lazydoc/lib'
+    libs << '../tap/lib'
+    libs << '../tap-test/lib'
   end
   
-  t.test_files = Dir.glob( File.join('test', '**/*_test.rb') )
-  
-  t.verbose = true
-  t.warning = true
+  cmd = ['ruby', '-w', '-e', 'ARGV.each {|test| load test}']
+  libs.each {|lib| cmd.concat ['-I', lib] }
+  cmd.concat Dir.glob('test/**/*_test.rb')
+  sh(*cmd)
 end
-

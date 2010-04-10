@@ -1,10 +1,6 @@
 require 'rake'
-require 'rake/testtask'
 require 'rake/rdoctask'
 require 'rake/gempackagetask'
-
-$:.unshift File.expand_path("#{File.dirname(__FILE__)}/lib")
-require 'tap/version'
 
 #
 # Gem specification
@@ -12,11 +8,7 @@ require 'tap/version'
 
 def gemspec
   require 'rubygems/specification'
-  
-  data = File.read('tap.gemspec')
-  spec = nil
-  Thread.new { spec = eval("$SAFE = 3\n#{data}") }.join
-  spec
+  eval File.read('tap.gemspec')
 end
 
 Rake::GemPackageTask.new(gemspec) do |pkg|
@@ -37,16 +29,16 @@ task :print_manifest do
   # and add to the files list if they are not
   # included already (marking by the absence
   # of a label)
-  Dir.glob("**/*").each do |file|
+  Dir.glob('**/*').each do |file|
     next if file =~ /^(rdoc|pkg|test|specs|images|.*\.rbc$)/ || File.directory?(file)
     
     path = File.expand_path(file)
-    files[path] = ["", file] unless files.has_key?(path)
+    files[path] = ['', file] unless files.has_key?(path)
   end
   
   # sort and output the results
   files.values.sort_by {|exists, file| file }.each do |entry| 
-    puts "%-5s %s" % entry
+    puts '%-5s %s' % entry
   end
 end
 
@@ -73,16 +65,16 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   end
 end
 
-desc "Publish RDoc to RubyForge"
+desc 'Publish RDoc to RubyForge'
 task :publish_rdoc => [:rdoc] do
   require 'yaml'
   
-  config = YAML.load(File.read(File.expand_path("~/.rubyforge/user-config.yml")))
-  host = "#{config["username"]}@rubyforge.org"
+  config = YAML.load(File.read(File.expand_path('~/.rubyforge/user-config.yml')))
+  host = "#{config['username']}@rubyforge.org"
   
-  rsync_args = "-v -c -r"
-  remote_dir = "/var/www/gforge-projects/tap/rdoc"
-  local_dir = "rdoc"
+  rsync_args = '-v -c -r'
+  remote_dir = '/var/www/gforge-projects/tap/rdoc'
+  local_dir = 'rdoc'
  
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
 end
@@ -126,7 +118,7 @@ def test(tests)
   end
   
   libs.collect! {|lib| ['-I', lib] }
-  cmd = ['ruby', "-w"] + libs.flatten + ["-e", "ARGV.each {|test| load test}"] + tests
+  cmd = ['ruby', '-w'] + libs.flatten + ['-e', 'ARGV.each {|test| load test}'] + tests
   sh(*cmd)
 end
 
@@ -168,11 +160,11 @@ namespace :test do
   task(:parser) { test_section :parser }
 
   desc 'run all tap tests'
-  task(:tap) { test(Dir['test/tap/**/*_test.rb'] + Dir["test/*_test.rb"]) }
+  task(:tap) { test(Dir['test/tap/**/*_test.rb'] + Dir['test/*_test.rb']) }
   
   desc 'run documentation tests'
-  task(:doc) { test Dir["test/doc/**/*_test.rb"] }
+  task(:doc) { test Dir['test/doc/**/*_test.rb'] }
   
   desc 'run benchmark tests'
-  task(:benchmark) { test Dir["test/benchmark/**/*_benchmark.rb"] }
+  task(:benchmark) { test Dir['test/benchmark/**/*_benchmark.rb'] }
 end

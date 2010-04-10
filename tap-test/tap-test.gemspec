@@ -1,14 +1,17 @@
+require File.expand_path('../../tap/lib/tap/version', __FILE__)
+require File.expand_path('../lib/tap/test/version', __FILE__)
+
 Gem::Specification.new do |s|
-  s.name = "tap-test"
-  s.version = "0.5.0"
-  s.author = "Simon Chiang"
-  s.email = "simon.a.chiang@gmail.com"
-  s.homepage = "http://tap.rubyforge.org/tap-test/"
+  s.name = 'tap-test'
+  s.version = Tap::Test::VERSION
+  s.author = 'Simon Chiang'
+  s.email = 'simon.a.chiang@gmail.com'
+  s.homepage = File.join(Tap::WEBSITE, 'tap-test')
   s.platform = Gem::Platform::RUBY
-  s.summary = "Test modules for Tap"
-  s.require_path = "lib"
-  s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 1.0.0")
+  s.summary = 'Test modules for Tap'
+  s.require_path = 'lib'
+  s.rubyforge_project = 'tap'
+  s.add_dependency('tap', ">= #{Tap::VERSION}")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Test}
   
@@ -25,7 +28,7 @@ Gem::Specification.new do |s|
     lib/tap/test.rb
     lib/tap/test/file_test.rb
     lib/tap/test/file_test/class_methods.rb
-    lib/tap/test/shell_test.rb
+    lib/tap/test/shell_test.rb'
     lib/tap/test/shell_test/regexp_escape.rb
     lib/tap/test/subset_test.rb
     lib/tap/test/subset_test/class_methods.rb
