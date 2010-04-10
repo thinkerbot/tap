@@ -1,11 +1,13 @@
 require 'tap/workflow'
 require 'tap/env'
 require 'tap/declarations/description'
+require 'tap/tasks/singleton'
 
 module Tap
   module Declarations
     def self.extended(base)
       base.instance_variable_set(:@desc, nil)
+      base.instance_variable_set(:@baseclass, Tap::Task)
       base.instance_variable_set(:@namespace, Object)
     end
     
@@ -14,6 +16,16 @@ module Tap
       @desc = Lazydoc.register_caller(Description)
       @desc.desc = str
       @desc
+    end
+    
+    def baseclass(clas)
+      previous_baseclass = @baseclass
+      begin
+        @baseclass = clas
+        yield
+      ensure
+        @baseclass = previous_baseclass
+      end
     end
     
     # Nests tasks within the named module for the duration of the block.
@@ -67,16 +79,16 @@ module Tap
       subclass
     end
     
-    def task(name, configs={}, &block)
+    def task(name, configs={}, clas=@baseclass, &block)
       @desc ||= Lazydoc.register_caller(Description)
       name, prerequisites = parse(name)
 
       if prerequisites.nil?
-        return declare(Tap::Task, name, configs, &block)
+        return declare(clas, name, configs, &block)
       end
 
       desc = @desc
-      tasc = declare(Tap::Workflow, name, configs) do |workflow|
+      tasc = work(name, configs) do |workflow|
         prereqs = prerequisites.collect {|prereq| init(prereq) }
         obj     = init("#{name}/task", workflow.config.to_hash)
 
@@ -90,15 +102,15 @@ module Tap
 
       @desc = desc
       namespace(name) do
-        declare(Tap::Task, 'Task', configs, &block)
+        declare(clas, 'Task', configs, &block)
       end
 
       tasc
     end
 
-    def work(name, configs={}, &block)
+    def work(name, configs={}, clas=Tap::Workflow, &block)
       @desc ||= Lazydoc.register_caller(Description)
-      declare(Tap::Workflow, name, configs, &block)
+      task(name, configs, clas, &block)
     end
 
     private

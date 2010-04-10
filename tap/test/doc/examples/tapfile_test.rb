@@ -49,21 +49,26 @@ end
 # Use workflow to create a subclass of Tap::Workflow.  Initialize any tasks
 # you need within the block and return the tasks you want to use as the
 # entry/exit points for the workflow.
-#
-# The init and join methods are directly off of Tap::App.  Tapfiles are
-# executed in the app binding, so you have access to node, the queue, run,
-# etc.
 
 desc "sort the lines of a file"
 work :sort_file, :reverse => false do |config|
-  cat  = init(:cat)
-  sort = init(:sort, :reverse => config.reverse)
-  dump = init(:dump)
+  n0 = init :cat
+  n1 = init :sort, :reverse => config.reverse
+  n2 = init :dump
 
-  join(cat, sort, :arrayify => true)
-  join(sort, dump, :iterate => true)
+  join n0, n1, :arrayify => true
+  join n1, n2, :iterate => true
 
-  [cat, sort]
+  [n0, n1]
+end
+
+# Use baseclass to define tasks of a specific class.  The singleton class
+# can be used to make dependency-based workflows.
+
+baseclass :singleton do
+  task(:a)             { puts 'a' }
+  task(:b => :a)       { puts 'b' }
+  task(:c => [:b, :a]) { puts 'c' }
 end
 }
     end
@@ -109,5 +114,18 @@ end
     sh_match '% tap sort_file tapfile --reverse true',
       /\Awork :sort_file, :reverse => false do |config|\ntask :goodnight, :msg => 'goodnight' do |config, thing|/, 
       :env => default_env.merge('TAPFILE' => 'tapfile')
+      
+    sh_test %q{
+      % tap c
+      a
+      b
+      c
+    }, :env => default_env.merge('TAPFILE' => 'tapfile')
+    
+    sh_test %q{
+      % tap b -- a
+      a
+      b
+    }, :env => default_env.merge('TAPFILE' => 'tapfile')
   end
 end
