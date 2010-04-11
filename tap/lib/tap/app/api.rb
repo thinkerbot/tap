@@ -1,6 +1,4 @@
-require 'configurable'
-require 'tap/signals'
-require 'tap/env/string_ext'
+require 'tap/app'
 
 module Tap
   class App

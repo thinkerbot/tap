@@ -1,4 +1,4 @@
-require 'tap/app'
+require 'tap/app/api'
 
 module Tap
   class Middleware < App::Api

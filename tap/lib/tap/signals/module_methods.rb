@@ -7,6 +7,7 @@ module Tap
     
       # Extends including classes with Configurable::ClassMethods
       def included(base)
+        super
         base.extend ClassMethods
         base.extend ModuleMethods unless base.kind_of?(Class)
 

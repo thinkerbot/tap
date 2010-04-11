@@ -1,3 +1,5 @@
+require 'tap/app/api'
+
 module Tap
   # :startdoc::join an unsyncrhonized, multi-way join
   #
@@ -7,7 +9,6 @@ module Tap
   #
   class Join < App::Api
     class << self
-      
       def build(spec={}, app=Tap::App.current)
         inputs = resolve(spec['inputs']) do |var|
           app.get(var) or raise "missing join input: #{var}"

@@ -1,5 +1,5 @@
 require File.expand_path('../../../tap_test_helper', __FILE__)
-require 'tap/app'
+require 'tap/app/api'
 require 'tap/test/unit'
 
 class ApiTest < Test::Unit::TestCase

@@ -5,9 +5,6 @@ require 'tap/app/stack'
 require 'tap/app/queue'
 autoload(:YAML, 'yaml')
 
-require 'tap/app/api'
-require 'tap/join'
-
 module Tap
   
   # :startdoc::app

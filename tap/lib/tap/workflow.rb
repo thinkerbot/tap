@@ -1,7 +1,7 @@
 require 'tap/task'
 
 module Tap
-  class Workflow < Tap::Task
+  class Workflow < Task
     class << self
       protected
       

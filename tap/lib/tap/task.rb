@@ -1,7 +1,5 @@
-require 'tap/app'
-require 'tap/joins/gate'
-require 'tap/joins/switch'
-require 'tap/joins/sync'
+require 'tap/app/api'
+require 'tap/node'
 
 module Tap
   
@@ -77,7 +75,6 @@ module Tap
   #
   class Task < App::Api
     class << self
-      
       def parser(app)
         opts = super
         
@@ -91,33 +88,22 @@ module Tap
       end
     end
     
+    include Node
+    
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
     
     signal :enq
     signal :exe
     
-    attr_reader :joins
-    
-    # Initializes a new Task.
     def initialize(config={}, app=Tap::App.current)
+      @app = app
       @joins = []
-      super
+      initialize_config(config)
     end
     
     def associations
       [nil, joins]
-    end
-    
-    # Enqueues self to app with the inputs. The number of inputs provided
-    # should match the number of inputs for the method_name method.
-    def enq(*inputs)
-      app.enq(self, inputs)
-      self
-    end
-    
-    def exe(*inputs)
-      app.exe(self, inputs)
     end
     
     def call(inputs)
@@ -131,12 +117,6 @@ module Tap
     # Logs the inputs to the application logger (via app.log)
     def log(action, msg=nil, level=Logger::INFO)
       app.log(action, msg, level) { yield }
-    end
-    
-    # Sets the block as a join for self.
-    def on_complete(&block) # :yields: result
-      self.joins << block if block
-      self
     end
     
     # Provides an abbreviated version of the default inspect, with only
