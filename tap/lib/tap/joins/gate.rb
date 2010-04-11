@@ -46,7 +46,7 @@ module Tap
       
       config :limit, nil, :short => :l, &c.integer_or_nil   # Pass results after limit
       
-      def initialize(config={}, app=Tap::App.instance)
+      def initialize(config={}, app=Tap::App.current)
         super
         @results = nil
       end

@@ -105,7 +105,7 @@ module Tap
       # The IO used to prompt users for input (default: $stdout)
       attr_accessor :prompt_out
       
-      def initialize(config={}, app=Tap::App.instance)
+      def initialize(config={}, app=Tap::App.current)
         super
         @prompt_in = $stdin
         @prompt_out = $stdout

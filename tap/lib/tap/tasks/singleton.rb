@@ -18,7 +18,7 @@ module Tap
       attr_reader :cache
       attr_reader :signature
       
-      def initialize(config={}, app=Tap::App.instance)
+      def initialize(config={}, app=Tap::App.current)
         @signature = [config.dup, app].freeze
         super(config, app)
         reset

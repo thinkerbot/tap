@@ -18,7 +18,7 @@ module Tap
       # to that receives the result.
       attr_accessor :selector
       
-      def initialize(config={}, app=Tap::App.instance, &block)
+      def initialize(config={}, app=Tap::App.current, &block)
         super(config, app)
         @selector = block
       end

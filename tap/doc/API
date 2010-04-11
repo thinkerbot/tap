@@ -61,7 +61,7 @@ As an example:
     class << self
       # Build takes a specification and returns an instance of self.
       # The spec must be serializable as JSON.
-      def build(spec={}, app=Tap::App.instance)
+      def build(spec={}, app=Tap::App.current)
       end
     end
     
@@ -93,11 +93,11 @@ If present they must do the following:
       # yields the instance and remaining args and returns block result.
       #
       # Parse should not modify argv.
-      def parse(argv=ARGV, app=Tap::App.instance)
+      def parse(argv=ARGV, app=Tap::App.current)
       end
       
       # Same as parse, but able to modify argv.
-      def parse!(argv=ARGV, app=Tap::App.instance)
+      def parse!(argv=ARGV, app=Tap::App.current)
       end
     end
     
@@ -158,7 +158,7 @@ As an example:
     end
     
     class << self
-      def build(spec={}, app=Tap::App.instance)
+      def build(spec={}, app=Tap::App.current)
         b = app.obj(spec['b'])   # retrieve an object referenced by the spec
         new(b)
       end

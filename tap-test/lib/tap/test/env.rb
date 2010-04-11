@@ -1,5 +1,5 @@
 module Tap
-  class App
+  module Test
     class Env
       def path(type)
         [File.expand_path(type.to_s)]

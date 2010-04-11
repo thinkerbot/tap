@@ -7,18 +7,25 @@ class AppTest < Test::Unit::TestCase
   acts_as_file_test
   acts_as_subset_test
   App = Tap::App
+  Env = Tap::Test::Env
   
   attr_reader :app
     
   def setup
     super
-    @app = Tap::App.new(:debug => true)
+    @app = Tap::App.new({:debug => true}, {:env => Env.new})
+    @context = App.set_context(Tap::App::CURRENT => @app)
+  end
+  
+  def teardown
+    App.set_context(@context)
+    super
   end
   
   def default_config
-    App.new.config.to_hash do |hash, key, value|
-      hash[key.to_s] = value
-    end
+    hash = {}
+    App.configurations.each {|key, config| hash[key.to_s] = config.default }
+    hash
   end
   
   #
@@ -47,25 +54,16 @@ class AppTest < Test::Unit::TestCase
     # non-matching
     assert 'str' !~ r
   end
-  
-  #
-  #  State test
-  #
-  
-  def test_state_str_documentation
-    assert_equal 'READY', App::State.state_str(0)
-    assert_nil App::State.state_str(12)
-  end
-  
+   
   #
   # build test
   #
   
-  def test_build_initializes_new_app
+  def test_build_initializes_new_app_with_same_env_as_current
     instance = App.build
-    assert_equal false, instance.equal?(app)
     assert_equal App, instance.class
-    assert_equal({}, instance.objects)
+    assert_equal false, instance.equal?(app)
+    assert_equal app.env, instance.env
   end
   
   def test_build_builds_on_app_if_self_is_true
@@ -82,7 +80,7 @@ class AppTest < Test::Unit::TestCase
       'config' => {'verbose' => true},
       'signals' => [{'sig' => 'set', 'var' => 'app', 'class' => 'Tap::App', 'self' => 'true'}]
     )
-    assert_equal false, instance.equal?(app)
+    
     assert_equal true, instance.verbose
     assert_equal({'app' => instance}, instance.objects)
   end
@@ -101,25 +99,6 @@ class AppTest < Test::Unit::TestCase
     assert_equal({'a' => instance, 'b' => instance}, instance.objects)
   end
   
-  #
-  # help test
-  #
-  
-  def test_help_signal_lists_signals
-    list = app.call('sig' => 'help', 'args' => [])
-    
-    assert list =~ /\/set\s+# set or unset objects/
-    assert list =~ /\/get\s+# get objects/
-  end
-  
-  def test_help_with_arg_lists_signal_help
-    help = app.call('sig' => 'help', 'args' => ['set'])
-    assert help =~ /Tap::App::Set -- set or unset objects/
-    
-    help = app.call('sig' => 'help', 'args' => {'sig' => 'set'})
-    assert help =~ /Tap::App::Set -- set or unset objects/
-  end
-  
   # 
   # initialization tests
   #
@@ -130,23 +109,16 @@ class AppTest < Test::Unit::TestCase
     assert_equal App::Queue, app.queue.class
     assert_equal 0, app.queue.size
     assert_equal App::Stack, app.stack.class
-    assert_equal [], app.joins
     assert_equal({}, app.objects)
     assert_equal App::State::READY, app.state
-    assert_equal App::Env, app.env.class
-  end
-  
-  def test_initialization_with_block_sets_a_default_join
-    b = lambda {}
-    app = App.new(&b)
-    assert_equal [b], app.joins
+    assert_equal Tap::Env, app.env.class
   end
   
   #
   # log test
   #
   
-  class MockLogger
+  class LoggerClass
     attr_accessor :logs, :level
     def initialize
       @logs = []
@@ -157,7 +129,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_log_logs_to_log_device
-    logger = MockLogger.new
+    logger = LoggerClass.new
     app.logger = logger
     app.log(:action, "message")
     
@@ -165,7 +137,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_log_does_not_log_if_quiet
-    logger = MockLogger.new
+    logger = LoggerClass.new
     app.logger = logger
     app.quiet = true
     
@@ -175,7 +147,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_log_forces_log_if_verbose
-    logger = MockLogger.new
+    logger = LoggerClass.new
     app.logger = logger
     app.quiet = true
     app.verbose = true
@@ -185,7 +157,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_log_calls_block_for_message_if_unspecified
-    logger = MockLogger.new
+    logger = LoggerClass.new
     app.logger = logger
     
     was_in_block = false
@@ -199,7 +171,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_log_does_not_call_block_if_quiet
-    logger = MockLogger.new
+    logger = LoggerClass.new
     app.logger = logger
     app.quiet = true
     
@@ -214,41 +186,11 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # node test
-  #
-  
-  def test_node_interns_node_that_calls_block
-    n = app.node {|input| input + " was provided" }
-    assert n.kind_of?(App::Node)
-    assert_equal "str was provided", n.call(["str"])
-  end
-  
-  def test_node_sets_node_in_objects_by_var_if_specified
-    n = app.node('var') {}
-    assert_equal n, app.get('var')
-  end
-  
-  #
-  # join test
-  #
-  
-  def test_join_joins_inputs_and_outputs_with_configs
-    a = app.node 
-    b = app.node 
-    app.join [a], [b], :arrayify => true
-    
-    join = a.joins[0]
-    assert_equal [a], join.inputs
-    assert_equal [b], join.outputs
-    assert_equal true, join.arrayify
-  end
-  
-  #
   # enq test
   #
   
   def test_enq_pushes_node_onto_queue
-    n = app.node {}
+    n = lambda {}
     assert_equal 0, app.queue.size
     app.enq(n, :a)
     app.enq(n, :b)
@@ -256,7 +198,7 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_enq_returns_enqued_node
-    n = app.node {}
+    n = lambda {}
     assert_equal n, app.enq(n, :a)
   end
   
@@ -265,7 +207,7 @@ class AppTest < Test::Unit::TestCase
   #
   
   def test_pq_unshifts_node_onto_queue
-    n = app.node {}
+    n = lambda {}
     assert_equal 0, app.queue.size
     app.pq(n, :a)
     app.pq(n, :b)
@@ -273,34 +215,8 @@ class AppTest < Test::Unit::TestCase
   end
   
   def test_pq_returns_enqued_node
-    n = app.node {}
+    n = lambda {}
     assert_equal n, app.pq(n, :a)
-  end
-  
-  #
-  # use test
-  #
-  
-  class Middleware
-    attr_reader :stack
-    def initialize(stack)
-      @stack = stack
-    end
-  end
-  
-  def test_use_initializes_middleware_with_stack_and_sets_result_as_stack
-    stack = app.stack
-    
-    app.use(Middleware)
-    assert_equal Middleware, app.stack.class
-    assert_equal stack, app.stack.stack
-    
-    new_stack = app.stack
-    
-    app.use(Middleware)
-    assert_equal Middleware, app.stack.class
-    assert_equal new_stack, app.stack.stack
-    assert_equal stack, app.stack.stack.stack
   end
   
   #
@@ -362,7 +278,9 @@ class AppTest < Test::Unit::TestCase
   # call test
   #
 
-  class AppObject < App::Api
+  class SignalClass
+    include Tap::Signals
+    
     signal :echo
     
     def echo(*args)
@@ -372,7 +290,7 @@ class AppTest < Test::Unit::TestCase
   end
 
   def test_call_signals_object_with_args
-    obj = AppObject.new
+    obj = SignalClass.new
     app.set('var', obj)
     
     assert_equal ["echo"], app.call(
@@ -424,23 +342,49 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
+  # use test
+  #
+  
+  class MiddlewareClass
+    attr_reader :stack
+    def initialize(stack)
+      @stack = stack
+    end
+  end
+  
+  def test_use_initializes_middleware_with_stack_and_sets_result_as_stack
+    stack = app.stack
+    
+    app.use MiddlewareClass
+    assert_equal MiddlewareClass, app.stack.class
+    assert_equal stack, app.stack.stack
+    
+    new_stack = app.stack
+    
+    app.use MiddlewareClass
+    assert_equal MiddlewareClass, app.stack.class
+    assert_equal new_stack, app.stack.stack
+    assert_equal stack, app.stack.stack.stack
+  end
+  
+  #
   # middleware test
   #
   
   def test_middleware_returns_an_array_of_middleware_in_use_by_self
-    a = app.use(Middleware)
-    b = app.use(Middleware)
+    a = app.use MiddlewareClass
+    b = app.use MiddlewareClass
     
     assert_equal [b,a], app.middleware
   end
   
-  class StackMiddleware < App::Stack
+  class StackSubclass < App::Stack
     def stack; app; end
   end
   
   def test_middleware_allows_subclasses_of_stack_as_middleware
-    a = app.use(Middleware)
-    b = app.use(StackMiddleware)
+    a = app.use MiddlewareClass
+    b = app.use StackSubclass
     
     assert_equal [b,a], app.middleware
   end
@@ -456,7 +400,7 @@ class AppTest < Test::Unit::TestCase
   def test_reset_clears_objects_queue_and_middleware
     app.objects['key'] = Object.new
     app.queue.enq(:node, :input)
-    app.use(Middleware)
+    app.use MiddlewareClass
     
     assert_equal 1, app.objects.size
     assert_equal 1, app.queue.size
@@ -473,7 +417,7 @@ class AppTest < Test::Unit::TestCase
     app = App.new
     stack = app.stack
      
-    middleware = app.use(Middleware)
+    middleware = app.use MiddlewareClass
     assert_equal middleware, app.stack
     assert stack != middleware
     
@@ -487,74 +431,64 @@ class AppTest < Test::Unit::TestCase
   
   def test_exe_calls_node_with_input
     was_in_block = false
-    n = app.node do |input|
+    n = lambda do |input|
       assert_equal :input, input
       was_in_block = true
     end
     
     assert !was_in_block
-    app.exe(n, [:input])
+    app.exe(n, :input)
+    assert was_in_block
+  end
+  
+  def test_default_exe_input_is_an_empty_array
+    was_in_block = false
+    n = lambda do |input|
+      assert_equal [], input
+      was_in_block = true
+    end
+    
+    app.exe(n)
     assert was_in_block
   end
   
   def test_exe_returns_node_result
-    n = app.node { "result" }
-    assert_equal "result", app.exe(n, [])
+    n = lambda {|input| "result" }
+    assert_equal "result", app.exe(n)
+  end
+  
+  class NodeClass
+    attr_accessor :joins
+    def initialize(&block)
+      @callable = block
+      @joins = []
+    end
+    def call(input)
+      @callable.call(input)
+    end
   end
   
   def test_exe_calls_joins_if_specified
-    n = app.node { "result" }
+    n = NodeClass.new {|input| "result" }
     
     was_in_block_a = false
-    n.on_complete do |result|
+    join_a = lambda do |result|
       assert_equal "result", result
       was_in_block_a = true
     end
     
     was_in_block_b = false
-    n.on_complete do |result|
+    join_b = lambda do |result|
       assert_equal "result", result
       was_in_block_b = true
     end
     
-    app.exe(n, [])
+    n.joins << join_a
+    n.joins << join_b
+    
+    app.exe(n)
     assert was_in_block_a
     assert was_in_block_b
-  end
-  
-  class NilJoins
-    def call(input); "result"; end
-    def joins; nil; end
-  end
-  
-  def test_exe_does_not_call_app_joins_if_joins_returns_nil
-    n = NilJoins.new
-    
-    was_in_block = false
-    app.on_complete do |result|
-      assert_equal "result", result
-      was_in_block = true
-    end
-    
-    assert_equal "result", app.exe(n, [])
-    assert_equal false, was_in_block
-  end
-  
-  class NoJoins
-    def call(input); "result"; end
-  end
-  
-  def test_exe_does_not_call_app_joins_if_node_does_not_respond_to_joins
-    n = NoJoins.new
-    
-    was_in_block = false
-    app.on_complete do |result|
-      assert_equal "result", result
-      was_in_block = true
-    end
-    
-    assert_equal "result", app.exe(n, [])
-    assert_equal false, was_in_block
   end
   
   #
@@ -563,40 +497,44 @@ class AppTest < Test::Unit::TestCase
   
   def test_run_calls_each_enqued_node_in_order
     runlist = []
-    app.node { runlist << 'a' }.enq 
-    app.node { runlist << 'b' }.enq 
-    app.node { runlist << 'c' }.enq 
+    a = lambda {|input| input << 'a' } 
+    b = lambda {|input| input << 'b' } 
+    c = lambda {|input| input << 'c' } 
+    
+    app.enq a, runlist
+    app.enq b, runlist
+    app.enq c, runlist
     app.run
   
     assert_equal ['a', 'b', 'c'], runlist
   end
   
   def test_run_returns_immediately_when_already_running
-    queue_before = nil
-    queue_after = nil
+    was_in_block = false
     
-    n1 = app.node do 
-      queue_before = app.queue.to_a
+    n0 = lambda do |input| end
+    n1 = lambda do |input|
+      assert_equal [[n0, []]], app.queue.to_a
       app.run
-      queue_after = app.queue.to_a
+      assert_equal [[n0, []]], app.queue.to_a
+      was_in_block = true
     end
-    n2 = app.node {}
     
-    n1.enq
-    n2.enq
+    app.enq n1
+    app.enq n0
     app.run
     
-    assert_equal [[n2, []]], queue_before
-    assert_equal [[n2, []]], queue_after
+    assert_equal true, was_in_block
   end
   
   def test_run_resets_state_to_ready
     in_block_state = nil
-    app.node { in_block_state = app.state }.enq
+    n = lambda {|input| in_block_state = app.state }
     
     assert_equal App::State::READY, app.state
     assert_equal nil, in_block_state
     
+    app.enq n
     app.run
     
     assert_equal App::State::READY, app.state
@@ -605,11 +543,12 @@ class AppTest < Test::Unit::TestCase
   
   def test_run_resets_state_to_ready_when_stopped
     in_block_state = nil
-    app.node { app.stop; in_block_state = app.state }.enq
+    n = lambda { app.stop; in_block_state = app.state }
     
     assert_equal App::State::READY, app.state
     assert_equal nil, in_block_state
     
+    app.enq n
     app.run
     
     assert_equal App::State::READY, app.state
@@ -618,17 +557,18 @@ class AppTest < Test::Unit::TestCase
   
   def test_run_resets_state_to_ready_when_terminated
     in_block_state = nil
-    app.node do
+    n = lambda do |input|
       app.terminate
       in_block_state = app.state
       
       app.check_terminate
       flunk "should have been terminated"
-    end.enq
+    end
     
     assert_equal App::State::READY, app.state
     assert_equal nil, in_block_state
     
+    app.enq n
     app.run
     
     assert_equal App::State::READY, app.state
@@ -637,15 +577,15 @@ class AppTest < Test::Unit::TestCase
   
   def test_run_resets_state_to_ready_after_unhandled_error
     was_in_block = false
-    app.node do
+    n = lambda do |input|
       was_in_block = true
       raise "error!"
-    end.enq
+    end
     
     assert_equal App::State::READY, app.state
     assert_equal false, was_in_block
     
-    app.debug = true
+    app.enq n
     err = assert_raises(RuntimeError) { app.run }
     assert_equal "error!", err.message
     
@@ -663,14 +603,17 @@ class AppTest < Test::Unit::TestCase
   
   def test_check_terminate_yields_to_block_before_raising_terminiate_error
     was_in_block = false
-    app.node do
+    n = lambda do |input|
       app.terminate
       app.check_terminate { was_in_block = true }
       flunk "should have been terminated"
-    end.enq
+    end
     
     assert_equal false, was_in_block
+    
+    app.enq n
     app.run
+    
     assert_equal true, was_in_block
   end
   
@@ -683,157 +626,144 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # on_complete test
-  #
-  
-  def test_on_complete_sets_a_default_join_for_self
-    app.joins.clear
-
-    b = lambda {}
-    app.on_complete(&b)
-    
-    assert_equal [b], app.joins
-  end
-  
-  def test_on_complete_returns_self
-    assert_equal app, app.on_complete
-  end
-  
-  #
   # serialize test
   #
   
-  class SchemaObj < App::Api
-    config :key, 'value'
+  class AppObjectClass
+    class << self
+      def build(spec, app)
+        new(spec['config'], app, spec['refs'], spec['brefs'])
+      end
+    end
     
-    attr_accessor :associations
+    attr_reader :config
+    attr_reader :associations
     
-    def initialize(config={}, app=Tap::App.instance, refs=nil, brefs=nil)
-      super(config, app)
+    def initialize(config={}, app=Tap::App.current, refs=nil, brefs=nil)
+      @config = config
+      @app = app
       @associations = [refs, brefs]
     end
     
     def to_spec
       refs, brefs = associations
-      spec = super
-      spec['refs'] = refs.collect {|ref| app.var(ref) } if refs
-      spec['brefs'] = brefs.collect {|ref| app.var(ref) } if brefs
+      spec = {}
+      spec['config'] = @config
+      spec['refs']   = refs.collect  {|ref| @app.var(ref) } if refs
+      spec['brefs']  = brefs.collect {|ref| @app.var(ref) } if brefs
       spec
     end
   end
   
-  class SchemaMiddleware < App::Api
+  class AppObjectMiddleware
     class << self
-      def build(spec={}, app=Tap::App.instance)
-        new(app.stack, spec['config'] || {})
+      def build(spec, app)
+        new(app.stack, spec['config'])
       end
     end
     
     attr_reader :stack
+    attr_reader :config
+    attr_reader :associations
     
     def initialize(stack, config={})
       @stack = stack
-      initialize_config(config)
+      @config = config
+      @associations = nil
     end
     
-    def call(node, inputs=[])
-      inputs << "middleware"
-      stack.call(node, inputs)
+    def to_spec
+      {'config' => @config}
     end
   end
   
-  def test_serialize_serializes_application_objects
-    app.set('var', SchemaObj.new)
+  def test_serialize_serializes_application_objects_into_signal
+    app.set('var', AppObjectClass.new)
     
     assert_equal [
       { 'sig' => 'set',
         'var' => 'var', 
-        'class' => 'AppTest::SchemaObj', 
-        'config' => {'key' => 'value'}
-      }
-    ], app.serialize
-  end
-  
-  def test_serialize_serializes_queue
-    obj = SchemaObj.new
-    app.set('var', obj)
-    app.enq(obj, :input)
-    
-    assert_equal [
-      { 'sig' => 'set',
-        'var' => 'var', 
-        'class' => 'AppTest::SchemaObj', 
-        'config' => {'key' => 'value'}
-      },
-      { 'sig' => 'enq', 
-        'args' => ['var', :input]
-      }
-    ], app.serialize
-  end
-  
-  def test_serialize_adds_sets_objects_if_necessary
-    app.enq(SchemaObj.new, :input)
-    
-    assert_equal [
-      { 'sig' => 'set',
-        'var' => 0, 
-        'class' => 'AppTest::SchemaObj', 
-        'config' => {'key' => 'value'}
-      },
-      { 'sig' => 'enq', 
-        'args' => [0, :input]
+        'class' => 'AppTest::AppObjectClass', 
+        'config' => {}
       }
     ], app.serialize
   end
   
   def test_serialize_orders_objects_by_var
     letters = ('a'..'z').to_a
-    letters.each do |letter|
-      app.set(letter, SchemaObj.new)
-    end
+    letters.each {|letter| app.set(letter, AppObjectClass.new)}
     
     order = app.serialize.collect {|hash| hash['var'] }
     assert_equal letters, order 
   end
   
   def test_serialize_orders_objects_by_associations
-    a = SchemaObj.new({:key => 'a'}, app)
-    b = SchemaObj.new({:key => 'b'}, app, [a])
-    c = SchemaObj.new({:key => 'c'}, app)
-    d = SchemaObj.new({:key => 'd'}, app, [b], [c])
+    a = AppObjectClass.new({'key' => 'a'}, app)
+    b = AppObjectClass.new({'key' => 'b'}, app, [a])
+    c = AppObjectClass.new({'key' => 'c'}, app)
+    d = AppObjectClass.new({'key' => 'd'}, app, [b], [c])
     
     app.set('d', d)
     
+    order = app.serialize.collect {|hash| hash['config']['key'] }
+    assert_equal ['a', 'b', 'd', 'c'], order
+  end
+  
+  def test_serialize_serializes_queue_into_signals
+    obj = AppObjectClass.new
+    app.set('var', obj)
+    app.enq(obj, :input)
+    
     assert_equal [
       { 'sig' => 'set',
-        'var' => 3, 
-        'class' => 'AppTest::SchemaObj', 
-        'config' => {'key' => 'a'}
+        'var' => 'var', 
+        'class' => 'AppTest::AppObjectClass', 
+        'config' => {}
       },
-      { 'sig' => 'set',
-        'var' => 1, 
-        'class' => 'AppTest::SchemaObj', 
-        'config' => {'key' => 'b'},
-        'refs' => [3]
-      },
-      { 'sig' => 'set',
-        'var' => 'd', 
-        'class' => 'AppTest::SchemaObj', 
-        'config' => {'key' => 'd'},
-        'refs' => [1],
-        'brefs' => [2]
-      },
-      { 'sig' => 'set',
-        'var' => 2, 
-        'class' => 'AppTest::SchemaObj', 
-        'config' => {'key' => 'c'}
+      { 'sig' => 'enq', 
+        'args' => {'var' => 'var', 'input' => :input}
       }
     ], app.serialize
   end
   
+  def test_serialize_serializes_middleware_into_signals
+    app.use AppObjectMiddleware, 'key' => 'value'
+    
+    assert_equal [
+      { 'sig' => 'use',
+        'class' => 'AppTest::AppObjectMiddleware', 
+        'config' => {'key' => 'value'}
+      }
+    ], app.serialize
+  end
+  
+  def test_serialize_sets_objects_if_necessary
+    a = AppObjectClass.new({'key' => 'a'}, app)
+    b = AppObjectClass.new({'key' => 'b'}, app, [a])
+    
+    app.enq(b, :input)
+    
+    assert_equal [
+      { 'sig' => 'set',
+        'var' => 1, 
+        'class' => 'AppTest::AppObjectClass', 
+        'config' => {'key' => 'a'}
+      },
+      { 'sig' => 'set',
+        'var' => 0, 
+        'class' => 'AppTest::AppObjectClass', 
+        'refs' => [1],
+        'config' => {'key' => 'b'}
+      },
+      { 'sig' => 'enq', 
+        'args' => {'var' => 0, 'input' => :input}
+      }
+    ], app.serialize
+  end
+
   def test_serialize_serializes_apps
     app_a = App.new :verbose => true
-    a = SchemaObj.new({}, app_a)
+    a = AppObjectClass.new({}, app_a)
     app_a.set('a', a)
     
     app_b = App.new :quiet => true
@@ -854,96 +784,56 @@ class AppTest < Test::Unit::TestCase
         'signals' => [
           { 'sig' => 'set',
             'var' => 'a', 
-            'class' => 'AppTest::SchemaObj', 
-            'config' => {'key' => 'value'}
+            'class' => 'AppTest::AppObjectClass', 
+            'config' => {}
           }]
       }
     ]
     
     assert_equal expected, app_b.serialize(false)
   end
-  
-  class NestSchemaByVar
-    def to_spec
-      {'var' => 'this'}
-    end
-  end
-  
-  class NestSchemaByObj
-    def to_spec
-      {'obj' => 'this'}
-    end
-  end
-  
-  def test_serialize_nests_build_hashes_if_necessary
-    app.set('by_var', NestSchemaByVar.new)
-    app.set('by_obj', NestSchemaByObj.new)
-    
-    assert_equal [
-      { 'sig' => 'set',
-        'var' => 'by_obj', 
-        'class' => 'AppTest::NestSchemaByObj',
-        'spec' => {'obj' => 'this'}
-      },
-      { 'sig' => 'set',
-        'var' => 'by_var', 
-        'class' => 'AppTest::NestSchemaByVar',
-        'spec' => {'var' => 'this'}
-      }
-    ], app.serialize
-  end
-  
+
   #
   # to_spec test
   #
   
   def test_to_spec_converts_apps_to_spec
-    app_a = App.new :verbose => true
-    a = SchemaObj.new({}, app_a)
-    app_a.set('a', a)
+    app.set('var', AppObjectClass.new)
     
-    app_b = App.new :quiet => true
-    app_b.set('a', app_a)
-    app_b.set('b', app_b)
-    
-    expected = {
-      'config' => default_config.merge('quiet' => true),
+    assert_equal({
+      'config' => default_config.merge('debug' => true),
       'signals' => [
         { 'sig' => 'set',
-          'var' => 'b', 
-          'class' => 'Tap::App',
-          'self' => true
-        },
-        { 'sig' => 'set',
-          'var' => 'a', 
-          'class' => 'Tap::App',
-          'config' => default_config.merge('verbose' => true),
-          'signals' => [
-            { 'sig' => 'set',
-              'var' => 'a', 
-              'class' => 'AppTest::SchemaObj', 
-              'config' => {'key' => 'value'}
-            }]}]
-    }
-    
-    assert_equal expected, app_b.to_spec
+          'var' => 'var', 
+          'class' => 'AppTest::AppObjectClass', 
+          'config' => {}
+        }
+      ]
+    }, app.to_spec)
   end
   
   def test_to_spec_build_rebuilds_app
-    obj = SchemaObj.new :key => 'obj'
-    app.use SchemaMiddleware
+    obj = AppObjectClass.new 'key' => 'obj'
     app.enq(obj, :input)
+    app.use AppObjectMiddleware, 'key' => 'middleware'
     app.set('var', app)
     
-    alt = App.build(app.to_spec)
+    rebuilt = App.build(app.to_spec)
     
-    assert_equal [SchemaMiddleware], alt.middleware.collect {|m| m.class }
-    assert_equal 1, alt.queue.size
+    assert_equal 1, rebuilt.queue.size
+    obj, input = rebuilt.queue.deq
     
-    obj, input = alt.queue.deq
-    assert_equal 'obj', obj.config[:key]
-    assert_equal [:input], input
-    assert_equal({'var' => alt}, alt.objects)
+    assert_equal AppObjectClass, obj.class
+    assert_equal({'key' => 'obj'}, obj.config)
+    assert_equal :input, input
+    
+    assert_equal 1, rebuilt.middleware.size
+    middleware = rebuilt.middleware[0]
+    
+    assert_equal AppObjectMiddleware, middleware.class
+    assert_equal({'key' => 'middleware'}, middleware.config)
+    
+    assert_equal({'var' => rebuilt}, rebuilt.objects)
   end
   
   #
@@ -952,12 +842,13 @@ class AppTest < Test::Unit::TestCase
   
   def test_terminate_errors_are_handled
     was_in_block = false
-    app.node do
+    n = lambda do |input|
       was_in_block = true
       raise Tap::App::TerminateError
       flunk "should have been terminated"
-    end.enq
+    end
     
+    app.enq n
     app.run
     assert was_in_block
   end
@@ -965,20 +856,20 @@ class AppTest < Test::Unit::TestCase
   def test_terminate_errors_reque_the_latest_node
     was_in_block = false
     terminate = true
-    node = app.node do |*inputs|
+    n0 = lambda do |input|
       was_in_block = true
       raise Tap::App::TerminateError if terminate
     end
-    another = app.node {}
+    n1 = lambda do |input| end
     
-    node.enq(1,2,3)
-    another.enq
+    app.enq n0, [1,2,3]
+    app.enq n1
     
-    assert_equal [[node, [1,2,3]], [another, []]], app.queue.to_a
+    assert_equal [[n0, [1,2,3]], [n1, []]], app.queue.to_a
     
     app.run
     assert was_in_block
-    assert_equal [[node, [1,2,3]], [another, []]], app.queue.to_a
+    assert_equal [[n0, [1,2,3]], [n1, []]], app.queue.to_a
     
     terminate = false
     app.run

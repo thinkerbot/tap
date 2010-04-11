@@ -94,7 +94,7 @@ or all tests using an ENV variable (ex ENV['ALL']='true').
 
 ==== {TapTest}[link:classes/Tap/Test/TapTest.html]  (acts_as_tap_test)
 
-Sets up Tap::App.instance for testing tasks.
+Sets up Tap::App.current for testing tasks.
 
   require 'tap/test/unit'
   class TapTestTest < Test::Unit::TestCase

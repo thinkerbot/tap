@@ -7,7 +7,7 @@ module Tap
     #
     class Destroy < Tap::Task
       class << self
-        def parse!(argv=ARGV, app=Tap::App.instance)
+        def parse!(argv=ARGV, app=Tap::App.current)
           unless argv.empty? || argv[0] == '--help'
             generator = argv.shift
             argv.unshift('--')

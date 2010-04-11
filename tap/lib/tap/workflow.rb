@@ -95,7 +95,7 @@ module Tap
     attr_reader :entry_point
     attr_reader :exit_point
     
-    def initialize(config={}, app=Tap::App.instance)
+    def initialize(config={}, app=Tap::App.current)
       super
       @entry_point, @exit_point = process
     end

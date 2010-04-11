@@ -5,7 +5,7 @@
 
 require 'tap/server'
 
-app = Tap::App.instance
+app = Tap::App.current
 opts = ConfigParser.new(app.config)
 opts.separator ""
 opts.separator "configurations:"

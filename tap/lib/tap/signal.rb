@@ -8,18 +8,18 @@ module Tap
       # A description of self
       attr_accessor :desc
       
-      def parse(argv=ARGV, app=Tap::App.instance, &block)
+      def parse(argv=ARGV, app=Tap::App.current, &block)
         parse!(argv.dup, app, &block)
       end
       
-      def parse!(argv=ARGV, app=Tap::App.instance)
+      def parse!(argv=ARGV, app=Tap::App.current)
         sig, *args = argv
         obj = app.signal(sig)
         yield(obj, args) if block_given?
         obj
       end
       
-      def build(spec={}, app=Tap::App.instance)
+      def build(spec={}, app=Tap::App.current)
         app.route(spec['obj'], spec['sig'])
       end
     end
@@ -34,7 +34,7 @@ module Tap
     # the method the signal targets on obj).
     attr_reader :block
   
-    def initialize(obj, app=Tap::App.instance, &block)
+    def initialize(obj, app=Tap::App.current, &block)
       @obj = obj
       @app = app
       @block = block

@@ -1,4 +1,8 @@
-require 'tap/root'
+require 'tap/test/subset_test'
+require 'tap/test/file_test'
+require 'tap/test/shell_test'
+require 'tap/test/tap_test'
+require 'tap/test/utils'
 
 module Tap
   
@@ -20,11 +24,6 @@ module Tap
   #   end
   #
   module Test
-    autoload(:SubsetTest, 'tap/test/subset_test')
-    autoload(:FileTest, 'tap/test/file_test')
-    autoload(:ShellTest, 'tap/test/shell_test')
-    autoload(:TapTest, 'tap/test/tap_test')
-    autoload(:Utils, 'tap/test/utils')
     
     # Includes SubsetTest in the calling class.
     def acts_as_subset_test

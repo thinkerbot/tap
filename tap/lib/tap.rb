@@ -23,7 +23,7 @@ module Tap
     app = App.new({}, :env => env)
     app.set('app', app)
     app.set('env', env)
-    App.instance = app
+    App.current = app
     
     def options.process(key, default=nil)
       value = self[key] || default

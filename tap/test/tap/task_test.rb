@@ -197,7 +197,7 @@ class TaskTest < Test::Unit::TestCase
   #
   
   def test_default_initialization
-    assert_equal Tap::App.instance, t.app
+    assert_equal Tap::App.current, t.app
     assert_equal({}, t.config.to_hash)
   end
   

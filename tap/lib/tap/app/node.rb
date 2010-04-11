@@ -9,7 +9,7 @@ module Tap
       attr_accessor :joins
       
       # Interns a new node by extending the block with Node. 
-      def initialize(callable, app=Tap::App.instance)
+      def initialize(callable, app=Tap::App.current)
         @callable = callable
         @app = app
         @joins = []

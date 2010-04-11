@@ -17,7 +17,7 @@ module Tap
       # An array holding results until the batch is ready to execute.
       attr_reader :results
       
-      def initialize(config={}, app=Tap::App.instance)
+      def initialize(config={}, app=Tap::App.current)
         super
         @results = nil
       end

@@ -100,7 +100,7 @@ module Tap
     attr_reader :joins
     
     # Initializes a new Task.
-    def initialize(config={}, app=Tap::App.instance)
+    def initialize(config={}, app=Tap::App.current)
       @joins = []
       super
     end

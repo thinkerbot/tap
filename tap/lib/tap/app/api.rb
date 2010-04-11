@@ -55,7 +55,7 @@ module Tap
           opts
         end
         
-        def parse(argv=ARGV, app=Tap::App.instance, &block)
+        def parse(argv=ARGV, app=Tap::App.current, &block)
           parse!(argv.dup, app, &block)
         end
         
@@ -65,7 +65,7 @@ module Tap
         #
         # Returns the instance.  If a block is given, the instance and any
         # remaining arguments will be yielded to it.
-        def parse!(argv=ARGV, app=Tap::App.instance)
+        def parse!(argv=ARGV, app=Tap::App.current)
           parser = self.parser(app)
           args = parser.parse!(argv, :add_defaults => false)
           obj = build(convert_to_spec(parser, args), app)
@@ -80,7 +80,7 @@ module Tap
         
         # Returns an instance of self.  By default build calls new with the
         # configurations specified by spec['config'], and app.
-        def build(spec={}, app=Tap::App.instance)
+        def build(spec={}, app=Tap::App.current)
           new(spec['config'] || {}, app)
         end
       
@@ -112,7 +112,7 @@ module Tap
       # The app for self
       attr_reader :app
       
-      def initialize(config={}, app=Tap::App.instance)
+      def initialize(config={}, app=Tap::App.current)
         @app = app
         initialize_config(config)
       end

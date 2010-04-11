@@ -12,7 +12,7 @@ module Tap
       
       attr_accessor :env
       
-      def initialize(config={}, app=Tap::App.instance, env=Tap::Env.instance)
+      def initialize(config={}, app=Tap::App.current, env=Tap::Env.instance)
         super(config, app)
         @env = env
       end

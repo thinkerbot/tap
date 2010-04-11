@@ -26,7 +26,7 @@ dependencies have been removed because their general
 utility is quite doubtful, and it it easy to implement
 in situations that require them (ex rap).
 
-* bug fix in console (app now refers to Tap::App.instance)
+* bug fix in console (app now refers to Tap::App.current)
 * bug fix in load for recurrently loading from a file
 * fixed a mistake in run help
 * made load only load once by default, stream loading must

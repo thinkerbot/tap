@@ -29,7 +29,7 @@ module Tap
     attr_reader :app
     attr_reader :controller
     
-    def initialize(config={}, app=Tap::App.instance, &block)
+    def initialize(config={}, app=Tap::App.current, &block)
       @handler = nil
       @controller = block
       

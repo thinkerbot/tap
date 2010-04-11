@@ -1,4 +1,5 @@
 require 'tap/signal'
+require 'configurable'
 
 module Tap
   module Signals

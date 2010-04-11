@@ -15,8 +15,9 @@ class AppSignalsTest < Test::Unit::TestCase
   
   def test_exe_executes_obj_with_inputs
     runlist = []
-    n = app.node {|*inputs| runlist << inputs }
+    n = lambda {|input| runlist << input }
     app.set(0, n)
+    
     signal :exe, [0, 1,2,3]
     signal :exe, [0, 4,5,6]
     assert_equal [], app.queue.to_a
@@ -33,7 +34,7 @@ class AppSignalsTest < Test::Unit::TestCase
   #
   
   def test_enq_enques_obj_with_inputs
-    n = app.node {}
+    n = lambda {}
     app.set(0, n)
     signal :enq, [0, 1,2,3]
     signal :enq, [0, 4,5,6]
@@ -50,7 +51,7 @@ class AppSignalsTest < Test::Unit::TestCase
   #
   
   def test_pq_priority_enques_obj_with_inputs
-    n = app.node {}
+    n = lambda {}
     app.set(0, n)
     signal :pq, [0, 1,2,3]
     signal :pq, [0, 4,5,6]
@@ -66,58 +67,57 @@ class AppSignalsTest < Test::Unit::TestCase
   # set test
   #
   
-  class SetClass < App::Api
+  class SetClass
     class << self
       def build(spec, app)
-        obj = super
+        obj = new(spec)
         obj.build_method = :build
         obj
       end
       
       def parse(argv, app)
-        obj, args = super
+        obj = new(argv)
         obj.build_method = :parse
         obj
       end
-      
-      def minikey
-        "klass"
-      end
     end
     
-    config :key, 'value'
+    attr_reader :args
     attr_accessor :build_method
+    
+    def initialize(args=nil)
+      @args = args
+    end
   end
   
   def test_set_instantiates_and_stores_obj_by_var
-    obj = signal :set, ['var', SetClass]
+    obj = signal(:set, ['var', SetClass])
     assert_equal SetClass, obj.class
     assert_equal({'var' => obj}, app.objects)
   end
   
   def test_set_does_not_set_obj_for_nil_var
-    obj = signal :set, [nil, SetClass]
+    obj = signal(:set, [nil, SetClass])
     assert_equal({}, app.objects)
   end
   
-  def test_set_initializes_with_spec_if_specified
-    obj = signal(:set, 
-      'class' => SetClass,
-      'spec' => {'config' => {'key' => 'alt'}}
-    )
-    assert_equal 'alt', obj.key
-  end
-  
-  def test_set_builds_hash_spec
-    obj = signal :set, 'class' => SetClass, 'spec' => {}
+  def test_set_builds_with_hash_spec
+    obj = signal(:set, 'class' => SetClass, 'spec' => {'key' => 'alt'})
+    assert_equal({'key' => 'alt'}, obj.args)
     assert_equal :build, obj.build_method
   end
   
+  def test_set_parses_with_array_spec
+    obj = signal(:set, 'class' => SetClass, 'spec' => ['arg'])
+    assert_equal(['arg'], obj.args)
+    assert_equal :parse, obj.build_method
+  end
+  
   def test_set_stores_obj_by_multiple_var_if_specified
-    obj = signal :set, 'class' => SetClass
+    obj = signal(:set, 'class' => SetClass)
     assert_equal({}, app.objects)
     
-    obj = signal :set, 'var' => ['a', 'b'], 'class' => SetClass
+    obj = signal(:set, 'var' => ['a', 'b'], 'class' => SetClass)
     assert_equal({'a' => obj, 'b' => obj}, app.objects)
   end
   
@@ -131,9 +131,9 @@ class AppSignalsTest < Test::Unit::TestCase
   #
   
   def test_get_returns_specified_object
-    n = app.node {}
-    app.set(0, n)
-    assert_equal n, signal(:get, [0])
+    o = Object.new
+    app.set(0, o)
+    assert_equal o, signal(:get, [0])
   end
   
   def test_get_returns_nil_for_missing_object
@@ -144,9 +144,15 @@ class AppSignalsTest < Test::Unit::TestCase
   # bld test
   #
   
-  def test_bld_builds_and_returns_object
-    obj = signal(:bld, [SetClass])
-    assert_equal SetClass, obj.class
+  def test_bld_builds_with_hash_spec
+    obj = signal(:bld, 'class' => SetClass, 'spec' => {'key' => 'alt'})
+    assert_equal({'key' => 'alt'}, obj.args)
+    assert_equal :build, obj.build_method
+  end
+  
+  def test_bld_parses_with_array_spec
+    obj = signal(:bld, 'class' => SetClass, 'spec' => ['arg'])
+    assert_equal(['arg'], obj.args)
     assert_equal :parse, obj.build_method
   end
   
@@ -154,9 +160,9 @@ class AppSignalsTest < Test::Unit::TestCase
   # use test
   #
   
-  class UseClass < App::Api
+  class UseClass
     class << self
-      def build(spec={}, app=Tap::App.instance)
+      def build(spec={}, app=Tap::App.current)
         new(app.stack)
       end
     end
@@ -168,7 +174,7 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   def test_use_builds_and_sets_middleware
-    obj = signal(:use, [UseClass])
+    obj = signal(:use, 'class' => UseClass)
     assert_equal UseClass, obj.class
     assert_equal [obj], app.middleware
   end
@@ -194,7 +200,8 @@ class AppSignalsTest < Test::Unit::TestCase
   #
   
   def test_reset_resets_app
-    n = app.node {}.enq
+    n = lambda {|input|}
+    app.enq n
     app.set(0, n)
     app.use UseClass
     
@@ -215,7 +222,8 @@ class AppSignalsTest < Test::Unit::TestCase
   
   def test_run_runs_app
     was_in_block = false
-    app.node { was_in_block = true }.enq
+    n = lambda {|input| was_in_block = true }
+    app.enq n
     
     assert_equal app, signal(:run)
     assert_equal 0, app.queue.size
@@ -228,21 +236,21 @@ class AppSignalsTest < Test::Unit::TestCase
   
   def test_stop_stops_app
     was_in_a = false
-    a = app.node do
+    a = lambda do |input|
       was_in_a = true
       assert_equal app, signal(:stop)
       assert_equal App::State::STOP, app.state
     end
     
     was_in_b = false
-    b = app.node do
+    b = lambda do |input|
       was_in_b = true
     end
     
-    a.enq
-    b.enq
-    
+    app.enq a
+    app.enq b
     app.run
+    
     assert_equal true, was_in_a
     assert_equal false, was_in_b
     assert_equal 1, app.queue.size
@@ -254,21 +262,21 @@ class AppSignalsTest < Test::Unit::TestCase
   
   def test_terminate_terminates_app
     was_in_a = false
-    a = app.node do
+    a = lambda do |input|
       was_in_a = true
       assert_equal app, signal(:terminate)
       assert_equal App::State::TERMINATE, app.state
     end
     
     was_in_b = false
-    b = app.node do
+    b = lambda do |input|
       was_in_b = true
     end
     
-    a.enq
-    b.enq
-    
+    app.enq a
+    app.enq b
     app.run
+    
     assert_equal true, was_in_a
     assert_equal false, was_in_b
     assert_equal 1, app.queue.size
@@ -324,5 +332,24 @@ class AppSignalsTest < Test::Unit::TestCase
     app.verbose = true
     assert_equal app, signal(:import, [path])
     assert_equal false, app.verbose
+  end
+
+  #
+  # help test
+  #
+  
+  def test_help_signal_lists_signals
+    list = app.call('sig' => 'help', 'args' => [])
+    
+    assert list =~ /\/set\s+# set or unset objects/
+    assert list =~ /\/get\s+# get objects/
+  end
+  
+  def test_help_with_arg_lists_signal_help
+    help = app.call('sig' => 'help', 'args' => ['set'])
+    assert help =~ /Tap::App::Set -- set or unset objects/
+    
+    help = app.call('sig' => 'help', 'args' => {'sig' => 'set'})
+    assert help =~ /Tap::App::Set -- set or unset objects/
   end
 end

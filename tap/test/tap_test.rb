@@ -11,8 +11,8 @@ class TapTest < Test::Unit::TestCase
   #
   
   def test_setup_loads_files_on_tapfile_path
-    a = method_root.prepare('a')   {|io| io.puts 'Tap::App.instance.set("A", Tap::App.instance)'}
-    b = method_root.prepare('b')   {|io| io.puts 'Tap::App.instance.set("B", Tap::App.instance)'}
+    a = method_root.prepare('a')   {|io| io.puts 'Tap::App.current.set("A", Tap::App.current)'}
+    b = method_root.prepare('b')   {|io| io.puts 'Tap::App.current.set("B", Tap::App.current)'}
     app = Tap.setup(:tapfile => "#{a}:#{b}")
     
     assert_equal app, app.objects['A']

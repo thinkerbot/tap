@@ -8,7 +8,7 @@ module Tap
   class Join < App::Api
     class << self
       
-      def build(spec={}, app=Tap::App.instance)
+      def build(spec={}, app=Tap::App.current)
         inputs = resolve(spec['inputs']) do |var|
           app.get(var) or raise "missing join input: #{var}"
         end
@@ -92,7 +92,7 @@ module Tap
     attr_reader :outputs
     
     # Initializes a new join with the specified configuration.
-    def initialize(config={}, app=Tap::App.instance)
+    def initialize(config={}, app=Tap::App.current)
       @inputs = nil
       @outputs = nil
       super

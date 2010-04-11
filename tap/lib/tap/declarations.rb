@@ -9,6 +9,24 @@ module Tap
       base.instance_variable_set(:@namespace, Object)
     end
     
+    # Returns a new node that executes block on call.
+    def node(var=nil, &block) # :yields: *args
+      node = Node.new(block, self)
+      set(var, node) if var
+      node
+    end
+    
+    # Generates a join between the inputs and outputs.  Join resolves the
+    # class using env and initializes a new instance with the configs and
+    # self. 
+    def join(inputs, outputs, config={}, clas='/join', &block)
+      inputs  = [inputs]  unless inputs.kind_of?(Array)
+      outputs = [outputs] unless outputs.kind_of?(Array)
+      obj = init(clas, config, self)
+      obj.join(inputs, outputs, &block)
+      obj
+    end
+    
     # Sets the description for use by the next task declaration.
     def desc(str)
       @desc = Lazydoc.register_caller(Description)

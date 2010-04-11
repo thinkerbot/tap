@@ -1,12 +1,12 @@
 require 'logger'
-require 'tap/app/api'
-require 'tap/app/env'
-require 'tap/app/node'
+require 'tap/env'
 require 'tap/app/state'
 require 'tap/app/stack'
 require 'tap/app/queue'
-require 'tap/join'
 autoload(:YAML, 'yaml')
+
+require 'tap/app/api'
+require 'tap/join'
 
 module Tap
   
@@ -34,16 +34,16 @@ module Tap
         Thread.current[CONTEXT] ||= {}
       end
       
-      def instance=(app)
-        context[INSTANCE] = app
+      def current=(app)
+        context[CURRENT] = app
       end
       
-      def instance
-        context[INSTANCE] ||= new
+      def current
+        context[CURRENT] ||= new
       end
       
-      def build(spec={}, app=instance)
-        config = spec['config'] || {}
+      def build(spec={}, app=current)
+        config  = spec['config'] || {}
         signals = spec['signals'] || []
         
         if spec['self']
@@ -66,10 +66,10 @@ module Tap
     include Signals
     
     # A variable to store the application context in Thread.current
-    CONTEXT  = 'tap.context'
+    CONTEXT = 'tap.context'
     
     # A variable to store an instance in the application context.
-    INSTANCE = 'tap.instance'
+    CURRENT = 'tap.current'
     
     # The reserved call keys
     CALL_KEYS = %w{obj sig args}
@@ -117,27 +117,24 @@ module Tap
     # The application environment
     attr_accessor :env
     
-    # The application joins
-    attr_reader :joins
-    
     config :debug, false, :short => :d, &c.flag     # Flag debugging
     config :force, false, :short => :f, &c.flag     # Force execution at checkpoints
     config :quiet, false, :short => :q, &c.flag     # Suppress logging
     config :verbose, false, :short => :v, &c.flag   # Enables extra logging (overrides quiet)
     
-    signal :exe do |sig, argv|                      # executes an object
-      var, *input = argv
-      [sig.obj.obj(var), input]
+    define_signal :exe do |input|                   # executes an object
+      spec = convert_to_hash(input, ['var'], 'input')
+      obj.exe obj.obj(spec['var']), spec['input']
     end
     
-    signal :enq do |sig, argv|                      # enques an object
-      var, *input = argv
-      [sig.obj.obj(var), input]
+    define_signal :enq do |input|                   # enques an object
+      spec = convert_to_hash(input, ['var'], 'input')
+      obj.enq obj.obj(spec['var']), spec['input']
     end
     
-    signal :pq do |sig, argv|                       # priority-enques an object
-      var, *input = argv
-      [sig.obj.obj(var), input]
+    define_signal :pq do |input|                    # priority-enques an object
+      spec = convert_to_hash(input, ['var'], 'input')
+      obj.pq obj.obj(spec['var']), spec['input']
     end
     
     signal_hash :set,                               # set or unset objects
@@ -218,7 +215,7 @@ module Tap
     #   :env        the application environment
     #
     # A block may also be provided; it will be set as a default join.
-    def initialize(config={}, options={}, &block)
+    def initialize(config={}, options={})
       super() # monitor
       
       @state = State::READY
@@ -227,9 +224,7 @@ module Tap
       @objects = options[:objects] || {}
       @logger = options[:logger] || DEFAULT_LOGGER
       @env = options[:env] || Env.new
-      @joins = []
       
-      on_complete(&block)
       initialize_config(config)
     end
     
@@ -274,30 +269,14 @@ module Tap
       end
     end
     
-    # Returns a new node that executes block on call.
-    def node(var=nil, &block) # :yields: *args
-      node = Node.new(block, self)
-      set(var, node) if var
-      node
-    end
-    
-    # Generates a join between the inputs and outputs.  Join resolves the
-    # class using env and initializes a new instance with the configs and
-    # self. 
-    def join(inputs, outputs, config={}, clas=Join, &block)
-      inputs  = [inputs]  unless inputs.kind_of?(Array)
-      outputs = [outputs] unless outputs.kind_of?(Array)
-      init(clas, config, self).join(inputs, outputs, &block)
-    end
-    
     # Enques the node with the input.  Returns the node.
-    def enq(node, input)
+    def enq(node, input=[])
       queue.enq(node, input)
       node
     end
     
     # Priority-enques (unshifts) the node with the input.  Returns the node.
-    def pq(node, input)
+    def pq(node, input=[])
       queue.unshift(node, input)
       node
     end
@@ -377,8 +356,8 @@ module Tap
     #
     # Call returns the result of the signal call.
     def call(args, &block)
-      obj = args['obj']
-      sig = args['sig']
+      obj  = args['obj']
+      sig  = args['sig']
       args = args['args'] || args
       
       # nil obj routes back to app, so optimize by evaluating signal directly
@@ -409,7 +388,7 @@ module Tap
     end
     
     def build(spec, &block)
-      var = spec['var']
+      var  = spec['var']
       clas = spec['class']
       spec = spec['spec'] || spec
       
@@ -489,7 +468,7 @@ module Tap
     # - call the node joins (node.joins)
     #
     # Returns the stack result.
-    def exe(node, input)
+    def exe(node, input=[])
       result = stack.call(node, input)
       
       if node.respond_to?(:joins)
@@ -585,12 +564,6 @@ module Tap
       "state: #{state} (#{State.state_str(state)}) queue: #{queue.size}"
     end
     
-    # Sets the block as a join for self.
-    def on_complete(&block) # :yields: result
-      joins << block if block
-      self
-    end
-    
     # Sets self as instance in the current context, for the duration of the
     # block (see App.with_context).
     def scope
@@ -615,7 +588,7 @@ module Tap
       
       # collect enque signals to setup queue
       signals = queue.to_a.collect do |(node, input)|
-        {'sig' => 'enq', 'args' => [var(node), input]}
+        {'sig' => 'enq', 'args' => {'var' => var(node), 'input' => input}}
       end
       
       # collect and trace application objects

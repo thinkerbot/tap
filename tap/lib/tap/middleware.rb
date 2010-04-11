@@ -3,7 +3,7 @@ require 'tap/app'
 module Tap
   class Middleware < App::Api
     class << self
-      def build(spec={}, app=Tap::App.instance)
+      def build(spec={}, app=Tap::App.current)
         new(app.stack, spec['config'] || {})
       end
     end
