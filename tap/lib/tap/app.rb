@@ -597,10 +597,6 @@ module Tap
       App.with_context(APP => self) { yield }
     end
     
-    def eval(str, filename=nil, lineno=0)
-      Kernel.eval(str, binding, filename, lineno)
-    end
-    
     # Converts the self to a schema that can be used to build a new app with
     # equivalent application objects, queue, and middleware.  Schema are a
     # collection of signal hashes such that this will rebuild the state of a

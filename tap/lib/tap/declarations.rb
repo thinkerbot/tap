@@ -1,7 +1,5 @@
-require 'tap/workflow'
-require 'tap/env'
 require 'tap/declarations/description'
-require 'tap/tasks/singleton'
+require 'tap/workflow'
 
 module Tap
   module Declarations
@@ -18,35 +16,39 @@ module Tap
       @desc
     end
     
-    def baseclass(clas=nil)
-      previous_baseclass = @baseclass
+    def baseclass(baseclass)
+      current = @baseclass
       begin
-        @baseclass = clas unless clas.nil?
+        @baseclass = env.constant(baseclass)
         yield if block_given?
       ensure
-        @baseclass = previous_baseclass if block_given?
+        @baseclass = current if block_given?
       end
     end
     
     # Nests tasks within the named module for the duration of the block.
     # Namespaces may be nested.
-    def namespace(name=nil)
-      previous_namespace = @namespace
+    def namespace(namespace)
+      current = @namespace
       begin
-        const_name = name.to_s.camelize
-        @namespace = Env::Constant.constantize(const_name, previous_namespace) do |base, constants|
-          constants.inject(base) {|current, const| current.const_set(const, Module.new) }
-        end unless name.nil?
+        unless namespace.kind_of?(Module)
+          const_name = namespace.to_s.camelize
+          unless current.const_defined?(const_name)
+            current.const_set(const_name, Module.new)
+          end
+          namespace = current.const_get(const_name)
+        end
         
+        @namespace = namespace
         yield if block_given?
       ensure
-        @namespace = previous_namespace if block_given?
+        @namespace = current if block_given?
       end
     end
     
-    def declare(clas, name, configs={}, &block)
-      const_name = name.to_s.camelize
-      subclass = Class.new(env.constant(clas))
+    def declare(baseclass, const_name, configs={}, &block)
+      const_name = const_name.to_s.camelize
+      subclass = Class.new(env.constant(baseclass))
       @namespace.const_set(const_name, subclass)
       
       # define configs
@@ -79,18 +81,18 @@ module Tap
       subclass
     end
     
-    def task(name, configs={}, clas=@baseclass, &block)
+    def task(const_name, configs={}, baseclass=@baseclass, &block)
       @desc ||= Lazydoc.register_caller(Description)
-      name, prerequisites = parse(name)
+      const_name, prerequisites = parse_prerequisites(const_name)
 
       if prerequisites.nil?
-        return declare(clas, name, configs, &block)
+        return declare(baseclass, const_name, configs, &block)
       end
 
       desc = @desc
-      tasc = work(name, configs) do |workflow|
+      tasc = work(const_name, configs) do |workflow|
         prereqs = prerequisites.collect {|prereq| init(prereq) }
-        obj     = init("#{name}/task", workflow.config.to_hash)
+        obj     = init("#{const_name.to_s.underscore}/task", workflow.config.to_hash)
 
         setup = lambda do |input|
           prereqs.each {|prereq| exe(prereq, []) }
@@ -101,21 +103,21 @@ module Tap
       end
 
       @desc = desc
-      namespace(name) do
-        declare(clas, 'Task', configs, &block)
+      namespace(const_name) do
+        declare(baseclass, 'Task', configs, &block)
       end
 
       tasc
     end
 
-    def work(name, configs={}, clas=Tap::Workflow, &block)
+    def work(const_name, configs={}, baseclass=Tap::Workflow, &block)
       @desc ||= Lazydoc.register_caller(Description)
-      task(name, configs, clas, &block)
+      task(const_name, configs, baseclass, &block)
     end
 
     private
 
-    def parse(const_name)
+    def parse_prerequisites(const_name)
       prerequisites = nil
 
       if const_name.is_a?(Hash)

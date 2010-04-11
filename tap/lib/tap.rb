@@ -66,7 +66,7 @@ module Tap
     options.process(:tapfile) do |tapfile_path|
       Env::Path.split(tapfile_path).each do |tapfile|
         next unless File.file?(tapfile)
-        app.eval File.read(tapfile), tapfile
+        app.instance_eval(File.read(tapfile), tapfile, 1)
       end
     end
     
