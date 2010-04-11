@@ -276,7 +276,7 @@ module Tap
     
     # Returns a new node that executes block on call.
     def node(var=nil, &block) # :yields: *args
-      node = Node.intern(self, &block)
+      node = Node.new(block, self)
       set(var, node) if var
       node
     end

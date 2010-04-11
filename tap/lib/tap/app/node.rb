@@ -1,13 +1,6 @@
 module Tap
   class App
     class Node
-      class << self
-        # Interns a new node by extending the block with Node. 
-        def intern(app=Tap::App.instance, &block)
-          new(block, app)
-        end
-      end
-      
       attr_reader :app
       
       attr_reader :callable
