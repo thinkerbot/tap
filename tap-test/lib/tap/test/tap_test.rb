@@ -3,7 +3,6 @@ require 'tap/test/env'
 
 module Tap
   module Test
-    
     module TapTest
       
       # The test specific app
@@ -12,11 +11,11 @@ module Tap
       def setup
         super
         @app = Tap::App.new({:debug => true}, {:env => Env.new})
-        @context = App.set_context(Tap::App::CURRENT => @app)
+        @context = Tap::App.set_context(Tap::App::CURRENT => @app)
       end
-
+      
       def teardown
-        App.set_context(@context)
+        Tap::App.set_context(@context)
         super
       end
       

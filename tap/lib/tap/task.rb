@@ -1,5 +1,4 @@
 require 'tap/app/api'
-require 'tap/node'
 
 module Tap
   
@@ -88,10 +87,11 @@ module Tap
       end
     end
     
-    include Node
-    
     lazy_attr :args, :process
     lazy_register :process, Lazydoc::Arguments
+    
+    attr_reader :app
+    attr_reader :joins
     
     signal :enq
     signal :exe
@@ -114,9 +114,23 @@ module Tap
       inputs
     end
     
+    def enq(*args)
+      app.enq(self, args)
+    end
+    
+    def exe(*inputs)
+      app.exe(self, inputs)
+    end
+    
     # Logs the inputs to the application logger (via app.log)
     def log(action, msg=nil, level=Logger::INFO)
       app.log(action, msg, level) { yield }
+    end
+    
+    # Sets the block as a join for self.
+    def on_complete(&block) # :yields: result
+      joins << block if block
+      self
     end
     
     # Provides an abbreviated version of the default inspect, with only

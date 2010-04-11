@@ -1,18 +1,27 @@
 require File.expand_path('../../../tap_test_helper', __FILE__)
 require 'tap/joins/sync'
+require 'tap/test/unit'
 require 'tap/test/tracer'
 
 class SyncTest < Test::Unit::TestCase
+  extend Tap::Test
+  acts_as_tap_test
+  
   Sync = Tap::Joins::Sync
   
-  attr_reader :app, :results, :runlist
+  attr_reader :results, :runlist
   
   def setup
-    @app = Tap::App.new
+    super
     tracer = app.use(Tap::Test::Tracer)
     
     @results = tracer.results
     @runlist = tracer.runlist
+  end
+  
+  def node(&node)
+    def node.joins; @joins ||= []; end
+    node
   end
   
   #
@@ -20,16 +29,16 @@ class SyncTest < Test::Unit::TestCase
   #
   
   def test_simple_sync
-    a = app.node { 'a' }
-    b = app.node { 'b' }
-    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
-    e = app.node { 'd' }
-    app.join([a,b], [c,d], {}, Sync)
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
+    c = node {|input| input.collect {|obj| "#{obj}.c" } }
+    d = node {|input| input.collect {|obj| "#{obj}.d" } }
+    e = node {|input| 'd' }
+    Sync.new.join([a,b], [c,d])
     
-    a.enq
-    b.enq
-    e.enq
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
   
     assert_equal [
@@ -48,16 +57,16 @@ class SyncTest < Test::Unit::TestCase
   end
   
   def test_enq_sync
-    a = app.node { 'a' }
-    b = app.node { 'b' }
-    c = app.node {|*inputs| inputs.collect {|input| "#{input}.c" } }
-    d = app.node {|*inputs| inputs.collect {|input| "#{input}.d" } }
-    e = app.node { 'd' }
-    app.join([a,b], [c,d], {:enq => true}, Sync)
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
+    c = node {|input| input.collect {|obj| "#{obj}.c" } }
+    d = node {|input| input.collect {|obj| "#{obj}.d" } }
+    e = node {|input| 'd' }
+    Sync.new(:enq => true).join([a,b], [c,d])
     
-    a.enq
-    b.enq
-    e.enq
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
   
     assert_equal [
@@ -78,16 +87,16 @@ class SyncTest < Test::Unit::TestCase
   end
   
   def test_iterate_sync
-    a = app.node { 'a' }
-    b = app.node { 'b' }
-    c = app.node {|input| "#{input}.c" }
-    d = app.node {|input| "#{input}.d" }
-    e = app.node { 'd' }
-    app.join([a,b], [c,d], {:iterate => true}, Sync)
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
+    c = node {|input| "#{input}.c" }
+    d = node {|input| "#{input}.d" }
+    e = node {|input| 'd' }
+    Sync.new(:iterate => true).join([a,b], [c,d])
     
-    a.enq
-    b.enq
-    e.enq
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
   
     assert_equal [
@@ -108,15 +117,15 @@ class SyncTest < Test::Unit::TestCase
   end
   
   def test_sync_merge_raises_error_if_target_cannot_be_enqued_before_a_source_executes_twice
-    a = app.node { 'a' }
-    b = app.node { 'b' }
-    c = app.node {|*inputs| flunk "should not have executed" }
-    e = app.node { 'd' }
-    app.join([a,b], [c], {}, Sync)
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
+    c = node {|input| flunk "should not have executed" }
+    e = node {|input| 'd' }
+    Sync.new.join([a,b], [c])
     
-    a.enq
-    a.enq
-    e.enq
+    app.enq a
+    app.enq a
+    app.enq e
     
     app.debug = true
     err = assert_raises(Tap::Joins::Sync::SynchronizeError) { app.run }
@@ -133,8 +142,8 @@ class SyncTest < Test::Unit::TestCase
   end
   
   def test_sync_removes_callbacks_from_existing_inputs_on_join
-    a = app.node { 'a' }
-    b = app.node { 'b' }
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
     
     join = Sync.new({}, app)
     join.join([a], [])

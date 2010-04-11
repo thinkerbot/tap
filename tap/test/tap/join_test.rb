@@ -1,19 +1,28 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
 require 'tap/join'
+require 'tap/test/unit'
 require 'tap/test/tracer'
 
 class JoinTest < Test::Unit::TestCase
+  extend Tap::Test
+  acts_as_tap_test
+  
   Join = Tap::Join
   Tracer = Tap::Test::Tracer
   
-  attr_reader :app, :results, :runlist
+  attr_reader :results, :runlist
   
   def setup
-    @app = Tap::App.new
-    tracer = app.use(Tracer)
+    super
     
+    tracer = app.use(Tracer)
     @results = tracer.results
     @runlist = tracer.runlist
+  end
+  
+  def node(&node)
+    def node.joins; @joins ||= []; end
+    node
   end
   
   #
@@ -33,16 +42,16 @@ class JoinTest < Test::Unit::TestCase
   #
   
   def test_simple_join
-    a = app.node { 'a' }
-    b = app.node { 'b' }
-    c = app.node {|input| "#{input}.c" }
-    d = app.node {|input| "#{input}.d" }
-    e = app.node { 'd' }
-    app.join([a,b], [c,d])
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
+    c = node {|input| "#{input}.c" }
+    d = node {|input| "#{input}.d" }
+    e = node {|input| 'd' }
+    Join.new.join([a,b], [c,d])
     
-    a.enq
-    b.enq
-    e.enq
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
   
     assert_equal [
@@ -63,16 +72,16 @@ class JoinTest < Test::Unit::TestCase
   end
   
   def test_enq_join
-    a = app.node { 'a' }
-    b = app.node { 'b' }
-    c = app.node {|input| "#{input}.c" }
-    d = app.node {|input| "#{input}.d" }
-    e = app.node { 'd' }
-    join = app.join([a,b], [c,d], :enq => true)
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
+    c = node {|input| "#{input}.c" }
+    d = node {|input| "#{input}.d" }
+    e = node {|input| 'd' }
+    Join.new(:enq => true).join([a,b], [c,d])
     
-    a.enq
-    b.enq
-    e.enq
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
     
     assert_equal [
@@ -97,16 +106,16 @@ class JoinTest < Test::Unit::TestCase
   end
   
   def test_iterate_join
-    a = app.node { %w{a0 a1} }
-    b = app.node { %w{b0 b1} }
-    c = app.node {|input| "#{input}.c" }
-    d = app.node {|input| "#{input}.d" }
-    e = app.node { 'd' }
-    join = app.join([a,b], [c,d], :iterate => true)
+    a = node {|input| %w{a0 a1} }
+    b = node {|input| %w{b0 b1} }
+    c = node {|input| "#{input}.c" }
+    d = node {|input| "#{input}.d" }
+    e = node {|input| 'd' }
+    Join.new(:iterate => true).join([a,b], [c,d])
     
-    a.enq
-    b.enq
-    e.enq
+    app.enq a
+    app.enq b
+    app.enq e
     app.run
     
     assert_equal [
@@ -131,8 +140,8 @@ class JoinTest < Test::Unit::TestCase
   end
   
   def test_join_removes_self_from_existing_inputs_on_join
-    a = app.node { 'a' }
-    b = app.node { 'b' }
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
     
     join = Join.new({}, app)
     join.join([a], [])

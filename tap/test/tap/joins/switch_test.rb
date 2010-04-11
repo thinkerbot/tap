@@ -1,18 +1,27 @@
 require File.expand_path('../../../tap_test_helper', __FILE__)
 require 'tap/joins/switch'
+require 'tap/test/unit'
 require 'tap/test/tracer'
 
 class SwitchTest < Test::Unit::TestCase
+  extend Tap::Test
+  acts_as_tap_test
+  
   Switch = Tap::Joins::Switch
   
-  attr_reader :app, :results, :runlist
+  attr_reader :results, :runlist
   
   def setup
-    @app = Tap::App.new
+    super
     tracer = app.use(Tap::Test::Tracer)
     
     @results = tracer.results
     @runlist = tracer.runlist
+  end
+  
+  def node(&node)
+    def node.joins; @joins ||= []; end
+    node
   end
   
   #
@@ -20,21 +29,19 @@ class SwitchTest < Test::Unit::TestCase
   #
   
   def test_simple_switch
-    a = app.node { 'a' }
-    b = app.node { 'b' }
-    c = app.node {|input| "#{input}.c" }
-    d = app.node {|input| "#{input}.d" }
-    e = app.node { 'd' }
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
+    c = node {|input| "#{input}.c" }
+    d = node {|input| "#{input}.d" }
+    e = node {|input| 'd' }
     
     index = nil
-    app.join([a,b], [c,d], {}, Switch) do |result|
-      index
-    end
+    Switch.new.join([a,b], [c,d]) {|result| index }
     
     # pick c
     index = 0
-    a.enq
-    e.enq
+    app.enq a
+    app.enq e
     app.run
   
     assert_equal [
@@ -50,8 +57,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    b.enq
-    e.enq
+    app.enq b
+    app.enq e
     app.run
   
     assert_equal [
@@ -71,21 +78,19 @@ class SwitchTest < Test::Unit::TestCase
   end
   
   def test_enq_switch
-    a = app.node { 'a' }
-    b = app.node { 'b' }
-    c = app.node {|input| "#{input}.c" }
-    d = app.node {|input| "#{input}.d" }
-    e = app.node { 'd' }
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
+    c = node {|input| "#{input}.c" }
+    d = node {|input| "#{input}.d" }
+    e = node {|input| 'd' }
     
     index = nil
-    app.join([a,b], [c,d], {:enq => true}, Switch) do |result|
-      index
-    end
+    Switch.new(:enq => true).join([a,b], [c,d]) {|result| index }
     
     # pick c
     index = 0
-    a.enq
-    e.enq
+    app.enq a
+    app.enq e
     app.run
   
     assert_equal [
@@ -102,8 +107,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    b.enq
-    e.enq
+    app.enq b
+    app.enq e
     app.run
   
     assert_equal [
@@ -125,21 +130,19 @@ class SwitchTest < Test::Unit::TestCase
   end
   
   def test_iterate_switch
-    a = app.node { ['a0', 'a1'] }
-    b = app.node { ['b0', 'b1'] }
-    c = app.node {|input| "#{input}.c" }
-    d = app.node {|input| "#{input}.d" }
-    e = app.node { 'd' }
+    a = node {|input| ['a0', 'a1'] }
+    b = node {|input| ['b0', 'b1'] }
+    c = node {|input| "#{input}.c" }
+    d = node {|input| "#{input}.d" }
+    e = node {|input| 'd' }
     
     index = nil
-    app.join([a,b], [c,d], {:iterate => true}, Switch) do |result|
-      index
-    end
+    Switch.new(:iterate => true).join([a,b], [c,d]) {|result| index }
     
     # pick c
     index = 0
-    a.enq
-    e.enq
+    app.enq a
+    app.enq e
     app.run
   
     assert_equal [
@@ -156,8 +159,8 @@ class SwitchTest < Test::Unit::TestCase
     
     # pick d
     index = 1
-    b.enq
-    e.enq
+    app.enq b
+    app.enq e
     app.run
   
     assert_equal [
@@ -179,17 +182,15 @@ class SwitchTest < Test::Unit::TestCase
   end
   
   def test_switch_raises_error_for_out_of_bounds_index
-    a = app.node { 'a' }
-    b = app.node { 'b' }
-    c = app.node {|input| flunk "should not have executed" }
-    e = app.node { 'd' }
+    a = node {|input| 'a' }
+    b = node {|input| 'b' }
+    c = node {|input| flunk "should not have executed" }
+    e = node {|input| 'd' }
     
-    app.join([a,b], [c], {}, Switch) do |result|
-      3
-    end
-
-    a.enq
-    e.enq
+    Switch.new.join([a,b], [c]) {|result| 3}
+    
+    app.enq a
+    app.enq e
     
     app.debug = true
     err = assert_raises(Tap::Joins::Switch::SwitchError) { app.run }
