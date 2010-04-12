@@ -1,4 +1,5 @@
 require 'tap/join'
+require 'tap/tasks/signal'
 
 module Tap
   
@@ -186,7 +187,7 @@ module Tap
     # parses the match of a SIGNAL regexp
     def parse_signal(one, two) # :nodoc:
       next_args
-      spec(one.nil? ? :enq : :exe, [nil, Tap::Signal, two])
+      spec(one.nil? ? :enq : :exe, [nil, Tap::Tasks::Signal, two])
     end
   end
 end

@@ -65,6 +65,7 @@ Gem::Specification.new do |s|
     lib/tap/tasks/manifest.rb
     lib/tap/tasks/prompt.rb
     lib/tap/tasks/singleton.rb
+    lib/tap/tasks/signal.rb
     lib/tap/tasks/stream.rb
     lib/tap/templater.rb
     lib/tap/utils.rb

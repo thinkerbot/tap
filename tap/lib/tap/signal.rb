@@ -7,36 +7,17 @@ module Tap
     class << self
       # A description of self
       attr_accessor :desc
-      
-      def parse(argv=ARGV, app=Tap::App.current, &block)
-        parse!(argv.dup, app, &block)
-      end
-      
-      def parse!(argv=ARGV, app=Tap::App.current)
-        sig, *args = argv
-        obj = app.signal(sig)
-        yield(obj, args) if block_given?
-        obj
-      end
-      
-      def build(spec={}, app=Tap::App.current)
-        app.route(spec['obj'], spec['sig'])
-      end
     end
   
     # The object receiving signals through self.
     attr_reader :obj
   
-    # The app for self
-    attr_reader :app
-  
     # An optional block, used at the signal's discretion (normally passed to
     # the method the signal targets on obj).
     attr_reader :block
   
-    def initialize(obj, app=Tap::App.current, &block)
+    def initialize(obj, &block)
       @obj = obj
-      @app = app
       @block = block
     end
   
@@ -49,18 +30,7 @@ module Tap
     def process(args)
       args
     end
-  
-    def associations
-      [[obj]]
-    end
-  
-    def to_spec
-      {
-        'obj' => app.var(obj),
-        'sig' => obj.sig(self)
-      }
-    end
-    
+
     def inspect
       "#<#{self.class}:#{object_id}>"
     end
