@@ -26,9 +26,10 @@ Gem::Specification.new do |s|
   # check this manifest using 'rap print_manifest'
   s.files = %W{
     lib/tap/test.rb
+    lib/tap/test/env.rb
     lib/tap/test/file_test.rb
     lib/tap/test/file_test/class_methods.rb
-    lib/tap/test/shell_test.rb'
+    lib/tap/test/shell_test.rb
     lib/tap/test/shell_test/regexp_escape.rb
     lib/tap/test/subset_test.rb
     lib/tap/test/subset_test/class_methods.rb

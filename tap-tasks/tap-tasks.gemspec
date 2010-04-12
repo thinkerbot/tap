@@ -28,6 +28,7 @@ Gem::Specification.new do |s|
   # check this manifest using 'rap print_manifest'
   s.files = %W{
     lib/tap/tasks/args.rb
+    lib/tap/tasks/console.rb
     lib/tap/tasks/dump/csv.rb
     lib/tap/tasks/dump/inspect.rb
     lib/tap/tasks/dump/yaml.rb
