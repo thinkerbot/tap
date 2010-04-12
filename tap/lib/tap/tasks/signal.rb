@@ -3,7 +3,10 @@ require 'tap/task'
 module Tap
   module Tasks
     class Signal < Tap::Task
-      def process(sig, *args)
+      
+      config(:sig, nil, :short => :s)
+      
+      def process(*args)
         app.signal(sig).call(args)
       end
     end

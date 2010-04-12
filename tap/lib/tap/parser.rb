@@ -187,7 +187,7 @@ module Tap
     # parses the match of a SIGNAL regexp
     def parse_signal(one, two) # :nodoc:
       next_args
-      spec(one.nil? ? :enq : :exe, [nil, Tap::Tasks::Signal, two])
+      spec(one.nil? ? :enq : :exe, [nil, Tap::Tasks::Signal, '-s', two, '--'])
     end
   end
 end
