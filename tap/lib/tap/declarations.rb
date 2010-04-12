@@ -1,28 +1,29 @@
-require 'tap/declarations/description'
+require 'tap/join'
 require 'tap/workflow'
+require 'tap/declarations/description'
+require 'tap/declarations/context'
 
 module Tap
   module Declarations
-    def self.extended(base)
-      base.instance_variable_set(:@desc, nil)
-      base.instance_variable_set(:@baseclass, Tap::Task)
-      base.instance_variable_set(:@namespace, Object)
+    def env
+      app.env
     end
     
     # Returns a new node that executes block on call.
-    def node(var=nil, &block) # :yields: *args
-      node = Node.new(block, self)
-      set(var, node) if var
+    def node(var=nil, &node) # :yields: *args
+      def node.joins; @joins ||= []; end
+      app.set(var, node) if var
       node
     end
     
     # Generates a join between the inputs and outputs.  Join resolves the
     # class using env and initializes a new instance with the configs and
     # self. 
-    def join(inputs, outputs, config={}, clas='/join', &block)
+    def join(inputs, outputs, config={}, clas=Tap::Join, &block)
       inputs  = [inputs]  unless inputs.kind_of?(Array)
       outputs = [outputs] unless outputs.kind_of?(Array)
-      obj = init(clas, config, self)
+      
+      obj = app.init(clas, config, app)
       obj.join(inputs, outputs, &block)
       obj
     end

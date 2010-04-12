@@ -1,10 +1,12 @@
 require File.expand_path('../../../tap_test_helper', __FILE__)
 require 'tap/joins/sync'
 require 'tap/test/tracer'
+require 'tap/declarations'
 
 class SyncTest < Test::Unit::TestCase
   acts_as_tap_test
   Sync = Tap::Joins::Sync
+  include Tap::Declarations
   
   attr_reader :results, :runlist
   
@@ -13,11 +15,6 @@ class SyncTest < Test::Unit::TestCase
     tracer = app.use(Tap::Test::Tracer)
     @results = tracer.results
     @runlist = tracer.runlist
-  end
-  
-  def node(&node)
-    def node.joins; @joins ||= []; end
-    node
   end
   
   #

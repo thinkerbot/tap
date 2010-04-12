@@ -12,6 +12,9 @@ module Tap
         super
         @app = Tap::App.new({:debug => true}, {:env => Env.new})
         @context = Tap::App.set_context(Tap::App::CURRENT => @app)
+        @desc = nil
+        @baseclass = Tap::Task
+        @namespace = self.class
       end
       
       def teardown

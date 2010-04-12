@@ -38,6 +38,7 @@ Gem::Specification.new do |s|
     lib/tap/app/stack.rb
     lib/tap/app/state.rb
     lib/tap/declarations.rb
+    lib/tap/declarations/context.rb
     lib/tap/declarations/description.rb
     lib/tap/env.rb
     lib/tap/env/cache.rb
