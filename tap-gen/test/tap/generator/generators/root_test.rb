@@ -3,8 +3,8 @@ require 'tap/generator/generators/root'
 require 'tap/generator/preview.rb'
 
 class RootGeneratorTest < Test::Unit::TestCase
-  include Tap::Generator
-  include Generators
+  Root = Tap::Generator::Generators::Root
+  Preview = Tap::Generator::Preview
   acts_as_tap_test
   
   #
@@ -84,5 +84,15 @@ class RootGeneratorTest < Test::Unit::TestCase
     
     assert g.preview['README'] !~ /MIT-LICENSE/
     assert g.preview['project.gemspec'] !~ /MIT-LICENSE/
+  end
+end
+
+class RootHelperTest < Test::Unit::TestCase
+  include Tap::Generator::Generators::Root::Helper
+  
+  def test_titleize
+    assert_equal 'Project', titleize('project')
+    assert_equal 'Pro-Ject', titleize('pro_ject')
+    assert_equal 'Pro-Ject', titleize('pro-ject')
   end
 end

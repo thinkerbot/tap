@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.add_dependency('tap', '= <%= Tap::VERSION %>')
   s.add_development_dependency('tap-test')
   s.has_rdoc = true
-  s.rdoc_options.concat %W{--main README -S -N --title <%= project_name.capitalize %>}
+  s.rdoc_options.concat %W{--main README -S -N --title <%= titleize(project_name) %>}
   
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{

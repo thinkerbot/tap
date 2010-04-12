@@ -1,4 +1,4 @@
-= <%= project_name.capitalize %>
+= <%= titleize project_name %>
 
 == Description
 

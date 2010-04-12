@@ -13,8 +13,8 @@ module Tap::Generator::Generators
   #   |- README
   #   |- lib
   #   |- project.gemspec
-  #   |- tapfile
   #   |- tap.yml
+  #   |- tapfile
   #   `- test
   #       `- tap_test_helper.rb
   #
@@ -28,10 +28,18 @@ module Tap::Generator::Generators
       config :summary, ""                          # The project summary
     end
     
-    config :env, false, &c.switch          # Create a full tap.yml file
-    config :license, true, &c.switch       # Create an MIT-LICENSE
-    config :history, true, &c.switch       # Create History file
-    config :tapfile, true, &c.switch       # Create a Tapfile
+    config :env, false, &c.switch                  # Create a full tap.yml file
+    config :license, true, &c.switch               # Create an MIT-LICENSE
+    config :history, true, &c.switch               # Create History file
+    config :tapfile, true, &c.switch               # Create a Tapfile
+    
+    helper do
+      def titleize(str)
+        str.split(/[-_]+/).collect do |sub|
+          sub.capitalize
+        end.join('-')
+      end
+    end
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
     def manifest(m, root, project_name=nil)
