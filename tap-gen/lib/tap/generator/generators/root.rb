@@ -11,9 +11,9 @@ module Tap::Generator::Generators
   #   project
   #   |- MIT-LICENSE
   #   |- README
-  #   |- Rakefile
   #   |- lib
   #   |- project.gemspec
+  #   |- tapfile
   #   |- tap.yml
   #   `- test
   #       `- tap_test_helper.rb
@@ -31,8 +31,7 @@ module Tap::Generator::Generators
     config :env, false, &c.switch          # Create a full tap.yml file
     config :license, true, &c.switch       # Create an MIT-LICENSE
     config :history, true, &c.switch       # Create History file
-    config :rapfile, false, &c.switch      # Create a Rapfile
-    config :rakefile, true, &c.switch      # Create a Rakefile
+    config :tapfile, true, &c.switch       # Create a Tapfile
     
     # ::args ROOT, PROJECT_NAME=basename(ROOT)
     def manifest(m, root, project_name=nil)
@@ -56,10 +55,8 @@ module Tap::Generator::Generators
           )
           m.template r.path("#{project_name}.gemspec"), source, locals
           next
-        when source =~ /Rakefile$/
-          next unless rakefile
-        when source =~ /Rapfile$/
-          next unless rapfile
+        when source =~ /tapfile$/
+          next unless tapfile
         when source =~ /MIT-LICENSE$/
           next unless license
         end

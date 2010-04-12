@@ -1,15 +1,15 @@
 Gem::Specification.new do |s|
-  s.name = "<%= project_name %>"
-  s.version = "0.0.1"
-  s.author = "<%= name %>"
-  s.email = "<%= email %>"
-  s.homepage = "<%= homepage %>"
+  s.name = '<%= project_name %>'
+  s.version = '0.0.1'
+  s.author = '<%= name %>'
+  s.email = '<%= email %>'
+  s.homepage = '<%= homepage %>'
   s.platform = Gem::Platform::RUBY
-  s.summary = "<%= summary %>"
-  s.require_path = "lib"
-  s.rubyforge_project = "<%= rubyforge_project %>"
-  s.add_dependency("tap", "= <%= Tap::VERSION %>")
-  s.add_development_dependency("tap-test")
+  s.summary = '<%= summary %>'
+  s.require_path = 'lib'
+  s.rubyforge_project = '<%= rubyforge_project %>'
+  s.add_dependency('tap', '= <%= Tap::VERSION %>')
+  s.add_development_dependency('tap-test')
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title <%= project_name.capitalize %>}
   

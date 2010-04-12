@@ -13,17 +13,20 @@ class <%= const.name %> < Tap::Generator::Base
   def manifest(m, *inputs)
 
     # make a directory
-    # m.directory path
+    # m.directory 'path'
 
     # make a file
-    # m.file path do |file|
+    # m.file 'path' do |file|
     #   file << content
     # end
 
     # template a file in the templates directory using ERB.
     # The last argument defines a hash of local variables
     # for use in the template (here config is used).
-    m.template "<%= const.const_name.underscore %>_file.txt", "template_file.erb", config.to_hash
+    m.template "<%= const.const_name.underscore %>_file.txt", 'template_file.erb', config.to_hash
+    
+    # do something only on generate/destroy
+    # on(:generate) {}
   end
   
 end <% module_nest(const.nesting, '  ') { target } end %>

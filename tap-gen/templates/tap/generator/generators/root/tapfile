@@ -1,21 +1,18 @@
-require 'rake'
-require 'rake/testtask'
-require 'rake/rdoctask'
-require 'rake/gempackagetask'
-
 #
 # Gem specification
 #
 
 def gemspec
-  data = File.read('<%= project_name %>.gemspec')
-  spec = nil
-  Thread.new { spec = eval("$SAFE = 3\n#{data}") }.join
-  spec
+  @gemspec ||= TOPLEVEL_BINDING.eval(File.read('<%= project_name %>.gemspec'))
 end
 
-Rake::GemPackageTask.new(gemspec) do |pkg|
-  pkg.need_tar = true
+desc 'build the gem'
+task :gem, :dir => 'pkg' do |config|
+  output = `gem build '<%= project_name %>.gemspec'`
+  output =~ /File: (.*)$/
+
+  FileUtils.mkdir_p(config.dir) unless File.exists?(config.dir)
+  FileUtils.mv($1, File.join(config.dir, $1), :force => true)
 end
 
 desc 'Prints the gemspec manifest.'
@@ -27,18 +24,18 @@ task :print_manifest do
     files[File.expand_path(file)] = [File.exists?(file), file]
     files
   end
-  
+
   # gather non-rdoc/pkg files for the project
   # and add to the files list if they are not
   # included already (marking by the absence
   # of a label)
   Dir.glob("**/*").each do |file|
-    next if file =~ /^(rdoc|pkg|backup)/ || File.directory?(file)
-    
+    next if file =~ /^(rdoc|pkg|test)/ || File.directory?(file)
+  
     path = File.expand_path(file)
     files[path] = ["", file] unless files.has_key?(path)
   end
-  
+
   # sort and output the results
   files.values.sort_by {|exists, file| file }.each do |entry| 
     puts "%-5s %s" % entry
@@ -50,36 +47,31 @@ end
 #
 
 desc 'Generate documentation.'
-Rake::RDocTask.new(:rdoc) do |rdoc|
-  spec = gemspec
+task :rdoc, :rebuild => false, :dir => 'rdoc' do |config|
+  require 'rdoc/rdoc'
+  require 'cdoc'
   
-  rdoc.rdoc_dir = 'rdoc'
-  rdoc.options.concat(spec.rdoc_options)
-  rdoc.rdoc_files.include( spec.extra_rdoc_files )
+  if config.rebuild && File.directory?(config.dir)
+    FileUtils.rm_r(config.dir)
+  end
   
-  files = spec.files.select {|file| file =~ /^lib.*\.rb$/}
-  rdoc.rdoc_files.include( files )
+  files = gemspec.files.select {|file| file =~ /^lib.*\.rb$/ }.uniq
+  files += gemspec.extra_rdoc_files
   
   # Using CDoc to template your RDoc will result in configurations being
   # listed with documentation in a subsection following attributes.  Not
   # necessary, but nice.
-  require 'cdoc'
-  rdoc.template = 'cdoc/cdoc_html_template' 
-  rdoc.options << '--fmt' << 'cdoc'
+  cdoc_options = ['--fmt', 'cdoc', '--template', 'cdoc/cdoc_html_template']
+  args = ['-o', config.dir] + cdoc_options + gemspec.rdoc_options + files
+  RDoc::RDoc.new.document(args)
 end
 
 #
 # Test tasks
 #
 
-desc 'Default: Run tests.'
-task :default => :test
-
-desc 'Run tests.'
-Rake::TestTask.new(:test) do |t|
-  t.test_files = Dir.glob( File.join('test', ENV['pattern'] || '**/*_test.rb') )
-  t.ruby_opts = ['-rubygems']
-  t.verbose = true
-  t.warning = true
+desc 'Run the tests'
+task :test do
+  tests = Dir.glob('test/**/*_test.rb')
+  sh('ruby', '-w', '-e', 'ARGV.dup.each {|test| load test}', *tests)
 end
-
