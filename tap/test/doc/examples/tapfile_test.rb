@@ -9,9 +9,6 @@ class TapfileTest < Test::Unit::TestCase
     method_root.prepare('tapfile') do |io|
       # don't use indents so sort output is correct
       io << %q{
-require 'tap/declarations'
-extend Tap::Declarations
-
 # A task declaration looks like this. The declaration creates a subclass of
 # Tap::Task, literally this:
 #
@@ -84,7 +81,7 @@ end
     
     sh_test %q{
       % tap goodnight --help
-      Goodnight -- a goodnight task
+      Tapfile::Goodnight -- a goodnight task
       --------------------------------------------------------------------------------
         A task declaration looks like this. The declaration creates a subclass of
         Tap::Task, literally this:
@@ -100,7 +97,7 @@ end
         useful to think of it as a source of configs.  Note these comments are
         meaningful, if present they become the task help.
       --------------------------------------------------------------------------------
-      usage: tap goodnight *args
+      usage: tap tapfile/goodnight *args
 
       configurations:
               --msg MSG

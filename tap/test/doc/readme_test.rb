@@ -87,9 +87,6 @@ goodnight moon
     method_root.prepare('tapfile') do |io|
       # don't use indents so grep output is correct
       io << %q{
-require 'tap/declarations'
-extend Tap::Declarations
-
 desc "concat file contents"
 task :cat do |config, *files|
   files.collect {|file| File.read(file) }.join

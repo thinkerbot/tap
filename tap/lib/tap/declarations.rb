@@ -38,7 +38,7 @@ module Tap
     def baseclass(baseclass)
       current = @baseclass
       begin
-        @baseclass = env.constant(baseclass)
+        @baseclass = env.constant(baseclass) unless baseclass.nil?
         yield if block_given?
       ensure
         @baseclass = current if block_given?
@@ -50,7 +50,7 @@ module Tap
     def namespace(namespace)
       current = @namespace
       begin
-        unless namespace.kind_of?(Module)
+        unless namespace.nil? || namespace.kind_of?(Module)
           const_name = namespace.to_s.camelize
           unless current.const_defined?(const_name)
             current.const_set(const_name, Module.new)
@@ -58,7 +58,7 @@ module Tap
           namespace = current.const_get(const_name)
         end
         
-        @namespace = namespace
+        @namespace = namespace unless namespace.nil?
         yield if block_given?
       ensure
         @namespace = current if block_given?

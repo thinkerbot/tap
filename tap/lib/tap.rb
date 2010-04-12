@@ -65,7 +65,7 @@ module Tap
     options.process(:tapfile) do |tapfile_path|
       Env::Path.split(tapfile_path).each do |tapfile|
         next unless File.file?(tapfile)
-        Declarations::Context.new(app).instance_eval(File.read(tapfile), tapfile, 1)
+        Declarations::Context.new(app, File.basename(tapfile)).instance_eval(File.read(tapfile), tapfile, 1)
       end
     end
     

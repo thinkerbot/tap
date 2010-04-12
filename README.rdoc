@@ -130,9 +130,6 @@ a-la {Rake}[http://rake.rubyforge.org/]. By default any tasks in a tapfile are
 available for use.
 
   [tapfile]
-  require 'tap/declarations'
-  extend Tap::Declarations
-  
   desc "concat file contents"
   task :cat do |config, *files|
     files.collect {|file| File.read(file) }.join
