@@ -100,9 +100,8 @@ Sets up Tap::App.current for testing tasks.
   class TapTestTest < Test::Unit::TestCase
     acts_as_tap_test
 
-    def test_node
-      n = app.node { "result" }
-      assert_equal "result", n.call([])
+    def test_info
+      assert_equal 'state: 0 (READY) queue: 0', app.info
     end
   end
 

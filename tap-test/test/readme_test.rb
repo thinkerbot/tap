@@ -49,8 +49,7 @@ require 'tap/test/unit'
 class TapTestReadmeTest < Test::Unit::TestCase
   acts_as_tap_test
 
-  def test_node
-    n = app.node { "result" }
-    assert_equal "result", n.call([])
+  def test_info
+    assert_equal 'state: 0 (READY) queue: 0', app.info
   end
 end

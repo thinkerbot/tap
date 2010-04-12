@@ -83,6 +83,24 @@ task :publish_rdoc => [:rdoc] do
 end
 
 #
+# Dependency tasks
+#
+
+desc 'Checkout submodules'
+task :submodules do
+  Dir.chdir('..') do
+    output = `git submodule status 2>&1`
+  
+    if output =~ /^-/m
+      puts "Missing submodules:\n#{output}"
+      sh "git submodule init"
+      sh "git submodule update"
+      puts
+    end
+  end
+end
+
+#
 # Test tasks
 #
 
@@ -90,7 +108,7 @@ desc 'Default: Run tests.'
 task :default => :test
 
 desc 'Run tests.'
-task :test do
+task :test => :submodules do
   libs = ['lib']
   unless ENV['gems']
     libs << '../configurable/lib'

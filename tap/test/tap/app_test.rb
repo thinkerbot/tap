@@ -541,7 +541,7 @@ class AppTest < Test::Unit::TestCase
   
   def test_run_resets_state_to_ready_when_stopped
     in_block_state = nil
-    n = lambda { app.stop; in_block_state = app.state }
+    n = lambda {|input| app.stop; in_block_state = app.state }
     
     assert_equal App::State::READY, app.state
     assert_equal nil, in_block_state

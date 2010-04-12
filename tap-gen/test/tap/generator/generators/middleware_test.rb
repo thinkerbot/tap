@@ -22,12 +22,12 @@ class MiddlewareGeneratorTest < Test::Unit::TestCase
     eval(m.preview['lib/const_name.rb'])
 
     runlist = []
-    n = app.node {|input| runlist << input}
+    n = lambda {|input| runlist << input}
     m = app.use(ConstName)
     
     assert_equal m, app.stack
     
-    m.call(n, ['input'])
+    m.call(n, 'input')
     assert_equal ['input'], runlist
   end
 end

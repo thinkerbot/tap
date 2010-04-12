@@ -7,9 +7,7 @@ module Tap
       
       def initialize(app)
         @app = app
-        @desc = nil
-        @baseclass = Tap::Task
-        @namespace = Object
+        initialize_declare
       end
       
       def method_missing(sym, *args, &block)

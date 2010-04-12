@@ -85,16 +85,17 @@ end
 
 desc 'Checkout submodules'
 task :submodules do
-  output = `git submodule status 2>&1`
+  Dir.chdir('..') do
+    output = `git submodule status 2>&1`
   
-  if output =~ /^-/m
-    puts "Missing submodules:\n#{output}"
-    sh "git submodule init"
-    sh "git submodule update"
-    puts
+    if output =~ /^-/m
+      puts "Missing submodules:\n#{output}"
+      sh "git submodule init"
+      sh "git submodule update"
+      puts
+    end
   end
 end
-
 #
 # Test tasks
 #

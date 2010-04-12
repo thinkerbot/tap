@@ -133,6 +133,14 @@ module Tap
       @desc ||= Lazydoc.register_caller(Description)
       task(const_name, configs, baseclass, &block)
     end
+    
+    protected
+    
+    def initialize_declare(baseclass=Tap::Task, namespace=Object)
+      @desc = nil
+      @baseclass = baseclass
+      @namespace = namespace
+    end
 
     private
 

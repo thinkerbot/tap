@@ -15,6 +15,7 @@ class JoinTest < Test::Unit::TestCase
     tracer = app.use(Tap::Test::Tracer)
     @results = tracer.results
     @runlist = tracer.runlist
+    initialize_declare
   end
   
   #
