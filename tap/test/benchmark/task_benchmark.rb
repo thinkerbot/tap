@@ -1,10 +1,9 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
-require 'tap/test/unit'
 require 'tap/task'
 
 class TaskBenchmark < Test::Unit::TestCase
-  Task = Tap::Task
   acts_as_subset_test
+  Task = Tap::Task
   
   def test_task_init_speed
     benchmark_test(20) do |x|

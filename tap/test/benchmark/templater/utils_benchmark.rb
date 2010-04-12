@@ -1,11 +1,9 @@
 require File.expand_path('../../../tap_test_helper', __FILE__)
-require 'tap/test/unit'
 require 'tap/templater'
 
 class TemplaterUtilsBenchmark < Test::Unit::TestCase
-  include Tap::Templater::Utils
-  
   acts_as_subset_test
+  include Tap::Templater::Utils
   
   def test_nest_speed
     benchmark_test(20) do |x|

@@ -1,4 +1,5 @@
 require File.expand_path('../lib/tap/version', __FILE__)
+require File.expand_path('../../tap-test/lib/tap/test/version', __FILE__)
 
 Gem::Specification.new do |s|
   s.name = 'tap'
@@ -13,6 +14,7 @@ Gem::Specification.new do |s|
   s.bindir = 'bin'
   s.executables = 'tap'
   s.add_dependency('configurable', '>= 0.6.0')
+  s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\s(Task\sApplication)}
    
@@ -32,8 +34,6 @@ Gem::Specification.new do |s|
     lib/tap.rb
     lib/tap/app.rb
     lib/tap/app/api.rb
-    lib/tap/app/env.rb
-    lib/tap/node.rb
     lib/tap/app/queue.rb
     lib/tap/app/stack.rb
     lib/tap/app/state.rb

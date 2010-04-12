@@ -1,5 +1,4 @@
 require File.expand_path('../../../tap_test_helper', __FILE__)
-require 'tap/test/unit'
 
 class TapfileTest < Test::Unit::TestCase 
   acts_as_file_test

@@ -1,18 +1,12 @@
-require 'test/unit'
+require 'tap/test/unit'
 
-begin
-  require 'lazydoc'
-  require 'configurable'
-rescue(LoadError)
-  puts %Q{
-Tests probably cannot be run because the submodules have
-not been initialized. Use these commands and try again:
- 
-% git submodule init
-% git submodule update
- 
-}
-  raise
+# A couple fixture constants...
+module ConstName
+end
+
+module Nest
+  module ConstName
+  end
 end
 
 module TapTestMethods

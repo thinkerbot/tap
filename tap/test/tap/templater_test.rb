@@ -1,12 +1,9 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
 require 'tap/templater'
-require 'tap/test/unit'
 
 class TemplaterTest < Test::Unit::TestCase
-  Templater = Tap::Templater
-  
-  extend Tap::Test
   acts_as_file_test
+  Templater = Tap::Templater
   
   def version_test(version)
     if RUBY_VERSION =~ version

@@ -1,9 +1,7 @@
 require File.expand_path('../tap_test_helper', __FILE__)
 require 'tap'
-require 'tap/test/unit'
 
 class TapTest < Test::Unit::TestCase
-  extend Tap::Test
   acts_as_file_test
   
   #

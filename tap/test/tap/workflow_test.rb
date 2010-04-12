@@ -18,7 +18,8 @@ class WorkflowTest < Test::Unit::TestCase
     define :c, AddALetter, {:letter => 'c'}
     
     def process
-      sequence(a, b, c)
+      Tap::Join.new.join([a], [b])
+      Tap::Join.new.join([b], [c])
       [a, c]
     end
   end

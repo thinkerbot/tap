@@ -1,6 +1,5 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
 require 'tap/task'
-require 'tap/test/unit'
 
 # used in documentation test
 class ConfiguredTask < Tap::Task
@@ -27,9 +26,7 @@ class SubclassTask < Tap::Task
 end
 
 class TaskTest < Test::Unit::TestCase
-  extend Tap::Test
   acts_as_tap_test
-  
   Task = Tap::Task
   
   attr_accessor :t

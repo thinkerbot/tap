@@ -1,21 +1,16 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
 require 'tap/join'
-require 'tap/test/unit'
 require 'tap/test/tracer'
 
 class JoinTest < Test::Unit::TestCase
-  extend Tap::Test
   acts_as_tap_test
-  
   Join = Tap::Join
-  Tracer = Tap::Test::Tracer
   
   attr_reader :results, :runlist
   
   def setup
     super
-    
-    tracer = app.use(Tracer)
+    tracer = app.use(Tap::Test::Tracer)
     @results = tracer.results
     @runlist = tracer.runlist
   end

@@ -1,11 +1,8 @@
 require File.expand_path('../../../tap_test_helper', __FILE__) 
 require 'tap/tasks/load'
-require 'tap/test/unit'
 
 class Tap::LoadTest < Test::Unit::TestCase
-  extend Tap::Test
   acts_as_tap_test
-  
   Load = Tap::Tasks::Load
   
   attr_accessor :load

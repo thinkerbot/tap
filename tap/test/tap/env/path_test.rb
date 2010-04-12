@@ -1,12 +1,10 @@
 require File.expand_path('../../../tap_test_helper', __FILE__)
 require 'tap/env/path'
-require 'tap/test/unit'
 
 class PathTest < Test::Unit::TestCase
-  extend Tap::Test
   acts_as_file_test
-  
   Path = Tap::Env::Path
+  
   attr_reader :path
   
   def setup

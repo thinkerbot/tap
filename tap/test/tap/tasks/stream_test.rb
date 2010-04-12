@@ -1,12 +1,9 @@
-require File.join(File.dirname(__FILE__), '../../tap_test_helper.rb') 
+require File.expand_path('../../../tap_test_helper', __FILE__) 
 require 'tap/tasks/stream'
-require 'tap/test/unit'
 
 class StreamTest < Test::Unit::TestCase
-  extend Tap::Test
   acts_as_tap_test 
-  
-  include Tap::Tasks
+  Stream = Tap::Tasks::Stream
   
   class LastStream < Stream
     attr_accessor :enqued

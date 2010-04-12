@@ -1,12 +1,9 @@
 require File.expand_path('../../../tap_test_helper', __FILE__) 
 require 'tap/tasks/dump'
-require 'tap/test/unit'
 require 'stringio'
 
 class DumpTest < Test::Unit::TestCase
-  extend Tap::Test
   acts_as_tap_test
-  
   Dump = Tap::Tasks::Dump
   
   attr_reader :io, :dump

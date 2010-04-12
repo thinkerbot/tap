@@ -100,17 +100,6 @@ module Tap
       @entry_point, @exit_point = process
     end
     
-    # Sets a sequence workflow pattern for the tasks.
-    def sequence(*tasks)
-      options = tasks[-1].kind_of?(Hash) ? tasks.pop : {}
-      
-      previous = tasks.shift
-      tasks.each do |current|
-        app.join [previous], [current], options
-        previous = current
-      end
-    end
-    
     def call(input)
       output = nil
       

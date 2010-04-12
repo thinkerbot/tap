@@ -1,5 +1,4 @@
 require File.expand_path('../../tap_test_helper', __FILE__)
-require 'tap/test/unit'
 require 'tap/app'
 
 class AppBenchmark < Test::Unit::TestCase
@@ -31,10 +30,10 @@ class AppBenchmark < Test::Unit::TestCase
     benchmark_test(20) do |x|
       n = 10000
       
-      node = app.node {}
-      x.report("10k enq ") { n.times { node.enq } }
-      x.report("10k run ") { n.times {}; app.run }
-      x.report("10k call ") { n.times { node.call([]) } }
+      node = lambda {|input| }
+      x.report("10k enq ")  { n.times { app.enq(node, nil) } }
+      x.report("10k run ")  { n.times {}; app.run }
+      x.report("10k call ") { n.times { node.call(nil) } }
     end
   end
   
@@ -49,10 +48,10 @@ class AppBenchmark < Test::Unit::TestCase
       app.queue.extend(Unsynchronize)
       n = 10000
       
-      node = app.node {}
-      x.report("10k enq ") { n.times { node.enq } }
-      x.report("10k run ") { n.times {}; app.run }
-      x.report("10k call ") { n.times { node.call([]) } }
+      node = lambda {|input| }
+      x.report("10k enq ")  { n.times { app.enq(node, nil) } }
+      x.report("10k run ")  { n.times {}; app.run }
+      x.report("10k call ") { n.times { node.call(nil) } }
     end
   end
 end
