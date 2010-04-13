@@ -22,6 +22,44 @@ module Tap
       config :prompt, '/', &c.string_or_nil         # The prompt sequence
       config :terminal, $stdout, &c.io_or_nil       # The terminal IO
       config :variable, '', &c.string_or_nil        # Assign to variable in app
+      config :on, nil, &c.string_or_nil             # Register to a SIG
+      
+      def initialize(*args)
+        super
+        trap(on) if on
+      end
+      
+      # Traps interrupt the normal flow of the program and so I assume thread
+      # safety is an issue (ex if the INT occurs during an enque and a signal
+      # specifies another enque). A safer way to go is to enque the prompt...
+      # when the prompt is executed the app won't be be doing anything else so
+      # thread safety shouldn't be an issue.
+      def trap(sig)
+        ::Signal.trap(sig) do
+          puts
+          puts "Interrupt! Signals from an interruption are not thread-safe."
+          
+          call_prompt = true
+          3.times do
+            print "Wait for thread-safe break? (y/n): "
+
+            case gets.strip
+            when /^y(es)?$/i
+              puts "waiting for break..."
+              app.pq(self, [])
+              call_prompt = false
+              break
+
+            when /^no?$/i
+              break
+            end
+          end
+
+          if call_prompt
+            call([])
+          end
+        end
+      end
       
       def signal(sig)
         lambda do |spec|
