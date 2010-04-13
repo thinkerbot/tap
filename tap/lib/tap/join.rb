@@ -56,7 +56,7 @@ module Tap
     end
     
     # Causes the outputs to be enqued rather than executed immediately.
-    config :enq, false, :short => 'q', &c.flag      # Enque output nodes
+    config :enq, false, :short => 'q', &c.flag      # Enque output tasks
     
     # Converts each result into a one-member array before being passed onto
     # outputs. Arrayify occurs before iterate and combined the two flags
@@ -86,10 +86,10 @@ module Tap
       [inputs, outputs]
     end
     
-    # An array of input nodes, or nil if the join has not been set.
+    # An array of input tasks, or nil if the join has not been set.
     attr_reader :inputs
     
-    # An array of output nodes, or nil if the join has not been set.
+    # An array of output tasks, or nil if the join has not been set.
     attr_reader :outputs
     
     # Initializes a new join with the specified configuration.
@@ -135,15 +135,15 @@ module Tap
     
     def to_spec
       spec = super
-      spec['inputs'] = inputs.collect {|node| app.var(node) }
-      spec['outputs'] = outputs.collect {|node| app.var(node) }
+      spec['inputs'] = inputs.collect {|task| app.var(task) }
+      spec['outputs'] = outputs.collect {|task| app.var(task) }
       spec
     end
     
     protected
     
-    # Executes the node with the input results.
-    def exe(node, result) # :nodoc:
+    # Executes the task with the input results.
+    def exe(task, result) # :nodoc:
       mode = enq ? :enq : :exe
       
       if arrayify
@@ -151,9 +151,9 @@ module Tap
       end
       
       if iterate
-        result.to_ary.each {|item| app.send(mode, node, item) }
+        result.to_ary.each {|item| app.send(mode, task, item) }
       else
-        app.send(mode, node, result)
+        app.send(mode, task, result)
       end
     end
   end

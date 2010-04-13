@@ -1,40 +1,40 @@
 = Application Programming Interfaces
 
 All of the objects used by tap have two APIs -- one regarding the specific
-type of object (ex a node, a join, or middleware), and another regarding how
+type of object (ex a task, a join, or middleware), and another regarding how
 applications find and use the objects. These APIs allow users to make custom
 objects.
 
 == Object Interface
 
-Applications require the following methods for nodes, joins, and middleware.
+Applications require the following methods for tasks, joins, and middleware.
 Tap provides base classes that implement these APIs. Objects satisfying the
-node, join, or middleware API are referred to as workflow objects.
+task, join, or middleware API are referred to as workflow objects.
 
-=== {Node}[link:classes/Tap/App/Node.html] ({Task}[link:classes/Tap/Task.html])
+=== {Task}[link:classes/Tap/Task.html]
 
   call(input)                    # any return is allowed
   joins()                        # returns an array of joins, or nil (optional)
 
 The call method takes an object and returns an object. There are no formal
 constraints for the input/output objects. The optional joins method returns an
-array of joins to be called when the node completes, or nil if no joins are to
+array of joins to be called when the task completes, or nil if no joins are to
 be called. Each join is called in order.
 
 === {Join}[link:classes/Tap/Join.html]
 
   call(output)                   # any return is allowed
 
-The call method receives the output of a node. The result of call is not used;
+The call method receives the output of a task. The result of call is not used;
 call internally performs the join actions.
 
 === {Middleware}[link:classes/Tap/Middleware.html]
 
   Middleware.new(stack, *args)   # returns an instance of middleware
-  call(node, input)              # return is the node output
+  call(node, input)              # return is the task output
   stack()                        # returns the original stack
 
-Middleware wraps the execution of nodes. Nodes and inputs are passed to the
+Middleware wraps the execution of tasks. Tasks and inputs are passed to the
 middleware during execution. Joins are performed with the call output.
 
 == {Application Interface}[link:classes/Tap/App/Api.html]
@@ -111,12 +111,12 @@ If present they must do the following:
     # references to objects that must be built BEFORE self and brefs are
     # back-references to objects that must be built AFTER self.
     #
-    # For example, nodes must be built before joins.  As such, the associations
-    # method for a node returns a brefs for each of its joins. Similarly, joins
-    # must be built after nodes and hence the associations method for a join
-    # returns refs to their input and output nodes:
+    # For example, tasks must be built before joins.  As such, the associations
+    # method for a task returns a brefs for each of its joins. Similarly, joins
+    # must be built after tasks and hence the associations method for a join
+    # returns refs to their input and output tasks:
     #
-    #   node.associations       # => [nil, join]
+    #   task.associations       # => [nil, join]
     #   join.associations       # => [inputs + outputs, nil]
     #
     # Nil is a valid return for associations, indicating no associations.
@@ -138,7 +138,7 @@ more detail below.
 === Object References
 
 Specifications often require references to other application objects, as when
-a join refers to input and output nodes. These references are normally
+a join refers to input and output tasks. These references are normally
 specified as variables that, unlike the object itself, are serializable as
 JSON. Apps manage variables via the +obj+ and +var+ methods.
 

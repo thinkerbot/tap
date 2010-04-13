@@ -3,7 +3,7 @@
 Tap uses a custom syntax for specifying workflows. The syntax consists of
 argument vectors separated by various breaks (ex '-', '--', '-:'). The
 argument vectors define tasks, joins, and other workflow objects, while the
-breaks signify various thing to do with the objects.
+breaks signify various things to do with the objects.
 
 *Note* this documentation is written from the perspective of ruby-1.9.*, which
 changes the output of Array#to_s (among other things). See the {Ruby to

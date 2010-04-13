@@ -27,9 +27,9 @@ module Tap
       end
     end
     
-    # By default call simply calls stack with the node and inputs.
-    def call(node, input)
-      stack.call(node, input)
+    # By default call simply calls stack with the task and inputs.
+    def call(task, input)
+      stack.call(task, input)
     end
   end
 end

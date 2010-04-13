@@ -1,12 +1,29 @@
 #!/usr/bin/env ruby
-# usage: tap [workflow...] [--- tapfile]
+
+# usage: tap [workflow] [--- tapfile]
 #
+# workflow:
+#   [break] [left:]right [ARGS...]   Constants are identified by matching the
+#                                    left and right paths; all subsequent args
+#   example:                         are passed to the constant. Breaks delimit
+#   tap:load -> Tap::Tasks::Load     and the syntax repeats.
+#
+# breaks:
+#   -                                Delimiter, separates object argvs
+#   --                               Delimits argvs and enques next object
+#   -:[qai][.class]                  Sequence - joins previous and next objects
+#   -/obj[/sig]                      Signal - enques signal with argv
+#   --/obj[/sig]                     Signal - executes signal with argv
+#   -@ obj                           Enque  - enques obj with argv
+#   -. .-                            Escape begin/end
+#   ---                              End workflow
+# 
 # examples:
-#   tap load 'goodnight moon' --: dump   # a simple workflow
-#   tap prompt                           # open a prompt
-#
-# help:
-#   tap --help                           # prints this help
+#   tap load str -: dump             A simple sequence workflow
+#   tap load str - dump - join 0 1   Manually build the join
+#   tap - dump -/enq 0 str           A signal example
+#   tap manifest                     List resources
+#   tap prompt                       Open a prompt
 #
 
 require 'tap'

@@ -23,17 +23,17 @@ module Tap
     #
     class Manifest < Dump
       
-      config :all, false, :short => :a, &c.flag       # shows all types
+      config :all, false, :short => :a, &c.flag       # Shows all types
       config :types, ['task', 'join', 'middleware'],
         :long => :type,
         :short => :t,
         :reader => false,
-        &c.list(&c.string)                            # list types to show
+        &c.list(&c.string)                            # List types to show
         
-      config :full, false, :short => :f, &c.flag      # show full paths
-      config :path, false, :short => :p, &c.flag      # show require path
+      config :full, false, :short => :f, &c.flag      # Show full paths
+      config :path, false, :short => :p, &c.flag      # Show require path
       config :clas, false, :long => :class,
-        :short => :c, &c.flag                         # show class
+        :short => :c, &c.flag                         # Show class
       
       def call(input)
         process manifest(*input)

@@ -99,7 +99,7 @@ module Tap
     # The state of the application (see App::State)
     attr_reader :state
     
-    # The application call stack for executing nodes
+    # The application call stack for executing tasks
     attr_reader :stack
     
     # The application queue
@@ -266,16 +266,16 @@ module Tap
       end
     end
     
-    # Enques the node with the input.  Returns the node.
-    def enq(node, input=[])
-      queue.enq(node, input)
-      node
+    # Enques the task with the input.  Returns the task.
+    def enq(task, input=[])
+      queue.enq(task, input)
+      task
     end
     
-    # Priority-enques (unshifts) the node with the input.  Returns the node.
-    def pq(node, input=[])
-      queue.unshift(node, input)
-      node
+    # Priority-enques (unshifts) the task with the input.  Returns the task.
+    def pq(task, input=[])
+      queue.unshift(task, input)
+      task
     end
     
     # Sets the object to the specified variable and returns obj.  Provide nil
@@ -459,17 +459,17 @@ module Tap
       self
     end
     
-    # Executes nodes by doing the following.
+    # Executes tasks by doing the following.
     #
-    # - call stack with the node and input
-    # - call the node joins (node.joins)
+    # - call stack with the task and input
+    # - call the task joins (task.joins)
     #
     # Returns the stack result.
-    def exe(node, input=[])
-      result = stack.call(node, input)
+    def exe(task, input=[])
+      result = stack.call(task, input)
       
-      if node.respond_to?(:joins)
-        if joins = node.joins
+      if task.respond_to?(:joins)
+        if joins = task.joins
           joins.each do |join|
             join.call(result)
           end
@@ -479,16 +479,16 @@ module Tap
       result
     end
     
-    # Sequentially executes each enqued job (a [node, input] pair).  A run
+    # Sequentially executes each enqued job (a [task, input] pair).  A run
     # continues until the queue is empty.
     #
-    # Run checks the state of self before executing a node.  If the state
+    # Run checks the state of self before executing a task.  If the state
     # changes from RUN, the following behaviors result:
     #       
-    #   STOP        No more nodes will be executed; the current node
+    #   STOP        No more tasks will be executed; the current task
     #               will continute to completion.
-    #   TERMINATE   No more nodes will be executed and the currently
-    #               running node will be discontinued as described in
+    #   TERMINATE   No more tasks will be executed and the currently
+    #               running task will be discontinued as described in
     #               terminate.
     #
     # Calls to run when the state is not READY do nothing and return
@@ -516,8 +516,8 @@ module Tap
       self
     end
     
-    # Signals a running app to stop executing nodes to the application stack
-    # by setting state to STOP.  The node currently in the stack will continue
+    # Signals a running app to stop executing tasks to the application stack
+    # by setting state to STOP.  The task currently in the stack will continue
     # to completion.
     #
     # Does nothing unless state is RUN.
@@ -532,7 +532,7 @@ module Tap
     # them quietly.
     #
     # Nodes can set breakpoints that call check_terminate to invoke
-    # node-specific termination.  If a node never calls check_terminate, then
+    # task-specific termination.  If a task never calls check_terminate, then
     # it will continue to completion.
     #
     # Does nothing if state is READY.
@@ -584,8 +584,8 @@ module Tap
       order = []
       
       # collect enque signals to setup queue
-      signals = queue.to_a.collect do |(node, input)|
-        {'sig' => 'enq', 'args' => {'var' => var(node), 'input' => input}}
+      signals = queue.to_a.collect do |(task, input)|
+        {'sig' => 'enq', 'args' => {'var' => var(task), 'input' => input}}
       end
       
       # collect and trace application objects
@@ -677,7 +677,7 @@ module Tap
     
     private
     
-    # Traces each object backwards and forwards for node, joins, etc. and adds
+    # Traces each object backwards and forwards for tasks, joins, etc. and adds
     # each to specs as needed.  The trace determines and returns the order in
     # which these specs must be initialized to make sense.  Circular traces
     # are detected.
@@ -733,7 +733,7 @@ module Tap
       {'config' => config, 'self' => true}
     end
     
-    # TerminateErrors are raised to kill executing nodes when terminate is 
+    # TerminateErrors are raised to kill executing tasks when terminate is 
     # called on an running App.  They are handled by the run rescue code.
     class TerminateError < RuntimeError
     end

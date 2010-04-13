@@ -3,16 +3,16 @@ require 'monitor'
 module Tap
   class App
     
-    # Queue allows thread-safe enqueing and dequeing of nodes and inputs for
+    # Queue allows thread-safe enqueing and dequeing of tasks and inputs for
     # execution.
     #
     # === API
     #
     # The following methods are required in alternative implementations of an
-    # applicaton queue, where a job is a [node, input] array:
+    # applicaton queue, where a job is a [task, input] array:
     #
-    #   enq(node, input)      # pushes the job onto the queue
-    #   unshift(node, input)  # unshifts the job onto the queue
+    #   enq(task, input)      # pushes the job onto the queue
+    #   unshift(task, input)  # unshifts the job onto the queue
     #   deq                   # shifts a job off the queue
     #   size                  # returns the number of jobs in the queue
     #   clear                 # clears the queue, returns current jobs
@@ -29,17 +29,17 @@ module Tap
         @queue = []
       end
       
-      # Enqueues the node and input.
-      def enq(node, input)
+      # Enqueues the task and input.
+      def enq(task, input)
         synchronize do
-          @queue.push [node, input]
+          @queue.push [task, input]
         end
       end
       
-      # Enqueues the node and input, but to the top of the queue.
-      def unshift(node, input)
+      # Enqueues the task and input, but to the top of the queue.
+      def unshift(task, input)
         synchronize do
-          @queue.unshift [node, input]
+          @queue.unshift [task, input]
         end
       end
       
