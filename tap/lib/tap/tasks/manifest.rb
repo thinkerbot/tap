@@ -4,27 +4,67 @@ module Tap
   module Tasks
     # :startdoc::task lists resources
     #
+    # Prints a list of resources registered with the application env. Any of
+    # the resources may be used in a workflow.  A list of filters may be used
+    # to limit the output; each is converted to a regexp and can match any
+    # part of the resource (path, class, desc).
+    #
+    #   % tap manifest join gate
+    #   join:
+    #     gate                 # collects results before the join
+    #
+    # The configurations can be used to switch the resource description.  By
+    # default env only lists resources registered as a task, join, or
+    # middleware.
+    #
+    #   % tap manifest join gate --class --full
+    #   join:
+    #     /tap/joins/gate      # Tap::Joins::Gate
+    #
     class Manifest < Dump
       
-      config :all, false, :short => :a, &c.flag
-      config :show, 'summary', &c.select('summary', 'name', 'path')
-      config :types, ['task', 'join', 'middleware'], 
-        :long => :type, :short => :t, 
-        &c.list(&c.string)
+      config :all, false, :short => :a, &c.flag       # shows all types
+      config :types, ['task', 'join', 'middleware'],
+        :long => :type,
+        :short => :t,
+        :reader => false,
+        &c.list(&c.string)                            # list types to show
+        
+      config :full, false, :short => :f, &c.flag      # show full paths
+      config :path, false, :short => :p, &c.flag      # show require path
+      config :clas, false, :long => :class,
+        :short => :c, &c.flag                         # show class
       
       def call(input)
         process manifest(*input)
       end
       
-      def manifest(*filters)
-        constants = filter(app.env.constants, filters)
+      def basis
+        app.env.constants
+      end
+      
+      def types
+        return @types unless all
         
-        paths = minimap(constants)
+        types = []
+        app.env.constants.each do |constant|
+          types.concat constant.types.keys
+        end
+        types.uniq!
+        types
+      end
+      
+      def manifest(*filters)
+        constants = filter(basis, filters)
+        
+        paths = full ? fullmap(constants) : minimap(constants)
         constants = constants.sort_by {|constant| paths[constant] }
         
         descriptions = {}
         selected_paths = []
-        types.each do |type|
+        selected_types = types
+        
+        selected_types.each do |type|
           lines = []
           constants.each do |constant|
             next unless constant.types.include?(type)
@@ -40,7 +80,7 @@ module Tap
         format = "  %-#{max_width(selected_paths)}s # %s"
         
         lines = []
-        types.each do |type|
+        selected_types.each do |type|
           next unless descriptions.has_key?(type)
           
           lines << "#{type}:"
@@ -59,13 +99,18 @@ module Tap
       def filter(constants, filters)
         return constants if filters.empty?
         
-        method_name = all ? :all? : :any?
         filters.collect! {|filter| Regexp.new(filter) }
         constants = constants.select do |constant|
-          filters.send(method_name) do |filter|
+          filters.all? do |filter|
             constant.path =~ filter
           end
         end
+      end
+      
+      def fullmap(constants)
+        paths = {}
+        constants.each {|constant| paths[constant] = constant.path }
+        paths
       end
       
       def minimap(constants)
@@ -107,11 +152,26 @@ module Tap
       end
       
       def describe(constant, type)
-        case show
-        when 'summary' then constant.types[type]
-        when 'name'    then constant.const_name
-        when 'path'    then constant.require_paths.join(',')
+        case
+        when clas 
+          constant.const_name
+          
+        when path
+          require_paths = constant.require_paths
+          require_paths = require_paths.collect do |path|
+            File.join(load_path(path), path)
+          end if full
+          require_paths.join(',')
+          
+        else 
+          constant.types[type]
         end
+      end
+      
+      def load_path(path)
+        $:.find do |load_path|
+          File.exists?(File.join(load_path, path))
+        end || '?'
       end
       
       def max_width(paths)
