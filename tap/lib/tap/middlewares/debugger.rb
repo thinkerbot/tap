@@ -9,11 +9,11 @@ module Tap
       config :show_class, false, :long => :class, &c.flag
       config :output, $stderr, &c.io
       
-      def call(node, input)
-        log "+ #{identify node} #{summarize input}"
+      def call(task, input)
+        log "+ #{identify task} #{summarize input}"
         output = super
         
-        log "- #{identify node } #{summarize output}"
+        log "- #{identify task } #{summarize output}"
         output
       end
       
@@ -21,9 +21,9 @@ module Tap
         open_io(output) {|io| io.puts str }
       end
       
-      def identify(node)
-        var = app.var(node)
-        show_class ? "#{var} (#{node.class})" : var.to_s
+      def identify(task)
+        var = app.var(task)
+        show_class ? "#{var} (#{task.class})" : var.to_s
       end
       
       def summarize(obj)

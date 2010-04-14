@@ -87,14 +87,14 @@ module Tap
       end
     end
     
-    lazy_attr :args, :process
-    lazy_register :process, Lazydoc::Arguments
-    
-    attr_reader :app
+    # An array of joins for self
     attr_reader :joins
     
-    signal :enq
-    signal :exe
+    signal :enq                    # enque self
+    signal :exe                    # execute self
+    
+    lazy_attr :args, :process
+    lazy_register :process, Lazydoc::Arguments
     
     def initialize(config={}, app=Tap::App.current)
       @app = app
@@ -102,24 +102,48 @@ module Tap
       initialize_config(config)
     end
     
-    def associations
-      [nil, joins]
+    # Call splats the input to process and exists to provide subclasses
+    # a way to wrap process behavior.
+    def call(input)
+      process(*input)
     end
     
-    def call(inputs)
-      process(*inputs)
-    end
-    
+    # The method for processing inputs into outputs. Override this method in
+    # subclasses to provide class-specific process logic. The arguments given
+    # to enq/exe should correspond to the arguments required by process. The
+    # process return is the result passed to joins.
+    #    
+    #   class TaskWithTwoInputs < Tap::Task
+    #     def process(a, b)
+    #       [b,a]
+    #     end
+    #   end
+    #   
+    #   results = []
+    #   app = Tap::App.new
+    #
+    #   task = TaskWithTwoInputs.new({}, app)
+    #   task.enq(1,2).enq(3,4)
+    #   task.on_complete {|result| results << result }
+    #    
+    #   app.run
+    #   results                 # => [[2,1], [4,3]]
+    #    
+    # By default, process simply returns the inputs.
     def process(*inputs)
       inputs
     end
     
+    # Enques self with an array of inputs (directly use app.enq to enque with
+    # a non-array input, or override in a subclass).
     def enq(*args)
       app.enq(self, args)
     end
     
-    def exe(*inputs)
-      app.exe(self, inputs)
+    # Executes self with an array of inputs (directly use app.exe to execute
+    # with a non-array input, or override in a subclass).
+    def exe(*args)
+      app.exe(self, args)
     end
     
     # Logs the inputs to the application logger (via app.log)
@@ -137,6 +161,11 @@ module Tap
     # the task class, object_id, and configurations listed.
     def inspect
       "#<#{self.class.to_s}:#{object_id} #{config.to_hash.inspect} >"
+    end
+    
+    # Returns the associations array: [nil, joins]
+    def associations
+      [nil, joins]
     end
   end
 end

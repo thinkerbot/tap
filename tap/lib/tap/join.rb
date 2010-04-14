@@ -72,7 +72,7 @@ module Tap
     #
     config :iterate, false, :short => 'i', &c.flag  # Iterate results to outputs
     
-    signal :join do |sig, (inputs, outputs)|
+    signal :join do |sig, (inputs, outputs)|        # join app objects
       app = sig.obj.app
       
       inputs = resolve(inputs) do |var|

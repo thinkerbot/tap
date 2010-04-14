@@ -10,7 +10,7 @@
 #
 # breaks:
 #   -                                Delimiter, separates object argvs
-#   --                               Delimits argvs and enques next object
+#   --                               Delimits argvs and enques the next object
 #   -:[qai][.class]                  Sequence - joins previous and next objects
 #   -/obj[/sig]                      Signal - enques signal with argv
 #   --/obj[/sig]                     Signal - executes signal with argv

@@ -5,7 +5,7 @@ module Tap
     #
     # Similar to a synchronized merge, but collects all results regardless of
     # where they come from.  Gates enque themselves when called as a join, and
-    # won't let results pass until they get run as a node.
+    # won't let results pass until they get run as a task.
     # 
     #   % tap load a -- load b - inspect - gate 0,1 2
     #   ["a", "b"]
