@@ -178,9 +178,14 @@ module Tap
     end
 
     def constants_by_path(const_str) # :nodoc:
+      const_str, type = const_str.split('::', 2)
       head, tail = const_str.split(':', 2)
       head, tail = nil, head unless tail
-      constants.select {|constant| constant.path_match?(head, tail) }
+      
+      constants.select do |constant|
+        (type.nil? || constant.types.has_key?(type)) &&
+        constant.path_match?(head, tail)
+      end
     end
   end
 end

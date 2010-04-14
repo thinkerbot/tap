@@ -95,6 +95,18 @@ class EnvTest < Test::Unit::TestCase
     assert_equal 'C', env.resolve('/c:').const_name
   end
   
+  def test_resolve_filters_by_type_if_specified
+    env = Env.new :constants => [
+      Constant.new('A').register_as('one'),
+      Constant.new('B::A').register_as('two')
+    ]
+    
+    err = assert_raises(RuntimeError) { env.resolve('a') }
+    
+    assert_equal 'A', env.resolve('a::one').const_name
+    assert_equal 'B::A', env.resolve('a::two').const_name
+  end
+  
   def test_path_matching_forces_match_along_word_breaks
     env = Env.new :constants => [
       Constant.new('Nested::Const::Name')
