@@ -6,16 +6,22 @@ module Tap
   # A parser for workflows defined on the command line.
   class Parser
     
+    # Regexp to match any dash-nonword break
     BREAK = /\A-(?!-?\w)/
     
+    # Matches a traditional dash-letter or double-dash-word option
     OPTION = /\A--?\w/
     
+    # Delmits and sets the next object
     SET = '-'
     
+    # Sets and enques the next object
     ENQUE = '--'
     
+    # Sets and executes the next object
     EXECUTE = '-!'
     
+    # Break to enque an existing object
     SIGENQ = '-@'
     
     # Matches a sequence break. After the match:
@@ -97,6 +103,8 @@ module Tap
             current = spec(:set)
           when ENQUE
             current = spec(:enq)
+          when EXECUTE
+            current = spec(:exe)
           when OPTION
             current << arg
           when JOIN
@@ -105,8 +113,6 @@ module Tap
             current = parse_signal(nil, 'enq')
           when SIGNAL
             current = parse_signal($1, $2)
-          when EXECUTE
-            current = spec(:exe)
           when ESCAPE_BEGIN
             escape = true
           when END_FLAG
@@ -128,11 +134,12 @@ module Tap
         hash[type] = block(type, app)
       end
       
-      specs.each do |(spec, type)|
-        app.call(spec, &blocks[type])
+      app.scope do
+        specs.each do |(spec, type)|
+          app.call(spec, &blocks[type])
+        end
       end
       
-      specs.clear
       self
     end
     

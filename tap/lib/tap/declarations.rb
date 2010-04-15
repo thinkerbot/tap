@@ -2,6 +2,7 @@ require 'tap/join'
 require 'tap/workflow'
 require 'tap/declarations/description'
 require 'tap/declarations/context'
+require 'tap/parser'
 
 module Tap
   module Declarations
@@ -71,12 +72,11 @@ module Tap
       @namespace.const_set(const_name, subclass)
       
       # define configs
-      convert_to_yaml = Configurable::Validation.yaml
       configs.each_pair do |key, value|
         # specifying a desc prevents lazydoc registration of these lines
         opts = {:desc => ""}
         opts[:short] = key if key.to_s.length == 1
-        subclass.send(:config, key, value, opts, &convert_to_yaml)
+        subclass.send(:config, key, value, opts, &config_block(value))
       end
       
       # define process
@@ -110,14 +110,13 @@ module Tap
 
       desc = @desc
       tasc = work(const_name, configs) do |workflow|
-        prereqs = prerequisites.collect {|prereq| init(prereq) }
-        obj     = init("#{const_name.to_s.underscore}/task", workflow.config.to_hash)
-
-        setup = lambda do |input|
-          prereqs.each {|prereq| exe(prereq, []) }
-          exe(obj, input)
-        end
-
+        psr = Parser.new
+        Utils.warn_ignored_args psr.parse!(prerequisites)
+        psr.build_to(app)
+        
+        obj = init("#{const_name.to_s.underscore}/task", workflow.config.to_hash)
+        setup = lambda {|input| exe(obj, input) }
+        
         [setup, obj]
       end
 
@@ -163,12 +162,31 @@ module Tap
       if const_name.nil?
         raise ArgumentError, "no constant name specified"
       end
-
-      unless prerequisites.nil? || prerequisites.kind_of?(Array)
-        prerequisites = [prerequisites]
+      
+      case prerequisites
+      when nil
+      when String
+        prerequisites = Utils.shellsplit(prerequisites)
+      when Array
+        argv = []
+        prerequisites.each do |prereq|
+          argv << '-!'
+          argv << prereq.to_s
+        end
+        prerequisites = argv
+      else
+        prerequisites = ['-!', prerequisites.to_s]
       end
-
+      
       [const_name, prerequisites]
+    end
+    
+    def config_block(value)
+      case value
+      when true  then Configurable::Validation.switch
+      when false then Configurable::Validation.flag
+      else Configurable::Validation.yaml
+      end
     end
   end
 end

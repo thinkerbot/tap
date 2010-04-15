@@ -3,7 +3,23 @@ require 'tap/utils'
 
 class UtilsTest < Test::Unit::TestCase
   include Tap::Utils
-
+  
+  #
+  # shellsplit test
+  #
+  
+  def test_shellsplit_strips_whitespace
+    assert_equal ['a', 'b', 'c'], shellsplit("  a \t b \r\n c \n  ")
+  end
+  
+  def test_shellsplit_respects_quoted_whitespace
+    assert_equal ["\t a \t", 'b', "\n c \n"], shellsplit(" '\t a \t' b \r '\n c \n'  ")
+  end
+  
+  def test_shellsplit_ignores_trailing_comments
+    assert_equal ['a', 'b', 'c'], shellsplit("a b c # d")
+  end
+  
   #
   # capture_sh test
   #

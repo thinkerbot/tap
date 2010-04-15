@@ -15,6 +15,7 @@
 #   -/obj[/sig]                      Signal - enques signal with argv
 #   --/obj[/sig]                     Signal - executes signal with argv
 #   -@ obj                           Enque  - enques obj with argv
+#   -! obj                           Execute - executes obj with argv
 #   -. .-                            Escape begin/end
 #   ---                              End workflow
 # 

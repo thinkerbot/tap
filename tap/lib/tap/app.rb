@@ -564,7 +564,7 @@ module Tap
     # Sets self as instance in the current context, for the duration of the
     # block (see App.with_context).
     def scope
-      App.with_context(APP => self) { yield }
+      App.with_context(CURRENT => self) { yield }
     end
     
     # Converts the self to a schema that can be used to build a new app with
