@@ -6,11 +6,11 @@
 # without RubyGems or the default ENV (ie 'ruby tapexe').
 #
 
-ENV['TAPFILE']   ||= 'tapfile'
 ENV['TAP_GEMS']  ||= '.'
 ENV['TAP_PATH']  ||= '.'
 ENV['TAPENV']    ||= 'tapenv'
 ENV['TAPRC']     ||= '~/.taprc:taprc'
+ENV['TAPFILE']   ||= 'tapfile'
 ENV['TAP_CACHE'] ||= '~/.tap'
 
 load File.expand_path('../tapexe', __FILE__)

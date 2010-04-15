@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# usage: tap [workflow] [--- tapfile]
+# usage: tap [workflow] [--- tapfile] [-d-]
 #
 # workflow:
 #   [break] [left:]right [ARGS...]   Constants are identified by matching the
@@ -18,11 +18,18 @@
 #   -! obj                           Execute - executes obj with argv
 #   -. .-                            Escape begin/end
 #   ---                              End workflow
-# 
+#
+# env:
+#   TAP_GEMS                         Gem patterns to match and register
+#   TAP_PATH                         Directory paths to register
+#   TAPENV                           Signal files for env
+#   TAPRC                            Signal files for app
+#   TAPFILE                          Declaration files
+#
 # examples:
 #   tap load str -: dump             A simple sequence workflow
 #   tap load str - dump - join 0 1   Manually build the join
-#   tap - dump -/enq 0 str           A signal example
+#   tap --/use debugger -d-          Debugging utilities
 #   tap manifest                     List resources
 #   tap prompt                       Open a prompt
 #
