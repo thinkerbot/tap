@@ -77,7 +77,7 @@ module Tap
         prompt_out.print "overwrite #{target}? [Ynaiq] "
         prompt_out.flush
         case prompt_in.gets.strip
-        when /^y(es)?$/i
+        when /^y(es)?$/i, ''
           true
         when /^n(o)?$/i
           false
