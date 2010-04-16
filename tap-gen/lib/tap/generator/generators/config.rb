@@ -72,29 +72,17 @@ module Tap::Generator::Generators
     config :doc, true, &c.switch        # Include documentation in the config
     config :nest, false, &c.switch      # Generate nested config files
     config :blanks, true, &c.switch     # Allow generation of empty config files
-    config :type, 'task'                # Specify the resource type
-    
-    # Lookup the named resource.  Lookup happens through the active Env 
-    # instance, specifically using:
-    #
-    #   Env.instance[type][name]
-    #
-    # Raises an error if the name cannot be resolved to a resource.
-    def lookup(name)
-      env = Tap::Env.instance
-      env[type][name] or raise "unknown #{type}: #{name}"
-    end
-    
+
     def manifest(m, name, config_name=nil)
       # setup
-      tasc = lookup(name)
-      config_name ||= tasc.to_s.underscore
+      clas = app.env.constant(name)
+      config_name ||= clas.to_s.underscore
       config_file = path('config', config_name)
       config_file += ".yml" if File.extname(config_file).empty?
       
       # generate the dumps
       dumps = Configurable::Utils.dump_file(
-        tasc.configurations,
+        clas.configurations,
         config_file, 
         nest, 
         true, 

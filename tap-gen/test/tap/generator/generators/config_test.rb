@@ -7,16 +7,6 @@ class ConfigGeneratorTest < Test::Unit::TestCase
   include Generators
   acts_as_tap_test
   
-  module MockTaskLookup
-    def set_tasc(name, tasc)
-      (@mock_configurations ||= {})[name] = tasc
-    end
-    
-    def lookup(name)
-      @mock_configurations[name]
-    end
-  end
-  
   #
   # input arguments test
   #
@@ -26,23 +16,21 @@ class ConfigGeneratorTest < Test::Unit::TestCase
   
   def test_config_name_sets_the_config_file_name
     c = Config.new.extend Preview
-    c.extend MockTaskLookup
-    c.set_tasc('config_name', ConfigName)
     
     assert_equal %w{
       config
       config/config_generator_test/config_name.yml
-    }, c.process('config_name')
+    }, c.process('ConfigGeneratorTest::ConfigName')
     
     assert_equal %w{
       config
       config/alt_name.yml
-    }, c.process('config_name', 'alt_name')
+    }, c.process('ConfigGeneratorTest::ConfigName', 'alt_name')
     
     assert_equal %w{
       config
       config/alt_name.alt_ext
-    }, c.process('config_name', 'alt_name.alt_ext')
+    }, c.process('ConfigGeneratorTest::ConfigName', 'alt_name.alt_ext')
   end
   
   #
@@ -72,13 +60,11 @@ class ConfigGeneratorTest < Test::Unit::TestCase
   
   def test_config_generator_generates_config_file_with_documentation
     c = Config.new.extend Preview
-    c.extend MockTaskLookup
-    c.set_tasc('doc_sample', DocSample)
     
     assert_equal %w{
       config
       config/doc_sample.yml
-    }, c.process('doc_sample', 'doc_sample')
+    }, c.process('ConfigGeneratorTest::DocSample', 'doc_sample')
     
     assert_equal %q{
 # key documentation
@@ -109,13 +95,12 @@ empty_doc: value
   
   def test_config_generator_omits_documentation_if_specified
     c = Config.new.extend Preview
-    c.extend MockTaskLookup
-    c.set_tasc('doc_sample', DocSample)
+    
     c.doc = false
     assert_equal %w{
       config
       config/doc_sample.yml
-    }, c.process('doc_sample', 'doc_sample')
+    }, c.process('ConfigGeneratorTest::DocSample', 'doc_sample')
 
     assert_equal %q{
 key: value
