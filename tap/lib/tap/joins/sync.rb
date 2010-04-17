@@ -1,7 +1,7 @@
 module Tap
   module Joins
     
-    # :startdoc::join a synchronized multi-way join
+    # :startdoc::join synchronized multi-way join
     #
     # Sync works the same as Join, but passes the collected results of the
     # inputs (ie an array) to the outputs. The results will not be passed

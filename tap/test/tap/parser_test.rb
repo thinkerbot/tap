@@ -310,13 +310,13 @@ class ParserTest < Test::Unit::TestCase
     parser.parse %w{--/var/sig a b}
     
     assert_equal [
-      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, '-s', 'var/sig', '--', 'a', 'b']}, :enq],
-      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, '-s', 'var/',    '--', 'a', 'b']}, :enq],
-      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, '-s', '/sig',    '--', 'a', 'b']}, :enq],
-      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, '-s', 'sig',     '--', 'a', 'b']}, :enq],
-      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, '-s', '/',       '--', 'a', 'b']}, :enq],
-      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, '-s', '',        '--', 'a', 'b']}, :enq],
-      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, '-s', 'var/sig', '--', 'a', 'b']}, :exe]
+      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, 'var/sig', 'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, 'var/',    'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, '/sig',    'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, 'sig',     'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, '/',       'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, '',        'a', 'b']}, :enq],
+      [{'sig' => 'set', 'args' => [nil, Tap::Tasks::Signal, 'var/sig', 'a', 'b']}, :exe]
     ], parser.specs
   end
 end

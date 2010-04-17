@@ -25,19 +25,20 @@ class ReadmeTest < Test::Unit::TestCase
     end
     
     sh_test %q{
-      % tap manifest
+      % tap list
       task:
-        dump                 # the default dump task
+        dump                 # dump data
         goodnight            # your basic goodnight moon task
-        load                 # the default load task
-        manifest             # lists resources
-        prompt               # an input prompt
+        list                 # list resources
+        load                 # load data
+        prompt               # open a prompt
+        signal               # signal via a task
       join:
-        gate                 # collects results before the join
-        join                 # an unsyncrhonized, multi-way join
-        sync                 # a synchronized multi-way join
+        gate                 # collects results
+        join                 # unsyncrhonized multi-way join
+        sync                 # synchronized multi-way join
       middleware:
-        debugger             # the default debugger
+        debugger             # default debugger
     }
     
     sh_test %q{

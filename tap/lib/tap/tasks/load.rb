@@ -3,7 +3,7 @@ require 'stringio'
 
 module Tap
   module Tasks
-    # :startdoc::task the default load task
+    # :startdoc::task load data
     #
     # Loads data from $stdin.  String data may be passed directly.  Load
     # is typically used as a gateway to other tasks.

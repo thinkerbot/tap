@@ -1,8 +1,7 @@
 #! /usr/bin/env ruby
 # This executable is used to launch bin/tap during testing.
 
-ENV['TAP_PATH'] ||= '.:../tap:../tap-tasks:../tap-gen'
-ENV['TAPFILE']  ||= 'tapfile'
+ENV['TAP_PATH'] ||= '.'
 
 root = File.expand_path('..', __FILE__)
 $:.unshift "#{root}/../configurable/lib"

@@ -2,14 +2,14 @@ require 'tap/tasks/dump'
 
 module Tap
   module Tasks
-    # :startdoc::task lists resources
+    # :startdoc::task list resources
     #
     # Prints a list of resources registered with the application env. Any of
     # the resources may be used in a workflow.  A list of filters may be used
     # to limit the output; each is converted to a regexp and can match any
     # part of the resource (path, class, desc).
     #
-    #   % tap manifest join gate
+    #   % tap list join gate
     #   join:
     #     gate                 # collects results before the join
     #
@@ -17,11 +17,11 @@ module Tap
     # default env only lists resources registered as a task, join, or
     # middleware.
     #
-    #   % tap manifest join gate --class --full
+    #   % tap list join gate --class --full
     #   join:
     #     /tap/joins/gate      # Tap::Joins::Gate
     #
-    class Manifest < Dump
+    class List < Dump
       
       config :all, false, :short => :a, &c.flag       # Shows all types
       config :types, ['task', 'join', 'middleware'],
@@ -51,6 +51,7 @@ module Tap
           types.concat constant.types.keys
         end
         types.uniq!
+        types.sort!
         types
       end
       

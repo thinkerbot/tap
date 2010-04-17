@@ -2,7 +2,7 @@ require 'tap/task'
 
 module Tap
   module Tasks
-    # :startdoc::task the default dump task
+    # :startdoc::task dump data
     #
     # Dumps data to $stdout or a file output.
     #

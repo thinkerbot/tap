@@ -30,8 +30,8 @@
 #   tap load str -: dump             A simple sequence workflow
 #   tap load str - dump - join 0 1   Manually build the join
 #   tap --/use debugger -d-          Debugging utilities
-#   tap manifest                     List resources
 #   tap prompt                       Open a prompt
+#   tap list                         List resources
 #
 
 require 'tap'

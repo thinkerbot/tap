@@ -13,7 +13,7 @@ if RUBY_VERSION < '1.9'
     }
     
     sh_match "% tap dump --help",
-      /Tap::Tasks::Dump -- the default dump task/
+      /Tap::Tasks::Dump -- dump data/
     
     sh_test %q{
       % tap dump a - dump b -- dump c
@@ -163,7 +163,7 @@ else
     }
     
     sh_match "% tap dump --help",
-      /Tap::Tasks::Dump -- the default dump task/
+      /Tap::Tasks::Dump -- dump data/
     
     sh_test %q{
       % tap dump a - dump b -- dump c

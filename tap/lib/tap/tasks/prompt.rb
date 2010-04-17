@@ -3,7 +3,7 @@ require 'readline'
 
 module Tap
   module Tasks
-    # :startdoc::task an input prompt
+    # :startdoc::task open a prompt
     #
     # Prompt reads signals from the input until a signal that returns the
     # app is reached (ex run/stop) or the source io is closed.

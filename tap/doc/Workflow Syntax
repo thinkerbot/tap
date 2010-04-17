@@ -19,7 +19,7 @@ while options are parsed out as configurations.
   ["goodnight moon"]
   
   % tap dump --help
-  Tap::Tasks::Dump -- the default dump task
+  Tap::Tasks::Dump -- dump data
   ...
 
 Multiple objects can be specified using delimiters where a single-dash (-)

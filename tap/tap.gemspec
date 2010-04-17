@@ -63,7 +63,7 @@ Gem::Specification.new do |s|
     lib/tap/task.rb
     lib/tap/tasks/dump.rb
     lib/tap/tasks/load.rb
-    lib/tap/tasks/manifest.rb
+    lib/tap/tasks/list.rb
     lib/tap/tasks/prompt.rb
     lib/tap/tasks/singleton.rb
     lib/tap/tasks/signal.rb

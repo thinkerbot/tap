@@ -1,7 +1,7 @@
 module Tap
   module Joins
     
-    # :startdoc::join collects results before the join
+    # :startdoc::join collects results
     #
     # Similar to a synchronized merge, but collects all results regardless of
     # where they come from.  Gates enque themselves when called as a join, and
