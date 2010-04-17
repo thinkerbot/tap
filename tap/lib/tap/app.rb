@@ -6,9 +6,6 @@ require 'tap/app/queue'
 autoload(:YAML, 'yaml')
 
 module Tap
-  
-  # :startdoc::app
-  #
   # App coordinates the setup and execution of workflows.
   class App
     class << self

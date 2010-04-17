@@ -186,8 +186,7 @@ module Tap
       head, tail = nil, head unless tail
       
       constants.select do |constant|
-        (type.nil? || constant.types.has_key?(type)) &&
-        constant.path_match?(head, tail)
+        constant.type_match?(type) && constant.path_match?(head, tail)
       end
     end
   end

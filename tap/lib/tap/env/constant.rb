@@ -284,6 +284,14 @@ module Tap
         (head.nil? || head.empty? || head_match(head)) && (tail.nil? || tail.empty? || tail_match(tail))
       end
       
+      def type_match?(type)
+        case type
+        when nil   then true
+        when Array then type.any? {|t| types.has_key?(t) } 
+        else types.has_key?(type)
+        end
+      end
+      
       # Returns a string like:
       #
       #   "#<Tap::Env::Constant:object_id Const::Name (require_path)>"

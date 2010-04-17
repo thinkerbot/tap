@@ -104,6 +104,7 @@ class EnvTest < Test::Unit::TestCase
     
     assert_equal ['A'], env.match('a', 'one').map(&:const_name)
     assert_equal ['B::A'], env.match('a', 'two').map(&:const_name)
+    assert_equal ['A', 'B::A'], env.match('a', ['one', 'two']).map(&:const_name)
   end
   
   def test_match_filters_by_inline_type_if_specified
