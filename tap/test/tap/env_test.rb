@@ -57,10 +57,10 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
-  # resolve test
+  # match test
   #
   
-  def test_resolve_resolves_constants_by_const_name
+  def test_match_matches_constants_by_const_name
     env = Env.new :constants => [
       Constant.new('A'),
       Constant.new('A::B'),
@@ -68,14 +68,14 @@ class EnvTest < Test::Unit::TestCase
       Constant.new('C')
     ]
     
-    assert_equal 'A', env.resolve('A').const_name
-    assert_equal 'A', env.resolve('::A').const_name
-    assert_equal 'C', env.resolve('C').const_name
-    assert_equal 'A::B::C', env.resolve('A::B::C').const_name
-    assert_equal 'A::B::C', env.resolve('::A::B::C').const_name
+    assert_equal ['A'], env.match('A').map(&:const_name)
+    assert_equal ['A'], env.match('::A').map(&:const_name)
+    assert_equal ['C'], env.match('C').map(&:const_name)
+    assert_equal ['A::B::C'], env.match('A::B::C').map(&:const_name)
+    assert_equal ['A::B::C'], env.match('::A::B::C').map(&:const_name)
   end
   
-  def test_resolve_resolves_constants_by_path_matching
+  def test_match_matches_constants_by_path_matching
     env = Env.new :constants => [
       Constant.new('A'),
       Constant.new('A::B'),
@@ -83,46 +83,56 @@ class EnvTest < Test::Unit::TestCase
       Constant.new('C')
     ]
     
-    assert_equal 'A', env.resolve('a').const_name
-    assert_equal 'A', env.resolve('/a').const_name
-    assert_equal 'A::B', env.resolve('b').const_name
-    assert_equal 'A::B', env.resolve('a/b').const_name
-    assert_equal 'A::B', env.resolve('/a/b').const_name
-    assert_equal 'A::B::C', env.resolve('a:c').const_name
-    assert_equal 'A::B::C', env.resolve('/a/b/c:').const_name
-    assert_equal 'A::B::C', env.resolve(':/a/b/c').const_name
-    assert_equal 'C', env.resolve('c:').const_name
-    assert_equal 'C', env.resolve('/c:').const_name
+    assert_equal ['A'], env.match('a').map(&:const_name)
+    assert_equal ['A'], env.match('/a').map(&:const_name)
+    assert_equal ['A::B'], env.match('b').map(&:const_name)
+    assert_equal ['A::B'], env.match('a/b').map(&:const_name)
+    assert_equal ['A::B'], env.match('/a/b').map(&:const_name)
+    assert_equal ['A::B::C'], env.match('a:c').map(&:const_name)
+    assert_equal ['A::B::C'], env.match('/a/b/c:').map(&:const_name)
+    assert_equal ['A::B::C'], env.match(':/a/b/c').map(&:const_name)
+    assert_equal ['C'], env.match('c:').map(&:const_name)
+    assert_equal ['C'], env.match('/c:').map(&:const_name)
+    assert_equal ['A::B::C', 'C'], env.match('c').map(&:const_name)
   end
   
-  def test_resolve_filters_by_type_if_specified
+  def test_match_filters_by_type_if_specified
     env = Env.new :constants => [
       Constant.new('A').register_as('one'),
       Constant.new('B::A').register_as('two')
     ]
     
-    err = assert_raises(RuntimeError) { env.resolve('a') }
-    
-    assert_equal 'A', env.resolve('a::one').const_name
-    assert_equal 'B::A', env.resolve('a::two').const_name
+    assert_equal ['A'], env.match('a', 'one').map(&:const_name)
+    assert_equal ['B::A'], env.match('a', 'two').map(&:const_name)
   end
   
-  def test_path_matching_forces_match_along_word_breaks
+  def test_match_filters_by_inline_type_if_specified
+    env = Env.new :constants => [
+      Constant.new('A').register_as('one'),
+      Constant.new('B::A').register_as('two')
+    ]
+    
+    assert_equal ['A'], env.match('a::one').map(&:const_name)
+    assert_equal ['B::A'], env.match('a::two').map(&:const_name)
+    assert_equal ['B::A'], env.match('a::two', 'one').map(&:const_name)
+  end
+  
+  def test_path_matching_only_matches_along_word_breaks
     env = Env.new :constants => [
       Constant.new('Nested::Const::Name')
     ]
     
-    assert_raises(RuntimeError) { env.resolve('ame') }
-    assert_raises(RuntimeError) { env.resolve('/nest:') }
+    assert_equal [], env.match('ame')
+    assert_equal [], env.match('/nest:')
   end
   
-  def test_resolve_stringifies_inputs
+  def test_match_stringifies_inputs
     env = Env.new :constants => [
       Constant.new('A')
     ]
     
-    assert_equal 'A', env.resolve('a').const_name
-    assert_equal 'A', env.resolve(:a).const_name
+    assert_equal ['A'], env.match('a').map(&:const_name)
+    assert_equal ['A'], env.match(:a).map(&:const_name)
   end
   
   #

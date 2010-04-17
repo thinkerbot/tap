@@ -79,21 +79,22 @@ module Tap
       result
     end
     
-    def resolve(const_str, &block)
+    def match(const_str, type=nil)
       const_str = const_str.to_s
-      
-      values = const_str =~ Constant::CONST_REGEXP ? constants_by_const_name($1) : constants_by_path(const_str)
-      values = values.select(&block) if block_given?
-      
-      case values.length
+      const_str =~ Constant::CONST_REGEXP ? constants_by_const_name($1) : constants_by_path(const_str, type)
+    end
+    
+    def resolve(const_str, type=nil)
+      matches = match(const_str, type)
+      case matches.length
       when 0 then raise "unresolvable constant: #{const_str.inspect}"
-      when 1 then values.at(0)
-      else raise "multiple matching constants: #{const_str.inspect} (#{values.join(', ')})"
+      when 1 then matches.at(0)
+      else raise "multiple matching constants: #{const_str.inspect} (#{matches.join(', ')})"
       end
     end
     
-    def constant(const_str, &block)
-      const_str.kind_of?(Module) ? const_str : resolve(const_str, &block).constantize
+    def constant(const_str, type=nil)
+      const_str.kind_of?(Module) ? const_str : resolve(const_str, type).constantize
     end
     
     def register(dir, map={})
@@ -177,8 +178,10 @@ module Tap
       end
     end
 
-    def constants_by_path(const_str) # :nodoc:
-      const_str, type = const_str.split('::', 2)
+    def constants_by_path(const_str, type) # :nodoc:
+      const_str, inline_type = const_str.split('::', 2)
+      type = inline_type if inline_type
+      
       head, tail = const_str.split(':', 2)
       head, tail = nil, head unless tail
       

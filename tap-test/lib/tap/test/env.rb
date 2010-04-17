@@ -5,7 +5,7 @@ module Tap
         [File.expand_path(type.to_s)]
       end
       
-      def constant(const_str)
+      def constant(const_str, type=nil)
         return const_str if const_str.kind_of?(Module)
         
         begin
