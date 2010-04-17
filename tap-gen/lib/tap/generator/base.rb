@@ -73,6 +73,25 @@ module Tap
     #
     # :startdoc:::+
     class Base < Tap::Task
+      class << self
+        def build(spec={}, app=Tap::App.current)
+          obj = new(spec['config'] || {}, app)
+          
+          if mixin = spec['mixin']
+            obj.extend app.env.constant(mixin)
+          end
+          
+          obj
+        end
+        
+        def convert_to_spec(parser, args)
+          {
+            'config' => parser.nested_config,
+            'mixin'  => args.shift
+          }
+        end
+      end
+      
       extend Helpers
       
       lazy_attr :desc, 'generator'
@@ -97,8 +116,6 @@ module Tap
       config :force, false, &c.flag           # Overwrite files that already exist.
       config :skip, false, &c.flag            # Skip files that already exist.
       
-      signal :set                             # Set this generator to generate or destroy
-      
       # The IO used to pull prompt inputs (default: $stdin)
       attr_accessor :prompt_in
       
@@ -109,11 +126,6 @@ module Tap
         super
         @prompt_in = $stdin
         @prompt_out = $stdout
-      end
-      
-      def set(module_name)
-        extend app.env.constant(module_name)
-        self
       end
       
       # Builds the manifest, then executes the actions of the manifest.

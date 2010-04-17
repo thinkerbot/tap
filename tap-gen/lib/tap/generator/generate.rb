@@ -3,8 +3,23 @@ require 'tempfile'
 module Tap
   module Generator
     
+    # ::task
+    #
     # A mixin defining how to run manifest actions.
     module Generate
+      def self.parse(argv=ARGV, app=Tap::App.current, &block)
+        parse!(argv.dup, app, &block)
+      end
+      
+      def self.parse!(argv=ARGV, app=Tap::App.current, &block)
+        if argv.empty? || argv[0] == '--help'
+          exit
+        end
+        
+        generator = argv.shift
+        argv.unshift self
+        app.env.constant(generator, 'generator').parse(argv, app, &block)
+      end
       
       # Creates the target directory if it doesn't exist.  When pretend is
       # true, creation is logged but does not actually happen.
@@ -65,6 +80,12 @@ module Tap
       # Returns :generate
       def action
         :generate
+      end
+      
+      def to_spec
+        spec = super
+        spec['mixin'] = 'Tap::Generator::Generate'
+        spec
       end
       
       protected

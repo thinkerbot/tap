@@ -1,8 +1,23 @@
 module Tap
   module Generator
     
+    # ::task
+    #
     # A mixin defining how to run manifest actions in reverse.
     module Destroy
+      def self.parse(argv=ARGV, app=Tap::App.current, &block)
+        parse!(argv.dup, app, &block)
+      end
+      
+      def self.parse!(argv=ARGV, app=Tap::App.current, &block)
+        if argv.empty? || argv[0] == '--help'
+          exit
+        end
+        
+        generator = argv.shift
+        argv.unshift self
+        app.env.constant(generator, 'generator').parse(argv, app, &block)
+      end
       
       # Iterates over the actions in reverse, and collects the results.
       def iterate(actions)
@@ -60,6 +75,11 @@ module Tap
         :destroy
       end
       
+      def to_spec
+        spec = super
+        spec['mixin'] = 'Tap::Generator::Destroy'
+        spec
+      end
     end
   end
 end
