@@ -6,29 +6,30 @@ module Tap
     #
     # Dumps data to $stdout or a file output.
     #
-    #   % tap run -- dump content --output FILEPATH
+    #   % tap dump content --output FILEPATH
     #
     # Dump faciliates normal redirection:
     #
-    #   % tap run -- load hello --: dump | more
-    #   hello
+    #   % tap load 'goodnight moon' -: dump | more
+    #   goodnight moon
     #
-    #   % tap run -- load hello --: dump 1> results.txt
+    #   % tap load 'goodnight moon' -: dump 1> results.txt
     #   % more results.txt
-    #   hello
+    #   goodnight moon
     #
-    # Note that dumps are appended to the file.  Dump only accepts one object
-    # at a time, so joins that produce an array (like sync) need to iterate
-    # outputs to dump:
+    # Dump converts objects to strings using to_s:
     #
-    #   % tap run -- load hello -- load world -- dump --[0,1][2]i.sync
-    #   hello
-    #   world
+    #   % tap load goodnight -- load moon - dump - sync 0,1 2
+    #   ["goodnight", "moon"]
+    #       
+    #   % tap load goodnight -- load moon - dump - sync 0,1 2 -i
+    #   goodnight
+    #   moon
     #
     # :startdoc::task-
     #
-    # Dump serves as a baseclass for more complicated dumps.  A YAML dump
-    # (see {tap-tasks}[http://tap.rubyforge.org/tap-tasks]) looks like this:
+    # Dump serves as a baseclass for more complicated dumps.  A YAML dump (see
+    # {tap-tasks}[http://tap.rubyforge.org/tap-tasks]) looks like this:
     #
     #   class Yaml < Tap::Tasks::Dump
     #     def dump(obj, io)

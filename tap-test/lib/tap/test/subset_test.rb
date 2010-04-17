@@ -5,37 +5,37 @@ module Tap
   module Test
     
     # SubsetTest provides methods to conditionally run tests.
-    # 
+    #  
     #   require 'tap/test'
     #
     #   class Test::Unit::TestCase
     #     # only true if running on windows
     #     condition(:windows) { match_platform?('mswin') }
-    # 
+    #  
     #     # only true if running on anything but windows
     #     condition(:non_windows) { match_platform?('non_mswin') }
     #   end
     #
     # Here the WindowsOnlyTest will only run on a Windows platform. Conditions
-    # like these may be targeted at specific tests when only some tests need 
+    # like these may be targeted at specific tests when only some tests need
     # to be skipped.
-    # 
+    #  
     #   class RunOnlyAFewTest < Test::Unit::TestCase
     #     include SubsetTest
-    # 
+    #  
     #     def test_runs_all_the_time
     #       assert true
     #     end
-    # 
+    #  
     #     def test_runs_only_if_non_windows_condition_is_true
     #       condition_test(:non_windows) { assert true }
     #       end
     #     end
-    # 
+    #  
     #     def test_runs_only_when_ENV_variable_EXTENDED_is_true
     #       extended_test { assert true }
     #     end
-    # 
+    #  
     #     def test_runs_only_when_ENV_variable_BENCHMARK_is_true
     #       benchmark_test do |x|
     #         x.report("init speed") { 10000.times { Object.new } }
@@ -46,24 +46,10 @@ module Tap
     #       subset_test('CUSTOM') { assert true }
     #     end
     #   end
-    # 
+    #  
     # In the example, the ENV variables EXTENDED, BENCHMARK, and CUSTOM act as
-    # flags to run specific tests.  If you're running your test using Rake, ENV
-    # variables can be set from the command line like so:
-    # 
-    #   % EXTENDED=true rake test 
-    #   % BENCHMARK=true rake test
-    # 
-    # Since tap and rap can run rake tasks as well, these are equivalent:
-    #
-    #   % EXTENDED=true tap run test
-    #   % BENCHMARK=true rap test
-    #
-    # To run all tests that get switched using an ENV variable, set ALL=true.
-    #
-    #   % ALL=true rap test
-    #
-    # See SubsetTest::ClassMethods for more information.
+    # flags to run specific tests.  See SubsetTest::ClassMethods for more
+    # information.
     module SubsetTest
       
       def self.included(base) # :nodoc:

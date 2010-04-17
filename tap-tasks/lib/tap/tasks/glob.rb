@@ -7,7 +7,7 @@ module Tap
     # Globs the input patterns for matching patterns.  Matching files are
     # returned as an array.
     #
-    #   % tap run -- glob * --: dump/yaml
+    #   % tap glob * -: dump/yaml
     #
     # A variety of filters are available as configurations.
     #
@@ -20,7 +20,7 @@ module Tap
     #
     # To glob within the task and not the command line, quote the glob.
     #
-    #   % tap run -- glob '*' --: dump/yaml
+    #   % tap glob '*' -: dump/yaml
     #
     class Glob < Tap::Task
       

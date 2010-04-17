@@ -23,7 +23,7 @@ Get started:
   % tap generate root sample
   % cd sample
   % tap generate task goodnight
-  % tap run -- goodnight moon
+  % tap goodnight moon
 
 Get some help:
 

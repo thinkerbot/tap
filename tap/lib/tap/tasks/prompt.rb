@@ -5,16 +5,27 @@ module Tap
   module Tasks
     # :startdoc::task open a prompt
     #
-    # Prompt reads signals from the input until a signal that returns the
-    # app is reached (ex run/stop) or the source io is closed.
+    # Prompt reads signals from the input until a signal that returns the app
+    # is reached (ex run/stop) or the source io is closed.
     #
-    #   % tap run -- prompt
+    #   % tap prompt
     #   /set 0 load
     #   /set 1 dump
     #   /build join 0 1
     #   /enq 0 'goodnight moon'
     #   /run
     #   goodnight moon
+    #
+    # Prompts can be registered to a control signal (ex INT) so that that a
+    # running app may be interrupted, interrogated, or modified. This infinite
+    # loop can be stopped using ctl-C and a prompt.
+    #
+    #  % tap dump '.' - join 0 0 -q - prompt --on INT
+    #  .
+    #  .
+    #  .
+    #  (ctl-C)
+    #  /stop
     #
     class Prompt < Stream
       include Tap::Utils

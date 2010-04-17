@@ -4,6 +4,8 @@ require 'stringio'
 
 class DumpTest < Test::Unit::TestCase
   acts_as_tap_test
+  acts_as_shell_test
+  include TapTestMethods
   Dump = Tap::Tasks::Dump
   
   attr_reader :io, :dump
@@ -12,6 +14,51 @@ class DumpTest < Test::Unit::TestCase
     super
     @io = StringIO.new
     @dump = Dump.new :output => io
+  end
+  
+  #
+  # documentation test
+  #
+  
+  def test_dump_documentation
+    filepath = method_root.prepare('filepath')
+    sh_test %Q{
+      % tap dump content --output '#{filepath}'
+    }
+    assert_equal "content\n", File.read(filepath)
+    
+    sh_test %q{
+      % tap load 'goodnight moon' -: dump | more
+      goodnight moon
+    }
+    
+    results = method_root.prepare('results.txt')
+    sh_test %Q{
+      % tap load 'goodnight moon' -: dump 1> '#{results}'
+    }
+    
+    sh_test %Q{
+      more '#{results}'
+      goodnight moon
+    }
+    
+    if RUBY_VERSION < '1.9'
+      sh_test %q{
+        % tap load goodnight -- load moon - dump - sync 0,1 2
+        goodnightmoon
+      }
+    else
+      sh_test %q{
+        % tap load goodnight -- load moon - dump - sync 0,1 2
+        ["goodnight", "moon"]
+      }
+    end
+    
+    sh_test %q{
+      % tap load goodnight -- load moon - dump - sync 0,1 2 -i
+      goodnight
+      moon
+    }
   end
   
   #

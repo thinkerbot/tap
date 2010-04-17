@@ -3,6 +3,8 @@ require 'tap/tasks/load'
 
 class Tap::LoadTest < Test::Unit::TestCase
   acts_as_tap_test
+  acts_as_shell_test
+  include TapTestMethods
   Load = Tap::Tasks::Load
   
   attr_accessor :load
@@ -14,6 +16,32 @@ class Tap::LoadTest < Test::Unit::TestCase
   
   def io(obj)
     StringIO.new YAML.dump(obj)
+  end
+  
+  #
+  # documentation test
+  #
+  
+  def test_load_documentation
+    sh_test %q{
+      % tap load string -: dump
+      string
+    }
+    
+    tap = sh_test_options[:cmd]
+    sh_test %Q{
+      echo goodnight moon | #{tap} load -: dump
+      goodnight moon
+    }
+    
+    somefile = method_root.prepare('somefile.txt') do |io|
+      io << 'contents of somefile'
+    end
+    
+    sh_test %Q{
+      % tap load -: dump < '#{somefile}'
+      contents of somefile
+    }
   end
   
   #

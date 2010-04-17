@@ -8,15 +8,15 @@ module Tap
     # Loads data from $stdin.  String data may be passed directly.  Load
     # is typically used as a gateway to other tasks.
     #
-    #   % tap run -- load string --: dump
+    #   % tap load string -: dump
     #   string
     #
     # Load facilitates normal redirection:
     #
-    #   % echo goodnight moon | tap run -- load --: dump
+    #   % echo goodnight moon | tap load -: dump
     #   goodnight moon
     #
-    #   % tap run -- load --: dump < somefile.txt
+    #   % tap load -: dump < somefile.txt
     #   contents of somefile
     #
     # :startdoc::task-
