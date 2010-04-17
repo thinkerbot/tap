@@ -2,7 +2,6 @@ require 'tap/task'
 
 module Tap
   module Tasks
-    # ::resource 
     class Singleton < Tap::Task
       class << self
         def cache

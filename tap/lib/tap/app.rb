@@ -116,10 +116,6 @@ module Tap
     config :force, false, :short => :f, &c.flag     # Force execution at checkpoints
     config :quiet, false, :short => :q, &c.flag     # Suppress logging
     config :verbose, false, :short => :v, &c.flag   # Enables extra logging (overrides quiet)
-    config :types, %w{task join middleware},
-      :long  => :type,
-      :short => :t,
-      &c.list                                       # Sets available constant types
     
     define_signal :exe do |input|                   # executes an object
       spec = convert_to_hash(input, ['var'], 'input')
@@ -388,7 +384,7 @@ module Tap
     # Resolves the class in env and initializes a new instance with the args
     # and block.  Note that the app is not appended to args by default.
     def init(clas, *args, &block)
-      env.constant(clas, types).new(*args, &block)
+      env.constant(clas).new(*args, &block)
     end
     
     def build(spec, &block)
@@ -399,7 +395,7 @@ module Tap
       obj = nil
       unless clas.nil?
         method_name = spec.kind_of?(Array) ? :parse : :build
-        obj = env.constant(clas, types).send(method_name, spec, self, &block)
+        obj = env.constant(clas).send(method_name, spec, self, &block)
       end
       
       unless var.nil?

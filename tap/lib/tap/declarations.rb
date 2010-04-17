@@ -3,6 +3,7 @@ require 'tap/workflow'
 require 'tap/declarations/description'
 require 'tap/declarations/context'
 require 'tap/parser'
+require 'tap/tasks/singleton'
 
 module Tap
   module Declarations
@@ -34,6 +35,10 @@ module Tap
       @desc = Lazydoc.register_caller(Description)
       @desc.desc = str
       @desc
+    end
+    
+    def singleton(&block)
+      baseclass(Tap::Tasks::Singleton, &block)
     end
     
     def baseclass(baseclass)

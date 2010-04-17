@@ -150,7 +150,7 @@ module Tap
     end
     
     def set(const_name, require_path=nil, *types)
-      if const_name.kind_of?(String) && const_name =~ INLINE_TYPE
+      if const_name =~ INLINE_TYPE
         const_name = $1
         types << $2
       end

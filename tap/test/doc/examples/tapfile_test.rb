@@ -58,10 +58,10 @@ work :sort_file, :reverse => false do |config|
   [n0, n1]
 end
 
-# Use baseclass to define tasks of a specific class.  The singleton class
-# can be used to make dependency-based workflows.
+# Tasks defined in a singleton block will only execute once (given a set
+# of inputs) and can be used to make dependency-based workflows.
 
-baseclass :singleton do
+singleton do
   task(:a)             { puts 'a' }
   task(:b => :a)       { puts 'b' }
   task(:c => [:b, :a]) { puts 'c' }
