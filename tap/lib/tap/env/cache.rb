@@ -56,7 +56,7 @@ module Tap
             end
             
             if @debug 
-              $stderr.puts(App::DEFAULT_LOGGER_FORMAT % [' ', nil, :generate, spec.full_name])
+              $stderr.puts(App::LOG_FORMAT % [' ', nil, :generate, spec.full_name])
             end
             
             File.open(path, 'w') do |io|

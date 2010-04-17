@@ -27,7 +27,7 @@ module Tap
     def options.process(key, default=nil)
       value = self[key] || default
       if self[:debug] == 'true'
-        $stderr.puts(App::DEFAULT_LOGGER_FORMAT % [' ', nil, key, value])
+        $stderr.puts(App::LOG_FORMAT % [' ', nil, key, value])
       end
       value && block_given? ? yield(value) : nil
     end
@@ -37,6 +37,7 @@ module Tap
       options.process(:tap, VERSION)
       app.debug = true
       app.verbose = true
+      app.logger.level = Logger::DEBUG
     end
     
     options.process(:gems) do |gems|

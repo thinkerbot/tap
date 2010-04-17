@@ -88,13 +88,13 @@ module Tap
     #
     OBJECT = /\A(.*)\/(.*)\z/
     
-    # The default App logger (writes to $stderr at level INFO)
-    DEFAULT_LOGGER = Logger.new($stderr)
-    DEFAULT_LOGGER.level = Logger::INFO
-    DEFAULT_LOGGER_FORMAT = "%s %8s %10s %s\n"
-    DEFAULT_LOGGER.formatter = lambda do |severity, time, head, tail|
+    # The default log format
+    LOG_FORMAT = "%s %8s %10s %s\n"
+    
+    # The default logger formatter -- uses LOG_FORMAT
+    LOG_FORMATTER = lambda do |severity, time, head, tail|
       code = (severity == 'INFO' ? ' ' : severity[0,1])
-      DEFAULT_LOGGER_FORMAT % [code, time.strftime('%H:%M:%S'), head, tail]
+      LOG_FORMAT % [code, time.strftime('%H:%M:%S'), head, tail]
     end
     
     # The state of the application (see App::State)
@@ -220,7 +220,12 @@ module Tap
       @stack = options[:stack] || Stack.new(self)
       @queue = options[:queue] || Queue.new
       @objects = options[:objects] || {}
-      @logger = options[:logger] || DEFAULT_LOGGER
+      @logger = options[:logger] || begin
+        logger = Logger.new($stderr)
+        logger.level = Logger::INFO
+        logger.formatter = LOG_FORMATTER
+        logger
+      end
       @env = options[:env] || Env.new
       
       initialize_config(config)
