@@ -45,6 +45,13 @@ module Tap
     
     include Signals
     
+    # Matches an inline type. After the match:
+    #
+    #   $1:: The prefix string (ex 'Const' for '::Const::type')
+    #   $2:: The inline type (ex 'type' for '::Const::type')
+    #
+    INLINE_TYPE = /(.*)::([a-z_]*)\z/
+    
     attr_reader :paths
     attr_reader :constants
     
@@ -143,6 +150,11 @@ module Tap
     end
     
     def set(const_name, require_path=nil, *types)
+      if const_name.kind_of?(String) && const_name =~ INLINE_TYPE
+        const_name = $1
+        types << $2
+      end
+      
       constant = constants.find {|c| c.const_name == const_name }
       
       unless constant

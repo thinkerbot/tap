@@ -92,9 +92,8 @@ module Tap
       
       # register subclass
       source_file = @desc.document.source_file
-      type = File.basename(source_file).chomp(File.extname(source_file))
       constant = env.set(subclass, nil)
-      constant.register_as(type, @desc)
+      constant.register_as(subclass.type, @desc)
       
       @desc = nil
       subclass

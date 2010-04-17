@@ -141,7 +141,7 @@ module Tap
       #   $1:: The unqualified constant (ex 'Const' for '::Const')
       #
       CONST_REGEXP = /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/
-    
+      
       # The full constant name
       attr_reader :const_name
     
@@ -155,9 +155,9 @@ module Tap
       # Initializes a new Constant with the specified constant name, and
       # require_paths.  Raises an error if const_name is not valid.
       def initialize(const_name, *require_paths)
+        @types = {}
         @const_name = normalize(const_name)
         @require_paths = require_paths
-        @types = {}
       end
       
       def relative_path
