@@ -15,9 +15,12 @@ end
 module Tap
   module Tasks
     # :startdoc::task start an irb session
+    #
+    # Console allows interaction with tap via IRB.  Starts an IRB sssion with
+    # the same context as a tapfile (a Tap::Declarations::Context).  Only one
+    # console can be running at time.
+    # 
     class Console < Tap::Task
-      include Tap::Declarations
-      
       # Handles a bug in IRB that causes exit to throw :IRB_EXIT
       # and consequentially make a warning message, even on a
       # clean exit. This module resets exit to the original
@@ -28,14 +31,9 @@ module Tap
         end
       end
       
-      def initialize(*args)
-        super
-        initialize_declare
-      end
-      
       def process
         raise "console already running" if IRB.conf[:DEFAULT_OBJECT]
-        IRB.conf[:DEFAULT_OBJECT] = self
+        IRB.conf[:DEFAULT_OBJECT] = Declarations::Context.new(app, "console")
         IRB.start
         IRB.conf[:DEFAULT_OBJECT] = nil
         IRB.CurrentContext.extend CleanExit

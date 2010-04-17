@@ -2,14 +2,15 @@ require 'tap/task'
 
 module Tap
   module Tasks
-    # :startdoc::task
+    # :startdoc::task sleep
     #
+    # Sleeps for the specified duration.
     class Sleep < Tap::Task 
-      config :duration, 1, &c.numeric
+      config :duration, 1, &c.numeric  # sleep duration (ms)
       
-      def process(*args)
+      def call(input)
         sleep duration
-        args
+        super
       end
     end 
   end
