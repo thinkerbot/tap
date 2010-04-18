@@ -25,7 +25,12 @@ class DumpTest < Test::Unit::TestCase
     sh_test %Q{
       % tap dump content --output '#{filepath}'
     }
-    assert_equal "content\n", File.read(filepath)
+    
+    if RUBY_VERSION < '1.9'
+      assert_equal "content\n", File.read(filepath)
+    else
+      assert_equal %Q{["content"]\n}, File.read(filepath)
+    end
     
     sh_test %q{
       % tap load 'goodnight moon' -: dump | more
