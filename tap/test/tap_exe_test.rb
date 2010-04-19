@@ -50,7 +50,7 @@ class TapExeTest < Test::Unit::TestCase
   def test_tap_squelches_unhandled_errors
     sh_test %q{
     % tap a 2>&1
-    unresolvable constant: "a" (RuntimeError)
+    unresolvable constant: "a"
     }
   end
   
@@ -134,7 +134,7 @@ moon'
     
     sh_test %Q{
     % tap a 2>&1
-    unresolvable constant: "a" (RuntimeError)
+    unresolvable constant: "a"
     }
     
     sh_test %Q{
@@ -156,7 +156,7 @@ moon'
     
     sh_test %Q{
     % tap a 2>&1
-    unresolvable constant: "a" (RuntimeError)
+    unresolvable constant: "a"
     }
     
     sh_test %Q{

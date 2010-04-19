@@ -5,25 +5,12 @@ module Tap
     
     # :startdoc::middleware default debugger
     class Debugger < Middleware
-      
-      config :show_class, false, :long => :class, &c.flag
-      config :output, $stderr, &c.io
-      
       def call(task, input)
-        log "+ #{identify task} #{summarize input}"
+        app.log "#{app.var(task)}", "<< #{summarize input} (#{task.class})"
         output = super
         
-        log "- #{identify task } #{summarize output}"
+        app.log "#{app.var(task)}", ">> #{summarize output} (#{task.class})"
         output
-      end
-      
-      def log(str)
-        open_io(output) {|io| io.puts str }
-      end
-      
-      def identify(task)
-        var = app.var(task)
-        show_class ? "#{var} (#{task.class})" : var.to_s
       end
       
       def summarize(obj)

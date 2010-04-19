@@ -73,11 +73,11 @@ begin
   end
   
   app.run
-rescue(SystemExit)
-  raise
-rescue(Exception)
-  raise if $DEBUG || options[:debug]
-  $stderr.puts "#{$!.message} (#{$!.class})"
+rescue
+  if $DEBUG || options[:debug]
+    raise $!
+  end
+  $stderr.puts $!.message
   exit(1)
 end
 

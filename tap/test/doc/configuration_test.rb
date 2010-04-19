@@ -28,12 +28,12 @@ class ConfigurationTest < Test::Unit::TestCase
         
         sh_test %q{
           % tap inspect a b c
-          unresolvable constant: "inspect" (RuntimeError)
+          unresolvable constant: "inspect"
         }, :env => gem_env.merge('TAP_GEMS' => 'nomatch')
         
         sh_test %q{
           % tap inspect a b c
-          unresolvable constant: "inspect" (RuntimeError)
+          unresolvable constant: "inspect"
         }, :env => gem_env.merge('TAP_GEMS' => '')
       end
     end
@@ -55,7 +55,7 @@ class ConfigurationTest < Test::Unit::TestCase
     
     sh_test %q{
       % tap goodnight moon
-      unresolvable constant: "goodnight" (RuntimeError)
+      unresolvable constant: "goodnight"
     }, :env => default_env.merge('TAP_PATH' => '.')
     
     sh_test %q{
@@ -73,7 +73,7 @@ class ConfigurationTest < Test::Unit::TestCase
     
     sh_test %q{
       % tap load a -: dump
-      unresolvable constant: "dump" (RuntimeError)
+      unresolvable constant: "dump"
     }, :env => default_env.merge('TAPENV' => 'tapenv')
   end
 

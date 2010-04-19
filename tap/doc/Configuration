@@ -20,9 +20,9 @@ specify no gems.
   % TAP_GEMS='tap-tasks, >= 0.6.0' tap inspect a b c
   ["a", "b", "c"]
   % TAP_GEMS=nomatch tap inspect a b c
-  unresolvable constant: "inspect" (RuntimeError)
+  unresolvable constant: "inspect"
   % TAP_GEMS= tap inspect a b c
-  unresolvable constant: "inspect" (RuntimeError)
+  unresolvable constant: "inspect"
 
 Note that all matching gems will be activated when tap launches.
 
@@ -47,7 +47,7 @@ TAP_PATH will be discovered.
   end
   
   % tap goodnight moon
-  unresolvable constant: "goodnight" (RuntimeError)
+  unresolvable constant: "goodnight"
   % TAP_PATH=dir tap goodnight moon
   goodnight moon
   
@@ -61,7 +61,7 @@ and resource paths.
   unset Tap::Tasks::Dump
   
   % tap load a -: dump
-  unresolvable constant: "dump" (RuntimeError)
+  unresolvable constant: "dump"
 
 === TAPRC (default '~/.taprc:taprc')
 

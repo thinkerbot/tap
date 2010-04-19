@@ -42,12 +42,12 @@ module Tap
         
           # add option to print help
           opts.on("--help", "Print this help") do
-            puts "#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"
-            puts help
-            puts "usage: tap #{to_s.underscore} #{respond_to?(:args) ? args : nil}"
-            puts
-            puts opts
-            exit
+            lines = ["#{self}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"]
+            lines << help
+            lines << "usage: tap #{to_s.underscore} #{respond_to?(:args) ? args : nil}"
+            lines << nil
+            lines << opts
+            raise lines.join("\n")
           end
           
           opts

@@ -356,6 +356,8 @@ module Tap
     #
     # Call returns the result of the signal call.
     def call(args, &block)
+      log(:call, nil, Logger::DEBUG) { args.inspect }
+      
       obj  = args['obj']
       sig  = args['sig']
       args = args['args'] || args

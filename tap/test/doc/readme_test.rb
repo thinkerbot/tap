@@ -67,17 +67,11 @@ class ReadmeTest < Test::Unit::TestCase
       hello world
     }
     
-    # sometimes a sh_test will transpose the last two lines... I'm
-    # assuming because of variations in when stdin and stdout flush
-    actual = sh_test "% tap goodnight moon -: dump --/use debugger 2>&1"
-    expected = %q{
-+ 0 ["moon"]
-- 0 "goodnight moon"
-+ 1 "goodnight moon"
-goodnight moon
-- 1 "goodnight moon"
-}.strip
-    assert_equal expected.split("\n").sort, actual.split("\n").sort
+    sh_match "% tap goodnight moon -: dump --/use debugger 2>&1",
+      /0 << \["moon"\] \(Goodnight\)/,
+      /0 >> "goodnight moon" \(Goodnight\)/,
+      /1 << "goodnight moon" \(Tap::Tasks::Dump\)/,
+      /1 >> "goodnight moon" \(Tap::Tasks::Dump\)/
     
     # (see below)
     # class ShellTestTest < Test::Unit::TestCase
@@ -123,7 +117,7 @@ end
         
         sh_test %Q{
           '#{tap_path}' load/yaml 2>&1
-          unresolvable constant: "load/yaml" (RuntimeError)
+          unresolvable constant: "load/yaml"
         }, :env => gem_env
       
         sh_gem("gem install '#{build_gem("tap-tasks")}' --local --no-rdoc --no-ri", :env => gem_env)
