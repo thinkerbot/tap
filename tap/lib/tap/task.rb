@@ -157,12 +157,6 @@ module Tap
       self
     end
     
-    # Provides an abbreviated version of the default inspect, with only
-    # the task class, object_id, and configurations listed.
-    def inspect
-      "#<#{self.class.to_s}:#{object_id} #{config.to_hash.inspect} >"
-    end
-    
     # Returns the associations array: [nil, joins]
     def associations
       [nil, joins]

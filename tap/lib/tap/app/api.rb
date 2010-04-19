@@ -125,6 +125,12 @@ module Tap
         config = self.config.to_hash {|hash, key, value| hash[key.to_s] = value }
         config.empty? ? {} : {'config' => config}
       end
+      
+      # Provides an abbreviated version of the default inspect, with only the
+      # class, object_id, and configurations listed.
+      def inspect
+        "#<#{self.class.to_s}:#{object_id} #{config.to_hash.inspect} >"
+      end
     end
   end
 end
