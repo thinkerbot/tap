@@ -86,11 +86,11 @@ Workflows support the use of middleware to wrap the execution of each task,
 most commonly for logging and/or debugging.
 
   % tap goodnight moon -: dump --/use debugger
-    21:06:53          0 << ["moon"] (Goodnight)
-    21:06:53          0 >> "goodnight moon" (Goodnight)
-    21:06:53          1 << "goodnight moon" (Tap::Tasks::Dump)
+    21:06:53       0 << ["moon"] (Goodnight)
+    21:06:53       0 >> "goodnight moon" (Goodnight)
+    21:06:53       1 << "goodnight moon" (Tap::Tasks::Dump)
   goodnight moon
-    21:06:53          1 >> "goodnight moon" (Tap::Tasks::Dump)
+    21:06:53       1 >> "goodnight moon" (Tap::Tasks::Dump)
 
 Tap provides a set of {test
 modules}[http://tap.rubyforge.org/tap-test/index.html] to simplify testing of
