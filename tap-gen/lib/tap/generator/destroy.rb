@@ -27,7 +27,7 @@ module Tap
       #
       # No options currently affect the behavior of this method. 
       def directory(target, options={})
-        target = File.expand_path(target)
+        target = path(target)
         
         case
         when !File.exists?(target)
@@ -51,7 +51,7 @@ module Tap
       #
       # No options currently affect the behavior of this method.
       def file(target, options={})
-        target = File.expand_path(target)
+        target = path(target)
         
         case
         when File.file?(target)

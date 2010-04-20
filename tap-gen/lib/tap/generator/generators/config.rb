@@ -89,7 +89,7 @@ module Tap::Generator::Generators
         &format_block)
       
       # now put the dumps to the manifest
-      m.directory(path('config'))
+      m.directory 'config'
       
       dumps.each do |path, content|
         next if content.empty? && !blanks

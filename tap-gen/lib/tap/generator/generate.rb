@@ -20,7 +20,7 @@ module Tap
       #
       # No options currently affect the behavior of this method.
       def directory(target, options={})
-        target = File.expand_path(target)
+        target = path(target)
         
         case
         when target == Dir.pwd
@@ -47,7 +47,7 @@ module Tap
         source_file.close
         
         source = source_file.path
-        target = File.expand_path(target)
+        target = path(target)
         
         copy_file = true
         msg = case

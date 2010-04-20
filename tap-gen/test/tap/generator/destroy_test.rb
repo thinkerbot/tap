@@ -14,6 +14,10 @@ class DestroyTest < Test::Unit::TestCase
     @log = []
   end
   
+  def path(*paths)
+    File.expand_path File.join(*paths)
+  end
+  
   def log_relative(*args)
     log << args
   end
