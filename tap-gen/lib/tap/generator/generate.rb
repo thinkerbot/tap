@@ -1,24 +1,18 @@
 require 'tempfile'
+require 'tap/generator/base'
 
 module Tap
   module Generator
     
-    # ::task
+    # ::mixin run generators
     #
     # A mixin defining how to run manifest actions.
     module Generate
-      def self.parse(argv=ARGV, app=Tap::App.current, &block)
-        parse!(argv.dup, app, &block)
-      end
+      extend Lazydoc::Attributes
+      lazy_attr(:desc, 'mixin')
       
-      def self.parse!(argv=ARGV, app=Tap::App.current, &block)
-        if argv.empty? || argv[0] == '--help'
-          exit
-        end
-        
-        generator = argv.shift
-        argv.unshift self
-        app.env.constant(generator, 'generator').parse(argv, app, &block)
+      def self.parse(argv=ARGV, app=Tap::App.current, &block)
+        Base.parse_as(self, argv, app, &block)
       end
       
       # Creates the target directory if it doesn't exist.  When pretend is

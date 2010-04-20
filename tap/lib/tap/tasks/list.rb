@@ -36,7 +36,7 @@ module Tap
         :short => :c, &c.flag                         # Show class
       
       def call(input)
-        process manifest(*input)
+        process manifest(*input).join("\n")
       end
       
       def basis
@@ -94,7 +94,7 @@ module Tap
           lines << "(no constants match criteria)"
         end
         
-        lines.join("\n")
+        lines
       end
       
       def filter(constants, filters)

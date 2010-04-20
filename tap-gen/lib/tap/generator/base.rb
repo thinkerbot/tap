@@ -5,6 +5,7 @@ require 'tap/generator/arguments'
 require 'tap/generator/generate'
 require 'tap/generator/destroy'
 require 'tap/generator/helpers'
+require 'tap/tasks/list'
 
 module Tap
   module Generator
@@ -74,6 +75,29 @@ module Tap
     # :startdoc:::+
     class Base < Tap::Task
       class << self
+        def parse_as(mixin, argv=ARGV, app=Tap::App.current, &block)
+          if argv.empty?
+            raise "no generator specified"
+          end
+          
+          if argv[0] == '--help'
+            desc = mixin.desc
+            lines = ["#{mixin}#{desc.empty? ? '' : ' -- '}#{desc.to_s}"]
+            lines << '-' * 80
+            lines.concat desc.wrap(77, 2, nil).collect {|line| "  #{line}"}
+            lines << '-' * 80
+            lines << "usage: tap #{mixin.to_s.underscore} generator *args"
+            lines << ''
+            lines.concat Tasks::List.new(:types => ['generator']).manifest
+            raise lines.join("\n")
+          end
+          
+          argv = argv.dup
+          generator = argv.shift
+          argv.unshift mixin
+          app.env.constant(generator, 'generator').parse(argv, app, &block)
+        end
+        
         def build(spec={}, app=Tap::App.current)
           obj = new(spec['config'] || {}, app)
           
