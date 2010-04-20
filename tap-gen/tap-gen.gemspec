@@ -43,8 +43,6 @@ Gem::Specification.new do |s|
     lib/tap/generator/manifest.rb
     lib/tap/generator/preview.rb
     lib/tap/generator/version.rb
-    lib/tap/tasks/destroy.rb
-    lib/tap/tasks/generate.rb
     tap-gen.gemspec
     tap.yml
     templates/tap/generator/generators/generator/resource.erb
