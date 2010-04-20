@@ -45,6 +45,15 @@ class DestroyTest < Test::Unit::TestCase
     assert_equal [[:rm, target]], log
   end
   
+  def test_directory_does_nothing_for_pwd
+    pwd = method_root.path(:tmp)
+    method_root.chdir(:tmp, true) do 
+      directory(pwd)
+      assert File.exists?(pwd)
+      assert_equal [], log
+    end
+  end
+  
   def test_directory_removal_is_only_logged_on_pretend
     target = method_root.path(:tmp, 'dir')
     FileUtils.mkdir_p(target) unless File.exists?(target)

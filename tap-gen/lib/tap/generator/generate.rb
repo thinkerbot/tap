@@ -23,6 +23,7 @@ module Tap
         target = File.expand_path(target)
         
         case
+        when target == Dir.pwd
         when File.exists?(target)
           log_relative :exists, target
         else

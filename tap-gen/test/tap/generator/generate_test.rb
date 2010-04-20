@@ -37,6 +37,15 @@ class GenerateTest < Test::Unit::TestCase
     assert_equal [[:create, target]], log
   end
   
+  def test_directory_does_nothing_for_pwd
+    pwd = method_root.path(:tmp)
+    method_root.chdir(:tmp, true) do 
+      directory(pwd)
+      assert File.exists?(pwd)
+      assert_equal [], log
+    end
+  end
+  
   def test_directory_simply_logs_activity_if_pretend_is_true
     target = method_root.path(:tmp, 'dir')
     assert !File.exists?(target)
