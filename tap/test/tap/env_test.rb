@@ -146,4 +146,26 @@ class EnvTest < Test::Unit::TestCase
     assert_equal ConstName, env.constant('/const_name')
     assert_equal Nest::ConstName, env.constant('/nest/const_name')
   end
+  
+  #
+  # loadpath test
+  #
+  
+  def test_loadpath_expands_and_prepends_paths_to_LOAD_PATH_ensuring_no_duplicates
+    current = $LOAD_PATH.dup
+    begin
+      $LOAD_PATH.clear
+      
+      env = Env.new
+      env.loadpath 'a', '/b', '/c'
+      assert_equal [File.expand_path('a'), '/b', '/c'], $LOAD_PATH
+      
+      env.loadpath '/c', '/d'
+      assert_equal ['/c', '/d', File.expand_path('a'), '/b'], $LOAD_PATH
+      
+    ensure
+      $LOAD_PATH.clear
+      $LOAD_PATH.concat current
+    end
+  end
 end

@@ -134,13 +134,11 @@ module Tap
     end
     
     def loadpath(*paths)
-      paths.each do |path|
-        path = File.expand_path(path)
-        unless $LOAD_PATH.include?(path)
-          $LOAD_PATH << path
-        end
+      paths.reverse_each do |path|
+        $LOAD_PATH.unshift File.expand_path(path)
       end
       
+      $LOAD_PATH.uniq!
       $LOAD_PATH
     end
     
