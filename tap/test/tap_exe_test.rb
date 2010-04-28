@@ -142,7 +142,28 @@ moon'
     A
     }, :env => default_env.merge('TAP_PATH' => 'alt')
   end
-
+  
+  def test_later_paths_are_preferred_over_earlier_paths
+    method_root.prepare('a/lib/test.rb') do |io|
+      io.puts 'require "tap/task"'
+      io.puts '# ::task'
+      io.puts 'class Test < Tap::Task; def process; puts "A: #{app.env.path(:data).inspect}"; end; end'
+    end
+    
+    method_root.prepare('b/lib/test.rb') do |io|
+      io.puts 'require "tap/task"'
+      io.puts '# ::task'
+      io.puts 'class Test < Tap::Task; def process; puts "B: #{app.env.path(:data).inspect}"; end; end'
+    end
+    
+    paths = [method_root.path('b/data'), method_root.path('a/data')]
+    
+    sh_test %Q{
+    % tap test
+    B: #{paths.inspect}
+    }, :env => default_env.merge('TAP_PATH' => 'a:b')
+  end
+  
   def test_TAPENV_specifies_tapenv_files_run_in_env_context
     method_root.prepare('alt/lib/a.rb') do |io|
       io.puts 'require "tap/task"'
