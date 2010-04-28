@@ -104,14 +104,12 @@ module Tap
       const_str.kind_of?(Module) ? const_str : resolve(const_str, type).constantize
     end
     
+    # Registers the directory and path mappings as a Path, into paths. The
+    # path is unshifted to paths to provide similar functionality as loadpath.
+    # Returns the new path.
     def register(dir, map={})
       new_path = Path.new(dir, map)
-      if paths.any? {|path| path == new_path }
-        #raise "already registered: #{new_path}"
-        return new_path
-      end
-      
-      paths << new_path
+      paths.unshift new_path
       new_path
     end
     
@@ -133,6 +131,8 @@ module Tap
       self
     end
     
+    # Expands and prepends the specified paths to $LOAD_PATH, removing any
+    # duplicates. Returns $LOAD_PATH.
     def loadpath(*paths)
       paths.reverse_each do |path|
         $LOAD_PATH.unshift File.expand_path(path)
@@ -142,6 +142,8 @@ module Tap
       $LOAD_PATH
     end
     
+    # Expands and removes the specified paths from $LOAD_PATH.  Returns
+    # $LOAD_PATH.
     def unloadpath(*paths)
       paths.each {|path| $LOAD_PATH.delete File.expand_path(path) }
       $LOAD_PATH

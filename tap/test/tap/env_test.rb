@@ -148,6 +148,18 @@ class EnvTest < Test::Unit::TestCase
   end
   
   #
+  # register test
+  #
+  
+  def test_register_unshifts_a_new_Path_for_the_directory_to_paths
+    env = Env.new
+    a = env.register('a')
+    b = env.register('b')
+    
+    assert_equal [b, a], env.paths
+  end
+  
+  #
   # loadpath test
   #
   
