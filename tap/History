@@ -1,11 +1,26 @@
+== 1.0.0 - 1.2.4 / 2010-03 - 2010-04
+
+Continued rework of Tap internals. Implementation of new Env setup scheme
+based largely on signals. Updated the Declarations DSL with significantly more
+flexibility. Numerous cleanups to the API. Simplification and standardization
+of the tap syntax for defining command-line workflows.
+
+These releases were created for internal use and debugged in fairly rapid
+succession. The transition from 0.* to 1.* marks significant changes that,
+aside from the basic API, are not backwards-compatible. Going forward Tap
+should be much more stable, and the various APIs should be stable.
+
+I may reorganize tasks among the various modules in the tap suite and the
+Declarations DSL is still under development.
+
 == 0.19.0 / 2009-12-05
 
 Significant rework of Tap internals.
 
 * extracted task/join/middleware code to make Api base class
-* some changes to semantics of Minimap; entry_to_minikey is
-  now entry_to_path.  Likewise entries now specify their own
-  path using entry.path rather than entry.minikey
+* some changes to semantics of Minimap; entry_to_minikey is now entry_to_path.
+  Likewise entries now specify their own path using entry.path rather than
+  entry.minikey
 * added Signals implemented with the Dsl pattern
 
 == 0.18.1
@@ -21,21 +36,19 @@ Significant rework of Tap internals.
   
 == 0.18.0 / 2009-06-17
 
-Several updates to simplify Tap.  Most significantly,
-dependencies have been removed because their general
-utility is quite doubtful, and it it easy to implement
-in situations that require them (ex rap).
+Several updates to simplify Tap. Most significantly, dependencies have been
+removed because their general utility is quite doubtful, and it it easy to
+implement in situations that require them (ex rap).
 
 * bug fix in console (app now refers to Tap::App.current)
 * bug fix in load for recurrently loading from a file
 * fixed a mistake in run help
-* made load only load once by default, stream loading must
-  be enabled in subclasses
+* made load only load once by default, stream loading must be enabled in
+  subclasses
 * dump now returns the input, not the io
 * removed dependencies from tap
 * removed intern method on Task (now use app.task)
-* removed Support module (ie refactored Templater to
-  Tap::Templater)
+* removed Support module (ie refactored Templater to Tap::Templater)
 * removed Task.help method
 * added Middleware baseclass
 * Task.parse now yields opts to block for modifications
@@ -52,27 +65,23 @@ in situations that require them (ex rap).
 
 == 0.17.0 / 2009-05-25
 
-Significant reorganization and update to Tap internals.
-The workflow syntax for joins has changed in incompatible
-ways, and several key methods have been renamed.  
-Obviously not backwards compatible but most tasks will
-work without alteration.
+Significant reorganization and update to Tap internals. The workflow syntax
+for joins has changed in incompatible ways, and several key methods have been
+renamed. Obviously not backwards compatible but most tasks will work without
+alteration.
 
 Upgrade Notes:
 
-* Tasks now are identified by "::task" rather than "::manifest"
-  The manifest identifier still works for now but will be
-  removed by 1.0.
-* Root#filepath and Root#relative_filepath have been renamed
-  Root#path and Root#relative_path
-* Audits have been removed
-* Generators, FileTask, and test modules have been removed
-  to separate modules (tap-gen, tap-tasks, tap-test). Install
-  tap-suite to get them all back.
-* switched const_name, name on Constant
-* refactored on_complete_block to join
-* callbacks in Task have been removed
-* schema syntax no longer supports rounds, globals
+* Tasks now are identified by "::task" rather than "::manifest" The manifest
+  identifier still works for now but will be removed by 1.0. 
+* Root#filepath and Root#relative_filepath have been renamed Root#path and
+  Root#relative_path 
+* Audits have been removed 
+* Generators, FileTask, and test modules have been removed to separate modules
+  (tap-gen, tap-tasks, tap-test). Install tap-suite to get them all back. 
+* switched const_name, name on Constant * refactored on_complete_block to join
+* callbacks in Task have been removed * schema syntax no longer supports
+  rounds, globals
 
 Changes:
 
@@ -88,11 +97,10 @@ Changes:
 
 * fixed bug in App#inspect
 * documentation updates
-* changed the default load/dump configs to load and
-  dump data without serialization
+* changed the default load/dump configs to load and dump data without
+  serialization
 * made stdin the default input to load
-* updated run syntax to allow arguments to be passed
-  to saved workflows
+* updated run syntax to allow arguments to be passed to saved workflows
 * updates to RootGenerator
 
 == 0.12.3 / 2009-03-05
@@ -155,8 +163,7 @@ Upgrade note:
 
 == 0.11.0 / 2008-10-20
 
-Significant update to Tap with many internal reworks.
-Major changes include:
+Significant update to Tap with many internal reworks. Major changes include:
 
 * Addition of Parser/Schema
 * Addition of rap and task declarations
@@ -167,8 +174,7 @@ Major changes include:
 
 == 0.10.1 / 2008-08-21
 
-Update of Tap with a few improvements to manifests
-and a new manifest command.
+Update of Tap with a few improvements to manifests and a new manifest command.
 
 * Fixed some bugs and extended manifests
 * Bug fixes in generators
@@ -176,16 +182,15 @@ and a new manifest command.
 
 == 0.10.0 / 2008-08-08
 
-Major revision.  Reworked configurations and the execution
-environment.  Added Lazydoc documentation.  Backwards incompatible.
-Development is now on GitHub. 
+Major revision. Reworked configurations and the execution environment. Added
+Lazydoc documentation. Backwards incompatible. Development is now on GitHub.
 
 == 0.9.1 / 2008-04-26 revision 253
 
-Relatively minor update, but with one important refactoring that
-removes the Tap::Script module.  This breaks backward compatibility
-but only should affect people who have made their own commands.
-Simply sub Tap::Support::CommandLine for Tap::Script to fix.
+Relatively minor update, but with one important refactoring that removes the
+Tap::Script module. This breaks backward compatibility but only should affect
+people who have made their own commands. Simply sub Tap::Support::CommandLine
+for Tap::Script to fix.
 
 * Added constants methods (ex try_constantize) to String
 * Added gem discovery when no tap.yml file is present
