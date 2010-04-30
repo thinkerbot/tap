@@ -10,10 +10,6 @@ workflows, rendering of task results, and facilitates distributable
 controllers.  The intention is not to make websites for the masses, but rather
 a local interface for individuals and small groups.
 
-{Tap Server}[http://tap.rubyforge.org/tap-server] is a part of the
-{Tap-Suite}[http://tap.rubyforge.org/tap-suite].  Check out these links for
-documentation, development, and bug tracking.
-
 * Website[http://tap.rubyforge.org]
 * Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/9908-tap-task-application/tickets]
 * Github[http://github.com/bahuvrihi/tap/tree/master]

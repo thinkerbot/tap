@@ -7,9 +7,7 @@ A set of standard Tap tasks.
 == Description
 
 A standard library of utility tasks, for example tasks to dump/load results as
-{YAML}[http://www.yaml.org/]. {Tap-Tasks}[http://tap.rubyforge.org/tap-tasks]
-is a part of the {Tap-Suite}[http://tap.rubyforge.org/tap-suite]. Check out
-these links for documentation, development, and bug tracking.
+{YAML}[http://www.yaml.org/] or CSV.
 
 * Website[http://tap.rubyforge.org] 
 * Github[http://github.com/bahuvrihi/tap/tree/master] 

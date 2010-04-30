@@ -8,9 +8,6 @@ Generators for Tap.
 
 Provides generators for Tap. Generators are subclasses of Task are therefore
 easy to configure, subclass, and distribute.
-{Tap-Generator}[http://tap.rubyforge.org/tap-gen] is a part of the
-{Tap-Suite}[http://tap.rubyforge.org/tap-suite]. Check out these links for
-documentation, development, and bug tracking.
 
 * Website[http://tap.rubyforge.org]
 * Github[http://github.com/bahuvrihi/tap/tree/master]

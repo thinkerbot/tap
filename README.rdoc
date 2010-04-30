@@ -10,12 +10,11 @@ Tap allows the construction of workflows that may be defined, configured, and
 run from the command line. The tasks and joins composing a workflow are easy
 to test, subclass, and distribute as gems.
 
-Tap is the core of the
-{Tap-Suite}[http://tap.rubyforge.org/tap-suite/index.html] 
-which provides a standard library of 
+Tap provides a standard library of
 {tasks}[http://tap.rubyforge.org/tap-tasks/index.html],
-{generators}[http://tap.rubyforge.org/tap-gen/index.html], and 
-{test modules}[http://tap.rubyforge.org/tap-test/index.html].
+{generators}[http://tap.rubyforge.org/tap-gen/index.html], and {test
+modules}[http://tap.rubyforge.org/tap-test/index.html] to expedite
+development.
 
 * Website[http://tap.rubyforge.org]
 * Github[http://github.com/bahuvrihi/tap/tree/master]
