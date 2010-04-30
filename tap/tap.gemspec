@@ -1,6 +1,3 @@
-require File.expand_path('../lib/tap/version', __FILE__)
-require File.expand_path('../../tap-test/lib/tap/test/version', __FILE__)
-
 Gem::Specification.new do |s|
   s.name = 'tap'
   s.version = Tap::VERSION

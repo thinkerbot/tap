@@ -1,0 +1,142 @@
+#
+# Helpers
+#
+
+def gemspecs
+  @gemspecs ||= begin
+    require 'rubygems'
+    require 'rubygems/specification'
+    
+    require 'tap/version'
+    require 'tap/generator/version'
+    require 'tap/tasks/version'
+    require 'tap/test/version'
+    {}
+  end
+end
+
+def gemspec(name)
+  gemspecs[name] ||= begin
+    path = File.expand_path("#{name}.gemspec")
+    eval(File.read(path), binding, path, 0)
+  end
+end
+
+#
+# Dependency tasks
+#
+
+singleton do
+  desc 'Checkout submodules'
+  task :submodules do
+    output = `git submodule status 2>&1`
+
+    if output =~ /^-/m
+      puts "Missing submodules:\n#{output}"
+      sh "git submodule init"
+      sh "git submodule update"
+      puts
+    end
+  end
+end
+
+#
+# Tasks
+#
+
+class ModuleTask < Tap::Task
+  def call(names)
+    pwd = Dir.pwd
+    names.each do |name|
+      begin
+        Dir.chdir(name)
+        process(name)
+      ensure
+        Dir.chdir(pwd)
+      end
+    end
+  end
+end
+
+baseclass ModuleTask 
+
+desc 'Prints the gemspec manifest.'
+task :manifest do |config, name|
+  # collect files from the gemspec, labeling with true or false corresponding
+  # to the file existing or not
+  files = {}
+  gemspec(name).files.each do |file|
+    files[File.expand_path(file)] = [File.exists?(file), file]
+  end
+
+  # gather non-rdoc/pkg files for the project and add to the files list if
+  # they are not included already (marking by the absence of a label)
+  Dir.glob('**/*').each do |file|
+    next if file =~ /\A(rdoc|pkg|test|specs|images|.*\.rbc)/ || File.directory?(file)
+    files[File.expand_path(file)] ||= [true, file]
+  end
+
+  # sort and output the results
+  files.values.sort_by {|exists, file| file }.each do |entry| 
+    puts '%-5s %s' % entry
+  end
+end
+
+desc 'Generate documentation.'
+task :rdoc, :force => false do |config, name|
+  require 'cdoc'
+  spec = gemspec(name)
+  
+  files = spec.files.select {|file|
+    file =~ /lib.*\.rb$/
+  } + spec.extra_rdoc_files
+  
+  args = %w{
+    --fmt cdoc 
+    --template cdoc/cdoc_html_template
+    --op rdoc
+  } + spec.rdoc_options + files.uniq
+  args << '--force-update' if config.force
+  
+  RDoc::RDoc.new.document(args)
+end
+
+desc 'Publish RDoc to RubyForge'
+task :publish_rdoc => :rdoc do |config, name|
+  require 'yaml'
+  
+  config = YAML.load_file File.expand_path('~/.rubyforge/user-config.yml')
+  username = config['username']
+  
+  sh "rsync -v -c -r rdoc/ #{username}@rubyforge.org:/var/www/gforge-projects/tap/#{name}"
+end
+
+desc 'Generate a gem.'
+task :gem do |config, name|
+  destination_dir = File.expand_path('pkg', name)
+  unless File.directory?(destination_dir)
+    FileUtils.mkdir_p(destination_dir)
+  end
+  
+  path = ::Gem::Builder.new(gemspec(name)).build
+  FileUtils.mv(path, File.join(destination_dir, File.basename(path)))
+end
+
+desc 'Run tests.'
+task :test => :submodules do |config, name|
+  libs = %W{
+    ../configurable/lib
+    ../lazydoc/lib
+    ../#{name}/lib
+  }
+
+  gemspec(name).dependencies.each do |dep|
+    libs << File.join('..', dep.name, 'lib')
+  end
+
+  cmd = ['ruby', '-w', '-e', 'ARGV.each {|test| load test}']
+  libs.uniq.each {|lib| cmd.concat ['-I', lib] }
+  cmd.concat Dir.glob("test/**/*_test.rb")
+
+  sh(*cmd)
+end
