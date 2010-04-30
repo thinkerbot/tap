@@ -10,8 +10,53 @@ succession. The transition from 0.* to 1.* marks significant changes that,
 aside from the basic API, are not backwards-compatible. Going forward Tap
 should be much more stable, and the various APIs should be stable.
 
-I may reorganize tasks among the various modules in the tap suite and the
-Declarations DSL is still under development.
+The tasks among the various modules in the tap suite may still be reorganizd
+and the Declarations DSL is still under development.
+
+Also, about this time numerous tags were deleted to cleanup the repo.  Rap
+was removed entirely as a separate gem, as was the tap-suite.  These are
+the old tag names and their corresponding shas:
+
+  all: 5f609e24147587692303d3654f1386958f476f59
+  rap-0.12.0: 2a988dbbacac45b6b8bf0fc7c74e7d3639e64f56
+  rap-0.12.1: a1e0f3605f6937326b258038812fba775c7616bd
+  rap-0.12.2: 03dc3dfc3b365901847ef70dbf1b92d297642b00
+  rap-0.12.3: 6ce756f1f4783787f54d0f8332899972a9b4b863
+  rap-0.13.0: 6db8026cd7dabb1ff407470a9c793796b4ea6126
+  rap-0.13.1: c512db583aad0453ab5e23d54fe5ef4b3c28992c
+  rap-0.15.0: 981bae18210008c5cabc108592d3bc6a44f49530
+  tap-0.10.0: f0c4ae53e5136364f0f6c4c3b2b587daa4eaeefe
+  tap-0.10.1: 6ec15db9a9043e3eca285227b77e6e562bb2ff35
+  tap-0.11.0: 359383266c572bc8e124a751dc3097fec806e16b
+  tap-0.11.1: 5079dcb5ef33c0d5f6def81f4767925be0e8b8c5
+  tap-0.12.0: f8c97e2efbbe9e8699d20b63d29e975cd91a8c57
+  tap-0.12.1: f6ac7f29834804eafd654200096696821f698290
+  tap-0.12.2: ad7fc99d028c6c682c2eb1e7c069bea520641bdb
+  tap-0.12.3: 5cba176fcc5e8e098ed1d9165139bd9a99e097c9
+  tap-0.12.4: 9148452b903f64c1fa170048fa9fa2dfc299414f
+  tap-0.17.0: e23074c52ac656e42904b58d829e82150d76c66a
+  tap-0.17.1: 6139af4e890d55f956d6a61de31396a623b03fec
+  tap-gen-0.1.0: 25f69b6fc788c2aa302bb5623c76e7325e3391fc
+  tap-gen-0.1.1: 8f5614336350942615add73b3fe79075b54a93c1
+  tap-gen-0.1.2: 621ce1fdb7ab0d966a32a34637e39fa5221247f1
+  tap-gen-0.1.3: 60e44d4cf6ac837e28d8b4138e1e4779656341d9
+  tap-gen-0.3.0: 0b12752589ff6cf7bb081d06347fa5d74c7b6eb4
+  tap-server-0.1.0: f08a40b83e370d37adf54ab322f153c2392de9ce
+  tap-server-0.1.1: dada4c9ca83191e9990eaaf7215c049cc7dc88a9
+  tap-server-0.2.0: 45b0d1fb7381ba824b5234079441e8f252a9d28d
+  tap-server-0.3.0: 861fd836b7d19422c7bbb4e3b65981f409130b3d
+  tap-server-0.4.0: 4f2b8c6e146bdca781f30f35d608815544f96e3e
+  tap-server-0.6.0: bfce08a4a73aeffe3b873f9d2bd1b36db4489598
+  tap-suite-0.1.0: 8ab253ee8f72f79a5f7b9b7928831affbcfacda9
+  tap-suite-0.2.0: 76afbec380f6faf7fbec386f2f40c1cbd074b6d9
+  tap-suite-0.3.0: bbfe80400f6d5e988dea9ad1fa3b25851f5aa8e7
+  tap-tasks-0.1.0: fb4d357010a321ab31bf689d3794889f36487059
+  tap-tasks-0.2.0: c0a561780b49de3eaa2a4ef7c69070a47d0b902b
+  tap-tasks-0.5.0: 357d793a78808a26438b4b66c4f6c471a23d05f8
+  tap-test-0.1.0: b533809da134fda0f9fd685c766fe8f26da7f0f3
+  tap-test-0.3.0: 140580cf49bc58cd1e64b5eb9ef7cc8066fa9410
+
+We'll see if I can't keep this under control a little better.
 
 == 0.19.0 / 2009-12-05
 
