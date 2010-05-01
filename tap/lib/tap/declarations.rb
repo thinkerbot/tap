@@ -115,7 +115,8 @@ module Tap
       desc = @desc
       tasc = work(const_name, configs) do |workflow|
         psr = Parser.new
-        Utils.warn_ignored_args psr.parse!(prerequisites)
+        args = psr.parse!(prerequisites)
+        warn "ignoring args: #{args.inspect}" unless args.empty?
         psr.build_to(app)
         
         obj = init("#{const_name.to_s.underscore}/task", workflow.config.to_hash)

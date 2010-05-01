@@ -71,7 +71,7 @@ module Tap
           if block_given?
             yield(obj, args)
           else
-            Utils.warn_ignored_args(args)
+            parser.warn_ignored_args(args)
             obj
           end
         end

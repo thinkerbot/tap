@@ -51,7 +51,6 @@ class ModuleTask < Tap::Task
     } if names.empty?
     
     names.each do |name|
-      log :process, name
       begin
         Dir.chdir(name)
         process(name)
@@ -112,9 +111,7 @@ task :publish_rdoc => :rdoc do |config, name|
   config = YAML.load_file File.expand_path('~/.rubyforge/user-config.yml')
   username = config['username']
   
-  cmd = "rsync -v -c -r rdoc/ #{username}@rubyforge.org:/var/www/gforge-projects/tap/#{name}"
-  log :sh, cmd
-  sh cmd
+  sh "rsync -v -c -r rdoc/ #{username}@rubyforge.org:/var/www/gforge-projects/tap/#{name}"
 end
 
 desc 'Generate a gem.'
@@ -144,6 +141,5 @@ task({:test => :submodules}, {:all => false}) do |config, name|
   libs.uniq.each {|lib| cmd.concat ['-I', lib] }
   cmd.concat Dir.glob("test/**/*_test.rb")
   
-  log :sh, cmd.join(' ')
   with_env('ALL' => config.all.to_s) { sh(*cmd) }
 end

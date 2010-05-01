@@ -12,6 +12,13 @@ module Tap
         namespace(ns)
       end
       
+      # Runs the command with system and raises an error if the command
+      # fails.
+      def sh(*cmd)
+        app.log :sh, cmd.join(' ')
+        system(*cmd) or raise "Command failed with status (#{$?.exitstatus}): [#{cmd.join(' ')}]"
+      end
+      
       def method_missing(sym, *args, &block)
         app.send(sym, *args, &block)
       end

@@ -6,7 +6,7 @@ module Tap
           psr = ConfigParser.new(:add_defaults => false)
           psr.add(obj.class.configurations)
           args = psr.parse!(config)
-          Utils.warn_ignored_args(args)
+          psr.warn_ignored_args(args)
           
           config = psr.config
         end
