@@ -112,7 +112,9 @@ task :publish_rdoc => :rdoc do |config, name|
   config = YAML.load_file File.expand_path('~/.rubyforge/user-config.yml')
   username = config['username']
   
-  sh "rsync -v -c -r rdoc/ #{username}@rubyforge.org:/var/www/gforge-projects/tap/#{name}"
+  cmd = "rsync -v -c -r rdoc/ #{username}@rubyforge.org:/var/www/gforge-projects/tap/#{name}"
+  log :sh, cmd
+  sh cmd
 end
 
 desc 'Generate a gem.'
@@ -127,7 +129,7 @@ task :gem do |config, name|
 end
 
 desc 'Run tests.'
-task :test => :submodules do |config, name|
+task({:test => :submodules}, {:all => false}) do |config, name|
   libs = %W{
     ../configurable/lib
     ../lazydoc/lib
@@ -141,6 +143,7 @@ task :test => :submodules do |config, name|
   cmd = ['ruby', '-w', '-e', 'ARGV.each {|test| load test}']
   libs.uniq.each {|lib| cmd.concat ['-I', lib] }
   cmd.concat Dir.glob("test/**/*_test.rb")
-
-  sh(*cmd)
+  
+  log :sh, cmd.join(' ')
+  with_env('ALL' => config.all.to_s) { sh(*cmd) }
 end
