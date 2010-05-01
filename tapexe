@@ -8,4 +8,19 @@ root = File.expand_path('..', __FILE__)
 $:.unshift "#{root}/configurable/lib"
 $:.unshift "#{root}/lazydoc/lib"
 $:.unshift "#{root}/tap/lib"
-load "#{root}/tap/bin/tapexe"
+
+begin
+  load "#{root}/tap/bin/tapexe"
+rescue(LoadError)
+  at_exit do
+    puts %Q{
+This LoadError probably occurred because submodules have
+not been initialized.  Use these commands and try again:
+
+  % git submodule init
+  % git submodule update
+
+}
+  end if $!.message =~ /(lazydoc|configurable)/
+  raise
+end
