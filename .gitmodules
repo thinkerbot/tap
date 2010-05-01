@@ -4,6 +4,3 @@
 [submodule "lazydoc"]
 	path = lazydoc
 	url = git://github.com/bahuvrihi/lazydoc.git
-[submodule "rack"]
-	path = rack
-	url = git://github.com/rack/rack.git
