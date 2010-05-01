@@ -8,6 +8,13 @@ class EnvTest < Test::Unit::TestCase
   Path = Tap::Env::Path
   Constant = Tap::Env::Constant
   
+  attr_reader :env
+  
+  def setup
+    super
+    @env = Env.new
+  end
+  
   #
   # initialize test
   #
@@ -61,7 +68,7 @@ class EnvTest < Test::Unit::TestCase
   #
   
   def test_match_matches_constants_by_const_name
-    env = Env.new :constants => [
+    env.constants.concat [
       Constant.new('A'),
       Constant.new('A::B'),
       Constant.new('A::B::C'),
@@ -76,7 +83,7 @@ class EnvTest < Test::Unit::TestCase
   end
   
   def test_match_matches_constants_by_path_matching
-    env = Env.new :constants => [
+    env.constants.concat [
       Constant.new('A'),
       Constant.new('A::B'),
       Constant.new('A::B::C'),
@@ -97,7 +104,7 @@ class EnvTest < Test::Unit::TestCase
   end
   
   def test_match_filters_by_type_if_specified
-    env = Env.new :constants => [
+    env.constants.concat [
       Constant.new('A').register_as('one'),
       Constant.new('B::A').register_as('two')
     ]
@@ -108,7 +115,7 @@ class EnvTest < Test::Unit::TestCase
   end
   
   def test_match_filters_by_inline_type_if_specified
-    env = Env.new :constants => [
+    env.constants.concat [
       Constant.new('A').register_as('one'),
       Constant.new('B::A').register_as('two')
     ]
@@ -152,7 +159,6 @@ class EnvTest < Test::Unit::TestCase
   #
   
   def test_register_unshifts_a_new_Path_for_the_directory_to_paths
-    env = Env.new
     a = env.register('a')
     b = env.register('b')
     
@@ -168,7 +174,6 @@ class EnvTest < Test::Unit::TestCase
     begin
       $LOAD_PATH.clear
       
-      env = Env.new
       env.loadpath 'a', '/b', '/c'
       assert_equal [File.expand_path('a'), '/b', '/c'], $LOAD_PATH
       
@@ -179,5 +184,18 @@ class EnvTest < Test::Unit::TestCase
       $LOAD_PATH.clear
       $LOAD_PATH.concat current
     end
+  end
+  
+  #
+  # set test
+  #
+  
+  class SetClass
+  end
+  
+  def test_set_sets_constant_into_constants
+    assert_equal [], env.constants
+    env.set SetClass
+    assert_equal ['EnvTest::SetClass'], env.constants.collect {|c| c.const_name }
   end
 end
