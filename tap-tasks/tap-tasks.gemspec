@@ -1,3 +1,11 @@
+$:.unshift File.expand_path('../../tap/lib', __FILE__)
+$:.unshift File.expand_path('../../tap-test/lib', __FILE__)
+$:.unshift File.expand_path('../../tap-tasks/lib', __FILE__)
+
+require 'tap/version'
+require 'tap/test/version'
+require 'tap/tasks/version'
+
 Gem::Specification.new do |s|
   s.name = 'tap-tasks'
   s.version = Tap::Tasks::VERSION

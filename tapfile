@@ -6,11 +6,6 @@ def gemspecs
   @gemspecs ||= begin
     require 'rubygems'
     require 'rubygems/specification'
-    
-    require 'tap/version'
-    require 'tap/generator/version'
-    require 'tap/tasks/version'
-    require 'tap/test/version'
     {}
   end
 end
@@ -47,7 +42,16 @@ end
 class ModuleTask < Tap::Task
   def call(names)
     pwd = Dir.pwd
+    
+    names = %w{
+      tap
+      tap-test
+      tap-tasks
+      tap-gen
+    } if names.empty?
+    
     names.each do |name|
+      log :process, name
       begin
         Dir.chdir(name)
         process(name)
