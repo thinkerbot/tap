@@ -41,7 +41,7 @@ module Tap
       baseclass(Tap::Tasks::Singleton, &block)
     end
     
-    def baseclass(baseclass)
+    def baseclass(baseclass=Tap::Task)
       current = @baseclass
       begin
         @baseclass = env.constant(baseclass) unless baseclass.nil?
@@ -81,7 +81,8 @@ module Tap
         # specifying a desc prevents lazydoc registration of these lines
         opts = {:desc => ""}
         opts[:short] = key if key.to_s.length == 1
-        subclass.send(:config, key, value, opts, &config_block(value))
+        config_block = Configurable::Validation.guess(value)
+        subclass.send(:config, key, value, opts, &config_block)
       end
       
       # define process
@@ -92,15 +93,14 @@ module Tap
       end
       
       # register documentation
-      @desc ||= Lazydoc.register_caller(Description)
-      subclass.desc = @desc
-      
-      # register subclass
-      source_file = @desc.document.source_file
       constant = env.set(subclass, nil)
-      constant.register_as(subclass.type, @desc)
       
-      @desc = nil
+      if @desc
+        subclass.desc = @desc
+        constant.register_as(subclass.type, @desc)
+        @desc = nil
+      end
+      
       subclass
     end
     
@@ -112,7 +112,6 @@ module Tap
         return declare(baseclass, const_name, configs, &block)
       end
 
-      desc = @desc
       tasc = work(const_name, configs) do |workflow|
         psr = Parser.new
         args = psr.parse!(prerequisites)
@@ -125,7 +124,6 @@ module Tap
         [setup, obj]
       end
 
-      @desc = desc
       namespace(const_name) do
         declare(baseclass, 'Task', configs, &block)
       end
@@ -184,14 +182,6 @@ module Tap
       end
       
       [const_name, prerequisites]
-    end
-    
-    def config_block(value)
-      case value
-      when true  then Configurable::Validation.switch
-      when false then Configurable::Validation.flag
-      else Configurable::Validation.yaml
-      end
     end
   end
 end

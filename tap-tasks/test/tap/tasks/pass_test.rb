@@ -30,7 +30,5 @@ class PassTest < Test::Unit::TestCase
 ["abc", "cba"]
 ["xyz", "zyx"]
 }, :env => SH_TEST_OPTIONS[:env].merge('TAPFILE' => tapfile)
-
-
   end
 end
