@@ -1,4 +1,4 @@
-require  File.join(File.dirname(__FILE__), '../../tap_test_helper')
+require  File.join(File.dirname(__FILE__), '../../test_helper')
 require 'tap/controllers/server'
 
 class Tap::Controllers::ServerTest < Test::Unit::TestCase

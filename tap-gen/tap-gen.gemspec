@@ -58,7 +58,7 @@ Gem::Specification.new do |s|
     templates/tap/generator/generators/root/gemspec
     templates/tap/generator/generators/root/tap.yml
     templates/tap/generator/generators/root/tapfile
-    templates/tap/generator/generators/root/test/tap_test_helper.rb
+    templates/tap/generator/generators/root/test/test_helper.rb
     templates/tap/generator/generators/tap/profile.erb
     templates/tap/generator/generators/tap/tap.erb
     templates/tap/generator/generators/task/resource.erb

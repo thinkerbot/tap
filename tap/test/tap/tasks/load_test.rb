@@ -1,4 +1,4 @@
-require File.expand_path('../../../tap_test_helper', __FILE__) 
+require File.expand_path('../../../test_helper', __FILE__) 
 require 'tap/tasks/load'
 
 class Tap::LoadTest < Test::Unit::TestCase

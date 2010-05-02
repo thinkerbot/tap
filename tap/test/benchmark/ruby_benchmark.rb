@@ -1,4 +1,4 @@
-require File.expand_path('../../tap_test_helper', __FILE__)
+require File.expand_path('../../test_helper', __FILE__)
 
 class RubyBenchmark < Test::Unit::TestCase
   acts_as_subset_test

@@ -16,7 +16,7 @@ module Tap::Generator::Generators
   #   |- tap.yml
   #   |- tapfile
   #   `- test
-  #       `- tap_test_helper.rb
+  #       `- test_helper.rb
   #
   class Root < Tap::Generator::Base
     

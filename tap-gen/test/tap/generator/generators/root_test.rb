@@ -1,4 +1,4 @@
-require File.expand_path('../../../../tap_test_helper.rb', __FILE__) 
+require File.expand_path('../../../../test_helper.rb', __FILE__) 
 require 'tap/generator/generators/root'
 require 'tap/generator/preview.rb'
 
@@ -24,7 +24,7 @@ class RootGeneratorTest < Test::Unit::TestCase
       tap.yml
       tapfile
       test
-      test/tap_test_helper.rb
+      test/test_helper.rb
     }, g.process(Dir.pwd, 'project').sort
     
     assert g.preview['README'] =~ /MIT-LICENSE/
@@ -45,7 +45,7 @@ class RootGeneratorTest < Test::Unit::TestCase
       tap.yml
       tapfile
       test
-      test/tap_test_helper.rb
+      test/test_helper.rb
     }, g.process(Dir.pwd, 'project').sort
   end
   
@@ -62,7 +62,7 @@ class RootGeneratorTest < Test::Unit::TestCase
       tap.yml
       tapfile
       test
-      test/tap_test_helper.rb
+      test/test_helper.rb
     }, g.process(Dir.pwd, 'project').sort
   end
   
@@ -79,7 +79,7 @@ class RootGeneratorTest < Test::Unit::TestCase
       tap.yml
       tapfile
       test
-      test/tap_test_helper.rb
+      test/test_helper.rb
     }, g.process(Dir.pwd, 'project').sort
     
     assert g.preview['README'] !~ /MIT-LICENSE/

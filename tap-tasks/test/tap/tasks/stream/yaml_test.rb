@@ -1,4 +1,4 @@
-require File.expand_path('../../../../tap_test_helper.rb', __FILE__) 
+require File.expand_path('../../../../test_helper.rb', __FILE__) 
 require 'tap/tasks/stream/yaml'
 require 'stringio'
 

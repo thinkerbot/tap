@@ -1,4 +1,4 @@
-require File.expand_path('../../tap_test_helper', __FILE__)
+require File.expand_path('../../test_helper', __FILE__)
 require 'tap/join'
 require 'tap/test/tracer'
 require 'tap/declarations'

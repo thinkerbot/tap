@@ -1,4 +1,4 @@
-require File.expand_path('../../../../tap_test_helper.rb', __FILE__) 
+require File.expand_path('../../../../test_helper.rb', __FILE__) 
 require 'tap/test/shell_test/regexp_escape'
 
 class RegexpEscapeTest < Test::Unit::TestCase
