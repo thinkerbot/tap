@@ -97,7 +97,7 @@ end
         useful to think of it as a source of configs.  Note these comments are
         meaningful, if present they become the task help.
       --------------------------------------------------------------------------------
-      usage: tap tapfile/goodnight *args
+      usage: tap tapfile/goodnight arg
 
       configurations:
               --msg MSG

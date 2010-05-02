@@ -87,9 +87,17 @@ module Tap
       
       # define process
       if block
+        # determine arity, correcting for the self arg
+        arity = block.arity
+        arity -= arity > 0 ? 1 : -1
+        signature = Array.new(arity < 0 ? arity.abs - 1 : arity, 'arg')
+        signature << '*args' if arity < 0
+        
         # prevents assessment of process args by lazydoc
-        subclass.const_attrs[:process] = '*args'
-        subclass.send(:define_method, :process) {|*args| block.call(self, *args) }
+        subclass.const_attrs[:process] = signature.join(' ')
+        subclass.send(:define_method, :process) do |*args|
+          block.call(self, *args)
+        end
       end
       
       # register documentation
