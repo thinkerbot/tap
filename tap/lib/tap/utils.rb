@@ -74,5 +74,10 @@ module Tap
     def sh_escape(str)
       str.to_s.gsub("'", "\\\\'").gsub(";", '\\;')
     end
+    
+    # Run the command with system and raise an error if it fails.
+    def sh(*cmd)
+      system(*cmd) or raise "Command failed with status (#{$?.exitstatus}): [#{cmd.join(' ')}]"
+    end
   end
 end
