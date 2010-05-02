@@ -42,21 +42,24 @@ namespace :example do
   end
 end
 
-# Use workflow to create a subclass of Tap::Workflow.  Initialize any tasks
-# you need within the block and return the tasks you want to use as the
-# entry/exit points for the workflow.
+# Use workflow to create a subclass of Tap::Workflow.  Access any tasks you
+# define in the workflow using node and return the tasks you want to use as
+# the entry/exit points for the workflow.
 
 desc "sort the lines of a file"
-work :sort_file, :reverse => false do |config|
-  n0 = init :cat
-  n1 = init :sort, :reverse => config.reverse
-  n2 = init :dump
-
-  join n0, n1, :arrayify => true
-  join n1, n2, :iterate => true
-
+work :sort_file, %q{
+  -   cat
+  -:a sort
+  -:i dump
+},{
+  :reverse => false
+} do |config|
+  n0 = node(0)    # cat
+  n1 = node(1)    # sort
+  n1.reverse = config.reverse 
   [n0, n1]
 end
+
 
 # Tasks defined in a singleton block will only execute once (given a set
 # of inputs) and can be used to make dependency-based workflows.
@@ -110,7 +113,7 @@ end
     sh_match '% tap sort_file tapfile --reverse true',
       /\Awork :sort_file, :reverse => false do |config|\ntask :goodnight, :msg => 'goodnight' do |config, thing|/, 
       :env => default_env.merge('TAPFILE' => 'tapfile')
-      
+    
     sh_test %q{
       % tap c
       a

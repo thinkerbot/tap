@@ -19,6 +19,10 @@ module Tap
         system(*cmd) or raise "Command failed with status (#{$?.exitstatus}): [#{cmd.join(' ')}]"
       end
       
+      def node(num)
+        app.get(num.to_s)
+      end
+      
       def method_missing(sym, *args, &block)
         app.send(sym, *args, &block)
       end

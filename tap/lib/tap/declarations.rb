@@ -120,7 +120,7 @@ module Tap
         return declare(baseclass, const_name, configs, &block)
       end
 
-      tasc = work(const_name, configs) do |workflow|
+      tasc = declare(Tap::Workflow, const_name, configs) do |workflow|
         psr = Parser.new
         args = psr.parse!(prerequisites)
         warn "ignoring args: #{args.inspect}" unless args.empty?
@@ -139,9 +139,13 @@ module Tap
       tasc
     end
 
-    def work(const_name, configs={}, baseclass=Tap::Workflow, &block)
+    def work(const_name, definition, configs={}, baseclass=Tap::Workflow, &block)
+      unless definition.kind_of?(String)
+        raise "workflow definition must be a string: #{definition.inspect}"
+      end
+      
       @desc ||= Lazydoc.register_caller(Description)
-      task(const_name, configs, baseclass, &block)
+      task({const_name => definition}, configs, baseclass, &block)
     end
     
     protected
