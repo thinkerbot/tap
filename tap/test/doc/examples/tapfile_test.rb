@@ -127,4 +127,20 @@ end
       b
     }, :env => default_env.merge('TAPFILE' => 'tapfile')
   end
+  
+  def test_first_node_is_input_node_when_undeclared
+    method_root.prepare('tapfile') do |io|
+      io << %q{
+        work :example, %q{
+          -  load
+          -: dump
+        }
+      }
+    end
+    
+    sh_test %q{
+      % tap example pass
+      pass
+    }, :env => default_env.merge('TAPFILE' => 'tapfile')
+  end
 end

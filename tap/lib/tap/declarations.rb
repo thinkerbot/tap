@@ -145,6 +145,7 @@ module Tap
       end
       
       @desc ||= Lazydoc.register_caller(Description)
+      block ||= lambda {|config| node(0) }
       task({const_name => definition}, configs, baseclass, &block)
     end
     
