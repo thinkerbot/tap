@@ -6,22 +6,16 @@ h1. Tap (<ins>T</ins>ask <ins>Ap</ins>plication)
 
 A framework for creating configurable, distributable tasks and workflows.  Tap allows tasks to act like command line executables, but with the ability to pass any object as an input/output (not just stdin/stdout).  Moreover any join logic may be used in workflows (not just pipe) so forks, merges, and synchronization are all possible.  Tap supports signaling objects in the workflow, allowing interrogation and manipulation of long-running workflows.
 
-All that said, "Tap":{{ site.links.tap }} is often used as a really advanced "Rake":{{ site.link.rake }} for providing toolkits to developers.  
+All that said, "Tap":{{ site.links.tap }} is often used as a really advanced "Rake":{{ site.links.rake }} for providing toolkits to developers.  
 
 * "Github":{{ site.links.github }}
 * "Google Group"{{ site.links.group }}
-
-h2. Resources
-
-* "Quickstart":{{ }}
-* "Documentation":{{ }}
-* "Rakefile to Tapfile":{{}}
 
 h2. A quick look
 
 Tasks are defined with simple declarations:
 
-code.. 
+pre.. 
   [tapfile]
   # Constructs a configurable message for the input.
   
@@ -32,15 +26,16 @@ code..
 
 p. Tasks may be linked into workflows and configured individually:
 
-code.. 
+pre.. 
   % tap goodnight moon -: dump
   goodnight moon
-
+  
   % tap goodnight world --msg hello -: dump
   hello world
 
 p. Workflows support the use of middleware to wrap the execution of each task, most commonly for logging and/or debugging.
 
+pre.. 
   % tap goodnight moon -: dump --/use debugger
     21:06:53       0 << ["moon"] (Goodnight)
     21:06:53       0 >> "goodnight moon" (Goodnight)
@@ -50,6 +45,8 @@ p. Workflows support the use of middleware to wrap the execution of each task, m
 
 p. Tap also generates copious help.
 
+<notextile>
+<pre>
   % tap goodnight --help
   Tapfile::Goodnight -- make a goodnight message
   --------------------------------------------------------------------------------
@@ -63,9 +60,12 @@ p. Tap also generates copious help.
   options:
           --help                       Print this help
           --config FILE                Specifies a config file
+</pre>
+</notextile>
 
 p. As workflows grow more complex, they can be declared and re-used much like tasks.  Both task and workflow declarations define classes that can be instantiated and tested like any other plain-old-ruby object.  In fact, oftentimes tasks are defined directly as classes, without the declaration sugar.
 
+pre.. 
   [lib/goodnight.rb]
   require 'tap/task'
   
@@ -97,7 +97,7 @@ p. As workflows grow more complex, they can be declared and re-used much like ta
 
 p. In this form tasks can be distributed in a gem as normal.  Tap discovers tasks in all gems that contain a 'tap.yml' file, although this behavior is customizable to limit the gems or individual tasks available in a workflow.  Now lets have some fun.
 
-code.. 
+pre.. 
   [tapfile]
 
   desc "Iteration of inputs (copy-paste command line syntax)"
@@ -136,6 +136,7 @@ code..
 
 p. And here we go...
 
+pre.. 
   % tap iterate "[moon, mittens, 'little toy boat']"
   goodnight moon
   goodnight mittens
@@ -151,4 +152,4 @@ p. And here we go...
   % tap ooo_sync moon --one hello --two goodnight
   ["hello moon", "goodnight moon"]
 
-See the "Quickstart":{{ site.links.tutorial }} and "Documentation":{{ site.links.rdoc }} for more information.
+p. See the "Tutorial":{{ site.links.tutorial }} and "Documentation":{{ site.links.rdoc }} for more information.

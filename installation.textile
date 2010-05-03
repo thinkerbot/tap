@@ -6,19 +6,17 @@ h1. Installing Tap
 
 Tap is very easy to install if you already have "Ruby":http://www.ruby-lang.org/en/ and "RubyGems":http://www.rubygems.org/ installed on your computer.  See below if you don't, or if you're not sure.  Once you have these prerequisites installed, open a command prompt and use:
 
-bc.. 
+pre.. 
   % gem install tap
 
 p. Install dependencies if prompted to do so.
 
 h2. Uninstall
 
-Not everyone likes or needs Tap.  Open a command prompt and use:
+Open a command prompt and use:
 
-bc.. 
+pre.. 
   % gem uninstall tap
-
-p. Your files will NOT be removed.
 
 h1. Installing Ruby and RubyGems
 
@@ -26,18 +24,9 @@ h1. Installing Ruby and RubyGems
 
 To test if you have Ruby installed, open a command prompt and type:
 
-bc.. 
+pre.. 
   % ruby --version
   ruby 1.8.6 (2007-03-13 patchlevel 0) [i686-darwin8.10.1]
 
 p. The output is for a Mac -- your output will vary if you're not on a Mac.  
 
-Tap is developed on ruby 1.8.6, and tested against ruby 1.9.0; you should use it with caution on earlier versions.  See the main "Ruby Download":{{ site.links.ruby-download }} page for more instructions on installing Ruby if you want more details.  
-
-h2. Installation on Windows
-
-Simply download the "Ruby 1.8.6 One-Click Installer for Windows":{{ site.links.installer.windows }}, double click and you're done.  On the installer website, go to the downloads page and pull down the latest stable version.
-
-h2. (Re)Installation on Mac
-
-Simply download the "Ruby One-Click Installer for OSX":{{ site.links.installer.osx }}, double click and you're done.  
