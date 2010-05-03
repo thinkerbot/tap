@@ -1,8 +1,10 @@
 $:.unshift File.expand_path('../../tap/lib', __FILE__)
 $:.unshift File.expand_path('../../tap-test/lib', __FILE__)
+$:.unshift File.expand_path('../../configurable/lib', __FILE__)
 
 require 'tap/version'
 require 'tap/test/version'
+require 'configurable/version'
 
 Gem::Specification.new do |s|
   s.name = 'tap'
@@ -16,7 +18,7 @@ Gem::Specification.new do |s|
   s.rubyforge_project = 'tap'
   s.bindir = 'bin'
   s.executables = 'tap'
-  s.add_dependency('configurable', '>= 0.6.0')
+  s.add_dependency('configurable', ">= #{Configurable::VERSION}")
   s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\s(Task\sApplication)}

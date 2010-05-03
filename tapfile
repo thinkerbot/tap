@@ -115,14 +115,23 @@ task :publish_rdoc => :rdoc do |config, name|
 end
 
 desc 'Generate a gem.'
-task :gem do |config, name|
+task(:gem,
+  :install => false, 
+  :uninstall => false,
+  :sudo => true
+) do |config, name|
   destination_dir = File.expand_path('pkg', name)
   unless File.directory?(destination_dir)
     FileUtils.mkdir_p(destination_dir)
   end
   
   path = ::Gem::Builder.new(gemspec(name)).build
-  FileUtils.mv(path, File.join(destination_dir, File.basename(path)))
+  dest = File.join(destination_dir, File.basename(path))
+  FileUtils.mv(path, dest)
+  
+  cmd = config.sudo ? 'sudo gem' : 'gem'
+  sh "#{cmd} uninstall #{name}" if config.uninstall
+  sh "#{cmd} install #{dest} --no-rdoc --no-ri"   if config.install
 end
 
 desc 'Run tests.'
