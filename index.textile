@@ -4,77 +4,151 @@ layout: index
 
 h1. Tap (<ins>T</ins>ask <ins>Ap</ins>plication)
 
-A framework for creating configurable, distributable tasks and workflows. Kind of like "Rake":{{ site.links.rake }}, kind of like "Rails":{{ site.links.rails }}, but geared towards command line applications.
+A framework for creating configurable, distributable tasks and workflows.  Tap allows tasks to act like command line executables, but with the ability to pass any object as an input/output (not just stdin/stdout).  Moreover any join logic may be used in workflows (not just pipe) so forks, merges, and synchronization are all possible.  Tap supports signaling objects in the workflow, allowing interrogation and manipulation of long-running workflows.
 
-* "Rubyforge":{{ site.links.rubyforge }}
+All that said, "Tap":{{ site.links.tap }} is often used as a really advanced "Rake":{{ site.link.rake }} for providing toolkits to developers.  
+
 * "Github":{{ site.links.github }}
+* "Google Group"{{ site.links.group }}
 
-h2. Tap Features
+h2. Resources
 
-* easy configuration, documentation, and testing
-* imperative and dependency-based workflows
-* command-line execution
-* generators
-* distribution of task libraries as gems
+* "Quickstart":{{ }}
+* "Documentation":{{ }}
+* "Rakefile to Tapfile":{{}}
 
 h2. A quick look
 
-Tasks are defined as full classes:
+Tasks are defined with simple declarations:
 
-bc.. 
+code.. 
+  [tapfile]
+  # Constructs a configurable message for the input.
+  
+  desc "make a goodnight message"
+  task :goodnight, :msg => 'goodnight' do |config, input|
+    "#{config.msg} #{input}"
+  end
+
+p. Tasks may be linked into workflows and configured individually:
+
+code.. 
+  % tap goodnight moon -: dump
+  goodnight moon
+
+  % tap goodnight world --msg hello -: dump
+  hello world
+
+p. Workflows support the use of middleware to wrap the execution of each task, most commonly for logging and/or debugging.
+
+  % tap goodnight moon -: dump --/use debugger
+    21:06:53       0 << ["moon"] (Goodnight)
+    21:06:53       0 >> "goodnight moon" (Goodnight)
+    21:06:53       1 << "goodnight moon" (Tap::Tasks::Dump)
+  goodnight moon
+    21:06:53       1 >> "goodnight moon" (Tap::Tasks::Dump)
+
+p. Tap also generates copious help.
+
+  % tap goodnight --help
+  Tapfile::Goodnight -- make a goodnight message
+  --------------------------------------------------------------------------------
+    Constructs a configurable message for the input.
+  --------------------------------------------------------------------------------
+  usage: tap tapfile/goodnight arg
+
+  configurations:
+          --msg MSG
+
+  options:
+          --help                       Print this help
+          --config FILE                Specifies a config file
+
+p. As workflows grow more complex, they can be declared and re-used much like tasks.  Both task and workflow declarations define classes that can be instantiated and tested like any other plain-old-ruby object.  In fact, oftentimes tasks are defined directly as classes, without the declaration sugar.
+
   [lib/goodnight.rb]
-
-  # Goodnight::task your basic goodnight moon task
+  require 'tap/task'
+  
+  # ::task your basic goodnight moon task
   # Says goodnight with a configurable message.
-  class Goodnight  Tap::Task
-    config :message, 'goodnight'           # a goodnight message
-
+  class Goodnight < Tap::Task
+    config :msg, 'goodnight'           # a goodnight message
+    
     def process(name)
-      "#{message} #{name}"
+      "#{msg} #{name}"
     end
   end
 
-p. Tasks are immediately available on the command line for use in workflows:
+  [test/goodnight_test.rb]
+  require 'tap/test/unit'
+  require 'goodnight'
   
-bc.. 
-  % tap run -- goodnight moon --: dump
+  class GoodnightTest < Test::Unit::TestCase
+    acts_as_tap_test
+    
+    def test_goodnight_makes_the_configurable_message
+      task = Goodnight.new
+      assert_equal 'goodnight moon', task.process('moon')
+      
+      task = Goodnight.new :msg => 'hello'
+      assert_equal 'hello world', task.process('world')
+    end
+  end
+
+p. In this form tasks can be distributed in a gem as normal.  Tap discovers tasks in all gems that contain a 'tap.yml' file, although this behavior is customizable to limit the gems or individual tasks available in a workflow.  Now lets have some fun.
+
+code.. 
+  [tapfile]
+
+  desc "Iteration of inputs (copy-paste command line syntax)"
+  work :iterate, %{
+    -   load/yaml
+    -:i goodnight
+    -:  dump
+  }
+
+  desc "Forking and merging (literal definition of joins)"
+  work :fork_and_merge, %{
+    - load
+    - goodnight --msg hi
+    - goodnight --msg bye
+    - dump
+    - join 0 1,2
+    - join 1,2 3
+  }
+  
+  desc "Out of order, synchronized Merge (showcases full syntax)"
+  work :ooo_sync, %{
+    - dump
+    - goodnight
+    - goodnight
+    - load
+    - join 3 1,2
+    - sync 1,2 0
+  },{
+    :one => 'hi',
+    :two => 'bye'
+  } do |config|
+    node(1).msg = config.one
+    node(2).msg = config.two
+    node(3)  # the return is the entry point for the workflow, ie 'load'
+  end
+
+p. And here we go...
+
+  % tap iterate "[moon, mittens, 'little toy boat']"
   goodnight moon
-
-  % tap run -- load mittens -- load boat -- goodnight -- dump --[0,1][2] --[2][3]
   goodnight mittens
-  goodnight boat
+  goodnight little toy boat
+
+  % tap fork_and_merge moon
+  hi moon
+  bye moon
+
+  % tap ooo_sync moon
+  ["hi moon", "bye moon"]
   
-p. configurable &#8230;
+  % tap ooo_sync moon --one hello --two goodnight
+  ["hello moon", "goodnight moon"]
 
-bc.. 
-  % tap run -- goodnight moon --message hello --: dump
-  hello moon
-
-p. and documented.
-
-bc.. 
-  % tap run -T
-  sample:
-    goodnight   # your basic goodnight moon task
-  tap:
-    dump        # the default dump task
-    load        # the default load task
-
-  % tap run -- goodnight --help
-  Goodnight -- your basic goodnight moon task
-  --------------------------------------------------------------------------------
-    Says goodnight with a configurable message.
-  --------------------------------------------------------------------------------
-  usage: tap run -- goodnight NAME
-  
-  configurations:
-          --message MESSAGE            a goodnight message
-  
-  options:
-          --help                       Print this help
-          --enque                      Manually enques self
-          --config FILE                Specifies a config file
-          
-p. Moreover tasks are distributed as gems; simply add a tap.yml file to a gem and tap will automatically discover tasks that have the '::task' resource identifier within the class documentation.
-
-See the "Tutorial":{{ site.links.tutorial }} and "Documentation":{{ site.links.rdoc }} for more information.
+See the "Quickstart":{{ site.links.tutorial }} and "Documentation":{{ site.links.rdoc }} for more information.

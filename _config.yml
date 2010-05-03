@@ -35,6 +35,7 @@ links:
   install: /installation.html
   license: /license.html
   tutorial: /tutorial.html
+  syntax: http://tap.rubyforge.org/rdoc/files/doc/Workflow%20Syntax.html
   
   # external
   ucdenver: http://www.ucdenver.edu

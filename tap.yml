@@ -1,4 +1,2 @@
-root:
-  :relative_paths:
-    :lib: _lib
-    :templates: _templates
+lib: _lib
+templates: _templates
