@@ -111,7 +111,7 @@ task :publish_rdoc => :rdoc do |config, name|
   config = YAML.load_file File.expand_path('~/.rubyforge/user-config.yml')
   username = config['username']
   
-  sh "rsync -v -c -r rdoc/ #{username}@rubyforge.org:/var/www/gforge-projects/tap/#{name}"
+  sh "rsync -v -c -r rdoc/ #{username}@rubyforge.org:/var/www/gforge-projects/tap/#{name == 'tap' ? 'rdoc' : name}"
 end
 
 desc 'Generate a gem.'
@@ -120,7 +120,7 @@ task(:gem,
   :uninstall => false,
   :sudo => true
 ) do |config, name|
-  destination_dir = File.expand_path('pkg', name)
+  destination_dir = File.expand_path('pkg')
   unless File.directory?(destination_dir)
     FileUtils.mkdir_p(destination_dir)
   end

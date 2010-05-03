@@ -1,7 +1,8 @@
-==
+== 0.6.0 / 2010-05-02
 
 This release removes crufty methods that are rarely used and
-add confusion to otherwise focused test modules.
+add confusion to otherwise focused test modules.  Updated to
+Tap-1.3.0.
 
 * updated to simplified Tap::Root
 * removed FileTest#assert_files (and associated methods)
