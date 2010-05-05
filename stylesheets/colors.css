@@ -78,5 +78,5 @@ CONTENT ONLY
  a:active, div#content_main a:focus { color: #c33; }
  
  
-div#content_main code, .content pre { color:#321987; } /* very optional, but still useful. W3C uses about the same colors for codes */
+pre { color:#321987; } /* very optional, but still useful. W3C uses about the same colors for ssss */
 

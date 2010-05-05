@@ -2,11 +2,50 @@
 layout: default
 ---
 
-<div id="branding-page" class="branding">
-  <a href="{{ site.home }}/index.html"><img id="image" src="{{ site.home }}/images/branding_square.jpg" alt="Tap" /></a>
-  <p><span id="title"><a href="{{ site.home }}/index.html">Tap</a></span></p>
+<div id="branding_sub" class="center_div">
+  <div id="branding_sub_text" class="pc main_div">
+    <span id="branding_sub_tap"><a href="{{ site.home }}index.html" title="Tap">Tap</a></span>
+  </div>
+  <div class="sc sub_div">
+    <a href="{{ site.home }}/index.html" title="Tap">
+    <img id="branding_sub_img" src="{{ site.home }}/images/branding_square.jpg" alt="Tap" />
+    </a>
+  </div>
 </div>
 
-<div id="content">
-{{ content }}
+<div id="content" class="clear_children center_div">
+  <div id="content_main" class="pc cc_tallest main_div">
+    <div id="content_index" class="section">
+      {{ content }}
+    </div>
+  </div>
+
+  <div id="content_sub" class="sc sub_div">
+    <div class="nav_div">
+      <h3>Tap</h3>
+      <ul class="nav_sub">
+      <li id="install"><a href="{{ site.links.install }}" title="Install">Install</a></li>
+      <li id="documentation"><a href="{{ site.links.rdoc }}" title="Documentation">Documentation</a></li>
+      <li id="tutorial"><a href="{{ site.links.tutorial }}" title="Tutorial">Tutorial</a></li>
+      </ul>
+    </div>
+    <div class="nav_div">
+      <h3>Gems</h3>
+      <ul class="nav_sub">
+      <li><a href="{{ site.links.tap }}" title="A framework for creating configurable, distributable tasks and workflows.">Tap</a></li>
+      <li><a href="{{ site.links.constants }}" title="Libraries of physical and chemical constants for scientific calculations in Ruby.">Constants</a></li>
+      <li><a href="{{ site.links.molecules }}" title="A library of molecules for scientific calculations in Ruby.">Molecules</a></li>
+      <li><a href="{{ site.links.external }}" title="Indexing and array-like access to data stored on disk rather than in memory.">External</a></li>
+      <li><a href="{{ site.links.configurable }}" title="Class configurations that map to the command line.">Configurable</a></li>
+      <li><a href="{{ site.links.lazydoc }}" title="Lazy loading of comments into code.">Lazydoc</a></li>
+      </ul>
+    </div>
+    <div class="nav_div">
+      <h3>Info</h3>
+      <ul class="nav_sub">
+      <li><a href="/about.html" title="">About</a></li>
+      <li><a href="/license.html" title="">License</a></li>
+      </ul>
+    </div>
+  </div>
 </div>
