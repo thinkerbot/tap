@@ -7,12 +7,6 @@ h1. About
 |Developer|"Simon Chiang":{{ site.links.me }} ("blog":{{ site.links.blog }}, @bahuvrihi)|
 |Licence|"MIT-Style":{{ site.links.license }}|
 
-h2. Links
-
-* "Code":{{ site.links.github }}
-* "Issues":{{ site.links.issues }}
-* "Google Group":{{ site.links.google-group }}
-
 h2. Photo Credits
 
 The main photo on this website, "cello":http://flickr.com/photos/bagels/451561809, was found on "Flickr":http://flickr.com/ and was made public by "SMN":http://flickr.com/photos/bagels/ under a Creative Commons "Attribution License":http://creativecommons.org/licenses/by/2.0/deed.en-us.  

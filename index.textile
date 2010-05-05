@@ -9,7 +9,7 @@ A framework for creating configurable, distributable tasks and workflows.  Tap a
 All that said, "Tap":{{ site.links.tap }} is often used as a really advanced "Rake":{{ site.links.rake }} for providing toolkits to developers.  
 
 * "Github":{{ site.links.github }}
-* "Google Group"{{ site.links.group }}
+* "Google Group":{{ site.links.google-group }}
 
 h2. A quick look
 
