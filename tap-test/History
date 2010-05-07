@@ -1,3 +1,7 @@
+== 0.6.1 / 2010-0-07
+
+* updated Test::Unit shim to be a little more robust
+
 == 0.6.0 / 2010-05-02
 
 This release removes crufty methods that are rarely used and
