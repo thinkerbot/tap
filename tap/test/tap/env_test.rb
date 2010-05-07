@@ -67,6 +67,10 @@ class EnvTest < Test::Unit::TestCase
   # match test
   #
   
+  def assert_constants(expected, constants)
+    assert_equal expected, constants.collect {|const| const.const_name }
+  end
+  
   def test_match_matches_constants_by_const_name
     env.constants.concat [
       Constant.new('A'),
@@ -75,11 +79,11 @@ class EnvTest < Test::Unit::TestCase
       Constant.new('C')
     ]
     
-    assert_equal ['A'], env.match('A').map(&:const_name)
-    assert_equal ['A'], env.match('::A').map(&:const_name)
-    assert_equal ['C'], env.match('C').map(&:const_name)
-    assert_equal ['A::B::C'], env.match('A::B::C').map(&:const_name)
-    assert_equal ['A::B::C'], env.match('::A::B::C').map(&:const_name)
+    assert_constants ['A'], env.match('A')
+    assert_constants ['A'], env.match('::A')
+    assert_constants ['C'], env.match('C')
+    assert_constants ['A::B::C'], env.match('A::B::C')
+    assert_constants ['A::B::C'], env.match('::A::B::C')
   end
   
   def test_match_matches_constants_by_path_matching
@@ -90,17 +94,17 @@ class EnvTest < Test::Unit::TestCase
       Constant.new('C')
     ]
     
-    assert_equal ['A'], env.match('a').map(&:const_name)
-    assert_equal ['A'], env.match('/a').map(&:const_name)
-    assert_equal ['A::B'], env.match('b').map(&:const_name)
-    assert_equal ['A::B'], env.match('a/b').map(&:const_name)
-    assert_equal ['A::B'], env.match('/a/b').map(&:const_name)
-    assert_equal ['A::B::C'], env.match('a:c').map(&:const_name)
-    assert_equal ['A::B::C'], env.match('/a/b/c:').map(&:const_name)
-    assert_equal ['A::B::C'], env.match(':/a/b/c').map(&:const_name)
-    assert_equal ['C'], env.match('c:').map(&:const_name)
-    assert_equal ['C'], env.match('/c:').map(&:const_name)
-    assert_equal ['A::B::C', 'C'], env.match('c').map(&:const_name)
+    assert_constants ['A'], env.match('a')
+    assert_constants ['A'], env.match('/a')
+    assert_constants ['A::B'], env.match('b')
+    assert_constants ['A::B'], env.match('a/b')
+    assert_constants ['A::B'], env.match('/a/b')
+    assert_constants ['A::B::C'], env.match('a:c')
+    assert_constants ['A::B::C'], env.match('/a/b/c:')
+    assert_constants ['A::B::C'], env.match(':/a/b/c')
+    assert_constants ['C'], env.match('c:')
+    assert_constants ['C'], env.match('/c:')
+    assert_constants ['A::B::C', 'C'], env.match('c')
   end
   
   def test_match_filters_by_type_if_specified
@@ -109,9 +113,9 @@ class EnvTest < Test::Unit::TestCase
       Constant.new('B::A').register_as('two')
     ]
     
-    assert_equal ['A'], env.match('a', 'one').map(&:const_name)
-    assert_equal ['B::A'], env.match('a', 'two').map(&:const_name)
-    assert_equal ['A', 'B::A'], env.match('a', ['one', 'two']).map(&:const_name)
+    assert_constants ['A'], env.match('a', 'one')
+    assert_constants ['B::A'], env.match('a', 'two')
+    assert_constants ['A', 'B::A'], env.match('a', ['one', 'two'])
   end
   
   def test_match_filters_by_inline_type_if_specified
@@ -120,9 +124,9 @@ class EnvTest < Test::Unit::TestCase
       Constant.new('B::A').register_as('two')
     ]
     
-    assert_equal ['A'], env.match('a::one').map(&:const_name)
-    assert_equal ['B::A'], env.match('a::two').map(&:const_name)
-    assert_equal ['B::A'], env.match('a::two', 'one').map(&:const_name)
+    assert_constants ['A'], env.match('a::one')
+    assert_constants ['B::A'], env.match('a::two')
+    assert_constants ['B::A'], env.match('a::two', 'one')
   end
   
   def test_path_matching_only_matches_along_word_breaks
@@ -139,8 +143,8 @@ class EnvTest < Test::Unit::TestCase
       Constant.new('A')
     ]
     
-    assert_equal ['A'], env.match('a').map(&:const_name)
-    assert_equal ['A'], env.match(:a).map(&:const_name)
+    assert_constants ['A'], env.match('a')
+    assert_constants ['A'], env.match(:a)
   end
   
   #

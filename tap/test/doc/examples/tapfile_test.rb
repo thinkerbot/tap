@@ -114,18 +114,20 @@ end
       /\Awork :sort_file, :reverse => false do |config|\ntask :goodnight, :msg => 'goodnight' do |config, thing|/, 
       :env => default_env.merge('TAPFILE' => 'tapfile')
     
-    sh_test %q{
-      % tap c
-      a
-      b
-      c
-    }, :env => default_env.merge('TAPFILE' => 'tapfile')
+    if RUBY_VERSION > '1.8.6'
+      sh_test %q{
+        % tap c
+        a
+        b
+        c
+      }, :env => default_env.merge('TAPFILE' => 'tapfile')
     
-    sh_test %q{
-      % tap b -- a
-      a
-      b
-    }, :env => default_env.merge('TAPFILE' => 'tapfile')
+      sh_test %q{
+        % tap b -- a
+        a
+        b
+      }, :env => default_env.merge('TAPFILE' => 'tapfile')
+    end
   end
   
   def test_first_node_is_input_node_when_undeclared

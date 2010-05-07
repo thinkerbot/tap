@@ -111,7 +111,7 @@ Workflows work just like tasks:
   a b c
 
 Singleton tasks can be used to create dependency-based workflows that function
-much like rake tasks in practice:
+much like rake tasks in practice (requires ruby > 1.8.6):
 
   % tap c
   a
