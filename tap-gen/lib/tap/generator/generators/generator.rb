@@ -17,7 +17,7 @@ module Tap::Generator::Generators
       # (note it's easier to do this as a file since erb is
       # added, and would have to be escaped in a template)
       m.file path('templates', const.path, 'template_file.erb') do |file|
-        file << "# A sample template file.\nkey: <%= key %>\n"
+        file << "# A sample template file.\nkey: <%= format key %>\n"
       end
       
       const

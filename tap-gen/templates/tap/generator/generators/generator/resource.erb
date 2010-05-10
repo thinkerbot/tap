@@ -8,16 +8,24 @@ class <%= const.name %> < Tap::Generator::Base
 
   config :key, 'value'           # a sample config
   
-  # The generator will receive the inputs on the command line, and
-  # m, a Manifest object that records the actions of this method.
+  helper do
+    # helper methods are available in templates
+    def format(value)
+      value.upcase
+    end
+  end
+  
+  # Manifest (m) records methods to be run by the generator.  The inputs are
+  # generator inputs from the command line. Any method on self may be recorded
+  # in the manifest.  The most common methods are demonstrated below.
   def manifest(m, *inputs)
 
     # make a directory
-    # m.directory 'path'
+    # m.directory 'dir'
 
     # make a file
-    # m.file 'path' do |file|
-    #   file << content
+    # m.file 'file.txt' do |file|
+    #   file << 'content'
     # end
 
     # template a file in the templates directory using ERB.
@@ -26,7 +34,7 @@ class <%= const.name %> < Tap::Generator::Base
     m.template "<%= const.const_name.underscore %>_file.txt", 'template_file.erb', config.to_hash
     
     # do something only on generate/destroy
-    # on(:generate) {}
+    # on(:generate) { `chmod 644 #{path('file.txt')}` }
   end
   
 end <% module_nest(const.nesting, '  ') { target } end %>
