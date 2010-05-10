@@ -5,7 +5,9 @@ module Tap
     
     # ::mixin run generators in reverse
     #
-    # A mixin defining how to run manifest actions in reverse.
+    # Run a generator in 'destroy' mode.  The first argument identifies the
+    # generator and subsequent arguments are passed as inputs.
+    #.
     module Destroy
       extend Lazydoc::Attributes
       lazy_attr(:desc, 'mixin')

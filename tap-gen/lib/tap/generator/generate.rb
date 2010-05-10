@@ -6,7 +6,9 @@ module Tap
     
     # ::mixin run generators
     #
-    # A mixin defining how to run manifest actions.
+    # Run a generator in 'generate' mode.  The first argument identifies the
+    # generator and subsequent arguments are passed as inputs.
+    #
     module Generate
       extend Lazydoc::Attributes
       lazy_attr(:desc, 'mixin')
