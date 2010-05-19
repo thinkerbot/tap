@@ -20,7 +20,7 @@ class <%= const.name %>Test < Test::Unit::TestCase
     # check the content as necessary
     assert_equal %q{
 # A sample template file.
-key: value
+key: VALUE
 }, "\n" + g.preview['<%= const.const_name.underscore %>_file.txt']
   end
 end

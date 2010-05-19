@@ -39,7 +39,7 @@ class GeneratorGeneratorTest < Test::Unit::TestCase
 
     assert_equal %q{
 # A sample template file.
-key: value
+key: VALUE
 }, "\n" + c.preview['const_name_file.txt']
   end
 end
