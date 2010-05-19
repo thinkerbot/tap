@@ -5,19 +5,33 @@ def gemspec(name)
   eval(File.read(path), binding, path, 0)
 end
 
+def chdir(dir)
+  pwd = Dir.pwd
+  begin
+    Dir.chdir(dir)
+    yield
+  ensure
+    Dir.chdir(pwd)
+  end
+end
+
 #
 # Dependency tasks
 #
 
 desc 'Checkout submodules'
 task :submodules do
-  output = `git submodule status 2>&1`
+  %w{. configurable}.each do |name|
+    chdir(name) do
+      output = `git submodule status 2>&1`
 
-  if output =~ /^-/m
-    puts "Missing submodules:\n#{output}"
-    sh "git submodule init"
-    sh "git submodule update"
-    puts
+      if output =~ /^-/m
+        puts "Missing submodules:\n#{output}"
+        sh "git submodule init"
+        sh "git submodule update"
+        puts
+      end
+    end
   end
 end
 
@@ -45,10 +59,7 @@ task :test => :bundle do
     tap-tasks
     tap-test
   }.each do |name|
-    pwd = Dir.pwd
-    begin
-      Dir.chdir(name)
-    
+    chdir(name) do
       libs = ['lib']
       unless ENV['gems']
         libs << '../configurable/lib'
@@ -63,8 +74,6 @@ task :test => :bundle do
       libs.uniq.each {|lib| cmd.concat ['-I', lib] }
       cmd.concat Dir.glob("test/**/*_test.rb")
       sh(*cmd)
-    ensure
-      Dir.chdir(pwd)
     end
   end
   

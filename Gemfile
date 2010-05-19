@@ -13,9 +13,6 @@
 source :gemcutter
 path '.', :glob => '{configurable,lazydoc}/*.gemspec'
 
-$:.unshift File.expand_path('../lazydoc/lib', __FILE__)
-$:.unshift File.expand_path('../configurable/lib', __FILE__)
-
 #
 # Setup gemspec dependencies
 #
