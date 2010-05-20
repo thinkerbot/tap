@@ -4,6 +4,9 @@ $:.unshift File.expand_path('../../tap-test/lib', __FILE__)
 require 'tap/version'
 require 'tap/test/version'
 
+$:.shift
+$:.shift
+
 Gem::Specification.new do |s|
   s.name = 'tap-test'
   s.version = Tap::Test::VERSION
@@ -14,9 +17,10 @@ Gem::Specification.new do |s|
   s.summary = 'Test modules for Tap'
   s.require_path = 'lib'
   s.rubyforge_project = 'tap'
-  s.add_dependency('tap', ">= #{Tap::VERSION}")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Test}
+  
+  s.add_dependency('tap', ">= #{Tap::VERSION}")
   
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{

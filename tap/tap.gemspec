@@ -6,6 +6,10 @@ require 'tap/version'
 require 'tap/test/version'
 require 'configurable/version'
 
+$:.shift
+$:.shift
+$:.shift
+
 Gem::Specification.new do |s|
   s.name = 'tap'
   s.version = Tap::VERSION
@@ -18,11 +22,12 @@ Gem::Specification.new do |s|
   s.rubyforge_project = 'tap'
   s.bindir = 'bin'
   s.executables = 'tap'
-  s.add_dependency('configurable', ">= #{Configurable::VERSION}")
-  s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\s(Task\sApplication)}
-   
+  
+  s.add_dependency('configurable', ">= #{Configurable::VERSION}")
+  s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
+  
   s.extra_rdoc_files = %W{
     README
     MIT-LICENSE

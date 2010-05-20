@@ -60,18 +60,8 @@ task :test => :bundle do
     tap-test
   }.each do |name|
     chdir(name) do
-      libs = ['lib']
-      unless ENV['gems']
-        libs << '../configurable/lib'
-        libs << '../lazydoc/lib'
-      end
-  
-      gemspec(name).dependencies.each do |dep|
-        libs << File.join('..', dep.name, 'lib')
-      end
-
-      cmd = ['ruby', '-w', '-e', 'ARGV.each {|test| load test}']
-      libs.uniq.each {|lib| cmd.concat ['-I', lib] }
+      cmd = ['ruby', '-rubygems', '-e', "require 'bundler';Bundler.setup '#{name}'.to_sym"]
+      cmd.concat ['-w', '-e', 'ARGV.each {|test| load test}']
       cmd.concat Dir.glob("test/**/*_test.rb")
       sh(*cmd)
     end

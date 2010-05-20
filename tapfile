@@ -18,6 +18,24 @@ def gemspec(name)
 end
 
 #
+# Dependency Tasks
+#
+
+singleton do
+  desc 'Bundle dependencies'
+  task :bundle do
+    output = `bundle check 2>&1`
+  
+    unless $?.to_i == 0
+      puts output
+      puts "bundle install 2>&1"
+      system "bundle install 2>&1"
+      puts
+    end
+  end
+end
+
+#
 # Tasks
 #
 
@@ -117,19 +135,9 @@ task(:gem,
 end
 
 desc 'Run tests.'
-task(:test, {:all => false}) do |config, name|
-  libs = %W{
-    ../configurable/lib
-    ../lazydoc/lib
-    ../#{name}/lib
-  }
-
-  gemspec(name).dependencies.each do |dep|
-    libs << File.join('..', dep.name, 'lib')
-  end
-
-  cmd = ['ruby', '-w', '-e', 'ARGV.each {|test| load test}']
-  libs.uniq.each {|lib| cmd.concat ['-I', lib] }
+task({:test => :bundle}, {:all => false}) do |config, name|
+  cmd = ['ruby', '-rubygems', '-e', "require 'bundler';Bundler.setup '#{name}'.to_sym"]
+  cmd.concat ['-w', '-e', 'ARGV.each {|test| load test}']
   cmd.concat Dir.glob("test/**/*_test.rb")
   
   with_env('ALL' => config.all.to_s) { sh(*cmd) }

@@ -6,6 +6,10 @@ require 'tap/version'
 require 'tap/test/version'
 require 'tap/generator/version'
 
+$:.shift
+$:.shift
+$:.shift
+
 Gem::Specification.new do |s|
   s.name = 'tap-gen'
   s.version = Tap::Generator::VERSION
@@ -16,10 +20,11 @@ Gem::Specification.new do |s|
   s.summary = 'Generators for Tap'
   s.require_path = 'lib'
   s.rubyforge_project = 'tap'
-  s.add_dependency('tap', ">= #{Tap::VERSION}")
-  s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Generator}
+  
+  s.add_dependency('tap', ">= #{Tap::VERSION}")
+  s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
   
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{

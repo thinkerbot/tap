@@ -6,6 +6,10 @@ require 'tap/version'
 require 'tap/test/version'
 require 'tap/tasks/version'
 
+$:.shift
+$:.shift
+$:.shift
+
 Gem::Specification.new do |s|
   s.name = 'tap-tasks'
   s.version = Tap::Tasks::VERSION
@@ -16,10 +20,11 @@ Gem::Specification.new do |s|
   s.summary = 'A set of standard Tap tasks'
   s.require_path = 'lib'
   s.rubyforge_project = 'tap'
-  s.add_dependency('tap', ">= #{Tap::VERSION}")
-  s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Tasks}
+  
+  s.add_dependency('tap', ">= #{Tap::VERSION}")
+  s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
   
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{

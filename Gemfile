@@ -11,27 +11,26 @@
 #############################################################################
 
 source :gemcutter
-path '.', :glob => '{configurable,lazydoc}/*.gemspec'
+path '.', :glob => '*/*.gemspec'
 
 #
 # Setup gemspec dependencies
 #
 
-%w{
-  tap
-  tap-gen
-  tap-tasks
-  tap-test
-}.each do |project|
-  project_path = File.expand_path("../#{project}", __FILE__)
-  Dir.chdir(project_path) do
-    gemspec = eval(File.read("#{project_path}/#{project}.gemspec"))
+pattern = File.expand_path("../tap*/*.gemspec", __FILE__)
+Dir.glob(pattern).each do |gemspec_path|
+  project_dir = File.dirname(gemspec_path)
+  project_grp = File.basename(project_dir)
   
-    gemspec.dependencies.each do |dep|
-      group = dep.type == :development ? :development : :default
-      gem dep.name, dep.requirement, :group => group
+  Dir.chdir(project_dir) do
+    group project_grp do 
+      gemspec = eval File.read(gemspec_path)
+  
+      gemspec.dependencies.each do |dep|
+        gem dep.name, dep.requirement
+      end
+  
+      gem gemspec.name, gemspec.version
     end
-  
-    gem(gemspec.name, gemspec.version, :path => project_path)
   end
 end
