@@ -1,3 +1,14 @@
+== 0.7.1 / 2010-05-21
+
+Fixed the permissions of generated files/directories. This is significant
+because gems preserve the permissions of packaged files and if, for instance,
+a file is distributed in mode 600 then a sudo install will prevent it's use by
+the user. (See
+http://rubyforge.org/tracker/?group_id=126&atid=575&func=detail&aid=3838)
+
+* ensured generated files have 644 permissions
+* ensured generated folders have 755 permissions
+
 == 0.7.0 / 2010-05-02
 
 Updated to Tap-1.3.0.  Reworked generate/destroy as task proxies.
