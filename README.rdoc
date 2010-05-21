@@ -156,6 +156,24 @@ Tap is available as a gem on Gemcutter[http://gemcutter.org/gems/tap].
 
   % gem install tap
 
+== Development
+
+Tap is setup for easy development. Clone the repo and then run the tests; all
+dependencies will be setup for you. Bundler[http://gembundler.com/] is
+required.
+
+  % git clone git@github.com:bahuvrihi/tap.git
+  % cd tap
+  % rake test
+
+Afterwards you can develop Tap using tap. Specify one or more modules to test,
+or specify none to test them all. See the tapfile for the actual tasks being
+run.
+
+  % ./tapexe test [tap,tap-test,...]
+
+Patches welcome.
+
 == Info 
 
 Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com]

@@ -51,6 +51,18 @@ end
 # Test tasks
 #
 
+def libs(*groups)
+  groups.collect! {|group| group.to_sym }
+  
+  require 'bundler'
+  specs = Bundler.load.send(:specs_for, groups)
+  specs.collect {|spec| spec.load_paths }.flatten.uniq
+end
+
+def load_paths(*groups)
+  libs(*groups).collect {|lib| ['-I', lib] }.flatten
+end
+
 desc "Run tests"
 task :test => :bundle do
   %w{
@@ -61,8 +73,8 @@ task :test => :bundle do
     tap-server
   }.each do |name|
     chdir(name) do
-      cmd = ['ruby', '-rubygems', '-e', "require 'bundler';Bundler.setup '#{name}'.to_sym"]
-      cmd.concat ['-w', '-e', 'ARGV.each {|test| load test}']
+      cmd = ['ruby', '-w', '-e', 'ARGV.each {|test| load test}']
+      cmd.concat load_paths(name)
       cmd.concat Dir.glob("test/**/*_test.rb")
       sh(*cmd)
     end
