@@ -34,3 +34,17 @@ Dir.glob(pattern).each do |gemspec_path|
     end
   end
 end
+
+#
+# Test helper
+#
+
+module ::Bundler
+  class Runtime < Environment
+    def load_paths(*groups)
+      groups.collect! {|group| group.to_sym }
+      libs = specs_for(groups).collect {|spec| spec.load_paths }.flatten.uniq
+      libs.collect {|lib| ['-I', lib] }.flatten
+    end
+  end
+end

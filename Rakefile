@@ -51,20 +51,11 @@ end
 # Test tasks
 #
 
-def libs(*groups)
-  groups.collect! {|group| group.to_sym }
-  
-  require 'bundler'
-  specs = Bundler.load.send(:specs_for, groups)
-  specs.collect {|spec| spec.load_paths }.flatten.uniq
-end
-
-def load_paths(*groups)
-  libs(*groups).collect {|lib| ['-I', lib] }.flatten
-end
-
 desc "Run tests"
 task :test => :bundle do
+  require 'bundler'
+  bundler = Bundler.load
+  
   %w{
     tap
     tap-gen
@@ -74,7 +65,7 @@ task :test => :bundle do
   }.each do |name|
     chdir(name) do
       cmd = ['ruby', '-w', '-e', 'ARGV.each {|test| load test}']
-      cmd.concat load_paths(name)
+      cmd.concat bundler.load_paths(name)
       cmd.concat Dir.glob("test/**/*_test.rb")
       sh(*cmd)
     end
