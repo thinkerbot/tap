@@ -48,6 +48,7 @@ class ModuleTask < Tap::Task
       tap-test
       tap-tasks
       tap-gen
+      tap-server
     } if names.empty?
     
     names.each do |name|

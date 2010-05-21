@@ -1,17 +1,32 @@
+$:.unshift File.expand_path('../../tap/lib', __FILE__)
+$:.unshift File.expand_path('../../tap-test/lib', __FILE__)
+$:.unshift File.expand_path('../../tap-server/lib', __FILE__)
+
+require 'tap/version'
+require 'tap/test/version'
+require 'tap/server/version'
+
+$:.shift
+$:.shift
+$:.shift
+
 Gem::Specification.new do |s|
-  s.name = "tap-server"
-  s.version = "0.6.0"
-  s.author = "Simon Chiang"
-  s.email = "simon.a.chiang@gmail.com"
-  s.homepage = "http://tap.rubyforge.org"
+  s.name = 'tap-server'
+  s.version = Tap::Server::VERSION
+  s.author = 'Simon Chiang'
+  s.email = 'simon.a.chiang@gmail.com'
+  s.homepage = File.join(Tap::WEBSITE, 'tap-server')
   s.platform = Gem::Platform::RUBY
-  s.summary = "A web interface for tap."
-  s.require_path = "lib"
-  s.rubyforge_project = "tap"
-  s.add_dependency("tap", ">= 0.19.0")
-  s.add_dependency("rack", ">= 1.0 ")
+  s.summary = 'A web interface for tap.'
+  s.require_path = 'lib'
+  s.rubyforge_project = 'tap'
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap\sServer}
+  
+  s.add_dependency('tap', ">= #{Tap::VERSION}")
+  s.add_dependency('rack', '>= 1.0')
+  s.add_dependency('em-websocket')
+  s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
   
   s.extra_rdoc_files = %W{
     README
