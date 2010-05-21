@@ -38,6 +38,7 @@ class GenerateTest < Test::Unit::TestCase
     directory(target)
     
     assert File.exists?(target)
+    assert_equal '40755', sprintf('%o', File.stat(target).mode)
     assert_equal [[:create, target]], log
   end
   
@@ -80,7 +81,8 @@ class GenerateTest < Test::Unit::TestCase
     file(target)
     
     assert File.exists?(target)
-    assert_equal "", File.read(target)
+    assert_equal '', File.read(target)
+    assert_equal '100644', sprintf('%o', File.stat(target).mode)
     assert_equal [[:create, target]], log
   end
   

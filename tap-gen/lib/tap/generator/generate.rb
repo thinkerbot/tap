@@ -28,7 +28,7 @@ module Tap
           log_relative :exists, target
         else
           log_relative :create, target
-          FileUtils.mkdir_p(target) unless pretend
+          FileUtils.mkdir_p(target, :mode => 0755) unless pretend
         end
         
         target
@@ -65,8 +65,9 @@ module Tap
         log_relative msg, target
         if copy_file && !pretend
           dir = File.dirname(target)
-          FileUtils.mkdir_p(dir) unless File.exists?(dir) 
+          FileUtils.mkdir_p(dir, :mode => 0755) unless File.exists?(dir) 
           FileUtils.mv(source, target, :force => true)
+          FileUtils.chmod(0644, target)
         end
         
         target
