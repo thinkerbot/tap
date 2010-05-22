@@ -44,23 +44,6 @@ class AppSignalsTest < Test::Unit::TestCase
   end
   
   #
-  # pq test
-  #
-  
-  def test_pq_priority_enques_obj_with_inputs
-    n = lambda {}
-    app.set(0, n)
-    signal :pq, [0, 1,2,3]
-    signal :pq, [0, 4,5,6]
-    assert_equal [[n, [4,5,6]], [n, [1,2,3]]], app.queue.to_a
-  end
-  
-  def test_pq_raises_error_for_unknown_obj
-    err = assert_raises(RuntimeError) { signal(:pq, [0]) }
-    assert_equal "no object set to: 0", err.message
-  end
-  
-  #
   # set test
   #
   

@@ -201,23 +201,6 @@ class AppTest < Test::Unit::TestCase
   end
   
   #
-  # pq test
-  #
-  
-  def test_pq_unshifts_node_onto_queue
-    n = lambda {}
-    assert_equal 0, app.queue.size
-    app.pq(n, :a)
-    app.pq(n, :b)
-    assert_equal [[n, :b], [n, :a]], app.queue.to_a
-  end
-  
-  def test_pq_returns_enqued_node
-    n = lambda {}
-    assert_equal n, app.pq(n, :a)
-  end
-  
-  #
   # set test
   #
   

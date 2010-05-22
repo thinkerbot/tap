@@ -61,7 +61,6 @@ task :test => :bundle do
     tap-gen
     tap-tasks
     tap-test
-    tap-server
   }.each do |name|
     chdir(name) do
       cmd = ['ruby', '-w', '-e', 'ARGV.each {|test| load test}']

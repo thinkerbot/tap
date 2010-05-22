@@ -57,7 +57,7 @@ module Tap
       
       # Reques self with io to the top of the queue.
       def reque(io)
-        app.pq(self, [io])
+        app.enq(self, [io])
       end
     end
   end

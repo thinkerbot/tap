@@ -127,11 +127,6 @@ module Tap
       obj.enq obj.obj(spec['var']), spec['input']
     end
     
-    define_signal :pq do |input|                    # priority-enques an object
-      spec = convert_to_hash(input, ['var'], 'input')
-      obj.pq obj.obj(spec['var']), spec['input']
-    end
-    
     signal_hash :set,                               # set or unset objects
       :signature => ['var', 'class'],
       :remainder => 'spec',
@@ -267,12 +262,6 @@ module Tap
     # Enques the task with the input.  Returns the task.
     def enq(task, input=[])
       queue.enq(task, input)
-      task
-    end
-    
-    # Priority-enques (unshifts) the task with the input.  Returns the task.
-    def pq(task, input=[])
-      queue.unshift(task, input)
       task
     end
     

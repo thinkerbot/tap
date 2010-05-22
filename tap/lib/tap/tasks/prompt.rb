@@ -57,7 +57,7 @@ module Tap
             case gets.strip
             when /^y(es)?$/i
               puts "waiting for break..."
-              app.pq(self, [])
+              app.enq(self, [])
               call_prompt = false
               break
 

@@ -45,7 +45,6 @@ class ModuleTask < Tap::Task
     tap-test
     tap-tasks
     tap-gen
-    tap-server
   }
   
   def call(names)
