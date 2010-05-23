@@ -56,12 +56,14 @@ task :test => :bundle do
   require 'bundler'
   bundler = Bundler.load
   
-  %w{
+  modules = ENV['MODULE'] ||= %q{
     tap
     tap-gen
     tap-tasks
     tap-test
-  }.each do |name|
+  }
+  
+  modules.split.each do |name|
     chdir(name) do
       cmd = ['ruby', '-w', '-e', 'ARGV.each {|test| load test}']
       cmd.concat bundler.load_paths(name)

@@ -17,7 +17,7 @@ class AppSignalsTest < Test::Unit::TestCase
     
     signal :exe, [0, 1,2,3]
     signal :exe, [0, 4,5,6]
-    assert_equal [], app.queue.to_a
+    assert_equal 0, app.queue.size
     assert_equal [[1,2,3], [4,5,6]], runlist
   end
   
@@ -35,7 +35,12 @@ class AppSignalsTest < Test::Unit::TestCase
     app.set(0, n)
     signal :enq, [0, 1,2,3]
     signal :enq, [0, 4,5,6]
-    assert_equal [[n, [1,2,3]], [n, [4,5,6]]], app.queue.to_a
+    
+    queue = []
+    while app.queue.size > 0
+      queue << app.queue.deq
+    end
+    assert_equal [[n, [1,2,3]], [n, [4,5,6]]], queue
   end
   
   def test_enq_raises_error_for_unknown_obj

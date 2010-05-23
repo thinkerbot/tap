@@ -194,8 +194,6 @@ class SwitchTest < Test::Unit::TestCase
       a,
     ], runlist
     
-    assert_equal [
-      [e, []]
-    ], app.queue.to_a
+    assert_equal [e, []], app.queue.deq
   end
 end

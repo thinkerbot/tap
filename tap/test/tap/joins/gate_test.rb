@@ -24,7 +24,7 @@ class GateTest < Test::Unit::TestCase
   #
   
   def test_gate_join_enques_self_after_call_when_results_are_nil
-    assert_equal [], app.queue.to_a
+    assert_equal 0, app.queue.size
     
     join = Gate.new({}, app)
     join.join([], [])
@@ -32,16 +32,8 @@ class GateTest < Test::Unit::TestCase
     assert_equal nil, join.results
     join.call('a')
     
-    assert_equal [
-      [join, ['a']]
-    ], app.queue.to_a
-    
     assert join.results != nil
     join.call('b')
-    
-    assert_equal [
-      [join, ['a', 'b']]
-    ], app.queue.to_a
     
     # resets join results
     join.call(join.results)
@@ -49,10 +41,8 @@ class GateTest < Test::Unit::TestCase
     assert_equal nil, join.results
     join.call('c')
     
-    assert_equal [
-      [join, ['a', 'b']],
-      [join, ['c']]
-    ], app.queue.to_a
+    assert_equal [join, ['a', 'b']], app.queue.deq
+    assert_equal [join, ['c']], app.queue.deq
   end
   
   def test_gate_join_collects_results_on_each_call

@@ -158,7 +158,7 @@ module Tap
     def block(type, app) # :nodoc:
       case type
       when :enq
-        lambda {|obj, args| app.queue.enq(obj, args); obj }
+        lambda {|obj, args| app.enq(obj, args); obj }
       when :exe
         lambda {|obj, args| app.exe(obj, args); obj }
       else

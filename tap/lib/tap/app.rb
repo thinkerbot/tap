@@ -1,4 +1,5 @@
 require 'logger'
+require 'monitor'
 require 'tap/env'
 require 'tap/app/state'
 require 'tap/app/stack'
@@ -261,7 +262,7 @@ module Tap
     
     # Enques the task with the input.  Returns the task.
     def enq(task, input=[])
-      queue.enq(task, input)
+      queue.enq [task, input]
       task
     end
     
@@ -499,7 +500,6 @@ module Tap
         end
       rescue(TerminateError)
         # gracefully fail for termination errors
-        queue.unshift(*job)
       ensure
         synchronize { @state = State::READY }
       end
@@ -575,8 +575,10 @@ module Tap
       order = []
       
       # collect enque signals to setup queue
-      signals = queue.to_a.collect do |(task, input)|
-        {'sig' => 'enq', 'args' => {'var' => var(task), 'input' => input}}
+      signals = []
+      while queue.size > 0
+        task, input = queue.deq
+        signals << {'sig' => 'enq', 'args' => {'var' => var(task), 'input' => input}}
       end
       
       # collect and trace application objects

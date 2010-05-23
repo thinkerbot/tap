@@ -192,7 +192,9 @@ class AppTest < Test::Unit::TestCase
     assert_equal 0, app.queue.size
     app.enq(n, :a)
     app.enq(n, :b)
-    assert_equal [[n, :a], [n, :b]], app.queue.to_a
+    
+    assert_equal [n, :a], app.queue.deq
+    assert_equal [n, :b], app.queue.deq
   end
   
   def test_enq_returns_enqued_node
@@ -380,7 +382,7 @@ class AppTest < Test::Unit::TestCase
   
   def test_reset_clears_objects_queue_and_middleware
     app.objects['key'] = Object.new
-    app.queue.enq(:node, :input)
+    app.queue.enq [:node, :input]
     app.use MiddlewareClass
     
     assert_equal 1, app.objects.size
@@ -495,9 +497,9 @@ class AppTest < Test::Unit::TestCase
     
     n0 = lambda do |input| end
     n1 = lambda do |input|
-      assert_equal [[n0, []]], app.queue.to_a
+      assert_equal 1, app.queue.size
       app.run
-      assert_equal [[n0, []]], app.queue.to_a
+      assert_equal 1, app.queue.size
       was_in_block = true
     end
     
@@ -832,28 +834,5 @@ class AppTest < Test::Unit::TestCase
     app.enq n
     app.run
     assert was_in_block
-  end
-  
-  def test_terminate_errors_reque_the_latest_node
-    was_in_block = false
-    terminate = true
-    n0 = lambda do |input|
-      was_in_block = true
-      raise Tap::App::TerminateError if terminate
-    end
-    n1 = lambda do |input| end
-    
-    app.enq n0, [1,2,3]
-    app.enq n1
-    
-    assert_equal [[n0, [1,2,3]], [n1, []]], app.queue.to_a
-    
-    app.run
-    assert was_in_block
-    assert_equal [[n0, [1,2,3]], [n1, []]], app.queue.to_a
-    
-    terminate = false
-    app.run
-    assert_equal [], app.queue.to_a
   end
 end

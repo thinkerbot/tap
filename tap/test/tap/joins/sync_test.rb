@@ -130,9 +130,7 @@ class SyncTest < Test::Unit::TestCase
       a,
     ], runlist
     
-    assert_equal [
-      [e, []]
-    ], app.queue.to_a
+    assert_equal [e, []], app.queue.deq
   end
   
   def test_sync_removes_callbacks_from_existing_inputs_on_join
