@@ -1,3 +1,7 @@
+== 0.8.0 / 2011-01-09
+
+* fixes unwise >= gem dependencies
+
 == 0.7.1 / 2010-05-21
 
 Fixed the permissions of generated files/directories. This is significant
