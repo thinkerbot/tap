@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   s.summary = 'Test modules for Tap'
   s.require_path = 'lib'
   s.rubyforge_project = 'tap'
-  s.add_dependency('tap', ">= #{Tap::VERSION}")
+  s.add_dependency('tap', "~> #{Tap::VERSION}")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Test}
   

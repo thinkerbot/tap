@@ -16,8 +16,8 @@ Gem::Specification.new do |s|
   s.summary = 'Generators for Tap'
   s.require_path = 'lib'
   s.rubyforge_project = 'tap'
-  s.add_dependency('tap', ">= #{Tap::VERSION}")
-  s.add_development_dependency('tap-test', ">= #{Tap::Test::VERSION}")
+  s.add_dependency('tap', "~> #{Tap::VERSION}")
+  s.add_development_dependency('tap-test', "~> #{Tap::Test::VERSION}")
   s.has_rdoc = true
   s.rdoc_options.concat %W{--main README -S -N --title Tap-Generator}
   
