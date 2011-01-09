@@ -1,3 +1,7 @@
+== 0.8.0 / 2011-01-09
+
+* fixes unwise >= gem dependencies
+
 == 0.7.0 / 2010-05-02
 
 Updates for Tap-1.3.0
