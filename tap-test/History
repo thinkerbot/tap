@@ -1,3 +1,7 @@
+== 0.7.0 / 2011-01-09
+
+* fixes unwise >= gem dependencies
+
 == 0.6.0 / 2010-05-02
 
 This release removes crufty methods that are rarely used and
